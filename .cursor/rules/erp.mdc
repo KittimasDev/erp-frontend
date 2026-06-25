@@ -1,0 +1,14 @@
+---
+description: ERP monorepo guidelines — read before cross-stack work
+alwaysApply: true
+---
+
+# ERP Frontend Rules
+
+อ่าน [AGENTS.md](../../../AGENTS.md) ที่ root workspace ก่อนทำงานที่เกี่ยวข้องกับ backend หรือ API
+
+- Frontend path: `frontend_web/` — Next.js, Ant Design, port 3000
+- เรียก API ด้วย relative path `/api/*` (Next.js proxy ไป backend)
+- ก่อนแก้ API call ตรวจ backend controller/service/DTO
+- ห้ามเปลี่ยน API path / refactor ใหญ่ถ้าไม่ได้สั่ง
+- ถ้าเจอปัญหา API เช็คทั้ง request ฝั่งนี้และ route ฝั่ง backend
