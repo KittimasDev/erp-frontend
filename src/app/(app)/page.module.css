@@ -1,0 +1,74 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.heroCard {
+  padding: 28px 30px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #ffffff 0%, #f7faef 100%);
+  border: 1px solid rgba(117, 169, 0, 0.14);
+  box-shadow: 0 16px 36px rgba(95, 95, 104, 0.08);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #75a900;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.heroCard h1 {
+  margin: 0 0 10px;
+  font-size: clamp(28px, 4vw, 38px);
+  color: #44444d;
+}
+
+.description {
+  margin: 0;
+  max-width: 640px;
+  color: #7d8491;
+  line-height: 1.7;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.statCard {
+  padding: 22px 24px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(117, 169, 0, 0.1);
+  box-shadow: 0 12px 28px rgba(95, 95, 104, 0.07);
+}
+
+.statCard span {
+  display: block;
+  color: #7d8491;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.statCard strong {
+  display: block;
+  margin: 8px 0 6px;
+  font-size: 34px;
+  color: #44444d;
+}
+
+.statCard small {
+  color: #75a900;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+}

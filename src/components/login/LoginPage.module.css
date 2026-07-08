@@ -1,0 +1,602 @@
+:root {
+    --green: #75a900;
+    --green-dark: #5f8900;
+    --green-soft: #eef7dc;
+    --gray-700: #62636d;
+    --orange: #efc05f;
+    --orange-soft: #fff4d8;
+    --text: #27313d;
+    --muted: #7d8491;
+  }
+  
+  .page {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    color: var(--text);
+    background:
+      radial-gradient(circle at 8% 12%, rgba(117, 169, 0, 0.18), transparent 28%),
+      radial-gradient(circle at 88% 8%, rgba(239, 192, 95, 0.28), transparent 26%),
+      radial-gradient(circle at 80% 88%, rgba(117, 169, 0, 0.11), transparent 28%),
+      linear-gradient(135deg, #fbfcf6 0%, #f3f6ec 45%, #eef3e5 100%);
+  }
+  
+  .page::before {
+    content: "";
+    position: absolute;
+    width: 560px;
+    height: 560px;
+    right: -230px;
+    top: -250px;
+    border-radius: 45% 55% 46% 54%;
+    background: linear-gradient(
+      135deg,
+      rgba(117, 169, 0, 0.25),
+      rgba(239, 192, 95, 0.28)
+    );
+  }
+  
+  .page::after {
+    content: "";
+    position: absolute;
+    width: 420px;
+    height: 420px;
+    left: -190px;
+    bottom: -190px;
+    border-radius: 50%;
+    background: linear-gradient(
+      135deg,
+      rgba(79, 80, 90, 0.16),
+      rgba(117, 169, 0, 0.13)
+    );
+  }
+  
+  .loginLayout {
+    width: min(1180px, 100%);
+    min-height: 720px;
+    display: grid;
+    grid-template-columns: 1.08fr 0.92fr;
+    border-radius: 36px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid rgba(117, 169, 0, 0.13);
+    box-shadow: 0 34px 90px rgba(63, 65, 74, 0.17);
+    backdrop-filter: blur(18px);
+    position: relative;
+    z-index: 1;
+  }
+  
+  .visualPanel {
+    position: relative;
+    padding: 44px;
+    color: #fff;
+    background:
+      linear-gradient(135deg, rgba(63, 65, 74, 0.97), rgba(98, 99, 109, 0.95)),
+      radial-gradient(circle at 18% 15%, rgba(239, 192, 95, 0.4), transparent 38%);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  .visualPanel::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      transparent 0 58%,
+      rgba(117, 169, 0, 0.96) 58% 100%
+    );
+  }
+  
+  .visualPanel::after {
+    content: "";
+    position: absolute;
+    width: 580px;
+    height: 580px;
+    border-radius: 50%;
+    left: -280px;
+    top: -260px;
+    background: radial-gradient(circle, rgba(239, 192, 95, 0.28), transparent 65%);
+  }
+  
+  .visualContent,
+  .dashboardPreview {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  
+  .logoMark {
+    width: 56px;
+    height: 64px;
+    border-radius: 32px 32px 32px 7px;
+    background: linear-gradient(
+      145deg,
+      #ffc03d 0%,
+      #ef9f00 48%,
+      var(--green) 50%,
+      var(--green) 100%
+    );
+    transform: rotate(-8deg);
+    box-shadow: 0 18px 34px rgba(0, 0, 0, 0.22);
+    flex: none;
+  }
+  
+  .brandText strong {
+    display: block;
+    font-size: 34px;
+    line-height: 0.95;
+    letter-spacing: 0.02em;
+  }
+  
+  .brandText span {
+    display: block;
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: #dbef9d;
+    font-weight: 800;
+  }
+  
+  .brandMobile .brandText strong {
+    color: var(--gray-700);
+  }
+  
+  .brandMobile .brandText span {
+    color: var(--green);
+  }
+  
+  .hero {
+    max-width: 500px;
+    margin-top: 92px;
+  }
+  
+  .eyebrow,
+  .welcomeBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  
+  .eyebrow {
+    padding: 9px 14px;
+    margin-bottom: 22px;
+    background: rgba(255, 255, 255, 0.13);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  
+  .pulse {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d9f38c;
+    box-shadow: 0 0 0 5px rgba(217, 243, 140, 0.16);
+    flex: none;
+  }
+  
+  .hero h1 {
+    margin: 0;
+    font-size: 46px;
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+  }
+  
+  .hero p {
+    margin: 18px 0 0;
+    max-width: 450px;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 16px;
+    line-height: 1.85;
+  }
+  
+  .dashboardPreview {
+    margin-top: 50px;
+    border-radius: 28px;
+    padding: 18px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+  }
+  
+  .previewTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  
+  .previewTop b {
+    font-size: 14px;
+  }
+  
+  .previewChip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(217, 243, 140, 0.16);
+    color: #e7f9a8;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  
+  .statGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  
+  .stat {
+    min-height: 96px;
+    padding: 14px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.11);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  
+  .stat span {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 10px;
+  }
+  
+  .stat strong {
+    display: block;
+    font-size: 26px;
+    line-height: 1;
+  }
+  
+  .bar {
+    height: 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    margin-top: 14px;
+    overflow: hidden;
+  }
+  
+  .bar i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--orange), #d9f38c);
+  }
+  
+  .formPanel {
+    padding: 46px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 255, 255, 0.86)
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .loginCard {
+    width: min(430px, 100%);
+  }
+  
+  .mobileBrand {
+    display: none;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: 28px;
+  }
+  
+  .welcomeBadge {
+    height: 38px;
+    padding: 0 14px;
+    margin-bottom: 18px;
+    background: var(--green-soft);
+    color: var(--green-dark);
+    border: 1px solid rgba(117, 169, 0, 0.17);
+    font-weight: 800;
+  }
+  
+  .loginCard h2 {
+    margin: 0;
+    color: #454c56;
+    font-size: 34px;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+  
+  .subtitle {
+    margin: 9px 0 28px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.75;
+  }
+  
+  .formLabel {
+    display: block;
+    margin-bottom: 8px;
+    color: #4e5662;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  
+  .formRow {
+    margin-bottom: 18px;
+  }
+  
+  .formMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin: 4px 0 24px;
+    font-size: 13px;
+  }
+  
+  .forgot {
+    color: var(--green-dark);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  
+  .loginButton {
+    height: 52px !important;
+    border: 0 !important;
+    color: #fff !important;
+    font-size: 15px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #8cc40e, var(--green-dark)) !important;
+    box-shadow: 0 17px 30px rgba(117, 169, 0, 0.25);
+  }
+  
+  .loginButton:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.02);
+  }
+  
+  .helperGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  
+  .helperButton {
+    height: 44px;
+    border-radius: 15px !important;
+    border-color: #dfe5d2 !important;
+    color: #5f6774 !important;
+    font-weight: 700;
+  }
+  
+  .helperButton:hover {
+    color: var(--green-dark) !important;
+    border-color: rgba(117, 169, 0, 0.4) !important;
+    background: #fbfff2 !important;
+  }
+  
+  .securityNote {
+    margin-top: 24px;
+    padding: 15px 16px;
+    border-radius: 19px;
+    background: linear-gradient(135deg, var(--orange-soft), rgba(255, 255, 255, 0.95));
+    border: 1px solid rgba(239, 192, 95, 0.28);
+    color: #735416;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  
+  .securityNote b {
+    display: block;
+    margin-bottom: 2px;
+    color: #60440e;
+  }
+  
+  .footer {
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: #9ba2ad;
+    font-size: 12px;
+  }
+  
+  .footer a {
+    color: #7f8794;
+    text-decoration: none;
+    font-weight: 700;
+  }
+  
+  /* Tablet */
+  @media (max-width: 1024px) {
+    .page {
+      padding: 24px;
+    }
+  
+    .loginLayout {
+      min-height: 660px;
+      grid-template-columns: 0.95fr 1.05fr;
+    }
+  
+    .visualPanel {
+      padding: 34px;
+    }
+  
+    .hero {
+      margin-top: 68px;
+    }
+  
+    .hero h1 {
+      font-size: 38px;
+    }
+  
+    .hero p {
+      font-size: 15px;
+    }
+  
+    .statGrid {
+      grid-template-columns: 1fr;
+    }
+  
+    .stat {
+      min-height: auto;
+    }
+  
+    .formPanel {
+      padding: 36px;
+    }
+  }
+  
+  /* Mobile */
+  @media (max-width: 768px) {
+    .page {
+      min-height: 100dvh;
+      padding: 18px;
+      place-items: center;
+      overflow-y: auto;
+    }
+  
+    .page::before {
+      width: 360px;
+      height: 360px;
+      right: -190px;
+      top: -170px;
+    }
+  
+    .page::after {
+      width: 280px;
+      height: 280px;
+      left: -160px;
+      bottom: -140px;
+    }
+  
+    .loginLayout {
+      width: 100%;
+      min-height: auto;
+      display: block;
+      border-radius: 28px;
+    }
+  
+    .visualPanel {
+      display: none;
+    }
+  
+    .formPanel {
+      min-height: auto;
+      padding: 30px 22px;
+    }
+  
+    .loginCard {
+      width: 100%;
+      max-width: 430px;
+    }
+  
+    .mobileBrand {
+      display: flex;
+    }
+  
+    .logoMark {
+      width: 46px;
+      height: 54px;
+      border-radius: 26px 26px 26px 6px;
+    }
+  
+    .brandText strong {
+      font-size: 28px;
+    }
+  
+    .brandText span {
+      font-size: 10px;
+    }
+  
+    .welcomeBadge {
+      height: 34px;
+      padding: 0 12px;
+      font-size: 12px;
+      margin-bottom: 16px;
+    }
+  
+    .loginCard h2 {
+      font-size: 29px;
+    }
+  
+    .subtitle {
+      font-size: 13px;
+      margin-bottom: 24px;
+    }
+  
+    .formRow {
+      margin-bottom: 16px;
+    }
+  
+    .formMeta {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+  
+    .helperGrid {
+      grid-template-columns: 1fr;
+    }
+  
+    .securityNote {
+      margin-top: 20px;
+      padding: 13px 14px;
+      font-size: 12px;
+      border-radius: 16px;
+    }
+  
+    .footer {
+      align-items: flex-start;
+      flex-direction: column;
+      margin-top: 20px;
+    }
+  }
+  
+  /* Small Mobile */
+  @media (max-width: 420px) {
+    .page {
+      padding: 12px;
+      place-items: start center;
+    }
+  
+    .loginLayout {
+      border-radius: 24px;
+    }
+  
+    .formPanel {
+      padding: 26px 18px;
+    }
+  
+    .mobileBrand {
+      margin-bottom: 24px;
+    }
+  
+    .loginCard h2 {
+      font-size: 26px;
+    }
+  
+    .subtitle {
+      line-height: 1.6;
+    }
+  
+    .loginButton {
+      height: 48px !important;
+    }
+  
+    .helperButton {
+      height: 42px;
+    }
+  }

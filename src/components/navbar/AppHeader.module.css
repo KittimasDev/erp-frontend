@@ -1,0 +1,251 @@
+.headerBar {
+  --brand-green: #75a900;
+  --brand-green-dark: #5f8900;
+  --ink: #44444d;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: 74px;
+  padding: 0 16px 0 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(117, 169, 0, 0.16);
+  box-shadow: 0 14px 34px rgba(68, 68, 77, 0.1);
+  backdrop-filter: blur(16px);
+  margin-bottom: 22px;
+}
+
+/* Brand */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 20px;
+  margin-right: 2px;
+  border-right: 1px solid rgba(68, 68, 77, 0.1);
+  text-decoration: none;
+  color: inherit;
+  flex: none;
+}
+
+.brandMark {
+  width: 40px;
+  height: 46px;
+  border-radius: 20px 20px 20px 4px;
+  background: linear-gradient(
+    145deg,
+    #ffb326 0%,
+    #f59d00 48%,
+    var(--brand-green) 50%,
+    var(--brand-green) 100%
+  );
+  transform: rotate(-8deg);
+  box-shadow: 0 8px 16px rgba(117, 169, 0, 0.24);
+  flex: none;
+  transition: transform 0.18s ease;
+}
+
+.brand:hover .brandMark {
+  transform: rotate(-8deg) scale(1.05);
+}
+
+.brandTitle {
+  line-height: 1.05;
+  display: flex;
+  flex-direction: column;
+}
+
+.brandTitle strong {
+  font-size: 22px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.brandTitle span {
+  font-size: 9.5px;
+  color: var(--brand-green);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+}
+
+/* Desktop nav links */
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  color: #5f6672;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: 0.16s ease;
+}
+
+.navLink:hover {
+  color: var(--brand-green-dark);
+  background: rgba(117, 169, 0, 0.1);
+}
+
+.navLinkIcon {
+  display: inline-flex;
+  color: #9aa1ac;
+  transition: color 0.16s ease;
+}
+
+.navLink:hover .navLinkIcon {
+  color: var(--brand-green);
+}
+
+.navLinkActive,
+.navLinkActive:hover {
+  color: #fff;
+  background: linear-gradient(135deg, #8cc40e, var(--brand-green-dark));
+  box-shadow: 0 10px 20px rgba(117, 169, 0, 0.28);
+}
+
+.navLinkActive .navLinkIcon,
+.navLinkActive:hover .navLinkIcon {
+  color: #fff;
+}
+
+/* Right actions */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.menuChip {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 14px;
+  background: rgba(117, 169, 0, 0.1);
+  border: 1px solid rgba(117, 169, 0, 0.2);
+  color: var(--brand-green-dark);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.16s ease;
+}
+
+.menuChip:hover {
+  background: rgba(117, 169, 0, 0.16);
+}
+
+.menuIcon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.menuChipLabel {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logoutBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(68, 68, 77, 0.16);
+  background: rgba(255, 255, 255, 0.6);
+  color: #5f6672;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.16s ease;
+}
+
+.logoutBtn:hover {
+  color: #c0392b;
+  border-color: rgba(192, 57, 43, 0.35);
+  background: rgba(192, 57, 43, 0.06);
+}
+
+/* Tablet — collapse links into dropdown */
+@media (max-width: 860px) {
+  .navLinks {
+    display: none;
+  }
+
+  .actions {
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .menuChip {
+    display: inline-flex;
+    margin-right: auto;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .headerBar {
+    height: 66px;
+    gap: 12px;
+    padding: 0 12px 0 14px;
+    border-radius: 18px;
+    margin-bottom: 16px;
+  }
+
+  .brand {
+    padding-right: 12px;
+    gap: 10px;
+  }
+
+  .brandMark {
+    width: 34px;
+    height: 40px;
+  }
+
+  .brandTitle strong {
+    font-size: 19px;
+  }
+
+  .brandTitle span {
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+  }
+
+  .menuChip {
+    height: 40px;
+    padding: 0 12px;
+  }
+
+  .menuChipLabel {
+    display: none;
+  }
+
+  .logoutBtn {
+    height: 40px;
+    padding: 0 13px;
+  }
+
+  .logoutBtn span {
+    display: none;
+  }
+}
