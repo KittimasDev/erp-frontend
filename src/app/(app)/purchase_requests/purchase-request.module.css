@@ -1,0 +1,416 @@
+.pageWrap {
+    padding: 8px 10px 24px;
+    /* background: #f5f5f5; */
+    min-height: 100%;
+    color: #333;
+  }
+  
+  .breadcrumb {
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+  
+  .breadcrumb :global(.ant-breadcrumb-link) {
+    color: #8f8f8f;
+  }
+  
+  .breadcrumbActive {
+    color: #7ca500;
+    font-weight: 600;
+  }
+  
+  .pageHeader {
+    margin-bottom: 16px;
+  }
+  
+  .pageTitle {
+    margin: 0 0 8px;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #4b4b58;
+  }
+  
+  .titleLine,
+  .bottomLine {
+    height: 2px;
+    background: #b7d25b;
+    width: 100%;
+  }
+  
+  .filterSection {
+    margin-bottom: 16px;
+  }
+  
+  .formGrid3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  
+  .formItem {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .formItem label {
+    font-size: 12px;
+    color: #313131;
+    font-weight: 600;
+  }
+  
+  .required {
+    color: #ff4d4f;
+  }
+  
+  .inputControl,
+  .selectControl :global(.ant-select-selector),
+  .textAreaControl {
+    border-radius: 2px !important;
+    height: 34px !important;
+    border: 1px solid #d7d7d7 !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+  
+  .inputControl :global(input) {
+    height: 32px !important;
+    font-size: 12px;
+  }
+  
+  .textAreaControl {
+    min-height: auto !important;
+  }
+  
+  .textAreaControl :global(textarea) {
+    font-size: 12px;
+  }
+  
+  .selectControl {
+    width: 100%;
+  }
+  
+  .selectControl :global(.ant-select-selection-placeholder),
+  .selectControl :global(.ant-select-selection-item) {
+    font-size: 12px;
+    line-height: 32px !important;
+  }
+  
+  .calendarIcon {
+    color: #7d7d7d;
+  }
+  
+  .searchButtonRow {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 12px 0 22px;
+  }
+  
+  .actionBtn {
+    min-width: 86px;
+    height: 34px;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 13px;
+    border: 0;
+    box-shadow: none;
+  }
+  
+  .searchBtn {
+    background: #f5b57e !important;
+    color: #3c2d22 !important;
+  }
+  
+  .clearBtn {
+    background: #d2d2d2 !important;
+    color: #ffffff !important;
+  }
+  
+  .topActionBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .addBtn,
+  .smallGoldBtn {
+    height: 34px !important;
+    border-radius: 4px !important;
+    background: #ebc15c !important;
+    border: 0 !important;
+    color: #5a4522 !important;
+    font-weight: 600 !important;
+    box-shadow: none !important;
+  }
+  
+  .tableToolbar {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 6px;
+  }
+  
+  .entriesBox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #343434;
+  }
+  
+  .entriesSelect {
+    width: 64px;
+  }
+  
+  .entriesSelect :global(.ant-select-selector) {
+    height: 24px !important;
+    min-height: 24px !important;
+    border-radius: 2px !important;
+    font-size: 12px;
+  }
+  
+  .entriesSelect :global(.ant-select-selection-item) {
+    line-height: 22px !important;
+    font-size: 12px;
+  }
+  
+  .tableWrap,
+  .tableWrapScrollable {
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  .tableWrapScrollable {
+    overflow-x: auto;
+  }
+  
+  .customTable :global(.ant-table) {
+    border-radius: 0 !important;
+    background: transparent;
+  }
+  
+  .customTable :global(.ant-table-container) {
+    border-inline-start: 0 !important;
+    border-inline-end: 0 !important;
+  }
+  
+  .customTable :global(.ant-table-thead > tr > th) {
+    background: #676674 !important;
+    color: #fff !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    border-right: 1px solid #8a8994 !important;
+    border-bottom: 0 !important;
+    padding: 10px 8px !important;
+  }
+  
+  .customTable :global(.ant-table-thead > tr > th:last-child) {
+    border-right: 0 !important;
+  }
+  
+  .customTable :global(.ant-table-tbody > tr > td) {
+    background: #efefef !important;
+    border-bottom: 1px solid #f5f5f5 !important;
+    color: #3d3d3d !important;
+    font-size: 12px !important;
+    padding: 13px 8px !important;
+  }
+  
+  .customTable :global(.ant-table-tbody > tr:nth-child(even) > td) {
+    background: #e7e7e7 !important;
+  }
+  
+  .customTable :global(.ant-empty) {
+    margin-block: 18px !important;
+  }
+  
+  .customTable :global(.ant-empty-description) {
+    color: #4f4f4f;
+    font-size: 12px;
+  }
+  
+  .customTable :global(.ant-table-placeholder > td) {
+    background: #fff !important;
+    text-align: center !important;
+  }
+  
+  .tableRow:hover > td {
+    background: #ececec !important;
+  }
+  
+  .statusText {
+    font-weight: 600;
+    color: #49495a;
+    letter-spacing: 0.2px;
+  }
+  
+  .iconBtn {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+  }
+  
+  .iconBtnView {
+    background: #f5a623;
+  }
+  
+  .iconBtnEdit {
+    background: #f7b733;
+  }
+  
+  .iconBtnDelete {
+    background: #e53935;
+  }
+  
+  .tableFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .footerText {
+    font-size: 12px;
+    color: #3a3a3a;
+  }
+  
+  .pagination :global(.ant-pagination-item),
+  .pagination :global(.ant-pagination-prev),
+  .pagination :global(.ant-pagination-next) {
+    min-width: 24px;
+    height: 24px;
+    line-height: 22px;
+    border-radius: 2px;
+    font-size: 12px;
+  }
+  
+  .pagination :global(.ant-pagination-item-active) {
+    background: #1b76ff;
+    border-color: #1b76ff;
+  }
+  
+  .pagination :global(.ant-pagination-item-active a) {
+    color: #fff;
+  }
+  
+  .inlineActionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 6px 0 8px;
+  }
+  
+  .inlineActionRight {
+    display: flex;
+    justify-content: flex-end;
+    margin: 10px 0 14px;
+  }
+  
+  .sectionLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: #313131;
+  }
+  
+  .spacer20 {
+    height: 18px;
+  }
+  
+  .itemTable :global(.ant-table-body) {
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+  
+  .totalRow {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  
+  .totalLabel {
+    font-size: 12px;
+    color: #313131;
+    font-weight: 600;
+  }
+  
+  .totalBox {
+    width: 92px;
+    height: 28px;
+    border: 1px solid #d7d7d7;
+    background: #ececec;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 10px;
+    font-size: 12px;
+    color: #6a6a6a;
+    border-radius: 2px;
+  }
+  
+  .remarkBlock {
+    margin-top: 8px;
+  }
+  
+  .bottomActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+  }
+  
+  .cancelBtn {
+    min-width: 86px;
+    height: 36px;
+    border-radius: 4px;
+    border: 1px solid #d7d7d7;
+    background: #efefef;
+    color: #7b7b7b;
+    font-weight: 600;
+  }
+  
+  .saveBtn {
+    min-width: 86px;
+    height: 36px;
+    border-radius: 4px;
+    border: 0;
+    background: #7ca500 !important;
+    color: #fff !important;
+    font-weight: 600;
+  }
+  
+  @media (max-width: 1024px) {
+    .formGrid3 {
+      grid-template-columns: 1fr;
+    }
+  
+    .tableFooter {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  
+    .inlineActionHeader {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  
+    .inlineActionRight,
+    .bottomActions {
+      justify-content: flex-start;
+    }
+  }
