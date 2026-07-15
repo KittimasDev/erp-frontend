@@ -13,6 +13,7 @@ type MasterPageGateProps = {
 /**
  * Shows a globally styled loader until CSS modules paint and initial data is ready.
  * Children still mount (hidden) so page CSS can load without FOUC.
+ * Enter animation runs only when content becomes visible.
  */
 export default function MasterPageGate({
   isLoading = false,
@@ -43,7 +44,7 @@ export default function MasterPageGate({
     <>
       {showLoading ? <PageLoading label={label} /> : null}
       <div
-        className={showLoading ? "masterPageGateHidden" : undefined}
+        className={showLoading ? "masterPageGateHidden" : "pageContentEnter"}
         aria-hidden={showLoading || undefined}
       >
         {children}

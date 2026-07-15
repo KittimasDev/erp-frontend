@@ -25,6 +25,39 @@ body {
   font-family: var(--font-kanit), sans-serif;
 }
 
+/* Soft motion across the whole app (hover lift, cards, buttons) */
+@media (prefers-reduced-motion: no-preference) {
+  body *:not(svg):not(path):not(canvas):not(img) {
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease,
+      background 0.35s ease !important;
+  }
+
+  @keyframes appPageEnter {
+    from {
+      opacity: 0;
+      transform: translateY(28px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .mainLayout,
+  .pageContentEnter {
+    animation: appPageEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mainLayout,
+  .pageContentEnter {
+    animation: none;
+  }
+}
+
 .appShell {
   --sidebar-width: 62px;
 
@@ -46,7 +79,12 @@ body {
 .appMain {
   min-height: 100dvh;
   margin-left: var(--sidebar-width);
-  transition: margin-left 0.2s ease;
+  /* keep sidebar slide + global soft motion */
+  transition:
+    margin-left 0.2s ease,
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    background 0.35s ease !important;
   min-width: 0;
 }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import AppHeader from "./AppHeader";
@@ -9,6 +10,7 @@ export default function AppShell({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
 
   return (
@@ -22,7 +24,9 @@ export default function AppShell({
       />
 
       <div className="appMain">
-        <div className="mainLayout">{children}</div>
+        <div className="mainLayout" key={pathname}>
+          {children}
+        </div>
       </div>
     </div>
   );
