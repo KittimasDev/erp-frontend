@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { App as AntdApp } from "antd";
+import AntdProvider from "@/components/providers/AntdProvider";
+import QueryProvider from "@/components/providers/QueryProvider";
 import "./globals.css";
 import "antd/dist/reset.css";
 
@@ -16,7 +18,11 @@ export default function RootLayout({
   return (
     <html lang="th">
       <body>
-        <AntdApp>{children}</AntdApp>
+        <QueryProvider>
+          <AntdProvider>
+            <AntdApp>{children}</AntdApp>
+          </AntdProvider>
+        </QueryProvider>
       </body>
     </html>
   );

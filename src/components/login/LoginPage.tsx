@@ -1,18 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button, Input, message } from "antd";
+import { App, Button, Input } from "antd";
+
+import { useLoginMutation } from "@/hooks/auth/useLoginMutation";
 import styles from "./LoginPage.module.css";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { message } = App.useApp();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const loginMutation = useLoginMutation();
 
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("password123");
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async (event?: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = (event?: React.FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
 
     if (!username.trim()) {
@@ -25,50 +25,10 @@ export default function LoginPage() {
       return;
     }
 
-    try {
-      setLoading(true);
-
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message || "เข้าสู่ระบบไม่สำเร็จ");
-      }
-
-      /**
-       * ปรับชื่อ field token ให้ตรงกับ backend ของคุณ
-       * เช่น backend อาจส่ง access_token, accessToken หรือ token
-       */
-      const accessToken = data?.access_token || data?.accessToken || data?.token;
-
-      if (accessToken) {
-        localStorage.setItem("accessToken", accessToken);
-      }
-
-      localStorage.setItem("user", JSON.stringify(data?.user || data));
-
-      message.success("เข้าสู่ระบบสำเร็จ");
-
-      router.push("/");
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "เกิดข้อผิดพลาดในการเข้าสู่ระบบ";
-
-      message.error(errorMessage);
-    } finally {
-      setLoading(false);
-    }
+    loginMutation.mutate({
+      username: username.trim(),
+      password,
+    });
   };
 
   return (
@@ -132,6 +92,7 @@ export default function LoginPage() {
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
+                  disabled={loginMutation.isPending}
                 />
               </div>
 
@@ -144,6 +105,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={loginMutation.isPending}
                 />
               </div>
 
@@ -153,7 +115,7 @@ export default function LoginPage() {
                 htmlType="submit"
                 className={styles.loginButton}
                 block
-                loading={loading}
+                loading={loginMutation.isPending}
               >
                 เข้าสู่ระบบ
               </Button>

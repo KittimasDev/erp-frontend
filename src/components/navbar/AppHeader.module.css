@@ -10,17 +10,19 @@
   background: #f6f6f6;
   border-right: 1px solid rgba(0, 0, 0, 0.04);
   transition: width 0.2s ease;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  flex: none;
 }
 
 .sidebarCollapsed {
-  width: 62px;
+  width: var(--sidebar-width, 62px);
 }
 
 .sidebarExpanded {
-  width: 276px;
+  width: var(--sidebar-width, 276px);
 }
 
 .sidebarTop {
@@ -273,14 +275,6 @@
 }
 
 @media (max-width: 640px) {
-  .sidebarCollapsed {
-    width: 54px;
-  }
-
-  .sidebarExpanded {
-    width: 250px;
-  }
-
   .sidebarTop {
     padding-inline: 9px;
   }

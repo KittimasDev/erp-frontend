@@ -115,6 +115,23 @@ const IconVendor = () => (
   </svg>
 );
 
+const IconSellerType = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M8 10.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM16 10.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM21 10.5a2.5 2.5 0 1 1-5 0"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M2.5 18.5a4.5 4.5 0 0 1 8 0M9.5 18.5a4.5 4.5 0 0 1 8 0M16 18.5a4.5 4.5 0 0 1 5.5 0"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 const IconItem = () => (
   <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
     <path
@@ -156,6 +173,25 @@ const IconWarehouse = () => (
   </svg>
 );
 
+const IconWarehouseLocation = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M12 21s6-5.2 6-10.2A6 6 0 0 0 6 10.8C6 15.8 12 21 12 21Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle
+      cx="12"
+      cy="10.5"
+      r="2.2"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    />
+  </svg>
+);
+
 const IconPayment = () => (
   <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
     <path
@@ -163,6 +199,64 @@ const IconPayment = () => (
       stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconTax = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M6 4h8l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M14 4v4h4M8 13h5M8 17h3M15.5 12.5l-3 5M12.5 12.5h.01M15.5 17.5h.01"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconPrType = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M9 8h6M9 12h6M9 16h4"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const IconDepartment = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M4 20V7.5L12 4l8 3.5V20M8 20v-5h8v5M9.5 10h.01M14.5 10h.01M9.5 13.5h.01M14.5 13.5h.01"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconCategory = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M4 7h7v7H4V7Zm9 0h7v7h-7V7ZM4 16h7v4H4v-4Zm9 0h7v4h-7v-4Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
       strokeLinejoin="round"
     />
   </svg>
@@ -197,10 +291,58 @@ const masterMenus: MenuItem[] = [
     icon: <IconVendor />,
   },
   {
+    key: "seller-types",
+    label: "ประเภทผู้ขาย",
+    href: "/masters/seller-types",
+    icon: <IconSellerType />,
+  },
+  {
+    key: "sellers",
+    label: "ผู้ขายยาง",
+    href: "/masters/sellers",
+    icon: <IconVendor />,
+  },
+  {
+    key: "seller-bank-accounts",
+    label: "บัญชีธนาคารผู้ขาย",
+    href: "/masters/seller-bank-accounts",
+    icon: <IconPayment />,
+  },
+  {
+    key: "trucks",
+    label: "รถบรรทุก",
+    href: "/masters/trucks",
+    icon: <IconReceiving />,
+  },
+  {
+    key: "tire-classifications",
+    label: "ประเภท/กลุ่มยาง",
+    href: "/masters/tire-classifications",
+    icon: <IconCategory />,
+  },
+  {
+    key: "raw-tire-price-rules",
+    label: "กฎราคาซื้อยาง",
+    href: "/masters/raw-tire-price-rules",
+    icon: <IconTax />,
+  },
+  {
+    key: "weighbridge-scales",
+    label: "เครื่องชั่ง",
+    href: "/masters/weighbridge-scales",
+    icon: <IconReceiving />,
+  },
+  {
     key: "items",
     label: "สินค้า / วัตถุดิบ",
     href: "/masters/items",
     icon: <IconItem />,
+  },
+  {
+    key: "item-categories",
+    label: "หมวดหมู่สินค้า",
+    href: "/masters/item-categories",
+    icon: <IconCategory />,
   },
   {
     key: "units",
@@ -215,10 +357,34 @@ const masterMenus: MenuItem[] = [
     icon: <IconWarehouse />,
   },
   {
+    key: "warehouse-locations",
+    label: "ตำแหน่งจัดเก็บ",
+    href: "/masters/warehouse-locations",
+    icon: <IconWarehouseLocation />,
+  },
+  {
     key: "payment-terms",
     label: "เงื่อนไขชำระเงิน",
     href: "/masters/payment-terms",
     icon: <IconPayment />,
+  },
+  {
+    key: "tax-rates",
+    label: "อัตราภาษี",
+    href: "/masters/tax-rates",
+    icon: <IconTax />,
+  },
+  {
+    key: "purchase-request-types",
+    label: "ประเภทใบขอซื้อ",
+    href: "/masters/purchase-request-types",
+    icon: <IconPrType />,
+  },
+  {
+    key: "departments",
+    label: "แผนก",
+    href: "/masters/departments",
+    icon: <IconDepartment />,
   },
 ];
 
@@ -230,11 +396,18 @@ function isMasterActive(pathname: string) {
   return pathname === "/masters" || pathname.startsWith("/masters/");
 }
 
-export default function AppHeader() {
+type AppHeaderProps = {
+  collapsed: boolean;
+  onCollapsedChange: (collapsed: boolean) => void;
+};
+
+export default function AppHeader({
+  collapsed,
+  onCollapsedChange,
+}: AppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [collapsed, setCollapsed] = useState(true);
   const [masterOpen, setMasterOpen] = useState(isMasterActive(pathname));
 
   const handleGo = (href: string) => {
@@ -243,7 +416,7 @@ export default function AppHeader() {
 
   const handleToggleMaster = () => {
     if (collapsed) {
-      setCollapsed(false);
+      onCollapsedChange(false);
       setMasterOpen(true);
       return;
     }
@@ -263,7 +436,7 @@ export default function AppHeader() {
         <button
           type="button"
           className={styles.sidebarToggle}
-          onClick={() => setCollapsed((prev) => !prev)}
+          onClick={() => onCollapsedChange(!collapsed)}
           aria-label="ย่อ/ขยายเมนู"
         >
           <IconMenu />
