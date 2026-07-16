@@ -1,3 +1,5 @@
+import { redirectToLogin } from "@/lib/auth/redirect-to-login";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -12,13 +14,15 @@ export class ApiError extends Error {
 type ApiFetchOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   token?: string | null;
+  /** Skip auto-redirect on 401 (e.g. login request) */
+  skipAuthRedirect?: boolean;
 };
 
 export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  const { body, token, headers, ...rest } = options;
+  const { body, token, headers, skipAuthRedirect, ...rest } = options;
 
   const response = await fetch(path, {
     ...rest,
@@ -41,6 +45,16 @@ export async function apiFetch<T>(
       typeof (data as { message: unknown }).message === "string"
         ? (data as { message: string }).message
         : "คำขอไม่สำเร็จ";
+
+    const isLoginRequest = path.includes("/auth/login");
+
+    if (
+      response.status === 401 &&
+      !skipAuthRedirect &&
+      !isLoginRequest
+    ) {
+      redirectToLogin();
+    }
 
     throw new ApiError(message, response.status, data);
   }

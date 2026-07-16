@@ -12,17 +12,6 @@ type MenuItem = {
   icon: ReactNode;
 };
 
-const IconMenu = () => (
-  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" aria-hidden>
-    <path
-      d="M4 7h16M9 12h11M4 17h16"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
 const IconChevron = ({ open }: { open: boolean }) => (
   <svg
     viewBox="0 0 24 24"
@@ -36,6 +25,18 @@ const IconChevron = ({ open }: { open: boolean }) => (
       d="m8 10 4 4 4-4"
       stroke="currentColor"
       strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconEdgeChevron = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" aria-hidden>
+    <path
+      d="m14 6-6 6 6 6"
+      stroke="currentColor"
+      strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
@@ -430,105 +431,119 @@ export default function AppHeader({
         collapsed ? styles.sidebarCollapsed : styles.sidebarExpanded
       }`}
     >
-      <div className={styles.sidebarTop}>
-        {!collapsed && <span className={styles.sidebarLabel}>เมนู</span>}
-
-        <button
-          type="button"
-          className={styles.sidebarToggle}
-          onClick={() => onCollapsedChange(!collapsed)}
-          aria-label="ย่อ/ขยายเมนู"
+      <button
+        type="button"
+        className={styles.edgeToggle}
+        onClick={() => onCollapsedChange(!collapsed)}
+        aria-label={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
+      >
+        <span
+          className={`${styles.edgeToggleIcon} ${
+            collapsed ? styles.edgeToggleIconCollapsed : ""
+          }`}
         >
-          <IconMenu />
-        </button>
-      </div>
+          <IconEdgeChevron />
+        </span>
+      </button>
 
-      <div className={styles.sidebarProfile}>
-        <div className={styles.avatar}>M</div>
-
-        {!collapsed && (
-          <div className={styles.profileText}>
-            <strong>Purchase</strong>
-            <span>ERP Module</span>
+      <div className={styles.sidebarInner}>
+        <div className={styles.sidebarTop}>
+          <div className={styles.logoBlock}>
+            {collapsed ? "SMT" : "SMT ERP"}
           </div>
-        )}
-      </div>
-
-      <div className={styles.groupBlock}>
-        {!collapsed && <div className={styles.groupTitle}>PURCHASE</div>}
-
-        <div className={styles.groupItems}>
-          {mainMenus.map((item) => {
-            const active = isActive(item.href, pathname);
-
-            return (
-              <button
-                key={item.key}
-                type="button"
-                title={collapsed ? item.label : undefined}
-                className={`${styles.menuItem} ${
-                  active ? styles.menuItemActive : ""
-                }`}
-                onClick={() => handleGo(item.href)}
-              >
-                <span className={styles.menuItemIcon}>{item.icon}</span>
-
-                {!collapsed && (
-                  <span className={styles.menuItemText}>{item.label}</span>
-                )}
-              </button>
-            );
-          })}
         </div>
-      </div>
 
-      <div className={styles.groupBlock}>
-        {!collapsed && <div className={styles.groupTitle}>SETTING</div>}
+        <div className={styles.navScroll}>
+          <div className={styles.groupBlock}>
+            {!collapsed && <div className={styles.groupTitle}>PURCHASE</div>}
 
-        <div className={styles.groupItems}>
-          <button
-            type="button"
-            title={collapsed ? "Master" : undefined}
-            className={`${styles.menuItem} ${styles.parentMenuItem} ${
-              isMasterActive(pathname) ? styles.menuItemActive : ""
-            }`}
-            onClick={handleToggleMaster}
-          >
-            <span className={styles.menuItemIcon}>
-              <IconMaster />
-            </span>
-
-            {!collapsed && (
-              <>
-                <span className={styles.menuItemText}>Master</span>
-                <span className={styles.chevron}>
-                  <IconChevron open={masterOpen} />
-                </span>
-              </>
-            )}
-          </button>
-
-          {!collapsed && masterOpen && (
-            <div className={styles.subMenu}>
-              {masterMenus.map((item) => {
+            <div className={styles.groupItems}>
+              {mainMenus.map((item) => {
                 const active = isActive(item.href, pathname);
 
                 return (
                   <button
                     key={item.key}
                     type="button"
-                    className={`${styles.subMenuItem} ${
-                      active ? styles.subMenuItemActive : ""
+                    title={collapsed ? item.label : undefined}
+                    className={`${styles.menuItem} ${
+                      active ? styles.menuItemActive : ""
                     }`}
                     onClick={() => handleGo(item.href)}
                   >
-                    <span className={styles.subMenuIcon}>{item.icon}</span>
-                    <span>{item.label}</span>
+                    <span className={styles.menuItemIcon}>{item.icon}</span>
+
+                    {!collapsed && (
+                      <span className={styles.menuItemText}>{item.label}</span>
+                    )}
                   </button>
                 );
               })}
             </div>
-          )}
+          </div>
+
+          <div className={styles.groupBlock}>
+            {!collapsed && <div className={styles.groupTitle}>SETTING</div>}
+
+            <div className={styles.groupItems}>
+              <button
+                type="button"
+                title={collapsed ? "Master" : undefined}
+                className={`${styles.menuItem} ${styles.parentMenuItem} ${
+                  isMasterActive(pathname) ? styles.menuItemActive : ""
+                }`}
+                onClick={handleToggleMaster}
+              >
+                <span className={styles.menuItemIcon}>
+                  <IconMaster />
+                </span>
+
+                {!collapsed && (
+                  <>
+                    <span className={styles.menuItemText}>Master</span>
+                    <span className={styles.chevron}>
+                      <IconChevron open={masterOpen} />
+                    </span>
+                  </>
+                )}
+              </button>
+
+              {!collapsed && masterOpen && (
+                <div className={styles.subMenu}>
+                  {masterMenus.map((item) => {
+                    const active = isActive(item.href, pathname);
+
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        className={`${styles.subMenuItem} ${
+                          active ? styles.subMenuItemActive : ""
+                        }`}
+                        onClick={() => handleGo(item.href)}
+                      >
+                        <span className={styles.subMenuIcon}>{item.icon}</span>
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.sidebarBottom}>
+          <div className={styles.sidebarProfile}>
+            <div className={styles.avatar}>PR</div>
+
+            {!collapsed && (
+              <div className={styles.profileText}>
+                <strong>Purchase</strong>
+                <span>ERP Module</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </aside>

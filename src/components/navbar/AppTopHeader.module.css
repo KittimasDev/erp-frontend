@@ -1,0 +1,126 @@
+.topHeader {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  min-height: var(--erp-header-height, 72px);
+  background: rgba(245, 247, 250, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid transparent;
+  background: white;
+}
+
+.topHeaderInner {
+  width: 100%;
+  max-width: 1480px;
+  margin: 0 auto;
+  min-height: var(--erp-header-height, 72px);
+  padding: 16px 32px 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.topActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none;
+}
+
+.dateChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--erp-muted, #8a9199);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.dateIcon {
+  display: inline-flex;
+  color: #9aa3ad;
+}
+
+.bellButton {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.bellButton:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--erp-text, #2f343a);
+}
+
+.bellBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--erp-bg, #f5f7fa);
+}
+
+@media (max-width: 900px) {
+  .topHeaderInner {
+    padding: 14px 18px 6px;
+  }
+
+  .pageTitle {
+    font-size: 22px;
+  }
+
+  .dateChip {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 640px) {
+  .topHeaderInner {
+    padding: 12px 14px 4px;
+    align-items: flex-start;
+  }
+
+  .pageTitle {
+    font-size: 20px;
+  }
+
+  .dateChip span:last-child {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topActions {
+    gap: 8px;
+  }
+}

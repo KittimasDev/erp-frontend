@@ -22,7 +22,10 @@ export function useLoginMutation() {
       localStorage.setItem(ACCESS_TOKEN_KEY, data.access_token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       message.success("เข้าสู่ระบบสำเร็จ");
-      router.push("/");
+
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get("next");
+      router.push(next && next.startsWith("/") ? next : "/");
     },
     onError: (error: Error) => {
       const errorMessage =

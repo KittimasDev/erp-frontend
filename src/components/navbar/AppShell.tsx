@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import AppHeader from "./AppHeader";
+import AppTopHeader from "./AppTopHeader";
 
 export default function AppShell({
   children,
@@ -24,6 +25,8 @@ export default function AppShell({
       />
 
       <div className="appMain">
+        <AppTopHeader />
+
         <div className="mainLayout" key={pathname}>
           {children}
         </div>
