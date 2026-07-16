@@ -34,7 +34,7 @@ import type {
 } from "@/types/weighbridge-scales";
 
 import WeighbridgeScaleFormModal from "./WeighbridgeScaleFormModal";
-import styles from "./WeighbridgeScaleFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type ScaleFilterFormValues = {
   code?: string;
@@ -283,7 +283,7 @@ export default function WeighbridgeScalesPage() {
       key: "scaleName",
       width: 200,
       render: (value: string) => (
-        <div className={styles.scaleNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -579,7 +579,7 @@ export default function WeighbridgeScalesPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.scaleTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={scales}
             loading={scalesQuery.isLoading || scalesQuery.isFetching}

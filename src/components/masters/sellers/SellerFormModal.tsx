@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Col, Form, Input, Modal, Row, Select, Switch } from "antd";
 
 import type { CreateSellerRequest, Seller } from "@/types/sellers";
-import styles from "./SellerFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type SellerTypeOption = {
   value: string;
@@ -112,7 +112,7 @@ export default function SellerFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

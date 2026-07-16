@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 
 import type { CreateTaxRateRequest, TaxRate } from "@/types/tax-rates";
-import styles from "./TaxRateFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type TaxRateFormValues = {
   code: string;
@@ -80,7 +80,7 @@ export default function TaxRateFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

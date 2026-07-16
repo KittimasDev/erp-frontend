@@ -34,7 +34,7 @@ import type {
 } from "@/types/seller-types";
 
 import SellerTypeFormModal from "./SellerTypeFormModal";
-import styles from "./SellerTypeFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type SellerTypeFilterFormValues = {
   code?: string;
@@ -223,7 +223,7 @@ export default function SellerTypesPage() {
       dataIndex: "sellerTypeName",
       key: "sellerTypeName",
       render: (value: string) => (
-        <div className={styles.sellerTypeNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -468,7 +468,7 @@ export default function SellerTypesPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.sellerTypeTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={sellerTypes}
             loading={sellerTypesQuery.isLoading || sellerTypesQuery.isFetching}

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Form, Input, InputNumber, Modal, Switch } from "antd";
 
 import type { CreateVendorRequest, Vendor } from "@/types/vendors";
-import styles from "./VendorFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type VendorFormValues = {
   code: string;
@@ -86,7 +86,7 @@ export default function VendorFormModal({
 
   return (
     <Modal
-      className={styles.vendorModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

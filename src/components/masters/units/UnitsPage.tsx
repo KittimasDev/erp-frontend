@@ -19,7 +19,7 @@ import { useUpdateUnitMutation } from "@/hooks/units/useUpdateUnitMutation";
 import type { CreateUnitRequest, Unit } from "@/types/units";
 
 import UnitFormModal from "./UnitFormModal";
-import styles from "./UnitFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 export default function UnitsPage() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -118,7 +118,7 @@ export default function UnitsPage() {
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
-        <div className={styles.unitNameCell}>
+        <div className={styles.nameCell}>
           {/* <span className={styles.unitIcon}>
             U
           </span> */}
@@ -339,7 +339,7 @@ export default function UnitsPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.unitTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={units}
             loading={

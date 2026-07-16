@@ -35,7 +35,7 @@ import type {
 } from "@/types/payment-terms";
 
 import PaymentTermFormModal from "./PaymentTermFormModal";
-import styles from "./PaymentTermFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type PaymentTermFilterFormValues = {
   code?: string;
@@ -233,7 +233,7 @@ export default function PaymentTermsPage() {
       dataIndex: "name",
       key: "name",
       render: (value: string) => (
-        <div className={styles.paymentTermNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -486,7 +486,7 @@ export default function PaymentTermsPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.paymentTermTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={paymentTerms}
             loading={

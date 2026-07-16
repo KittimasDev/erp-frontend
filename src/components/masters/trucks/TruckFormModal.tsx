@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Col, Form, Input, InputNumber, Modal, Row, Select, Switch } from "antd";
 
 import type { CreateTruckRequest, Truck } from "@/types/trucks";
-import styles from "./TruckFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type SellerOption = {
   value: string;
@@ -114,7 +114,7 @@ export default function TruckFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

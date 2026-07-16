@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Form, Input, Modal, Switch } from "antd";
 
 import type { CreateUnitRequest, Unit } from "@/types/units";
-import styles from "./UnitFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type UnitFormValues = {
   code: string;
@@ -71,7 +71,7 @@ export default function UnitFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

@@ -34,7 +34,7 @@ import type {
 } from "@/types/tire-classifications";
 
 import TireClassificationFormModal from "./TireClassificationFormModal";
-import styles from "./TireClassificationFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type TireClassificationFilterFormValues = {
   code?: string;
@@ -225,7 +225,7 @@ export default function TireClassificationsPage() {
       dataIndex: "classificationName",
       key: "classificationName",
       render: (value: string) => (
-        <div className={styles.tireClassificationNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -484,7 +484,7 @@ export default function TireClassificationsPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.tireClassificationTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={classifications}
             loading={

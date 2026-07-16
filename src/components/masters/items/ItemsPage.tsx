@@ -36,7 +36,7 @@ import type {
 } from "@/types/items";
 
 import ItemFormModal from "./ItemFormModal";
-import styles from "./ItemFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type ItemFilterFormValues = {
   code?: string;
@@ -283,7 +283,7 @@ export default function ItemsPage() {
       dataIndex: "itemNameTh",
       key: "itemNameTh",
       render: (value: string) => (
-        <div className={styles.itemNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -597,7 +597,7 @@ export default function ItemsPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.itemTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={items}
             loading={itemsQuery.isLoading || itemsQuery.isFetching}

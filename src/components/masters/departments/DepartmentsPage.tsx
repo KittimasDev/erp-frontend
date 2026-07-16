@@ -34,7 +34,7 @@ import type {
 } from "@/types/departments";
 
 import DepartmentFormModal from "./DepartmentFormModal";
-import styles from "./DepartmentFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type DepartmentFilterFormValues = {
   code?: string;
@@ -216,7 +216,7 @@ export default function DepartmentsPage() {
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
-        <div className={styles.departmentNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -446,7 +446,7 @@ export default function DepartmentsPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.departmentTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={departments}
             loading={

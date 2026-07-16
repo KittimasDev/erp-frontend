@@ -34,7 +34,7 @@ import type {
 } from "@/types/warehouses";
 
 import WarehouseFormModal from "./WarehouseFormModal";
-import styles from "./WarehouseFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type WarehouseFilterFormValues = {
   code?: string;
@@ -272,7 +272,7 @@ export default function WarehousesPage() {
       dataIndex: "warehouseName",
       key: "warehouseName",
       render: (value: string) => (
-        <div className={styles.warehouseNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -571,7 +571,7 @@ export default function WarehousesPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.warehouseTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={warehouses}
             loading={warehousesQuery.isLoading || warehousesQuery.isFetching}

@@ -7,7 +7,7 @@ import type {
   CreateDepartmentRequest,
   Department,
 } from "@/types/departments";
-import styles from "./DepartmentFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type DepartmentFormValues = {
   code: string;
@@ -69,7 +69,7 @@ export default function DepartmentFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

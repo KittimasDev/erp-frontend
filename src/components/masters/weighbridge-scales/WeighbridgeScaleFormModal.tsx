@@ -7,7 +7,7 @@ import type {
   CreateWeighbridgeScaleRequest,
   WeighbridgeScale,
 } from "@/types/weighbridge-scales";
-import styles from "./WeighbridgeScaleFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type WeighbridgeScaleFormValues = {
   code: string;
@@ -146,7 +146,7 @@ export default function WeighbridgeScaleFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

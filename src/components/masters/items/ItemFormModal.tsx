@@ -15,7 +15,7 @@ import {
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import type { CreateItemRequest, Item } from "@/types/items";
-import styles from "./ItemFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type ItemFormValues = {
   code: string;
@@ -168,7 +168,7 @@ export default function ItemFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

@@ -37,7 +37,7 @@ import type {
 } from "@/types/raw-tire-price-rules";
 
 import RawTirePriceRuleFormModal from "./RawTirePriceRuleFormModal";
-import styles from "./RawTirePriceRuleFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type PriceRuleFilterFormValues = {
   code?: string;
@@ -545,7 +545,7 @@ export default function RawTirePriceRulesPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.priceRuleTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={rules}
             loading={rulesQuery.isLoading || rulesQuery.isFetching}

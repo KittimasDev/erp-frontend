@@ -7,7 +7,7 @@ import type {
   CreateSellerBankAccountRequest,
   SellerBankAccount,
 } from "@/types/seller-bank-accounts";
-import styles from "./SellerBankAccountFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type SellerOption = {
   value: string;
@@ -90,7 +90,7 @@ export default function SellerBankAccountFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

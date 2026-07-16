@@ -35,7 +35,7 @@ import type {
 } from "@/types/vendors";
 
 import VendorFormModal from "./VendorFormModal";
-import styles from "./VendorFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type VendorFilterFormValues = {
   name?: string;
@@ -247,7 +247,7 @@ export default function VendorsPage() {
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
-        <div className={styles.vendorNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -538,7 +538,7 @@ export default function VendorsPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.vendorTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={vendors}
             loading={vendorsQuery.isLoading || vendorsQuery.isFetching}

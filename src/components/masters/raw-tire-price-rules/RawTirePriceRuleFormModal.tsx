@@ -18,7 +18,7 @@ import type {
   CreateRawTirePriceRuleRequest,
   RawTirePriceRule,
 } from "@/types/raw-tire-price-rules";
-import styles from "./RawTirePriceRuleFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type ClassificationOption = {
   value: string;
@@ -105,7 +105,7 @@ export default function RawTirePriceRuleFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

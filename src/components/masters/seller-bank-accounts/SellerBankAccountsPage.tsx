@@ -35,7 +35,7 @@ import type {
 } from "@/types/seller-bank-accounts";
 
 import SellerBankAccountFormModal from "./SellerBankAccountFormModal";
-import styles from "./SellerBankAccountFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type SellerBankAccountFilterFormValues = {
   sellerId?: string;
@@ -296,7 +296,7 @@ export default function SellerBankAccountsPage() {
       dataIndex: "accountName",
       key: "accountName",
       render: (value: string) => (
-        <div className={styles.accountNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -567,7 +567,7 @@ export default function SellerBankAccountsPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.sellerBankAccountTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={accounts}
             loading={accountsQuery.isLoading || accountsQuery.isFetching}

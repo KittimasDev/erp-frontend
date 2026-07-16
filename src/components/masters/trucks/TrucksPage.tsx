@@ -35,7 +35,7 @@ import type {
 } from "@/types/trucks";
 
 import TruckFormModal from "./TruckFormModal";
-import styles from "./TruckFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type TruckFilterFormValues = {
   code?: string;
@@ -289,7 +289,7 @@ export default function TrucksPage() {
       key: "licensePlate",
       width: 120,
       render: (value: string) => (
-        <div className={styles.truckNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -583,7 +583,7 @@ export default function TrucksPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.truckTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={trucks}
             loading={trucksQuery.isLoading || trucksQuery.isFetching}

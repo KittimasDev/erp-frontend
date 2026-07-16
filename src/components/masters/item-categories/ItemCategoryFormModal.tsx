@@ -7,7 +7,7 @@ import type {
   CreateItemCategoryRequest,
   ItemCategory,
 } from "@/types/item-categories";
-import styles from "./ItemCategoryFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type ItemCategoryFormValues = {
   code: string;
@@ -73,7 +73,7 @@ export default function ItemCategoryFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

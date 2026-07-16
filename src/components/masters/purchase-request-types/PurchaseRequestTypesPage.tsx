@@ -34,7 +34,7 @@ import type {
 } from "@/types/purchase-request-types";
 
 import PurchaseRequestTypeFormModal from "./PurchaseRequestTypeFormModal";
-import styles from "./PurchaseRequestTypeFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type FilterFormValues = {
   code?: string;
@@ -223,7 +223,7 @@ export default function PurchaseRequestTypesPage() {
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
-        <div className={styles.purchaseRequestTypeNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -467,7 +467,7 @@ export default function PurchaseRequestTypesPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.purchaseRequestTypeTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={items}
             loading={listQuery.isLoading || listQuery.isFetching}

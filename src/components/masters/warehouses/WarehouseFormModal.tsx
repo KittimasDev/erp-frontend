@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Form, Input, Modal, Switch } from "antd";
 
 import type { CreateWarehouseRequest, Warehouse } from "@/types/warehouses";
-import styles from "./WarehouseFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type WarehouseFormValues = {
   code: string;
@@ -82,7 +82,7 @@ export default function WarehouseFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

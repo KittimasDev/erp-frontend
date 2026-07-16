@@ -339,16 +339,16 @@
   font-weight: 600;
 }
 
-.sellerTypeTable :global(.ant-table) {
+.dataTable :global(.ant-table) {
   color: var(--unit-text);
 }
 
-.sellerTypeTable :global(.ant-table-container) {
+.dataTable :global(.ant-table-container) {
   border-start-start-radius: 0 !important;
   border-start-end-radius: 0 !important;
 }
 
-.sellerTypeTable :global(.ant-table-thead > tr > th) {
+.dataTable :global(.ant-table-thead > tr > th) {
   padding-block: 14px;
   color: var(--unit-gray-dark);
   background: #f0f1f3;
@@ -357,37 +357,37 @@
   font-weight: 600;
 }
 
-.sellerTypeTable :global(.ant-table-thead > tr > th::before) {
+.dataTable :global(.ant-table-thead > tr > th::before) {
   background-color: #d5d8dd !important;
 }
 
-.sellerTypeTable :global(.ant-table-tbody > tr > td) {
+.dataTable :global(.ant-table-tbody > tr > td) {
   padding-block: 15px;
   border-bottom-color: #eceef1;
   background: #ffffff;
 }
 
-.sellerTypeTable :global(.ant-table-tbody > tr:nth-child(even) > td) {
+.dataTable :global(.ant-table-tbody > tr:nth-child(even) > td) {
   background: #fafbfb;
 }
 
-.sellerTypeTable :global(.ant-table-tbody > tr:hover > td) {
+.dataTable :global(.ant-table-tbody > tr:hover > td) {
   background: #f6faee !important;
 }
 
-.sellerTypeTable :global(.ant-table-pagination) {
+.dataTable :global(.ant-table-pagination) {
   margin: 18px 20px !important;
 }
 
-.sellerTypeTable :global(.ant-pagination-item) {
+.dataTable :global(.ant-pagination-item) {
   border-radius: 8px;
 }
 
-.sellerTypeTable :global(.ant-pagination-item-active) {
+.dataTable :global(.ant-pagination-item-active) {
   border-color: var(--unit-green);
 }
 
-.sellerTypeTable :global(.ant-pagination-item-active a) {
+.dataTable :global(.ant-pagination-item-active a) {
   color: var(--unit-green-dark);
 }
 
@@ -420,7 +420,7 @@
   letter-spacing: 0.04em;
 }
 
-.sellerTypeNameCell {
+.nameCell {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -572,17 +572,17 @@
 
 /* Modal */
 
-.vendorModal :global(.ant-modal-content) {
+.masterModal :global(.ant-modal-content) {
   overflow: hidden;
   border-radius: 16px;
   padding: 0;
 }
 
-.vendorModal :global(.ant-modal-body) {
+.masterModal :global(.ant-modal-body) {
   padding: 0;
 }
 
-.vendorModal :global(.ant-modal-footer) {
+.masterModal :global(.ant-modal-footer) {
   margin: 0;
   padding: 16px 24px 22px;
   border-top: 1px solid var(--unit-border);

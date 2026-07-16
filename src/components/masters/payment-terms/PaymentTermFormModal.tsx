@@ -7,7 +7,7 @@ import type {
   CreatePaymentTermRequest,
   PaymentTerm,
 } from "@/types/payment-terms";
-import styles from "./PaymentTermFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type PaymentTermFormValues = {
   code: string;
@@ -73,7 +73,7 @@ export default function PaymentTermFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

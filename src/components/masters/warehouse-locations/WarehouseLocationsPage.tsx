@@ -35,7 +35,7 @@ import type {
 } from "@/types/warehouse-locations";
 
 import WarehouseLocationFormModal from "./WarehouseLocationFormModal";
-import styles from "./WarehouseLocationFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type WarehouseLocationFilterFormValues = {
   warehouseId?: string;
@@ -276,7 +276,7 @@ export default function WarehouseLocationsPage() {
       dataIndex: "locationName",
       key: "locationName",
       render: (value: string) => (
-        <div className={styles.warehouseLocationNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -534,7 +534,7 @@ export default function WarehouseLocationsPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.warehouseLocationTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={locations}
             loading={locationsQuery.isLoading || locationsQuery.isFetching}

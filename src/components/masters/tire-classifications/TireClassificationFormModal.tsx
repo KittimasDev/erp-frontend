@@ -7,7 +7,7 @@ import type {
   CreateTireClassificationRequest,
   TireClassification,
 } from "@/types/tire-classifications";
-import styles from "./TireClassificationFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type TireClassificationFormValues = {
   code: string;
@@ -81,7 +81,7 @@ export default function TireClassificationFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

@@ -7,7 +7,7 @@ import type {
   CreateWarehouseLocationRequest,
   WarehouseLocation,
 } from "@/types/warehouse-locations";
-import styles from "./WarehouseLocationFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type WarehouseOption = {
   value: string;
@@ -86,7 +86,7 @@ export default function WarehouseLocationFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

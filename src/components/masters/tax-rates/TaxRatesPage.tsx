@@ -35,7 +35,7 @@ import type {
 } from "@/types/tax-rates";
 
 import TaxRateFormModal from "./TaxRateFormModal";
-import styles from "./TaxRateFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type TaxRateFilterFormValues = {
   code?: string;
@@ -241,7 +241,7 @@ export default function TaxRatesPage() {
       dataIndex: "name",
       key: "name",
       render: (value: string) => (
-        <div className={styles.taxRateNameCell}>
+        <div className={styles.nameCell}>
           <span>{value}</span>
         </div>
       ),
@@ -516,7 +516,7 @@ export default function TaxRatesPage() {
         ) : (
           <Table
             rowKey="id"
-            className={styles.taxRateTable}
+            className={styles.dataTable}
             columns={columns}
             dataSource={taxRates}
             loading={taxRatesQuery.isLoading || taxRatesQuery.isFetching}

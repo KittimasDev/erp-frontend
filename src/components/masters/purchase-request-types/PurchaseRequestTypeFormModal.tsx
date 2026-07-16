@@ -7,7 +7,7 @@ import type {
   CreatePurchaseRequestTypeRequest,
   PurchaseRequestType,
 } from "@/types/purchase-request-types";
-import styles from "./PurchaseRequestTypeFormModal.module.css";
+import styles from "@/components/masters/shared/master-page.module.css";
 
 type PurchaseRequestTypeFormValues = {
   code: string;
@@ -73,7 +73,7 @@ export default function PurchaseRequestTypeFormModal({
 
   return (
     <Modal
-      className={styles.unitModal}
+      className={styles.masterModal}
       title={null}
       open={open}
       onCancel={onCancel}

@@ -19,6 +19,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-erp-green: var(--erp-green);
+  --color-erp-green-dark: var(--erp-green-dark);
+  --color-erp-bg: var(--erp-bg);
+  --color-erp-surface: var(--erp-surface);
+  --color-erp-text: var(--erp-text);
+  --color-erp-muted: var(--erp-muted);
   --font-sans: var(--font-kanit), sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
@@ -36,15 +42,7 @@ body {
   font-family: var(--font-kanit), sans-serif;
 }
 
-/* Soft motion across the whole app (hover lift, cards, buttons) */
 @media (prefers-reduced-motion: no-preference) {
-  body *:not(svg):not(path):not(canvas):not(img) {
-    transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease,
-      background 0.35s ease !important;
-  }
-
   @keyframes appPageEnter {
     from {
       opacity: 0;
