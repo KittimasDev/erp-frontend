@@ -455,7 +455,7 @@ export default function AppHeader({
 
         <div className={styles.navScroll}>
           <div className={styles.groupBlock}>
-            {!collapsed && <div className={styles.groupTitle}>PURCHASE</div>}
+            <div className={styles.groupTitle}>PURCHASE</div>
 
             <div className={styles.groupItems}>
               {mainMenus.map((item) => {
@@ -473,9 +473,7 @@ export default function AppHeader({
                   >
                     <span className={styles.menuItemIcon}>{item.icon}</span>
 
-                    {!collapsed && (
-                      <span className={styles.menuItemText}>{item.label}</span>
-                    )}
+                    <span className={styles.menuItemText}>{item.label}</span>
                   </button>
                 );
               })}
@@ -483,7 +481,7 @@ export default function AppHeader({
           </div>
 
           <div className={styles.groupBlock}>
-            {!collapsed && <div className={styles.groupTitle}>SETTING</div>}
+            <div className={styles.groupTitle}>SETTING</div>
 
             <div className={styles.groupItems}>
               <button
@@ -498,14 +496,10 @@ export default function AppHeader({
                   <IconMaster />
                 </span>
 
-                {!collapsed && (
-                  <>
-                    <span className={styles.menuItemText}>Master</span>
-                    <span className={styles.chevron}>
-                      <IconChevron open={masterOpen} />
-                    </span>
-                  </>
-                )}
+                <span className={styles.menuItemText}>Master</span>
+                <span className={styles.chevron}>
+                  <IconChevron open={masterOpen} />
+                </span>
               </button>
 
               {!collapsed && masterOpen && (
@@ -537,12 +531,10 @@ export default function AppHeader({
           <div className={styles.sidebarProfile}>
             <div className={styles.avatar}>PR</div>
 
-            {!collapsed && (
-              <div className={styles.profileText}>
-                <strong>Purchase</strong>
-                <span>ERP Module</span>
-              </div>
-            )}
+            <div className={styles.profileText}>
+              <strong>Purchase</strong>
+              <span>ERP Module</span>
+            </div>
           </div>
         </div>
       </div>

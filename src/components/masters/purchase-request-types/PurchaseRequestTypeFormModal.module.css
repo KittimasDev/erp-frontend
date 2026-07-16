@@ -68,7 +68,7 @@
   );
   box-shadow: 0 12px 24px rgba(138, 185, 51, 0.27);
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .headerContent {
@@ -81,7 +81,7 @@
   margin-bottom: 5px;
   color: var(--unit-green-dark);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.16em;
 }
 
@@ -115,7 +115,7 @@
     var(--unit-green-dark) 100%
   ) !important;
   box-shadow: 0 12px 24px rgba(138, 185, 51, 0.28);
-  font-weight: 800;
+  font-weight: 600;
   transition:
     transform 0.18s ease,
     filter 0.18s ease,
@@ -170,7 +170,7 @@
   flex: none;
   border-radius: 13px;
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .summaryLabel {
@@ -248,7 +248,7 @@
   margin-bottom: 4px;
   color: var(--unit-green-dark);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.13em;
 }
 
@@ -312,7 +312,7 @@
   margin-bottom: 4px;
   color: var(--unit-green-dark);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.13em;
 }
 
@@ -336,7 +336,7 @@
   color: #e3efc7;
   background: rgba(116, 166, 4, 0.18);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .purchaseRequestTypeTable :global(.ant-table) {
@@ -354,7 +354,7 @@
   background: #f0f1f3;
   border-bottom-color: #dde0e4;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .purchaseRequestTypeTable :global(.ant-table-thead > tr > th::before) {
@@ -403,7 +403,7 @@
   color: #ffffff;
   background: var(--unit-gray);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .codeBadge {
@@ -416,7 +416,7 @@
   color: var(--unit-green-dark);
   background: var(--unit-green-soft);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.04em;
 }
 
@@ -443,7 +443,7 @@
   );
   box-shadow: 0 7px 14px rgba(85, 87, 96, 0.16);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .symbolText {
@@ -615,7 +615,7 @@
     var(--unit-green-dark) 100%
   );
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .modalHeaderContent {

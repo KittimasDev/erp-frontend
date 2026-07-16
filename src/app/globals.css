@@ -70,31 +70,24 @@ body {
 }
 
 .appShell {
-  --sidebar-width: 72px;
-
   min-height: 100dvh;
   background: var(--erp-bg);
 }
 
-.appShell[data-sidebar="collapsed"] {
-  --sidebar-width: 72px;
-}
-
-.appShell[data-sidebar="expanded"] {
-  --sidebar-width: 260px;
-}
-
 .appMain {
   min-height: 100dvh;
-  margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  transition:
-    margin-left 0.2s ease,
-    transform 0.3s ease,
-    box-shadow 0.3s ease,
-    background 0.35s ease !important;
+  transition: margin-left 0.4s ease !important;
   min-width: 0;
+}
+
+.appShell[data-sidebar="collapsed"] .appMain {
+  margin-left: 72px;
+}
+
+.appShell[data-sidebar="expanded"] .appMain {
+  margin-left: 260px;
 }
 
 .mainLayout {
@@ -156,12 +149,12 @@ body {
 }
 
 @media (max-width: 560px) {
-  .appShell[data-sidebar="collapsed"] {
-    --sidebar-width: 62px;
+  .appShell[data-sidebar="collapsed"] .appMain {
+    margin-left: 62px;
   }
 
-  .appShell[data-sidebar="expanded"] {
-    --sidebar-width: 240px;
+  .appShell[data-sidebar="expanded"] .appMain {
+    margin-left: 240px;
   }
 
   .mainLayout {
