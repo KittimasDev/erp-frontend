@@ -8,7 +8,7 @@ import styles from "./AppTopHeader.module.css";
 const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/purchase-orders", title: "สั่งซื้อ" },
   { href: "/purchase_requests", title: "ขอซื้อ" },
-  { href: "/receiving", title: "เข้าคลัง" },
+  { href: "/receiving", title: "ภาพรวมรับซื้อยาง" },
   { href: "/masters/vendors", title: "ผู้ขาย" },
   { href: "/masters/seller-types", title: "ประเภทผู้ขาย" },
   { href: "/masters/sellers", title: "ผู้ขายยาง" },
@@ -30,6 +30,22 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
 ];
 
 function resolvePageTitle(pathname: string) {
+  if (/^\/receiving\/receipts\/[^/]+\/payment$/.test(pathname)) {
+    return "ใบสำคัญจ่าย / จ่ายเงินผู้ขาย";
+  }
+
+  if (/^\/receiving\/receipts\/[^/]+$/.test(pathname)) {
+    return "ใบรับซื้อยาง";
+  }
+
+  if (/^\/receiving\/[^/]+\/classification$/.test(pathname)) {
+    return "คัดแยกประเภทยาง";
+  }
+
+  if (/^\/receiving\/[^/]+$/.test(pathname)) {
+    return "ชั่งน้ำหนักรับซื้อยาง";
+  }
+
   const exact = PAGE_TITLES.find((item) => item.href === pathname);
   if (exact) {
     return exact.title;

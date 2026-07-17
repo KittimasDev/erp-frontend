@@ -8,9 +8,13 @@ import type { TruckQueryParams } from "@/types/trucks";
 
 export const trucksQueryKey = ["master-data", "trucks"] as const;
 
-export function useTrucksQuery(params?: TruckQueryParams) {
+export function useTrucksQuery(
+  params?: TruckQueryParams,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: [...trucksQueryKey, params ?? {}],
     queryFn: () => getTrucks(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }

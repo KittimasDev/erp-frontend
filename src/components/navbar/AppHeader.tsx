@@ -278,7 +278,7 @@ const mainMenus: MenuItem[] = [
   },
   {
     key: "receiving",
-    label: "เข้าคลัง",
+    label: "รับซื้อยาง",
     href: "/receiving",
     icon: <IconReceiving />,
   },

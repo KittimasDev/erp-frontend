@@ -1,0 +1,88 @@
+import { apiFetch } from "./client";
+import type {
+  CreateWeighbridgeTicketRequest,
+  ManualOverrideTicketRequest,
+  WeighbridgeDashboardApiResponse,
+  WeighbridgeTicketApiResponse,
+  WeighbridgeTicketDetailApiResponse,
+  WeighTicketRequest,
+} from "@/types/weighbridge-tickets";
+
+export function getWeighbridgeDashboard(token: string, date?: string) {
+  const search = new URLSearchParams();
+  if (date?.trim()) {
+    search.set("date", date.trim());
+  }
+  const query = search.toString();
+  return apiFetch<WeighbridgeDashboardApiResponse>(
+    `/api/weighbridge/tickets/dashboard${query ? `?${query}` : ""}`,
+    { method: "GET", token },
+  );
+}
+
+export function getWeighbridgeTicket(token: string, id: string) {
+  return apiFetch<WeighbridgeTicketDetailApiResponse>(
+    `/api/weighbridge/tickets/${id}`,
+    { method: "GET", token },
+  );
+}
+
+export function createWeighbridgeTicket(
+  token: string,
+  body: CreateWeighbridgeTicketRequest,
+) {
+  return apiFetch<WeighbridgeTicketApiResponse>("/api/weighbridge/tickets", {
+    method: "POST",
+    token,
+    body,
+  });
+}
+
+export function weighInWeighbridgeTicket(
+  token: string,
+  id: string,
+  body: WeighTicketRequest,
+) {
+  return apiFetch<WeighbridgeTicketDetailApiResponse>(
+    `/api/weighbridge/tickets/${id}/weigh-in`,
+    { method: "POST", token, body },
+  );
+}
+
+export function weighOutWeighbridgeTicket(
+  token: string,
+  id: string,
+  body: WeighTicketRequest,
+) {
+  return apiFetch<WeighbridgeTicketDetailApiResponse>(
+    `/api/weighbridge/tickets/${id}/weigh-out`,
+    { method: "POST", token, body },
+  );
+}
+
+export function manualOverrideWeighbridgeTicket(
+  token: string,
+  id: string,
+  body: ManualOverrideTicketRequest,
+) {
+  return apiFetch<WeighbridgeTicketDetailApiResponse>(
+    `/api/weighbridge/tickets/${id}/manual-override`,
+    { method: "POST", token, body },
+  );
+}
+
+export function createPurchaseReceiptFromTicket(
+  token: string,
+  ticketId: string,
+  body?: { tireClassificationId?: string; remark?: string },
+) {
+  return apiFetch<{
+    statusCode?: number;
+    message: string;
+    data: { id: string; receiptNo: string };
+  }>(`/api/weighbridge/tickets/${ticketId}/create-purchase-receipt`, {
+    method: "POST",
+    token,
+    body: body ?? {},
+  });
+}
