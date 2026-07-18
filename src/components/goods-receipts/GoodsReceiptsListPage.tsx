@@ -27,6 +27,7 @@ import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { GoodsReceipt } from "@/types/goods-receipts";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./GoodsReceiptsListPage.module.css";
 
 function formatDate(value?: string) {
@@ -139,8 +140,11 @@ export default function GoodsReceiptsListPage() {
         title: "เลขที่ใบรับของ",
         dataIndex: "grNo",
         key: "grNo",
-        render: (value: string) => (
-          <span className={styles.grNo}>{value}</span>
+        render: (value: string, row) => (
+          <DocNoWithFlowBadge
+            no={<span className={styles.grNo}>{value}</span>}
+            source={{ kind: "gr", status: row.status }}
+          />
         ),
       },
       {

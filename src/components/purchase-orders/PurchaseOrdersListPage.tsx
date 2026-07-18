@@ -27,6 +27,7 @@ import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { PurchaseOrder } from "@/types/purchase-orders";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
+import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./PurchaseOrdersListPage.module.css";
 
 function statusColor(status: string) {
@@ -92,8 +93,15 @@ export default function PurchaseOrdersListPage() {
         title: "เลขที่ใบสั่งซื้อ",
         dataIndex: "poNo",
         key: "poNo",
-        render: (value: string) => (
-          <span className={styles.prNo}>{value}</span>
+        render: (value: string, row) => (
+          <DocNoWithFlowBadge
+            no={<span className={styles.prNo}>{value}</span>}
+            source={{
+              kind: "po",
+              status: row.status,
+              paymentStatus: row.paymentStatus,
+            }}
+          />
         ),
       },
       {

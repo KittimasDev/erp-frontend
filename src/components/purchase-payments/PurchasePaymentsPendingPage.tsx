@@ -18,6 +18,7 @@ import { usePendingPurchasePaymentsQuery } from "@/hooks/purchase-payments/usePu
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { PendingSupplierPaymentPo } from "@/types/purchase-payments";
+import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./PurchasePaymentsPendingPage.module.css";
 
 function formatDate(value?: string) {
@@ -106,7 +107,10 @@ export default function PurchasePaymentsPendingPage() {
         title: "เลขที่ PO",
         dataIndex: "poNo",
         render: (value: string) => (
-          <span className={styles.poNo}>{value}</span>
+          <DocNoWithFlowBadge
+            no={<span className={styles.poNo}>{value}</span>}
+            source={{ kind: "pending-pay" }}
+          />
         ),
       },
       {

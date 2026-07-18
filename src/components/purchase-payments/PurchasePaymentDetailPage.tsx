@@ -16,12 +16,15 @@ import {
   useConfirmPurchasePaymentMutation,
 } from "@/hooks/purchase-payments/usePurchasePaymentMutations";
 import { usePurchasePaymentQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
   SUPPLIER_PAYMENT_STATUS_LABEL,
 } from "@/types/purchase-payments";
+import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./PurchasePaymentDetailPage.module.css";
 
 type Props = { id: string };
@@ -66,6 +69,12 @@ export default function PurchasePaymentDetailPage({ id }: Props) {
   const data = query.data?.data;
   const canWrite =
     userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
+
+  const poId = data?.purchaseOrderId ?? data?.purchaseOrder?.id;
+  const poQuery = usePurchaseOrderQuery(poId);
+  const po = poQuery.data?.data;
+  const grByPoQuery = useGoodsReceiptsByPoQuery(poId);
+  const linkedGrs = grByPoQuery.data?.data ?? [];
 
   if (query.isLoading) {
     return (
@@ -266,16 +275,42 @@ export default function PurchasePaymentDetailPage({ id }: Props) {
             ) : null}
           </div>
 
-          <div className={styles.flowNote}>
-            <strong>ขั้นตอนถัดไป</strong>
-            <p>
-              {data.status === "DRAFT"
-                ? "กด Confirm เพื่อบันทึก supplier_payments และอัปเดต PO เป็น PAID"
-                : data.status === "PAID"
-                  ? "จ่ายเงินเรียบร้อยแล้ว (ไม่กระทบสต๊อก)"
-                  : "เอกสารถูกยกเลิกแล้ว"}
-            </p>
-          </div>
+          <ProcurementFlowTimeline
+            input={{
+              pr: po?.purchaseRequest
+                ? {
+                    id: po.purchaseRequest.id,
+                    prNo: po.purchaseRequest.prNo,
+                    status: po.purchaseRequest.status,
+                  }
+                : null,
+              po: po
+                ? {
+                    id: po.id,
+                    poNo: po.poNo,
+                    status: po.status,
+                    paymentStatus: po.paymentStatus,
+                  }
+                : data.purchaseOrder
+                  ? {
+                      id: data.purchaseOrder.id,
+                      poNo: data.purchaseOrder.poNo,
+                      status: data.purchaseOrder.status,
+                      paymentStatus: data.purchaseOrder.paymentStatus,
+                    }
+                  : null,
+              goodsReceipts: linkedGrs.map((gr) => ({
+                id: gr.id,
+                grNo: gr.grNo,
+                status: gr.status,
+              })),
+              payment: {
+                id: data.id,
+                voucherNo: data.voucherNo,
+                status: data.status,
+              },
+            }}
+          />
         </aside>
       </div>
 

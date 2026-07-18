@@ -26,6 +26,7 @@ import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
   SUPPLIER_PAYMENT_STATUS_LABEL,
 } from "@/types/purchase-payments";
+import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./PurchasePaymentsListPage.module.css";
 
 function statusColor(status: string) {
@@ -84,8 +85,11 @@ export default function PurchasePaymentsListPage() {
       {
         title: "เลขที่ใบสำคัญ",
         dataIndex: "voucherNo",
-        render: (value: string) => (
-          <span className={styles.prNo}>{value}</span>
+        render: (value: string, row) => (
+          <DocNoWithFlowBadge
+            no={<span className={styles.prNo}>{value}</span>}
+            source={{ kind: "payment", status: row.status }}
+          />
         ),
       },
       {

@@ -15,10 +15,16 @@ import {
   useCancelGoodsReceiptMutation,
   useConfirmGoodsReceiptMutation,
 } from "@/hooks/goods-receipts/useGoodsReceiptMutations";
-import { useGoodsReceiptQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import {
+  useGoodsReceiptQuery,
+  useGoodsReceiptsByPoQuery,
+} from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./GoodsReceiptDetailPage.module.css";
 
 type Props = { id: string };
@@ -60,6 +66,14 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
     userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
     userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
     isAdministrator();
+
+  const poId = data?.purchaseOrderId ?? data?.purchaseOrder?.id;
+  const poQuery = usePurchaseOrderQuery(poId);
+  const po = poQuery.data?.data;
+  const grByPoQuery = useGoodsReceiptsByPoQuery(poId);
+  const linkedGrs = grByPoQuery.data?.data ?? [];
+  const paymentByPoQuery = usePurchasePaymentByPoQuery(poId);
+  const linkedPayment = paymentByPoQuery.data?.data ?? null;
 
   if (query.isLoading) {
     return (
@@ -265,16 +279,52 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
             ) : null}
           </div>
 
-          <div className={styles.flowNote}>
-            <strong>ขั้นตอนถัดไป</strong>
-            <p>
-              {data.status === "DRAFT"
-                ? "ตรวจสอบคลัง/จำนวน แล้วกด Confirm เพื่อโพสต์สต๊อก"
-                : data.status === "CONFIRMED"
-                  ? "สต๊อกถูกโพสต์แล้ว (movement RECEIVE)"
-                  : "เอกสารถูกยกเลิกแล้ว"}
-            </p>
-          </div>
+          <ProcurementFlowTimeline
+            input={{
+              pr: po?.purchaseRequest
+                ? {
+                    id: po.purchaseRequest.id,
+                    prNo: po.purchaseRequest.prNo,
+                    status: po.purchaseRequest.status,
+                  }
+                : null,
+              po: po
+                ? {
+                    id: po.id,
+                    poNo: po.poNo,
+                    status: po.status,
+                    paymentStatus: po.paymentStatus,
+                  }
+                : data.purchaseOrder
+                  ? {
+                      id: data.purchaseOrder.id,
+                      poNo: data.purchaseOrder.poNo,
+                      status: data.purchaseOrder.status,
+                    }
+                  : null,
+              goodsReceipts: (linkedGrs.length
+                ? linkedGrs
+                : [
+                    {
+                      id: data.id,
+                      grNo: data.grNo,
+                      status: data.status,
+                    },
+                  ]
+              ).map((gr) => ({
+                id: gr.id,
+                grNo: gr.grNo,
+                status: gr.status,
+              })),
+              payment: linkedPayment
+                ? {
+                    id: linkedPayment.id,
+                    voucherNo: linkedPayment.voucherNo,
+                    status: linkedPayment.status,
+                  }
+                : null,
+            }}
+          />
         </aside>
       </div>
     </div>

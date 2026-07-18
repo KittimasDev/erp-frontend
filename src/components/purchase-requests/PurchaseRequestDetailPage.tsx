@@ -24,6 +24,8 @@ import {
 } from "@/hooks/purchase-requests/usePurchaseRequestMutations";
 import { usePurchaseRequestQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePurchaseOrderByPrQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { generatePurchaseRequestPdf } from "@/utils/generatePurchaseRequestPdf";
@@ -31,6 +33,7 @@ import {
   PURCHASE_REQUEST_STATUS_LABEL,
   type PurchaseRequestStatus,
 } from "@/types/purchase-requests";
+import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./PurchaseRequestDetailPage.module.css";
 
 type Props = {
@@ -58,23 +61,6 @@ function statusClass(status: string) {
       return styles.statusCancelled;
     default:
       return styles.statusDraft;
-  }
-}
-
-function nextStepHint(status: string) {
-  switch (status) {
-    case "DRAFT":
-      return "ตรวจสอบรายการแล้วกด “ส่งอนุมัติ” เพื่อส่งให้ผู้จัดการจัดซื้อ";
-    case "PENDING_APPROVAL":
-      return "รอ PROCUREMENT_MANAGER / ADMINISTRATOR อนุมัติหรือปฏิเสธ";
-    case "APPROVED":
-      return "ใบขอซื้ออนุมัติแล้ว พร้อมนำไปสร้างใบสั่งซื้อ (PO) ในขั้นถัดไป";
-    case "REJECTED":
-      return "ถูกปฏิเสธแล้ว — สร้างใบใหม่หรือดูหมายเหตุเหตุผลด้านล่าง";
-    case "CANCELLED":
-      return "เอกสารถูกยกเลิกแล้ว";
-    default:
-      return "";
   }
 }
 
@@ -106,6 +92,11 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
     data?.status === "APPROVED" && canReadPo ? data.id : undefined,
   );
   const linkedPo = linkedPoQuery.data?.data ?? null;
+
+  const grByPoQuery = useGoodsReceiptsByPoQuery(linkedPo?.id);
+  const linkedGrs = grByPoQuery.data?.data ?? [];
+  const paymentByPoQuery = usePurchasePaymentByPoQuery(linkedPo?.id);
+  const linkedPayment = paymentByPoQuery.data?.data ?? null;
 
   if (query.isLoading) {
     return (
@@ -420,14 +411,35 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
             </Button>
           </div>
 
-          <div className={styles.flowNote}>
-            <strong>ขั้นตอนถัดไป</strong>
-            <p>
-              {data.status === "APPROVED" && linkedPo
-                ? `มีใบสั่งซื้อ ${linkedPo.poNo} แล้ว — กดดูรายละเอียดได้`
-                : nextStepHint(data.status)}
-            </p>
-          </div>
+          <ProcurementFlowTimeline
+            input={{
+              pr: {
+                id: data.id,
+                prNo: data.prNo,
+                status: data.status,
+              },
+              po: linkedPo
+                ? {
+                    id: linkedPo.id,
+                    poNo: linkedPo.poNo,
+                    status: linkedPo.status,
+                    paymentStatus: linkedPo.paymentStatus,
+                  }
+                : null,
+              goodsReceipts: linkedGrs.map((gr) => ({
+                id: gr.id,
+                grNo: gr.grNo,
+                status: gr.status,
+              })),
+              payment: linkedPayment
+                ? {
+                    id: linkedPayment.id,
+                    voucherNo: linkedPayment.voucherNo,
+                    status: linkedPayment.status,
+                  }
+                : null,
+            }}
+          />
         </aside>
       </div>
 

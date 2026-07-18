@@ -29,6 +29,7 @@ import { usePurchaseRequestsQuery } from "@/hooks/purchase-requests/usePurchaseR
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { generatePurchaseRequestPdf } from "@/utils/generatePurchaseRequestPdf";
+import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import type { PurchaseRequest } from "@/types/purchase-requests";
 import {
   PURCHASE_REQUEST_STATUS_LABEL,
@@ -113,8 +114,11 @@ export default function PurchaseRequestsListPage() {
         title: "เลขที่ใบขอซื้อ",
         dataIndex: "prNo",
         key: "prNo",
-        render: (value: string) => (
-          <span className={styles.prNo}>{value}</span>
+        render: (value: string, row) => (
+          <DocNoWithFlowBadge
+            no={<span className={styles.prNo}>{value}</span>}
+            source={{ kind: "pr", status: row.status }}
+          />
         ),
       },
       {

@@ -27,6 +27,7 @@ import { RoleCode } from "@/lib/auth/role-codes";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { generatePurchaseOrderPdf } from "@/utils/generatePurchaseOrderPdf";
+import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./PurchaseOrderDetailPage.module.css";
 
 type Props = { id: string };
@@ -80,17 +81,17 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
 
   const grByPoQuery = useGoodsReceiptsByPoQuery(
-    data &&
-      (data.status === "CONFIRMED" ||
-        data.status === "PARTIALLY_RECEIVED" ||
-        data.status === "COMPLETED")
-      ? data.id
-      : undefined,
+    data ? data.id : undefined,
   );
   const linkedGrs = grByPoQuery.data?.data ?? [];
 
   const paymentByPoQuery = usePurchasePaymentByPoQuery(
-    data?.status === "COMPLETED" ? data.id : undefined,
+    data &&
+      (data.status === "COMPLETED" ||
+        data.status === "PARTIALLY_RECEIVED" ||
+        data.paymentStatus === "PAID")
+      ? data.id
+      : undefined,
   );
   const linkedPayment = paymentByPoQuery.data?.data ?? null;
   const isPaid =
@@ -421,21 +422,35 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             </div>
           ) : null}
 
-          <div className={styles.flowNote}>
-            <strong>ขั้นตอนถัดไป</strong>
-            <p>
-              {data.status === "DRAFT"
-                ? "ตรวจสอบราคาแล้วกด Confirm"
-                : data.status === "CONFIRMED" ||
-                    data.status === "PARTIALLY_RECEIVED"
-                  ? "กดรับของเพื่อสร้างใบรับของ (Goods Receipt)"
-                  : data.status === "COMPLETED"
-                    ? isPaid
-                      ? "รับของครบและจ่ายเงินแล้ว"
-                      : "รับของครบแล้ว — พร้อมสร้างใบสำคัญจ่าย"
-                    : "เอกสารถูกยกเลิกแล้ว"}
-            </p>
-          </div>
+          <ProcurementFlowTimeline
+            input={{
+              pr: data.purchaseRequest
+                ? {
+                    id: data.purchaseRequest.id,
+                    prNo: data.purchaseRequest.prNo,
+                    status: data.purchaseRequest.status,
+                  }
+                : null,
+              po: {
+                id: data.id,
+                poNo: data.poNo,
+                status: data.status,
+                paymentStatus: data.paymentStatus,
+              },
+              goodsReceipts: linkedGrs.map((gr) => ({
+                id: gr.id,
+                grNo: gr.grNo,
+                status: gr.status,
+              })),
+              payment: linkedPayment
+                ? {
+                    id: linkedPayment.id,
+                    voucherNo: linkedPayment.voucherNo,
+                    status: linkedPayment.status,
+                  }
+                : null,
+            }}
+          />
         </aside>
       </div>
     </div>
