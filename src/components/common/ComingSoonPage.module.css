@@ -1,0 +1,45 @@
+.page {
+  display: grid;
+  place-items: center;
+  min-height: min(60dvh, 480px);
+  padding: 24px 16px;
+}
+
+.card {
+  width: min(100%, 520px);
+  padding: 28px 32px;
+  border-radius: 18px;
+  border: 1px solid #e4e8df;
+  background:
+    radial-gradient(
+      ellipse 80% 100% at 100% 0%,
+      rgba(138, 185, 51, 0.16),
+      transparent 55%
+    ),
+    #fff;
+  box-shadow: 0 12px 32px rgba(47, 52, 58, 0.06);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.description {
+  margin: 10px 0 0;
+  color: var(--erp-muted, #8a9199);
+  font-size: 14px;
+  line-height: 1.55;
+}

@@ -1,19 +1,27 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { RoleCode, type RoleCodeValue } from "@/lib/auth/role-codes";
 
 import styles from "./AppHeader.module.css";
 
-type MenuItem = {
+type NavItem = {
   key: string;
   label: string;
   href: string;
   icon: ReactNode;
+  /** If set, user must have at least one of these roles (ADMIN always passes via userHasRole) */
+  roles?: RoleCodeValue[];
+};
+
+type NavGroup = {
+  key: string;
+  title: string;
+  items: NavItem[];
 };
 
 const IconChevron = ({ open }: { open: boolean }) => (
@@ -42,6 +50,17 @@ const IconEdgeChevron = () => (
       stroke="currentColor"
       strokeWidth="2.2"
       strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconDashboard = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden>
+    <path
+      d="M4 4h7v7H4V4Zm9 0h7v4h-7V4ZM4 13h7v7H4v-7Zm9 6h7v4h-7v-4Zm0-6h7v4h-7v-4Z"
+      stroke="currentColor"
+      strokeWidth="1.7"
       strokeLinejoin="round"
     />
   </svg>
@@ -266,151 +285,422 @@ const IconUsers = () => (
   </svg>
 );
 
-const mainMenus: MenuItem[] = [
+const IconReport = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M5 19V9M10 19V5M15 19v-7M20 19V8"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const IconTrack = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M4 12h4l2-6 4 12 2-6h4"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconScale = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M12 3v3M7 21h10M8 6h8l1 3H7l1-3ZM6 9l-2 8h4M18 9l2 8h-4M10 21v-4h4v4"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const PROCUREMENT_ROLES: RoleCodeValue[] = [
+  RoleCode.PROCUREMENT_OFFICER,
+  RoleCode.PROCUREMENT_MANAGER,
+  RoleCode.ADMINISTRATOR,
+  RoleCode.WAREHOUSE_OFFICER,
+  RoleCode.WAREHOUSE_MANAGER,
+  RoleCode.ACCOUNTING_OFFICER,
+  RoleCode.EXECUTIVE,
+];
+
+const WAREHOUSE_ROLES: RoleCodeValue[] = [
+  RoleCode.WAREHOUSE_OFFICER,
+  RoleCode.WAREHOUSE_MANAGER,
+  RoleCode.PROCUREMENT_MANAGER,
+  RoleCode.ACCOUNTING_OFFICER,
+  RoleCode.EXECUTIVE,
+  RoleCode.ADMINISTRATOR,
+];
+
+const ACCOUNTING_ROLES: RoleCodeValue[] = [
+  RoleCode.ACCOUNTING_OFFICER,
+  RoleCode.ADMINISTRATOR,
+  RoleCode.PROCUREMENT_MANAGER,
+  RoleCode.PROCUREMENT_OFFICER,
+  RoleCode.EXECUTIVE,
+];
+
+const RECEIVING_ROLES: RoleCodeValue[] = [
+  RoleCode.WEIGHBRIDGE_OFFICER,
+  RoleCode.WAREHOUSE_OFFICER,
+  RoleCode.WAREHOUSE_MANAGER,
+  RoleCode.PROCUREMENT_MANAGER,
+  RoleCode.ACCOUNTING_OFFICER,
+  RoleCode.EXECUTIVE,
+  RoleCode.ADMINISTRATOR,
+];
+
+const navGroups: NavGroup[] = [
   {
-    key: "purchase-orders",
-    label: "สั่งซื้อ",
-    href: "/purchase-orders",
-    icon: <IconPurchaseOrder />,
+    key: "dashboard",
+    title: "Dashboard",
+    items: [
+      {
+        key: "home",
+        label: "ภาพรวม",
+        href: "/",
+        icon: <IconDashboard />,
+      },
+    ],
   },
   {
-    key: "purchase-requests",
-    label: "ขอซื้อ",
-    href: "/purchase-requests",
-    icon: <IconPurchaseRequest />,
+    key: "procurement",
+    title: "จัดซื้อทั่วไป",
+    items: [
+      {
+        key: "pr",
+        label: "ใบขอซื้อ PR",
+        href: "/purchase-requests",
+        icon: <IconPurchaseRequest />,
+        roles: PROCUREMENT_ROLES,
+      },
+      {
+        key: "pr-approvals",
+        label: "อนุมัติใบขอซื้อ",
+        href: "/purchase-requests/approvals",
+        icon: <IconPurchaseRequest />,
+        roles: [RoleCode.PROCUREMENT_MANAGER, RoleCode.ADMINISTRATOR],
+      },
+      {
+        key: "po",
+        label: "ใบสั่งซื้อ PO",
+        href: "/purchase-orders",
+        icon: <IconPurchaseOrder />,
+        roles: PROCUREMENT_ROLES,
+      },
+      {
+        key: "tracking",
+        label: "ติดตามจัดซื้อ",
+        href: "/procurement/tracking",
+        icon: <IconTrack />,
+        roles: PROCUREMENT_ROLES,
+      },
+    ],
   },
   {
-    key: "goods-receipts",
-    label: "รับของ",
-    href: "/goods-receipts",
-    icon: <IconReceiving />,
+    key: "warehouse",
+    title: "คลังสินค้า",
+    items: [
+      {
+        key: "gr",
+        label: "ใบรับของ GR",
+        href: "/goods-receipts",
+        icon: <IconReceiving />,
+        roles: WAREHOUSE_ROLES,
+      },
+      {
+        key: "stock-balances",
+        label: "Stock Balance",
+        href: "/inventory/stock-balances",
+        icon: <IconWarehouse />,
+        roles: WAREHOUSE_ROLES,
+      },
+      {
+        key: "stock-movements",
+        label: "Stock Movement",
+        href: "/inventory/stock-movements",
+        icon: <IconWarehouseLocation />,
+        roles: WAREHOUSE_ROLES,
+      },
+      {
+        key: "lots",
+        label: "Lot Balance",
+        href: "/inventory/lots",
+        icon: <IconItem />,
+        roles: WAREHOUSE_ROLES,
+      },
+      {
+        key: "production-approvals",
+        label: "อนุมัติรับผลผลิต",
+        href: "/warehouse/production-output-approvals",
+        icon: <IconWarehouse />,
+        roles: [
+          RoleCode.WAREHOUSE_MANAGER,
+          RoleCode.WAREHOUSE_OFFICER,
+          RoleCode.ADMINISTRATOR,
+        ],
+      },
+    ],
   },
   {
-    key: "purchase-payments",
-    label: "จ่ายเงิน",
-    href: "/purchase-payments/pending",
-    icon: <IconPurchaseOrder />,
+    key: "finance",
+    title: "บัญชี/การเงิน",
+    items: [
+      {
+        key: "pay-pending",
+        label: "รอจ่ายเงิน Supplier",
+        href: "/purchase-payments/pending",
+        icon: <IconPayment />,
+        roles: ACCOUNTING_ROLES,
+      },
+      {
+        key: "pay-history",
+        label: "ประวัติการจ่ายเงิน",
+        href: "/purchase-payments",
+        icon: <IconPayment />,
+        roles: ACCOUNTING_ROLES,
+      },
+    ],
   },
   {
-    key: "receiving",
-    label: "รับซื้อยาง",
-    href: "/receiving",
-    icon: <IconReceiving />,
+    key: "raw-tire",
+    title: "รับซื้อยาง",
+    items: [
+      {
+        key: "scales",
+        label: "เครื่องชั่ง",
+        href: "/masters/weighbridge-scales",
+        icon: <IconScale />,
+        roles: RECEIVING_ROLES,
+      },
+      {
+        key: "tickets",
+        label: "ตั๋วชั่ง",
+        href: "/receiving",
+        icon: <IconReceiving />,
+        roles: RECEIVING_ROLES,
+      },
+      {
+        key: "raw-receipts",
+        label: "ใบรับซื้อยาง",
+        href: "/receiving",
+        icon: <IconPurchaseOrder />,
+        roles: RECEIVING_ROLES,
+      },
+      {
+        key: "stock-request",
+        label: "ขอรับยางเข้าคลัง",
+        href: "/receiving",
+        icon: <IconWarehouse />,
+        roles: [
+          RoleCode.WAREHOUSE_OFFICER,
+          RoleCode.WAREHOUSE_MANAGER,
+          RoleCode.WEIGHBRIDGE_OFFICER,
+          RoleCode.ADMINISTRATOR,
+        ],
+      },
+      {
+        key: "stock-approve",
+        label: "อนุมัติรับยางเข้าคลัง",
+        href: "/warehouse/stock-posting-approvals",
+        icon: <IconWarehouse />,
+        roles: [
+          RoleCode.WAREHOUSE_MANAGER,
+          RoleCode.WAREHOUSE_OFFICER,
+          RoleCode.ADMINISTRATOR,
+        ],
+      },
+    ],
+  },
+  {
+    key: "masters",
+    title: "Master Data",
+    items: [
+      {
+        key: "units",
+        label: "หน่วยนับ",
+        href: "/masters/units",
+        icon: <IconUnit />,
+      },
+      {
+        key: "item-categories",
+        label: "หมวดสินค้า",
+        href: "/masters/item-categories",
+        icon: <IconCategory />,
+      },
+      {
+        key: "items",
+        label: "สินค้า",
+        href: "/masters/items",
+        icon: <IconItem />,
+      },
+      {
+        key: "warehouses",
+        label: "คลังสินค้า",
+        href: "/warehouses",
+        icon: <IconWarehouse />,
+      },
+      {
+        key: "locations",
+        label: "ตำแหน่งจัดเก็บ",
+        href: "/warehouse-locations",
+        icon: <IconWarehouseLocation />,
+      },
+      {
+        key: "vendors",
+        label: "เจ้าหนี้ / Supplier",
+        href: "/masters/vendors",
+        icon: <IconVendor />,
+      },
+      {
+        key: "sellers",
+        label: "ผู้ขายยาง",
+        href: "/masters/sellers",
+        icon: <IconVendor />,
+      },
+      {
+        key: "seller-types",
+        label: "ประเภทผู้ขาย",
+        href: "/masters/seller-types",
+        icon: <IconSellerType />,
+      },
+      {
+        key: "seller-banks",
+        label: "บัญชีธนาคารผู้ขาย",
+        href: "/masters/seller-bank-accounts",
+        icon: <IconPayment />,
+      },
+      {
+        key: "trucks",
+        label: "รถบรรทุก",
+        href: "/masters/trucks",
+        icon: <IconWarehouseLocation />,
+      },
+      {
+        key: "tire-class",
+        label: "ประเภทยาง",
+        href: "/masters/tire-classifications",
+        icon: <IconCategory />,
+      },
+      {
+        key: "tire-price",
+        label: "ราคายาง",
+        href: "/masters/raw-tire-price-rules",
+        icon: <IconTax />,
+      },
+      {
+        key: "payment-terms",
+        label: "เงื่อนไขชำระเงิน",
+        href: "/masters/payment-terms",
+        icon: <IconPayment />,
+      },
+      {
+        key: "tax-rates",
+        label: "อัตราภาษี",
+        href: "/masters/tax-rates",
+        icon: <IconTax />,
+      },
+      {
+        key: "pr-types",
+        label: "ประเภทใบขอซื้อ",
+        href: "/masters/purchase-request-types",
+        icon: <IconPrType />,
+      },
+    ],
+  },
+  {
+    key: "reports",
+    title: "รายงาน",
+    items: [
+      {
+        key: "rpt-procurement",
+        label: "รายงานจัดซื้อ",
+        href: "/reports/procurement",
+        icon: <IconReport />,
+      },
+      {
+        key: "rpt-inventory",
+        label: "รายงานคลัง",
+        href: "/reports/inventory",
+        icon: <IconReport />,
+      },
+      {
+        key: "rpt-receiving",
+        label: "รายงานรับซื้อยาง",
+        href: "/reports/receiving",
+        icon: <IconReport />,
+      },
+      {
+        key: "rpt-payments",
+        label: "รายงานจ่ายเงิน",
+        href: "/reports/payments",
+        icon: <IconReport />,
+      },
+    ],
+  },
+  {
+    key: "settings",
+    title: "ตั้งค่าระบบ",
+    items: [
+      {
+        key: "users",
+        label: "ผู้ใช้งาน",
+        href: "/users",
+        icon: <IconUsers />,
+        roles: [RoleCode.ADMINISTRATOR],
+      },
+      {
+        key: "roles",
+        label: "Roles",
+        href: "/settings/roles",
+        icon: <IconUsers />,
+        roles: [RoleCode.ADMINISTRATOR],
+      },
+      {
+        key: "permissions",
+        label: "Permissions",
+        href: "/settings/permissions",
+        icon: <IconMaster />,
+        roles: [RoleCode.ADMINISTRATOR],
+      },
+    ],
   },
 ];
 
-const masterMenus: MenuItem[] = [
-  {
-    key: "vendors",
-    label: "ผู้ขาย",
-    href: "/masters/vendors",
-    icon: <IconVendor />,
-  },
-  {
-    key: "seller-types",
-    label: "ประเภทผู้ขาย",
-    href: "/masters/seller-types",
-    icon: <IconSellerType />,
-  },
-  {
-    key: "sellers",
-    label: "ผู้ขายยาง",
-    href: "/masters/sellers",
-    icon: <IconVendor />,
-  },
-  {
-    key: "seller-bank-accounts",
-    label: "บัญชีธนาคารผู้ขาย",
-    href: "/masters/seller-bank-accounts",
-    icon: <IconPayment />,
-  },
-  {
-    key: "trucks",
-    label: "รถบรรทุก",
-    href: "/masters/trucks",
-    icon: <IconReceiving />,
-  },
-  {
-    key: "tire-classifications",
-    label: "ประเภท/กลุ่มยาง",
-    href: "/masters/tire-classifications",
-    icon: <IconCategory />,
-  },
-  {
-    key: "raw-tire-price-rules",
-    label: "กฎราคาซื้อยาง",
-    href: "/masters/raw-tire-price-rules",
-    icon: <IconTax />,
-  },
-  {
-    key: "weighbridge-scales",
-    label: "เครื่องชั่ง",
-    href: "/masters/weighbridge-scales",
-    icon: <IconReceiving />,
-  },
-  {
-    key: "items",
-    label: "สินค้า / วัตถุดิบ",
-    href: "/masters/items",
-    icon: <IconItem />,
-  },
-  {
-    key: "item-categories",
-    label: "หมวดหมู่สินค้า",
-    href: "/masters/item-categories",
-    icon: <IconCategory />,
-  },
-  {
-    key: "units",
-    label: "หน่วยนับ",
-    href: "/masters/units",
-    icon: <IconUnit />,
-  },
-  {
-    key: "warehouses",
-    label: "คลังสินค้า",
-    href: "/warehouses",
-    icon: <IconWarehouse />,
-  },
-  {
-    key: "warehouse-locations",
-    label: "ตำแหน่งจัดเก็บ",
-    href: "/warehouse-locations",
-    icon: <IconWarehouseLocation />,
-  },
-  {
-    key: "payment-terms",
-    label: "เงื่อนไขชำระเงิน",
-    href: "/masters/payment-terms",
-    icon: <IconPayment />,
-  },
-  {
-    key: "tax-rates",
-    label: "อัตราภาษี",
-    href: "/masters/tax-rates",
-    icon: <IconTax />,
-  },
-  {
-    key: "purchase-request-types",
-    label: "ประเภทใบขอซื้อ",
-    href: "/masters/purchase-request-types",
-    icon: <IconPrType />,
-  },
+/** All unique nav hrefs — used so a parent path does not stay active under a sibling route. */
+const ALL_NAV_HREFS = [
+  ...new Set(navGroups.flatMap((group) => group.items.map((item) => item.href))),
 ];
 
-function isActive(href: string, pathname: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActive(href: string, pathname: string, allHrefs: string[] = ALL_NAV_HREFS) {
+  if (href === "/") return pathname === "/";
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+
+  // e.g. /purchase-requests must not stay active on /purchase-requests/approvals
+  const stolenByMoreSpecific = allHrefs.some(
+    (other) =>
+      other !== href &&
+      other.startsWith(`${href}/`) &&
+      (pathname === other || pathname.startsWith(`${other}/`)),
+  );
+  return !stolenByMoreSpecific;
 }
 
-function isMasterActive(pathname: string) {
-  return (
-    pathname === "/masters" ||
-    pathname.startsWith("/masters/") ||
-    pathname === "/warehouses" ||
-    pathname.startsWith("/warehouses/") ||
-    pathname === "/warehouse-locations" ||
-    pathname.startsWith("/warehouse-locations/")
-  );
+function canSeeItem(item: NavItem) {
+  if (!item.roles?.length) return true;
+  return item.roles.some((role) => userHasRole(role));
+}
+
+function groupHasActive(group: NavGroup, pathname: string) {
+  return group.items.some((item) => isActive(item.href, pathname));
 }
 
 type AppHeaderProps = {
@@ -424,35 +714,49 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-
-  const [masterOpen, setMasterOpen] = useState(isMasterActive(pathname));
-  const [showUsersMenu, setShowUsersMenu] = useState(false);
-  const [showWarehouseMenu, setShowWarehouseMenu] = useState(false);
+  const [roleTick, setRoleTick] = useState(0);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    setShowUsersMenu(isAdministrator());
-    setShowWarehouseMenu(
-      userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-        userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-        userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
-        userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
-        userHasRole(RoleCode.EXECUTIVE) ||
-        isAdministrator(),
-    );
+    setRoleTick((n) => n + 1);
   }, [pathname]);
+
+  const visibleGroups = useMemo(() => {
+    void roleTick;
+    return navGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(canSeeItem),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [roleTick]);
+
+  useEffect(() => {
+    setOpenGroups((prev) => {
+      const next = { ...prev };
+      for (const group of visibleGroups) {
+        if (groupHasActive(group, pathname)) {
+          next[group.key] = true;
+        }
+      }
+      return next;
+    });
+  }, [pathname, visibleGroups]);
 
   const handleGo = (href: string) => {
     router.push(href);
   };
 
-  const handleToggleMaster = () => {
+  const handleToggleGroup = (groupKey: string) => {
     if (collapsed) {
       onCollapsedChange(false);
-      setMasterOpen(true);
+      setOpenGroups((prev) => ({ ...prev, [groupKey]: true }));
       return;
     }
-
-    setMasterOpen((prev) => !prev);
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupKey]: !prev[groupKey],
+    }));
   };
 
   return (
@@ -484,213 +788,62 @@ export default function AppHeader({
         </div>
 
         <div className={styles.navScroll}>
-          <div className={styles.groupBlock}>
-            <div className={styles.groupTitle}>PURCHASE</div>
+          {visibleGroups.map((group) => {
+            const open = Boolean(openGroups[group.key]);
+            const groupActive = groupHasActive(group, pathname);
 
-            <div className={styles.groupItems}>
-              {mainMenus.map((item) => {
-                const active = isActive(item.href, pathname);
-
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    title={collapsed ? item.label : undefined}
-                    className={`${styles.menuItem} ${
-                      active ? styles.menuItemActive : ""
-                    }`}
-                    onClick={() => handleGo(item.href)}
-                  >
-                    <span className={styles.menuItemIcon}>{item.icon}</span>
-
-                    <span className={styles.menuItemText}>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {showWarehouseMenu ? (
-            <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>WAREHOUSE</div>
-              <div className={styles.groupItems}>
+            return (
+              <div key={group.key} className={styles.groupBlock}>
                 <button
                   type="button"
-                  title={collapsed ? "ภาพรวมคลังสินค้า" : undefined}
-                  className={`${styles.menuItem} ${
-                    isActive("/inventory/stock-balances", pathname)
-                      ? styles.menuItemActive
-                      : ""
+                  title={collapsed ? group.title : undefined}
+                  className={`${styles.menuItem} ${styles.parentMenuItem} ${
+                    groupActive ? styles.menuItemActive : ""
                   }`}
-                  onClick={() => handleGo("/inventory/stock-balances")}
+                  onClick={() => handleToggleGroup(group.key)}
                 >
                   <span className={styles.menuItemIcon}>
-                    <IconWarehouse />
+                    {group.items[0]?.icon ?? <IconMaster />}
                   </span>
-                  <span className={styles.menuItemText}>
-                    ภาพรวมคลังสินค้า
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  title={collapsed ? "ประวัติความเคลื่อนไหว" : undefined}
-                  className={`${styles.menuItem} ${
-                    isActive("/inventory/stock-movements", pathname)
-                      ? styles.menuItemActive
-                      : ""
-                  }`}
-                  onClick={() => handleGo("/inventory/stock-movements")}
-                >
-                  <span className={styles.menuItemIcon}>
-                    <IconWarehouseLocation />
-                  </span>
-                  <span className={styles.menuItemText}>
-                    ประวัติความเคลื่อนไหว
+                  <span className={styles.menuItemText}>{group.title}</span>
+                  <span className={styles.chevron}>
+                    <IconChevron open={open} />
                   </span>
                 </button>
-                <button
-                  type="button"
-                  title={collapsed ? "ยอดคงเหลือแยก Lot" : undefined}
-                  className={`${styles.menuItem} ${
-                    isActive("/inventory/lots", pathname)
-                      ? styles.menuItemActive
-                      : ""
-                  }`}
-                  onClick={() => handleGo("/inventory/lots")}
-                >
-                  <span className={styles.menuItemIcon}>
-                    <IconItem />
-                  </span>
-                  <span className={styles.menuItemText}>
-                    ยอดคงเหลือแยก Lot
-                  </span>
-                </button>
-                {(userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-                  userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-                  isAdministrator()) && (
-                  <>
-                    <button
-                      type="button"
-                      title={collapsed ? "อนุมัติรับเข้าคลัง (ยาง)" : undefined}
-                      className={`${styles.menuItem} ${
-                        isActive(
-                          "/warehouse/stock-posting-approvals",
-                          pathname,
-                        )
-                          ? styles.menuItemActive
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleGo("/warehouse/stock-posting-approvals")
-                      }
-                    >
-                      <span className={styles.menuItemIcon}>
-                        <IconWarehouse />
-                      </span>
-                      <span className={styles.menuItemText}>
-                        อนุมัติรับเข้าคลัง (ยาง)
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      title={collapsed ? "อนุมัติรับผลผลิต" : undefined}
-                      className={`${styles.menuItem} ${
-                        isActive(
-                          "/warehouse/production-output-approvals",
-                          pathname,
-                        )
-                          ? styles.menuItemActive
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleGo("/warehouse/production-output-approvals")
-                      }
-                    >
-                      <span className={styles.menuItemIcon}>
-                        <IconWarehouse />
-                      </span>
-                      <span className={styles.menuItemText}>
-                        อนุมัติรับผลผลิต
-                      </span>
-                    </button>
-                  </>
-                )}
+
+                {!collapsed && open ? (
+                  <div className={styles.subMenu}>
+                    {group.items.map((item) => {
+                      const active = isActive(item.href, pathname);
+                      return (
+                        <button
+                          key={item.key}
+                          type="button"
+                          className={`${styles.subMenuItem} ${
+                            active ? styles.subMenuItemActive : ""
+                          }`}
+                          onClick={() => handleGo(item.href)}
+                        >
+                          <span className={styles.subMenuIcon}>{item.icon}</span>
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ) : null}
-
-          <div className={styles.groupBlock}>
-            <div className={styles.groupTitle}>SETTING</div>
-
-            <div className={styles.groupItems}>
-              {showUsersMenu ? (
-                <button
-                  type="button"
-                  title={collapsed ? "จัดการผู้ใช้งานและแผนก" : undefined}
-                  className={`${styles.menuItem} ${
-                    isActive("/users", pathname) ? styles.menuItemActive : ""
-                  }`}
-                  onClick={() => handleGo("/users")}
-                >
-                  <span className={styles.menuItemIcon}>
-                    <IconUsers />
-                  </span>
-                  <span className={styles.menuItemText}>
-                    จัดการผู้ใช้งานและแผนก
-                  </span>
-                </button>
-              ) : null}
-
-              <button
-                type="button"
-                title={collapsed ? "Master" : undefined}
-                className={`${styles.menuItem} ${styles.parentMenuItem} ${
-                  isMasterActive(pathname) ? styles.menuItemActive : ""
-                }`}
-                onClick={handleToggleMaster}
-              >
-                <span className={styles.menuItemIcon}>
-                  <IconMaster />
-                </span>
-
-                <span className={styles.menuItemText}>Master</span>
-                <span className={styles.chevron}>
-                  <IconChevron open={masterOpen} />
-                </span>
-              </button>
-
-              {!collapsed && masterOpen && (
-                <div className={styles.subMenu}>
-                  {masterMenus.map((item) => {
-                    const active = isActive(item.href, pathname);
-
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        className={`${styles.subMenuItem} ${
-                          active ? styles.subMenuItemActive : ""
-                        }`}
-                        onClick={() => handleGo(item.href)}
-                      >
-                        <span className={styles.subMenuIcon}>{item.icon}</span>
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         <div className={styles.sidebarBottom}>
           <div className={styles.sidebarProfile}>
-            <div className={styles.avatar}>PR</div>
-
+            <div className={styles.avatar}>
+              {isAdministrator() ? "AD" : "ER"}
+            </div>
             <div className={styles.profileText}>
-              <strong>Purchase</strong>
-              <span>ERP Module</span>
+              <strong>SMT ERP</strong>
+              <span>Navigation</span>
             </div>
           </div>
         </div>

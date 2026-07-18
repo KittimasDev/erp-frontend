@@ -6,32 +6,40 @@ import { usePathname } from "next/navigation";
 import styles from "./AppTopHeader.module.css";
 
 const PAGE_TITLES: Array<{ href: string; title: string }> = [
-  { href: "/purchase-orders", title: "สั่งซื้อ" },
-  { href: "/purchase-requests", title: "ขอซื้อ" },
+  { href: "/", title: "Dashboard" },
+  { href: "/procurement/tracking", title: "ติดตามจัดซื้อ" },
+  { href: "/purchase-orders", title: "ใบสั่งซื้อ PO" },
   { href: "/purchase-requests/approvals", title: "อนุมัติใบขอซื้อ" },
   { href: "/purchase-requests/create", title: "สร้างใบขอซื้อ" },
-  { href: "/goods-receipts", title: "รับของ" },
-  { href: "/purchase-payments/pending", title: "PO รอจ่ายเงิน" },
+  { href: "/purchase-requests", title: "ใบขอซื้อ PR" },
+  { href: "/goods-receipts", title: "ใบรับของ GR" },
+  { href: "/purchase-payments/pending", title: "รอจ่ายเงิน Supplier" },
   { href: "/purchase-payments", title: "ประวัติการจ่ายเงิน" },
-  { href: "/receiving", title: "ภาพรวมรับซื้อยาง" },
-  { href: "/inventory/stock-balances", title: "ภาพรวมคลังสินค้า" },
-  { href: "/inventory/stock-movements", title: "ประวัติความเคลื่อนไหวสต๊อก" },
-  { href: "/inventory/lots", title: "ยอดคงเหลือแยก Lot" },
-  { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับเข้าคลัง (ยาง)" },
+  { href: "/receiving", title: "รับซื้อยาง" },
+  { href: "/inventory/stock-balances", title: "Stock Balance" },
+  { href: "/inventory/stock-movements", title: "Stock Movement" },
+  { href: "/inventory/lots", title: "Lot Balance" },
+  { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับยางเข้าคลัง" },
   { href: "/warehouse/production-output-approvals", title: "อนุมัติรับผลผลิตเข้าคลัง" },
   { href: "/receiving/pending-production-output", title: "ตั๋วรอรับผลผลิตเข้าคลัง" },
   { href: "/receiving/production-output/stock-requests", title: "คำขอรับผลผลิตเข้าคลัง" },
-  { href: "/users", title: "จัดการผู้ใช้งานและแผนก" },
-  { href: "/masters/vendors", title: "ผู้ขาย" },
+  { href: "/users", title: "ผู้ใช้งาน" },
+  { href: "/settings/roles", title: "Roles" },
+  { href: "/settings/permissions", title: "Permissions" },
+  { href: "/reports/procurement", title: "รายงานจัดซื้อ" },
+  { href: "/reports/inventory", title: "รายงานคลัง" },
+  { href: "/reports/receiving", title: "รายงานรับซื้อยาง" },
+  { href: "/reports/payments", title: "รายงานจ่ายเงิน" },
+  { href: "/masters/vendors", title: "เจ้าหนี้ / Supplier" },
   { href: "/masters/seller-types", title: "ประเภทผู้ขาย" },
   { href: "/masters/sellers", title: "ผู้ขายยาง" },
   { href: "/masters/seller-bank-accounts", title: "บัญชีธนาคารผู้ขาย" },
   { href: "/masters/trucks", title: "รถบรรทุก" },
-  { href: "/masters/tire-classifications", title: "ประเภท/กลุ่มยาง" },
-  { href: "/masters/raw-tire-price-rules", title: "กฎราคาซื้อยาง" },
+  { href: "/masters/tire-classifications", title: "ประเภทยาง" },
+  { href: "/masters/raw-tire-price-rules", title: "ราคายาง" },
   { href: "/masters/weighbridge-scales", title: "เครื่องชั่ง" },
-  { href: "/masters/items", title: "สินค้า / วัตถุดิบ" },
-  { href: "/masters/item-categories", title: "หมวดหมู่สินค้า" },
+  { href: "/masters/items", title: "สินค้า" },
+  { href: "/masters/item-categories", title: "หมวดสินค้า" },
   { href: "/masters/units", title: "หน่วยนับ" },
   { href: "/warehouses", title: "คลังสินค้า" },
   { href: "/warehouse-locations", title: "ตำแหน่งจัดเก็บ" },
@@ -70,7 +78,7 @@ function resolvePageTitle(pathname: string) {
   }
 
   if (pathname === "/receiving/dashboard") {
-    return "Dashboard รับซื้อยาง";
+    return "วิเคราะห์ภาพรวมรับซื้อยาง";
   }
 
   if (pathname === "/receiving/pending-production-output") {
@@ -78,7 +86,7 @@ function resolvePageTitle(pathname: string) {
   }
 
   if (pathname === "/users" || pathname === "/user") {
-    return "จัดการผู้ใช้งานและแผนก";
+    return "ผู้ใช้งาน";
   }
 
   if (/^\/receiving\/receipts\/[^/]+\/payment$/.test(pathname)) {
@@ -104,7 +112,9 @@ function resolvePageTitle(pathname: string) {
 
   const prefix = PAGE_TITLES.find(
     (item) =>
-      item.href !== "/masters" && pathname.startsWith(`${item.href}/`),
+      item.href !== "/" &&
+      item.href !== "/masters" &&
+      pathname.startsWith(`${item.href}/`),
   );
   if (prefix) {
     return prefix.title;
@@ -112,6 +122,10 @@ function resolvePageTitle(pathname: string) {
 
   if (pathname.startsWith("/masters")) {
     return "Master Data";
+  }
+
+  if (pathname === "/") {
+    return "Dashboard";
   }
 
   return "ภาพรวมระบบ";
