@@ -21,11 +21,17 @@ import { useRouter } from "next/navigation";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useRawTirePaymentQuery } from "@/hooks/raw-tire-payment/useRawTirePaymentQuery";
+import { useProductionOutputStockRequestsQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import {
   useWeighInMutation,
   useWeighOutMutation,
 } from "@/hooks/weighbridge-tickets/useWeighTicketMutations";
+import {
+  PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
+  REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET,
+  resolveProductionOutputTicketLock,
+} from "@/types/production-output-stock-request";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -168,6 +174,21 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const weighInMutation = useWeighInMutation(ticketId);
   const weighOutMutation = useWeighOutMutation(ticketId);
   const ticket = ticketQuery.data?.data;
+
+  const productionOutputQuery = useProductionOutputStockRequestsQuery(
+    {
+      referenceDocType: REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET,
+      referenceDocId: ticketId,
+    },
+    { enabled: Boolean(ticketId) },
+  );
+  const productionOutputLock = useMemo(
+    () =>
+      resolveProductionOutputTicketLock(
+        productionOutputQuery.data?.data ?? [],
+      ),
+    [productionOutputQuery.data?.data],
+  );
 
   const paymentQuery = useRawTirePaymentQuery(ticket?.receiptId ?? "");
   const paymentReceipt = paymentQuery.data?.data?.receipt;
@@ -334,13 +355,14 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               </div>
               <div className={styles.cardBody}>
                 <Steps
-                  current={Math.min(currentStep, 3)}
-                  status={paid ? "finish" : "process"}
+                  current={Math.min(currentStep, 4)}
+                  status={paid && currentStep >= 4 ? "process" : paid ? "finish" : "process"}
                   items={[
                     { title: "ชั่งเข้า" },
                     { title: "ชั่งออก" },
                     { title: "คัดแยก / ใบรับซื้อ" },
                     { title: "จ่ายเงิน" },
+                    { title: "รับผลผลิตเข้าคลัง" },
                   ]}
                 />
               </div>
@@ -1213,6 +1235,128 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       สร้างใบรับซื้อจาก Step 3 ก่อน แล้วค่อยยืนยันยอดและจ่ายเงิน
                     </div>
                   )}
+                </div>
+              </div>
+
+              <div
+                className={[
+                  styles.stepCard,
+                  currentStep === 4 || paid
+                    ? styles.stepCardActive
+                    : "",
+                  productionOutputLock.locked ? styles.stepCardDone : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <div className={styles.stepCardHeader}>
+                  <div className={styles.stepCardHeaderMain}>
+                    <div
+                      className={[
+                        styles.stepBadge,
+                        currentStep === 4 || paid
+                          ? styles.stepBadgeActive
+                          : "",
+                        productionOutputLock.locked
+                          ? styles.stepBadgeDone
+                          : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      5
+                    </div>
+                    <div className={styles.stepCardTitle}>
+                      <h3>Step 5 · ขอรับผลผลิตเข้าคลัง</h3>
+                      <p>
+                        รับผงยาง / น้ำมัน Pyrolysis / เศษเหล็ก ฯลฯ จาก Master
+                        Items — ส่งแล้วจะล็อกจนกว่าจะถูกปฏิเสธ
+                      </p>
+                    </div>
+                  </div>
+                  <Tag
+                    className={styles.stepStatusTag}
+                    color={
+                      productionOutputLock.reason === "pending"
+                        ? "processing"
+                        : productionOutputLock.reason === "approved"
+                          ? "success"
+                          : productionOutputLock.reason === "rejected"
+                            ? "warning"
+                            : "default"
+                    }
+                  >
+                    {productionOutputLock.label}
+                  </Tag>
+                </div>
+                <div className={styles.stepCardBody}>
+                  <div className={styles.stepMetaGrid}>
+                    <div
+                      className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
+                    >
+                      <span>ตัวอย่าง</span>
+                      <strong>
+                        ผงยาง 15 กรัม · น้ำมัน Pyrolysis 500 ลิตร · เศษเหล็ก 20
+                        kg
+                      </strong>
+                    </div>
+                    <div className={styles.stepMetaItem}>
+                      <span>สถานะคำขอของตั๋วนี้</span>
+                      <strong>
+                        {productionOutputLock.requests.length > 0
+                          ? productionOutputLock.requests
+                              .map(
+                                (row) =>
+                                  `${row.requestNo} (${
+                                    PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[
+                                      row.status
+                                    ] ?? row.status
+                                  })`,
+                              )
+                              .join(" · ")
+                          : "ยังไม่ส่งคำขอ"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {productionOutputLock.message ? (
+                    <div className={styles.stepEmptyHint}>
+                      {productionOutputLock.message}
+                    </div>
+                  ) : null}
+
+                  <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                    {!productionOutputLock.locked ? (
+                      <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        onClick={() =>
+                          router.push(
+                            `/receiving/production-output/stock-requests/create?ticketId=${encodeURIComponent(
+                              ticketId,
+                            )}&ticketNo=${encodeURIComponent(
+                              ticket.ticketNo,
+                            )}`,
+                          )
+                        }
+                      >
+                        {productionOutputLock.reason === "rejected"
+                          ? "ส่งคำขอใหม่หลังถูกปฏิเสธ"
+                          : "สร้างคำขอรับผลผลิตเข้าคลัง"}
+                      </Button>
+                    ) : null}
+                    <Button
+                      onClick={() =>
+                        router.push(
+                          `/receiving/production-output/stock-requests?q=${encodeURIComponent(
+                            ticket.ticketNo,
+                          )}`,
+                        )
+                      }
+                    >
+                      ดูรายการคำขอ
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

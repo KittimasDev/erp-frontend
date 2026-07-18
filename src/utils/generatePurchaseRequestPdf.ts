@@ -19,7 +19,15 @@ export type PurchaseRequestPdfData = {
   items: PurchaseRequestItem[];
 };
 
-const LOGO_URL = "9315db73-509d-48a7-a8a8-deccea44bb93.png";
+const LOGO_URL = "/9315db73-509d-48a7-a8a8-deccea44bb93.png";
+
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
 
 function formatQty(value: number) {
   return value.toLocaleString("th-TH", {
@@ -32,14 +40,30 @@ function createPdfHtml(data: PurchaseRequestPdfData) {
   const rows = data.items
     .map(
       (item) => `
-        <tr>
-          <td class="text-center">${item.no}</td>
-          <td class="text-center">${item.itemCode}</td>
-          <td>${item.itemName}</td>
-          <td class="text-center">${item.unit}</td>
-          <td class="text-right">${formatQty(item.qty)}</td>
+        <tr class="data-row">
+          <td class="text-center col-no">${item.no}</td>
+          <td class="text-center col-code">${escapeHtml(item.itemCode)}</td>
+          <td class="col-name">${escapeHtml(item.itemName)}</td>
+          <td class="text-center col-unit">${escapeHtml(item.unit)}</td>
+          <td class="text-right col-qty">${formatQty(item.qty)}</td>
         </tr>
-      `
+      `,
+    )
+    .join("");
+
+  const emptyRows = Array.from({
+    length: Math.max(0, 6 - data.items.length),
+  })
+    .map(
+      () => `
+        <tr class="empty-row">
+          <td>&nbsp;</td>
+          <td></td>
+          <td></td>
+          <td></td>
+          <td></td>
+        </tr>
+      `,
     )
     .join("");
 
@@ -47,110 +71,94 @@ function createPdfHtml(data: PurchaseRequestPdfData) {
     <div id="purchase-request-pdf" class="pdf-page">
       <div class="header">
         <div class="logo-box">
-          <img src="${LOGO_URL}" class="logo" />
+          <img src="${LOGO_URL}" class="logo" crossorigin="anonymous" />
         </div>
-
         <div class="company">
           <div class="company-name">บริษัท เอสเอ็มที เอนเนอร์ยี่ จำกัด</div>
           <div class="company-address">
             85 ถนนโยธา แขวงตลาดน้อย เขตสัมพันธวงศ์ กรุงเทพมหานคร 10100
           </div>
           <div class="company-address">
-            เบอร์ออฟฟิศ : 02-2359565-8 เลขประจำตัวผู้เสียภาษี 0 1055 63023 12 4
+            เบอร์ออฟฟิศ : 02-2359565-8 · เลขประจำตัวผู้เสียภาษี 0105563023124
           </div>
         </div>
       </div>
 
-      <div class="title">ใบขอซื้อ</div>
+      <div class="header-rule"></div>
 
-      <div class="doc-no">
-        <span>เลขที่เอกสาร</span>
-        <strong>${data.prNo}</strong>
+      <div class="title-block">
+        <div class="title">ใบขอซื้อ</div>
+        <div class="title-sub">PURCHASE REQUEST</div>
       </div>
 
-      <div class="info-grid">
-        <div class="info-row">
-          <span class="label">ชื่อผู้ขอซื้อ</span>
-          <span>${data.requestBy}</span>
+      <div class="meta-bar">
+        <div class="meta-item">
+          <span class="meta-label">เลขที่เอกสาร</span>
+          <strong class="meta-value">${escapeHtml(data.prNo)}</strong>
         </div>
+      </div>
 
-        <div class="info-row">
-          <span class="label">วันที่เอกสาร</span>
-          <span>${data.requestDate}</span>
-        </div>
-
-        <div></div>
-
-        <div class="info-row">
-          <span class="label">ส่วนงานที่ขอซื้อ</span>
-          <span>${data.department}</span>
-        </div>
-
-        <div class="info-row">
-          <span class="label">ต้องการภายใน(วันที่)</span>
-          <span>${data.requiredDate}</span>
-        </div>
-
-        <div></div>
-
-        <div class="info-row">
-          <span class="label"></span>
-          <span>ประเภทที่ 1 : ${data.purchaseType}</span>
+      <div class="info-card">
+        <div class="info-grid">
+          <div class="info-row">
+            <span class="label">ชื่อผู้ขอซื้อ</span>
+            <span class="value">${escapeHtml(data.requestBy)}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">วันที่เอกสาร</span>
+            <span class="value">${escapeHtml(data.requestDate)}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">ส่วนงานที่ขอซื้อ</span>
+            <span class="value">${escapeHtml(data.department)}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">ต้องการภายใน</span>
+            <span class="value">${escapeHtml(data.requiredDate)}</span>
+          </div>
+          <div class="info-row info-row-full">
+            <span class="label">ประเภทใบขอซื้อ</span>
+            <span class="value">${escapeHtml(data.purchaseType)}</span>
+          </div>
         </div>
       </div>
 
       <table class="items-table">
         <thead>
           <tr>
-            <th style="width: 70px;">ลำดับ</th>
-            <th style="width: 90px;">รหัสสินค้า</th>
-            <th>รายการ</th>
-            <th style="width: 90px;">หน่วย</th>
-            <th style="width: 110px;">จำนวน</th>
+            <th class="col-no">ลำดับ</th>
+            <th class="col-code">รหัสสินค้า</th>
+            <th class="col-name">รายการ</th>
+            <th class="col-unit">หน่วย</th>
+            <th class="col-qty">จำนวน</th>
           </tr>
         </thead>
         <tbody>
           ${rows}
-          ${Array.from({ length: Math.max(0, 8 - data.items.length) })
-            .map(
-              () => `
-                <tr class="empty-row">
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                </tr>
-              `
-            )
-            .join("")}
+          ${emptyRows}
         </tbody>
       </table>
 
       <div class="signature-box">
         <div class="signature">
-          <div>
-            <span>ผู้จัดทำ</span>
-            <span class="line"></span>
-          </div>
-          <div class="date">วันที่&nbsp;&nbsp;&nbsp;_____/_____/_____</div>
+          <div class="sig-title">ผู้จัดทำ</div>
+          <div class="sig-line"></div>
+          <div class="sig-date">วันที่ _____ / _____ / _____</div>
         </div>
-
         <div class="signature">
-          <div>
-            <span>ผู้ตรวจสอบ</span>
-            <span class="line"></span>
-          </div>
-          <div class="date">วันที่&nbsp;&nbsp;&nbsp;_____/_____/_____</div>
+          <div class="sig-title">ผู้ตรวจสอบ</div>
+          <div class="sig-line"></div>
+          <div class="sig-date">วันที่ _____ / _____ / _____</div>
         </div>
-
         <div class="signature">
-          <div>
-            <span>ผู้อนุมัติ</span>
-            <span class="line"></span>
-          </div>
-          <div class="date">วันที่&nbsp;&nbsp;&nbsp;_____/_____/_____</div>
+          <div class="sig-title">ผู้อนุมัติ</div>
+          <div class="sig-line"></div>
+          <div class="sig-date">วันที่ _____ / _____ / _____</div>
         </div>
+      </div>
+
+      <div class="footer-note">
+        เอกสารนี้สร้างจากระบบ ERP · SMT Energy
       </div>
     </div>
   `;
@@ -159,180 +167,265 @@ function createPdfHtml(data: PurchaseRequestPdfData) {
 function createStyle() {
   return `
     <style>
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
       body {
         margin: 0;
-        font-family: Arial, "Tahoma", "Noto Sans Thai", sans-serif;
-        color: #111827;
+        font-family: Tahoma, "Noto Sans Thai", Arial, sans-serif;
+        color: #1f2937;
         background: #ffffff;
       }
 
       .pdf-page {
         width: 794px;
         min-height: 1123px;
-        padding: 32px 32px 40px;
+        padding: 28px 30px 32px;
         background: #ffffff;
-        color: #111827;
-        font-size: 13px;
+        color: #1f2937;
+        font-size: 12px;
       }
 
       .header {
         display: grid;
-        grid-template-columns: 180px 1fr;
-        align-items: start;
-        gap: 16px;
+        grid-template-columns: 168px 1fr;
+        align-items: center;
+        gap: 14px;
       }
 
       .logo-box {
         display: flex;
-        align-items: flex-start;
+        align-items: center;
       }
 
       .logo {
-        width: 180px;
+        width: 168px;
         height: auto;
+        max-height: 72px;
         object-fit: contain;
+        display: block;
       }
 
       .company {
         text-align: center;
-        padding-right: 80px;
+        padding-right: 40px;
       }
 
       .company-name {
-        font-size: 20px;
+        font-size: 19px;
         font-weight: 700;
-        margin-bottom: 7px;
+        color: #111827;
+        margin-bottom: 6px;
+        letter-spacing: 0.2px;
       }
 
       .company-address {
-        font-size: 12px;
-        line-height: 1.45;
-        font-weight: 600;
+        font-size: 11px;
+        line-height: 1.5;
+        color: #4b5563;
+        font-weight: 500;
+      }
+
+      .header-rule {
+        margin-top: 14px;
+        height: 3px;
+        background: linear-gradient(90deg, #7cb82f 0%, #f0b429 55%, #7cb82f 100%);
+      }
+
+      .title-block {
+        text-align: center;
+        margin-top: 18px;
       }
 
       .title {
-        text-align: center;
-        margin-top: 26px;
-        font-size: 22px;
+        font-size: 24px;
         font-weight: 700;
+        color: #111827;
+        letter-spacing: 1px;
       }
 
-      .doc-no {
-        margin-top: 44px;
+      .title-sub {
+        margin-top: 3px;
+        font-size: 11px;
+        color: #6b7280;
+        letter-spacing: 0.8px;
+      }
+
+      .meta-bar {
+        margin-top: 16px;
         display: flex;
         justify-content: flex-end;
-        gap: 10px;
-        font-size: 12px;
       }
 
-      .doc-no span,
-      .doc-no strong {
+      .meta-item {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        border: 1.2px solid #d1d5db;
+        background: #f9fafb;
+        padding: 8px 14px;
+        min-width: 240px;
+        border-radius: 2px;
+      }
+
+      .meta-label {
+        font-size: 11px;
+        color: #6b7280;
+        font-weight: 600;
+      }
+
+      .meta-value {
+        font-size: 13px;
+        color: #111827;
         font-weight: 700;
+      }
+
+      .info-card {
+        margin-top: 16px;
+        border: 1.2px solid #e5e7eb;
+        background: #fcfcfd;
+        padding: 14px 16px;
+        border-radius: 2px;
       }
 
       .info-grid {
-        margin-top: 14px;
         display: grid;
-        grid-template-columns: 1fr 1fr 170px;
-        column-gap: 38px;
-        row-gap: 7px;
-        font-size: 12px;
-        font-weight: 600;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 28px;
       }
 
       .info-row {
         display: grid;
-        grid-template-columns: 112px 1fr;
-        gap: 6px;
-        min-height: 17px;
+        grid-template-columns: 110px 1fr;
+        gap: 8px;
+        align-items: start;
+      }
+
+      .info-row-full {
+        grid-column: 1 / -1;
       }
 
       .label {
+        font-size: 11px;
+        color: #6b7280;
         font-weight: 700;
+      }
+
+      .value {
+        font-size: 12px;
+        color: #111827;
+        font-weight: 600;
+        line-height: 1.4;
       }
 
       .items-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 30px;
+        margin-top: 18px;
         table-layout: fixed;
         font-size: 12px;
       }
 
       .items-table th,
       .items-table td {
-        border: 1.4px solid #000;
-        padding: 8px 10px;
-        vertical-align: top;
+        border: 1.2px solid #9ca3af;
+        padding: 8px 8px;
+        vertical-align: middle;
+        white-space: nowrap;
       }
 
       .items-table th {
+        background: #f3f4f6;
         text-align: center;
         font-weight: 700;
-        height: 38px;
+        color: #111827;
+        height: 34px;
       }
 
-      .items-table tbody tr {
-        height: 360px;
-      }
-
-      .items-table tbody tr.empty-row {
-        height: 0;
+      .items-table tbody tr.data-row td {
+        height: 32px;
       }
 
       .items-table tbody tr.empty-row td {
-        height: 0;
-        padding: 0;
-        border-top: 0;
-        border-bottom: 0;
+        height: 32px;
+        color: transparent;
       }
 
-      .text-center {
-        text-align: center;
+      .col-no { width: 52px; }
+      .col-code {
+        width: 170px;
+        font-size: 11px;
+        letter-spacing: -0.1px;
       }
+      .col-name {
+        width: auto;
+        white-space: normal;
+        word-break: break-word;
+      }
+      .col-unit { width: 80px; }
+      .col-qty { width: 90px; }
 
-      .text-right {
-        text-align: right;
-      }
+      .text-center { text-align: center; }
+      .text-right { text-align: right; }
 
       .signature-box {
-        border-left: 1.4px solid #000;
-        border-right: 1.4px solid #000;
-        border-bottom: 1.4px solid #000;
+        margin-top: 0;
+        border: 1.2px solid #9ca3af;
+        border-top: 0;
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        min-height: 82px;
-        padding-top: 22px;
+        min-height: 120px;
       }
 
       .signature {
-        padding: 0 20px;
+        padding: 16px 18px 14px;
+        border-right: 1.2px solid #9ca3af;
+      }
+
+      .signature:last-child {
+        border-right: 0;
+      }
+
+      .sig-title {
         font-size: 12px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 36px;
+      }
+
+      .sig-line {
+        border-bottom: 1px dashed #6b7280;
+        margin-bottom: 10px;
+      }
+
+      .sig-date {
+        font-size: 11px;
+        color: #4b5563;
         font-weight: 600;
       }
 
-      .signature > div:first-child {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .line {
-        flex: 1;
-        border-bottom: 1px dashed #111827;
-        height: 1px;
-      }
-
-      .date {
-        margin-top: 7px;
-        padding-left: 28px;
+      .footer-note {
+        margin-top: 14px;
+        text-align: center;
+        font-size: 10px;
+        color: #9ca3af;
       }
     </style>
   `;
+}
+
+async function waitForLogo(wrapper: HTMLElement) {
+  const logo = wrapper.querySelector(".logo") as HTMLImageElement | null;
+  if (!logo) return;
+
+  if (logo.complete && logo.naturalWidth > 0) return;
+
+  await new Promise<void>((resolve) => {
+    const done = () => resolve();
+    logo.onload = done;
+    logo.onerror = done;
+    // fallback ถ้าติดค้าง
+    setTimeout(done, 3000);
+  });
 }
 
 export async function generatePurchaseRequestPdf(data: PurchaseRequestPdfData) {
@@ -352,11 +445,14 @@ export async function generatePurchaseRequestPdf(data: PurchaseRequestPdfData) {
   document.body.appendChild(wrapper);
 
   const target = wrapper.querySelector("#purchase-request-pdf") as HTMLElement;
+  await waitForLogo(wrapper);
 
   const canvas = await html2canvas(target, {
     scale: 2,
     useCORS: true,
+    allowTaint: false,
     backgroundColor: "#ffffff",
+    logging: false,
   });
 
   const imgData = canvas.toDataURL("image/png");
@@ -367,14 +463,7 @@ export async function generatePurchaseRequestPdf(data: PurchaseRequestPdfData) {
     format: "a4",
   });
 
-  const pageWidth = 210;
-  const pageHeight = 297;
-
-  pdf.addImage(imgData, "PNG", 0, 0, pageWidth, pageHeight);
-
-  const blobUrl = pdf.output("bloburl");
-
-  window.open(blobUrl, "_blank");
-
+  pdf.addImage(imgData, "PNG", 0, 0, 210, 297);
+  window.open(pdf.output("bloburl"), "_blank");
   document.body.removeChild(wrapper);
 }

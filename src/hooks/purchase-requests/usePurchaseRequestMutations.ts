@@ -1,0 +1,148 @@
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { App } from "antd";
+
+import { ApiError } from "@/lib/api/client";
+import {
+  approvePurchaseRequest,
+  cancelPurchaseRequest,
+  createPurchaseRequest,
+  rejectPurchaseRequest,
+  submitPurchaseRequest,
+  updatePurchaseRequest,
+} from "@/lib/api/purchase-requests";
+import { getAccessToken } from "@/lib/auth/token";
+import type {
+  CreatePurchaseRequestBody,
+  RejectPurchaseRequestBody,
+  UpdatePurchaseRequestBody,
+} from "@/types/purchase-requests";
+import { purchaseRequestsQueryKey } from "./usePurchaseRequestsQuery";
+
+export function useCreatePurchaseRequestMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseRequestsQueryKey, "create"],
+    mutationFn: (payload: CreatePurchaseRequestBody) =>
+      createPurchaseRequest(getAccessToken(), payload),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey });
+      message.success(response.message || "สร้างใบขอซื้อสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "สร้างใบขอซื้อไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useUpdatePurchaseRequestMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseRequestsQueryKey, "update"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: UpdatePurchaseRequestBody;
+    }) => updatePurchaseRequest(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey });
+      message.success(response.message || "แก้ไขใบขอซื้อสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "แก้ไขใบขอซื้อไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useSubmitPurchaseRequestMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseRequestsQueryKey, "submit"],
+    mutationFn: (id: string) => submitPurchaseRequest(getAccessToken(), id),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey });
+      message.success(response.message || "ส่งอนุมัติสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ส่งอนุมัติไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useApprovePurchaseRequestMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseRequestsQueryKey, "approve"],
+    mutationFn: (id: string) => approvePurchaseRequest(getAccessToken(), id),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey });
+      message.success(response.message || "อนุมัติใบขอซื้อสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "อนุมัติใบขอซื้อไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useRejectPurchaseRequestMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseRequestsQueryKey, "reject"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body?: RejectPurchaseRequestBody;
+    }) => rejectPurchaseRequest(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey });
+      message.success(response.message || "ปฏิเสธใบขอซื้อแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ปฏิเสธใบขอซื้อไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useCancelPurchaseRequestMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseRequestsQueryKey, "cancel"],
+    mutationFn: (id: string) => cancelPurchaseRequest(getAccessToken(), id),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey });
+      message.success(response.message || "ยกเลิกใบขอซื้อแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ยกเลิกใบขอซื้อไม่สำเร็จ",
+      );
+    },
+  });
+}

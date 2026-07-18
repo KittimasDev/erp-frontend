@@ -43,7 +43,17 @@ export function getWarehouseLocations(
   params?: WarehouseLocationQueryParams,
 ) {
   return apiFetch<WarehouseLocationListApiResponse>(
-    `/api/master-data/warehouse-locations${buildWarehouseLocationsQuery(params)}`,
+    `/api/warehouse-locations${buildWarehouseLocationsQuery(params)}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
+export function getWarehouseLocation(token: string, id: string) {
+  return apiFetch<WarehouseLocationApiResponse>(
+    `/api/warehouse-locations/${id}`,
     {
       method: "GET",
       token,
@@ -55,14 +65,11 @@ export function createWarehouseLocation(
   token: string,
   body: CreateWarehouseLocationRequest,
 ) {
-  return apiFetch<WarehouseLocationApiResponse>(
-    "/api/master-data/warehouse-locations",
-    {
-      method: "POST",
-      token,
-      body,
-    },
-  );
+  return apiFetch<WarehouseLocationApiResponse>("/api/warehouse-locations", {
+    method: "POST",
+    token,
+    body,
+  });
 }
 
 export function updateWarehouseLocation(
@@ -71,7 +78,7 @@ export function updateWarehouseLocation(
   body: UpdateWarehouseLocationRequest,
 ) {
   return apiFetch<WarehouseLocationApiResponse>(
-    `/api/master-data/warehouse-locations/${id}`,
+    `/api/warehouse-locations/${id}`,
     {
       method: "PATCH",
       token,
@@ -80,11 +87,21 @@ export function updateWarehouseLocation(
   );
 }
 
-export function deleteWarehouseLocation(token: string, id: string) {
+export function activateWarehouseLocation(token: string, id: string) {
   return apiFetch<WarehouseLocationApiResponse>(
-    `/api/master-data/warehouse-locations/${id}`,
+    `/api/warehouse-locations/${id}/activate`,
     {
-      method: "DELETE",
+      method: "PATCH",
+      token,
+    },
+  );
+}
+
+export function deactivateWarehouseLocation(token: string, id: string) {
+  return apiFetch<WarehouseLocationApiResponse>(
+    `/api/warehouse-locations/${id}/deactivate`,
+    {
+      method: "PATCH",
       token,
     },
   );

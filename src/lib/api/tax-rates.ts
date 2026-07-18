@@ -44,7 +44,7 @@ function buildTaxRatesQuery(params?: TaxRateQueryParams) {
 
 export function getTaxRates(token: string, params?: TaxRateQueryParams) {
   return apiFetch<TaxRateListApiResponse>(
-    `/api/master-data/tax-rates${buildTaxRatesQuery(params)}`,
+    `/api/tax-rates${buildTaxRatesQuery(params)}`,
     {
       method: "GET",
       token,

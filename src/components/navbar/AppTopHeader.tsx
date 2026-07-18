@@ -7,8 +7,20 @@ import styles from "./AppTopHeader.module.css";
 
 const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/purchase-orders", title: "สั่งซื้อ" },
-  { href: "/purchase_requests", title: "ขอซื้อ" },
+  { href: "/purchase-requests", title: "ขอซื้อ" },
+  { href: "/purchase-requests/approvals", title: "อนุมัติใบขอซื้อ" },
+  { href: "/purchase-requests/create", title: "สร้างใบขอซื้อ" },
+  { href: "/goods-receipts", title: "รับของ" },
+  { href: "/purchase-payments/pending", title: "PO รอจ่ายเงิน" },
+  { href: "/purchase-payments", title: "ประวัติการจ่ายเงิน" },
   { href: "/receiving", title: "ภาพรวมรับซื้อยาง" },
+  { href: "/inventory/stock-balances", title: "ภาพรวมคลังสินค้า" },
+  { href: "/inventory/stock-movements", title: "ประวัติความเคลื่อนไหวสต๊อก" },
+  { href: "/inventory/lots", title: "ยอดคงเหลือแยก Lot" },
+  { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับเข้าคลัง (ยาง)" },
+  { href: "/warehouse/production-output-approvals", title: "อนุมัติรับผลผลิตเข้าคลัง" },
+  { href: "/receiving/pending-production-output", title: "ตั๋วรอรับผลผลิตเข้าคลัง" },
+  { href: "/receiving/production-output/stock-requests", title: "คำขอรับผลผลิตเข้าคลัง" },
   { href: "/users", title: "จัดการผู้ใช้งานและแผนก" },
   { href: "/masters/vendors", title: "ผู้ขาย" },
   { href: "/masters/seller-types", title: "ประเภทผู้ขาย" },
@@ -21,8 +33,8 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters/items", title: "สินค้า / วัตถุดิบ" },
   { href: "/masters/item-categories", title: "หมวดหมู่สินค้า" },
   { href: "/masters/units", title: "หน่วยนับ" },
-  { href: "/masters/warehouses", title: "คลังสินค้า" },
-  { href: "/masters/warehouse-locations", title: "ตำแหน่งจัดเก็บ" },
+  { href: "/warehouses", title: "คลังสินค้า" },
+  { href: "/warehouse-locations", title: "ตำแหน่งจัดเก็บ" },
   { href: "/masters/payment-terms", title: "เงื่อนไขชำระเงิน" },
   { href: "/masters/tax-rates", title: "อัตราภาษี" },
   { href: "/masters/purchase-request-types", title: "ประเภทใบขอซื้อ" },
@@ -30,8 +42,39 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
 ];
 
 function resolvePageTitle(pathname: string) {
+  if (pathname.startsWith("/purchase-requests/") && pathname.endsWith("/edit")) {
+    return "แก้ไขใบขอซื้อ";
+  }
+
+  if (
+    pathname.startsWith("/purchase-requests/") &&
+    pathname !== "/purchase-requests/create" &&
+    pathname !== "/purchase-requests/approvals"
+  ) {
+    return "รายละเอียดใบขอซื้อ";
+  }
+
+  if (pathname.includes("/stock-posting-request")) {
+    return "ส่งคำขอรับเข้าคลัง";
+  }
+
+  if (pathname.includes("/receiving/production-output/stock-requests/create")) {
+    return "ขอรับผลผลิตเข้าคลัง";
+  }
+
+  if (
+    pathname.startsWith("/receiving/production-output/stock-requests/") &&
+    pathname !== "/receiving/production-output/stock-requests"
+  ) {
+    return "รายละเอียดคำขอรับผลผลิต";
+  }
+
   if (pathname === "/receiving/dashboard") {
     return "Dashboard รับซื้อยาง";
+  }
+
+  if (pathname === "/receiving/pending-production-output") {
+    return "ตั๋วรอรับผลผลิตเข้าคลัง";
   }
 
   if (pathname === "/users" || pathname === "/user") {

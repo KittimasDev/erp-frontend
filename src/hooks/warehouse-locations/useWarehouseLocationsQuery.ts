@@ -13,9 +13,11 @@ export const warehouseLocationsQueryKey = [
 
 export function useWarehouseLocationsQuery(
   params?: WarehouseLocationQueryParams,
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: [...warehouseLocationsQueryKey, params ?? {}],
     queryFn: () => getWarehouseLocations(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }

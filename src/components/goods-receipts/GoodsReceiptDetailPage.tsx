@@ -1,0 +1,282 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { App, Button, Spin } from "antd";
+import {
+  ArrowLeftOutlined,
+  CheckOutlined,
+  EditOutlined,
+  InboxOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+
+import {
+  useCancelGoodsReceiptMutation,
+  useConfirmGoodsReceiptMutation,
+} from "@/hooks/goods-receipts/useGoodsReceiptMutations";
+import { useGoodsReceiptQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { RoleCode } from "@/lib/auth/role-codes";
+import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import styles from "./GoodsReceiptDetailPage.module.css";
+
+type Props = { id: string };
+
+function formatDate(value?: string) {
+  if (!value) return "—";
+  return dayjs(value).format("DD/MM/YYYY");
+}
+
+function formatMoney(value?: string) {
+  const n = Number(value ?? 0);
+  if (Number.isNaN(n)) return value ?? "—";
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function statusClass(status: string) {
+  switch (status) {
+    case "CONFIRMED":
+      return styles.statusApproved;
+    case "CANCELLED":
+      return styles.statusCancelled;
+    default:
+      return styles.statusDraft;
+  }
+}
+
+export default function GoodsReceiptDetailPage({ id }: Props) {
+  const router = useRouter();
+  const { modal } = App.useApp();
+  const query = useGoodsReceiptQuery(id);
+  const confirmMutation = useConfirmGoodsReceiptMutation();
+  const cancelMutation = useCancelGoodsReceiptMutation();
+
+  const data = query.data?.data;
+  const canWrite =
+    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+    isAdministrator();
+
+  if (query.isLoading) {
+    return (
+      <div className={styles.stateCard}>
+        <Spin /> กำลังโหลด...
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className={styles.emptyCard}>
+        ไม่พบใบรับของ
+        <div style={{ marginTop: 12 }}>
+          <Link href="/goods-receipts">กลับรายการ</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const busy = confirmMutation.isPending || cancelMutation.isPending;
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.pageHeader}>
+        <div className={styles.headerAccent} aria-hidden>
+          <InboxOutlined />
+        </div>
+        <div className={styles.headerContent}>
+          <p className={styles.eyebrow}>Goods Receipt</p>
+          <h1 className={styles.pageTitle}>{data.grNo}</h1>
+          <p className={styles.pageSubtitle}>
+            {data.creditor?.nameTh ?? "—"} · {formatDate(data.grDate)} ·{" "}
+            {data.items?.length ?? 0} รายการ
+          </p>
+        </div>
+        <div className={styles.headerActions}>
+          <Button
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/goods-receipts")}
+          >
+            กลับ
+          </Button>
+        </div>
+      </header>
+
+      <div className={styles.layout}>
+        <section className={styles.mainCard}>
+          <div className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+            </div>
+            <div className={styles.metaGrid}>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>เลขที่</span>
+                <div className={styles.metaValue}>{data.grNo}</div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>วันที่รับ</span>
+                <div className={styles.metaValue}>{formatDate(data.grDate)}</div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>ผู้ขาย</span>
+                <div className={styles.metaValue}>
+                  {data.creditor
+                    ? `${data.creditor.creditorCode} — ${data.creditor.nameTh}`
+                    : "—"}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>อ้างอิง PO</span>
+                <div className={styles.metaValue}>
+                  {data.purchaseOrder ? (
+                    <Link href={`/purchase-orders/${data.purchaseOrder.id}`}>
+                      {data.purchaseOrder.poNo}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>ผู้รับ</span>
+                <div className={styles.metaValue}>
+                  {data.receivedBy?.displayName ?? "—"}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>โพสต์สต๊อก</span>
+                <div className={styles.metaValue}>
+                  {data.postedAt
+                    ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
+                    : "ยังไม่โพสต์"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>รายการรับของ</h2>
+            </div>
+            <div className={styles.itemList}>
+              {(data.items ?? []).map((item, index) => (
+                <div key={item.id} className={styles.itemCard}>
+                  <div className={styles.itemIndex}>{index + 1}</div>
+                  <div className={styles.itemBody}>
+                    <p className={styles.itemName}>
+                      {item.itemNameTh ?? item.description ?? "—"}
+                    </p>
+                    <p className={styles.itemCode}>
+                      {item.itemCode ?? "—"} ·{" "}
+                      {item.warehouse
+                        ? `${item.warehouse.warehouseCode}/${item.location?.locationCode ?? "—"}`
+                        : "—"}
+                      {item.lotNo ? ` · Lot ${item.lotNo}` : ""}
+                    </p>
+                  </div>
+                  <div className={styles.itemQty}>
+                    <strong>
+                      {Number(item.quantity).toLocaleString("th-TH")}{" "}
+                      {item.unitNameTh ?? item.unitCode ?? ""}
+                    </strong>
+                    <span>{formatMoney(item.amount)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {data.remark ? (
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+              </div>
+              <p className={styles.textBlock}>{data.remark}</p>
+            </div>
+          ) : null}
+        </section>
+
+        <aside className={styles.sideCard}>
+          <div>
+            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <h2 className={styles.sideTitle}>{data.grNo}</h2>
+          </div>
+          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
+            {GOODS_RECEIPT_STATUS_LABEL[data.status] ?? data.status}
+          </div>
+
+          <div className={styles.sideRows}>
+            <div className={styles.sideRow}>
+              <span>รวม</span>
+              <strong>{formatMoney(data.totalAmount)}</strong>
+            </div>
+            <div className={styles.sideRow}>
+              <span>รายการ</span>
+              <strong>{data.items?.length ?? 0}</strong>
+            </div>
+          </div>
+
+          <div className={styles.actionStack}>
+            {canWrite && data.status === "DRAFT" ? (
+              <>
+                <Button
+                  className={styles.primaryBtn}
+                  type="primary"
+                  icon={<CheckOutlined />}
+                  loading={busy}
+                  onClick={() =>
+                    modal.confirm({
+                      title: "Confirm ใบรับของและโพสต์สต๊อก?",
+                      content:
+                        "ยืนยันแล้วจะเพิ่ม quantity_on_hand / available และแก้เอกสารไม่ได้",
+                      onOk: () => confirmMutation.mutateAsync(data.id),
+                    })
+                  }
+                >
+                  Confirm รับของ
+                </Button>
+                <Button
+                  className={styles.secondaryBtn}
+                  icon={<EditOutlined />}
+                  onClick={() =>
+                    router.push(`/goods-receipts/${data.id}/edit`)
+                  }
+                >
+                  แก้ไข
+                </Button>
+                <Button
+                  className={styles.secondaryBtn}
+                  danger
+                  loading={busy}
+                  onClick={() =>
+                    modal.confirm({
+                      title: "ยืนยันยกเลิกใบรับของ?",
+                      onOk: () => cancelMutation.mutateAsync(data.id),
+                    })
+                  }
+                >
+                  ยกเลิกเอกสาร
+                </Button>
+              </>
+            ) : null}
+          </div>
+
+          <div className={styles.flowNote}>
+            <strong>ขั้นตอนถัดไป</strong>
+            <p>
+              {data.status === "DRAFT"
+                ? "ตรวจสอบคลัง/จำนวน แล้วกด Confirm เพื่อโพสต์สต๊อก"
+                : data.status === "CONFIRMED"
+                  ? "สต๊อกถูกโพสต์แล้ว (movement RECEIVE)"
+                  : "เอกสารถูกยกเลิกแล้ว"}
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}

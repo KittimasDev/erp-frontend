@@ -2,14 +2,14 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { getUnits } from "@/lib/api/units";
+import { getUnits, type UnitQueryParams } from "@/lib/api/units";
 import { getAccessToken } from "@/lib/auth/token";
 
 export const unitsQueryKey = ["master-data", "units"] as const;
 
-export function useUnitsQuery() {
+export function useUnitsQuery(params?: UnitQueryParams) {
   return useQuery({
-    queryKey: unitsQueryKey,
-    queryFn: () => getUnits(getAccessToken()),
+    queryKey: [...unitsQueryKey, params ?? {}],
+    queryFn: () => getUnits(getAccessToken(), params),
   });
 }

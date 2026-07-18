@@ -10,6 +10,7 @@ import {
   Input,
   Row,
   Select,
+  Space,
   Switch,
   Table,
   Tag,
@@ -33,6 +34,7 @@ import { useSellersQuery } from "@/hooks/sellers/useSellersQuery";
 import { useSellerTypesQuery } from "@/hooks/seller-types/useSellerTypesQuery";
 import { useTrucksQuery } from "@/hooks/trucks/useTrucksQuery";
 import { useWeighbridgeScalesQuery } from "@/hooks/weighbridge-scales/useWeighbridgeScalesQuery";
+import { useProductionOutputPendingTicketsQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import type { CreateSellerRequest } from "@/types/sellers";
 import type { Truck } from "@/types/trucks";
 import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
@@ -66,7 +68,8 @@ type ReceivingStage =
   | "weigh-out"
   | "classify"
   | "payment"
-  | "paid";
+  | "paid"
+  | "stock-in";
 
 const FLOW_LABELS: Record<string, string> = {
   WAITING_WEIGH_IN: "รอชั่งเข้า",
@@ -80,7 +83,10 @@ const FLOW_LABELS: Record<string, string> = {
   OTHER: "อื่นๆ",
 };
 
-const STAGE_FLOW_MAP: Record<Exclude<ReceivingStage, "all">, string[]> = {
+const STAGE_FLOW_MAP: Record<
+  Exclude<ReceivingStage, "all" | "stock-in">,
+  string[]
+> = {
   "weigh-in": ["WAITING_WEIGH_IN"],
   "weigh-out": ["WAITING_WEIGH_OUT"],
   classify: ["WAITING_SORT", "WAITING_APPROVAL"],
@@ -99,6 +105,11 @@ const STAGE_OPTIONS: {
   { key: "classify", label: "คัดแยก", description: "รอคัดแยก / ใบรับซื้อ" },
   { key: "payment", label: "จ่ายเงิน", description: "รอจ่ายเงินผู้ขาย" },
   { key: "paid", label: "จ่ายแล้ว", description: "จ่ายเงินครบแล้ว" },
+  {
+    key: "stock-in",
+    label: "รับผลผลิต",
+    description: "ขอรับผลผลิตเข้าคลัง (แยกจากใบรับซื้อยาง)",
+  },
 ];
 
 const PAYMENT_METHOD_OPTIONS = [
@@ -114,7 +125,8 @@ function parseStage(value: string | null): ReceivingStage {
     value === "weigh-out" ||
     value === "classify" ||
     value === "payment" ||
-    value === "paid"
+    value === "paid" ||
+    value === "stock-in"
   ) {
     return value;
   }
@@ -125,7 +137,7 @@ function matchesStage(
   ticket: WeighbridgeTicketListItem,
   stage: ReceivingStage,
 ) {
-  if (stage === "all") {
+  if (stage === "all" || stage === "stock-in") {
     return true;
   }
 
@@ -301,8 +313,13 @@ export default function WeighbridgeDashboardPage() {
   const stage = parseStage(searchParams.get("stage"));
   const searchQuery = searchParams.get("q")?.trim() ?? "";
   const dateParam = searchParams.get("date")?.trim() || undefined;
+  const pendingDate = dateParam || dayjs().format("YYYY-MM-DD");
 
   const dashboardQuery = useWeighbridgeDashboardQuery(dateParam);
+  const pendingOutputQuery = useProductionOutputPendingTicketsQuery({
+    from: pendingDate,
+    to: pendingDate,
+  });
   const sellersQuery = useSellersQuery({ isActive: true });
   const sellerTypesQuery = useSellerTypesQuery({ isActive: true });
   const trucksQuery = useTrucksQuery(
@@ -315,6 +332,7 @@ export default function WeighbridgeDashboardPage() {
 
   const summary = dashboardQuery.data?.data.summary;
   const tickets = dashboardQuery.data?.data.tickets ?? [];
+  const pendingOutputCount = pendingOutputQuery.data?.data?.length ?? 0;
 
   const sellers = sellersQuery.data?.data ?? [];
   const sellerTypes = sellerTypesQuery.data?.data ?? [];
@@ -391,26 +409,28 @@ export default function WeighbridgeDashboardPage() {
       classify: 0,
       payment: 0,
       paid: 0,
+      "stock-in": pendingOutputCount,
     };
     for (const ticket of tickets) {
-      for (const key of Object.keys(STAGE_FLOW_MAP) as Exclude<
-        ReceivingStage,
-        "all"
-      >[]) {
+      for (const key of Object.keys(STAGE_FLOW_MAP) as Array<
+        keyof typeof STAGE_FLOW_MAP
+      >) {
         if (matchesStage(ticket, key)) {
           counts[key] += 1;
         }
       }
     }
     return counts;
-  }, [tickets]);
+  }, [tickets, pendingOutputCount]);
 
   const filteredTickets = useMemo(
     () =>
-      tickets.filter(
-        (ticket) =>
-          matchesStage(ticket, stage) && matchesSearch(ticket, searchQuery),
-      ),
+      stage === "stock-in"
+        ? []
+        : tickets.filter(
+            (ticket) =>
+              matchesStage(ticket, stage) && matchesSearch(ticket, searchQuery),
+          ),
     [tickets, stage, searchQuery],
   );
 
@@ -504,6 +524,11 @@ export default function WeighbridgeDashboardPage() {
       key: "paid" as ReceivingStage,
       label: "จ่ายแล้ว",
       value: stageCounts.paid,
+    },
+    {
+      key: "stock-in" as ReceivingStage,
+      label: "รับผลผลิตเข้าคลัง",
+      value: pendingOutputCount,
     },
   ];
 
@@ -740,11 +765,15 @@ export default function WeighbridgeDashboardPage() {
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                onClick={() =>
+                onClick={() => {
+                  if (card.key === "stock-in") {
+                    router.push("/receiving/pending-production-output");
+                    return;
+                  }
                   updateParams({
                     stage: card.key === stage ? "all" : card.key,
-                  })
-                }
+                  });
+                }}
               >
                 <span>{card.label}</span>
                 <strong>{card.value}</strong>
@@ -784,6 +813,22 @@ export default function WeighbridgeDashboardPage() {
                 onClick={() => router.push("/receiving/dashboard")}
               >
                 Dashboard
+              </Button>
+              <Button
+                className={styles.dashboardButton}
+                onClick={() =>
+                  router.push("/receiving/pending-production-output")
+                }
+              >
+                ตั๋วรอรับผลผลิต
+              </Button>
+              <Button
+                className={styles.dashboardButton}
+                onClick={() =>
+                  router.push("/receiving/production-output/stock-requests")
+                }
+              >
+                คำขอรับผลผลิต
               </Button>
               <Button
                 type="primary"
@@ -830,7 +875,13 @@ export default function WeighbridgeDashboardPage() {
                     ]
                       .filter(Boolean)
                       .join(" ")}
-                    onClick={() => updateParams({ stage: option.key })}
+                    onClick={() => {
+                      if (option.key === "stock-in") {
+                        router.push("/receiving/pending-production-output");
+                        return;
+                      }
+                      updateParams({ stage: option.key });
+                    }}
                     title={option.description}
                   >
                     <span>{option.label}</span>
@@ -842,7 +893,32 @@ export default function WeighbridgeDashboardPage() {
           </div>
 
           <div className={styles.cardBody}>
-            {dashboardQuery.isError ? (
+            {stage === "stock-in" ? (
+              <div style={{ display: "grid", gap: 12 }}>
+                <Typography.Text>
+                  ตั๋วรอรับผลผลิตเข้าคลังในช่วงวันที่เลือก — มี{" "}
+                  <strong>{pendingOutputCount}</strong> ใบที่ยังไม่ได้ส่งคำขอ
+                  (ผงยาง / น้ำมัน Pyrolysis / เศษเหล็ก ฯลฯ)
+                </Typography.Text>
+                <Space wrap>
+                  <Button
+                    type="primary"
+                    onClick={() =>
+                      router.push("/receiving/pending-production-output")
+                    }
+                  >
+                    ตั๋วรอรับผลผลิต ({pendingOutputCount})
+                  </Button>
+                  <Button
+                    onClick={() =>
+                      router.push("/receiving/production-output/stock-requests")
+                    }
+                  >
+                    ดูรายการคำขอ
+                  </Button>
+                </Space>
+              </div>
+            ) : dashboardQuery.isError ? (
               <Typography.Text type="danger">
                 {dashboardQuery.error instanceof Error
                   ? dashboardQuery.error.message

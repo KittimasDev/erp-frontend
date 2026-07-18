@@ -6,11 +6,31 @@ import type {
   UpdateUnitRequest,
 } from "@/types/units";
 
-export function getUnits(token: string) {
-  return apiFetch<UnitListApiResponse>("/api/master-data/units", {
-    method: "GET",
-    token,
-  });
+export type UnitQueryParams = {
+  isActive?: boolean;
+};
+
+function buildUnitsQuery(params?: UnitQueryParams) {
+  if (!params) {
+    return "";
+  }
+
+  const search = new URLSearchParams();
+  if (params.isActive !== undefined && params.isActive !== null) {
+    search.set("isActive", String(params.isActive));
+  }
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
+export function getUnits(token: string, params?: UnitQueryParams) {
+  return apiFetch<UnitListApiResponse>(
+    `/api/master-data/units${buildUnitsQuery(params)}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
 }
 
 export function createUnit(token: string, body: CreateUnitRequest) {

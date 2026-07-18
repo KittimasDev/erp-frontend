@@ -4,7 +4,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
-import { isAdministrator } from "@/lib/auth/session";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { RoleCode } from "@/lib/auth/role-codes";
 
 import styles from "./AppHeader.module.css";
 
@@ -273,10 +274,22 @@ const mainMenus: MenuItem[] = [
     icon: <IconPurchaseOrder />,
   },
   {
-    key: "purchase_requests",
+    key: "purchase-requests",
     label: "ขอซื้อ",
-    href: "/purchase_requests",
+    href: "/purchase-requests",
     icon: <IconPurchaseRequest />,
+  },
+  {
+    key: "goods-receipts",
+    label: "รับของ",
+    href: "/goods-receipts",
+    icon: <IconReceiving />,
+  },
+  {
+    key: "purchase-payments",
+    label: "จ่ายเงิน",
+    href: "/purchase-payments/pending",
+    icon: <IconPurchaseOrder />,
   },
   {
     key: "receiving",
@@ -356,13 +369,13 @@ const masterMenus: MenuItem[] = [
   {
     key: "warehouses",
     label: "คลังสินค้า",
-    href: "/masters/warehouses",
+    href: "/warehouses",
     icon: <IconWarehouse />,
   },
   {
     key: "warehouse-locations",
     label: "ตำแหน่งจัดเก็บ",
-    href: "/masters/warehouse-locations",
+    href: "/warehouse-locations",
     icon: <IconWarehouseLocation />,
   },
   {
@@ -390,7 +403,14 @@ function isActive(href: string, pathname: string) {
 }
 
 function isMasterActive(pathname: string) {
-  return pathname === "/masters" || pathname.startsWith("/masters/");
+  return (
+    pathname === "/masters" ||
+    pathname.startsWith("/masters/") ||
+    pathname === "/warehouses" ||
+    pathname.startsWith("/warehouses/") ||
+    pathname === "/warehouse-locations" ||
+    pathname.startsWith("/warehouse-locations/")
+  );
 }
 
 type AppHeaderProps = {
@@ -407,9 +427,18 @@ export default function AppHeader({
 
   const [masterOpen, setMasterOpen] = useState(isMasterActive(pathname));
   const [showUsersMenu, setShowUsersMenu] = useState(false);
+  const [showWarehouseMenu, setShowWarehouseMenu] = useState(false);
 
   useEffect(() => {
     setShowUsersMenu(isAdministrator());
+    setShowWarehouseMenu(
+      userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+        userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+        userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
+        userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
+        userHasRole(RoleCode.EXECUTIVE) ||
+        isAdministrator(),
+    );
   }, [pathname]);
 
   const handleGo = (href: string) => {
@@ -480,6 +509,115 @@ export default function AppHeader({
               })}
             </div>
           </div>
+
+          {showWarehouseMenu ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>WAREHOUSE</div>
+              <div className={styles.groupItems}>
+                <button
+                  type="button"
+                  title={collapsed ? "ภาพรวมคลังสินค้า" : undefined}
+                  className={`${styles.menuItem} ${
+                    isActive("/inventory/stock-balances", pathname)
+                      ? styles.menuItemActive
+                      : ""
+                  }`}
+                  onClick={() => handleGo("/inventory/stock-balances")}
+                >
+                  <span className={styles.menuItemIcon}>
+                    <IconWarehouse />
+                  </span>
+                  <span className={styles.menuItemText}>
+                    ภาพรวมคลังสินค้า
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  title={collapsed ? "ประวัติความเคลื่อนไหว" : undefined}
+                  className={`${styles.menuItem} ${
+                    isActive("/inventory/stock-movements", pathname)
+                      ? styles.menuItemActive
+                      : ""
+                  }`}
+                  onClick={() => handleGo("/inventory/stock-movements")}
+                >
+                  <span className={styles.menuItemIcon}>
+                    <IconWarehouseLocation />
+                  </span>
+                  <span className={styles.menuItemText}>
+                    ประวัติความเคลื่อนไหว
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  title={collapsed ? "ยอดคงเหลือแยก Lot" : undefined}
+                  className={`${styles.menuItem} ${
+                    isActive("/inventory/lots", pathname)
+                      ? styles.menuItemActive
+                      : ""
+                  }`}
+                  onClick={() => handleGo("/inventory/lots")}
+                >
+                  <span className={styles.menuItemIcon}>
+                    <IconItem />
+                  </span>
+                  <span className={styles.menuItemText}>
+                    ยอดคงเหลือแยก Lot
+                  </span>
+                </button>
+                {(userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+                  userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+                  isAdministrator()) && (
+                  <>
+                    <button
+                      type="button"
+                      title={collapsed ? "อนุมัติรับเข้าคลัง (ยาง)" : undefined}
+                      className={`${styles.menuItem} ${
+                        isActive(
+                          "/warehouse/stock-posting-approvals",
+                          pathname,
+                        )
+                          ? styles.menuItemActive
+                          : ""
+                      }`}
+                      onClick={() =>
+                        handleGo("/warehouse/stock-posting-approvals")
+                      }
+                    >
+                      <span className={styles.menuItemIcon}>
+                        <IconWarehouse />
+                      </span>
+                      <span className={styles.menuItemText}>
+                        อนุมัติรับเข้าคลัง (ยาง)
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      title={collapsed ? "อนุมัติรับผลผลิต" : undefined}
+                      className={`${styles.menuItem} ${
+                        isActive(
+                          "/warehouse/production-output-approvals",
+                          pathname,
+                        )
+                          ? styles.menuItemActive
+                          : ""
+                      }`}
+                      onClick={() =>
+                        handleGo("/warehouse/production-output-approvals")
+                      }
+                    >
+                      <span className={styles.menuItemIcon}>
+                        <IconWarehouse />
+                      </span>
+                      <span className={styles.menuItemText}>
+                        อนุมัติรับผลผลิต
+                      </span>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : null}
 
           <div className={styles.groupBlock}>
             <div className={styles.groupTitle}>SETTING</div>

@@ -51,7 +51,7 @@ function buildWarehousesQuery(params?: WarehouseQueryParams) {
 
 export function getWarehouses(token: string, params?: WarehouseQueryParams) {
   return apiFetch<WarehouseListApiResponse>(
-    `/api/master-data/warehouses${buildWarehousesQuery(params)}`,
+    `/api/warehouses${buildWarehousesQuery(params)}`,
     {
       method: "GET",
       token,
@@ -59,8 +59,15 @@ export function getWarehouses(token: string, params?: WarehouseQueryParams) {
   );
 }
 
+export function getWarehouse(token: string, id: string) {
+  return apiFetch<WarehouseApiResponse>(`/api/warehouses/${id}`, {
+    method: "GET",
+    token,
+  });
+}
+
 export function createWarehouse(token: string, body: CreateWarehouseRequest) {
-  return apiFetch<WarehouseApiResponse>("/api/master-data/warehouses", {
+  return apiFetch<WarehouseApiResponse>("/api/warehouses", {
     method: "POST",
     token,
     body,
@@ -72,16 +79,23 @@ export function updateWarehouse(
   id: string,
   body: UpdateWarehouseRequest,
 ) {
-  return apiFetch<WarehouseApiResponse>(`/api/master-data/warehouses/${id}`, {
+  return apiFetch<WarehouseApiResponse>(`/api/warehouses/${id}`, {
     method: "PATCH",
     token,
     body,
   });
 }
 
-export function deleteWarehouse(token: string, id: string) {
-  return apiFetch<WarehouseApiResponse>(`/api/master-data/warehouses/${id}`, {
-    method: "DELETE",
+export function activateWarehouse(token: string, id: string) {
+  return apiFetch<WarehouseApiResponse>(`/api/warehouses/${id}/activate`, {
+    method: "PATCH",
+    token,
+  });
+}
+
+export function deactivateWarehouse(token: string, id: string) {
+  return apiFetch<WarehouseApiResponse>(`/api/warehouses/${id}/deactivate`, {
+    method: "PATCH",
     token,
   });
 }

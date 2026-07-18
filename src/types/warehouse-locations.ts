@@ -29,11 +29,13 @@ export type UpdateWarehouseLocationRequest =
   Partial<CreateWarehouseLocationRequest>;
 
 export type WarehouseLocationApiResponse = {
+  statusCode: number;
   message: string;
   data: WarehouseLocation;
 };
 
 export type WarehouseLocationListApiResponse = {
+  statusCode: number;
   message: string;
   data: WarehouseLocation[];
 };

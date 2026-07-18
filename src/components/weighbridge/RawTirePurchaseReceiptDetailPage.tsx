@@ -476,8 +476,20 @@ export default function RawTirePurchaseReceiptDetailPage({
                       >
                         ไปหน้าจ่ายเงิน
                       </Button>
-                      <Button disabled title="Phase ถัดไป">
-                        ไปรับเข้าสต๊อก
+                      <Button
+                        type="default"
+                        disabled={
+                          receipt.stockPostingStatus === "POSTED" || isBusy
+                        }
+                        onClick={() =>
+                          router.push(
+                            `/raw-tire-purchase/receipts/${receiptId}/stock-posting-request`,
+                          )
+                        }
+                      >
+                        {receipt.stockPostingStatus === "POSTED"
+                          ? "รับเข้าคลังแล้ว"
+                          : "ส่งคำขอรับเข้าคลัง"}
                       </Button>
                     </>
                   ) : null}

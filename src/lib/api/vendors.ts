@@ -48,7 +48,7 @@ function buildVendorsQuery(params?: VendorQueryParams) {
 
 export function getVendors(token: string, params?: VendorQueryParams) {
   return apiFetch<VendorListApiResponse>(
-    `/api/master-data/creditors${buildVendorsQuery(params)}`,
+    `/api/creditors${buildVendorsQuery(params)}`,
     {
       method: "GET",
       token,

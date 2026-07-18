@@ -1,15 +1,24 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import PageLoading from "@/components/common/PageLoading";
 
-import WarehousesPage from "@/components/masters/warehouses/WarehousesPage";
+function RedirectToWarehouses() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/warehouses");
+  }, [router]);
+
+  return <PageLoading label="กำลังไปหน้าคลังสินค้า..." />;
+}
 
 export default function MastersWarehousesRoutePage() {
   return (
     <Suspense fallback={<PageLoading />}>
-      <WarehousesPage />
+      <RedirectToWarehouses />
     </Suspense>
   );
 }

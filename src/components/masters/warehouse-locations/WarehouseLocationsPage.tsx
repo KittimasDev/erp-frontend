@@ -23,18 +23,17 @@ import {
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
-import { useCreateWarehouseLocationMutation } from "@/hooks/warehouse-locations/useCreateWarehouseLocationMutation";
-import { useDeleteWarehouseLocationMutation } from "@/hooks/warehouse-locations/useDeleteWarehouseLocationMutation";
-import { useUpdateWarehouseLocationMutation } from "@/hooks/warehouse-locations/useUpdateWarehouseLocationMutation";
+import {
+  useActivateWarehouseLocationMutation,
+  useDeactivateWarehouseLocationMutation,
+} from "@/hooks/warehouse-locations/useActivateDeactivateWarehouseLocationMutation";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type {
-  CreateWarehouseLocationRequest,
   WarehouseLocation,
   WarehouseLocationQueryParams,
 } from "@/types/warehouse-locations";
 
-import WarehouseLocationFormModal from "./WarehouseLocationFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 type WarehouseLocationFilterFormValues = {
@@ -134,10 +133,6 @@ export default function WarehouseLocationsPage() {
   const searchParams = useSearchParams();
   const [form] = Form.useForm<WarehouseLocationFilterFormValues>();
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [editingLocation, setEditingLocation] =
-    useState<WarehouseLocation | null>(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -155,9 +150,8 @@ export default function WarehouseLocationsPage() {
 
   const warehousesQuery = useWarehousesQuery();
   const locationsQuery = useWarehouseLocationsQuery(filters);
-  const createMutation = useCreateWarehouseLocationMutation();
-  const updateMutation = useUpdateWarehouseLocationMutation();
-  const deleteMutation = useDeleteWarehouseLocationMutation();
+  const activateMutation = useActivateWarehouseLocationMutation();
+  const deactivateMutation = useDeactivateWarehouseLocationMutation();
 
   const warehouses = warehousesQuery.data?.data ?? [];
   const warehouseOptions = useMemo(
@@ -197,46 +191,6 @@ export default function WarehouseLocationsPage() {
   const handleClearFilters = () => {
     form.resetFields();
     router.replace(pathname);
-  };
-
-  const openCreateModal = () => {
-    setModalMode("create");
-    setEditingLocation(null);
-    setModalOpen(true);
-  };
-
-  const openEditModal = (location: WarehouseLocation) => {
-    setModalMode("edit");
-    setEditingLocation(location);
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditingLocation(null);
-  };
-
-  const handleSubmit = (values: CreateWarehouseLocationRequest) => {
-    if (modalMode === "create") {
-      createMutation.mutate(values, {
-        onSuccess: closeModal,
-      });
-      return;
-    }
-
-    if (!editingLocation) {
-      return;
-    }
-
-    updateMutation.mutate(
-      {
-        id: editingLocation.id,
-        body: values,
-      },
-      {
-        onSuccess: closeModal,
-      },
-    );
   };
 
   const columns: ColumnsType<WarehouseLocation> = [
@@ -329,26 +283,38 @@ export default function WarehouseLocationsPage() {
         <Space size={8}>
           <Button
             className={styles.editButton}
-            onClick={() => openEditModal(record)}
+            onClick={() =>
+              router.push(`/warehouse-locations/${record.id}/edit`)
+            }
           >
             แก้ไข
           </Button>
 
-          <Popconfirm
-            title="ลบตำแหน่งจัดเก็บ"
-            description={`ต้องการลบ "${record.locationCode}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={deleteMutation.isPending}
+          {record.isActive ? (
+            <Popconfirm
+              title="ปิดใช้งานตำแหน่งจัดเก็บ"
+              description={`ต้องการปิดใช้งาน "${record.locationCode}" หรือไม่?`}
+              okText="ปิดใช้งาน"
+              cancelText="ยกเลิก"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => deactivateMutation.mutate(record.id)}
             >
-              ลบ
+              <Button
+                className={styles.deleteButton}
+                loading={deactivateMutation.isPending}
+              >
+                ปิดใช้งาน
+              </Button>
+            </Popconfirm>
+          ) : (
+            <Button
+              className={styles.editButton}
+              loading={activateMutation.isPending}
+              onClick={() => activateMutation.mutate(record.id)}
+            >
+              เปิดใช้งาน
             </Button>
-          </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -377,7 +343,7 @@ export default function WarehouseLocationsPage() {
           size="large"
           className={styles.createButton}
           icon={<PlusOutlined />}
-          onClick={openCreateModal}
+          onClick={() => router.push("/warehouse-locations/create")}
         >
           เพิ่มตำแหน่งจัดเก็บ
         </Button>
@@ -554,19 +520,6 @@ export default function WarehouseLocationsPage() {
           />
         )}
       </div>
-
-      <WarehouseLocationFormModal
-        open={modalOpen}
-        mode={modalMode}
-        initialLocation={editingLocation}
-        warehouseOptions={warehouseOptions}
-        warehousesLoading={warehousesQuery.isLoading}
-        confirmLoading={
-          createMutation.isPending || updateMutation.isPending
-        }
-        onCancel={closeModal}
-        onSubmit={handleSubmit}
-      />
       </section>
     </MasterPageGate>
   );

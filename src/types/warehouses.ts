@@ -35,11 +35,13 @@ export type CreateWarehouseRequest = {
 export type UpdateWarehouseRequest = Partial<CreateWarehouseRequest>;
 
 export type WarehouseApiResponse = {
+  statusCode: number;
   message: string;
   data: Warehouse;
 };
 
 export type WarehouseListApiResponse = {
+  statusCode: number;
   message: string;
   data: Warehouse[];
 };

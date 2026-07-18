@@ -43,7 +43,7 @@ export function getPaymentTerms(
   params?: PaymentTermQueryParams,
 ) {
   return apiFetch<PaymentTermListApiResponse>(
-    `/api/master-data/payment-terms${buildPaymentTermsQuery(params)}`,
+    `/api/payment-terms${buildPaymentTermsQuery(params)}`,
     {
       method: "GET",
       token,

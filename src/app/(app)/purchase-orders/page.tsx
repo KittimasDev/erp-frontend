@@ -1,3 +1,7 @@
-export default function PurchaseOrdersPage() {
-    return <div>Purchase Orders</div>;
-  }
+"use client";
+
+import PurchaseOrdersListPage from "@/components/purchase-orders/PurchaseOrdersListPage";
+
+export default function Page() {
+  return <PurchaseOrdersListPage />;
+}

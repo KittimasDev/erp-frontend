@@ -23,17 +23,16 @@ import {
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
-import { useCreateWarehouseMutation } from "@/hooks/warehouses/useCreateWarehouseMutation";
-import { useDeleteWarehouseMutation } from "@/hooks/warehouses/useDeleteWarehouseMutation";
-import { useUpdateWarehouseMutation } from "@/hooks/warehouses/useUpdateWarehouseMutation";
+import {
+  useActivateWarehouseMutation,
+  useDeactivateWarehouseMutation,
+} from "@/hooks/warehouses/useActivateDeactivateWarehouseMutation";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type {
-  CreateWarehouseRequest,
   Warehouse,
   WarehouseQueryParams,
 } from "@/types/warehouses";
 
-import WarehouseFormModal from "./WarehouseFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 type WarehouseFilterFormValues = {
@@ -162,11 +161,6 @@ export default function WarehousesPage() {
   const searchParams = useSearchParams();
   const [form] = Form.useForm<WarehouseFilterFormValues>();
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(
-    null,
-  );
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -183,9 +177,8 @@ export default function WarehousesPage() {
   }, [filters, form]);
 
   const warehousesQuery = useWarehousesQuery(filters);
-  const createMutation = useCreateWarehouseMutation();
-  const updateMutation = useUpdateWarehouseMutation();
-  const deleteMutation = useDeleteWarehouseMutation();
+  const activateMutation = useActivateWarehouseMutation();
+  const deactivateMutation = useDeactivateWarehouseMutation();
 
   const warehouses = warehousesQuery.data?.data ?? [];
   const activeCount = warehouses.filter((item) => item.isActive).length;
@@ -204,46 +197,6 @@ export default function WarehousesPage() {
   const handleClearFilters = () => {
     form.resetFields();
     router.replace(pathname);
-  };
-
-  const openCreateModal = () => {
-    setModalMode("create");
-    setEditingWarehouse(null);
-    setModalOpen(true);
-  };
-
-  const openEditModal = (warehouse: Warehouse) => {
-    setModalMode("edit");
-    setEditingWarehouse(warehouse);
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditingWarehouse(null);
-  };
-
-  const handleSubmit = (values: CreateWarehouseRequest) => {
-    if (modalMode === "create") {
-      createMutation.mutate(values, {
-        onSuccess: closeModal,
-      });
-      return;
-    }
-
-    if (!editingWarehouse) {
-      return;
-    }
-
-    updateMutation.mutate(
-      {
-        id: editingWarehouse.id,
-        body: values,
-      },
-      {
-        onSuccess: closeModal,
-      },
-    );
   };
 
   const columns: ColumnsType<Warehouse> = [
@@ -347,26 +300,36 @@ export default function WarehousesPage() {
         <Space size={8}>
           <Button
             className={styles.editButton}
-            onClick={() => openEditModal(record)}
+            onClick={() => router.push(`/warehouses/${record.id}/edit`)}
           >
             แก้ไข
           </Button>
 
-          <Popconfirm
-            title="ลบคลังสินค้า"
-            description={`ต้องการลบ "${record.warehouseCode}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={deleteMutation.isPending}
+          {record.isActive ? (
+            <Popconfirm
+              title="ปิดใช้งานคลังสินค้า"
+              description={`ต้องการปิดใช้งาน "${record.warehouseCode}" หรือไม่?`}
+              okText="ปิดใช้งาน"
+              cancelText="ยกเลิก"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => deactivateMutation.mutate(record.id)}
             >
-              ลบ
+              <Button
+                className={styles.deleteButton}
+                loading={deactivateMutation.isPending}
+              >
+                ปิดใช้งาน
+              </Button>
+            </Popconfirm>
+          ) : (
+            <Button
+              className={styles.editButton}
+              loading={activateMutation.isPending}
+              onClick={() => activateMutation.mutate(record.id)}
+            >
+              เปิดใช้งาน
             </Button>
-          </Popconfirm>
+          )}
         </Space>
       ),
     },
@@ -395,7 +358,7 @@ export default function WarehousesPage() {
           size="large"
           className={styles.createButton}
           icon={<PlusOutlined />}
-          onClick={openCreateModal}
+          onClick={() => router.push("/warehouses/create")}
         >
           เพิ่มคลังสินค้า
         </Button>
@@ -591,17 +554,6 @@ export default function WarehousesPage() {
           />
         )}
       </div>
-
-      <WarehouseFormModal
-        open={modalOpen}
-        mode={modalMode}
-        initialWarehouse={editingWarehouse}
-        confirmLoading={
-          createMutation.isPending || updateMutation.isPending
-        }
-        onCancel={closeModal}
-        onSubmit={handleSubmit}
-      />
       </section>
     </MasterPageGate>
   );

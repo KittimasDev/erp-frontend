@@ -41,7 +41,7 @@ export function getPurchaseRequestTypes(
   params?: PurchaseRequestTypeQueryParams,
 ) {
   return apiFetch<PurchaseRequestTypeListApiResponse>(
-    `/api/master-data/purchase-request-types${buildPurchaseRequestTypesQuery(params)}`,
+    `/api/purchase-request-types${buildPurchaseRequestTypesQuery(params)}`,
     {
       method: "GET",
       token,
