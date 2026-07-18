@@ -1,8 +1,11 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+
+import { isAdministrator } from "@/lib/auth/session";
+
 import styles from "./AppHeader.module.css";
 
 type MenuItem = {
@@ -240,24 +243,23 @@ const IconPrType = () => (
   </svg>
 );
 
-const IconDepartment = () => (
-  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
-    <path
-      d="M4 20V7.5L12 4l8 3.5V20M8 20v-5h8v5M9.5 10h.01M14.5 10h.01M9.5 13.5h.01M14.5 13.5h.01"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
-
 const IconCategory = () => (
   <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
     <path
       d="M4 7h7v7H4V7Zm9 0h7v7h-7V7ZM4 16h7v4H4v-4Zm9 0h7v4h-7v-4Z"
       stroke="currentColor"
       strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+const IconUsers = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M16 11a3.5 3.5 0 1 0-3.5-3.5A3.5 3.5 0 0 0 16 11Zm-8 0a3.5 3.5 0 1 0-3.5-3.5A3.5 3.5 0 0 0 8 11Zm0 2.5c-2.7 0-5 1.4-5 3.2V19h10v-2.3c0-1.8-2.3-3.2-5-3.2Zm8 0c-.4 0-.8 0-1.2.1 1.3.8 2.2 2 2.2 3.1V19h6v-2.3c0-1.8-2.3-3.2-5-3.2Z"
+      stroke="currentColor"
+      strokeWidth="1.6"
       strokeLinejoin="round"
     />
   </svg>
@@ -381,12 +383,6 @@ const masterMenus: MenuItem[] = [
     href: "/masters/purchase-request-types",
     icon: <IconPrType />,
   },
-  {
-    key: "departments",
-    label: "แผนก",
-    href: "/masters/departments",
-    icon: <IconDepartment />,
-  },
 ];
 
 function isActive(href: string, pathname: string) {
@@ -410,6 +406,11 @@ export default function AppHeader({
   const pathname = usePathname();
 
   const [masterOpen, setMasterOpen] = useState(isMasterActive(pathname));
+  const [showUsersMenu, setShowUsersMenu] = useState(false);
+
+  useEffect(() => {
+    setShowUsersMenu(isAdministrator());
+  }, [pathname]);
 
   const handleGo = (href: string) => {
     router.push(href);
@@ -484,6 +485,24 @@ export default function AppHeader({
             <div className={styles.groupTitle}>SETTING</div>
 
             <div className={styles.groupItems}>
+              {showUsersMenu ? (
+                <button
+                  type="button"
+                  title={collapsed ? "จัดการผู้ใช้งานและแผนก" : undefined}
+                  className={`${styles.menuItem} ${
+                    isActive("/users", pathname) ? styles.menuItemActive : ""
+                  }`}
+                  onClick={() => handleGo("/users")}
+                >
+                  <span className={styles.menuItemIcon}>
+                    <IconUsers />
+                  </span>
+                  <span className={styles.menuItemText}>
+                    จัดการผู้ใช้งานและแผนก
+                  </span>
+                </button>
+              ) : null}
+
               <button
                 type="button"
                 title={collapsed ? "Master" : undefined}

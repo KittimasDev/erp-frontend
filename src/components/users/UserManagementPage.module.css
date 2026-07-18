@@ -1,0 +1,47 @@
+.tabs :global(.ant-tabs-nav) {
+  margin-bottom: 18px;
+}
+
+.tabs :global(.ant-tabs-nav::before) {
+  border-bottom-color: #e8eaed;
+}
+
+.tabs :global(.ant-tabs-tab) {
+  padding: 10px 4px !important;
+  font-weight: 600;
+}
+
+.tabs :global(.ant-tabs-tab-btn) {
+  color: var(--erp-muted, #8a9199);
+}
+
+.tabs :global(.ant-tabs-tab-active .ant-tabs-tab-btn) {
+  color: var(--erp-green-dark, #6f9720) !important;
+}
+
+.tabs :global(.ant-tabs-ink-bar) {
+  background: var(--erp-green, #8ab933);
+  height: 3px !important;
+  border-radius: 999px;
+}
+
+.tabLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hint {
+  margin: -4px 0 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(138, 185, 51, 0.28);
+  border-radius: 12px;
+  background: rgba(138, 185, 51, 0.08);
+  color: var(--erp-text, #2f343a);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hint strong {
+  color: var(--erp-green-dark, #6f9720);
+}

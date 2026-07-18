@@ -36,6 +36,9 @@ export function getWeighbridgeAnalytics(
   if (params.date?.trim()) {
     search.set("date", params.date.trim());
   }
+  if (params.tireClassificationId?.trim()) {
+    search.set("tireClassificationId", params.tireClassificationId.trim());
+  }
   const query = search.toString();
   return apiFetch<WeighbridgeAnalyticsApiResponse>(
     `/api/weighbridge/tickets/analytics${query ? `?${query}` : ""}`,

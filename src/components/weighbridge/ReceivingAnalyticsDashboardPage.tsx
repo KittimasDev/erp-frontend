@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button, DatePicker } from "antd";
+import { Button, DatePicker, Select } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Legend,
   Pie,
   PieChart,
@@ -22,6 +23,7 @@ import {
 } from "recharts";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
 import { useWeighbridgeAnalyticsQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeAnalyticsQuery";
 
 import styles from "./ReceivingAnalyticsDashboardPage.module.css";
@@ -70,14 +72,42 @@ export default function ReceivingAnalyticsDashboardPage() {
     today,
   ]);
   const [hourlyDate, setHourlyDate] = useState<Dayjs>(today);
+  const [tireClassificationId, setTireClassificationId] = useState<
+    string | undefined
+  >();
 
   const from = range[0].format("YYYY-MM-DD");
   const to = range[1].format("YYYY-MM-DD");
   const date = hourlyDate.format("YYYY-MM-DD");
 
-  const analyticsQuery = useWeighbridgeAnalyticsQuery({ from, to, date });
+  const classificationsQuery = useTireClassificationsQuery({ isActive: true });
+  const analyticsQuery = useWeighbridgeAnalyticsQuery({
+    from,
+    to,
+    date,
+    tireClassificationId,
+  });
   const data = analyticsQuery.data?.data;
   const summary = data?.summary;
+
+  const classificationOptions = useMemo(
+    () =>
+      (classificationsQuery.data?.data ?? []).map((item) => ({
+        value: item.id,
+        label: `${item.classificationCode} — ${item.classificationName}`,
+      })),
+    [classificationsQuery.data?.data],
+  );
+
+  const selectedClassificationLabel = useMemo(() => {
+    if (!tireClassificationId) {
+      return null;
+    }
+    return (
+      classificationOptions.find((opt) => opt.value === tireClassificationId)
+        ?.label ?? null
+    );
+  }, [classificationOptions, tireClassificationId]);
 
   const dailyChartData = useMemo(
     () =>
@@ -108,6 +138,17 @@ export default function ReceivingAnalyticsDashboardPage() {
       { name: "รอจ่าย", value: waiting, color: AMBER },
     ].filter((item) => item.value > 0);
   }, [summary?.paid, summary?.waitingPayment]);
+
+  const classificationChartData = useMemo(
+    () =>
+      (data?.byClassification ?? []).map((point) => ({
+        ...point,
+        label: point.classificationName || point.classificationCode,
+        netWeight: Number(point.netWeightKg) || 0,
+        amountNum: Number(point.amount) || 0,
+      })),
+    [data?.byClassification],
+  );
 
   return (
     <MasterPageGate isLoading={analyticsQuery.isLoading}>
@@ -165,6 +206,22 @@ export default function ReceivingAnalyticsDashboardPage() {
                 }}
               />
             </label>
+            <label className={styles.filterField}>
+              <span>ประเภท/กลุ่มยาง</span>
+              <Select
+                allowClear
+                showSearch
+                placeholder="ทั้งหมด"
+                className={styles.productSelect}
+                options={classificationOptions}
+                value={tireClassificationId}
+                loading={classificationsQuery.isLoading}
+                optionFilterProp="label"
+                onChange={(value) =>
+                  setTireClassificationId(value ?? undefined)
+                }
+              />
+            </label>
           </div>
 
           <div className={styles.toolbarActions}>
@@ -210,10 +267,13 @@ export default function ReceivingAnalyticsDashboardPage() {
               <p>
                 จำนวนรถและน้ำหนักสุทธิ · {formatDayLabel(from)} –{" "}
                 {formatDayLabel(to)}
+                {selectedClassificationLabel
+                  ? ` · ${selectedClassificationLabel}`
+                  : ""}
               </p>
             </div>
             <div className={`${styles.chartBody} ${styles.chartBodyTall}`}>
-              {dailyChartData.length === 0 ? (
+              {dailyChartData.every((point) => point.tickets === 0) ? (
                 <div className={styles.emptyState}>ไม่มีข้อมูลในช่วงนี้</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -308,11 +368,183 @@ export default function ReceivingAnalyticsDashboardPage() {
             </div>
           </div>
 
+          <div className={`${styles.chartCard} ${styles.chartCardFull}`}>
+            <div className={styles.chartHeader}>
+              <h3>แยกตามประเภท/กลุ่มยาง</h3>
+              <p>น้ำหนักและยอดเงินจากรายการคัดแยกในช่วงที่เลือก</p>
+            </div>
+            {classificationChartData.length === 0 ? (
+              <div className={styles.chartBody}>
+                <div className={styles.emptyState}>
+                  ยังไม่มีรายการคัดแยกในช่วงนี้
+                </div>
+              </div>
+            ) : (
+              <div className={styles.classificationLayout}>
+                <div
+                  className={styles.classificationCharts}
+                  style={{
+                    minHeight: Math.max(
+                      220,
+                      classificationChartData.length * 52,
+                    ),
+                  }}
+                >
+                  <div className={styles.classificationChartPane}>
+                    <h4>น้ำหนัก (กก.)</h4>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        layout="vertical"
+                        data={classificationChartData}
+                        margin={{ top: 4, right: 48, left: 8, bottom: 4 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#eef0f3"
+                          horizontal={false}
+                        />
+                        <XAxis
+                          type="number"
+                          tick={{ fill: MUTED, fontSize: 11 }}
+                          axisLine={{ stroke: "#e4e7eb" }}
+                          tickLine={false}
+                          tickFormatter={(value: number) =>
+                            Number(value).toLocaleString("th-TH")
+                          }
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={120}
+                          tick={{ fill: MUTED, fontSize: 12 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: 10,
+                            border: "1px solid #e4e7eb",
+                          }}
+                          formatter={(value) => [
+                            formatWeight(Number(value ?? 0)),
+                            "น้ำหนัก (กก.)",
+                          ]}
+                        />
+                        <Bar
+                          dataKey="netWeight"
+                          fill={GREEN}
+                          radius={[0, 4, 4, 0]}
+                          minPointSize={4}
+                        >
+                          <LabelList
+                            dataKey="netWeight"
+                            position="right"
+                            formatter={(value) =>
+                              formatWeight(Number(value ?? 0))
+                            }
+                            style={{ fill: MUTED, fontSize: 11 }}
+                          />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className={styles.classificationChartPane}>
+                    <h4>ยอดเงิน (บาท)</h4>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        layout="vertical"
+                        data={classificationChartData}
+                        margin={{ top: 4, right: 56, left: 8, bottom: 4 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="#eef0f3"
+                          horizontal={false}
+                        />
+                        <XAxis
+                          type="number"
+                          tick={{ fill: MUTED, fontSize: 11 }}
+                          axisLine={{ stroke: "#e4e7eb" }}
+                          tickLine={false}
+                          tickFormatter={(value: number) =>
+                            Number(value).toLocaleString("th-TH")
+                          }
+                        />
+                        <YAxis
+                          type="category"
+                          dataKey="label"
+                          width={120}
+                          tick={{ fill: MUTED, fontSize: 12 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            borderRadius: 10,
+                            border: "1px solid #e4e7eb",
+                          }}
+                          formatter={(value) => [
+                            formatMoney(Number(value ?? 0)),
+                            "ยอดเงิน (บาท)",
+                          ]}
+                        />
+                        <Bar
+                          dataKey="amountNum"
+                          fill={GREEN_DARK}
+                          radius={[0, 4, 4, 0]}
+                          minPointSize={4}
+                        >
+                          <LabelList
+                            dataKey="amountNum"
+                            position="right"
+                            formatter={(value) =>
+                              formatMoney(Number(value ?? 0))
+                            }
+                            style={{ fill: MUTED, fontSize: 11 }}
+                          />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className={styles.classificationTableWrap}>
+                  <table className={styles.classificationTable}>
+                    <thead>
+                      <tr>
+                        <th>ประเภท/กลุ่มยาง</th>
+                        <th>รถเข้า</th>
+                        <th>น้ำหนัก (กก.)</th>
+                        <th>ยอดเงิน (บาท)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {classificationChartData.map((row) => (
+                        <tr key={row.tireClassificationId}>
+                          <td>
+                            <span className={styles.classCode}>
+                              {row.classificationCode}
+                            </span>
+                            {row.classificationName}
+                          </td>
+                          <td>{row.tickets}</td>
+                          <td>{formatWeight(row.netWeightKg)}</td>
+                          <td>{formatMoney(row.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
               <h3>รายชั่วโมง</h3>
               <p>
-                จำนวนรถตามชั่วโมง · {dayjs(data?.hourlyDate ?? date).format("DD/MM/YYYY")}
+                จำนวนรถตามชั่วโมง ·{" "}
+                {dayjs(data?.hourlyDate ?? date).format("DD/MM/YYYY")}
               </p>
             </div>
             <div className={styles.chartBody}>

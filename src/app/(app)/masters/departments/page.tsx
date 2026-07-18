@@ -1,15 +1,24 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import PageLoading from "@/components/common/PageLoading";
 
-import DepartmentsPage from "@/components/masters/departments/DepartmentsPage";
+function RedirectToUserDepartmentsTab() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/users?tab=departments");
+  }, [router]);
+
+  return <PageLoading label="กำลังไปหน้าจัดการแผนก..." />;
+}
 
 export default function MastersDepartmentsRoutePage() {
   return (
     <Suspense fallback={<PageLoading />}>
-      <DepartmentsPage />
+      <RedirectToUserDepartmentsTab />
     </Suspense>
   );
 }

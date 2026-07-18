@@ -21,6 +21,7 @@ export function useWeighbridgeAnalyticsQuery(
       params.from ?? "",
       params.to ?? "",
       params.date ?? "",
+      params.tireClassificationId ?? "",
     ],
     queryFn: () => getWeighbridgeAnalytics(getAccessToken(), params),
   });

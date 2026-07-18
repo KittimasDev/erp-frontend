@@ -99,7 +99,14 @@ function buildSearchFromForm(
   return next;
 }
 
-export default function DepartmentsPage() {
+type DepartmentsPageProps = {
+  /** When true, hide page chrome (used as tab under /users) */
+  embedded?: boolean;
+};
+
+export default function DepartmentsPage({
+  embedded = false,
+}: DepartmentsPageProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -286,8 +293,9 @@ export default function DepartmentsPage() {
   ];
 
   return (
-    <MasterPageGate isLoading={departmentsQuery.isLoading}>
+    <MasterPageGate isLoading={!embedded && departmentsQuery.isLoading}>
       <section className={styles.page}>
+      {!embedded ? (
       <div className={styles.pageHeader}>
         <div />
 
@@ -313,6 +321,7 @@ export default function DepartmentsPage() {
           เพิ่มแผนก
         </Button>
       </div>
+      ) : null}
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>
@@ -432,7 +441,19 @@ export default function DepartmentsPage() {
             </p>
           </div>
 
-          <div className={styles.tableCount}>{departments.length} รายการ</div>
+          <Space>
+            {embedded ? (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className={styles.createButton}
+                onClick={openCreateModal}
+              >
+                เพิ่มแผนก
+              </Button>
+            ) : null}
+            <div className={styles.tableCount}>{departments.length} รายการ</div>
+          </Space>
         </div>
 
         {departmentsQuery.isError ? (

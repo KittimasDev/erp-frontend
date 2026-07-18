@@ -9,6 +9,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/purchase-orders", title: "สั่งซื้อ" },
   { href: "/purchase_requests", title: "ขอซื้อ" },
   { href: "/receiving", title: "ภาพรวมรับซื้อยาง" },
+  { href: "/users", title: "จัดการผู้ใช้งานและแผนก" },
   { href: "/masters/vendors", title: "ผู้ขาย" },
   { href: "/masters/seller-types", title: "ประเภทผู้ขาย" },
   { href: "/masters/sellers", title: "ผู้ขายยาง" },
@@ -25,13 +26,16 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters/payment-terms", title: "เงื่อนไขชำระเงิน" },
   { href: "/masters/tax-rates", title: "อัตราภาษี" },
   { href: "/masters/purchase-request-types", title: "ประเภทใบขอซื้อ" },
-  { href: "/masters/departments", title: "แผนก" },
   { href: "/masters", title: "Master Data" },
 ];
 
 function resolvePageTitle(pathname: string) {
   if (pathname === "/receiving/dashboard") {
     return "Dashboard รับซื้อยาง";
+  }
+
+  if (pathname === "/users" || pathname === "/user") {
+    return "จัดการผู้ใช้งานและแผนก";
   }
 
   if (/^\/receiving\/receipts\/[^/]+\/payment$/.test(pathname)) {

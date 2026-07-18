@@ -174,11 +174,22 @@ export type WeighbridgeAnalyticsHourlyPoint = {
   amount: string;
 };
 
+export type WeighbridgeAnalyticsByClassification = {
+  tireClassificationId: string;
+  classificationCode: string;
+  classificationName: string;
+  tickets: number;
+  netWeightKg: string;
+  amount: string;
+};
+
 export type WeighbridgeAnalyticsData = {
   summary: WeighbridgeAnalyticsSummary;
   daily: WeighbridgeAnalyticsDailyPoint[];
   hourlyDate: string;
   hourly: WeighbridgeAnalyticsHourlyPoint[];
+  tireClassificationId?: string;
+  byClassification: WeighbridgeAnalyticsByClassification[];
 };
 
 export type WeighbridgeAnalyticsApiResponse = {
@@ -191,4 +202,5 @@ export type WeighbridgeAnalyticsQuery = {
   from?: string;
   to?: string;
   date?: string;
+  tireClassificationId?: string;
 };
