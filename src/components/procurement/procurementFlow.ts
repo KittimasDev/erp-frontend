@@ -63,12 +63,10 @@ function isPoStepDone(status?: string) {
 
 function isGrStepDone(
   poStatus?: string,
-  goodsReceipts?: Array<{ status: string }>,
+  _goodsReceipts?: Array<{ status: string }>,
 ) {
-  if (poStatus === "PARTIALLY_RECEIVED" || poStatus === "COMPLETED") {
-    return true;
-  }
-  return (goodsReceipts ?? []).some((gr) => gr.status === "CONFIRMED");
+  // รับครบแล้วเท่านั้นถึงจะไปขั้นจ่ายเงิน — partial ยังอยู่ขั้นรับของ
+  return poStatus === "COMPLETED";
 }
 
 function isPayStepDone(

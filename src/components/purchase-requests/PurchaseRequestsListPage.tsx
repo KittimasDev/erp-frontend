@@ -117,7 +117,15 @@ export default function PurchaseRequestsListPage() {
         render: (value: string, row) => (
           <DocNoWithFlowBadge
             no={<span className={styles.prNo}>{value}</span>}
-            source={{ kind: "pr", status: row.status }}
+            source={
+              row.linkedPurchaseOrder
+                ? {
+                    kind: "po",
+                    status: row.linkedPurchaseOrder.status,
+                    paymentStatus: row.linkedPurchaseOrder.paymentStatus,
+                  }
+                : { kind: "pr", status: row.status }
+            }
           />
         ),
       },

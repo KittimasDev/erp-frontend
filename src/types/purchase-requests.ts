@@ -63,6 +63,12 @@ export type PurchaseRequest = {
   status: PurchaseRequestStatus | string;
   remark?: string;
   items: PurchaseRequestItem[];
+  linkedPurchaseOrder?: {
+    id: string;
+    poNo: string;
+    status: string;
+    paymentStatus?: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 };

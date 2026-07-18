@@ -44,7 +44,7 @@
   line-height: 1.3 !important;
 }
 
-.steps :global(.ant-steps-item-description) {
+.steps :global(.ant-steps-item-content) {
   font-size: 11px !important;
   max-width: 120px;
 }

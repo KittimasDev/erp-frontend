@@ -38,7 +38,7 @@ export default function ProcurementFlowTimeline({
 
     return {
       title: step.title,
-      description,
+      content: description,
       status: flow.stepStates[index],
     };
   });
@@ -53,7 +53,7 @@ export default function ProcurementFlowTimeline({
       <Steps
         className={styles.steps}
         size="small"
-        direction="vertical"
+        orientation="vertical"
         current={current}
         status={flow.stepsStatus}
         items={items}

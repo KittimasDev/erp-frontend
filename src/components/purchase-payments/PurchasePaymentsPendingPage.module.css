@@ -97,7 +97,7 @@
   margin: 0;
   color: var(--pay-ink);
   font-size: clamp(24px, 3vw, 30px);
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.15;
 }
@@ -163,7 +163,7 @@
 .statValue {
   color: var(--pay-ink);
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
@@ -256,7 +256,7 @@
   background: rgba(61, 139, 116, 0.1);
   color: var(--pay-teal);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
