@@ -30,6 +30,10 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
 ];
 
 function resolvePageTitle(pathname: string) {
+  if (pathname === "/receiving/dashboard") {
+    return "Dashboard รับซื้อยาง";
+  }
+
   if (/^\/receiving\/receipts\/[^/]+\/payment$/.test(pathname)) {
     return "ใบสำคัญจ่าย / จ่ายเงินผู้ขาย";
   }

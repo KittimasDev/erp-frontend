@@ -149,3 +149,46 @@ export type ManualOverrideTicketRequest = {
   newValue: string;
   reason: string;
 };
+
+export type WeighbridgeAnalyticsSummary = {
+  tickets: number;
+  totalNetWeightKg: string;
+  totalAmount: string;
+  paid: number;
+  waitingPayment: number;
+};
+
+export type WeighbridgeAnalyticsDailyPoint = {
+  date: string;
+  tickets: number;
+  netWeightKg: string;
+  amount: string;
+  paid: number;
+  waitingPayment: number;
+};
+
+export type WeighbridgeAnalyticsHourlyPoint = {
+  hour: number;
+  tickets: number;
+  netWeightKg: string;
+  amount: string;
+};
+
+export type WeighbridgeAnalyticsData = {
+  summary: WeighbridgeAnalyticsSummary;
+  daily: WeighbridgeAnalyticsDailyPoint[];
+  hourlyDate: string;
+  hourly: WeighbridgeAnalyticsHourlyPoint[];
+};
+
+export type WeighbridgeAnalyticsApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: WeighbridgeAnalyticsData;
+};
+
+export type WeighbridgeAnalyticsQuery = {
+  from?: string;
+  to?: string;
+  date?: string;
+};

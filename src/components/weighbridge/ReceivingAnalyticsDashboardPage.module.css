@@ -1,0 +1,163 @@
+.page {
+  display: grid;
+  gap: 20px;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--erp-border, rgba(0, 0, 0, 0.06));
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.toolbarFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.filterField {
+  display: grid;
+  gap: 6px;
+}
+
+.filterField span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: 10px;
+  flex: none;
+}
+
+.backButton {
+  height: 40px !important;
+  border-radius: 11px !important;
+  font-weight: 600 !important;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  min-height: 96px;
+  padding: 16px 18px;
+  border: 1px solid var(--erp-border, rgba(0, 0, 0, 0.06));
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.summaryCard span {
+  display: block;
+  color: var(--erp-muted, #8a9199);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summaryCard strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--erp-text, #2f343a);
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.summaryCardAccent strong {
+  color: var(--erp-green-dark, #6f9720);
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+}
+
+.chartCard {
+  padding: 18px 20px 12px;
+  border: 1px solid var(--erp-border, rgba(0, 0, 0, 0.06));
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.chartCardFull {
+  grid-column: 1 / -1;
+}
+
+.chartHeader {
+  margin-bottom: 12px;
+}
+
+.chartHeader h3 {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.chartHeader p {
+  margin: 4px 0 0;
+  color: var(--erp-muted, #8a9199);
+  font-size: 13px;
+}
+
+.chartBody {
+  width: 100%;
+  height: 280px;
+}
+
+.chartBodyTall {
+  height: 320px;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--erp-muted, #8a9199);
+  font-size: 14px;
+}
+
+@media (max-width: 1100px) {
+  .summaryGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .toolbarActions {
+    width: 100%;
+  }
+
+  .backButton {
+    width: 100%;
+  }
+}

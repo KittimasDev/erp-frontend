@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Form,
@@ -14,6 +14,7 @@ import {
 } from "antd";
 import {
   ArrowLeftOutlined,
+  EditOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
@@ -160,6 +161,8 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const [weighOutForm] = Form.useForm<WeighFormValues>();
   const weighInManual = Form.useWatch("isManual", weighInForm);
   const weighOutManual = Form.useWatch("isManual", weighOutForm);
+  const [weighInEditMode, setWeighInEditMode] = useState(false);
+  const [weighOutEditMode, setWeighOutEditMode] = useState(false);
 
   const ticketQuery = useWeighbridgeTicketQuery(ticketId);
   const weighInMutation = useWeighInMutation(ticketId);
@@ -197,43 +200,58 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const readyToPay = paymentView ? isPaymentReady(paymentView) : false;
   const hasReceipt = paymentView ? hasActiveReceipt(paymentView) : false;
 
-  const canSubmitWeighIn = Boolean(
-    ticket?.canWeighIn || ticket?.canEditWeighIn,
-  );
-  const canSubmitWeighOut = Boolean(
-    ticket?.canWeighOut || ticket?.canEditWeighOut,
-  );
-  const isEditingWeighIn = Boolean(ticket?.canEditWeighIn);
-  const isEditingWeighOut = Boolean(ticket?.canEditWeighOut);
+  const canCreateWeighIn = Boolean(ticket?.canWeighIn);
+  const canCreateWeighOut = Boolean(ticket?.canWeighOut);
+  const canUpdateWeighIn = Boolean(ticket?.canEditWeighIn);
+  const canUpdateWeighOut = Boolean(ticket?.canEditWeighOut);
+  const showWeighInForm = canCreateWeighIn || (canUpdateWeighIn && weighInEditMode);
+  const showWeighOutForm =
+    canCreateWeighOut || (canUpdateWeighOut && weighOutEditMode);
+  const isUpdatingWeighIn = canUpdateWeighIn && weighInEditMode;
+  const isUpdatingWeighOut = canUpdateWeighOut && weighOutEditMode;
   const weightEditWillResetReceipt = Boolean(ticket?.receiptId);
 
   useEffect(() => {
-    if (!ticket) {
+    if (!canUpdateWeighIn) {
+      setWeighInEditMode(false);
+    }
+  }, [canUpdateWeighIn]);
+
+  useEffect(() => {
+    if (!canUpdateWeighOut) {
+      setWeighOutEditMode(false);
+    }
+  }, [canUpdateWeighOut]);
+
+  useEffect(() => {
+    if (!ticket || !showWeighInForm) {
       return;
     }
-    if (ticket.canEditWeighIn || ticket.canWeighIn) {
-      weighInForm.setFieldsValue({
-        weightKg:
-          Number(ticket.grossWeightKg) > 0
-            ? Number(ticket.grossWeightKg)
-            : undefined,
-        isManual: true,
-        reason: ticket.canEditWeighIn ? "แก้ไขน้ำหนักเข้า" : undefined,
-        remark: ticket.weighInRemark || undefined,
-      });
+    weighInForm.setFieldsValue({
+      weightKg:
+        Number(ticket.grossWeightKg) > 0
+          ? Number(ticket.grossWeightKg)
+          : undefined,
+      isManual: true,
+      reason: isUpdatingWeighIn ? "แก้ไขน้ำหนักเข้า" : undefined,
+      remark: ticket.weighInRemark || undefined,
+    });
+  }, [ticket, showWeighInForm, isUpdatingWeighIn, weighInForm]);
+
+  useEffect(() => {
+    if (!ticket || !showWeighOutForm) {
+      return;
     }
-    if (ticket.canEditWeighOut || ticket.canWeighOut) {
-      weighOutForm.setFieldsValue({
-        weightKg:
-          ticket.weighOutAt && Number(ticket.tareWeightKg) > 0
-            ? Number(ticket.tareWeightKg)
-            : undefined,
-        isManual: true,
-        reason: ticket.canEditWeighOut ? "แก้ไขน้ำหนักออก" : undefined,
-        remark: ticket.weighOutRemark || undefined,
-      });
-    }
-  }, [ticket, weighInForm, weighOutForm]);
+    weighOutForm.setFieldsValue({
+      weightKg:
+        ticket.weighOutAt && Number(ticket.tareWeightKg) > 0
+          ? Number(ticket.tareWeightKg)
+          : undefined,
+      isManual: true,
+      reason: isUpdatingWeighOut ? "แก้ไขน้ำหนักออก" : undefined,
+      remark: ticket.weighOutRemark || undefined,
+    });
+  }, [ticket, showWeighOutForm, isUpdatingWeighOut, weighOutForm]);
 
   const handleWeighIn = async (values: WeighFormValues) => {
     await weighInMutation.mutateAsync({
@@ -241,10 +259,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
       isManual: Boolean(values.isManual),
       reason: values.isManual
         ? values.reason?.trim() ||
-          (isEditingWeighIn ? "แก้ไขน้ำหนักเข้า" : undefined)
+          (isUpdatingWeighIn ? "แก้ไขน้ำหนักเข้า" : undefined)
         : undefined,
       remark: values.remark?.trim() || undefined,
     });
+    setWeighInEditMode(false);
   };
 
   const handleWeighOut = async (values: WeighFormValues) => {
@@ -253,10 +272,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
       isManual: Boolean(values.isManual),
       reason: values.isManual
         ? values.reason?.trim() ||
-          (isEditingWeighOut ? "แก้ไขน้ำหนักออก" : undefined)
+          (isUpdatingWeighOut ? "แก้ไขน้ำหนักออก" : undefined)
         : undefined,
       remark: values.remark?.trim() || undefined,
     });
+    setWeighOutEditMode(false);
   };
 
   return (
@@ -456,25 +476,36 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         <p>บันทึกน้ำหนักเมื่อรถเข้าชั่ง (Gross)</p>
                       </div>
                     </div>
-                    <Tag
-                      className={styles.stepStatusTag}
-                      color={
-                        Number(ticket.grossWeightKg) > 0
-                          ? "success"
+                    <div className={styles.stepHeaderActions}>
+                      {canUpdateWeighIn && !weighInEditMode ? (
+                        <Button
+                          size="small"
+                          icon={<EditOutlined />}
+                          onClick={() => setWeighInEditMode(true)}
+                        >
+                          แก้ไข
+                        </Button>
+                      ) : null}
+                      <Tag
+                        className={styles.stepStatusTag}
+                        color={
+                          Number(ticket.grossWeightKg) > 0
+                            ? "success"
+                            : currentStep === 0
+                              ? "processing"
+                              : "default"
+                        }
+                      >
+                        {Number(ticket.grossWeightKg) > 0
+                          ? "เสร็จแล้ว"
                           : currentStep === 0
-                            ? "processing"
-                            : "default"
-                      }
-                    >
-                      {Number(ticket.grossWeightKg) > 0
-                        ? "เสร็จแล้ว"
-                        : currentStep === 0
-                          ? "กำลังทำ"
-                          : "รอทำ"}
-                    </Tag>
+                            ? "กำลังทำ"
+                            : "รอทำ"}
+                      </Tag>
+                    </div>
                   </div>
                   <div className={styles.stepCardBody}>
-                    {canSubmitWeighIn ? (
+                    {showWeighInForm ? (
                       <Form
                         form={weighInForm}
                         layout="vertical"
@@ -514,7 +545,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           <div className={styles.stepMetaItem}>
                             <span>แหล่งน้ำหนัก</span>
                             <strong>
-                              {isEditingWeighIn
+                              {isUpdatingWeighIn
                                 ? ticket.weighInReadSource || "กรอกเอง"
                                 : "กรอกเอง"}
                             </strong>
@@ -551,7 +582,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               <Form.Item
                                 name="reason"
                                 rules={
-                                  isEditingWeighIn
+                                  isUpdatingWeighIn
                                     ? undefined
                                     : [
                                         {
@@ -571,7 +602,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           ) : null}
                         </div>
 
-                        {weightEditWillResetReceipt ? (
+                        {isUpdatingWeighIn && weightEditWillResetReceipt ? (
                           <div className={styles.stepEmptyHint}>
                             แก้ไขน้ำหนักแล้ว ระบบจะยกเลิกใบรับซื้อปัจจุบัน
                             และต้องคัดแยก / สร้างใบรับซื้อใหม่ที่ Step 3
@@ -580,13 +611,14 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
 
                         <div className={styles.weighActions}>
                           <Button disabled>อ่านน้ำหนักจากเครื่องชั่ง</Button>
-                          {weightEditWillResetReceipt ? (
+                          {isUpdatingWeighIn ? (
+                            <Button onClick={() => setWeighInEditMode(false)}>
+                              ยกเลิก
+                            </Button>
+                          ) : null}
+                          {isUpdatingWeighIn && weightEditWillResetReceipt ? (
                             <Popconfirm
-                              title={
-                                isEditingWeighIn
-                                  ? "ยืนยันแก้ไขน้ำหนักเข้า"
-                                  : "ยืนยันบันทึกชั่งเข้า"
-                              }
+                              title="ยืนยันแก้ไขน้ำหนักเข้า"
                               description="ใบรับซื้อที่มีอยู่จะถูกยกเลิก และต้องทำ Step 3 คัดแยกใหม่"
                               okText="ยืนยัน"
                               cancelText="ยกเลิก"
@@ -597,9 +629,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                                 className={styles.submitButton}
                                 loading={weighInMutation.isPending}
                               >
-                                {isEditingWeighIn
-                                  ? "บันทึกการแก้ไขชั่งเข้า"
-                                  : "บันทึกชั่งเข้า"}
+                                บันทึกการแก้ไขชั่งเข้า
                               </Button>
                             </Popconfirm>
                           ) : (
@@ -609,7 +639,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               className={styles.submitButton}
                               loading={weighInMutation.isPending}
                             >
-                              {isEditingWeighIn
+                              {isUpdatingWeighIn
                                 ? "บันทึกการแก้ไขชั่งเข้า"
                                 : "บันทึกชั่งเข้า"}
                             </Button>
@@ -686,25 +716,36 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         <p>บันทึกน้ำหนักหลังถ่ายยาง (Tare) แล้วคำนวณสุทธิ</p>
                       </div>
                     </div>
-                    <Tag
-                      className={styles.stepStatusTag}
-                      color={
-                        ticket.weighOutAt
-                          ? "success"
+                    <div className={styles.stepHeaderActions}>
+                      {canUpdateWeighOut && !weighOutEditMode ? (
+                        <Button
+                          size="small"
+                          icon={<EditOutlined />}
+                          onClick={() => setWeighOutEditMode(true)}
+                        >
+                          แก้ไข
+                        </Button>
+                      ) : null}
+                      <Tag
+                        className={styles.stepStatusTag}
+                        color={
+                          ticket.weighOutAt
+                            ? "success"
+                            : currentStep === 1
+                              ? "processing"
+                              : "default"
+                        }
+                      >
+                        {ticket.weighOutAt
+                          ? "เสร็จแล้ว"
                           : currentStep === 1
-                            ? "processing"
-                            : "default"
-                      }
-                    >
-                      {ticket.weighOutAt
-                        ? "เสร็จแล้ว"
-                        : currentStep === 1
-                          ? "กำลังทำ"
-                          : "รอทำ"}
-                    </Tag>
+                            ? "กำลังทำ"
+                            : "รอทำ"}
+                      </Tag>
+                    </div>
                   </div>
                   <div className={styles.stepCardBody}>
-                    {canSubmitWeighOut ? (
+                    {showWeighOutForm ? (
                       <Form
                         form={weighOutForm}
                         layout="vertical"
@@ -742,7 +783,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           >
                             <span>น้ำหนักสุทธิ</span>
                             <strong>
-                              {isEditingWeighOut
+                              {isUpdatingWeighOut
                                 ? `จะคำนวณใหม่หลังบันทึก (เข้า ${formatWeight(ticket.grossWeightKg)} กก.)`
                                 : `จะคำนวณหลังบันทึก (เข้า ${formatWeight(ticket.grossWeightKg)} กก.)`}
                             </strong>
@@ -754,7 +795,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           <div className={styles.stepMetaItem}>
                             <span>แหล่งน้ำหนัก</span>
                             <strong>
-                              {isEditingWeighOut
+                              {isUpdatingWeighOut
                                 ? ticket.weighOutReadSource || "กรอกเอง"
                                 : "กรอกเอง"}
                             </strong>
@@ -791,7 +832,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               <Form.Item
                                 name="reason"
                                 rules={
-                                  isEditingWeighOut
+                                  isUpdatingWeighOut
                                     ? undefined
                                     : [
                                         {
@@ -811,7 +852,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           ) : null}
                         </div>
 
-                        {weightEditWillResetReceipt ? (
+                        {isUpdatingWeighOut && weightEditWillResetReceipt ? (
                           <div className={styles.stepEmptyHint}>
                             แก้ไขน้ำหนักแล้ว ระบบจะยกเลิกใบรับซื้อปัจจุบัน
                             และต้องคัดแยก / สร้างใบรับซื้อใหม่ที่ Step 3
@@ -820,13 +861,14 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
 
                         <div className={styles.weighActions}>
                           <Button disabled>อ่านน้ำหนักจากเครื่องชั่ง</Button>
-                          {weightEditWillResetReceipt ? (
+                          {isUpdatingWeighOut ? (
+                            <Button onClick={() => setWeighOutEditMode(false)}>
+                              ยกเลิก
+                            </Button>
+                          ) : null}
+                          {isUpdatingWeighOut && weightEditWillResetReceipt ? (
                             <Popconfirm
-                              title={
-                                isEditingWeighOut
-                                  ? "ยืนยันแก้ไขน้ำหนักออก"
-                                  : "ยืนยันบันทึกชั่งออก"
-                              }
+                              title="ยืนยันแก้ไขน้ำหนักออก"
                               description="ใบรับซื้อที่มีอยู่จะถูกยกเลิก และต้องทำ Step 3 คัดแยกใหม่"
                               okText="ยืนยัน"
                               cancelText="ยกเลิก"
@@ -837,9 +879,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                                 className={styles.submitButton}
                                 loading={weighOutMutation.isPending}
                               >
-                                {isEditingWeighOut
-                                  ? "บันทึกการแก้ไขชั่งออก"
-                                  : "บันทึกชั่งออก"}
+                                บันทึกการแก้ไขชั่งออก
                               </Button>
                             </Popconfirm>
                           ) : (
@@ -849,7 +889,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               className={styles.submitButton}
                               loading={weighOutMutation.isPending}
                             >
-                              {isEditingWeighOut
+                              {isUpdatingWeighOut
                                 ? "บันทึกการแก้ไขชั่งออก"
                                 : "บันทึกชั่งออก"}
                             </Button>

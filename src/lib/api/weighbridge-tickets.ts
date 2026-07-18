@@ -2,6 +2,8 @@ import { apiFetch } from "./client";
 import type {
   CreateWeighbridgeTicketRequest,
   ManualOverrideTicketRequest,
+  WeighbridgeAnalyticsApiResponse,
+  WeighbridgeAnalyticsQuery,
   WeighbridgeDashboardApiResponse,
   WeighbridgeTicketApiResponse,
   WeighbridgeTicketDetailApiResponse,
@@ -16,6 +18,27 @@ export function getWeighbridgeDashboard(token: string, date?: string) {
   const query = search.toString();
   return apiFetch<WeighbridgeDashboardApiResponse>(
     `/api/weighbridge/tickets/dashboard${query ? `?${query}` : ""}`,
+    { method: "GET", token },
+  );
+}
+
+export function getWeighbridgeAnalytics(
+  token: string,
+  params: WeighbridgeAnalyticsQuery = {},
+) {
+  const search = new URLSearchParams();
+  if (params.from?.trim()) {
+    search.set("from", params.from.trim());
+  }
+  if (params.to?.trim()) {
+    search.set("to", params.to.trim());
+  }
+  if (params.date?.trim()) {
+    search.set("date", params.date.trim());
+  }
+  const query = search.toString();
+  return apiFetch<WeighbridgeAnalyticsApiResponse>(
+    `/api/weighbridge/tickets/analytics${query ? `?${query}` : ""}`,
     { method: "GET", token },
   );
 }

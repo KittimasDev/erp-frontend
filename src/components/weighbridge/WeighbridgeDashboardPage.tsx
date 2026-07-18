@@ -778,14 +778,22 @@ export default function WeighbridgeDashboardPage() {
               </p>
             </div>
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              className={styles.openTicketButton}
-              onClick={openTicketDrawer}
-            >
-              เปิดตั๋วชั่ง
-            </Button>
+            <div className={styles.listHeaderActions}>
+              <Button
+                className={styles.dashboardButton}
+                onClick={() => router.push("/receiving/dashboard")}
+              >
+                Dashboard
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                className={styles.openTicketButton}
+                onClick={openTicketDrawer}
+              >
+                เปิดตั๋วชั่ง
+              </Button>
+            </div>
           </div>
 
           <div className={styles.filterBar}>
