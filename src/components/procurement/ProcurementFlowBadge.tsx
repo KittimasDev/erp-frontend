@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import {
@@ -20,9 +21,27 @@ const TONE_CLASS = {
 } as const;
 
 export default function ProcurementFlowBadge({ source }: Props) {
-  const { label, tone } = resolveListFlowBadge(source);
+  const { label, tone, href } = resolveListFlowBadge(source);
+  const className = `${styles.badge} ${TONE_CLASS[tone]}${
+    href ? ` ${styles.badgeLink}` : ""
+  }`;
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className={className}
+        title="ไปสร้างใบสั่งซื้อ"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className={styles.badgeDot} aria-hidden />
+        {label}
+      </Link>
+    );
+  }
+
   return (
-    <span className={`${styles.badge} ${TONE_CLASS[tone]}`}>
+    <span className={className}>
       <span className={styles.badgeDot} aria-hidden />
       {label}
     </span>

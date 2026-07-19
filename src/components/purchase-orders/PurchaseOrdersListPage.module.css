@@ -176,6 +176,15 @@
   color: var(--pr-text);
 }
 
+.pendingIcon {
+  color: var(--pr-green-dark);
+  font-size: 16px;
+}
+
+.createPoBtn {
+  font-weight: 600 !important;
+}
+
 .entriesBox {
   display: flex;
   align-items: center;

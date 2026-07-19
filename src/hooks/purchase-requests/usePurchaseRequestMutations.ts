@@ -19,6 +19,7 @@ import type {
   UpdatePurchaseRequestBody,
 } from "@/types/purchase-requests";
 import { purchaseRequestsQueryKey } from "./usePurchaseRequestsQuery";
+import { purchaseOrdersQueryKey } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 
 export function useCreatePurchaseRequestMutation() {
   const queryClient = useQueryClient();
@@ -92,8 +93,14 @@ export function useApprovePurchaseRequestMutation() {
     mutationKey: [...purchaseRequestsQueryKey, "approve"],
     mutationFn: (id: string) => approvePurchaseRequest(getAccessToken(), id),
     onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey });
-      message.success(response.message || "อนุมัติใบขอซื้อสำเร็จแล้ว");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey }),
+        queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey }),
+      ]);
+      message.success(
+        response.message ||
+          "อนุมัติแล้ว — ไปสร้างใบสั่งซื้อได้ที่เมนูใบสั่งซื้อ",
+      );
     },
     onError: (error: Error) => {
       message.error(

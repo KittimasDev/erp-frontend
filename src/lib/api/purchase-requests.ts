@@ -69,6 +69,20 @@ export function getPendingPurchaseRequestApprovals(
   );
 }
 
+/** PR ที่อนุมัติแล้ว รอสร้าง PO — ใช้ที่หน้ารายการใบสั่งซื้อ */
+export function getPurchaseOrdersPendingFromPr(
+  token: string,
+  params?: PurchaseRequestQueryParams,
+) {
+  return apiFetch<PurchaseRequestListApiResponse>(
+    `/api/purchase-orders/pending-from-pr${buildPurchaseRequestsQuery(params)}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
+}
+
 export function getPurchaseRequest(token: string, id: string) {
   return apiFetch<PurchaseRequestApiResponse>(`/api/purchase-requests/${id}`, {
     method: "GET",

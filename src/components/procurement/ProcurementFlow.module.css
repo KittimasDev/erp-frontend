@@ -94,6 +94,15 @@
   font-size: 12px;
 }
 
+.createPoBtnWrap {
+  display: block;
+  text-decoration: none;
+}
+
+.createPoBtnWrap :global(.ant-btn) {
+  font-weight: 700;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -105,6 +114,17 @@
   letter-spacing: 0.02em;
   white-space: nowrap;
   line-height: 1.4;
+}
+
+a.badgeLink {
+  text-decoration: none;
+  cursor: pointer;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+a.badgeLink:hover {
+  filter: brightness(0.96);
+  box-shadow: 0 0 0 1px currentColor;
 }
 
 .badgeDot {

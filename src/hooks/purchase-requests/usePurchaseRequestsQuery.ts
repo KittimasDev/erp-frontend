@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   getPendingPurchaseRequestApprovals,
+  getPurchaseOrdersPendingFromPr,
   getPurchaseRequest,
   getPurchaseRequests,
 } from "@/lib/api/purchase-requests";
@@ -26,6 +27,15 @@ export function usePendingPurchaseRequestApprovalsQuery(
     queryKey: [...purchaseRequestsQueryKey, "approvals-pending", params ?? {}],
     queryFn: () =>
       getPendingPurchaseRequestApprovals(getAccessToken(), params),
+  });
+}
+
+export function usePurchaseOrdersPendingFromPrQuery(
+  params?: PurchaseRequestQueryParams,
+) {
+  return useQuery({
+    queryKey: [...purchaseRequestsQueryKey, "pending-from-pr", params ?? {}],
+    queryFn: () => getPurchaseOrdersPendingFromPr(getAccessToken(), params),
   });
 }
 

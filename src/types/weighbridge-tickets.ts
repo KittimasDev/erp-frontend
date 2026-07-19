@@ -39,6 +39,8 @@ export type WeighbridgeTicketListItem = {
   receiptNo?: string;
   receiptStatus?: string;
   receiptPaymentStatus?: string;
+  receiptStockPostingStatus?: string;
+  hasPendingStockPosting?: boolean;
 };
 
 export type WeighbridgeDashboardData = {

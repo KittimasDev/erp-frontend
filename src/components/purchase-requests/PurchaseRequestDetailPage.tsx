@@ -374,8 +374,8 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
               </>
             ) : null}
 
-            {data.status === "APPROVED" && canReadPo ? (
-              linkedPo ? (
+            {data.status === "APPROVED" ? (
+              linkedPo && canReadPo ? (
                 <Button
                   className={styles.primaryBtn}
                   type="primary"
@@ -386,18 +386,13 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                 >
                   ดูใบสั่งซื้อ ({linkedPo.poNo})
                 </Button>
-              ) : canWritePo && !linkedPoQuery.isLoading ? (
+              ) : !linkedPo && !linkedPoQuery.isLoading ? (
                 <Button
-                  className={styles.primaryBtn}
-                  type="primary"
+                  className={styles.secondaryBtn}
                   icon={<ShoppingCartOutlined />}
-                  onClick={() =>
-                    router.push(
-                      `/purchase-orders/create-from-pr/${data.id}`,
-                    )
-                  }
+                  onClick={() => router.push("/purchase-orders")}
                 >
-                  สร้างใบสั่งซื้อ
+                  ไปที่ใบสั่งซื้อ
                 </Button>
               ) : null
             ) : null}

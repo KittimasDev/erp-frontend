@@ -69,6 +69,7 @@ type ReceivingStage =
   | "classify"
   | "payment"
   | "paid"
+  | "warehouse"
   | "stock-in";
 
 const FLOW_LABELS: Record<string, string> = {
@@ -78,20 +79,27 @@ const FLOW_LABELS: Record<string, string> = {
   WAITING_APPROVAL: "รออนุมัติ",
   WAITING_PAYMENT: "รอจ่ายเงิน",
   PAYMENT_PAID: "จ่ายเงินแล้ว",
+  WAITING_STOCK_IN: "รอเข้าคลัง",
+  STOCK_REQUEST_PENDING: "รออนุมัติเข้าคลัง",
   STOCK_POSTED: "รับเข้าสต๊อกแล้ว",
   CANCELLED: "ยกเลิก",
   OTHER: "อื่นๆ",
 };
 
 const STAGE_FLOW_MAP: Record<
-  Exclude<ReceivingStage, "all" | "stock-in">,
+  Exclude<ReceivingStage, "all" | "stock-in" | "warehouse">,
   string[]
 > = {
   "weigh-in": ["WAITING_WEIGH_IN"],
   "weigh-out": ["WAITING_WEIGH_OUT"],
   classify: ["WAITING_SORT", "WAITING_APPROVAL"],
   payment: ["WAITING_PAYMENT"],
-  paid: ["PAYMENT_PAID", "STOCK_POSTED"],
+  paid: [
+    "WAITING_STOCK_IN",
+    "STOCK_REQUEST_PENDING",
+    "PAYMENT_PAID",
+    "STOCK_POSTED",
+  ],
 };
 
 const STAGE_OPTIONS: {
@@ -106,9 +114,14 @@ const STAGE_OPTIONS: {
   { key: "payment", label: "จ่ายเงิน", description: "รอจ่ายเงินผู้ขาย" },
   { key: "paid", label: "จ่ายแล้ว", description: "จ่ายเงินครบแล้ว" },
   {
+    key: "warehouse",
+    label: "เข้าคลัง",
+    description: "รอส่งคำขอรับผลผลิตเข้าคลัง",
+  },
+  {
     key: "stock-in",
     label: "รับผลผลิต",
-    description: "ขอรับผลผลิตเข้าคลัง (แยกจากใบรับซื้อยาง)",
+    description: "หน้ารายการตั๋วรอรับผลผลิตเข้าคลัง",
   },
 ];
 
@@ -126,6 +139,7 @@ function parseStage(value: string | null): ReceivingStage {
     value === "classify" ||
     value === "payment" ||
     value === "paid" ||
+    value === "warehouse" ||
     value === "stock-in"
   ) {
     return value;
@@ -133,12 +147,24 @@ function parseStage(value: string | null): ReceivingStage {
   return "all";
 }
 
+function isPendingProductionStockIn(
+  ticket: WeighbridgeTicketListItem,
+  pendingTicketIds: Set<string>,
+) {
+  return pendingTicketIds.has(ticket.id);
+}
+
 function matchesStage(
   ticket: WeighbridgeTicketListItem,
   stage: ReceivingStage,
+  pendingTicketIds: Set<string> = new Set(),
 ) {
   if (stage === "all" || stage === "stock-in") {
     return true;
+  }
+
+  if (stage === "warehouse") {
+    return isPendingProductionStockIn(ticket, pendingTicketIds);
   }
 
   const flow = ticket.flowState ?? "OTHER";
@@ -313,13 +339,13 @@ export default function WeighbridgeDashboardPage() {
   const stage = parseStage(searchParams.get("stage"));
   const searchQuery = searchParams.get("q")?.trim() ?? "";
   const dateParam = searchParams.get("date")?.trim() || undefined;
-  const pendingDate = dateParam || dayjs().format("YYYY-MM-DD");
 
   const dashboardQuery = useWeighbridgeDashboardQuery(dateParam);
-  const pendingOutputQuery = useProductionOutputPendingTicketsQuery({
-    from: pendingDate,
-    to: pendingDate,
-  });
+  // ต้องใช้ช่วงเดียวกับ dashboard — ห้ามใช้วันจากเบราว์เซอร์คนละวันกับเซิร์ฟเวอร์
+  // ไม่ส่ง from/to = API ใช้วันนี้ของเซิร์ฟเวอร์ย้อนหลัง 7 วัน
+  const pendingOutputQuery = useProductionOutputPendingTicketsQuery(
+    dateParam ? { from: dateParam, to: dateParam } : undefined,
+  );
   const sellersQuery = useSellersQuery({ isActive: true });
   const sellerTypesQuery = useSellerTypesQuery({ isActive: true });
   const trucksQuery = useTrucksQuery(
@@ -332,7 +358,12 @@ export default function WeighbridgeDashboardPage() {
 
   const summary = dashboardQuery.data?.data.summary;
   const tickets = dashboardQuery.data?.data.tickets ?? [];
-  const pendingOutputCount = pendingOutputQuery.data?.data?.length ?? 0;
+  const pendingOutputTickets = pendingOutputQuery.data?.data ?? [];
+  const pendingOutputCount = pendingOutputTickets.length;
+  const pendingProductionTicketIds = useMemo(
+    () => new Set(pendingOutputTickets.map((ticket) => ticket.id)),
+    [pendingOutputTickets],
+  );
 
   const sellers = sellersQuery.data?.data ?? [];
   const sellerTypes = sellerTypesQuery.data?.data ?? [];
@@ -409,19 +440,23 @@ export default function WeighbridgeDashboardPage() {
       classify: 0,
       payment: 0,
       paid: 0,
+      warehouse: 0,
       "stock-in": pendingOutputCount,
     };
     for (const ticket of tickets) {
       for (const key of Object.keys(STAGE_FLOW_MAP) as Array<
         keyof typeof STAGE_FLOW_MAP
       >) {
-        if (matchesStage(ticket, key)) {
+        if (matchesStage(ticket, key, pendingProductionTicketIds)) {
           counts[key] += 1;
         }
       }
+      if (isPendingProductionStockIn(ticket, pendingProductionTicketIds)) {
+        counts.warehouse += 1;
+      }
     }
     return counts;
-  }, [tickets, pendingOutputCount]);
+  }, [tickets, pendingOutputCount, pendingProductionTicketIds]);
 
   const filteredTickets = useMemo(
     () =>
@@ -429,9 +464,10 @@ export default function WeighbridgeDashboardPage() {
         ? []
         : tickets.filter(
             (ticket) =>
-              matchesStage(ticket, stage) && matchesSearch(ticket, searchQuery),
+              matchesStage(ticket, stage, pendingProductionTicketIds) &&
+              matchesSearch(ticket, searchQuery),
           ),
-    [tickets, stage, searchQuery],
+    [tickets, stage, searchQuery, pendingProductionTicketIds],
   );
 
   const selectedTruck = useMemo(
@@ -524,6 +560,11 @@ export default function WeighbridgeDashboardPage() {
       key: "paid" as ReceivingStage,
       label: "จ่ายแล้ว",
       value: stageCounts.paid,
+    },
+    {
+      key: "warehouse" as ReceivingStage,
+      label: "รอเข้าคลัง",
+      value: stageCounts.warehouse,
     },
     {
       key: "stock-in" as ReceivingStage,
@@ -667,13 +708,16 @@ export default function WeighbridgeDashboardPage() {
     {
       title: "ชั่งน้ำหนัก",
       key: "weighActions",
-      width: 320,
+      width: 400,
       fixed: "right",
       render: (_value, record) => {
         const locked =
           record.status === "CANCELLED" || record.status === "CLOSED";
         const isPaid =
           record.flowState === "PAYMENT_PAID" ||
+          record.flowState === "WAITING_STOCK_IN" ||
+          record.flowState === "STOCK_REQUEST_PENDING" ||
+          record.flowState === "STOCK_POSTED" ||
           record.receiptPaymentStatus === "PAID";
         const receiptLocked =
           isPaid ||
@@ -699,6 +743,21 @@ export default function WeighbridgeDashboardPage() {
           (record.flowState === "WAITING_PAYMENT" ||
             (record.receiptStatus === "CONFIRMED" &&
               record.receiptPaymentStatus !== "PAID"));
+        const canStockIn = isPendingProductionStockIn(
+          record,
+          pendingProductionTicketIds,
+        );
+        const pendingLoaded =
+          !pendingOutputQuery.isLoading && !pendingOutputQuery.isError;
+        const alreadyStockSent =
+          pendingLoaded &&
+          Boolean(record.weighOutAt) &&
+          !canStockIn &&
+          (record.receiptPaymentStatus === "PAID" ||
+            record.flowState === "WAITING_STOCK_IN" ||
+            record.flowState === "PAYMENT_PAID" ||
+            record.flowState === "STOCK_POSTED" ||
+            record.flowState === "STOCK_REQUEST_PENDING");
 
         return (
           <div
@@ -740,6 +799,21 @@ export default function WeighbridgeDashboardPage() {
               }
             >
               {isPaid ? "จ่ายแล้ว" : "จ่ายเงิน"}
+            </Button>
+            <Button
+              size="small"
+              type={canStockIn ? "primary" : "default"}
+              disabled={!canStockIn}
+              onClick={() => {
+                if (!canStockIn) {
+                  return;
+                }
+                router.push(
+                  `/receiving/production-output/stock-requests/create?ticketId=${encodeURIComponent(record.id)}`,
+                );
+              }}
+            >
+              {alreadyStockSent ? "เข้าคลังแล้ว" : "เข้าคลัง"}
             </Button>
           </div>
         );
@@ -939,10 +1013,35 @@ export default function WeighbridgeDashboardPage() {
                       ? "ไม่พบรายการตามเงื่อนไขที่เลือก"
                       : "ยังไม่มีตั๋วชั่งวันนี้",
                 }}
-                onRow={(record) => ({
-                  onClick: () => router.push(`/receiving/${record.id}`),
-                  className: styles.clickableRow,
-                })}
+                onRow={(record) => {
+                  const canOpenStockIn = isPendingProductionStockIn(
+                    record,
+                    pendingProductionTicketIds,
+                  );
+                  if (stage === "warehouse") {
+                    return {
+                      onClick: () => {
+                        if (!canOpenStockIn) {
+                          return;
+                        }
+                        router.push(
+                          `/receiving/production-output/stock-requests/create?ticketId=${encodeURIComponent(record.id)}`,
+                        );
+                      },
+                      className: canOpenStockIn
+                        ? styles.clickableRow
+                        : undefined,
+                      style: canOpenStockIn
+                        ? undefined
+                        : { cursor: "default" },
+                    };
+                  }
+
+                  return {
+                    onClick: () => router.push(`/receiving/${record.id}`),
+                    className: styles.clickableRow,
+                  };
+                }}
               />
             )}
           </div>

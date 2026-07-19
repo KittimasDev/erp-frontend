@@ -62,6 +62,8 @@ const FLOW_LABELS: Record<string, string> = {
   WAITING_APPROVAL: "รออนุมัติ",
   WAITING_PAYMENT: "รอจ่ายเงิน",
   PAYMENT_PAID: "จ่ายเงินแล้ว",
+  WAITING_STOCK_IN: "รอเข้าคลัง",
+  STOCK_REQUEST_PENDING: "รออนุมัติเข้าคลัง",
   STOCK_POSTED: "รับเข้าสต๊อกแล้ว",
   CANCELLED: "ยกเลิก",
   OTHER: "อื่นๆ",
@@ -107,7 +109,11 @@ function formatDateTime(value?: string) {
 
 function isPaymentPaid(view: PaymentView) {
   return (
-    view.paymentStatus === "PAID" || view.flowState === "PAYMENT_PAID"
+    view.paymentStatus === "PAID" ||
+    view.flowState === "PAYMENT_PAID" ||
+    view.flowState === "WAITING_STOCK_IN" ||
+    view.flowState === "STOCK_REQUEST_PENDING" ||
+    view.flowState === "STOCK_POSTED"
   );
 }
 
@@ -206,7 +212,13 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
       receiptStatus: paymentReceipt?.status ?? ticket.receiptStatus,
       paymentStatus,
       flowState:
-        paymentStatus === "PAID" ? "PAYMENT_PAID" : ticket.flowState,
+        paymentStatus === "PAID"
+          ? ticket.flowState === "STOCK_POSTED" ||
+            ticket.flowState === "WAITING_STOCK_IN" ||
+            ticket.flowState === "STOCK_REQUEST_PENDING"
+            ? ticket.flowState
+            : "WAITING_STOCK_IN"
+          : ticket.flowState,
       displayStatus: ticket.displayStatus,
       grossWeightKg: ticket.grossWeightKg,
     };
@@ -345,11 +357,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     </p>
                   </div>
                   <Tag className={styles.flowTag}>
-                    {paid
-                      ? FLOW_LABELS.PAYMENT_PAID
-                      : (FLOW_LABELS[ticket.flowState ?? ""] ??
-                        DISPLAY_LABELS[ticket.displayStatus] ??
-                        ticket.displayStatus)}
+                    {FLOW_LABELS[ticket.flowState ?? ""] ??
+                      (paid ? FLOW_LABELS.PAYMENT_PAID : undefined) ??
+                      DISPLAY_LABELS[ticket.displayStatus] ??
+                      ticket.displayStatus}
                   </Tag>
                 </div>
               </div>

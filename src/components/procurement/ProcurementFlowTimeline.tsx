@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Steps } from "antd";
+import { Button, Steps } from "antd";
+import { ShoppingCartOutlined } from "@ant-design/icons";
 
 import {
   PROCUREMENT_FLOW_STEPS,
@@ -23,11 +24,16 @@ export default function ProcurementFlowTimeline({
   const flow = resolveProcurementFlow(input);
   const current =
     flow.current >= 4 ? PROCUREMENT_FLOW_STEPS.length - 1 : flow.current;
+  const goToPurchaseOrders =
+    Boolean(input.pr && input.pr.status === "APPROVED") && !flow.docs.po;
 
   const items = PROCUREMENT_FLOW_STEPS.map((step, index) => {
     let description: string | undefined;
     if (index === 0 && flow.docs.pr) description = flow.docs.pr.no;
     if (index === 1 && flow.docs.po) description = flow.docs.po.no;
+    if (index === 1 && !flow.docs.po && goToPurchaseOrders) {
+      description = "ทำที่เมนูใบสั่งซื้อ";
+    }
     if (index === 2 && flow.docs.goodsReceipts[0]) {
       description =
         flow.docs.goodsReceipts.length > 1
@@ -102,6 +108,14 @@ export default function ProcurementFlowTimeline({
         <strong>ขั้นตอนถัดไป</strong>
         {flow.nextHint}
       </p>
+
+      {goToPurchaseOrders ? (
+        <Link href="/purchase-orders" className={styles.createPoBtnWrap}>
+          <Button block icon={<ShoppingCartOutlined />}>
+            ไปที่ใบสั่งซื้อ
+          </Button>
+        </Link>
+      ) : null}
     </div>
   );
 }

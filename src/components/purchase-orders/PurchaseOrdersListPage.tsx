@@ -19,14 +19,17 @@ import {
   EyeOutlined,
   FileTextOutlined,
   SearchOutlined,
+  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { usePurchaseOrdersQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import { usePurchaseOrdersPendingFromPrQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { PurchaseOrder } from "@/types/purchase-orders";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
+import type { PurchaseRequest } from "@/types/purchase-requests";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./PurchaseOrdersListPage.module.css";
 
@@ -70,6 +73,8 @@ export default function PurchaseOrdersListPage() {
   }>({});
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [pendingPage, setPendingPage] = useState(1);
+  const pendingLimit = 10;
 
   const canWrite =
     userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
@@ -79,6 +84,101 @@ export default function PurchaseOrdersListPage() {
   const query = usePurchaseOrdersQuery({ ...applied, page, limit });
   const rows = query.data?.data.items ?? [];
   const total = query.data?.data.total ?? 0;
+
+  const pendingQuery = usePurchaseOrdersPendingFromPrQuery({
+    page: pendingPage,
+    limit: pendingLimit,
+  });
+  const pendingPrs = pendingQuery.data?.data.items ?? [];
+  const pendingTotal = pendingQuery.data?.data.total ?? 0;
+
+  const pendingColumns: ColumnsType<PurchaseRequest> = useMemo(
+    () => [
+      {
+        title: "#",
+        key: "no",
+        width: 56,
+        align: "center",
+        render: (_v, _r, index) =>
+          (pendingPage - 1) * pendingLimit + index + 1,
+      },
+      {
+        title: "เลขที่ใบขอซื้อ",
+        dataIndex: "prNo",
+        key: "prNo",
+        render: (value: string) => (
+          <DocNoWithFlowBadge
+            no={<span className={styles.prNo}>{value}</span>}
+            source={{ kind: "pr", status: "APPROVED" }}
+          />
+        ),
+      },
+      {
+        title: "วันที่ขอซื้อ",
+        dataIndex: "prDate",
+        key: "prDate",
+        width: 120,
+        render: (value: string) => formatDate(value),
+      },
+      {
+        title: "ประเภท",
+        key: "type",
+        ellipsis: true,
+        render: (_v, row) => row.purchaseRequestType?.nameTh ?? "—",
+      },
+      {
+        title: "ผู้ขอ",
+        key: "requestedBy",
+        width: 140,
+        render: (_v, row) => row.requestedBy?.displayName ?? "—",
+      },
+      {
+        title: "รายการ",
+        key: "itemCount",
+        width: 90,
+        align: "center",
+        render: (_v, row) => `${row.items?.length ?? 0} รายการ`,
+      },
+      {
+        title: "สถานะ",
+        key: "status",
+        width: 120,
+        render: () => <Tag color="success">อนุมัติแล้ว</Tag>,
+      },
+      {
+        title: "จัดการ",
+        key: "action",
+        width: canWrite ? 170 : 70,
+        align: "center",
+        render: (_v, row) => (
+          <Space size={6}>
+            <button
+              className={styles.actionBtn}
+              type="button"
+              title="ดูใบขอซื้อ"
+              onClick={() => router.push(`/purchase-requests/${row.id}`)}
+            >
+              <EyeOutlined />
+            </button>
+            {canWrite ? (
+              <Button
+                type="primary"
+                size="small"
+                className={styles.createPoBtn}
+                icon={<ShoppingCartOutlined />}
+                onClick={() =>
+                  router.push(`/purchase-orders/create-from-pr/${row.id}`)
+                }
+              >
+                สร้างใบสั่งซื้อ
+              </Button>
+            ) : null}
+          </Space>
+        ),
+      },
+    ],
+    [canWrite, pendingPage, router],
+  );
 
   const columns: ColumnsType<PurchaseOrder> = useMemo(
     () => [
@@ -184,7 +284,7 @@ export default function PurchaseOrdersListPage() {
           <p className={styles.eyebrow}>Purchase Order</p>
           <h1 className={styles.pageTitle}>รายการใบสั่งซื้อ</h1>
           <p className={styles.pageSubtitle}>
-            สร้างจากใบขอซื้อที่อนุมัติแล้ว · Confirm แล้วพร้อมรับของในขั้นถัดไป
+            หลังอนุมัติใบขอซื้อ รายการจะขึ้นด้านบนเพื่อสร้างใบสั่งซื้อ
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -193,6 +293,48 @@ export default function PurchaseOrdersListPage() {
           </Link>
         </div>
       </header>
+
+      <section className={styles.tableCard}>
+        <div className={styles.tableToolbar}>
+          <div className={styles.toolbarLeft}>
+            <ShoppingCartOutlined className={styles.pendingIcon} />
+            ใบขอซื้อรอสร้างใบสั่งซื้อ <strong>{pendingTotal}</strong> รายการ
+          </div>
+        </div>
+
+        <Table
+          rowKey="id"
+          columns={pendingColumns}
+          dataSource={pendingPrs}
+          loading={pendingQuery.isLoading}
+          pagination={false}
+          className={styles.table}
+          locale={{
+            emptyText: "ยังไม่มีใบขอซื้อที่อนุมัติแล้วรอสร้างใบสั่งซื้อ",
+          }}
+        />
+
+        {pendingTotal > pendingLimit ? (
+          <div className={styles.tableFooter}>
+            <div className={styles.footerText}>
+              แสดง{" "}
+              {pendingTotal === 0
+                ? 0
+                : (pendingPage - 1) * pendingLimit + 1}
+              –{Math.min(pendingPage * pendingLimit, pendingTotal)} จาก{" "}
+              {pendingTotal}
+            </div>
+            <Pagination
+              size="small"
+              current={pendingPage}
+              total={pendingTotal}
+              pageSize={pendingLimit}
+              showSizeChanger={false}
+              onChange={setPendingPage}
+            />
+          </div>
+        ) : null}
+      </section>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
@@ -264,7 +406,7 @@ export default function PurchaseOrdersListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            ใบสั่งซื้อทั้งหมด <strong>{total}</strong> รายการ
           </div>
           <div className={styles.entriesBox}>
             <span>แสดง</span>

@@ -188,8 +188,8 @@ export function resolveProcurementFlow(
     badgeLabel = "1/4 · ขอซื้อ";
   } else if (current === 1) {
     if (!poExists) {
-      nextHint = "สร้างใบสั่งซื้อจาก PR ที่อนุมัติแล้ว";
-      badgeLabel = "1/4 เสร็จ · รอสั่งซื้อ";
+      nextHint = "ไปที่เมนูใบสั่งซื้อ เพื่อสร้างใบสั่งซื้อจากรายการที่อนุมัติแล้ว";
+      badgeLabel = "รอสร้างที่ใบสั่งซื้อ";
       badgeTone = "wait";
     } else if (po?.status === "DRAFT") {
       nextHint = "ตรวจสอบราคาแล้ว Confirm ใบสั่งซื้อ";
@@ -269,6 +269,7 @@ export type ListFlowSource =
 export function resolveListFlowBadge(source: ListFlowSource): {
   label: string;
   tone: "active" | "done" | "error" | "wait";
+  href?: string;
 } {
   switch (source.kind) {
     case "pr": {
@@ -279,7 +280,11 @@ export function resolveListFlowBadge(source: ListFlowSource): {
         return { label: "ยกเลิก", tone: "error" };
       }
       if (source.status === "APPROVED") {
-        return { label: "1/4 เสร็จ · รอสั่งซื้อ", tone: "wait" };
+        return {
+          label: "รอสร้างที่ใบสั่งซื้อ",
+          tone: "wait",
+          href: "/purchase-orders",
+        };
       }
       return { label: "1/4 · ขอซื้อ", tone: "active" };
     }
