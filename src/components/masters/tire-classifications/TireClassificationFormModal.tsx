@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Switch } from "antd";
+import { Form, Input, Modal, Switch } from "antd";
 
 import type {
   CreateTireClassificationRequest,
@@ -13,7 +13,6 @@ type TireClassificationFormValues = {
   code: string;
   name: string;
   description?: string;
-  defaultPricePerKg?: number | null;
   isActive: boolean;
 };
 
@@ -46,7 +45,6 @@ export default function TireClassificationFormModal({
         code: initialClassification.classificationCode,
         name: initialClassification.classificationName,
         description: initialClassification.description,
-        defaultPricePerKg: Number(initialClassification.defaultPricePerKg),
         isActive: initialClassification.isActive,
       });
       return;
@@ -56,7 +54,6 @@ export default function TireClassificationFormModal({
       code: "",
       name: "",
       description: "",
-      defaultPricePerKg: 0,
       isActive: true,
     });
   }, [open, mode, initialClassification, form]);
@@ -68,11 +65,6 @@ export default function TireClassificationFormModal({
       code: values.code.trim(),
       name: values.name.trim(),
       description: values.description?.trim() || undefined,
-      defaultPricePerKg:
-        values.defaultPricePerKg === undefined ||
-        values.defaultPricePerKg === null
-          ? 0
-          : values.defaultPricePerKg,
       isActive: values.isActive,
     });
   };
@@ -111,8 +103,8 @@ export default function TireClassificationFormModal({
 
           <p>
             {isCreateMode
-              ? "กรอกประเภท/กลุ่มยางรถยนต์ใช้แล้ว"
-              : "แก้ไขรายละเอียดและราคารับซื้อมาตรฐาน"}
+              ? "กรอกประเภท/กลุ่มยางรถยนต์ใช้แล้ว — ราคาตั้งที่กฎราคารับซื้อยาง"
+              : "แก้ไขรหัส ชื่อ และสถานะ — ราคาตั้งที่กฎราคารับซื้อยาง"}
           </p>
         </div>
       </div>
@@ -127,7 +119,7 @@ export default function TireClassificationFormModal({
           <span className={styles.sectionLine} />
           <div>
             <strong>ข้อมูลประเภท/กลุ่มยาง</strong>
-            <span>ระบุรหัส ชื่อ และราคารับซื้อต่อกิโลกรัม</span>
+            <span>ระบุรหัสและชื่อประเภทยาง</span>
           </div>
         </div>
 
@@ -158,27 +150,6 @@ export default function TireClassificationFormModal({
             size="large"
             placeholder="เช่น ยางนั่ง"
             autoComplete="off"
-          />
-        </Form.Item>
-
-        <Form.Item
-          label="ราคาต่อกก."
-          name="defaultPricePerKg"
-          rules={[
-            { required: true, message: "กรุณากรอกราคาต่อกก." },
-            {
-              type: "number",
-              min: 0,
-              message: "ราคาต้องไม่ติดลบ",
-            },
-          ]}
-        >
-          <InputNumber
-            size="large"
-            min={0}
-            step={0.0001}
-            style={{ width: "100%" }}
-            placeholder="เช่น 12.5"
           />
         </Form.Item>
 

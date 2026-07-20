@@ -35,7 +35,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters/sellers", title: "ผู้ขายยาง" },
   { href: "/masters/seller-bank-accounts", title: "บัญชีธนาคารผู้ขาย" },
   { href: "/masters/trucks", title: "รถบรรทุก" },
-  { href: "/masters/tire-classifications", title: "ประเภทยาง" },
+  { href: "/masters/tire-classifications", title: "ประเภทสินค้า" },
   { href: "/masters/raw-tire-price-rules", title: "ราคายาง" },
   { href: "/masters/weighbridge-scales", title: "เครื่องชั่ง" },
   { href: "/masters/items", title: "สินค้า" },
@@ -98,7 +98,7 @@ function resolvePageTitle(pathname: string) {
   }
 
   if (/^\/receiving\/[^/]+\/classification$/.test(pathname)) {
-    return "คัดแยกประเภทยาง";
+    return "คัดแยกประเภทสินค้า";
   }
 
   if (/^\/receiving\/[^/]+$/.test(pathname)) {

@@ -231,16 +231,6 @@ export default function TireClassificationsPage() {
       ),
     },
     {
-      title: "ราคา/กก.",
-      dataIndex: "defaultPricePerKg",
-      key: "defaultPricePerKg",
-      width: 120,
-      align: "right",
-      render: (value: string | number) => (
-        <span className={styles.orderBadge}>{Number(value).toLocaleString("th-TH")}</span>
-      ),
-    },
-    {
       title: "รายละเอียด",
       dataIndex: "description",
       key: "description",
@@ -327,7 +317,7 @@ export default function TireClassificationsPage() {
           </Typography.Title>
 
           <Typography.Text className={styles.pageSubtitle}>
-            จัดการประเภทยาง เช่น ยางนั่ง กระบะ บรรทุก และราคารับซื้อมาตรฐาน
+            จัดการประเภทยาง เช่น ยางนั่ง กระบะ บรรทุก — ราคาตั้งที่กฎราคารับซื้อยาง
           </Typography.Text>
         </div>
 

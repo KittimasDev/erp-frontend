@@ -262,7 +262,12 @@ export function resolveProcurementFlow(
 export type ListFlowSource =
   | { kind: "pr"; status: string }
   | { kind: "po"; status: string; paymentStatus?: string }
-  | { kind: "gr"; status: string }
+  | {
+      kind: "gr";
+      status: string;
+      poStatus?: string;
+      paymentStatus?: string;
+    }
   | { kind: "pending-pay" }
   | { kind: "payment"; status: string };
 
@@ -313,8 +318,15 @@ export function resolveListFlowBadge(source: ListFlowSource): {
       if (source.status === "CANCELLED") {
         return { label: "ยกเลิก", tone: "error" };
       }
+      // ให้ตรงกับ resolveProcurementFlow: รับครบ (PO COMPLETED) = ขั้นจ่ายเงิน
+      if (source.status === "CONFIRMED" && source.poStatus === "COMPLETED") {
+        if (source.paymentStatus === "PAID") {
+          return { label: "เสร็จครบ", tone: "done" };
+        }
+        return { label: "4/4 · จ่ายเงิน", tone: "active" };
+      }
       if (source.status === "CONFIRMED") {
-        return { label: "3/4 เสร็จ", tone: "wait" };
+        return { label: "3/4 · รับของ", tone: "active" };
       }
       return { label: "3/4 · รับของ", tone: "active" };
     }

@@ -20,6 +20,7 @@ export type GoodsReceiptPoSummary = {
   id: string;
   poNo: string;
   status: string;
+  paymentStatus?: string;
 };
 
 export type GoodsReceiptUserSummary = {

@@ -1,3 +1,6 @@
+import { Suspense } from "react";
+
+import PageLoading from "@/components/common/PageLoading";
 import RawTireClassificationPage from "@/components/weighbridge/RawTireClassificationPage";
 
 type Props = {
@@ -6,5 +9,10 @@ type Props = {
 
 export default async function ReceivingClassificationPage({ params }: Props) {
   const { id } = await params;
-  return <RawTireClassificationPage ticketId={id} />;
+
+  return (
+    <Suspense fallback={<PageLoading />}>
+      <RawTireClassificationPage ticketId={id} />
+    </Suspense>
+  );
 }

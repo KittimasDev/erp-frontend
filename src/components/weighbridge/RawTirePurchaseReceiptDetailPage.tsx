@@ -153,14 +153,14 @@ export default function RawTirePurchaseReceiptDetailPage({
       render: (_value, _record, index) => index + 1,
     },
     {
-      title: "รหัสประเภทยาง",
+      title: "รหัสประเภทสินค้า",
       dataIndex: "classificationCode",
       key: "classificationCode",
       width: 140,
       render: (value?: string) => value || "-",
     },
     {
-      title: "ประเภทยาง",
+      title: "ประเภทสินค้า",
       dataIndex: "classificationName",
       key: "classificationName",
       render: (value?: string) => value || "-",
@@ -336,7 +336,7 @@ export default function RawTirePurchaseReceiptDetailPage({
             <div className={styles.card}>
               <div className={styles.listHeader}>
                 <div>
-                  <h3>รายการประเภทยาง</h3>
+                  <h3>รายการประเภทสินค้า</h3>
                   <p>รายการคัดแยกจากใบรับซื้อ</p>
                 </div>
               </div>

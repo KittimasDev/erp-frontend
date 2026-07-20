@@ -262,7 +262,7 @@ export default function RawTirePriceRulesPage() {
       ),
     },
     {
-      title: "ประเภทยาง",
+      title: "ประเภทสินค้า",
       dataIndex: "tireClassificationId",
       key: "tireClassificationId",
       width: 200,
@@ -428,7 +428,7 @@ export default function RawTirePriceRulesPage() {
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
             <h3>ค้นหากฎราคาซื้อยาง</h3>
-            <p>กรองด้วยรหัส ประเภทยาง วันที่มีผล และสถานะ</p>
+            <p>กรองด้วยรหัส ประเภทสินค้า วันที่มีผล และสถานะ</p>
           </div>
 
           {hasFilters ? (
@@ -457,7 +457,7 @@ export default function RawTirePriceRulesPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="tireClassificationId" label="ประเภท/กลุ่มยาง">
+              <Form.Item name="tireClassificationId" label="ประเภท/กลุ่มสินค้า">
                 <Select
                   allowClear
                   showSearch

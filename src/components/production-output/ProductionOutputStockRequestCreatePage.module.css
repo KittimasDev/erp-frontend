@@ -5,6 +5,143 @@
   align-items: start;
 }
 
+.sourceCard {
+  margin-bottom: 20px;
+  padding: 20px 22px;
+  border: 1px solid var(--unit-border, #e8eaed);
+  border-radius: 16px;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(138, 185, 51, 0.08),
+      transparent 42%
+    ),
+    #ffffff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
+}
+
+.sourceHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.sourceEyebrow {
+  color: var(--unit-green-dark, #6f9720);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.sourceTitle {
+  margin: 6px 0 0;
+  color: var(--unit-text, #2f343a);
+  font-size: 18px;
+  font-weight: 650;
+}
+
+.sourceLead {
+  margin: 6px 0 0;
+  color: var(--unit-muted, #8a9199);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sourceTotals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sourceTotalItem {
+  min-width: 132px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(138, 185, 51, 0.22);
+}
+
+.sourceTotalItem span {
+  display: block;
+  color: var(--unit-muted, #8a9199);
+  font-size: 11px;
+}
+
+.sourceTotalItem strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--unit-text, #2f343a);
+  font-size: 15px;
+}
+
+.sourceLoading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--unit-muted, #8a9199);
+  font-size: 13px;
+}
+
+.sourceList {
+  display: grid;
+  gap: 14px;
+}
+
+.sourceTicket {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--unit-border, #e8eaed);
+  background: #fafbfc;
+}
+
+.sourceTicketHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.sourceTicketNo {
+  color: var(--unit-green-dark, #6f9720);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sourceTicketMeta {
+  margin-top: 4px;
+  color: var(--unit-muted, #8a9199);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sourceWeightChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+
+.sourceWeightChips span {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e4e7eb;
+  color: var(--unit-text, #2f343a);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sourceTable :global(.ant-table) {
+  background: transparent;
+}
+
 .formCard {
   border: 1px solid var(--unit-border, #e8eaed);
   border-radius: 16px;

@@ -1010,7 +1010,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       3
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 3 · คัดแยกประเภทยาง / สร้างใบรับซื้อ</h3>
+                      <h3>Step 3 · คัดแยกประเภทสินค้า / สร้างใบรับซื้อ</h3>
                       <p>
                         คัดแยกรายการยางและบันทึกก่อน จึงจะออกใบรับซื้อได้
                       </p>
@@ -1068,7 +1068,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             )
                           }
                         >
-                          ไปคัดแยกประเภทยาง
+                          ไปคัดแยกประเภทสินค้า
                         </Button>
                       ) : (
                         <>

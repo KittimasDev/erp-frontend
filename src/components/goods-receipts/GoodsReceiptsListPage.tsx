@@ -143,7 +143,12 @@ export default function GoodsReceiptsListPage() {
         render: (value: string, row) => (
           <DocNoWithFlowBadge
             no={<span className={styles.grNo}>{value}</span>}
-            source={{ kind: "gr", status: row.status }}
+            source={{
+              kind: "gr",
+              status: row.status,
+              poStatus: row.purchaseOrder?.status,
+              paymentStatus: row.purchaseOrder?.paymentStatus,
+            }}
           />
         ),
       },

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQueries } from "@tanstack/react-query";
 import {
   Alert,
   Button,
@@ -13,6 +14,8 @@ import {
   InputNumber,
   Row,
   Select,
+  Spin,
+  Table,
   Typography,
 } from "antd";
 import {
@@ -22,14 +25,18 @@ import {
   PlusOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateProductionOutputStockRequestMutation } from "@/hooks/production-output/useProductionOutputMutations";
 import { useProductionOutputStockRequestsQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import { getTicketClassification } from "@/lib/api/raw-tire-purchase-receipts";
+import { getAccessToken } from "@/lib/auth/token";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type {
@@ -46,6 +53,8 @@ import {
   peekProductionOutputTicketBatch,
   type ProductionOutputTicketBatchItem,
 } from "@/types/production-output-pending-tickets";
+import type { ClassificationItem } from "@/types/raw-tire-classification";
+import { RECEIPT_STATUS_LABELS } from "@/types/raw-tire-classification";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionOutputStockRequestCreatePage.module.css";
 
@@ -72,11 +81,29 @@ type Props = {
   fromBatch?: boolean;
 };
 
-function formatQty(value?: number | null) {
-  if (value === undefined || value === null || Number.isNaN(Number(value))) {
+type SourceTicketSummary = {
+  ticketId: string;
+  ticketNo: string;
+  sellerName?: string;
+  truckLicensePlate?: string;
+  grossWeightKg: string;
+  tareWeightKg: string;
+  netWeightKg: string;
+  receiptNo?: string;
+  receiptStatus?: string;
+  payableWeightKg?: string;
+  items: ClassificationItem[];
+};
+
+function formatQty(value?: number | string | null) {
+  if (value === undefined || value === null || value === "") {
     return "—";
   }
-  return Number(value).toLocaleString("th-TH", {
+  const n = Number(value);
+  if (Number.isNaN(n)) {
+    return "—";
+  }
+  return n.toLocaleString("th-TH", {
     maximumFractionDigits: 3,
   });
 }
@@ -87,6 +114,44 @@ const EMPTY_LINE: LineValues = {
   quantity: undefined,
   lotNo: undefined,
 };
+
+const SOURCE_ITEM_COLUMNS: ColumnsType<ClassificationItem> = [
+  {
+    title: "ประเภทยางที่รับมา",
+    key: "classification",
+    render: (_v, row) =>
+      row.classificationName
+        ? `${row.classificationCode ?? ""} — ${row.classificationName}`.replace(
+            /^ — /,
+            "",
+          )
+        : row.classificationCode || "—",
+  },
+  {
+    title: "น้ำหนัก (กก.)",
+    dataIndex: "weightKg",
+    key: "weightKg",
+    align: "right",
+    width: 120,
+    render: (value: string) => formatQty(value),
+  },
+  {
+    title: "ราคา/กก.",
+    dataIndex: "pricePerKg",
+    key: "pricePerKg",
+    align: "right",
+    width: 110,
+    render: (value: string) => formatQty(value),
+  },
+  {
+    title: "เป็นเงิน",
+    dataIndex: "amount",
+    key: "amount",
+    align: "right",
+    width: 120,
+    render: (value: string) => formatQty(value),
+  },
+];
 
 export default function ProductionOutputStockRequestCreatePage({
   ticketId,
@@ -123,6 +188,72 @@ export default function ProductionOutputStockRequestCreatePage({
 
   const primaryTicketId = batchTickets[0]?.id ?? ticketId;
   const isMultiTicket = batchTickets.length > 1;
+
+  const sourceQueries = useQueries({
+    queries: batchTickets.map((ticket) => ({
+      queryKey: [...ticketClassificationQueryKey, ticket.id],
+      queryFn: () => getTicketClassification(getAccessToken(), ticket.id),
+      enabled: Boolean(ticket.id),
+    })),
+  });
+
+  const sourceDataVersion = sourceQueries
+    .map((query) => `${query.dataUpdatedAt}:${query.status}`)
+    .join("|");
+
+  const sourceSummaries = useMemo(() => {
+    const rows: SourceTicketSummary[] = [];
+    batchTickets.forEach((ticket, index) => {
+      const data = sourceQueries[index]?.data?.data;
+      if (!data?.ticket) {
+        return;
+      }
+      const receipt = data.receipt;
+      rows.push({
+        ticketId: ticket.id,
+        ticketNo: data.ticket.ticketNo || ticket.ticketNo,
+        sellerName: data.ticket.sellerName,
+        truckLicensePlate: data.ticket.truckLicensePlate,
+        grossWeightKg: data.ticket.grossWeightKg,
+        tareWeightKg: data.ticket.tareWeightKg,
+        netWeightKg: data.ticket.netWeightKg,
+        receiptNo: receipt?.receiptNo,
+        receiptStatus: receipt?.status
+          ? (RECEIPT_STATUS_LABELS[receipt.status] ?? receipt.status)
+          : undefined,
+        payableWeightKg:
+          receipt?.payableWeightKg ?? receipt?.summary?.payableWeightKg,
+        items: receipt?.items ?? [],
+      });
+    });
+    return rows;
+    // sourceDataVersion tracks query result changes; sourceQueries is indexed by batchTickets
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchTickets, sourceDataVersion]);
+
+  const sourceTotals = useMemo(() => {
+    const net = sourceSummaries.reduce(
+      (sum, row) => sum + (Number(row.netWeightKg) || 0),
+      0,
+    );
+    const payable = sourceSummaries.reduce(
+      (sum, row) => sum + (Number(row.payableWeightKg) || 0),
+      0,
+    );
+    const classified = sourceSummaries.reduce(
+      (sum, row) =>
+        sum +
+        row.items.reduce(
+          (itemSum, item) => itemSum + (Number(item.weightKg) || 0),
+          0,
+        ),
+      0,
+    );
+    return { net, payable, classified };
+  }, [sourceSummaries]);
+
+  const sourceLoading = sourceQueries.some((query) => query.isLoading);
+  const sourceError = sourceQueries.find((query) => query.isError)?.error;
 
   const ticketRequestsQuery = useProductionOutputStockRequestsQuery(
     primaryTicketId
@@ -354,7 +485,7 @@ export default function ProductionOutputStockRequestCreatePage({
               {isMultiTicket
                 ? `รวบ ${batchTickets.length} ตั๋วในคำขอเดียว — จำนวนที่กรอกเป็นยอดรวมทั้งชุด แล้วรออนุมัติก่อน POST สต๊อก`
                 : batchTickets[0]?.ticketNo
-                  ? `ตั๋วชั่ง ${batchTickets[0].ticketNo} — ย่อยเป็นวัตถุดิบหลายชนิดได้ แล้วรออนุมัติก่อน POST สต๊อก`
+                  ? `ตั๋วชั่ง ${batchTickets[0].ticketNo} — ดูยอดรับก่อนหน้า แล้วกรอกผลผลิตที่จะเข้าคลัง`
                   : "ยางย่อยเป็นวัตถุดิบหลายชนิดได้ — เพิ่มได้หลายรายการในครั้งเดียว แล้วรอหัวหน้าคลังอนุมัติก่อน POST สต๊อก"}
             </Typography.Text>
           </div>
@@ -404,6 +535,112 @@ export default function ProductionOutputStockRequestCreatePage({
               </div>
             }
           />
+        ) : null}
+
+        {batchTickets.length > 0 ? (
+          <div className={styles.sourceCard}>
+            <div className={styles.sourceHeader}>
+              <div>
+                <div className={styles.sourceEyebrow}>SOURCE RECEIVING</div>
+                <h3 className={styles.sourceTitle}>ยอดที่รับมาแล้วจากตั๋วชั่ง</h3>
+                <p className={styles.sourceLead}>
+                  ใช้เทียบก่อนกรอกจำนวนผลผลิตเข้าคลัง — ไม่ใช่ยอดที่จะ POST อัตโนมัติ
+                </p>
+              </div>
+              <div className={styles.sourceTotals}>
+                <div className={styles.sourceTotalItem}>
+                  <span>น้ำหนักสุทธิรวม</span>
+                  <strong>{formatQty(sourceTotals.net)} กก.</strong>
+                </div>
+                <div className={styles.sourceTotalItem}>
+                  <span>น้ำหนักคัดแยกรวม</span>
+                  <strong>{formatQty(sourceTotals.classified)} กก.</strong>
+                </div>
+                <div className={styles.sourceTotalItem}>
+                  <span>น้ำหนักจ่ายรวม</span>
+                  <strong>{formatQty(sourceTotals.payable)} กก.</strong>
+                </div>
+              </div>
+            </div>
+
+            {sourceLoading ? (
+              <div className={styles.sourceLoading}>
+                <Spin size="small" /> กำลังโหลดข้อมูลรับเข้า...
+              </div>
+            ) : null}
+
+            {sourceError instanceof Error ? (
+              <Alert
+                type="warning"
+                showIcon
+                title="โหลดยอดรับก่อนหน้าไม่สำเร็จ"
+                description={sourceError.message}
+                style={{ marginBottom: 12 }}
+              />
+            ) : null}
+
+            {!sourceLoading && sourceSummaries.length === 0 ? (
+              <Alert
+                type="info"
+                showIcon
+                title="ยังไม่พบข้อมูลรับเข้าของตั๋วนี้"
+                description="อาจยังไม่ได้คัดแยก/สร้างใบรับซื้อ — ยังสร้างคำขอรับผลผลิตได้ แต่ไม่มีตัวเลขอ้างอิง"
+              />
+            ) : null}
+
+            <div className={styles.sourceList}>
+              {sourceSummaries.map((source) => (
+                <div key={source.ticketId} className={styles.sourceTicket}>
+                  <div className={styles.sourceTicketHead}>
+                    <div>
+                      <Link
+                        href={`/receiving/${source.ticketId}`}
+                        className={styles.sourceTicketNo}
+                      >
+                        {source.ticketNo}
+                      </Link>
+                      <div className={styles.sourceTicketMeta}>
+                        {[
+                          source.sellerName,
+                          source.truckLicensePlate
+                            ? `ทะเบียน ${source.truckLicensePlate}`
+                            : null,
+                          source.receiptNo
+                            ? `ใบรับซื้อ ${source.receiptNo}`
+                            : null,
+                          source.receiptStatus
+                            ? `สถานะ ${source.receiptStatus}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
+                    </div>
+                    <div className={styles.sourceWeightChips}>
+                      <span>เข้า {formatQty(source.grossWeightKg)}</span>
+                      <span>ออก {formatQty(source.tareWeightKg)}</span>
+                      <span>สุทธิ {formatQty(source.netWeightKg)} กก.</span>
+                    </div>
+                  </div>
+
+                  {source.items.length > 0 ? (
+                    <Table
+                      size="small"
+                      rowKey="id"
+                      pagination={false}
+                      columns={SOURCE_ITEM_COLUMNS}
+                      dataSource={source.items}
+                      className={styles.sourceTable}
+                    />
+                  ) : (
+                    <Typography.Text type="secondary">
+                      ยังไม่มีรายการคัดแยกในใบรับซื้อ
+                    </Typography.Text>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         ) : null}
 
         <div className={styles.layout}>
@@ -730,6 +967,19 @@ export default function ProductionOutputStockRequestCreatePage({
                 {previewLines.length} รายการวัตถุดิบจะถูกส่งเข้าคลังชุดเดียวกัน
               </p>
             </div>
+
+            {sourceSummaries.length > 0 ? (
+              <div className={styles.previewBox}>
+                <div className={styles.previewLabel}>รับมาก่อนหน้า</div>
+                <p className={styles.previewValue}>
+                  สุทธิ {formatQty(sourceTotals.net)} กก.
+                </p>
+                <p className={styles.previewMeta}>
+                  คัดแยก {formatQty(sourceTotals.classified)} กก. · จ่าย{" "}
+                  {formatQty(sourceTotals.payable)} กก.
+                </p>
+              </div>
+            ) : null}
 
             <div className={styles.previewBox}>
               <div className={styles.previewLabel}>จะรับเข้า</div>

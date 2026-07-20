@@ -86,22 +86,6 @@ const FLOW_LABELS: Record<string, string> = {
   OTHER: "อื่นๆ",
 };
 
-const STAGE_FLOW_MAP: Record<
-  Exclude<ReceivingStage, "all" | "stock-in" | "warehouse">,
-  string[]
-> = {
-  "weigh-in": ["WAITING_WEIGH_IN"],
-  "weigh-out": ["WAITING_WEIGH_OUT"],
-  classify: ["WAITING_SORT", "WAITING_APPROVAL"],
-  payment: ["WAITING_PAYMENT"],
-  paid: [
-    "WAITING_STOCK_IN",
-    "STOCK_REQUEST_PENDING",
-    "PAYMENT_PAID",
-    "STOCK_POSTED",
-  ],
-};
-
 const STAGE_OPTIONS: {
   key: ReceivingStage;
   label: string;
@@ -124,6 +108,10 @@ const STAGE_OPTIONS: {
     description: "หน้ารายการตั๋วรอรับผลผลิตเข้าคลัง",
   },
 ];
+
+const ACTION_STAGE_KEYS: Array<
+  Exclude<ReceivingStage, "all" | "stock-in">
+> = ["weigh-in", "weigh-out", "classify", "payment", "paid", "warehouse"];
 
 const PAYMENT_METHOD_OPTIONS = [
   { value: "CASH", label: "เงินสด" },
@@ -154,6 +142,57 @@ function isPendingProductionStockIn(
   return pendingTicketIds.has(ticket.id);
 }
 
+/** เงื่อนไขเดียวกับปุ่มในคอลัมน์ "ชั่งน้ำหนัก" — ใช้ทั้ง filter และปุ่ม */
+function getTicketActionFlags(
+  ticket: WeighbridgeTicketListItem,
+  pendingTicketIds: Set<string>,
+) {
+  const locked =
+    ticket.status === "CANCELLED" || ticket.status === "CLOSED";
+  const isPaid =
+    ticket.flowState === "PAYMENT_PAID" ||
+    ticket.flowState === "WAITING_STOCK_IN" ||
+    ticket.flowState === "STOCK_REQUEST_PENDING" ||
+    ticket.flowState === "STOCK_POSTED" ||
+    ticket.receiptPaymentStatus === "PAID";
+  const receiptLocked =
+    isPaid ||
+    ticket.flowState === "WAITING_PAYMENT" ||
+    ticket.flowState === "STOCK_POSTED" ||
+    ticket.receiptStatus === "CONFIRMED";
+
+  const canWeighIn =
+    !locked && !isPaid && Number(ticket.grossWeightKg) <= 0;
+  const canWeighOut =
+    !locked &&
+    !isPaid &&
+    Number(ticket.grossWeightKg) > 0 &&
+    !ticket.weighOutAt;
+  const canClassify =
+    !locked &&
+    !receiptLocked &&
+    Boolean(ticket.weighOutAt) &&
+    Number(ticket.netWeightKg) > 0;
+  const canPay =
+    !locked &&
+    !isPaid &&
+    Boolean(ticket.receiptId) &&
+    (ticket.flowState === "WAITING_PAYMENT" ||
+      (ticket.receiptStatus === "CONFIRMED" &&
+        ticket.receiptPaymentStatus !== "PAID"));
+  const canStockIn = isPendingProductionStockIn(ticket, pendingTicketIds);
+
+  return {
+    locked,
+    isPaid,
+    canWeighIn,
+    canWeighOut,
+    canClassify,
+    canPay,
+    canStockIn,
+  };
+}
+
 function matchesStage(
   ticket: WeighbridgeTicketListItem,
   stage: ReceivingStage,
@@ -163,28 +202,24 @@ function matchesStage(
     return true;
   }
 
-  if (stage === "warehouse") {
-    return isPendingProductionStockIn(ticket, pendingTicketIds);
+  const flags = getTicketActionFlags(ticket, pendingTicketIds);
+
+  switch (stage) {
+    case "weigh-in":
+      return flags.canWeighIn;
+    case "weigh-out":
+      return flags.canWeighOut;
+    case "classify":
+      return flags.canClassify;
+    case "payment":
+      return flags.canPay;
+    case "paid":
+      return flags.isPaid;
+    case "warehouse":
+      return flags.canStockIn;
+    default:
+      return false;
   }
-
-  const flow = ticket.flowState ?? "OTHER";
-
-  if (stage === "classify") {
-    if (STAGE_FLOW_MAP.classify.includes(flow)) {
-      return true;
-    }
-    if (ticket.receiptStatus === "DRAFT") {
-      return true;
-    }
-    return (
-      flow === "OTHER" &&
-      Boolean(ticket.weighOutAt) &&
-      ticket.receiptStatus !== "CONFIRMED" &&
-      ticket.receiptPaymentStatus !== "PAID"
-    );
-  }
-
-  return STAGE_FLOW_MAP[stage].includes(flow);
 }
 
 function matchesSearch(ticket: WeighbridgeTicketListItem, query: string) {
@@ -444,15 +479,10 @@ export default function WeighbridgeDashboardPage() {
       "stock-in": pendingOutputCount,
     };
     for (const ticket of tickets) {
-      for (const key of Object.keys(STAGE_FLOW_MAP) as Array<
-        keyof typeof STAGE_FLOW_MAP
-      >) {
+      for (const key of ACTION_STAGE_KEYS) {
         if (matchesStage(ticket, key, pendingProductionTicketIds)) {
           counts[key] += 1;
         }
-      }
-      if (isPendingProductionStockIn(ticket, pendingProductionTicketIds)) {
-        counts.warehouse += 1;
       }
     }
     return counts;
@@ -539,22 +569,22 @@ export default function WeighbridgeDashboardPage() {
     {
       key: "weigh-in" as ReceivingStage,
       label: "รอชั่งเข้า",
-      value: stageCounts["weigh-in"] || summary?.waitingWeighIn || 0,
+      value: stageCounts["weigh-in"],
     },
     {
       key: "weigh-out" as ReceivingStage,
       label: "รอชั่งออก",
-      value: stageCounts["weigh-out"] || summary?.waitingWeighOut || 0,
+      value: stageCounts["weigh-out"],
     },
     {
       key: "classify" as ReceivingStage,
       label: "รอคัดแยก",
-      value: stageCounts.classify || summary?.waitingSort || 0,
+      value: stageCounts.classify,
     },
     {
       key: "payment" as ReceivingStage,
       label: "รอจ่ายเงิน",
-      value: stageCounts.payment || summary?.waitingPayment || 0,
+      value: stageCounts.payment,
     },
     {
       key: "paid" as ReceivingStage,
@@ -711,53 +741,21 @@ export default function WeighbridgeDashboardPage() {
       width: 400,
       fixed: "right",
       render: (_value, record) => {
-        const locked =
-          record.status === "CANCELLED" || record.status === "CLOSED";
-        const isPaid =
-          record.flowState === "PAYMENT_PAID" ||
-          record.flowState === "WAITING_STOCK_IN" ||
-          record.flowState === "STOCK_REQUEST_PENDING" ||
-          record.flowState === "STOCK_POSTED" ||
-          record.receiptPaymentStatus === "PAID";
-        const receiptLocked =
-          isPaid ||
-          record.flowState === "WAITING_PAYMENT" ||
-          record.flowState === "STOCK_POSTED" ||
-          record.receiptStatus === "CONFIRMED";
-        const canWeighIn =
-          !locked && !isPaid && Number(record.grossWeightKg) <= 0;
-        const canWeighOut =
-          !locked &&
-          !isPaid &&
-          Number(record.grossWeightKg) > 0 &&
-          !record.weighOutAt;
-        const canClassify =
-          !locked &&
-          !receiptLocked &&
-          Boolean(record.weighOutAt) &&
-          Number(record.netWeightKg) > 0;
-        const canPay =
-          !locked &&
-          !isPaid &&
-          Boolean(record.receiptId) &&
-          (record.flowState === "WAITING_PAYMENT" ||
-            (record.receiptStatus === "CONFIRMED" &&
-              record.receiptPaymentStatus !== "PAID"));
-        const canStockIn = isPendingProductionStockIn(
-          record,
-          pendingProductionTicketIds,
-        );
+        const {
+          isPaid,
+          canWeighIn,
+          canWeighOut,
+          canClassify,
+          canPay,
+          canStockIn,
+        } = getTicketActionFlags(record, pendingProductionTicketIds);
         const pendingLoaded =
           !pendingOutputQuery.isLoading && !pendingOutputQuery.isError;
         const alreadyStockSent =
           pendingLoaded &&
           Boolean(record.weighOutAt) &&
           !canStockIn &&
-          (record.receiptPaymentStatus === "PAID" ||
-            record.flowState === "WAITING_STOCK_IN" ||
-            record.flowState === "PAYMENT_PAID" ||
-            record.flowState === "STOCK_POSTED" ||
-            record.flowState === "STOCK_REQUEST_PENDING");
+          isPaid;
 
         return (
           <div

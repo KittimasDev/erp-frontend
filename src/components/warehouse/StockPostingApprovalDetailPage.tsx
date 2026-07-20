@@ -50,7 +50,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
     request?.status === StockPostingRequestStatus.PENDING_APPROVAL;
 
   const itemColumns: ColumnsType<StockPostingReceiptItem> = [
-    { title: "ประเภทยาง", dataIndex: "classificationName", key: "classificationName" },
+    { title: "ประเภทสินค้า", dataIndex: "classificationName", key: "classificationName" },
     {
       title: "สินค้า",
       key: "item",

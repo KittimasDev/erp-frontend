@@ -101,7 +101,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
   );
 
   const itemColumns: ColumnsType<StockPostingReceiptItem> = [
-    { title: "ประเภทยาง", dataIndex: "classificationName", key: "classificationName" },
+    { title: "ประเภทสินค้า", dataIndex: "classificationName", key: "classificationName" },
     { title: "น้ำหนัก (กก.)", dataIndex: "weightKg", key: "weightKg", align: "right" },
     { title: "ราคา/กก.", dataIndex: "pricePerKg", key: "pricePerKg", align: "right" },
     { title: "ยอดเงิน", dataIndex: "amount", key: "amount", align: "right" },

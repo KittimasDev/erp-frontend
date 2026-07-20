@@ -318,14 +318,14 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
 
   const itemColumns: ColumnsType<ItemRow> = [
     {
-      title: "ประเภทยาง",
+      title: "ประเภทสินค้า",
       key: "classification",
       width: 240,
       render: (_value, record, index) => (
         <Select
           showSearch
           optionFilterProp="label"
-          placeholder="เลือกประเภทยาง"
+          placeholder="เลือกประเภทสินค้า"
           options={classificationOptions}
           value={record.tireClassificationId || undefined}
           disabled={!canEdit}
@@ -602,7 +602,7 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
               <div className={styles.cardHeader}>
                 <div className={styles.detailTitleRow}>
                   <div>
-                    <h3>คัดแยกประเภทยาง / สร้างรายการรับซื้อ</h3>
+                    <h3>คัดแยกประเภทสินค้า / สร้างรายการรับซื้อ</h3>
                     <p>
                       ตั๋ว {ticket.ticketNo}
                       {receipt
@@ -691,7 +691,7 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
             <div className={styles.card}>
               <div className={styles.listHeader}>
                 <div>
-                  <h3>รายการคัดแยกประเภทยาง</h3>
+                  <h3>รายการคัดแยกประเภทสินค้า</h3>
                   <p>
                     รวมน้ำหนักคัดแยกควรเท่ากับน้ำหนักสุทธิ{" "}
                     {formatWeight(netWeightTarget)} กก.
