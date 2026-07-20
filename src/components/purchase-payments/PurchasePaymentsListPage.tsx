@@ -13,7 +13,10 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import { usePurchasePaymentsQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import {
+  usePendingPurchasePaymentsQuery,
+  usePurchasePaymentsQuery,
+} from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
@@ -66,6 +69,9 @@ export default function PurchasePaymentsListPage() {
   const query = usePurchasePaymentsQuery({ ...applied, page, limit });
   const rows = query.data?.data.items ?? [];
   const total = query.data?.data.total ?? 0;
+
+  const pendingQuery = usePendingPurchasePaymentsQuery({ page: 1, limit: 1 });
+  const pendingCount = pendingQuery.data?.data.total ?? 0;
 
   const pageAmount = useMemo(
     () => rows.reduce((sum, row) => sum + (Number(row.totalAmount) || 0), 0),
@@ -236,6 +242,11 @@ export default function PurchasePaymentsListPage() {
               icon={<HourglassOutlined />}
             >
               PO รอจ่าย
+              {pendingCount > 0 ? (
+                <span className={styles.pendingCountBadge} aria-label={`${pendingCount} ใบค้าง`}>
+                  {pendingCount > 99 ? "99+" : pendingCount}
+                </span>
+              ) : null}
             </Button>
           </Link>
         </div>

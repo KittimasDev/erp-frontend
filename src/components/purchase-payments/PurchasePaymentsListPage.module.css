@@ -27,16 +27,12 @@
   border-radius: 20px;
   border: 1px solid rgba(111, 151, 32, 0.18);
   background:
-    radial-gradient(
-      ellipse 70% 110% at 100% 0%,
+    radial-gradient(ellipse 70% 110% at 100% 0%,
       rgba(61, 139, 116, 0.14),
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse 50% 80% at 0% 100%,
+      transparent 55%),
+    radial-gradient(ellipse 50% 80% at 0% 100%,
       rgba(138, 185, 51, 0.16),
-      transparent 50%
-    ),
+      transparent 50%),
     linear-gradient(145deg, #fbfcf8 0%, #f3f6ea 48%, #eef3e2 100%);
   box-shadow: 0 12px 32px rgba(47, 52, 58, 0.06);
 }
@@ -45,19 +41,15 @@
   content: "";
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(
-      rgba(111, 151, 32, 0.04) 1px,
-      transparent 1px
-    ),
+  background-image: linear-gradient(rgba(111, 151, 32, 0.04) 1px,
+      transparent 1px),
     linear-gradient(90deg, rgba(111, 151, 32, 0.04) 1px, transparent 1px);
   background-size: 28px 28px;
-  mask-image: linear-gradient(
-    90deg,
-    transparent,
-    #000 30%,
-    #000 70%,
-    transparent
-  );
+  mask-image: linear-gradient(90deg,
+      transparent,
+      #000 30%,
+      #000 70%,
+      transparent);
   pointer-events: none;
 }
 
@@ -128,6 +120,28 @@
   color: #fff !important;
   font-weight: 700 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
+}
+
+.pendingCountBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: 8px;
+  padding: 0 7px;
+  border-radius: 999px;
+  /* color: var(--pay-amber); */
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 8px rgba(196, 146, 42, 0.28);
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  background: red;
+  color: white;
 }
 
 .secondaryBtn {
