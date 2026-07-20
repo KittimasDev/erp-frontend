@@ -64,7 +64,7 @@ const FLOW_LABELS: Record<string, string> = {
   PAYMENT_PAID: "จ่ายเงินแล้ว",
   WAITING_STOCK_IN: "รอเข้าคลัง",
   STOCK_REQUEST_PENDING: "รออนุมัติเข้าคลัง",
-  STOCK_POSTED: "รับเข้าสต๊อกแล้ว",
+  STOCK_POSTED: "เข้าคลังแล้ว",
   CANCELLED: "ยกเลิก",
   OTHER: "อื่นๆ",
 };

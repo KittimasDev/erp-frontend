@@ -3,19 +3,12 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Button,
-  DatePicker,
-  Input,
-  Pagination,
-  Select,
-  Table,
-  Tag,
-} from "antd";
+import { Button, DatePicker, Input, Pagination, Select, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   DollarOutlined,
   EyeOutlined,
+  HourglassOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -29,16 +22,16 @@ import {
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./PurchasePaymentsListPage.module.css";
 
-function statusColor(status: string) {
+function statusClass(status: string) {
   switch (status) {
     case "PAID":
-      return "success";
+      return styles.statusPaid;
     case "DRAFT":
-      return "processing";
+      return styles.statusDraft;
     case "CANCELLED":
-      return "default";
+      return styles.statusCancelled;
     default:
-      return "default";
+      return styles.statusCancelled;
   }
 }
 
@@ -47,9 +40,9 @@ function formatDate(value?: string) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
-function formatMoney(value?: string) {
+function formatMoney(value?: string | number) {
   const n = Number(value ?? 0);
-  if (Number.isNaN(n)) return value ?? "—";
+  if (Number.isNaN(n)) return String(value ?? "—");
   return n.toLocaleString("th-TH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -74,6 +67,50 @@ export default function PurchasePaymentsListPage() {
   const rows = query.data?.data.items ?? [];
   const total = query.data?.data.total ?? 0;
 
+  const pageAmount = useMemo(
+    () => rows.reduce((sum, row) => sum + (Number(row.totalAmount) || 0), 0),
+    [rows],
+  );
+
+  const paidOnPage = useMemo(
+    () => rows.filter((row) => row.status === "PAID").length,
+    [rows],
+  );
+
+  const draftOnPage = useMemo(
+    () => rows.filter((row) => row.status === "DRAFT").length,
+    [rows],
+  );
+
+  const hasActiveFilters = Boolean(
+    applied.voucherNo ||
+      applied.status ||
+      applied.voucherDateFrom ||
+      applied.voucherDateTo,
+  );
+
+  const applySearch = () => {
+    setPage(1);
+    setApplied({
+      voucherNo: voucherNo.trim() || undefined,
+      status,
+      voucherDateFrom: voucherDate
+        ? voucherDate.format("YYYY-MM-DD")
+        : undefined,
+      voucherDateTo: voucherDate
+        ? voucherDate.format("YYYY-MM-DD")
+        : undefined,
+    });
+  };
+
+  const clearFilters = () => {
+    setVoucherNo("");
+    setStatus(undefined);
+    setVoucherDate(null);
+    setApplied({});
+    setPage(1);
+  };
+
   const columns: ColumnsType<SupplierPaymentVoucher> = useMemo(
     () => [
       {
@@ -87,7 +124,7 @@ export default function PurchasePaymentsListPage() {
         dataIndex: "voucherNo",
         render: (value: string, row) => (
           <DocNoWithFlowBadge
-            no={<span className={styles.prNo}>{value}</span>}
+            no={<span className={styles.voucherNo}>{value}</span>}
             source={{ kind: "payment", status: row.status }}
           />
         ),
@@ -95,48 +132,80 @@ export default function PurchasePaymentsListPage() {
       {
         title: "วันที่",
         dataIndex: "voucherDate",
-        render: (value: string) => formatDate(value),
+        width: 110,
+        render: (value: string) => (
+          <span className={styles.dateCell}>{formatDate(value)}</span>
+        ),
       },
       {
         title: "อ้างอิง PO",
         key: "po",
-        render: (_v, row) => row.purchaseOrder?.poNo ?? "—",
+        render: (_v, row) => (
+          <span className={styles.poRef}>
+            {row.purchaseOrder?.poNo ?? "—"}
+          </span>
+        ),
       },
       {
         title: "ผู้ขาย",
         key: "creditor",
-        render: (_v, row) => row.creditor?.nameTh ?? "—",
+        render: (_v, row) =>
+          row.creditor ? (
+            <div className={styles.creditorCell}>
+              <span className={styles.creditorName}>{row.creditor.nameTh}</span>
+              <span className={styles.creditorCode}>
+                {row.creditor.creditorCode}
+              </span>
+            </div>
+          ) : (
+            "—"
+          ),
       },
       {
         title: "วิธีจ่าย",
         dataIndex: "paymentMethod",
-        render: (value: string) =>
-          SUPPLIER_PAYMENT_METHOD_LABEL[value] ?? value,
+        width: 110,
+        render: (value: string) => (
+          <span className={styles.methodCell}>
+            {SUPPLIER_PAYMENT_METHOD_LABEL[value] ?? value}
+          </span>
+        ),
       },
       {
         title: "ยอดจ่าย",
         dataIndex: "totalAmount",
         align: "right",
-        render: (value: string) => formatMoney(value),
+        render: (value: string) => (
+          <span className={styles.amountCell}>{formatMoney(value)}</span>
+        ),
       },
       {
         title: "สถานะ",
         dataIndex: "status",
+        width: 120,
         render: (value: string) => (
-          <Tag color={statusColor(value)}>
+          <span className={`${styles.statusPill} ${statusClass(value)}`}>
+            <span className={styles.statusDot} aria-hidden />
             {SUPPLIER_PAYMENT_STATUS_LABEL[value] ?? value}
-          </Tag>
+          </span>
         ),
       },
       {
-        title: "จัดการ",
-        width: 80,
+        title: "",
+        key: "actions",
+        width: 56,
         render: (_v, row) => (
-          <Button
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => router.push(`/purchase-payments/${row.id}`)}
-          />
+          <button
+            type="button"
+            className={styles.actionBtn}
+            title="ดูรายละเอียด"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/purchase-payments/${row.id}`);
+            }}
+          >
+            <EyeOutlined />
+          </button>
         ),
       },
     ],
@@ -145,70 +214,137 @@ export default function PurchasePaymentsListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <DollarOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Purchase Payments</p>
+      <header className={styles.hero}>
+        <div className={styles.heroMain}>
+          <div className={styles.heroBadge}>
+            <span className={styles.heroBadgeIcon} aria-hidden>
+              <DollarOutlined />
+            </span>
+            Accounting · Payment History
+          </div>
           <h1 className={styles.pageTitle}>ประวัติการจ่ายเงิน</h1>
           <p className={styles.pageSubtitle}>
-            ใบสำคัญจ่าย Supplier จากใบสั่งซื้อ
+            ใบสำคัญจ่าย Supplier จากใบสั่งซื้อ — ค้นหา ติดตามสถานะ
+            และเปิดดูรายละเอียดการจ่ายได้จากที่นี่
           </p>
         </div>
-        <div className={styles.headerActions}>
+        <div className={styles.heroActions}>
           <Link href="/purchase-payments/pending">
-            <Button type="primary">PO รอจ่าย</Button>
+            <Button
+              className={styles.primaryBtn}
+              type="primary"
+              icon={<HourglassOutlined />}
+            >
+              PO รอจ่าย
+            </Button>
           </Link>
         </div>
       </header>
 
-      <section className={styles.listCard}>
-        <div className={styles.filterBar}>
-          <Input
-            allowClear
-            placeholder="เลขที่ใบสำคัญ"
-            value={voucherNo}
-            onChange={(e) => setVoucherNo(e.target.value)}
-            style={{ maxWidth: 200 }}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะ"
-            value={status}
-            onChange={setStatus}
-            style={{ minWidth: 140 }}
-            options={[
-              { value: "DRAFT", label: "ร่าง" },
-              { value: "PAID", label: "จ่ายแล้ว" },
-              { value: "CANCELLED", label: "ยกเลิก" },
-            ]}
-          />
-          <DatePicker
-            value={voucherDate}
-            onChange={setVoucherDate}
-            format="DD/MM/YYYY"
-            placeholder="วันที่"
-          />
-          <Button
-            type="primary"
-            icon={<SearchOutlined />}
-            onClick={() => {
-              setPage(1);
-              setApplied({
-                voucherNo: voucherNo.trim() || undefined,
-                status,
-                voucherDateFrom: voucherDate
-                  ? voucherDate.format("YYYY-MM-DD")
-                  : undefined,
-                voucherDateTo: voucherDate
-                  ? voucherDate.format("YYYY-MM-DD")
-                  : undefined,
-              });
-            }}
-          >
-            ค้นหา
-          </Button>
+      <div className={styles.statRow}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statValue}>{total}</span>
+          <span className={styles.statHint}>ใบสำคัญตามเงื่อนไขค้นหา</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ยอดในหน้านี้</span>
+          <span className={`${styles.statValue} ${styles.statValuePaid}`}>
+            {formatMoney(pageAmount)}
+          </span>
+          <span className={styles.statHint}>
+            บาท · จ่ายแล้ว {paidOnPage} · ร่าง {draftOnPage}
+          </span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>สถานะในหน้านี้</span>
+          <span className={`${styles.statValue} ${styles.statValueDraft}`}>
+            {paidOnPage}/{rows.length || 0}
+          </span>
+          <span className={styles.statHint}>จ่ายแล้ว / รายการที่แสดง</span>
+        </div>
+      </div>
+
+      <section className={styles.filterCard}>
+        <div className={styles.filterGrid}>
+          <div className={styles.filterItem}>
+            <label>เลขที่ใบสำคัญ</label>
+            <Input
+              allowClear
+              placeholder="เช่น PV-20260718-001"
+              value={voucherNo}
+              onChange={(e) => setVoucherNo(e.target.value)}
+              onPressEnter={applySearch}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สถานะ</label>
+            <Select
+              allowClear
+              placeholder="ทั้งหมด"
+              value={status}
+              onChange={setStatus}
+              style={{ width: "100%" }}
+              options={[
+                { value: "DRAFT", label: "ร่าง" },
+                { value: "PAID", label: "จ่ายแล้ว" },
+                { value: "CANCELLED", label: "ยกเลิก" },
+              ]}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>วันที่จ่าย</label>
+            <DatePicker
+              value={voucherDate}
+              onChange={setVoucherDate}
+              format="DD/MM/YYYY"
+              placeholder="เลือกวันที่"
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div className={styles.filterActions}>
+            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button
+              type="primary"
+              className={styles.primaryBtn}
+              icon={<SearchOutlined />}
+              onClick={applySearch}
+            >
+              ค้นหา
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.tableCard}>
+        <div className={styles.tableToolbar}>
+          <div className={styles.toolbarLeft}>
+            พบทั้งหมด <strong>{total}</strong> รายการ
+            {hasActiveFilters ? (
+              <>
+                {" "}
+                · แสดงในหน้านี้ <strong>{rows.length}</strong>
+              </>
+            ) : null}
+          </div>
+          <div className={styles.entriesBox}>
+            <span>แสดง</span>
+            <Select
+              size="small"
+              value={limit}
+              style={{ width: 72 }}
+              options={[
+                { label: "10", value: 10 },
+                { label: "25", value: 25 },
+                { label: "50", value: 50 },
+              ]}
+              onChange={(value) => {
+                setLimit(value);
+                setPage(1);
+              }}
+            />
+            <span>รายการ/หน้า</span>
+          </div>
         </div>
 
         <Table
@@ -217,18 +353,32 @@ export default function PurchasePaymentsListPage() {
           columns={columns}
           dataSource={rows}
           pagination={false}
-          locale={{ emptyText: "ยังไม่มีใบสำคัญจ่าย" }}
+          className={styles.table}
+          onRow={(row) => ({
+            onClick: () => router.push(`/purchase-payments/${row.id}`),
+          })}
+          locale={{
+            emptyText: (
+              <div className={styles.emptyState}>
+                <strong>ยังไม่มีใบสำคัญจ่าย</strong>
+                เมื่อจ่ายเงินจาก PO แล้ว ประวัติจะแสดงที่นี่
+              </div>
+            ),
+          }}
         />
-        <div className={styles.paginationBar}>
+
+        <div className={styles.tableFooter}>
+          <div className={styles.footerText}>
+            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
+            {Math.min(page * limit, total)} จาก {total}
+          </div>
           <Pagination
+            size="small"
             current={page}
-            pageSize={limit}
             total={total}
-            showSizeChanger
-            onChange={(p, ps) => {
-              setPage(p);
-              setLimit(ps);
-            }}
+            pageSize={limit}
+            showSizeChanger={false}
+            onChange={setPage}
           />
         </div>
       </section>
