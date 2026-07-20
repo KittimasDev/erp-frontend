@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
@@ -14,7 +14,21 @@ type MenuItem = {
   label: string;
   href: string;
   icon: ReactNode;
+  roles?: string[];
+  adminOnly?: boolean;
 };
+
+const ROLE = {
+  ADMINISTRATOR: "ADMINISTRATOR",
+  EXECUTIVE: "EXECUTIVE",
+  REQUESTER: "REQUESTER",
+  PROCUREMENT_OFFICER: "PROCUREMENT_OFFICER",
+  PROCUREMENT_MANAGER: "PROCUREMENT_MANAGER",
+  WAREHOUSE_OFFICER: "WAREHOUSE_OFFICER",
+  WAREHOUSE_MANAGER: "WAREHOUSE_MANAGER",
+  WEIGHBRIDGE_OFFICER: "WEIGHBRIDGE_OFFICER",
+  ACCOUNTING_OFFICER: "ACCOUNTING_OFFICER",
+} as const;
 
 const IconChevron = ({ open }: { open: boolean }) => (
   <svg
@@ -265,136 +279,299 @@ const IconUsers = () => (
     />
   </svg>
 );
-
-const mainMenus: MenuItem[] = [
-  {
-    key: "purchase-orders",
-    label: "สั่งซื้อ",
-    href: "/purchase-orders",
-    icon: <IconPurchaseOrder />,
-  },
-  {
-    key: "purchase-requests",
-    label: "ขอซื้อ",
-    href: "/purchase-requests",
-    icon: <IconPurchaseRequest />,
-  },
-  {
-    key: "goods-receipts",
-    label: "รับของ",
-    href: "/goods-receipts",
-    icon: <IconReceiving />,
-  },
-  {
-    key: "purchase-payments",
-    label: "จ่ายเงิน",
-    href: "/purchase-payments/pending",
-    icon: <IconPurchaseOrder />,
-  },
+const rawTireMenus: MenuItem[] = [
   {
     key: "receiving",
     label: "รับซื้อยาง",
     href: "/receiving",
     icon: <IconReceiving />,
+    roles: [
+      ROLE.WEIGHBRIDGE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+];
+
+const purchaseMenus: MenuItem[] = [
+  {
+    key: "purchase-requests",
+    label: "ใบขอซื้อ PR",
+    href: "/purchase-requests",
+    icon: <IconPurchaseRequest />,
+    roles: [
+      ROLE.REQUESTER,
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "purchase-request-approvals",
+    label: "อนุมัติใบขอซื้อ",
+    href: "/purchase-requests/approvals",
+    icon: <IconPrType />,
+    roles: [ROLE.PROCUREMENT_MANAGER],
+  },
+  {
+    key: "purchase-orders",
+    label: "ใบสั่งซื้อ PO",
+    href: "/purchase-orders",
+    icon: <IconPurchaseOrder />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+];
+
+const warehouseMenus: MenuItem[] = [
+  {
+    key: "goods-receipts",
+    label: "ใบรับของ GR",
+    href: "/goods-receipts",
+    icon: <IconReceiving />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "stock-balances",
+    label: "ยอดคงเหลือ",
+    href: "/inventory/stock-balances",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "stock-movements",
+    label: "ประวัติสต๊อก",
+    href: "/inventory/stock-movements",
+    icon: <IconWarehouseLocation />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "inventory-lots",
+    label: "ยอดคงเหลือแยก Lot",
+    href: "/inventory/lots",
+    icon: <IconItem />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "stock-posting-approvals",
+    label: "อนุมัติรับเข้าคลัง (ยาง)",
+    href: "/warehouse/stock-posting-approvals",
+    icon: <IconWarehouse />,
+    roles: [ROLE.WAREHOUSE_MANAGER],
+  },
+  {
+    key: "production-output-approvals",
+    label: "อนุมัติรับผลผลิต",
+    href: "/warehouse/production-output-approvals",
+    icon: <IconWarehouse />,
+    roles: [ROLE.WAREHOUSE_MANAGER],
+  },
+];
+
+const financeMenus: MenuItem[] = [
+  {
+    key: "purchase-payments-pending",
+    label: "รอจ่ายเงิน Supplier",
+    href: "/purchase-payments/pending",
+    icon: <IconPayment />,
+    roles: [ROLE.ACCOUNTING_OFFICER],
+  },
+  {
+    key: "purchase-payments",
+    label: "ประวัติการจ่ายเงิน",
+    href: "/purchase-payments",
+    icon: <IconPayment />,
+    roles: [
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+];
+
+
+const settingMenus: MenuItem[] = [
+  {
+    key: "users",
+    label: "จัดการผู้ใช้งานและแผนก",
+    href: "/users",
+    icon: <IconUsers />,
+    adminOnly: true,
   },
 ];
 
 const masterMenus: MenuItem[] = [
   {
     key: "vendors",
-    label: "ผู้ขาย",
+    label: "เจ้าหนี้ / Supplier",
     href: "/masters/vendors",
     icon: <IconVendor />,
-  },
-  {
-    key: "seller-types",
-    label: "ประเภทผู้ขาย",
-    href: "/masters/seller-types",
-    icon: <IconSellerType />,
-  },
-  {
-    key: "sellers",
-    label: "ผู้ขายยาง",
-    href: "/masters/sellers",
-    icon: <IconVendor />,
-  },
-  {
-    key: "seller-bank-accounts",
-    label: "บัญชีธนาคารผู้ขาย",
-    href: "/masters/seller-bank-accounts",
-    icon: <IconPayment />,
-  },
-  {
-    key: "trucks",
-    label: "รถบรรทุก",
-    href: "/masters/trucks",
-    icon: <IconReceiving />,
-  },
-  {
-    key: "tire-classifications",
-    label: "ประเภท/กลุ่มยาง",
-    href: "/masters/tire-classifications",
-    icon: <IconCategory />,
-  },
-  {
-    key: "raw-tire-price-rules",
-    label: "กฎราคาซื้อยาง",
-    href: "/masters/raw-tire-price-rules",
-    icon: <IconTax />,
-  },
-  {
-    key: "weighbridge-scales",
-    label: "เครื่องชั่ง",
-    href: "/masters/weighbridge-scales",
-    icon: <IconReceiving />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
   },
   {
     key: "items",
     label: "สินค้า / วัตถุดิบ",
     href: "/masters/items",
     icon: <IconItem />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+    ],
   },
   {
     key: "item-categories",
     label: "หมวดหมู่สินค้า",
     href: "/masters/item-categories",
     icon: <IconCategory />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+    ],
   },
   {
     key: "units",
     label: "หน่วยนับ",
     href: "/masters/units",
     icon: <IconUnit />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+    ],
   },
   {
     key: "warehouses",
     label: "คลังสินค้า",
     href: "/warehouses",
     icon: <IconWarehouse />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
   },
   {
     key: "warehouse-locations",
     label: "ตำแหน่งจัดเก็บ",
     href: "/warehouse-locations",
     icon: <IconWarehouseLocation />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
   },
   {
     key: "payment-terms",
     label: "เงื่อนไขชำระเงิน",
     href: "/masters/payment-terms",
     icon: <IconPayment />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
   },
   {
     key: "tax-rates",
-    label: "อัตราภาษี",
+    label: "ภาษีซื้อ / VAT",
     href: "/masters/tax-rates",
     icon: <IconTax />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
   },
   {
     key: "purchase-request-types",
     label: "ประเภทใบขอซื้อ",
     href: "/masters/purchase-request-types",
     icon: <IconPrType />,
+    roles: [ROLE.PROCUREMENT_MANAGER],
+  },
+  {
+    key: "seller-types",
+    label: "ประเภทผู้ขายยาง",
+    href: "/masters/seller-types",
+    icon: <IconSellerType />,
+    roles: [ROLE.WEIGHBRIDGE_OFFICER],
+  },
+  {
+    key: "sellers",
+    label: "ผู้ขายยาง",
+    href: "/masters/sellers",
+    icon: <IconVendor />,
+    roles: [ROLE.WEIGHBRIDGE_OFFICER],
+  },
+  {
+    key: "seller-bank-accounts",
+    label: "บัญชีธนาคารผู้ขายยาง",
+    href: "/masters/seller-bank-accounts",
+    icon: <IconPayment />,
+    roles: [ROLE.WEIGHBRIDGE_OFFICER, ROLE.ACCOUNTING_OFFICER],
+  },
+  {
+    key: "trucks",
+    label: "รถบรรทุก",
+    href: "/masters/trucks",
+    icon: <IconReceiving />,
+    roles: [ROLE.WEIGHBRIDGE_OFFICER],
+  },
+  {
+    key: "tire-classifications",
+    label: "ประเภท/กลุ่มยาง",
+    href: "/masters/tire-classifications",
+    icon: <IconCategory />,
+    roles: [ROLE.WEIGHBRIDGE_OFFICER],
+  },
+  {
+    key: "raw-tire-price-rules",
+    label: "กฎราคาซื้อยาง",
+    href: "/masters/raw-tire-price-rules",
+    icon: <IconTax />,
+    roles: [ROLE.WEIGHBRIDGE_OFFICER],
+  },
+  {
+    key: "weighbridge-scales",
+    label: "เครื่องชั่ง",
+    href: "/masters/weighbridge-scales",
+    icon: <IconReceiving />,
+    roles: [ROLE.WEIGHBRIDGE_OFFICER],
   },
 ];
 
@@ -413,6 +590,44 @@ function isMasterActive(pathname: string) {
   );
 }
 
+function canSeeMenu(item: MenuItem) {
+  if (isAdministrator()) return true;
+
+  if (item.adminOnly) return false;
+
+  if (!item.roles || item.roles.length === 0) {
+    return true;
+  }
+
+  return item.roles.some((role) => userHasRole(role as RoleCode));
+}
+
+function filterMenus(items: MenuItem[]) {
+  return items.filter(canSeeMenu);
+}
+
+function renderMenuButton(
+  item: MenuItem,
+  pathname: string,
+  collapsed: boolean,
+  handleGo: (href: string) => void,
+) {
+  const active = isActive(item.href, pathname);
+
+  return (
+    <button
+      key={item.key}
+      type="button"
+      title={collapsed ? item.label : undefined}
+      className={`${styles.menuItem} ${active ? styles.menuItemActive : ""}`}
+      onClick={() => handleGo(item.href)}
+    >
+      <span className={styles.menuItemIcon}>{item.icon}</span>
+      <span className={styles.menuItemText}>{item.label}</span>
+    </button>
+  );
+}
+
 type AppHeaderProps = {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
@@ -426,20 +641,13 @@ export default function AppHeader({
   const pathname = usePathname();
 
   const [masterOpen, setMasterOpen] = useState(isMasterActive(pathname));
-  const [showUsersMenu, setShowUsersMenu] = useState(false);
-  const [showWarehouseMenu, setShowWarehouseMenu] = useState(false);
 
-  useEffect(() => {
-    setShowUsersMenu(isAdministrator());
-    setShowWarehouseMenu(
-      userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-        userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-        userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
-        userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
-        userHasRole(RoleCode.EXECUTIVE) ||
-        isAdministrator(),
-    );
-  }, [pathname]);
+  const visibleRawTireMenus = filterMenus(rawTireMenus);
+  const visiblePurchaseMenus = filterMenus(purchaseMenus);
+  const visibleWarehouseMenus = filterMenus(warehouseMenus);
+  const visibleFinanceMenus = filterMenus(financeMenus);
+  const visibleSettingMenus = filterMenus(settingMenus);
+  const visibleMasterMenus = filterMenus(masterMenus);
 
   const handleGo = (href: string) => {
     router.push(href);
@@ -457,9 +665,8 @@ export default function AppHeader({
 
   return (
     <aside
-      className={`${styles.sidebar} ${
-        collapsed ? styles.sidebarCollapsed : styles.sidebarExpanded
-      }`}
+      className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : styles.sidebarExpanded
+        }`}
     >
       <button
         type="button"
@@ -468,9 +675,8 @@ export default function AppHeader({
         aria-label={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
       >
         <span
-          className={`${styles.edgeToggleIcon} ${
-            collapsed ? styles.edgeToggleIconCollapsed : ""
-          }`}
+          className={`${styles.edgeToggleIcon} ${collapsed ? styles.edgeToggleIconCollapsed : ""
+            }`}
         >
           <IconEdgeChevron />
         </span>
@@ -483,205 +689,112 @@ export default function AppHeader({
           </div>
         </div>
 
-        <div className={styles.navScroll}>
-          <div className={styles.groupBlock}>
-            <div className={styles.groupTitle}>PURCHASE</div>
-
-            <div className={styles.groupItems}>
-              {mainMenus.map((item) => {
-                const active = isActive(item.href, pathname);
-
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    title={collapsed ? item.label : undefined}
-                    className={`${styles.menuItem} ${
-                      active ? styles.menuItemActive : ""
-                    }`}
-                    onClick={() => handleGo(item.href)}
-                  >
-                    <span className={styles.menuItemIcon}>{item.icon}</span>
-
-                    <span className={styles.menuItemText}>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {showWarehouseMenu ? (
+        {visibleRawTireMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>WAREHOUSE</div>
+              <div className={styles.groupTitle}>รับซื้อยาง</div>
+
               <div className={styles.groupItems}>
-                <button
-                  type="button"
-                  title={collapsed ? "ภาพรวมคลังสินค้า" : undefined}
-                  className={`${styles.menuItem} ${
-                    isActive("/inventory/stock-balances", pathname)
-                      ? styles.menuItemActive
-                      : ""
-                  }`}
-                  onClick={() => handleGo("/inventory/stock-balances")}
-                >
-                  <span className={styles.menuItemIcon}>
-                    <IconWarehouse />
-                  </span>
-                  <span className={styles.menuItemText}>
-                    ภาพรวมคลังสินค้า
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  title={collapsed ? "ประวัติความเคลื่อนไหว" : undefined}
-                  className={`${styles.menuItem} ${
-                    isActive("/inventory/stock-movements", pathname)
-                      ? styles.menuItemActive
-                      : ""
-                  }`}
-                  onClick={() => handleGo("/inventory/stock-movements")}
-                >
-                  <span className={styles.menuItemIcon}>
-                    <IconWarehouseLocation />
-                  </span>
-                  <span className={styles.menuItemText}>
-                    ประวัติความเคลื่อนไหว
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  title={collapsed ? "ยอดคงเหลือแยก Lot" : undefined}
-                  className={`${styles.menuItem} ${
-                    isActive("/inventory/lots", pathname)
-                      ? styles.menuItemActive
-                      : ""
-                  }`}
-                  onClick={() => handleGo("/inventory/lots")}
-                >
-                  <span className={styles.menuItemIcon}>
-                    <IconItem />
-                  </span>
-                  <span className={styles.menuItemText}>
-                    ยอดคงเหลือแยก Lot
-                  </span>
-                </button>
-                {(userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-                  userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-                  isAdministrator()) && (
-                  <>
-                    <button
-                      type="button"
-                      title={collapsed ? "อนุมัติรับเข้าคลัง (ยาง)" : undefined}
-                      className={`${styles.menuItem} ${
-                        isActive(
-                          "/warehouse/stock-posting-approvals",
-                          pathname,
-                        )
-                          ? styles.menuItemActive
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleGo("/warehouse/stock-posting-approvals")
-                      }
-                    >
-                      <span className={styles.menuItemIcon}>
-                        <IconWarehouse />
-                      </span>
-                      <span className={styles.menuItemText}>
-                        อนุมัติรับเข้าคลัง (ยาง)
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      title={collapsed ? "อนุมัติรับผลผลิต" : undefined}
-                      className={`${styles.menuItem} ${
-                        isActive(
-                          "/warehouse/production-output-approvals",
-                          pathname,
-                        )
-                          ? styles.menuItemActive
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleGo("/warehouse/production-output-approvals")
-                      }
-                    >
-                      <span className={styles.menuItemIcon}>
-                        <IconWarehouse />
-                      </span>
-                      <span className={styles.menuItemText}>
-                        อนุมัติรับผลผลิต
-                      </span>
-                    </button>
-                  </>
+                {visibleRawTireMenus.map((item) =>
+                  renderMenuButton(item, pathname, collapsed, handleGo),
                 )}
               </div>
             </div>
           ) : null}
 
-          <div className={styles.groupBlock}>
-            <div className={styles.groupTitle}>SETTING</div>
+        <div className={styles.navScroll}>
+          {visiblePurchaseMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>จัดซื้อทั่วไป</div>
 
-            <div className={styles.groupItems}>
-              {showUsersMenu ? (
-                <button
-                  type="button"
-                  title={collapsed ? "จัดการผู้ใช้งานและแผนก" : undefined}
-                  className={`${styles.menuItem} ${
-                    isActive("/users", pathname) ? styles.menuItemActive : ""
-                  }`}
-                  onClick={() => handleGo("/users")}
-                >
-                  <span className={styles.menuItemIcon}>
-                    <IconUsers />
-                  </span>
-                  <span className={styles.menuItemText}>
-                    จัดการผู้ใช้งานและแผนก
-                  </span>
-                </button>
-              ) : null}
-
-              <button
-                type="button"
-                title={collapsed ? "Master" : undefined}
-                className={`${styles.menuItem} ${styles.parentMenuItem} ${
-                  isMasterActive(pathname) ? styles.menuItemActive : ""
-                }`}
-                onClick={handleToggleMaster}
-              >
-                <span className={styles.menuItemIcon}>
-                  <IconMaster />
-                </span>
-
-                <span className={styles.menuItemText}>Master</span>
-                <span className={styles.chevron}>
-                  <IconChevron open={masterOpen} />
-                </span>
-              </button>
-
-              {!collapsed && masterOpen && (
-                <div className={styles.subMenu}>
-                  {masterMenus.map((item) => {
-                    const active = isActive(item.href, pathname);
-
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        className={`${styles.subMenuItem} ${
-                          active ? styles.subMenuItemActive : ""
-                        }`}
-                        onClick={() => handleGo(item.href)}
-                      >
-                        <span className={styles.subMenuIcon}>{item.icon}</span>
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              <div className={styles.groupItems}>
+                {visiblePurchaseMenus.map((item) =>
+                  renderMenuButton(item, pathname, collapsed, handleGo),
+                )}
+              </div>
             </div>
-          </div>
+          ) : null}
+
+          {visibleWarehouseMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>คลังสินค้า</div>
+
+              <div className={styles.groupItems}>
+                {visibleWarehouseMenus.map((item) =>
+                  renderMenuButton(item, pathname, collapsed, handleGo),
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {visibleFinanceMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>บัญชี/การเงิน</div>
+
+              <div className={styles.groupItems}>
+                {visibleFinanceMenus.map((item) =>
+                  renderMenuButton(item, pathname, collapsed, handleGo),
+                )}
+              </div>
+            </div>
+          ) : null}
+
+
+          {visibleSettingMenus.length > 0 || visibleMasterMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>ตั้งค่าระบบ</div>
+
+              <div className={styles.groupItems}>
+                {visibleSettingMenus.map((item) =>
+                  renderMenuButton(item, pathname, collapsed, handleGo),
+                )}
+
+                {visibleMasterMenus.length > 0 ? (
+                  <>
+                    <button
+                      type="button"
+                      title={collapsed ? "Master Data" : undefined}
+                      className={`${styles.menuItem} ${styles.parentMenuItem
+                        } ${isMasterActive(pathname) ? styles.menuItemActive : ""}`}
+                      onClick={handleToggleMaster}
+                    >
+                      <span className={styles.menuItemIcon}>
+                        <IconMaster />
+                      </span>
+
+                      <span className={styles.menuItemText}>Master Data</span>
+
+                      <span className={styles.chevron}>
+                        <IconChevron open={masterOpen} />
+                      </span>
+                    </button>
+
+                    {!collapsed && masterOpen && (
+                      <div className={styles.subMenu}>
+                        {visibleMasterMenus.map((item) => {
+                          const active = isActive(item.href, pathname);
+
+                          return (
+                            <button
+                              key={item.key}
+                              type="button"
+                              className={`${styles.subMenuItem} ${active ? styles.subMenuItemActive : ""
+                                }`}
+                              onClick={() => handleGo(item.href)}
+                            >
+                              <span className={styles.subMenuIcon}>
+                                {item.icon}
+                              </span>
+                              <span>{item.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className={styles.sidebarBottom}>
