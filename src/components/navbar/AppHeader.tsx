@@ -599,7 +599,9 @@ function canSeeMenu(item: MenuItem) {
     return true;
   }
 
-  return item.roles.some((role) => userHasRole(role as RoleCode));
+  return item.roles.some((role) =>
+    userHasRole(role as (typeof RoleCode)[keyof typeof RoleCode]),
+  );
 }
 
 function filterMenus(items: MenuItem[]) {
@@ -690,16 +692,16 @@ export default function AppHeader({
         </div>
 
         {visibleRawTireMenus.length > 0 ? (
-            <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>รับซื้อยาง</div>
+          <div className={styles.groupBlock}>
+            <div className={styles.groupTitle}>รับซื้อยาง</div>
 
-              <div className={styles.groupItems}>
-                {visibleRawTireMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
-                )}
-              </div>
+            <div className={styles.groupItems}>
+              {visibleRawTireMenus.map((item) =>
+                renderMenuButton(item, pathname, collapsed, handleGo),
+              )}
             </div>
-          ) : null}
+          </div>
+        ) : null}
 
         <div className={styles.navScroll}>
           {visiblePurchaseMenus.length > 0 ? (
