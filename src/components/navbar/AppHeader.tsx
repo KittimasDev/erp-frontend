@@ -575,8 +575,33 @@ const masterMenus: MenuItem[] = [
   },
 ];
 
-function isActive(href: string, pathname: string) {
+const ALL_MENU_HREFS = [
+  ...rawTireMenus,
+  ...purchaseMenus,
+  ...warehouseMenus,
+  ...financeMenus,
+  ...settingMenus,
+  ...masterMenus,
+].map((item) => item.href);
+
+function matchesHref(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** เลือกเมนูที่ตรงที่สุด (ยาวที่สุด) เพื่อไม่ให้ parent/child active พร้อมกัน */
+function resolveActiveHref(pathname: string, hrefs: string[] = ALL_MENU_HREFS) {
+  let best: string | null = null;
+  for (const href of hrefs) {
+    if (!matchesHref(pathname, href)) continue;
+    if (!best || href.length > best.length) {
+      best = href;
+    }
+  }
+  return best;
+}
+
+function isActive(href: string, pathname: string) {
+  return resolveActiveHref(pathname) === href;
 }
 
 function isMasterActive(pathname: string) {
