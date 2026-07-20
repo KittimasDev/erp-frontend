@@ -20,6 +20,7 @@ import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrders
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
+import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
   SUPPLIER_PAYMENT_STATUS_LABEL,
@@ -55,26 +56,8 @@ function statusClass(status: string) {
 }
 
 export default function PurchasePaymentDetailPage({ id }: Props) {
-  const router = useRouter();
   const query = usePurchasePaymentQuery(id);
-  const confirmMutation = useConfirmPurchasePaymentMutation();
-  const cancelMutation = useCancelPurchasePaymentMutation();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmForm] = Form.useForm<{
-    paymentDate: dayjs.Dayjs;
-    transactionRef?: string;
-    remark?: string;
-  }>();
-
   const data = query.data?.data;
-  const canWrite =
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
-
-  const poId = data?.purchaseOrderId ?? data?.purchaseOrder?.id;
-  const poQuery = usePurchaseOrderQuery(poId);
-  const po = poQuery.data?.data;
-  const grByPoQuery = useGoodsReceiptsByPoQuery(poId);
-  const linkedGrs = grByPoQuery.data?.data ?? [];
 
   if (query.isLoading) {
     return (
@@ -94,6 +77,33 @@ export default function PurchasePaymentDetailPage({ id }: Props) {
       </div>
     );
   }
+
+  return <PurchasePaymentDetailView data={data} />;
+}
+
+function PurchasePaymentDetailView({
+  data,
+}: {
+  data: SupplierPaymentVoucher;
+}) {
+  const router = useRouter();
+  const confirmMutation = useConfirmPurchasePaymentMutation();
+  const cancelMutation = useCancelPurchasePaymentMutation();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmForm] = Form.useForm<{
+    paymentDate: dayjs.Dayjs;
+    transactionRef?: string;
+    remark?: string;
+  }>();
+
+  const canWrite =
+    userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
+
+  const poId = data.purchaseOrderId ?? data.purchaseOrder?.id;
+  const poQuery = usePurchaseOrderQuery(poId);
+  const po = poQuery.data?.data;
+  const grByPoQuery = useGoodsReceiptsByPoQuery(poId);
+  const linkedGrs = grByPoQuery.data?.data ?? [];
 
   const busy = confirmMutation.isPending || cancelMutation.isPending;
 
@@ -320,6 +330,8 @@ export default function PurchasePaymentDetailPage({ id }: Props) {
         onCancel={() => setConfirmOpen(false)}
         confirmLoading={confirmMutation.isPending}
         okText="จ่ายเงิน"
+        destroyOnHidden={false}
+        forceRender
         onOk={async () => {
           const values = await confirmForm.validateFields();
           await confirmMutation.mutateAsync({
@@ -333,7 +345,7 @@ export default function PurchasePaymentDetailPage({ id }: Props) {
           setConfirmOpen(false);
         }}
       >
-        <Form form={confirmForm} layout="vertical">
+        <Form form={confirmForm} layout="vertical" preserve={false}>
           <Form.Item
             label="วันที่จ่าย"
             name="paymentDate"
