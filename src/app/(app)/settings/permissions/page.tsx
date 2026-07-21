@@ -1,12 +1,14 @@
 "use client";
 
-import ComingSoonPage from "@/components/common/ComingSoonPage";
+import { Suspense } from "react";
+
+import PageLoading from "@/components/common/PageLoading";
+import PermissionMatrixPage from "@/components/permissions/PermissionMatrixPage";
 
 export default function Page() {
   return (
-    <ComingSoonPage
-      title="Permissions"
-      description="จัดการสิทธิ์ละเอียดราย endpoint / เมนู (กำลังพัฒนา)"
-    />
+    <Suspense fallback={<PageLoading />}>
+      <PermissionMatrixPage />
+    </Suspense>
   );
 }

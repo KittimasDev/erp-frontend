@@ -23,6 +23,7 @@ import {
   UserAddOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -40,6 +41,8 @@ import type { Truck } from "@/types/trucks";
 import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
+
+const { RangePicker } = DatePicker;
 
 type OpenTicketFormValues = {
   sellerId: string;
@@ -373,13 +376,23 @@ export default function WeighbridgeDashboardPage() {
 
   const stage = parseStage(searchParams.get("stage"));
   const searchQuery = searchParams.get("q")?.trim() ?? "";
-  const dateParam = searchParams.get("date")?.trim() || undefined;
+  const legacyDateParam = searchParams.get("date")?.trim() || undefined;
+  const fromParam =
+    searchParams.get("from")?.trim() || legacyDateParam || undefined;
+  const toParam =
+    searchParams.get("to")?.trim() || legacyDateParam || undefined;
 
-  const dashboardQuery = useWeighbridgeDashboardQuery(dateParam);
+  const dashboardQuery = useWeighbridgeDashboardQuery(
+    fromParam || toParam
+      ? { from: fromParam, to: toParam }
+      : undefined,
+  );
   // ต้องใช้ช่วงเดียวกับ dashboard — ห้ามใช้วันจากเบราว์เซอร์คนละวันกับเซิร์ฟเวอร์
   // ไม่ส่ง from/to = API ใช้วันนี้ของเซิร์ฟเวอร์ย้อนหลัง 7 วัน
   const pendingOutputQuery = useProductionOutputPendingTicketsQuery(
-    dateParam ? { from: dateParam, to: dateParam } : undefined,
+    fromParam || toParam
+      ? { from: fromParam, to: toParam }
+      : undefined,
   );
   const sellersQuery = useSellersQuery({ isActive: true });
   const sellerTypesQuery = useSellerTypesQuery({ isActive: true });
@@ -408,7 +421,8 @@ export default function WeighbridgeDashboardPage() {
   const updateParams = (patch: {
     q?: string | null;
     stage?: ReceivingStage | null;
-    date?: string | null;
+    from?: string | null;
+    to?: string | null;
   }) => {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -429,12 +443,26 @@ export default function WeighbridgeDashboardPage() {
       }
     }
 
-    if (patch.date !== undefined) {
-      const value = patch.date?.trim() ?? "";
-      if (value) {
-        next.set("date", value);
+    if (patch.from !== undefined || patch.to !== undefined) {
+      next.delete("date");
+      const fromValue =
+        patch.from !== undefined
+          ? patch.from?.trim() ?? ""
+          : next.get("from")?.trim() ?? "";
+      const toValue =
+        patch.to !== undefined
+          ? patch.to?.trim() ?? ""
+          : next.get("to")?.trim() ?? "";
+
+      if (fromValue) {
+        next.set("from", fromValue);
       } else {
-        next.delete("date");
+        next.delete("from");
+      }
+      if (toValue) {
+        next.set("to", toValue);
+      } else {
+        next.delete("to");
       }
     }
 
@@ -658,9 +686,18 @@ export default function WeighbridgeDashboardPage() {
 
   const activeStageLabel =
     STAGE_OPTIONS.find((item) => item.key === stage)?.label ?? "ทั้งหมด";
-  const dateLabel = dateParam
-    ? dayjs(dateParam).format("DD/MM/YYYY")
-    : "วันนี้";
+  const dateRangeValue: [Dayjs, Dayjs] | null =
+    fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null;
+  const dateLabel = (() => {
+    if (!fromParam && !toParam) return "วันนี้";
+    if (fromParam && toParam && fromParam === toParam) {
+      return dayjs(fromParam).format("DD/MM/YYYY");
+    }
+    if (fromParam && toParam) {
+      return `${dayjs(fromParam).format("DD/MM/YYYY")} – ${dayjs(toParam).format("DD/MM/YYYY")}`;
+    }
+    return dayjs(fromParam ?? toParam).format("DD/MM/YYYY");
+  })();
 
   const columns: ColumnsType<WeighbridgeTicketListItem> = [
     {
@@ -922,17 +959,22 @@ export default function WeighbridgeDashboardPage() {
               className={styles.filterSearch}
               onChange={(event) => setSearchDraft(event.target.value)}
             />
-            <DatePicker
+            <RangePicker
               allowClear
-              value={dateParam ? dayjs(dateParam) : null}
+              value={dateRangeValue}
               format="DD/MM/YYYY"
-              placeholder="วันที่"
-              className={styles.filterDate}
-              onChange={(value) =>
+              placeholder={["วันที่เริ่มต้น", "วันที่สิ้นสุด"]}
+              className={styles.filterDateRange}
+              onChange={(values) => {
+                if (!values || !values[0] || !values[1]) {
+                  updateParams({ from: null, to: null });
+                  return;
+                }
                 updateParams({
-                  date: value ? value.format("YYYY-MM-DD") : null,
-                })
-              }
+                  from: values[0].format("YYYY-MM-DD"),
+                  to: values[1].format("YYYY-MM-DD"),
+                });
+              }}
             />
             <div className={styles.stageChips}>
               {STAGE_OPTIONS.map((option) => {

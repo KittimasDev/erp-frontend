@@ -1,0 +1,84 @@
+.roleSelectRow {
+  padding: 0 22px 20px;
+}
+
+.roleSelect {
+  width: 100%;
+  max-width: 420px;
+}
+
+.matrixScroll {
+  overflow-x: auto;
+}
+
+.matrixTable {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+}
+
+.matrixTable thead th {
+  padding: 12px 14px;
+  color: var(--unit-gray-dark, #2f343a);
+  background: #f0f1f3;
+  border-bottom: 1px solid #dde0e4;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.screenHeaderCell {
+  min-width: 220px;
+  text-align: left !important;
+}
+
+.functionHeaderCell {
+  min-width: 90px;
+}
+
+.screenCell {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #eceef1;
+  white-space: nowrap;
+}
+
+.screenName {
+  color: var(--unit-text, #2f343a);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.screenModule {
+  color: var(--unit-muted, #8a9199);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.checkboxCell {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eceef1;
+  text-align: center;
+}
+
+.notApplicable {
+  color: #c3c8ce;
+}
+
+.loadingBox {
+  display: grid;
+  place-items: center;
+  padding: 48px 0;
+}
+
+.emptyBox {
+  padding: 48px 0;
+}
+
+@media (max-width: 640px) {
+  .roleSelect {
+    max-width: 100%;
+  }
+}

@@ -11,9 +11,35 @@ export const weighbridgeDashboardQueryKey = [
   "dashboard",
 ] as const;
 
-export function useWeighbridgeDashboardQuery(date?: string) {
+export type WeighbridgeDashboardQueryParams = {
+  date?: string;
+  from?: string;
+  to?: string;
+};
+
+export function useWeighbridgeDashboardQuery(
+  params?: WeighbridgeDashboardQueryParams | string,
+) {
+  const normalized: WeighbridgeDashboardQueryParams | undefined =
+    typeof params === "string"
+      ? params
+        ? { date: params }
+        : undefined
+      : params;
+
+  const from = normalized?.from?.trim() || undefined;
+  const to = normalized?.to?.trim() || undefined;
+  const date =
+    !from && !to ? normalized?.date?.trim() || undefined : undefined;
+
   return useQuery({
-    queryKey: [...weighbridgeDashboardQueryKey, date ?? "today"],
-    queryFn: () => getWeighbridgeDashboard(getAccessToken(), date),
+    queryKey: [
+      ...weighbridgeDashboardQueryKey,
+      from ?? "",
+      to ?? "",
+      date ?? "today",
+    ],
+    queryFn: () =>
+      getWeighbridgeDashboard(getAccessToken(), { from, to, date }),
   });
 }

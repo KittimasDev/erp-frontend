@@ -10,10 +10,19 @@ import type {
   WeighTicketRequest,
 } from "@/types/weighbridge-tickets";
 
-export function getWeighbridgeDashboard(token: string, date?: string) {
+export function getWeighbridgeDashboard(
+  token: string,
+  params?: { date?: string; from?: string; to?: string },
+) {
   const search = new URLSearchParams();
-  if (date?.trim()) {
-    search.set("date", date.trim());
+  if (params?.from?.trim()) {
+    search.set("from", params.from.trim());
+  }
+  if (params?.to?.trim()) {
+    search.set("to", params.to.trim());
+  }
+  if (params?.date?.trim() && !params?.from && !params?.to) {
+    search.set("date", params.date.trim());
   }
   const query = search.toString();
   return apiFetch<WeighbridgeDashboardApiResponse>(

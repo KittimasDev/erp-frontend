@@ -89,7 +89,7 @@
 
 .filterBar {
   display: grid;
-  grid-template-columns: minmax(220px, 1.4fr) 160px minmax(280px, 2fr);
+  grid-template-columns: minmax(220px, 1.2fr) minmax(260px, 1.1fr) minmax(280px, 2fr);
   gap: 12px;
   align-items: center;
   padding: 14px 20px;
@@ -98,7 +98,8 @@
 }
 
 .filterSearch,
-.filterDate {
+.filterDate,
+.filterDateRange {
   width: 100%;
 }
 

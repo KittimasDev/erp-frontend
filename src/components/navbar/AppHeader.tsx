@@ -9,6 +9,9 @@ import { RoleCode } from "@/lib/auth/role-codes";
 
 import styles from "./AppHeader.module.css";
 
+// เพิ่ม/ลบเมนู (route) ในไฟล์นี้ทุกครั้ง ต้องอัปเดต Permission Matrix seed ด้วย:
+// backend/src/security/permissions/permission-seed-data.ts (SCREEN_SEED_DEFINITIONS)
+
 type MenuItem = {
   key: string;
   label: string;
@@ -279,6 +282,107 @@ const IconUsers = () => (
     />
   </svg>
 );
+const IconPermission = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M12 3.5 5 6v5.5c0 4.4 3 8.4 7 9.5 4-1.1 7-5.1 7-9.5V6l-7-2.5Z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="m9.3 12.1 1.9 1.9 3.6-3.7"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+const IconMaterialIssue = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M4 7.5 12 3.5l8 4v9l-8 4-8-4v-9Z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 21v-9M4 7.5 12 12l8-4.5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M15 15h5m0 0-2-2m2 2-2 2"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+const IconStockTransfer = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M4 8h13M17 8l-3-3M17 8l-3 3"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M20 16H7M7 16l3-3M7 16l3 3"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+const IconStockCount = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <rect
+      x="4.5"
+      y="3.5"
+      width="15"
+      height="17"
+      rx="2"
+      stroke="currentColor"
+      strokeWidth="1.6"
+    />
+    <path
+      d="M8 8.5h8M8 12h5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 16l1.6 1.6L12.5 14.5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+const IconAuditLog = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M12 21a9 9 0 1 0-8-13"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+    <path
+      d="M4 3v5h5M12 8v5l3.5 2"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 const rawTireMenus: MenuItem[] = [
   {
     key: "receiving",
@@ -386,8 +490,29 @@ const warehouseMenus: MenuItem[] = [
     ],
   },
   {
+    key: "material-issues",
+    label: "เบิกของออกจากคลัง",
+    href: "/inventory/material-issues",
+    icon: <IconMaterialIssue />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
+    key: "stock-transfers",
+    label: "โอนย้ายสินค้า",
+    href: "/inventory/stock-transfers",
+    icon: <IconStockTransfer />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
+    key: "stock-counts",
+    label: "นับสต๊อก",
+    href: "/inventory/stock-counts",
+    icon: <IconStockCount />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
     key: "stock-posting-approvals",
-    label: "อนุมัติรับเข้าคลัง (ยาง)",
+    label: "อนุมัติรับสินค้าเข้าคลัง",
     href: "/warehouse/stock-posting-approvals",
     icon: <IconWarehouse />,
     roles: [ROLE.WAREHOUSE_MANAGER],
@@ -429,6 +554,20 @@ const settingMenus: MenuItem[] = [
     label: "จัดการผู้ใช้งานและแผนก",
     href: "/users",
     icon: <IconUsers />,
+    adminOnly: true,
+  },
+  {
+    key: "permissions",
+    label: "Permission Matrix",
+    href: "/settings/permissions",
+    icon: <IconPermission />,
+    adminOnly: true,
+  },
+  {
+    key: "audit-logs",
+    label: "Audit Log",
+    href: "/settings/audit-logs",
+    icon: <IconAuditLog />,
     adminOnly: true,
   },
 ];

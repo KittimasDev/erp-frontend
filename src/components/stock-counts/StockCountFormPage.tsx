@@ -1,0 +1,558 @@
+"use client";
+
+import { useEffect, useMemo } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button, DatePicker, Form, Input, InputNumber, Select, Typography } from "antd";
+import {
+  ArrowLeftOutlined,
+  DeleteOutlined,
+  FileSearchOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+
+import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import {
+  useCreateStockCountMutation,
+  useUpdateStockCountMutation,
+} from "@/hooks/stock-counts/useStockCountMutations";
+import { useStockCountQuery } from "@/hooks/stock-counts/useStockCountsQuery";
+import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
+import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
+import type { CreateStockCountBody } from "@/types/stock-counts";
+import { STOCK_COUNT_TYPE_LABEL } from "@/types/stock-counts";
+import styles from "./StockCountFormPage.module.css";
+
+type LineValues = {
+  itemId?: string;
+  unitId?: string;
+  lotId?: string;
+  countedQuantity?: number;
+  remark?: string;
+};
+
+type FormValues = {
+  countDate: dayjs.Dayjs;
+  countType: string;
+  warehouseId?: string;
+  locationId?: string;
+  remark?: string;
+  items: LineValues[];
+};
+
+type Props = {
+  mode: "create" | "edit";
+  id?: string;
+};
+
+export default function StockCountFormPage({ mode, id }: Props) {
+  const router = useRouter();
+  const [form] = Form.useForm<FormValues>();
+  const detailQuery = useStockCountQuery(mode === "edit" ? id : undefined);
+  const createMutation = useCreateStockCountMutation();
+  const updateMutation = useUpdateStockCountMutation();
+
+  const itemsQuery = useItemsQuery({ isActive: true });
+  const unitsQuery = useUnitsQuery({ isActive: true });
+  const warehousesQuery = useWarehousesQuery({ isActive: true });
+  const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
+
+  const headerWarehouseId = Form.useWatch("warehouseId", form);
+  const headerLocationId = Form.useWatch("locationId", form);
+  const lotsQuery = useInventoryLotsQuery({
+    warehouseId: headerWarehouseId || undefined,
+    locationId: headerLocationId || undefined,
+  });
+
+  const items = itemsQuery.data?.data ?? [];
+  const units = unitsQuery.data?.data ?? [];
+  const warehouses = Array.isArray(warehousesQuery.data?.data)
+    ? warehousesQuery.data.data
+    : [];
+  const locations = Array.isArray(locationsQuery.data?.data)
+    ? locationsQuery.data.data
+    : [];
+  const lots = lotsQuery.data?.data ?? [];
+
+  const headerLocations = locations.filter(
+    (loc) => loc.warehouseId === headerWarehouseId,
+  );
+
+  const watchedItems = Form.useWatch("items", form) ?? [];
+
+  useEffect(() => {
+    if (mode === "create") {
+      form.setFieldsValue({
+        countDate: dayjs(),
+        countType: "FULL",
+        items: [{}],
+      });
+      return;
+    }
+
+    const data = detailQuery.data?.data;
+    if (!data) return;
+
+    if (data.status !== "DRAFT") {
+      router.replace(`/inventory/stock-counts/${data.id}`);
+      return;
+    }
+
+    form.setFieldsValue({
+      countDate: dayjs(data.countDate),
+      countType: data.countType,
+      warehouseId: data.warehouseId,
+      locationId: data.locationId,
+      remark: data.remark,
+      items: (data.items ?? []).map((item) => ({
+        itemId: item.itemId,
+        unitId: item.unitId,
+        lotId: item.lotId,
+        countedQuantity: Number(item.countedQuantity),
+        remark: item.remark,
+      })),
+    });
+  }, [detailQuery.data, form, mode, router]);
+
+  const saving = createMutation.isPending || updateMutation.isPending;
+
+  const previewLines = useMemo(
+    () =>
+      watchedItems
+        .map((line, index) => {
+          const item = items.find((row) => row.id === line.itemId);
+          if (!item && line.countedQuantity == null) return null;
+          return {
+            key: index,
+            text: item
+              ? `${item.itemNameTh} ${line.countedQuantity ?? "-"}`
+              : `รายการที่ ${index + 1} (รอเลือกสินค้า)`,
+          };
+        })
+        .filter(Boolean) as Array<{ key: number; text: string }>,
+    [watchedItems, items],
+  );
+
+  const onFinish = async (values: FormValues) => {
+    const body: CreateStockCountBody = {
+      countDate: values.countDate.format("YYYY-MM-DD"),
+      countType: values.countType,
+      warehouseId: values.warehouseId as string,
+      locationId: values.locationId as string,
+      remark: values.remark?.trim() || undefined,
+      items: (values.items ?? []).map((item, index) => ({
+        itemId: item.itemId as string,
+        lotId: item.lotId as string,
+        unitId: item.unitId as string,
+        countedQuantity: Number(item.countedQuantity),
+        remark: item.remark?.trim() || undefined,
+        sortOrder: index,
+      })),
+    };
+
+    if (mode === "create") {
+      const response = await createMutation.mutateAsync(body);
+      router.push(`/inventory/stock-counts/${response.data.id}`);
+      return;
+    }
+
+    if (!id) return;
+    const response = await updateMutation.mutateAsync({ id, body });
+    router.push(`/inventory/stock-counts/${response.data.id}`);
+  };
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.pageHeader}>
+        <div className={styles.headerAccent} aria-hidden>
+          <FileSearchOutlined />
+        </div>
+        <div className={styles.headerContent}>
+          <p className={styles.eyebrow}>Stock Count</p>
+          <h1 className={styles.pageTitle}>
+            {mode === "create" ? "สร้างใบนับสต๊อก" : "แก้ไขใบนับสต๊อก"}
+          </h1>
+          <p className={styles.pageSubtitle}>
+            เลือกคลัง/ตำแหน่งที่จะนับ แล้วกรอกยอดที่นับได้จริงต่อ Lot
+          </p>
+        </div>
+        <div className={styles.backLink}>
+          <Link href="/inventory/stock-counts">
+            <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
+          </Link>
+        </div>
+      </header>
+
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        initialValues={{ countType: "FULL", items: [{}] }}
+        requiredMark="optional"
+      >
+        <div className={styles.layout}>
+          <section className={styles.formCard}>
+            <div className={styles.formBody}>
+              <div className={styles.sectionBlock}>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+                  <p className={styles.sectionHint}>
+                    เลขที่ใบนับสต๊อกจะสร้างอัตโนมัติเมื่อบันทึก
+                  </p>
+                </div>
+
+                <div className={styles.formGrid}>
+                  <Form.Item
+                    className={styles.field}
+                    label="วันที่นับ"
+                    name="countDate"
+                    rules={[{ required: true, message: "กรุณาเลือกวันที่นับ" }]}
+                  >
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                  </Form.Item>
+
+                  <Form.Item
+                    className={styles.field}
+                    label="ประเภทการนับ"
+                    name="countType"
+                    rules={[{ required: true, message: "เลือกประเภทการนับ" }]}
+                  >
+                    <Select
+                      options={Object.entries(STOCK_COUNT_TYPE_LABEL).map(
+                        ([value, label]) => ({ value, label }),
+                      )}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    className={styles.field}
+                    label="คลังที่นับ"
+                    name="warehouseId"
+                    rules={[{ required: true, message: "เลือกคลังที่นับ" }]}
+                  >
+                    <Select
+                      showSearch
+                      optionFilterProp="label"
+                      options={warehouses.map((w) => ({
+                        value: w.id,
+                        label: `${w.warehouseCode} — ${w.warehouseName}`,
+                      }))}
+                      onChange={() => {
+                        form.setFieldValue("locationId", undefined);
+                        const currentItems = form.getFieldValue("items") ?? [];
+                        currentItems.forEach((_line: LineValues, index: number) => {
+                          form.setFieldValue(["items", index, "lotId"], undefined);
+                        });
+                      }}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    className={styles.field}
+                    label="ตำแหน่งที่นับ"
+                    name="locationId"
+                    rules={[{ required: true, message: "เลือกตำแหน่งที่นับ" }]}
+                  >
+                    <Select
+                      showSearch
+                      optionFilterProp="label"
+                      disabled={!headerWarehouseId}
+                      placeholder={
+                        !headerWarehouseId ? "เลือกคลังก่อน" : "เลือกตำแหน่ง"
+                      }
+                      options={headerLocations.map((loc) => ({
+                        value: loc.id,
+                        label: `${loc.locationCode} — ${loc.locationName}`,
+                      }))}
+                      onChange={() => {
+                        const currentItems = form.getFieldValue("items") ?? [];
+                        currentItems.forEach((_line: LineValues, index: number) => {
+                          form.setFieldValue(["items", index, "lotId"], undefined);
+                        });
+                      }}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    className={`${styles.field} ${styles.formGridFull}`}
+                    label="หมายเหตุ"
+                    name="remark"
+                  >
+                    <Input.TextArea rows={2} placeholder="หมายเหตุหัวเอกสาร (ถ้ามี)" />
+                  </Form.Item>
+                </div>
+              </div>
+
+              <div className={styles.sectionBlock}>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>รายการนับสต๊อก</h2>
+                  <p className={styles.sectionHint}>
+                    ต้องเลือก Lot ที่มีในคลัง/ตำแหน่งที่เลือกไว้ด้านบน
+                  </p>
+                </div>
+
+                <Form.List
+                  name="items"
+                  rules={[
+                    {
+                      validator: async (_, value) => {
+                        if (!value || value.length < 1) {
+                          return Promise.reject(
+                            new Error("ต้องมีรายการอย่างน้อย 1 รายการ"),
+                          );
+                        }
+                      },
+                    },
+                  ]}
+                >
+                  {(fields, { add, remove }, { errors }) => (
+                    <div className={styles.lineList}>
+                      {fields.map(({ key, name, ...restField }, index) => {
+                        const line = watchedItems[index];
+                        const availableLots = lots.filter(
+                          (lot) => lot.itemId === line?.itemId,
+                        );
+                        const selectedLot = availableLots.find(
+                          (lot) => lot.lotId === line?.lotId,
+                        );
+                        const systemQty = selectedLot
+                          ? Number(selectedLot.quantityOnHand)
+                          : undefined;
+                        const variance =
+                          systemQty != null && line?.countedQuantity != null
+                            ? Number(line.countedQuantity) - systemQty
+                            : undefined;
+                        const varianceTone =
+                          variance == null || Math.abs(variance) < 1e-9
+                            ? styles.varianceZero
+                            : variance > 0
+                              ? styles.variancePositive
+                              : styles.varianceNegative;
+
+                        return (
+                          <div key={key} className={styles.lineCard}>
+                            <div className={styles.lineCardHeader}>
+                              <strong>รายการที่ {index + 1}</strong>
+                              {fields.length > 1 ? (
+                                <Button
+                                  type="text"
+                                  danger
+                                  size="small"
+                                  icon={<DeleteOutlined />}
+                                  onClick={() => remove(name)}
+                                >
+                                  ลบ
+                                </Button>
+                              ) : null}
+                            </div>
+
+                            <div className={styles.lineGrid}>
+                              <Form.Item
+                                {...restField}
+                                className={styles.field}
+                                label="สินค้า"
+                                name={[name, "itemId"]}
+                                rules={[{ required: true, message: "เลือกสินค้า" }]}
+                              >
+                                <Select
+                                  placeholder="ค้นหา/เลือกสินค้า"
+                                  showSearch
+                                  optionFilterProp="label"
+                                  options={items.map((item) => ({
+                                    value: item.id,
+                                    label: `${item.itemCode} — ${item.itemNameTh}`,
+                                  }))}
+                                  onChange={(itemId) => {
+                                    const selected = items.find(
+                                      (item) => item.id === itemId,
+                                    );
+                                    if (selected?.unitId) {
+                                      form.setFieldValue(
+                                        ["items", name, "unitId"],
+                                        selected.unitId,
+                                      );
+                                    }
+                                    form.setFieldValue(
+                                      ["items", name, "lotId"],
+                                      undefined,
+                                    );
+                                  }}
+                                />
+                              </Form.Item>
+
+                              <Form.Item
+                                {...restField}
+                                className={styles.field}
+                                label="หน่วย"
+                                name={[name, "unitId"]}
+                                rules={[{ required: true, message: "เลือกหน่วย" }]}
+                              >
+                                <Select
+                                  placeholder="หน่วย"
+                                  showSearch
+                                  optionFilterProp="label"
+                                  options={units.map((unit) => ({
+                                    value: unit.id,
+                                    label: `${unit.code} — ${unit.nameTh}`,
+                                  }))}
+                                />
+                              </Form.Item>
+
+                              <Form.Item
+                                {...restField}
+                                className={styles.field}
+                                label="Lot (ยอดระบบ)"
+                                name={[name, "lotId"]}
+                                rules={[{ required: true, message: "เลือก Lot" }]}
+                              >
+                                <Select
+                                  showSearch
+                                  optionFilterProp="label"
+                                  disabled={
+                                    !line?.itemId ||
+                                    !headerWarehouseId ||
+                                    !headerLocationId
+                                  }
+                                  placeholder={
+                                    !headerWarehouseId || !headerLocationId
+                                      ? "เลือกคลัง/ตำแหน่งด้านบนก่อน"
+                                      : !line?.itemId
+                                        ? "เลือกสินค้าก่อน"
+                                        : "เลือก Lot"
+                                  }
+                                  options={availableLots.map((lot) => ({
+                                    value: lot.lotId,
+                                    label: `${lot.lotNo} — ระบบ ${lot.quantityOnHand}`,
+                                  }))}
+                                />
+                              </Form.Item>
+                            </div>
+
+                            <div className={styles.lineGridTwo}>
+                              <Form.Item
+                                {...restField}
+                                className={styles.field}
+                                label="จำนวนที่นับได้จริง"
+                                name={[name, "countedQuantity"]}
+                                rules={[{ required: true, message: "ระบุจำนวนที่นับได้" }]}
+                              >
+                                <InputNumber
+                                  min={0}
+                                  style={{ width: "100%" }}
+                                  placeholder="0"
+                                />
+                              </Form.Item>
+
+                              <Form.Item
+                                {...restField}
+                                className={styles.field}
+                                label="หมายเหตุรายการ"
+                                name={[name, "remark"]}
+                              >
+                                <Input placeholder="หมายเหตุ (ถ้ามี)" />
+                              </Form.Item>
+                            </div>
+
+                            {selectedLot ? (
+                              <div className={styles.varianceRow}>
+                                <span>ยอดระบบ {selectedLot.quantityOnHand}</span>
+                                <span>·</span>
+                                <span>
+                                  ส่วนต่าง:{" "}
+                                  <span
+                                    className={`${styles.varianceValue} ${varianceTone}`}
+                                  >
+                                    {variance != null
+                                      ? variance > 0
+                                        ? `+${variance.toFixed(3)}`
+                                        : variance.toFixed(3)
+                                      : "-"}
+                                  </span>
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
+
+                      <Button
+                        block
+                        className={styles.addLineButton}
+                        icon={<PlusOutlined />}
+                        onClick={() => add({})}
+                      >
+                        เพิ่มรายการ
+                      </Button>
+                      <Form.ErrorList errors={errors} />
+                    </div>
+                  )}
+                </Form.List>
+              </div>
+            </div>
+
+            <div className={styles.footerBar}>
+              <p className={styles.footerHint}>
+                บันทึกแล้วสถานะจะเป็น DRAFT — หัวหน้าคลังต้องอนุมัติก่อนปรับปรุงสต๊อกจริง
+                (ระบบจะคำนวณส่วนต่างจากยอดปัจจุบันจริงอีกครั้งตอนอนุมัติ)
+              </p>
+              <div className={styles.footerActions}>
+                <Button
+                  className={styles.cancelBtn}
+                  onClick={() => router.push("/inventory/stock-counts")}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  className={styles.saveBtn}
+                  type="primary"
+                  htmlType="submit"
+                  loading={saving}
+                >
+                  {mode === "create" ? "บันทึกใบนับสต๊อก" : "บันทึกการแก้ไข"}
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          <aside className={styles.summaryCard}>
+            <div>
+              <p className={styles.summaryEyebrow}>สรุปแบบฟอร์ม</p>
+              <h2 className={styles.summaryTitle}>
+                {mode === "create" ? "ใบนับสต๊อกใหม่" : "แก้ไข DRAFT"}
+              </h2>
+              <p className={styles.summaryLead}>
+                ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ
+              </p>
+            </div>
+
+            <div>
+              <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+                รายการนับสต๊อก
+              </Typography.Text>
+              {previewLines.length > 0 ? (
+                <ul className={styles.previewList}>
+                  {previewLines.map((line) => (
+                    <li key={line.key}>{line.text}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={styles.previewMeta}>ยังไม่มีรายการ</p>
+              )}
+            </div>
+
+            <div className={styles.flowNote}>
+              <strong>ขั้นตอนถัดไป</strong>
+              <p>
+                หลังบันทึก → เปิดหน้ารายละเอียด → กด “อนุมัติ” →
+                หัวหน้าคลังปรับปรุงสต๊อกจริงตามส่วนต่าง
+              </p>
+            </div>
+          </aside>
+        </div>
+      </Form>
+    </div>
+  );
+}

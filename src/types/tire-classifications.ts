@@ -3,7 +3,6 @@ export type TireClassification = {
   classificationCode: string;
   classificationName: string;
   description?: string;
-  defaultPricePerKg: string | number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -20,7 +19,6 @@ export type CreateTireClassificationRequest = {
   code: string;
   name: string;
   description?: string;
-  defaultPricePerKg?: number;
   isActive?: boolean;
 };
 

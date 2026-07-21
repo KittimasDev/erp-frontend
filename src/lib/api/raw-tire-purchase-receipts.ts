@@ -15,6 +15,10 @@ import type {
   PaymentContextApiResponse,
   PaymentPrintPreviewApiResponse,
 } from "@/types/raw-tire-payment";
+import type {
+  RawTirePurchaseReportListApiResponse,
+  RawTirePurchaseReportQueryParams,
+} from "@/types/raw-tire-purchase-reports";
 
 export function getTicketClassification(token: string, ticketId: string) {
   return apiFetch<ClassificationContextApiResponse>(
@@ -139,4 +143,64 @@ export function getRawTirePurchasePaymentPrintPreview(
     `/api/raw-tire-purchase/receipts/${receiptId}/payment-print-preview`,
     { method: "GET", token },
   );
+}
+
+function buildReportQuery(params?: RawTirePurchaseReportQueryParams) {
+  if (!params) return "";
+  const search = new URLSearchParams();
+  if (params.dateFrom) search.set("dateFrom", params.dateFrom);
+  if (params.dateTo) search.set("dateTo", params.dateTo);
+  if (params.sellerId) search.set("sellerId", params.sellerId);
+  if (params.tireClassificationId)
+    search.set("tireClassificationId", params.tireClassificationId);
+  if (params.paymentStatus) search.set("paymentStatus", params.paymentStatus);
+  if (params.page != null) search.set("page", String(params.page));
+  if (params.limit != null) search.set("limit", String(params.limit));
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
+}
+
+export function getRawTirePurchaseReport(
+  token: string,
+  params?: RawTirePurchaseReportQueryParams,
+) {
+  return apiFetch<RawTirePurchaseReportListApiResponse>(
+    `/api/raw-tire-purchase/receipts/report${buildReportQuery(params)}`,
+    { method: "GET", token },
+  );
+}
+
+/**
+ * ดาวน์โหลด CSV ต้อง fetch ตรง (ไม่ผ่าน apiFetch) เพราะ response ไม่ใช่ JSON
+ * และไฟล์ authenticated ดาวน์โหลดผ่านลิงก์ตรงไม่ได้ (แนบ token ใน URL ไม่ได้)
+ */
+export async function downloadRawTirePurchaseReportCsv(
+  token: string,
+  params?: RawTirePurchaseReportQueryParams,
+) {
+  const response = await fetch(
+    `/api/raw-tire-purchase/receipts/report/export${buildReportQuery(params)}`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("ดาวน์โหลดรายงานไม่สำเร็จ");
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename="?([^"]+)"?/);
+  const filename = match?.[1] ?? "raw-tire-purchase-report.csv";
+
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
 }

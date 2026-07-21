@@ -1,12 +1,7 @@
 "use client";
 
-import ComingSoonPage from "@/components/common/ComingSoonPage";
+import RawTirePurchaseReportPage from "@/components/reports/RawTirePurchaseReportPage";
 
 export default function Page() {
-  return (
-    <ComingSoonPage
-      title="รายงานรับซื้อยาง"
-      description="รายงานตั๋วชั่ง ใบรับซื้อยาง และการรับเข้าคลัง (กำลังพัฒนา)"
-    />
-  );
+  return <RawTirePurchaseReportPage />;
 }
