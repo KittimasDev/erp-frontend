@@ -4,29 +4,47 @@ import { useEffect, useState } from "react";
 import {
   Button,
   DatePicker,
+  Empty,
   Form,
+  Image,
   Input,
   InputNumber,
+  Modal,
   Popconfirm,
   Radio,
   Select,
   Table,
   Tag,
   Typography,
+  Upload,
 } from "antd";
 import {
   ArrowLeftOutlined,
+  DownloadOutlined,
+  EyeOutlined,
+  FilePdfOutlined,
   PrinterOutlined,
   ReloadOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import type { UploadProps } from "antd";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
-import { usePayReceiptMutation } from "@/hooks/raw-tire-payment/usePaymentMutations";
+import {
+  usePayReceiptMutation,
+  useUploadPaymentSlipMutation,
+} from "@/hooks/raw-tire-payment/usePaymentMutations";
 import { useRawTirePaymentQuery } from "@/hooks/raw-tire-payment/useRawTirePaymentQuery";
-import type { PaymentBankAccount } from "@/types/raw-tire-payment";
+import { downloadRawTirePurchasePaymentSlip } from "@/lib/api/raw-tire-purchase-receipts";
+import { ApiError } from "@/lib/api/client";
+import { getAccessToken } from "@/lib/auth/token";
+import type {
+  PaymentBankAccount,
+  PaymentSlipAttachment,
+} from "@/types/raw-tire-payment";
 import { PAYMENT_METHOD_OPTIONS } from "@/types/raw-tire-payment";
 import {
   PAYMENT_METHOD_LABELS,
@@ -37,6 +55,7 @@ import {
   generateRawTirePaymentVoucherPdf,
   mapPaymentContextToPdfData,
 } from "@/utils/generateRawTirePaymentVoucherPdf";
+import { optimizePaymentSlipFile } from "@/utils/optimizePaymentSlipFile";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -70,6 +89,24 @@ function formatDate(value?: string) {
   return new Date(value).toLocaleDateString("th-TH");
 }
 
+function formatFileSize(value?: string) {
+  const size = Number(value);
+  if (!size || Number.isNaN(size)) {
+    return "-";
+  }
+  if (size < 1024) {
+    return `${size} B`;
+  }
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function isImageMime(mimeType?: string) {
+  return Boolean(mimeType?.startsWith("image/"));
+}
+
 type Props = {
   receiptId: string;
 };
@@ -79,10 +116,16 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
   const [form] = Form.useForm<PayFormValues>();
   const paymentMethod = Form.useWatch("paymentMethod", form);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [previewSlip, setPreviewSlip] = useState<PaymentSlipAttachment | null>(
+    null,
+  );
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const paymentQuery = useRawTirePaymentQuery(receiptId);
   const context = paymentQuery.data?.data;
   const payMutation = usePayReceiptMutation(receiptId);
+  const uploadSlipMutation = useUploadPaymentSlipMutation(receiptId);
 
   useEffect(() => {
     if (!context) {
@@ -117,6 +160,14 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
     });
   }, [context, form]);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const bankColumns: ColumnsType<PaymentBankAccount> = [
     {
       title: "ธนาคาร",
@@ -140,13 +191,6 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
       key: "isDefault",
       width: 100,
       render: (value: boolean) => (value ? "ใช่" : "-"),
-    },
-    {
-      title: "ใช้งาน",
-      dataIndex: "isActive",
-      key: "isActive",
-      width: 90,
-      render: (value: boolean) => (value ? "ใช่" : "ไม่"),
     },
   ];
 
@@ -182,8 +226,111 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
     }
   };
 
-  const isBusy = payMutation.isPending || isPrinting;
+  const openSlipPreview = async (slip: PaymentSlipAttachment) => {
+    setPreviewLoading(true);
+    setPreviewSlip(slip);
+    try {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      const { blob } = await downloadRawTirePurchasePaymentSlip(
+        getAccessToken(),
+        receiptId,
+        slip.id,
+      );
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch (error) {
+      setPreviewSlip(null);
+      Modal.error({
+        title: "เปิดสลิปไม่สำเร็จ",
+        content:
+          error instanceof ApiError ? error.message : "ไม่สามารถโหลดไฟล์ได้",
+      });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const downloadSlip = async (slip: PaymentSlipAttachment) => {
+    try {
+      const { blob, filename } = await downloadRawTirePurchasePaymentSlip(
+        getAccessToken(),
+        receiptId,
+        slip.id,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download =
+        filename || slip.originalFileName || `payment-slip-${slip.id}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      Modal.error({
+        title: "ดาวน์โหลดไม่สำเร็จ",
+        content:
+          error instanceof ApiError ? error.message : "ไม่สามารถดาวน์โหลดได้",
+      });
+    }
+  };
+
+  const uploadProps: UploadProps = {
+    accept:
+      ".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf",
+    multiple: false,
+    showUploadList: false,
+    beforeUpload: (file) => {
+      if (!context?.canUploadSlip) {
+        Modal.warning({
+          title: context?.receipt.paymentStatus === "PAID"
+            ? "จ่ายเงินแล้ว"
+            : "ยังอัปโหลดไม่ได้",
+          content:
+            context?.receipt.paymentStatus === "PAID"
+              ? "จ่ายเงินแล้ว ไม่สามารถอัปโหลดหรือแก้ไขสลิปได้อีก"
+              : "อัปโหลดสลิปได้เฉพาะช่วงบันทึกจ่ายเงินเท่านั้น",
+        });
+        return Upload.LIST_IGNORE;
+      }
+      const allowed = [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "application/pdf",
+      ];
+      if (!allowed.includes(file.type)) {
+        Modal.error({
+          title: "ชนิดไฟล์ไม่รองรับ",
+          content: "รองรับเฉพาะ JPG, PNG, WEBP หรือ PDF",
+        });
+        return Upload.LIST_IGNORE;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        Modal.error({
+          title: "ไฟล์ใหญ่เกินไป",
+          content: "ขนาดไฟล์ต้องไม่เกิน 10 MB",
+        });
+        return Upload.LIST_IGNORE;
+      }
+
+      void (async () => {
+        const optimized = await optimizePaymentSlipFile(file);
+        await uploadSlipMutation.mutateAsync({ file: optimized });
+      })();
+
+      return false;
+    },
+  };
+
+  const isBusy =
+    payMutation.isPending || isPrinting || uploadSlipMutation.isPending;
   const canEditForm = context?.canPay ?? false;
+  const canUploadSlip = context?.canUploadSlip === true;
+  const isPaid = context?.receipt.paymentStatus === "PAID";
+  const slips = context?.slips ?? [];
 
   return (
     <MasterPageGate isLoading={paymentQuery.isLoading}>
@@ -259,250 +406,410 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
               </div>
             </div>
 
-            {context.canPay || paymentMethod === "TRANSFER" ? (
-              <div className={styles.card}>
-                <div className={styles.listHeader}>
-                  <div>
-                    <h3>บัญชีธนาคารผู้ขาย</h3>
-                    <p>เลือกบัญชีเมื่อจ่ายแบบโอนเงิน</p>
+            <div className={styles.classificationLayout}>
+              <div className={styles.classificationMain}>
+                {context.canPay || paymentMethod === "TRANSFER" ? (
+                  <div className={styles.card}>
+                    <div className={styles.listHeader}>
+                      <div>
+                        <h3>บัญชีธนาคารผู้ขาย</h3>
+                        <p>เลือกบัญชีเมื่อจ่ายแบบโอนเงิน</p>
+                      </div>
+                    </div>
+                    <Table
+                      rowKey="id"
+                      columns={bankColumns}
+                      dataSource={context.bankAccounts}
+                      pagination={false}
+                      size="middle"
+                      locale={{ emptyText: "ไม่มีบัญชีธนาคารที่ใช้งาน" }}
+                    />
                   </div>
-                </div>
-                <Table
-                  rowKey="id"
-                  columns={bankColumns}
-                  dataSource={context.bankAccounts}
-                  pagination={false}
-                  size="middle"
-                  locale={{ emptyText: "ไม่มีบัญชีธนาคารที่ใช้งาน" }}
-                />
-              </div>
-            ) : null}
+                ) : null}
 
-            {context.voucher || context.payment ? (
-              <div className={styles.card}>
-                <div className={styles.cardHeader}>
-                  <h3>ใบสำคัญจ่ายที่บันทึกแล้ว</h3>
-                </div>
-                <div className={styles.cardBody}>
-                  <div className={styles.detailGrid}>
-                    <DetailItem
-                      label="เลขที่ใบสำคัญจ่าย"
-                      value={context.voucher?.voucherNo || "-"}
-                    />
-                    <DetailItem
-                      label="วันที่จ่าย"
-                      value={formatDate(
-                        context.payment?.paymentDate ??
-                          context.voucher?.voucherDate,
-                      )}
-                    />
-                    <DetailItem
-                      label="วิธีจ่าย"
-                      value={
-                        PAYMENT_METHOD_LABELS[
-                          context.payment?.paymentMethod ??
+                {context.voucher || context.payment ? (
+                  <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                      <h3>ใบสำคัญจ่ายที่บันทึกแล้ว</h3>
+                    </div>
+                    <div className={styles.cardBody}>
+                      <div className={styles.detailGrid}>
+                        <DetailItem
+                          label="เลขที่ใบสำคัญจ่าย"
+                          value={context.voucher?.voucherNo || "-"}
+                        />
+                        <DetailItem
+                          label="วันที่จ่าย"
+                          value={formatDate(
+                            context.payment?.paymentDate ??
+                              context.voucher?.voucherDate,
+                          )}
+                        />
+                        <DetailItem
+                          label="วิธีจ่าย"
+                          value={
+                            PAYMENT_METHOD_LABELS[
+                              context.payment?.paymentMethod ??
+                                context.voucher?.paymentMethod ??
+                                ""
+                            ] ??
+                            context.payment?.paymentMethod ??
                             context.voucher?.paymentMethod ??
-                            ""
-                        ] ??
-                        context.payment?.paymentMethod ??
-                        context.voucher?.paymentMethod ??
-                        "-"
-                      }
-                    />
-                    <DetailItem
-                      label="จำนวนเงิน"
-                      value={formatMoney(
-                        context.payment?.amount ?? context.voucher?.totalAmount,
-                      )}
-                    />
-                    <DetailItem
-                      label="เลขอ้างอิง"
-                      value={context.payment?.transactionRef || "-"}
-                    />
-                    <DetailItem
-                      label="บัญชีรับโอน"
-                      value={
-                        context.payment?.bankName
-                          ? `${context.payment.bankName} · ${context.payment.accountNo ?? ""}`
-                          : "-"
-                      }
-                    />
-                    <DetailItem
-                      label="หมายเหตุ"
-                      value={
-                        context.payment?.remark ||
-                        context.voucher?.remark ||
-                        "-"
-                      }
-                      fullWidth
-                    />
+                            "-"
+                          }
+                        />
+                        <DetailItem
+                          label="จำนวนเงิน"
+                          value={formatMoney(
+                            context.payment?.amount ??
+                              context.voucher?.totalAmount,
+                          )}
+                        />
+                        <DetailItem
+                          label="เลขอ้างอิง"
+                          value={context.payment?.transactionRef || "-"}
+                        />
+                        <DetailItem
+                          label="บัญชีรับโอน"
+                          value={
+                            context.payment?.bankName
+                              ? `${context.payment.bankName} · ${context.payment.accountNo ?? ""}`
+                              : "-"
+                          }
+                        />
+                        <DetailItem
+                          label="หมายเหตุ"
+                          value={
+                            context.payment?.remark ||
+                            context.voucher?.remark ||
+                            "-"
+                          }
+                          fullWidth
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            ) : null}
+                ) : null}
 
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h3>บันทึกจ่ายเงิน</h3>
-                <p>
-                  Phase นี้จ่ายเต็มจำนวนเท่านั้น · ยอดอ้างอิง{" "}
-                  {formatMoney(context.receipt.totalAmount)} บาท
-                </p>
-              </div>
-              <div className={styles.cardBody}>
-                <Form
-                  form={form}
-                  layout="vertical"
-                  disabled={!canEditForm}
-                  requiredMark="optional"
-                >
-                  <Form.Item
-                    label="วิธีจ่าย"
-                    name="paymentMethod"
-                    rules={[
-                      { required: true, message: "กรุณาเลือกวิธีจ่าย" },
-                    ]}
-                  >
-                    <Radio.Group
-                      options={PAYMENT_METHOD_OPTIONS.map((item) => ({
-                        value: item.value,
-                        label: item.label,
-                      }))}
-                    />
-                  </Form.Item>
-
-                  {paymentMethod === "TRANSFER" ? (
-                    <Form.Item
-                      label="บัญชีธนาคารผู้ขาย"
-                      name="sellerBankAccountId"
-                      rules={[
-                        {
-                          required: true,
-                          message: "กรุณาเลือกบัญชีธนาคารผู้ขาย",
-                        },
-                      ]}
-                    >
-                      <Select
-                        placeholder="เลือกบัญชี"
-                        options={context.bankAccounts.map((account) => ({
-                          value: account.id,
-                          label: `${account.bankName} · ${account.accountNo} · ${account.accountName}${account.isDefault ? " (หลัก)" : ""}`,
-                        }))}
-                      />
-                    </Form.Item>
-                  ) : null}
-
-                  <div className={styles.detailGrid}>
-                    <Form.Item
-                      label="วันที่จ่าย"
-                      name="paymentDate"
-                      rules={[
-                        { required: true, message: "กรุณาเลือกวันที่จ่าย" },
-                      ]}
-                    >
-                      <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-                    </Form.Item>
-
-                    <Form.Item
-                      label="จำนวนเงิน (บาท)"
-                      name="paymentAmount"
-                      rules={[
-                        { required: true, message: "กรุณากรอกจำนวนเงิน" },
-                      ]}
-                    >
-                      <InputNumber
-                        min={0.01}
-                        step={0.01}
-                        precision={2}
-                        style={{ width: "100%" }}
-                        disabled
-                      />
-                    </Form.Item>
+                <div className={styles.card}>
+                  <div className={styles.cardHeader}>
+                    <h3>บันทึกจ่ายเงิน</h3>
+                    <p>
+                      จ่ายเต็มจำนวนเท่านั้น · ยอดอ้างอิง{" "}
+                      {formatMoney(context.receipt.totalAmount)} บาท
+                    </p>
                   </div>
+                  <div className={styles.cardBody}>
+                    <Form
+                      form={form}
+                      layout="vertical"
+                      disabled={!canEditForm}
+                      requiredMark="optional"
+                    >
+                      <Form.Item
+                        label="วิธีจ่าย"
+                        name="paymentMethod"
+                        rules={[
+                          { required: true, message: "กรุณาเลือกวิธีจ่าย" },
+                        ]}
+                      >
+                        <Radio.Group
+                          options={PAYMENT_METHOD_OPTIONS.map((item) => ({
+                            value: item.value,
+                            label: item.label,
+                          }))}
+                        />
+                      </Form.Item>
 
-                  <Form.Item
-                    label="เลขอ้างอิง / เลขที่โอน"
-                    name="transactionRef"
-                    rules={
-                      paymentMethod === "TRANSFER"
-                        ? [
+                      {paymentMethod === "TRANSFER" ? (
+                        <Form.Item
+                          label="บัญชีธนาคารผู้ขาย"
+                          name="sellerBankAccountId"
+                          rules={[
                             {
                               required: true,
-                              message: "กรณีโอนเงินต้องระบุเลขอ้างอิง",
+                              message: "กรุณาเลือกบัญชีธนาคารผู้ขาย",
                             },
-                          ]
-                        : undefined
-                    }
-                  >
-                    <Input placeholder="เช่น TRX-20260717-001" />
-                  </Form.Item>
-
-                  <Form.Item label="หมายเหตุ" name="remark">
-                    <Input.TextArea rows={2} placeholder="หมายเหตุเพิ่มเติม" />
-                  </Form.Item>
-                </Form>
-
-                <div className={styles.classificationActions}>
-                  {canEditForm ? (
-                    <>
-                      <Popconfirm
-                        title="ยืนยันบันทึกจ่ายเงิน"
-                        description={`จ่ายเต็มจำนวน ${formatMoney(context.receipt.totalAmount)} บาท และเปลี่ยนสถานะเป็น PAID`}
-                        okText="ยืนยันจ่าย"
-                        cancelText="ยกเลิก"
-                        disabled={isBusy}
-                        onConfirm={() => void handlePay()}
-                      >
-                        <Button
-                          type="primary"
-                          className={styles.submitButton}
-                          disabled={isBusy}
-                          loading={payMutation.isPending}
+                          ]}
                         >
-                          บันทึกจ่ายเงิน
-                        </Button>
-                      </Popconfirm>
-                      <Button
-                        disabled={isBusy}
-                        onClick={() =>
-                          router.push(`/receiving/receipts/${receiptId}`)
+                          <Select
+                            placeholder="เลือกบัญชี"
+                            options={context.bankAccounts.map((account) => ({
+                              value: account.id,
+                              label: `${account.bankName} · ${account.accountNo} · ${account.accountName}${account.isDefault ? " (หลัก)" : ""}`,
+                            }))}
+                          />
+                        </Form.Item>
+                      ) : null}
+
+                      <div className={styles.detailGrid}>
+                        <Form.Item
+                          label="วันที่จ่าย"
+                          name="paymentDate"
+                          rules={[
+                            {
+                              required: true,
+                              message: "กรุณาเลือกวันที่จ่าย",
+                            },
+                          ]}
+                        >
+                          <DatePicker
+                            style={{ width: "100%" }}
+                            format="DD/MM/YYYY"
+                          />
+                        </Form.Item>
+
+                        <Form.Item
+                          label="จำนวนเงิน (บาท)"
+                          name="paymentAmount"
+                          rules={[
+                            { required: true, message: "กรุณากรอกจำนวนเงิน" },
+                          ]}
+                        >
+                          <InputNumber
+                            min={0.01}
+                            step={0.01}
+                            precision={2}
+                            style={{ width: "100%" }}
+                            disabled
+                          />
+                        </Form.Item>
+                      </div>
+
+                      <Form.Item
+                        label="เลขอ้างอิง / เลขที่โอน"
+                        name="transactionRef"
+                        rules={
+                          paymentMethod === "TRANSFER"
+                            ? [
+                                {
+                                  required: true,
+                                  message: "กรณีโอนเงินต้องระบุเลขอ้างอิง",
+                                },
+                              ]
+                            : undefined
                         }
                       >
-                        ยกเลิก
-                      </Button>
-                    </>
-                  ) : null}
+                        <Input placeholder="เช่น TRX-20260717-001" />
+                      </Form.Item>
 
-                  {context.receipt.paymentStatus === "PAID" ? (
-                    <>
-                      <Typography.Text type="success">
-                        จ่ายเงินแล้ว
-                        {context.voucher
-                          ? ` · ใบสำคัญจ่าย ${context.voucher.voucherNo}`
-                          : ""}
-                      </Typography.Text>
-                      <Button
-                        icon={<PrinterOutlined />}
-                        disabled={!context.canPrint || isBusy}
-                        loading={isPrinting}
-                        onClick={() => void handlePrint()}
-                      >
-                        พิมพ์ใบสำคัญจ่าย
-                      </Button>
-                    </>
-                  ) : null}
+                      <Form.Item label="หมายเหตุ" name="remark">
+                        <Input.TextArea
+                          rows={2}
+                          placeholder="หมายเหตุเพิ่มเติม"
+                        />
+                      </Form.Item>
+                    </Form>
 
-                  {context.receipt.status === "CANCELLED" ? (
-                    <Typography.Text type="secondary">
-                      ใบรับซื้อถูกยกเลิกแล้ว ไม่สามารถจ่ายเงินได้
-                    </Typography.Text>
-                  ) : null}
+                    <div className={styles.classificationActions}>
+                      {canEditForm ? (
+                        <>
+                          <Popconfirm
+                            title="ยืนยันบันทึกจ่ายเงิน"
+                            description={`จ่ายเต็มจำนวน ${formatMoney(context.receipt.totalAmount)} บาท และเปลี่ยนสถานะเป็น PAID`}
+                            okText="ยืนยันจ่าย"
+                            cancelText="ยกเลิก"
+                            disabled={isBusy}
+                            onConfirm={() => void handlePay()}
+                          >
+                            <Button
+                              type="primary"
+                              className={styles.submitButton}
+                              disabled={isBusy}
+                              loading={payMutation.isPending}
+                            >
+                              บันทึกจ่ายเงิน
+                            </Button>
+                          </Popconfirm>
+                          <Button
+                            disabled={isBusy}
+                            onClick={() =>
+                              router.push(`/receiving/receipts/${receiptId}`)
+                            }
+                          >
+                            ยกเลิก
+                          </Button>
+                        </>
+                      ) : null}
+
+                      {context.receipt.paymentStatus === "PAID" ? (
+                        <>
+                          <Typography.Text type="success">
+                            จ่ายเงินแล้ว
+                            {context.voucher
+                              ? ` · ใบสำคัญจ่าย ${context.voucher.voucherNo}`
+                              : ""}
+                          </Typography.Text>
+                          <Button
+                            icon={<PrinterOutlined />}
+                            disabled={!context.canPrint || isBusy}
+                            loading={isPrinting}
+                            onClick={() => void handlePrint()}
+                          >
+                            พิมพ์ใบสำคัญจ่าย
+                          </Button>
+                        </>
+                      ) : null}
+
+                      {context.receipt.status === "CANCELLED" ? (
+                        <Typography.Text type="secondary">
+                          ใบรับซื้อถูกยกเลิกแล้ว ไม่สามารถจ่ายเงินได้
+                        </Typography.Text>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              <aside className={styles.classificationSummarySticky}>
+                <div>
+                  <p className={styles.classificationSummaryEyebrow}>
+                    หลักฐานการจ่าย
+                  </p>
+                  <h3 style={{ margin: "4px 0 8px", fontSize: 18 }}>
+                    สลิปจ่ายเงิน
+                  </h3>
+                  <Typography.Text type="secondary">
+                    {isPaid
+                      ? "จ่ายแล้ว — ดูสลิปอย่างเดียว ไม่สามารถแก้ไขได้อีก"
+                      : canUploadSlip
+                        ? "แนบสลิปก่อนกดบันทึกจ่ายเงิน · จ่ายแล้วจะล็อก"
+                        : "อัปโหลดได้เฉพาะช่วงรอจ่ายเงิน"}
+                  </Typography.Text>
+                </div>
+
+                {canUploadSlip ? (
+                  <Upload.Dragger {...uploadProps} disabled={isBusy}>
+                    <p className="ant-upload-drag-icon">
+                      <UploadOutlined />
+                    </p>
+                    <p className="ant-upload-text">คลิกหรือลากไฟล์มาวาง</p>
+                    <p className="ant-upload-hint">
+                      JPG / PNG / WEBP / PDF · ไม่เกิน 10 MB ·
+                      รูปจะย่ออัตโนมัติก่อนบันทึก
+                    </p>
+                  </Upload.Dragger>
+                ) : (
+                  <div className={styles.slipLocked}>
+                    <Typography.Text type="secondary">
+                      {isPaid
+                        ? "จ่ายเงินแล้ว — ไม่สามารถอัปโหลดหรือแก้ไขได้อีก"
+                        : "ยังอัปโหลดไม่ได้ในสถานะนี้"}
+                    </Typography.Text>
+                  </div>
+                )}
+
+                <div className={styles.slipList}>
+                  {slips.length === 0 ? (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="ยังไม่มีสลิป"
+                    />
+                  ) : (
+                    slips.map((slip) => (
+                      <div key={slip.id} className={styles.slipItem}>
+                        <div className={styles.slipItemIcon}>
+                          {isImageMime(slip.mimeType) ? (
+                            <EyeOutlined />
+                          ) : (
+                            <FilePdfOutlined />
+                          )}
+                        </div>
+                        <div className={styles.slipItemMeta}>
+                          <strong>
+                            {slip.originalFileName || "สลิปจ่ายเงิน"}
+                          </strong>
+                          <span>
+                            {formatFileSize(slip.fileSize)} ·{" "}
+                            {formatDate(slip.createdAt)}
+                            {slip.uploadedByName
+                              ? ` · ${slip.uploadedByName}`
+                              : ""}
+                          </span>
+                        </div>
+                        <div className={styles.slipItemActions}>
+                          <Button
+                            size="small"
+                            type="text"
+                            icon={<EyeOutlined />}
+                            loading={
+                              previewLoading && previewSlip?.id === slip.id
+                            }
+                            onClick={() => void openSlipPreview(slip)}
+                          />
+                          <Button
+                            size="small"
+                            type="text"
+                            icon={<DownloadOutlined />}
+                            onClick={() => void downloadSlip(slip)}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </aside>
             </div>
           </>
         ) : null}
       </section>
+
+      <Modal
+        open={Boolean(previewSlip)}
+        title={previewSlip?.originalFileName || "ดูสลิปจ่ายเงิน"}
+        onCancel={() => {
+          setPreviewSlip(null);
+          if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+            setPreviewUrl(null);
+          }
+        }}
+        footer={[
+          <Button
+            key="download"
+            icon={<DownloadOutlined />}
+            disabled={!previewSlip}
+            onClick={() => {
+              if (previewSlip) {
+                void downloadSlip(previewSlip);
+              }
+            }}
+          >
+            ดาวน์โหลด
+          </Button>,
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => {
+              setPreviewSlip(null);
+              if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                setPreviewUrl(null);
+              }
+            }}
+          >
+            ปิด
+          </Button>,
+        ]}
+        width={720}
+        destroyOnHidden
+      >
+        {previewLoading || !previewUrl ? (
+          <Typography.Text type="secondary">กำลังโหลด...</Typography.Text>
+        ) : isImageMime(previewSlip?.mimeType) ? (
+          <Image
+            src={previewUrl}
+            alt={previewSlip?.originalFileName || "สลิป"}
+            style={{ width: "100%" }}
+          />
+        ) : (
+          <iframe
+            title="payment-slip-preview"
+            src={previewUrl}
+            style={{ width: "100%", height: 480, border: "none" }}
+          />
+        )}
+      </Modal>
     </MasterPageGate>
   );
 }

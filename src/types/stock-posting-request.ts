@@ -34,6 +34,7 @@ export type StockPostingReceiptItem = {
   itemCode?: string;
   itemName?: string;
   classificationName: string;
+  classificationCode?: string;
   weightKg: string;
   pricePerKg: string;
   amount: string;

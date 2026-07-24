@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  App,
   Button,
   Input,
   InputNumber,
@@ -27,10 +28,7 @@ import {
 import { useTicketClassificationQuery } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { useRawTirePriceRulesQuery } from "@/hooks/raw-tire-price-rules/useRawTirePriceRulesQuery";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
-import type {
-  ClassificationDeductionInput,
-  ClassificationItemInput,
-} from "@/types/raw-tire-classification";
+import type { ClassificationItemInput } from "@/types/raw-tire-classification";
 import {
   DEDUCTION_TYPE_OPTIONS,
   RECEIPT_STATUS_LABELS,
@@ -45,9 +43,12 @@ type ItemRow = ClassificationItemInput & {
   classificationName?: string;
 };
 
-type DeductionRow = ClassificationDeductionInput & {
+type DeductionRow = {
   key: string;
-  deductionAmount?: string;
+  deductionType: string;
+  deductionWeightKg: number;
+  deductionAmount?: number;
+  description?: string;
 };
 
 function formatWeight(value?: string | number) {
@@ -90,13 +91,26 @@ function createItemRow(partial?: Partial<ItemRow>): ItemRow {
   };
 }
 
-function createDeductionRow(partial?: Partial<DeductionRow>): DeductionRow {
+function createDeductionRow(
+  partial?: Partial<Omit<DeductionRow, "deductionAmount">> & {
+    deductionAmount?: string | number | null;
+  },
+): DeductionRow {
+  const rawAmount = partial?.deductionAmount;
+  const amountNum =
+    rawAmount !== undefined && rawAmount !== null && rawAmount !== ""
+      ? Number(rawAmount)
+      : undefined;
+
   return {
     key: partial?.key ?? crypto.randomUUID(),
     deductionType: partial?.deductionType ?? "WATER",
     deductionWeightKg: partial?.deductionWeightKg ?? 0,
     description: partial?.description,
-    deductionAmount: partial?.deductionAmount,
+    deductionAmount:
+      amountNum !== undefined && !Number.isNaN(amountNum)
+        ? amountNum
+        : undefined,
   };
 }
 
@@ -132,6 +146,7 @@ type Props = {
 
 export default function RawTireClassificationPage({ ticketId }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
   const classificationQuery = useTicketClassificationQuery(ticketId);
   const classificationsQuery = useTireClassificationsQuery({ isActive: true });
 
@@ -185,7 +200,7 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
           deductionType: deduction.deductionType,
           deductionWeightKg: Number(deduction.deductionWeightKg),
           description: deduction.description,
-          deductionAmount: deduction.deductionAmount,
+          deductionAmount: Number(deduction.deductionAmount),
         }),
       ),
     );
@@ -253,6 +268,10 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
     (sum, item) => sum + (Number(item.deductionWeightKg) || 0),
     0,
   );
+  const deductionAmountLocal = deductions.reduce(
+    (sum, item) => sum + (Number(item.deductionAmount) || 0),
+    0,
+  );
   const subtotalLocal = items.reduce((sum, item) => {
     const amount = Number(item.amount);
     return sum + (Number.isNaN(amount) ? 0 : amount);
@@ -278,14 +297,34 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
       .map((item) => ({
         deductionType: item.deductionType,
         deductionWeightKg: Number(item.deductionWeightKg),
+        deductionAmount:
+          item.deductionAmount !== undefined && item.deductionAmount !== null
+            ? Number(item.deductionAmount)
+            : undefined,
         description: item.description?.trim() || undefined,
       })),
     remark: remark.trim() || undefined,
   });
 
+  const validateDeductions = () => {
+    const active = deductions.filter(
+      (item) => Number(item.deductionWeightKg) > 0,
+    );
+    for (const item of active) {
+      if (item.deductionType === "OTHER" && !item.description?.trim()) {
+        message.error('ประเภทหัก «อื่นๆ» ต้องระบุรายละเอียดรายการหัก');
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleSaveDraft = async () => {
     const payload = buildPayload();
     if (!payload.items.length) {
+      return;
+    }
+    if (!validateDeductions()) {
       return;
     }
     const response = await saveMutation.mutateAsync(payload);
@@ -310,7 +349,7 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
           deductionType: deduction.deductionType,
           deductionWeightKg: Number(deduction.deductionWeightKg),
           description: deduction.description,
-          deductionAmount: deduction.deductionAmount,
+          deductionAmount: Number(deduction.deductionAmount),
         }),
       ),
     );
@@ -507,20 +546,60 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
       ),
     },
     {
-      title: "จำนวนเงินหัก",
+      title: "จำนวนเงินหัก (บาท)",
       key: "deductionAmount",
-      width: 130,
+      width: 150,
       align: "right",
-      render: (_value, record) => formatMoney(record.deductionAmount),
+      render: (_value, record, index) =>
+        canEdit ? (
+          <InputNumber
+            min={0}
+            step={0.01}
+            precision={2}
+            value={
+              record.deductionAmount !== undefined
+                ? record.deductionAmount
+                : undefined
+            }
+            style={{ width: "100%" }}
+            placeholder="กรอกจำนวนเงิน"
+            onChange={(value) => {
+              setDeductions((prev) => {
+                const next = [...prev];
+                next[index] = {
+                  ...next[index],
+                  deductionAmount:
+                    value === null || value === undefined
+                      ? undefined
+                      : Number(value),
+                };
+                return next;
+              });
+            }}
+          />
+        ) : (
+          formatMoney(record.deductionAmount)
+        ),
     },
     {
       title: "เหตุผลการหัก",
       key: "description",
       render: (_value, record, index) => (
         <Input
-          placeholder="เหตุผลการหัก"
+          placeholder={
+            record.deductionType === "OTHER"
+              ? "ระบุรายการหัก (บังคับ)"
+              : "เหตุผลการหัก"
+          }
           value={record.description}
           disabled={!canEdit}
+          status={
+            record.deductionType === "OTHER" &&
+            Number(record.deductionWeightKg) > 0 &&
+            !record.description?.trim()
+              ? "error"
+              : undefined
+          }
           onChange={(event) => {
             setDeductions((prev) => {
               const next = [...prev];
@@ -688,6 +767,8 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
               </div>
             </div>
 
+            <div className={styles.classificationLayout}>
+              <div className={styles.classificationMain}>
             <div className={styles.card}>
               <div className={styles.listHeader}>
                 <div>
@@ -757,7 +838,7 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
               <div className={styles.listHeader}>
                 <div>
                   <h3>รายการหักสิ่งปนเปื้อน</h3>
-                  <p>ระบุประเภท น้ำหนัก และเหตุผลการหัก</p>
+                  <p>ระบุประเภท น้ำหนัก จำนวนเงิน และเหตุผลการหัก</p>
                 </div>
                 {canEdit ? (
                   <Button
@@ -780,16 +861,21 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                 scroll={{ x: 820 }}
               />
             </div>
-
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h3>สรุปยอด</h3>
               </div>
-              <div className={styles.cardBody}>
-                <div className={styles.summaryAmountGrid}>
+
+              <aside className={styles.classificationSummarySticky}>
+                <p className={styles.classificationSummaryEyebrow}>Summary</p>
+                <h3 className={styles.classificationSummaryTitle}>สรุปยอด</h3>
+                <p className={styles.classificationSummaryLead}>
+                  อัปเดตตามรายการคัดแยกและรายการหัก
+                </p>
+
+                <div className={styles.classificationSummaryRows}>
                   <SummaryItem
                     label="น้ำหนักสุทธิตั๋ว (กก.)"
-                    value={formatWeight(summary?.netWeightKg ?? ticket.netWeightKg)}
+                    value={formatWeight(
+                      summary?.netWeightKg ?? ticket.netWeightKg,
+                    )}
                   />
                   <SummaryItem
                     label="น้ำหนักคัดแยกรวม (กก.)"
@@ -805,7 +891,16 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                   />
                   <SummaryItem
                     label="น้ำหนักจ่าย (กก.)"
-                    value={formatWeight(summary?.payableWeightKg)}
+                    value={formatWeight(
+                      summary?.payableWeightKg ??
+                        Math.max(
+                          0,
+                          Math.round(
+                            (classifiedWeightLocal - deductionWeightLocal) *
+                              1000,
+                          ) / 1000,
+                        ),
+                    )}
                   />
                   <SummaryItem
                     label="ยอดก่อนหัก (บาท)"
@@ -816,13 +911,20 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                   />
                   <SummaryItem
                     label="ยอดหัก (บาท)"
-                    value={formatMoney(summary?.deductionAmount)}
+                    value={formatMoney(
+                      summary?.deductionAmount ??
+                        (deductionAmountLocal > 0
+                          ? deductionAmountLocal
+                          : undefined),
+                    )}
                   />
                   <SummaryItem
                     label="ยอดสุทธิ (บาท)"
                     value={formatMoney(
                       summary?.totalAmount ??
-                        (subtotalLocal > 0 ? subtotalLocal : undefined),
+                        (subtotalLocal > 0
+                          ? Math.max(0, subtotalLocal - deductionAmountLocal)
+                          : undefined),
                     )}
                     highlight
                   />
@@ -870,9 +972,7 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                   <Button
                     danger
                     disabled={
-                      !receipt ||
-                      receipt.status !== "DRAFT" ||
-                      isBusy
+                      !receipt || receipt.status !== "DRAFT" || isBusy
                     }
                     loading={cancelMutation.isPending}
                     onClick={() => void cancelMutation.mutateAsync(undefined)}
@@ -880,7 +980,7 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                     ยกเลิก
                   </Button>
                 </div>
-              </div>
+              </aside>
             </div>
           </>
         ) : null}

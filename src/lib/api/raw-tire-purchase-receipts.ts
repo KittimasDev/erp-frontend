@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiDownloadBlob, apiFetch, apiUpload } from "./client";
 import type {
   ClassificationContextApiResponse,
   CreateRawTirePurchaseReceiptRequest,
@@ -14,6 +14,8 @@ import type {
   PayReceiptRequest,
   PaymentContextApiResponse,
   PaymentPrintPreviewApiResponse,
+  PaymentSlipApiResponse,
+  PaymentSlipListApiResponse,
 } from "@/types/raw-tire-payment";
 import type {
   RawTirePurchaseReportListApiResponse,
@@ -142,6 +144,45 @@ export function getRawTirePurchasePaymentPrintPreview(
   return apiFetch<PaymentPrintPreviewApiResponse>(
     `/api/raw-tire-purchase/receipts/${receiptId}/payment-print-preview`,
     { method: "GET", token },
+  );
+}
+
+export function getRawTirePurchasePaymentSlips(
+  token: string,
+  receiptId: string,
+) {
+  return apiFetch<PaymentSlipListApiResponse>(
+    `/api/raw-tire-purchase/receipts/${receiptId}/payment/slips`,
+    { method: "GET", token },
+  );
+}
+
+export function uploadRawTirePurchasePaymentSlip(
+  token: string,
+  receiptId: string,
+  file: File,
+  description?: string,
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (description?.trim()) {
+    formData.append("description", description.trim());
+  }
+  return apiUpload<PaymentSlipApiResponse>(
+    `/api/raw-tire-purchase/receipts/${receiptId}/payment/slips`,
+    formData,
+    { token },
+  );
+}
+
+export function downloadRawTirePurchasePaymentSlip(
+  token: string,
+  receiptId: string,
+  attachmentId: string,
+) {
+  return apiDownloadBlob(
+    `/api/raw-tire-purchase/receipts/${receiptId}/payment/slips/${attachmentId}/download`,
+    { token },
   );
 }
 

@@ -6,6 +6,7 @@ import { App } from "antd";
 import {
   getRawTirePurchasePaymentPrintPreview,
   payRawTirePurchaseReceipt,
+  uploadRawTirePurchasePaymentSlip,
 } from "@/lib/api/raw-tire-purchase-receipts";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -50,6 +51,40 @@ export function usePayReceiptMutation(receiptId: string) {
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError ? error.message : "บันทึกจ่ายเงินไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useUploadPaymentSlipMutation(receiptId: string) {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [
+      "raw-tire-purchase",
+      "receipts",
+      receiptId,
+      "payment",
+      "slips",
+      "upload",
+    ],
+    mutationFn: (payload: { file: File; description?: string }) =>
+      uploadRawTirePurchasePaymentSlip(
+        getAccessToken(),
+        receiptId,
+        payload.file,
+        payload.description,
+      ),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({
+        queryKey: [...rawTirePaymentQueryKey, receiptId],
+      });
+      message.success(response.message || "อัปโหลดสลิปสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "อัปโหลดสลิปไม่สำเร็จ",
       );
     },
   });

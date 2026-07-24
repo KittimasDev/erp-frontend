@@ -32,6 +32,7 @@ import {
   REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET,
   resolveProductionOutputTicketLock,
 } from "@/types/production-output-stock-request";
+import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
@@ -133,7 +134,14 @@ function hasActiveReceipt(view: PaymentView) {
 }
 
 function resolveStep(view: PaymentView) {
-  if (isPaymentPaid(view)) {
+  if (view.flowState === "STOCK_POSTED") {
+    return 5;
+  }
+  if (
+    isPaymentPaid(view) ||
+    view.flowState === "WAITING_STOCK_IN" ||
+    view.flowState === "STOCK_REQUEST_PENDING"
+  ) {
     return 4;
   }
   if (isPaymentReady(view)) {
@@ -302,6 +310,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const paid = paymentView ? isPaymentPaid(paymentView) : false;
   const readyToPay = paymentView ? isPaymentReady(paymentView) : false;
   const hasReceipt = paymentView ? hasActiveReceipt(paymentView) : false;
+  const stockPosted = paymentView?.flowState === "STOCK_POSTED";
+  const stockRequestPending =
+    paymentView?.flowState === "STOCK_REQUEST_PENDING";
+  const readyForStockIn = paid && Boolean(ticket?.receiptId) && !stockPosted;
+  const maxStepIndex = PRODUCTION_OUTPUT_ENABLED ? 5 : 4;
 
   const canCreateWeighIn = Boolean(ticket?.canWeighIn);
   const canCreateWeighOut = Boolean(ticket?.canWeighOut);
@@ -436,23 +449,22 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               </div>
               <div className={styles.cardBody}>
                 <Steps
-                  current={
-                    PRODUCTION_OUTPUT_ENABLED
-                      ? Math.min(currentStep, 4)
-                      : Math.min(currentStep, 3)
-                  }
+                  current={Math.min(currentStep, maxStepIndex)}
                   status={
-                    paid && currentStep >= 4
-                      ? "process"
-                      : paid
-                        ? "finish"
-                        : "process"
+                    stockPosted
+                      ? "finish"
+                      : paid && currentStep >= 4
+                        ? "process"
+                        : paid
+                          ? "finish"
+                          : "process"
                   }
                   items={[
                     { title: "ชั่งเข้า" },
                     { title: "ชั่งออก" },
                     { title: "คัดแยก / ใบรับซื้อ" },
                     { title: "จ่ายเงิน" },
+                    { title: "เข้าคลัง" },
                     ...(PRODUCTION_OUTPUT_ENABLED
                       ? [{ title: "รับผลผลิตเข้าคลัง" }]
                       : []),
@@ -572,6 +584,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     .filter(Boolean)
                     .join(" ")}
                 >
+                  {weighInFlash ? (
+                    <div className={styles.stepCardUpdateBanner} aria-live="polite">
+                      <span>มีการอัปเดต</span>
+                    </div>
+                  ) : null}
                   <div className={styles.stepCardHeader}>
                     <div className={styles.stepCardHeaderMain}>
                       <div
@@ -815,6 +832,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     .filter(Boolean)
                     .join(" ")}
                 >
+                  {weighOutFlash ? (
+                    <div className={styles.stepCardUpdateBanner} aria-live="polite">
+                      <span>มีการอัปเดต</span>
+                    </div>
+                  ) : null}
                   <div className={styles.stepCardHeader}>
                     <div className={styles.stepCardHeaderMain}>
                       <div
@@ -1094,7 +1116,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       3
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 3 · คัดแยกประเภทสินค้า / สร้างใบรับซื้อ</h3>
+                      <h3>Step 3 · สร้างใบรับซื้อ</h3>
                       <p>
                         คัดแยกรายการยางและบันทึกก่อน จึงจะออกใบรับซื้อได้
                       </p>
@@ -1113,7 +1135,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     {ticket.receiptId
                       ? "มีใบรับซื้อแล้ว"
                       : currentStep === 2
-                        ? "พร้อมคัดแยก"
+                        ? "พร้อมสร้างใบสั่งซื้อ"
                         : "รอชั่งออก"}
                   </Tag>
                 </div>
@@ -1152,7 +1174,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             )
                           }
                         >
-                          ไปคัดแยกประเภทสินค้า
+                          สร้างใบรับซื้อ 
                         </Button>
                       ) : (
                         <>
@@ -1333,11 +1355,142 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                 </div>
               </div>
 
+              <div
+                className={[
+                  styles.stepCard,
+                  currentStep === 4 || readyForStockIn
+                    ? styles.stepCardActive
+                    : "",
+                  stockPosted ? styles.stepCardDone : "",
+                  !paid ? styles.stepCardLocked : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <div className={styles.stepCardHeader}>
+                  <div className={styles.stepCardHeaderMain}>
+                    <div
+                      className={[
+                        styles.stepBadge,
+                        currentStep === 4 || readyForStockIn
+                          ? styles.stepBadgeActive
+                          : "",
+                        stockPosted ? styles.stepBadgeDone : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      5
+                    </div>
+                    <div className={styles.stepCardTitle}>
+                      <h3>Step 5 · เข้าคลัง</h3>
+                      <p>
+                        ส่งคำขอรับยางดิบเข้าคลังหลังจ่ายเงินแล้ว — รออนุมัติจากคลัง
+                      </p>
+                    </div>
+                  </div>
+                  <Tag
+                    className={styles.stepStatusTag}
+                    color={
+                      stockPosted
+                        ? "success"
+                        : stockRequestPending
+                          ? "processing"
+                          : readyForStockIn
+                            ? "processing"
+                            : "default"
+                    }
+                  >
+                    {stockPosted
+                      ? STOCK_POSTING_STATUS_LABELS.POSTED
+                      : stockRequestPending
+                        ? "รออนุมัติเข้าคลัง"
+                        : readyForStockIn
+                          ? "รอส่งคำขอเข้าคลัง"
+                          : paid
+                            ? "พร้อมเข้าคลัง"
+                            : "รอจ่ายเงินก่อน"}
+                  </Tag>
+                </div>
+                <div className={styles.stepCardBody}>
+                  <div className={styles.stepMetaGrid}>
+                    <div className={styles.stepMetaItem}>
+                      <span>ใบรับซื้อ</span>
+                      <strong>
+                        {ticket.receiptNo
+                          ? `${ticket.receiptNo} (${RECEIPT_STATUS_LABELS[ticket.receiptStatus ?? ""] ?? ticket.receiptStatus ?? "-"})`
+                          : "ยังไม่มี"}
+                      </strong>
+                    </div>
+                    <div
+                      className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
+                    >
+                      <span>สถานะเข้าคลัง</span>
+                      <strong>
+                        {stockPosted
+                          ? STOCK_POSTING_STATUS_LABELS.POSTED
+                          : stockRequestPending
+                            ? "มีคำขอรออนุมัติ"
+                            : readyForStockIn
+                              ? "ยังไม่ส่งคำขอ"
+                              : "-"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {stockPosted ? (
+                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                      <Typography.Text type="success">
+                        รับเข้าคลังแล้ว
+                      </Typography.Text>
+                      <Button
+                        onClick={() =>
+                          router.push(
+                            `/receiving/receipts/${ticket.receiptId}`,
+                          )
+                        }
+                      >
+                        เปิดใบรับซื้อ
+                      </Button>
+                    </div>
+                  ) : readyForStockIn && ticket.receiptId ? (
+                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                      <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        onClick={() =>
+                          router.push(
+                            `/raw-tire-purchase/receipts/${ticket.receiptId}/stock-posting-request`,
+                          )
+                        }
+                      >
+                        {stockRequestPending
+                          ? "ดู / ติดตามคำขอเข้าคลัง"
+                          : "ส่งคำขอรับเข้าคลัง"}
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          router.push(
+                            `/receiving/receipts/${ticket.receiptId}`,
+                          )
+                        }
+                      >
+                        เปิดใบรับซื้อ
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className={styles.stepEmptyHint}>
+                      จ่ายเงินใน Step 4 ให้เสร็จก่อน แล้วค่อยส่งคำขอรับยางดิบเข้าคลัง
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {PRODUCTION_OUTPUT_ENABLED ? (
               <div
                 className={[
                   styles.stepCard,
-                  currentStep === 4 || paid
+                  currentStep === 5 || (paid && stockPosted)
                     ? styles.stepCardActive
                     : "",
                   productionOutputLock.locked ? styles.stepCardDone : "",
@@ -1350,7 +1503,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div
                       className={[
                         styles.stepBadge,
-                        currentStep === 4 || paid
+                        currentStep === 5 || paid
                           ? styles.stepBadgeActive
                           : "",
                         productionOutputLock.locked
@@ -1360,10 +1513,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      5
+                      6
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 5 · ขอรับผลผลิตเข้าคลัง</h3>
+                      <h3>Step 6 · ขอรับผลผลิตเข้าคลัง</h3>
                       <p>
                         รับผงยาง / น้ำมัน Pyrolysis / เศษเหล็ก ฯลฯ จาก Master
                         Items — ส่งแล้วจะล็อกจนกว่าจะถูกปฏิเสธ

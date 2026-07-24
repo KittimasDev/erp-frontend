@@ -67,8 +67,37 @@ export type PaymentContext = {
   bankAccounts: PaymentBankAccount[];
   voucher?: PurchasePaymentVoucher;
   payment?: PurchasePayment;
+  slips: PaymentSlipAttachment[];
   canPay: boolean;
+  /** อัปโหลดสลิปได้เฉพาะช่วงรอจ่าย — จ่ายแล้วล็อก */
+  canUploadSlip: boolean;
   canPrint: boolean;
+};
+
+export type PaymentSlipAttachment = {
+  id: string;
+  documentType: string;
+  documentId: string;
+  originalFileName?: string;
+  mimeType?: string;
+  fileSize: string;
+  attachmentGroup?: string;
+  description?: string;
+  uploadedById?: string;
+  uploadedByName?: string;
+  createdAt: string;
+};
+
+export type PaymentSlipApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: PaymentSlipAttachment;
+};
+
+export type PaymentSlipListApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: PaymentSlipAttachment[];
 };
 
 export type PaymentContextApiResponse = {

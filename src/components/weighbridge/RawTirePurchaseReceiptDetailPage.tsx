@@ -434,7 +434,10 @@ export default function RawTirePurchaseReceiptDetailPage({
                         okText="ยืนยันยอด"
                         cancelText="ยกเลิก"
                         disabled={!receipt.canConfirm || isBusy}
-                        onConfirm={() => void confirmMutation.mutateAsync()}
+                        onConfirm={async () => {
+                          await confirmMutation.mutateAsync();
+                          router.push("/receiving");
+                        }}
                       >
                         <Button
                           type="primary"
