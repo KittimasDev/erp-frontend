@@ -22,9 +22,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-bottom: 8px;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .sidebarCollapsed {

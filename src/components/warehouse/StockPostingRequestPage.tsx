@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -88,7 +88,7 @@ function formatDate(value?: string) {
 export default function StockPostingRequestPage({ receiptId }: Props) {
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
-  const warehouseId = Form.useWatch("warehouseId", form);
+  const [warehouseId, setWarehouseId] = useState<string>();
 
   const canRequest = userHasRole(RoleCode.WAREHOUSE_OFFICER);
   const receiptQuery = useRawTirePurchaseReceiptQuery(receiptId);
@@ -116,14 +116,19 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
     !alreadyPosted;
 
   useEffect(() => {
+    if (!receipt || !canSubmit) {
+      return;
+    }
     form.setFieldsValue({
       postingDate: dayjs(),
     });
-  }, [form]);
+  }, [receipt, canSubmit, form]);
 
   useEffect(() => {
-    form.setFieldValue("warehouseLocationId", undefined);
-  }, [warehouseId, form]);
+    if (!canSubmit) {
+      setWarehouseId(undefined);
+    }
+  }, [canSubmit]);
 
   const warehouseOptions = useMemo(
     () =>
@@ -405,123 +410,136 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                     </p>
                   </div>
                   <div className={styles.cardBody}>
-                    {canSubmit ? (
-                      <Form
-                        form={form}
-                        layout="vertical"
-                        requiredMark="optional"
-                        onFinish={() => void handleSubmit()}
-                      >
-                        <div className={styles.detailGrid}>
-                          <Form.Item
-                            label="คลังสินค้า"
-                            name="warehouseId"
-                            rules={[
-                              { required: true, message: "กรุณาเลือกคลัง" },
-                            ]}
-                          >
-                            <Select
-                              showSearch
-                              optionFilterProp="label"
-                              placeholder="เลือกคลัง"
-                              options={warehouseOptions}
-                              loading={warehousesQuery.isLoading}
+                    <Form
+                      form={form}
+                      layout="vertical"
+                      requiredMark="optional"
+                      onFinish={() => {
+                        if (canSubmit) {
+                          void handleSubmit();
+                        }
+                      }}
+                    >
+                      {canSubmit ? (
+                        <>
+                          <div className={styles.detailGrid}>
+                            <Form.Item
+                              label="คลังสินค้า"
+                              name="warehouseId"
+                              rules={[
+                                { required: true, message: "กรุณาเลือกคลัง" },
+                              ]}
+                            >
+                              <Select
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder="เลือกคลัง"
+                                options={warehouseOptions}
+                                loading={warehousesQuery.isLoading}
+                                onChange={(value) => {
+                                  setWarehouseId(value);
+                                  form.setFieldValue(
+                                    "warehouseLocationId",
+                                    undefined,
+                                  );
+                                }}
+                              />
+                            </Form.Item>
+
+                            <Form.Item
+                              label="ตำแหน่งจัดเก็บ"
+                              name="warehouseLocationId"
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "กรุณาเลือกตำแหน่ง",
+                                },
+                              ]}
+                            >
+                              <Select
+                                showSearch
+                                optionFilterProp="label"
+                                placeholder={
+                                  warehouseId ? "เลือกตำแหน่ง" : "เลือกคลังก่อน"
+                                }
+                                options={locationOptions}
+                                loading={locationsQuery.isFetching}
+                                disabled={!warehouseId}
+                              />
+                            </Form.Item>
+
+                            <Form.Item
+                              label="วันที่รับเข้า"
+                              name="postingDate"
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "กรุณาเลือกวันที่",
+                                },
+                              ]}
+                            >
+                              <DatePicker
+                                style={{ width: "100%" }}
+                                format="DD/MM/YYYY"
+                              />
+                            </Form.Item>
+                          </div>
+
+                          <Form.Item label="หมายเหตุ" name="remark">
+                            <Input.TextArea
+                              rows={3}
+                              placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
                             />
                           </Form.Item>
 
-                          <Form.Item
-                            label="ตำแหน่งจัดเก็บ"
-                            name="warehouseLocationId"
-                            rules={[
-                              {
-                                required: true,
-                                message: "กรุณาเลือกตำแหน่ง",
-                              },
-                            ]}
-                          >
-                            <Select
-                              showSearch
-                              optionFilterProp="label"
-                              placeholder={
-                                warehouseId ? "เลือกตำแหน่ง" : "เลือกคลังก่อน"
-                              }
-                              options={locationOptions}
-                              loading={locationsQuery.isFetching}
-                              disabled={!warehouseId}
-                            />
-                          </Form.Item>
-
-                          <Form.Item
-                            label="วันที่รับเข้า"
-                            name="postingDate"
-                            rules={[
-                              {
-                                required: true,
-                                message: "กรุณาเลือกวันที่",
-                              },
-                            ]}
-                          >
-                            <DatePicker
-                              style={{ width: "100%" }}
-                              format="DD/MM/YYYY"
-                            />
-                          </Form.Item>
-                        </div>
-
-                        <Form.Item label="หมายเหตุ" name="remark">
-                          <Input.TextArea
-                            rows={3}
-                            placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
-                          />
-                        </Form.Item>
-
-                        <div className={styles.classificationActions}>
-                          <Button
-                            type="primary"
-                            htmlType="submit"
-                            className={styles.submitButton}
-                            icon={<InboxOutlined />}
-                            loading={createMutation.isPending}
-                            disabled={isBusy}
-                          >
-                            ส่งคำขอรับเข้าคลัง
-                          </Button>
-                          <Button
-                            disabled={isBusy}
-                            onClick={() =>
-                              router.push(`/receiving/receipts/${receiptId}`)
-                            }
-                          >
-                            ยกเลิก
-                          </Button>
-                        </div>
-                      </Form>
-                    ) : (
-                      <div className={styles.slipLocked}>
-                        <Typography.Text type="secondary">
-                          {alreadyPosted
-                            ? "รับเข้าคลังแล้ว — ไม่ต้องส่งคำขออีก"
-                            : pendingExists
-                              ? "มีคำขอรออนุมัติอยู่ — รอหัวหน้าคลังดำเนินการ"
-                              : receipt.status !== "CONFIRMED"
-                                ? "ยืนยันใบรับซื้อก่อน จึงจะส่งคำขอเข้าคลังได้"
-                                : !canRequest
-                                  ? "ไม่มีสิทธิ์ส่งคำขอรับเข้าคลัง"
-                                  : "ยังไม่สามารถส่งคำขอได้ในสถานะนี้"}
-                        </Typography.Text>
-                        {alreadyPosted || pendingExists ? (
-                          <div style={{ marginTop: 12 }}>
+                          <div className={styles.classificationActions}>
                             <Button
+                              type="primary"
+                              htmlType="submit"
+                              className={styles.submitButton}
+                              icon={<InboxOutlined />}
+                              loading={createMutation.isPending}
+                              disabled={isBusy}
+                            >
+                              ส่งคำขอรับเข้าคลัง
+                            </Button>
+                            <Button
+                              disabled={isBusy}
                               onClick={() =>
-                                router.push("/warehouse/stock-posting-approvals")
+                                router.push(`/receiving/receipts/${receiptId}`)
                               }
                             >
-                              ไปหน้ารายการอนุมัติเข้าคลัง
+                              ยกเลิก
                             </Button>
                           </div>
-                        ) : null}
-                      </div>
-                    )}
+                        </>
+                      ) : (
+                        <div className={styles.slipLocked}>
+                          <Typography.Text type="secondary">
+                            {alreadyPosted
+                              ? "รับเข้าคลังแล้ว — ไม่ต้องส่งคำขออีก"
+                              : pendingExists
+                                ? "มีคำขอรออนุมัติอยู่ — รอหัวหน้าคลังดำเนินการ"
+                                : receipt.status !== "CONFIRMED"
+                                  ? "ยืนยันใบรับซื้อก่อน จึงจะส่งคำขอเข้าคลังได้"
+                                  : !canRequest
+                                    ? "ไม่มีสิทธิ์ส่งคำขอรับเข้าคลัง"
+                                    : "ยังไม่สามารถส่งคำขอได้ในสถานะนี้"}
+                          </Typography.Text>
+                          {alreadyPosted || pendingExists ? (
+                            <div style={{ marginTop: 12 }}>
+                              <Button
+                                onClick={() =>
+                                  router.push("/warehouse/stock-posting-approvals")
+                                }
+                              >
+                                ไปหน้ารายการอนุมัติเข้าคลัง
+                              </Button>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </Form>
                   </div>
                 </div>
               </div>

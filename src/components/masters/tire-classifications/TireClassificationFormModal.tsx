@@ -76,7 +76,7 @@ export default function TireClassificationFormModal({
   }, [open, mode, initialClassification, form]);
 
   useEffect(() => {
-    if (!itemId || mode === "edit") {
+    if (!open || !itemId || mode === "edit") {
       return;
     }
     const selected = itemOptions.find((option) => option.value === itemId);
@@ -89,7 +89,7 @@ export default function TireClassificationFormModal({
       code: currentCode || selected.itemCode,
       name: currentName || selected.itemNameTh,
     });
-  }, [itemId, itemOptions, form, mode]);
+  }, [open, itemId, itemOptions, form, mode]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
@@ -115,7 +115,6 @@ export default function TireClassificationFormModal({
       confirmLoading={confirmLoading}
       okText={isCreateMode ? "บันทึก" : "อัปเดต"}
       cancelText="ยกเลิก"
-      destroyOnHidden
       width={560}
       centered
     >

@@ -405,8 +405,9 @@ export default function WeighbridgeDashboardPage() {
   const [ticketDrawerOpen, setTicketDrawerOpen] = useState(false);
   const [sellerDrawerOpen, setSellerDrawerOpen] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
-  const sellerId = Form.useWatch("sellerId", ticketForm);
-  const truckId = Form.useWatch("truckId", ticketForm);
+  // SideSheet unmounts Form when closed — use local state instead of Form.useWatch
+  const [sellerId, setSellerId] = useState<string | undefined>();
+  const [truckId, setTruckId] = useState<string | undefined>();
 
   const stage = parseStage(searchParams.get("stage"));
   const searchQuery = searchParams.get("q")?.trim() ?? "";
@@ -633,6 +634,15 @@ export default function WeighbridgeDashboardPage() {
   );
 
   useEffect(() => {
+    if (!ticketDrawerOpen) {
+      return;
+    }
+    ticketForm.resetFields();
+    setSellerId(undefined);
+    setTruckId(undefined);
+  }, [ticketDrawerOpen, ticketForm]);
+
+  useEffect(() => {
     if (!sellerDrawerOpen) {
       return;
     }
@@ -699,7 +709,6 @@ export default function WeighbridgeDashboardPage() {
   ];
 
   const openTicketDrawer = () => {
-    ticketForm.resetFields();
     setSellerDrawerOpen(false);
     setTicketDrawerOpen(true);
   };
@@ -707,11 +716,16 @@ export default function WeighbridgeDashboardPage() {
   const closeTicketDrawer = () => {
     setSellerDrawerOpen(false);
     setTicketDrawerOpen(false);
-    ticketForm.resetFields();
+    setSellerId(undefined);
+    setTruckId(undefined);
   };
 
-  const handleSellerChange = () => {
-    ticketForm.setFieldsValue({ truckId: undefined });
+  const handleSellerChange = (value?: string) => {
+    setSellerId(value);
+    setTruckId(undefined);
+    if (ticketDrawerOpen) {
+      ticketForm.setFieldsValue({ truckId: undefined });
+    }
   };
 
   const handleSubmitTicket = async (values: OpenTicketFormValues) => {
@@ -742,10 +756,14 @@ export default function WeighbridgeDashboardPage() {
 
     createSellerMutation.mutate(payload, {
       onSuccess: (response) => {
-        ticketForm.setFieldsValue({
-          sellerId: response.data.id,
-          truckId: undefined,
-        });
+        setSellerId(response.data.id);
+        setTruckId(undefined);
+        if (ticketDrawerOpen) {
+          ticketForm.setFieldsValue({
+            sellerId: response.data.id,
+            truckId: undefined,
+          });
+        }
         setSellerDrawerOpen(false);
       },
     });
@@ -1301,6 +1319,7 @@ export default function WeighbridgeDashboardPage() {
                 loading={trucksQuery.isLoading}
                 options={truckOptions}
                 notFoundContent="ไม่พบรถบรรทุก"
+                onChange={(value) => setTruckId(value)}
                 styles={{ popup: SELECT_POPUP_STYLE }}
               />
             </Form.Item>
