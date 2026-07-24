@@ -13,3 +13,6 @@ alwaysApply: true
 - ก่อนแก้ API call ตรวจ backend controller/service/DTO
 - ห้ามเปลี่ยน API path / refactor ใหญ่ถ้าไม่ได้สั่ง
 - ถ้าเจอปัญหา API เช็คทั้ง request ฝั่งนี้และ route ฝั่ง backend
+- **Lib หนักที่ใช้เฉพาะตอน user กดปุ่ม (jspdf, html2canvas, ฯลฯ) ห้าม import แบบ static ที่ top of file** — ใช้ dynamic `await import("@/utils/xxx")` ในตัว handler เอง (เช่น `onClick`) แทน ลด initial JS bundle ของหน้านั้นได้เยอะโดยไม่กระทบ logic เลย ดูตัวอย่างที่ `PurchaseOrderDetailPage.tsx` / `PurchaseRequestDetailPage.tsx`
+- Next.js เวอร์ชันนี้ (16+) auto-optimize `antd`, `@ant-design/icons`, `recharts` ผ่าน `optimizePackageImports` default อยู่แล้ว — **ไม่ต้อง**เพิ่มใน `next.config.ts` เอง
+- ก่อนเพิ่ม dependency หนักตัวใหม่ (canvas/pdf/chart lib) คิดก่อนว่าต้องใช้ทุกหน้าไหม ถ้าใช้เฉพาะบางปุ่ม/บาง action ให้ lazy-load ตั้งแต่แรก

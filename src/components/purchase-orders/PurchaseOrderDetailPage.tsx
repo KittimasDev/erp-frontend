@@ -26,7 +26,6 @@ import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
-import { generatePurchaseOrderPdf } from "@/utils/generatePurchaseOrderPdf";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./PurchaseOrderDetailPage.module.css";
 
@@ -119,7 +118,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
   const busy = confirmMutation.isPending || cancelMutation.isPending;
 
-  const printPdf = () => {
+  const printPdf = async () => {
+    const { generatePurchaseOrderPdf } = await import(
+      "@/utils/generatePurchaseOrderPdf"
+    );
     generatePurchaseOrderPdf({
       poNo: data.poNo,
       poDate: formatDate(data.poDate),

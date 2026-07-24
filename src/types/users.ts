@@ -81,3 +81,15 @@ export type RoleListApiResponse = {
   message: string;
   data: Role[];
 };
+
+export type RoleApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: Role;
+};
+
+export type CreateRoleRequest = {
+  roleCode: string;
+  roleName: string;
+  description?: string;
+};

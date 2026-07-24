@@ -34,11 +34,6 @@ import {
   PAYMENT_STATUS_LABELS,
   RECEIPT_STATUS_LABELS,
 } from "@/types/raw-tire-purchase-receipt";
-import {
-  generateRawTirePurchaseReceiptPdf,
-  mapReceiptDetailToPdfData,
-} from "@/utils/generateRawTirePurchaseReceiptPdf";
-
 import styles from "./WeighbridgeDashboardPage.module.css";
 
 function formatWeight(value?: string | number) {
@@ -137,6 +132,8 @@ export default function RawTirePurchaseReceiptDetailPage({
     }
     setIsPrinting(true);
     try {
+      const { generateRawTirePurchaseReceiptPdf, mapReceiptDetailToPdfData } =
+        await import("@/utils/generateRawTirePurchaseReceiptPdf");
       await generateRawTirePurchaseReceiptPdf(
         mapReceiptDetailToPdfData(receipt),
       );

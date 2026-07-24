@@ -2,17 +2,35 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Button, Checkbox, Empty, Select, Spin, Typography } from "antd";
-import { SafetyCertificateOutlined, SaveOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Checkbox,
+  Empty,
+  Popconfirm,
+  Select,
+  Spin,
+  Typography,
+} from "antd";
+import {
+  DeleteOutlined,
+  PlusOutlined,
+  SafetyCertificateOutlined,
+  SaveOutlined,
+} from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useRolesQuery } from "@/hooks/users/useRolesQuery";
+import {
+  useCreateRoleMutation,
+  useDeleteRoleMutation,
+} from "@/hooks/users/useRoleMutations";
 import { usePermissionScreensQuery } from "@/hooks/permissions/usePermissionScreensQuery";
 import { useRolePermissionsQuery } from "@/hooks/permissions/useRolePermissionsQuery";
 import { useUpdateRolePermissionsMutation } from "@/hooks/permissions/useUpdateRolePermissionsMutation";
 import { isAdministrator } from "@/lib/auth/session";
 import type { ScreenCatalog } from "@/types/permissions";
 
+import RoleFormModal from "./RoleFormModal";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./PermissionMatrixPage.module.css";
 
@@ -97,11 +115,15 @@ export default function PermissionMatrixPage() {
 
   const [roleId, setRoleId] = useState<string | undefined>();
   const [moduleFilter, setModuleFilter] = useState<string[]>([]);
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
   const selectedRoleId = roleId ?? roles[0]?.id;
   const rolePermissionsQuery = useRolePermissionsQuery(selectedRoleId);
   const updateMutation = useUpdateRolePermissionsMutation(
     selectedRoleId ?? "",
   );
+  const createRoleMutation = useCreateRoleMutation();
+  const deleteRoleMutation = useDeleteRoleMutation();
+  const selectedRole = roles.find((role) => role.id === selectedRoleId);
 
   const [allowed, setAllowed] = useState<Record<string, boolean>>({});
   const serverAssignments = rolePermissionsQuery.data?.data.assignments;
@@ -186,17 +208,26 @@ export default function PermissionMatrixPage() {
               ใช้จำกัดเฉพาะ role ที่อนุมัติได้
             </Typography.Text>
           </div>
-          <Button
-            type="primary"
-            size="large"
-            className={masterStyles.createButton}
-            icon={<SaveOutlined />}
-            loading={updateMutation.isPending}
-            disabled={!selectedRoleId || screens.length === 0}
-            onClick={handleSave}
-          >
-            บันทึกสิทธิ์
-          </Button>
+          <div className={styles.headerActions}>
+            <Button
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={() => setRoleModalOpen(true)}
+            >
+              สร้างบทบาทใหม่
+            </Button>
+            <Button
+              type="primary"
+              size="large"
+              className={masterStyles.createButton}
+              icon={<SaveOutlined />}
+              loading={updateMutation.isPending}
+              disabled={!selectedRoleId || screens.length === 0}
+              onClick={handleSave}
+            >
+              บันทึกสิทธิ์
+            </Button>
+          </div>
         </div>
 
         <div className={masterStyles.filterCard}>
@@ -212,18 +243,52 @@ export default function PermissionMatrixPage() {
           <div className={styles.filterFields}>
             <label className={styles.filterField}>
               <span className={styles.filterLabel}>บทบาท</span>
-              <Select
-                className={styles.roleSelect}
-                value={selectedRoleId}
-                onChange={setRoleId}
-                showSearch
-                optionFilterProp="label"
-                placeholder="เลือกบทบาท"
-                options={roles.map((role) => ({
-                  value: role.id,
-                  label: `${role.roleCode} — ${role.roleName}`,
-                }))}
-              />
+              <div className={styles.roleSelectRow}>
+                <Select
+                  className={styles.roleSelect}
+                  value={selectedRoleId}
+                  onChange={setRoleId}
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="เลือกบทบาท"
+                  options={roles.map((role) => ({
+                    value: role.id,
+                    label: `${role.roleCode} — ${role.roleName}`,
+                  }))}
+                />
+                <Popconfirm
+                  title="ลบบทบาท"
+                  description={
+                    selectedRole
+                      ? `ต้องการลบ "${selectedRole.roleName}" หรือไม่?`
+                      : undefined
+                  }
+                  okText="ลบ"
+                  cancelText="ยกเลิก"
+                  okButtonProps={{ danger: true }}
+                  disabled={!selectedRole || selectedRole.isSystemRole}
+                  onConfirm={() => {
+                    if (!selectedRole) return;
+                    deleteRoleMutation.mutate(selectedRole.id, {
+                      onSuccess: () => setRoleId(undefined),
+                    });
+                  }}
+                >
+                  <Button
+                    className={masterStyles.deleteButton}
+                    icon={<DeleteOutlined />}
+                    loading={deleteRoleMutation.isPending}
+                    disabled={!selectedRole || selectedRole.isSystemRole}
+                    title={
+                      selectedRole?.isSystemRole
+                        ? "บทบาทมาตรฐานของระบบ ลบไม่ได้"
+                        : undefined
+                    }
+                  >
+                    ลบ
+                  </Button>
+                </Popconfirm>
+              </div>
             </label>
             <label className={styles.filterField}>
               <span className={styles.filterLabel}>โมดูล</span>
@@ -346,6 +411,20 @@ export default function PermissionMatrixPage() {
           )}
         </div>
       </section>
+
+      <RoleFormModal
+        open={roleModalOpen}
+        confirmLoading={createRoleMutation.isPending}
+        onCancel={() => setRoleModalOpen(false)}
+        onSubmit={(values) => {
+          createRoleMutation.mutate(values, {
+            onSuccess: (res) => {
+              setRoleModalOpen(false);
+              setRoleId(res.data.id);
+            },
+          });
+        }}
+      />
     </MasterPageGate>
   );
 }

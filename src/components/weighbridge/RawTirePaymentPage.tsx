@@ -51,10 +51,6 @@ import {
   PAYMENT_STATUS_LABELS,
   RECEIPT_STATUS_LABELS,
 } from "@/types/raw-tire-purchase-receipt";
-import {
-  generateRawTirePaymentVoucherPdf,
-  mapPaymentContextToPdfData,
-} from "@/utils/generateRawTirePaymentVoucherPdf";
 import { optimizePaymentSlipFile } from "@/utils/optimizePaymentSlipFile";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
@@ -218,6 +214,8 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
     }
     setIsPrinting(true);
     try {
+      const { generateRawTirePaymentVoucherPdf, mapPaymentContextToPdfData } =
+        await import("@/utils/generateRawTirePaymentVoucherPdf");
       await generateRawTirePaymentVoucherPdf(
         mapPaymentContextToPdfData(context),
       );

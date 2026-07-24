@@ -28,7 +28,6 @@ import dayjs from "dayjs";
 import { usePurchaseRequestsQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
-import { generatePurchaseRequestPdf } from "@/utils/generatePurchaseRequestPdf";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import type { PurchaseRequest } from "@/types/purchase-requests";
 import {
@@ -186,7 +185,10 @@ export default function PurchaseRequestsListPage() {
               className={styles.actionBtn}
               type="button"
               title="พิมพ์ PDF"
-              onClick={() =>
+              onClick={async () => {
+                const { generatePurchaseRequestPdf } = await import(
+                  "@/utils/generatePurchaseRequestPdf"
+                );
                 generatePurchaseRequestPdf({
                   prNo: row.prNo,
                   requestBy: row.requestedBy?.displayName ?? "—",
@@ -202,8 +204,8 @@ export default function PurchaseRequestsListPage() {
                     unit: item.unitNameTh ?? item.unitCode ?? "—",
                     qty: Number(item.quantity),
                   })),
-                })
-              }
+                });
+              }}
             >
               <FilePdfOutlined />
             </button>

@@ -28,7 +28,6 @@ import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceip
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
-import { generatePurchaseRequestPdf } from "@/utils/generatePurchaseRequestPdf";
 import {
   PURCHASE_REQUEST_STATUS_LABEL,
   type PurchaseRequestStatus,
@@ -128,7 +127,10 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
     PURCHASE_REQUEST_STATUS_LABEL[data.status as PurchaseRequestStatus] ??
     data.status;
 
-  const printPdf = () => {
+  const printPdf = async () => {
+    const { generatePurchaseRequestPdf } = await import(
+      "@/utils/generatePurchaseRequestPdf"
+    );
     generatePurchaseRequestPdf({
       prNo: data.prNo,
       requestBy: data.requestedBy?.displayName ?? "—",
