@@ -1,10 +1,18 @@
 .roleSelectRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 0 22px 20px;
 }
 
-.roleSelect {
+.roleSelect,
+.moduleSelect {
   width: 100%;
   max-width: 420px;
+}
+
+.moduleSelect {
+  max-width: 280px;
 }
 
 .matrixScroll {
@@ -18,6 +26,9 @@
 }
 
 .matrixTable thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   padding: 12px 14px;
   color: var(--unit-gray-dark, #2f343a);
   background: #f0f1f3;
@@ -35,6 +46,34 @@
 
 .functionHeaderCell {
   min-width: 90px;
+}
+
+.sectionRow {
+  background: linear-gradient(90deg, #eef5e0 0%, #f5f7f2 100%);
+}
+
+.sectionCell {
+  padding: 10px 14px;
+  border-top: 1px solid #d7e3c4;
+  border-bottom: 1px solid #d7e3c4;
+  vertical-align: middle;
+}
+
+.sectionLabel {
+  display: inline-block;
+  margin-right: 10px;
+  color: #4f6b1f;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.sectionMeta {
+  color: #7a8a68;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .screenCell {
@@ -78,7 +117,8 @@
 }
 
 @media (max-width: 640px) {
-  .roleSelect {
+  .roleSelect,
+  .moduleSelect {
     max-width: 100%;
   }
 }

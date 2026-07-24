@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Button, Checkbox, Empty, Select, Spin, Typography } from "antd";
 import { SafetyCertificateOutlined, SaveOutlined } from "@ant-design/icons";
@@ -11,6 +11,7 @@ import { usePermissionScreensQuery } from "@/hooks/permissions/usePermissionScre
 import { useRolePermissionsQuery } from "@/hooks/permissions/useRolePermissionsQuery";
 import { useUpdateRolePermissionsMutation } from "@/hooks/permissions/useUpdateRolePermissionsMutation";
 import { isAdministrator } from "@/lib/auth/session";
+import type { ScreenCatalog } from "@/types/permissions";
 
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./PermissionMatrixPage.module.css";
@@ -25,6 +26,57 @@ const FUNCTION_ORDER = [
   "PRINT",
 ];
 
+/** ลำดับและชื่อแสดงกลุ่มโมดูลใน Permission Matrix */
+const MODULE_SECTIONS: Array<{ code: string; label: string }> = [
+  { code: "DASHBOARD", label: "แดชบอร์ด" },
+  { code: "SALES", label: "ขาย" },
+  { code: "PROCUREMENT", label: "จัดซื้อ" },
+  { code: "RAW_TIRE", label: "รับซื้อยาง" },
+  { code: "WAREHOUSE", label: "คลัง · อนุมัติงานคลัง" },
+  { code: "INVENTORY", label: "คลัง · สต๊อก" },
+  { code: "PRODUCTION", label: "ผลิต" },
+  { code: "OIL_TANK_FARM", label: "ถังน้ำมัน" },
+  { code: "LABORATORY", label: "ห้องแล็บ" },
+  { code: "MAINTENANCE", label: "ซ่อมบำรุง" },
+  { code: "HRM", label: "บุคคล" },
+  { code: "REPORTS", label: "รายงาน" },
+  { code: "MASTERS", label: "Master Data" },
+  { code: "SECURITY", label: "ระบบ · ความปลอดภัย" },
+];
+
+const MODULE_LABEL_BY_CODE = Object.fromEntries(
+  MODULE_SECTIONS.map((item) => [item.code, item.label]),
+) as Record<string, string>;
+
+function moduleLabel(code: string) {
+  return MODULE_LABEL_BY_CODE[code] ?? code;
+}
+
+function groupScreensByModule(screens: ScreenCatalog[]) {
+  const byModule = new Map<string, ScreenCatalog[]>();
+  for (const screen of screens) {
+    const code = screen.moduleCode?.trim() || "OTHER";
+    const list = byModule.get(code) ?? [];
+    list.push(screen);
+    byModule.set(code, list);
+  }
+
+  const orderedCodes = [
+    ...MODULE_SECTIONS.map((item) => item.code).filter((code) =>
+      byModule.has(code),
+    ),
+    ...[...byModule.keys()]
+      .filter((code) => !MODULE_LABEL_BY_CODE[code])
+      .sort((a, b) => a.localeCompare(b)),
+  ];
+
+  return orderedCodes.map((code) => ({
+    code,
+    label: moduleLabel(code),
+    screens: byModule.get(code) ?? [],
+  }));
+}
+
 export default function PermissionMatrixPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -38,9 +90,13 @@ export default function PermissionMatrixPage() {
   const rolesQuery = useRolesQuery();
   const screensQuery = usePermissionScreensQuery();
   const roles = rolesQuery.data?.data ?? [];
-  const screens = useMemo(() => screensQuery.data?.data ?? [], [screensQuery.data]);
+  const screens = useMemo(
+    () => screensQuery.data?.data ?? [],
+    [screensQuery.data],
+  );
 
   const [roleId, setRoleId] = useState<string | undefined>();
+  const [moduleFilter, setModuleFilter] = useState<string | undefined>();
   const selectedRoleId = roleId ?? roles[0]?.id;
   const rolePermissionsQuery = useRolePermissionsQuery(selectedRoleId);
   const updateMutation = useUpdateRolePermissionsMutation(
@@ -70,6 +126,35 @@ export default function PermissionMatrixPage() {
       }
     }
     return FUNCTION_ORDER.filter((code) => set.has(code));
+  }, [screens]);
+
+  const moduleGroups = useMemo(() => {
+    const groups = groupScreensByModule(screens);
+    if (!moduleFilter) return groups;
+    return groups.filter((group) => group.code === moduleFilter);
+  }, [screens, moduleFilter]);
+
+  const visibleScreenCount = useMemo(
+    () => moduleGroups.reduce((sum, group) => sum + group.screens.length, 0),
+    [moduleGroups],
+  );
+
+  const moduleFilterOptions = useMemo(() => {
+    const present = new Set(
+      screens.map((screen) => screen.moduleCode?.trim() || "OTHER"),
+    );
+    return [
+      ...MODULE_SECTIONS.filter((item) => present.has(item.code)).map(
+        (item) => ({
+          value: item.code,
+          label: item.label,
+        }),
+      ),
+      ...[...present]
+        .filter((code) => !MODULE_LABEL_BY_CODE[code])
+        .sort((a, b) => a.localeCompare(b))
+        .map((code) => ({ value: code, label: code })),
+    ];
   }, [screens]);
 
   const toggle = (permissionId: string) => {
@@ -104,8 +189,8 @@ export default function PermissionMatrixPage() {
               Permission Matrix
             </Typography.Title>
             <Typography.Text className={masterStyles.pageSubtitle}>
-              กำหนดสิทธิ์การใช้งานรายหน้าจอให้แต่ละบทบาท — การตรวจสิทธิ์จริงของระบบ
-              ยังใช้ Role เดิมเหมือนเดิม
+              กำหนดสิทธิ์การใช้งานรายหน้าจอให้แต่ละบทบาท — จัดกลุ่มตามโมดูล
+              เช่น ขาย จัดซื้อ คลัง Master
             </Typography.Text>
           </div>
           <Button
@@ -124,9 +209,9 @@ export default function PermissionMatrixPage() {
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>
             <div>
-              <div className={masterStyles.filterEyebrow}>ROLE</div>
-              <h3>เลือกบทบาท</h3>
-              <p>เลือกบทบาทที่ต้องการกำหนดสิทธิ์</p>
+              <div className={masterStyles.filterEyebrow}>FILTER</div>
+              <h3>เลือกบทบาทและโมดูล</h3>
+              <p>กรองตามส่วนงานเพื่อดูสิทธิ์เฉพาะกลุ่ม</p>
             </div>
           </div>
           <div className={styles.roleSelectRow}>
@@ -142,6 +227,16 @@ export default function PermissionMatrixPage() {
                 label: `${role.roleCode} — ${role.roleName}`,
               }))}
             />
+            <Select
+              className={styles.moduleSelect}
+              allowClear
+              value={moduleFilter}
+              onChange={(value) => setModuleFilter(value)}
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทุกโมดูล"
+              options={moduleFilterOptions}
+            />
           </div>
         </div>
 
@@ -150,10 +245,11 @@ export default function PermissionMatrixPage() {
             <div>
               <div className={masterStyles.tableEyebrow}>MATRIX</div>
               <h3>สิทธิ์ตามหน้าจอ</h3>
-              <p>ติ๊กเพื่ออนุญาต แล้วกดบันทึกสิทธิ์</p>
+              <p>ติ๊กเพื่ออนุญาต แล้วกดบันทึกสิทธิ์ — จัดกลุ่มตามโมดูล</p>
             </div>
             <div className={masterStyles.tableCount}>
-              {screens.length} หน้าจอ
+              {visibleScreenCount}
+              {moduleFilter ? ` / ${screens.length}` : ""} หน้าจอ
             </div>
           </div>
 
@@ -165,6 +261,11 @@ export default function PermissionMatrixPage() {
             <Empty
               className={styles.emptyBox}
               description="ยังไม่มีข้อมูล Screen"
+            />
+          ) : visibleScreenCount === 0 ? (
+            <Empty
+              className={styles.emptyBox}
+              description="ไม่พบหน้าจอในโมดูลที่เลือก"
             />
           ) : (
             <div className={styles.matrixScroll}>
@@ -180,38 +281,59 @@ export default function PermissionMatrixPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {screens.map((screen) => {
-                    const fnByCode = new Map(
-                      screen.functions.map((fn) => [fn.functionCode, fn]),
-                    );
-                    return (
-                      <tr key={screen.id}>
-                        <td className={styles.screenCell}>
-                          <span className={styles.screenName}>
-                            {screen.screenName}
+                  {moduleGroups.map((group) => (
+                    <Fragment key={group.code}>
+                      <tr className={styles.sectionRow}>
+                        <td
+                          className={styles.sectionCell}
+                          colSpan={functionCodes.length + 1}
+                        >
+                          <span className={styles.sectionLabel}>
+                            {group.label}
                           </span>
-                          <span className={styles.screenModule}>
-                            {screen.moduleCode}
+                          <span className={styles.sectionMeta}>
+                            {group.code} · {group.screens.length} หน้าจอ
                           </span>
                         </td>
-                        {functionCodes.map((code) => {
-                          const fn = fnByCode.get(code);
-                          return (
-                            <td key={code} className={styles.checkboxCell}>
-                              {fn ? (
-                                <Checkbox
-                                  checked={Boolean(allowed[fn.permissionId])}
-                                  onChange={() => toggle(fn.permissionId)}
-                                />
-                              ) : (
-                                <span className={styles.notApplicable}>—</span>
-                              )}
-                            </td>
-                          );
-                        })}
                       </tr>
-                    );
-                  })}
+                      {group.screens.map((screen) => {
+                        const fnByCode = new Map(
+                          screen.functions.map((fn) => [fn.functionCode, fn]),
+                        );
+                        return (
+                          <tr key={screen.id}>
+                            <td className={styles.screenCell}>
+                              <span className={styles.screenName}>
+                                {screen.screenName}
+                              </span>
+                              <span className={styles.screenModule}>
+                                {screen.screenCode}
+                              </span>
+                            </td>
+                            {functionCodes.map((code) => {
+                              const fn = fnByCode.get(code);
+                              return (
+                                <td key={code} className={styles.checkboxCell}>
+                                  {fn ? (
+                                    <Checkbox
+                                      checked={Boolean(
+                                        allowed[fn.permissionId],
+                                      )}
+                                      onChange={() => toggle(fn.permissionId)}
+                                    />
+                                  ) : (
+                                    <span className={styles.notApplicable}>
+                                      —
+                                    </span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
