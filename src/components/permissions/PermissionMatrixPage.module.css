@@ -5,14 +5,30 @@
   padding: 0 22px 20px;
 }
 
+.filterFields {
+  display: grid;
+  grid-template-columns: minmax(240px, 420px) minmax(280px, 1fr);
+  gap: 14px 16px;
+  padding: 0 22px 20px;
+}
+
+.filterField {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.filterLabel {
+  color: var(--unit-muted, #8a9199);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .roleSelect,
 .moduleSelect {
   width: 100%;
-  max-width: 420px;
-}
-
-.moduleSelect {
-  max-width: 280px;
 }
 
 .matrixScroll {
@@ -21,7 +37,7 @@
 
 .matrixTable {
   width: 100%;
-  min-width: 640px;
+  min-width: 720px;
   border-collapse: collapse;
 }
 
@@ -116,9 +132,8 @@
   padding: 48px 0;
 }
 
-@media (max-width: 640px) {
-  .roleSelect,
-  .moduleSelect {
-    max-width: 100%;
+@media (max-width: 760px) {
+  .filterFields {
+    grid-template-columns: 1fr;
   }
 }

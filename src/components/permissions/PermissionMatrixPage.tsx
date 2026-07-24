@@ -96,7 +96,7 @@ export default function PermissionMatrixPage() {
   );
 
   const [roleId, setRoleId] = useState<string | undefined>();
-  const [moduleFilter, setModuleFilter] = useState<string | undefined>();
+  const [moduleFilter, setModuleFilter] = useState<string[]>([]);
   const selectedRoleId = roleId ?? roles[0]?.id;
   const rolePermissionsQuery = useRolePermissionsQuery(selectedRoleId);
   const updateMutation = useUpdateRolePermissionsMutation(
@@ -118,20 +118,13 @@ export default function PermissionMatrixPage() {
     setAllowed(next);
   }
 
-  const functionCodes = useMemo(() => {
-    const set = new Set<string>();
-    for (const screen of screens) {
-      for (const fn of screen.functions) {
-        set.add(fn.functionCode);
-      }
-    }
-    return FUNCTION_ORDER.filter((code) => set.has(code));
-  }, [screens]);
+  /** แสดงคอลัมน์ครบทุก action รวม APPROVE — หน้าจอที่ไม่มีสิทธิ์นี้จะเป็น — */
+  const functionCodes = FUNCTION_ORDER;
 
   const moduleGroups = useMemo(() => {
     const groups = groupScreensByModule(screens);
-    if (!moduleFilter) return groups;
-    return groups.filter((group) => group.code === moduleFilter);
+    if (moduleFilter.length === 0) return groups;
+    return groups.filter((group) => moduleFilter.includes(group.code));
   }, [screens, moduleFilter]);
 
   const visibleScreenCount = useMemo(
@@ -189,8 +182,8 @@ export default function PermissionMatrixPage() {
               Permission Matrix
             </Typography.Title>
             <Typography.Text className={masterStyles.pageSubtitle}>
-              กำหนดสิทธิ์การใช้งานรายหน้าจอให้แต่ละบทบาท — จัดกลุ่มตามโมดูล
-              เช่น ขาย จัดซื้อ คลัง Master
+              กำหนดสิทธิ์รายหน้าจอต่อบทบาท — คอลัมน์ APPROVE
+              ใช้จำกัดเฉพาะ role ที่อนุมัติได้
             </Typography.Text>
           </div>
           <Button
@@ -211,32 +204,42 @@ export default function PermissionMatrixPage() {
             <div>
               <div className={masterStyles.filterEyebrow}>FILTER</div>
               <h3>เลือกบทบาทและโมดูล</h3>
-              <p>กรองตามส่วนงานเพื่อดูสิทธิ์เฉพาะกลุ่ม</p>
+              <p>
+                เลือกบทบาทเพื่อแก้สิทธิ์ แล้วเลือกโมดูลได้หลายอันเพื่อกรองตาราง
+              </p>
             </div>
           </div>
-          <div className={styles.roleSelectRow}>
-            <Select
-              className={styles.roleSelect}
-              value={selectedRoleId}
-              onChange={setRoleId}
-              showSearch
-              optionFilterProp="label"
-              placeholder="เลือกบทบาท"
-              options={roles.map((role) => ({
-                value: role.id,
-                label: `${role.roleCode} — ${role.roleName}`,
-              }))}
-            />
-            <Select
-              className={styles.moduleSelect}
-              allowClear
-              value={moduleFilter}
-              onChange={(value) => setModuleFilter(value)}
-              showSearch
-              optionFilterProp="label"
-              placeholder="ทุกโมดูล"
-              options={moduleFilterOptions}
-            />
+          <div className={styles.filterFields}>
+            <label className={styles.filterField}>
+              <span className={styles.filterLabel}>บทบาท</span>
+              <Select
+                className={styles.roleSelect}
+                value={selectedRoleId}
+                onChange={setRoleId}
+                showSearch
+                optionFilterProp="label"
+                placeholder="เลือกบทบาท"
+                options={roles.map((role) => ({
+                  value: role.id,
+                  label: `${role.roleCode} — ${role.roleName}`,
+                }))}
+              />
+            </label>
+            <label className={styles.filterField}>
+              <span className={styles.filterLabel}>โมดูล</span>
+              <Select
+                className={styles.moduleSelect}
+                mode="multiple"
+                allowClear
+                maxTagCount="responsive"
+                value={moduleFilter}
+                onChange={(value) => setModuleFilter(value)}
+                showSearch
+                optionFilterProp="label"
+                placeholder="ทุกโมดูล (เลือกได้หลายอัน)"
+                options={moduleFilterOptions}
+              />
+            </label>
           </div>
         </div>
 
@@ -245,11 +248,14 @@ export default function PermissionMatrixPage() {
             <div>
               <div className={masterStyles.tableEyebrow}>MATRIX</div>
               <h3>สิทธิ์ตามหน้าจอ</h3>
-              <p>ติ๊กเพื่ออนุญาต แล้วกดบันทึกสิทธิ์ — จัดกลุ่มตามโมดูล</p>
+              <p>
+                ติ๊ก APPROVE ให้เฉพาะบทบาทที่อนุมัติได้ — หน้าจอ Master /
+                รายงานที่ไม่มีขั้นอนุมัติจะแสดง —
+              </p>
             </div>
             <div className={masterStyles.tableCount}>
               {visibleScreenCount}
-              {moduleFilter ? ` / ${screens.length}` : ""} หน้าจอ
+              {moduleFilter.length > 0 ? ` / ${screens.length}` : ""} หน้าจอ
             </div>
           </div>
 
