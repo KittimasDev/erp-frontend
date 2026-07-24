@@ -3,6 +3,9 @@ export type TireClassification = {
   classificationCode: string;
   classificationName: string;
   description?: string;
+  itemId?: string | null;
+  itemCode?: string;
+  itemName?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -18,6 +21,7 @@ export type TireClassificationQueryParams = {
 export type CreateTireClassificationRequest = {
   code: string;
   name: string;
+  itemId: string;
   description?: string;
   isActive?: boolean;
 };

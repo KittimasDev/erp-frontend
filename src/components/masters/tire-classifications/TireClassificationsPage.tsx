@@ -231,6 +231,22 @@ export default function TireClassificationsPage() {
       ),
     },
     {
+      title: "สินค้าคลัง",
+      key: "item",
+      width: 200,
+      render: (_value, record) =>
+        record.itemCode ? (
+          <div className={styles.nameCell}>
+            <span className={styles.codeBadge}>{record.itemCode}</span>
+            <div className={styles.updatedText}>
+              {record.itemName || "-"}
+            </div>
+          </div>
+        ) : (
+          <Typography.Text type="danger">ยังไม่ผูก</Typography.Text>
+        ),
+    },
+    {
       title: "รายละเอียด",
       dataIndex: "description",
       key: "description",

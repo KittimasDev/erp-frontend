@@ -158,7 +158,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
           <Typography.Text type="danger">
             ยังไม่ผูกสินค้า
             {row.classificationCode
-              ? ` — ต้องมี item_code = ${row.classificationCode}`
+              ? ` — แก้ประเภทยาง ${row.classificationCode} ให้เลือกสินค้าคลัง`
               : ""}
           </Typography.Text>
         ),
@@ -372,14 +372,12 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                 <div className={styles.cardBody} style={{ paddingBottom: 0 }}>
                   <Typography.Paragraph type="danger" style={{ marginBottom: 12 }}>
                     มี {totals.unlinked.length} รายการยังไม่ผูก Master Items —
-                    ระบบจับคู่ด้วย{" "}
-                    <strong>item_code = classification_code</strong>{" "}
-                    (การเลือกประเภทยางตอนคัดแยกคนละตารางกับสินค้าคลัง)
+                    ไป Masters → ประเภท/กลุ่มยาง แล้วเลือกสินค้าคลังให้ครบ
                     {totals.unlinked[0]?.classificationCode
-                      ? ` เช่น สร้างสินค้าที่รหัส ${totals.unlinked
+                      ? ` (เช่น ${totals.unlinked
                           .map((row) => row.classificationCode)
                           .filter(Boolean)
-                          .join(", ")}`
+                          .join(", ")})`
                       : ""}
                   </Typography.Paragraph>
                 </div>
