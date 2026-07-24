@@ -19,6 +19,8 @@ export function getUsers(token: string, params: UserQueryParams = {}) {
   if (params.roleId?.trim()) {
     search.set("roleId", params.roleId.trim());
   }
+  search.set("page", String(params.page ?? 1));
+  search.set("limit", String(params.limit ?? 200));
   const query = search.toString();
   return apiFetch<UserListApiResponse>(
     `/api/users${query ? `?${query}` : ""}`,

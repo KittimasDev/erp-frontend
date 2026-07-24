@@ -1,12 +1,7 @@
 "use client";
 
-import ComingSoonPage from "@/components/common/ComingSoonPage";
+import ProcurementDashboardPage from "@/components/procurement/ProcurementDashboardPage";
 
 export default function Page() {
-  return (
-    <ComingSoonPage
-      title="รายงานจัดซื้อ"
-      description="รายงานใบขอซื้อ / ใบสั่งซื้อ และการติดตามสถานะจัดซื้อ (กำลังพัฒนา)"
-    />
-  );
+  return <ProcurementDashboardPage />;
 }

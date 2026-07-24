@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Modal, Spin } from "antd";
+import { App, Button, Spin } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -62,6 +62,7 @@ function statusClass(status: string) {
 
 export default function PurchaseOrderDetailPage({ id }: Props) {
   const router = useRouter();
+  const { modal } = App.useApp();
   const query = usePurchaseOrderQuery(id);
   const confirmMutation = useConfirmPurchaseOrderMutation();
   const cancelMutation = useCancelPurchaseOrderMutation();
@@ -394,7 +395,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 danger
                 loading={busy}
                 onClick={() =>
-                  Modal.confirm({
+                  modal.confirm({
                     title: "ยืนยันยกเลิกใบสั่งซื้อ?",
                     onOk: () => cancelMutation.mutateAsync(data.id),
                   })

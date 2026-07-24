@@ -130,7 +130,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
     setPage(1);
   }, [filters, form]);
 
-  const users = usersQuery.data?.data ?? [];
+  const users = usersQuery.data?.data?.items ?? [];
   const roles = rolesQuery.data?.data ?? [];
   const activeUsers = users.filter((user) => user.isActive).length;
   const inactiveUsers = users.filter((user) => !user.isActive).length;

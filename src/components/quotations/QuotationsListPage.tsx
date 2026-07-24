@@ -1,0 +1,292 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Button,
+  DatePicker,
+  Input,
+  Select,
+  Space,
+  Table,
+  Tag,
+} from "antd";
+import type { ColumnsType } from "antd/es/table";
+import {
+  EditOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+
+import { useQuotationsQuery } from "@/hooks/quotations/useQuotationsQuery";
+import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { RoleCode } from "@/lib/auth/role-codes";
+import type { Quotation } from "@/types/quotations";
+import {
+  QUOTATION_STATUS_LABEL,
+  type QuotationStatus,
+} from "@/types/quotations";
+import styles from "./QuotationsListPage.module.css";
+
+function statusColor(status: string) {
+  switch (status) {
+    case "ACCEPTED":
+      return "success";
+    case "SENT":
+      return "processing";
+    case "REJECTED":
+      return "error";
+    case "CANCELLED":
+      return "default";
+    default:
+      return "warning";
+  }
+}
+
+function formatDate(value?: string) {
+  if (!value) return "—";
+  return dayjs(value).format("DD/MM/YYYY");
+}
+
+function formatMoney(value?: string) {
+  const n = Number(value ?? 0);
+  if (Number.isNaN(n)) return value ?? "—";
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+export default function QuotationsListPage() {
+  const router = useRouter();
+  const [quotationNo, setQuotationNo] = useState("");
+  const [customerId, setCustomerId] = useState<string | undefined>();
+  const [status, setStatus] = useState<string | undefined>();
+  const [date, setDate] = useState<dayjs.Dayjs | null>(null);
+  const [applied, setApplied] = useState<{
+    quotationNo?: string;
+    customerId?: string;
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }>({});
+
+  const canWrite =
+    userHasRole(RoleCode.SALES_OFFICER) ||
+    userHasRole(RoleCode.SALES_MANAGER) ||
+    isAdministrator();
+
+  const customersQuery = useCustomersQuery();
+  const customers = customersQuery.data?.data ?? [];
+  const query = useQuotationsQuery(applied);
+  const rows = query.data?.data ?? [];
+
+  const applyFilters = () => {
+    setApplied({
+      quotationNo: quotationNo.trim() || undefined,
+      customerId,
+      status,
+      dateFrom: date ? date.format("YYYY-MM-DD") : undefined,
+      dateTo: date ? date.format("YYYY-MM-DD") : undefined,
+    });
+  };
+
+  const clearFilters = () => {
+    setQuotationNo("");
+    setCustomerId(undefined);
+    setStatus(undefined);
+    setDate(null);
+    setApplied({});
+  };
+
+  const columns: ColumnsType<Quotation> = useMemo(
+    () => [
+      {
+        title: "#",
+        width: 56,
+        align: "center",
+        render: (_v, _r, index) => index + 1,
+      },
+      {
+        title: "เลขที่",
+        dataIndex: "quotationNo",
+        render: (value: string) => (
+          <span className={styles.prNo}>{value}</span>
+        ),
+      },
+      {
+        title: "วันที่",
+        dataIndex: "quotationDate",
+        width: 110,
+        render: (value: string) => formatDate(value),
+      },
+      {
+        title: "ลูกค้า",
+        key: "customer",
+        render: (_v, row) =>
+          row.customer
+            ? `${row.customer.customerCode} — ${row.customer.nameTh}`
+            : "—",
+      },
+      {
+        title: "ยอดสุทธิ",
+        dataIndex: "totalAmount",
+        align: "right",
+        render: (value: string) => formatMoney(value),
+      },
+      {
+        title: "สถานะ",
+        dataIndex: "status",
+        width: 120,
+        render: (value: string) => (
+          <Tag color={statusColor(value)}>
+            {QUOTATION_STATUS_LABEL[value as QuotationStatus] ?? value}
+          </Tag>
+        ),
+      },
+      {
+        title: "",
+        key: "actions",
+        width: 100,
+        render: (_v, row) => (
+          <Space size={6} onClick={(e) => e.stopPropagation()}>
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => router.push(`/quotations/${row.id}`)}
+            />
+            {canWrite && row.status === "DRAFT" ? (
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => router.push(`/quotations/${row.id}/edit`)}
+              />
+            ) : null}
+          </Space>
+        ),
+      },
+    ],
+    [canWrite, router],
+  );
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.pageHeader}>
+        <div className={styles.headerAccent} aria-hidden>
+          <FileTextOutlined />
+        </div>
+        <div className={styles.headerContent}>
+          <p className={styles.eyebrow}>Sales · Quotation</p>
+          <h1 className={styles.pageTitle}>ใบเสนอราคา</h1>
+          <p className={styles.pageSubtitle}>
+            สร้างและติดตามใบเสนอราคาให้ลูกค้า — ยังไม่ตัดสต๊อก
+          </p>
+        </div>
+        <div className={styles.headerActions}>
+          {canWrite ? (
+            <Link href="/quotations/create">
+              <Button
+                className={styles.primaryBtn}
+                type="primary"
+                icon={<PlusOutlined />}
+              >
+                สร้างใบเสนอราคา
+              </Button>
+            </Link>
+          ) : null}
+        </div>
+      </header>
+
+      <section className={styles.filterCard}>
+        <div className={styles.filterGrid}>
+          <div className={styles.filterItem}>
+            <label>เลขที่</label>
+            <Input
+              allowClear
+              placeholder="QT-..."
+              value={quotationNo}
+              onChange={(e) => setQuotationNo(e.target.value)}
+              onPressEnter={applyFilters}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>ลูกค้า</label>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทั้งหมด"
+              value={customerId}
+              onChange={setCustomerId}
+              style={{ width: "100%" }}
+              loading={customersQuery.isLoading}
+              options={customers.map((c) => ({
+                value: c.id,
+                label: `${c.customerCode} — ${c.nameTh}`,
+              }))}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สถานะ</label>
+            <Select
+              allowClear
+              placeholder="ทั้งหมด"
+              value={status}
+              onChange={setStatus}
+              style={{ width: "100%" }}
+              options={Object.entries(QUOTATION_STATUS_LABEL).map(
+                ([value, label]) => ({ value, label }),
+              )}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>วันที่</label>
+            <DatePicker
+              value={date}
+              onChange={setDate}
+              format="DD/MM/YYYY"
+              style={{ width: "100%" }}
+              placeholder="เลือกวันที่"
+            />
+          </div>
+        </div>
+        <div className={styles.filterActions}>
+          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button
+            type="primary"
+            className={styles.primaryBtn}
+            icon={<SearchOutlined />}
+            onClick={applyFilters}
+          >
+            ค้นหา
+          </Button>
+        </div>
+      </section>
+
+      <section className={styles.tableCard}>
+        <div className={styles.tableToolbar}>
+          <div className={styles.toolbarLeft}>
+            พบทั้งหมด <strong>{rows.length}</strong> รายการ
+          </div>
+        </div>
+        <Table
+          rowKey="id"
+          loading={query.isLoading}
+          columns={columns}
+          dataSource={rows}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+          className={styles.table}
+          onRow={(row) => ({
+            onClick: () => router.push(`/quotations/${row.id}`),
+          })}
+          locale={{ emptyText: "ยังไม่มีใบเสนอราคา" }}
+        />
+      </section>
+    </div>
+  );
+}

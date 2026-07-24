@@ -35,6 +35,7 @@ type TruckFormModalProps = {
 };
 
 const TRUCK_TYPE_OPTIONS = [
+  { value: "car", label: "รถส่วนตัว" },
   { value: "6_WHEEL", label: "6_WHEEL" },
   { value: "10_WHEEL", label: "10_WHEEL" },
   { value: "TRAILER", label: "TRAILER" },

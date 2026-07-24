@@ -9,11 +9,15 @@ function buildQuery(params?: ProductionOutputPendingTicketQueryParams) {
     return "";
   }
   const search = new URLSearchParams();
-  if (params.from?.trim()) {
-    search.set("from", params.from.trim());
-  }
-  if (params.to?.trim()) {
-    search.set("to", params.to.trim());
+  if (params.all) {
+    search.set("all", "1");
+  } else {
+    if (params.from?.trim()) {
+      search.set("from", params.from.trim());
+    }
+    if (params.to?.trim()) {
+      search.set("to", params.to.trim());
+    }
   }
   if (params.q?.trim()) {
     search.set("q", params.q.trim());

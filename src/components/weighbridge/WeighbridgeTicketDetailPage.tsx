@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   Form,
@@ -32,6 +32,7 @@ import {
   REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET,
   resolveProductionOutputTicketLock,
 } from "@/types/production-output-stock-request";
+import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -175,18 +176,87 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const weighOutManual = Form.useWatch("isManual", weighOutForm);
   const [weighInEditMode, setWeighInEditMode] = useState(false);
   const [weighOutEditMode, setWeighOutEditMode] = useState(false);
+  const [weighInFlash, setWeighInFlash] = useState(false);
+  const [weighOutFlash, setWeighOutFlash] = useState(false);
+  const prevGrossWeightRef = useRef<string | null>(null);
+  const prevWeighOutKeyRef = useRef<string | null>(null);
+  const weighInFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const weighOutFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const ticketQuery = useWeighbridgeTicketQuery(ticketId);
   const weighInMutation = useWeighInMutation(ticketId);
   const weighOutMutation = useWeighOutMutation(ticketId);
   const ticket = ticketQuery.data?.data;
 
+  useEffect(() => {
+    if (!ticket) {
+      return;
+    }
+
+    const triggerFlash = (
+      setFlash: (value: boolean) => void,
+      timerRef: { current: ReturnType<typeof setTimeout> | null },
+    ) => {
+      // รีสตาร์ท animation ทุกครั้งที่ค่าเปลี่ยน (รวมกรณีแก้ไขซ้ำ)
+      setFlash(false);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      requestAnimationFrame(() => {
+        setFlash(true);
+        timerRef.current = setTimeout(() => {
+          setFlash(false);
+        }, 1600);
+      });
+    };
+
+    // รวม weighInAt — แก้/บันทึกใหม่จะอัปเดตเวลาเสมอ แม้ตัวเลขน้ำหนักเท่าเดิม
+    const grossKey = `${ticket.grossWeightKg ?? ""}:${ticket.weighInAt ?? ""}:${ticket.weighInRemark ?? ""}`;
+    const weighOutKey = `${ticket.tareWeightKg ?? ""}:${ticket.weighOutAt ?? ""}:${ticket.weighOutRemark ?? ""}`;
+
+    if (prevGrossWeightRef.current === null) {
+      prevGrossWeightRef.current = grossKey;
+    } else if (prevGrossWeightRef.current !== grossKey) {
+      prevGrossWeightRef.current = grossKey;
+      triggerFlash(setWeighInFlash, weighInFlashTimerRef);
+    }
+
+    if (prevWeighOutKeyRef.current === null) {
+      prevWeighOutKeyRef.current = weighOutKey;
+    } else if (prevWeighOutKeyRef.current !== weighOutKey) {
+      prevWeighOutKeyRef.current = weighOutKey;
+      triggerFlash(setWeighOutFlash, weighOutFlashTimerRef);
+    }
+  }, [ticket]);
+
+  useEffect(() => {
+    return () => {
+      if (weighInFlashTimerRef.current) {
+        clearTimeout(weighInFlashTimerRef.current);
+      }
+      if (weighOutFlashTimerRef.current) {
+        clearTimeout(weighOutFlashTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    prevGrossWeightRef.current = null;
+    prevWeighOutKeyRef.current = null;
+    setWeighInFlash(false);
+    setWeighOutFlash(false);
+  }, [ticketId]);
+
   const productionOutputQuery = useProductionOutputStockRequestsQuery(
     {
       referenceDocType: REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET,
       referenceDocId: ticketId,
     },
-    { enabled: Boolean(ticketId) },
+    { enabled: PRODUCTION_OUTPUT_ENABLED && Boolean(ticketId) },
   );
   const productionOutputLock = useMemo(
     () =>
@@ -366,14 +436,26 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               </div>
               <div className={styles.cardBody}>
                 <Steps
-                  current={Math.min(currentStep, 4)}
-                  status={paid && currentStep >= 4 ? "process" : paid ? "finish" : "process"}
+                  current={
+                    PRODUCTION_OUTPUT_ENABLED
+                      ? Math.min(currentStep, 4)
+                      : Math.min(currentStep, 3)
+                  }
+                  status={
+                    paid && currentStep >= 4
+                      ? "process"
+                      : paid
+                        ? "finish"
+                        : "process"
+                  }
                   items={[
                     { title: "ชั่งเข้า" },
                     { title: "ชั่งออก" },
                     { title: "คัดแยก / ใบรับซื้อ" },
                     { title: "จ่ายเงิน" },
-                    { title: "รับผลผลิตเข้าคลัง" },
+                    ...(PRODUCTION_OUTPUT_ENABLED
+                      ? [{ title: "รับผลผลิตเข้าคลัง" }]
+                      : []),
                   ]}
                 />
               </div>
@@ -485,6 +567,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     styles.stepCard,
                     currentStep === 0 ? styles.stepCardActive : "",
                     Number(ticket.grossWeightKg) > 0 ? styles.stepCardDone : "",
+                    weighInFlash ? styles.stepCardFlash : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -727,6 +810,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     !ticket.canWeighOut && !ticket.weighOutAt
                       ? styles.stepCardLocked
                       : "",
+                    weighOutFlash ? styles.stepCardFlash : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
@@ -1249,6 +1333,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                 </div>
               </div>
 
+              {PRODUCTION_OUTPUT_ENABLED ? (
               <div
                 className={[
                   styles.stepCard,
@@ -1370,6 +1455,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                   </div>
                 </div>
               </div>
+              ) : null}
             </div>
           </>
         ) : null}

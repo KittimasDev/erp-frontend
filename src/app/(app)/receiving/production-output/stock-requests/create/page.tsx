@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 import PageLoading from "@/components/common/PageLoading";
+import ProductionOutputFeatureGate from "@/components/production-output/ProductionOutputFeatureGate";
 import ProductionOutputStockRequestCreatePage from "@/components/production-output/ProductionOutputStockRequestCreatePage";
 
 function CreatePageWithParams() {
@@ -25,8 +26,10 @@ function CreatePageWithParams() {
 
 export default function ReceivingProductionOutputStockRequestCreatePage() {
   return (
-    <Suspense fallback={<PageLoading />}>
-      <CreatePageWithParams />
-    </Suspense>
+    <ProductionOutputFeatureGate>
+      <Suspense fallback={<PageLoading />}>
+        <CreatePageWithParams />
+      </Suspense>
+    </ProductionOutputFeatureGate>
   );
 }

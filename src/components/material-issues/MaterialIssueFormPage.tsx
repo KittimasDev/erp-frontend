@@ -241,6 +241,12 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                             lot.warehouseId === line?.warehouseId &&
                             lot.locationId === line?.locationId,
                         );
+                        const selectedLot = availableLots.find(
+                          (lot) => lot.lotId === line?.lotId,
+                        );
+                        const selectedLotQty = selectedLot
+                          ? Number(selectedLot.quantityAvailable)
+                          : undefined;
 
                         return (
                           <div key={key} className={styles.lineCard}>
@@ -298,10 +304,27 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                                 className={styles.field}
                                 label="จำนวนเบิก"
                                 name={[name, "quantity"]}
-                                rules={[{ required: true, message: "ระบุจำนวน" }]}
+                                dependencies={[["items", name, "lotId"]]}
+                                rules={[
+                                  { required: true, message: "ระบุจำนวน" },
+                                  {
+                                    validator: async (_, value) => {
+                                      if (
+                                        selectedLotQty != null &&
+                                        value != null &&
+                                        Number(value) > selectedLotQty
+                                      ) {
+                                        throw new Error(
+                                          `จำนวนต้องไม่เกินคงเหลือ (${selectedLotQty.toFixed(3)})`,
+                                        );
+                                      }
+                                    },
+                                  },
+                                ]}
                               >
                                 <InputNumber
                                   min={0.001}
+                                  max={selectedLotQty}
                                   style={{ width: "100%" }}
                                   placeholder="0"
                                 />

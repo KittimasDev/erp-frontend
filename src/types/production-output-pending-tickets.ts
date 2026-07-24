@@ -15,6 +15,7 @@ export type ProductionOutputPendingTicket = {
 export type ProductionOutputPendingTicketQueryParams = {
   from?: string;
   to?: string;
+  all?: boolean;
   q?: string;
 };
 

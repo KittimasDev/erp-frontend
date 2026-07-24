@@ -12,6 +12,17 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/purchase-requests/approvals", title: "อนุมัติใบขอซื้อ" },
   { href: "/purchase-requests/create", title: "สร้างใบขอซื้อ" },
   { href: "/purchase-requests", title: "ใบขอซื้อ PR" },
+  { href: "/quotations/create", title: "สร้างใบเสนอราคา" },
+  { href: "/quotations", title: "ใบเสนอราคา" },
+  { href: "/sales-orders", title: "ใบสั่งขาย" },
+  { href: "/sales-orders/stock-verification", title: "ตรวจสอบสต๊อกขาย" },
+  { href: "/pickings", title: "ใบจ่ายสินค้า" },
+  { href: "/packings", title: "ใบบรรจุสินค้า" },
+  { href: "/delivery-orders", title: "ใบส่งสินค้า" },
+  { href: "/sales-invoices/pending", title: "รอออกใบแจ้งหนี้" },
+  { href: "/sales-invoices", title: "ใบแจ้งหนี้ขาย" },
+  { href: "/sales-tracking", title: "ติดตามการขายและจัดส่ง" },
+  { href: "/laboratory/samples", title: "ตัวอย่างตรวจสอบ (LIMS)" },
   { href: "/goods-receipts", title: "ใบรับของ GR" },
   { href: "/purchase-payments/pending", title: "รอจ่ายเงิน Supplier" },
   { href: "/purchase-payments", title: "ประวัติการจ่ายเงิน" },
@@ -20,6 +31,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/inventory/stock-movements", title: "Stock Movement" },
   { href: "/inventory/lots", title: "Lot Balance" },
   { href: "/inventory/material-issues", title: "เบิกของออกจากคลัง" },
+  { href: "/inventory/chemical-issues", title: "เบิกจ่ายสารเคมี" },
   { href: "/inventory/stock-transfers", title: "โอนย้ายสินค้า" },
   { href: "/inventory/stock-counts", title: "นับสต๊อก" },
   { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับสินค้าเข้าคลัง" },
@@ -33,6 +45,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/reports/procurement", title: "รายงานจัดซื้อ" },
   { href: "/reports/inventory", title: "รายงานคลัง" },
   { href: "/reports/receiving", title: "รายงานรับซื้อยาง" },
+  { href: "/reports/chemical-consumption", title: "รายงานการใช้สารเคมี" },
   { href: "/reports/payments", title: "รายงานจ่ายเงิน" },
   { href: "/masters/vendors", title: "เจ้าหนี้ / Supplier" },
   { href: "/masters/seller-types", title: "ประเภทผู้ขาย" },
@@ -64,6 +77,28 @@ function resolvePageTitle(pathname: string) {
     pathname !== "/purchase-requests/approvals"
   ) {
     return "รายละเอียดใบขอซื้อ";
+  }
+
+  if (pathname.startsWith("/quotations/") && pathname.endsWith("/edit")) {
+    return "แก้ไขใบเสนอราคา";
+  }
+
+  if (
+    pathname.startsWith("/quotations/") &&
+    pathname !== "/quotations/create"
+  ) {
+    return "รายละเอียดใบเสนอราคา";
+  }
+
+  if (pathname === "/sales-orders/stock-verification") {
+    return "ตรวจสอบสต๊อกขาย";
+  }
+
+  if (
+    pathname.startsWith("/sales-orders/") &&
+    pathname !== "/sales-orders"
+  ) {
+    return "รายละเอียดใบสั่งขาย";
   }
 
   if (pathname.includes("/stock-posting-request")) {

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 
 import styles from "./AppHeader.module.css";
 
@@ -31,6 +32,8 @@ const ROLE = {
   WAREHOUSE_MANAGER: "WAREHOUSE_MANAGER",
   WEIGHBRIDGE_OFFICER: "WEIGHBRIDGE_OFFICER",
   ACCOUNTING_OFFICER: "ACCOUNTING_OFFICER",
+  SALES_OFFICER: "SALES_OFFICER",
+  SALES_MANAGER: "SALES_MANAGER",
 } as const;
 
 const IconChevron = ({ open }: { open: boolean }) => (
@@ -74,6 +77,42 @@ const IconPurchaseOrder = () => (
     />
     <path
       d="M9 8h6M9 12h6M9 16h4"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const IconReport = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden>
+    <path
+      d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M8 13l2.5 2.5L14 11l2 2"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path d="M8 7.5h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+  </svg>
+);
+
+const IconProcurementTracking = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden>
+    <path
+      d="M4 20V10M11 20V4M18 20v-6"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M3 20h18"
       stroke="currentColor"
       strokeWidth="1.8"
       strokeLinecap="round"
@@ -322,6 +361,24 @@ const IconMaterialIssue = () => (
     />
   </svg>
 );
+const IconChemical = () => (
+  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
+    <path
+      d="M10 3h4M10 3v5.5L5.6 17a2 2 0 0 0 1.8 2.9h9.2a2 2 0 0 0 1.8-2.9L14 8.5V3"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M8 15h8"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
 const IconStockTransfer = () => (
   <svg viewBox="0 0 24 24" width="17" height="17" fill="none" aria-hidden>
     <path
@@ -433,6 +490,131 @@ const purchaseMenus: MenuItem[] = [
       ROLE.EXECUTIVE,
     ],
   },
+  {
+    key: "procurement-tracking",
+    label: "ติดตามจัดซื้อ",
+    href: "/procurement/tracking",
+    icon: <IconProcurementTracking />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+];
+
+// เรียงตาม Flow การขายจริง: ลูกค้า → ใบเสนอราคา → ใบสั่งขาย → ตรวจสอบสต๊อก →
+// Picking → Packing → Delivery → ติดตามภาพรวม
+const salesMenus: MenuItem[] = [
+  {
+    key: "sd-customers",
+    label: "ข้อมูลลูกค้า",
+    href: "/customers",
+    icon: <IconVendor />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
+  {
+    key: "quotations",
+    label: "ใบเสนอราคา",
+    href: "/quotations",
+    icon: <IconPurchaseOrder />,
+    roles: [ROLE.SALES_OFFICER, ROLE.SALES_MANAGER, ROLE.EXECUTIVE],
+  },
+  {
+    key: "sales-orders",
+    label: "ใบสั่งขาย",
+    href: "/sales-orders",
+    icon: <IconPurchaseOrder />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
+  {
+    key: "sd-stock-verification",
+    label: "ตรวจสอบสต๊อกขาย",
+    href: "/sales-orders/stock-verification",
+    icon: <IconStockCount />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "pickings",
+    label: "ใบจ่ายสินค้า",
+    href: "/pickings",
+    icon: <IconMaterialIssue />,
+    roles: [
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "packings",
+    label: "ใบบรรจุสินค้า",
+    href: "/packings",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "delivery-orders",
+    label: "ใบส่งสินค้า",
+    href: "/delivery-orders",
+    icon: <IconStockTransfer />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
+  {
+    key: "sales-invoices",
+    label: "ใบแจ้งหนี้ขาย",
+    href: "/sales-invoices",
+    icon: <IconPayment />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "sales-tracking",
+    label: "ติดตามการขายและจัดส่ง",
+    href: "/sales-tracking",
+    icon: <IconProcurementTracking />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
 ];
 
 const warehouseMenus: MenuItem[] = [
@@ -497,6 +679,13 @@ const warehouseMenus: MenuItem[] = [
     roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
   },
   {
+    key: "chemical-issues",
+    label: "เบิกจ่ายสารเคมี",
+    href: "/inventory/chemical-issues",
+    icon: <IconChemical />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
     key: "stock-transfers",
     label: "โอนย้ายสินค้า",
     href: "/inventory/stock-transfers",
@@ -518,11 +707,34 @@ const warehouseMenus: MenuItem[] = [
     roles: [ROLE.WAREHOUSE_MANAGER],
   },
   {
+    key: "production-output-stock-requests",
+    label: "ขอรับผลผลิตเข้าคลัง",
+    href: "/receiving/production-output/stock-requests",
+    icon: <IconReceiving />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
     key: "production-output-approvals",
     label: "อนุมัติรับผลผลิต",
     href: "/warehouse/production-output-approvals",
     icon: <IconWarehouse />,
     roles: [ROLE.WAREHOUSE_MANAGER],
+  },
+];
+
+const laboratoryMenus: MenuItem[] = [
+  {
+    key: "lab-samples",
+    label: "ตัวอย่างตรวจสอบ (LIMS)",
+    href: "/laboratory/samples",
+    icon: <IconChemical />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
   },
 ];
 
@@ -544,6 +756,42 @@ const financeMenus: MenuItem[] = [
       ROLE.PROCUREMENT_MANAGER,
       ROLE.EXECUTIVE,
     ],
+  },
+];
+
+const reportMenus: MenuItem[] = [
+  {
+    key: "reports-procurement",
+    label: "รายงานจัดซื้อ",
+    href: "/reports/procurement",
+    icon: <IconReport />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "reports-receiving",
+    label: "รายงานรับซื้อยาง",
+    href: "/reports/receiving",
+    icon: <IconReport />,
+    roles: [
+      ROLE.WEIGHBRIDGE_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "reports-chemical-consumption",
+    label: "รายงานการใช้สารเคมี",
+    href: "/reports/chemical-consumption",
+    icon: <IconReport />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
   },
 ];
 
@@ -573,6 +821,19 @@ const settingMenus: MenuItem[] = [
 ];
 
 const masterMenus: MenuItem[] = [
+  {
+    key: "customers",
+    label: "ลูกค้า",
+    href: "/customers",
+    icon: <IconVendor />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
   {
     key: "vendors",
     label: "เจ้าหนี้ / Supplier",
@@ -717,8 +978,11 @@ const masterMenus: MenuItem[] = [
 const ALL_MENU_HREFS = [
   ...rawTireMenus,
   ...purchaseMenus,
+  ...salesMenus,
   ...warehouseMenus,
+  ...laboratoryMenus,
   ...financeMenus,
+  ...reportMenus,
   ...settingMenus,
   ...masterMenus,
 ].map((item) => item.href);
@@ -769,7 +1033,16 @@ function canSeeMenu(item: MenuItem) {
 }
 
 function filterMenus(items: MenuItem[]) {
-  return items.filter(canSeeMenu);
+  return items.filter((item) => {
+    if (
+      !PRODUCTION_OUTPUT_ENABLED &&
+      (item.key === "production-output-stock-requests" ||
+        item.key === "production-output-approvals")
+    ) {
+      return false;
+    }
+    return canSeeMenu(item);
+  });
 }
 
 function renderMenuButton(
@@ -810,8 +1083,11 @@ export default function AppHeader({
 
   const visibleRawTireMenus = filterMenus(rawTireMenus);
   const visiblePurchaseMenus = filterMenus(purchaseMenus);
+  const visibleSalesMenus = filterMenus(salesMenus);
   const visibleWarehouseMenus = filterMenus(warehouseMenus);
+  const visibleLaboratoryMenus = filterMenus(laboratoryMenus);
   const visibleFinanceMenus = filterMenus(financeMenus);
+  const visibleReportMenus = filterMenus(reportMenus);
   const visibleSettingMenus = filterMenus(settingMenus);
   const visibleMasterMenus = filterMenus(masterMenus);
 
@@ -880,12 +1156,36 @@ export default function AppHeader({
             </div>
           ) : null}
 
+          {visibleSalesMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>ขายและจัดส่ง</div>
+
+              <div className={styles.groupItems}>
+                {visibleSalesMenus.map((item) =>
+                  renderMenuButton(item, pathname, collapsed, handleGo),
+                )}
+              </div>
+            </div>
+          ) : null}
+
           {visibleWarehouseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>คลังสินค้า</div>
 
               <div className={styles.groupItems}>
                 {visibleWarehouseMenus.map((item) =>
+                  renderMenuButton(item, pathname, collapsed, handleGo),
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {visibleLaboratoryMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>ห้องปฏิบัติการ</div>
+
+              <div className={styles.groupItems}>
+                {visibleLaboratoryMenus.map((item) =>
                   renderMenuButton(item, pathname, collapsed, handleGo),
                 )}
               </div>
@@ -904,6 +1204,17 @@ export default function AppHeader({
             </div>
           ) : null}
 
+          {visibleReportMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>รายงาน</div>
+
+              <div className={styles.groupItems}>
+                {visibleReportMenus.map((item) =>
+                  renderMenuButton(item, pathname, collapsed, handleGo),
+                )}
+              </div>
+            </div>
+          ) : null}
 
           {visibleSettingMenus.length > 0 || visibleMasterMenus.length > 0 ? (
             <div className={styles.groupBlock}>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
+  Badge,
   Button,
   Col,
   DatePicker,
@@ -17,6 +18,8 @@ import {
   Typography,
 } from "antd";
 import {
+  BarChartOutlined,
+  CarOutlined,
   CloseOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -35,10 +38,15 @@ import { useSellersQuery } from "@/hooks/sellers/useSellersQuery";
 import { useSellerTypesQuery } from "@/hooks/seller-types/useSellerTypesQuery";
 import { useTrucksQuery } from "@/hooks/trucks/useTrucksQuery";
 import { useWeighbridgeScalesQuery } from "@/hooks/weighbridge-scales/useWeighbridgeScalesQuery";
-import { useProductionOutputPendingTicketsQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import {
+  useProductionOutputPendingTicketsQuery,
+  useProductionOutputStockRequestsQuery,
+} from "@/hooks/production-output/useProductionOutputQueries";
 import type { CreateSellerRequest } from "@/types/sellers";
+import { ProductionOutputRequestStatus } from "@/types/production-output-stock-request";
 import type { Truck } from "@/types/trucks";
 import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
+import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -94,27 +102,33 @@ const STAGE_OPTIONS: {
   label: string;
   description: string;
 }[] = [
-  { key: "all", label: "ทั้งหมด", description: "ทุกรายการวันนี้" },
+  { key: "all", label: "ทั้งหมด", description: "ทุกรายการในช่วงที่เลือก" },
   { key: "weigh-in", label: "ชั่งเข้า", description: "รอชั่งน้ำหนักเข้า" },
   { key: "weigh-out", label: "ชั่งออก", description: "รอชั่งน้ำหนักออก" },
   { key: "classify", label: "คัดแยก", description: "รอคัดแยก / ใบรับซื้อ" },
   { key: "payment", label: "จ่ายเงิน", description: "รอจ่ายเงินผู้ขาย" },
   { key: "paid", label: "จ่ายแล้ว", description: "จ่ายเงินครบแล้ว" },
-  {
-    key: "warehouse",
-    label: "เข้าคลัง",
-    description: "รอส่งคำขอรับผลผลิตเข้าคลัง",
-  },
-  {
-    key: "stock-in",
-    label: "รับผลผลิต",
-    description: "หน้ารายการตั๋วรอรับผลผลิตเข้าคลัง",
-  },
+  ...(PRODUCTION_OUTPUT_ENABLED
+    ? ([
+        {
+          key: "warehouse",
+          label: "เข้าคลัง",
+          description: "รอส่งคำขอรับผลผลิตเข้าคลัง",
+        },
+        {
+          key: "stock-in",
+          label: "รับผลผลิต",
+          description: "หน้ารายการตั๋วรอรับผลผลิตเข้าคลัง",
+        },
+      ] as const)
+    : []),
 ];
 
 const ACTION_STAGE_KEYS: Array<
   Exclude<ReceivingStage, "all" | "stock-in">
-> = ["weigh-in", "weigh-out", "classify", "payment", "paid", "warehouse"];
+> = PRODUCTION_OUTPUT_ENABLED
+  ? ["weigh-in", "weigh-out", "classify", "payment", "paid", "warehouse"]
+  : ["weigh-in", "weigh-out", "classify", "payment", "paid"];
 
 const PAYMENT_METHOD_OPTIONS = [
   { value: "CASH", label: "เงินสด" },
@@ -129,9 +143,13 @@ function parseStage(value: string | null): ReceivingStage {
     value === "weigh-out" ||
     value === "classify" ||
     value === "payment" ||
-    value === "paid" ||
-    value === "warehouse" ||
-    value === "stock-in"
+    value === "paid"
+  ) {
+    return value;
+  }
+  if (
+    PRODUCTION_OUTPUT_ENABLED &&
+    (value === "warehouse" || value === "stock-in")
   ) {
     return value;
   }
@@ -376,23 +394,37 @@ export default function WeighbridgeDashboardPage() {
 
   const stage = parseStage(searchParams.get("stage"));
   const searchQuery = searchParams.get("q")?.trim() ?? "";
+  const showAll = searchParams.get("all") === "1";
   const legacyDateParam = searchParams.get("date")?.trim() || undefined;
-  const fromParam =
-    searchParams.get("from")?.trim() || legacyDateParam || undefined;
-  const toParam =
-    searchParams.get("to")?.trim() || legacyDateParam || undefined;
+  const fromParam = showAll
+    ? undefined
+    : searchParams.get("from")?.trim() || legacyDateParam || undefined;
+  const toParam = showAll
+    ? undefined
+    : searchParams.get("to")?.trim() || legacyDateParam || undefined;
 
   const dashboardQuery = useWeighbridgeDashboardQuery(
-    fromParam || toParam
-      ? { from: fromParam, to: toParam }
-      : undefined,
+    showAll
+      ? { all: true }
+      : fromParam || toParam
+        ? { from: fromParam, to: toParam }
+        : undefined,
   );
   // ต้องใช้ช่วงเดียวกับ dashboard — ห้ามใช้วันจากเบราว์เซอร์คนละวันกับเซิร์ฟเวอร์
-  // ไม่ส่ง from/to = API ใช้วันนี้ของเซิร์ฟเวอร์ย้อนหลัง 7 วัน
+  // ไม่ส่ง from/to = API ใช้วันนี้ของเซิร์ฟเวอร์ (pending ย้อนหลัง 7 วัน)
   const pendingOutputQuery = useProductionOutputPendingTicketsQuery(
-    fromParam || toParam
-      ? { from: fromParam, to: toParam }
-      : undefined,
+    showAll
+      ? { all: true }
+      : fromParam || toParam
+        ? { from: fromParam, to: toParam }
+        : undefined,
+    { enabled: PRODUCTION_OUTPUT_ENABLED },
+  );
+  const pendingStockRequestsQuery = useProductionOutputStockRequestsQuery(
+    {
+      status: ProductionOutputRequestStatus.PENDING_APPROVAL,
+    },
+    { enabled: PRODUCTION_OUTPUT_ENABLED },
   );
   const sellersQuery = useSellersQuery({ isActive: true });
   const sellerTypesQuery = useSellerTypesQuery({ isActive: true });
@@ -408,6 +440,8 @@ export default function WeighbridgeDashboardPage() {
   const tickets = dashboardQuery.data?.data.tickets ?? [];
   const pendingOutputTickets = pendingOutputQuery.data?.data ?? [];
   const pendingOutputCount = pendingOutputTickets.length;
+  const pendingStockRequestCount =
+    pendingStockRequestsQuery.data?.data.length ?? 0;
   const pendingProductionTicketIds = useMemo(
     () => new Set(pendingOutputTickets.map((ticket) => ticket.id)),
     [pendingOutputTickets],
@@ -423,6 +457,7 @@ export default function WeighbridgeDashboardPage() {
     stage?: ReceivingStage | null;
     from?: string | null;
     to?: string | null;
+    all?: boolean | null;
   }) => {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -443,8 +478,20 @@ export default function WeighbridgeDashboardPage() {
       }
     }
 
+    if (patch.all !== undefined) {
+      if (patch.all) {
+        next.set("all", "1");
+        next.delete("date");
+        next.delete("from");
+        next.delete("to");
+      } else {
+        next.delete("all");
+      }
+    }
+
     if (patch.from !== undefined || patch.to !== undefined) {
       next.delete("date");
+      next.delete("all");
       const fromValue =
         patch.from !== undefined
           ? patch.from?.trim() ?? ""
@@ -591,7 +638,7 @@ export default function WeighbridgeDashboardPage() {
   const summaryCards = [
     {
       key: "all" as ReceivingStage,
-      label: "รถเข้าวันนี้",
+      label: showAll ? "รถเข้าทั้งหมด" : "รถเข้าวันนี้",
       value: summary?.trucksInToday ?? tickets.length,
     },
     {
@@ -619,16 +666,20 @@ export default function WeighbridgeDashboardPage() {
       label: "จ่ายแล้ว",
       value: stageCounts.paid,
     },
-    {
-      key: "warehouse" as ReceivingStage,
-      label: "รอเข้าคลัง",
-      value: stageCounts.warehouse,
-    },
-    {
-      key: "stock-in" as ReceivingStage,
-      label: "รับผลผลิตเข้าคลัง",
-      value: pendingOutputCount,
-    },
+    ...(PRODUCTION_OUTPUT_ENABLED
+      ? [
+          {
+            key: "warehouse" as ReceivingStage,
+            label: "รอเข้าคลัง",
+            value: stageCounts.warehouse,
+          },
+          {
+            key: "stock-in" as ReceivingStage,
+            label: "รับผลผลิตเข้าคลัง",
+            value: pendingOutputCount,
+          },
+        ]
+      : []),
   ];
 
   const openTicketDrawer = () => {
@@ -689,6 +740,7 @@ export default function WeighbridgeDashboardPage() {
   const dateRangeValue: [Dayjs, Dayjs] | null =
     fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null;
   const dateLabel = (() => {
+    if (showAll) return "ทั้งหมด";
     if (!fromParam && !toParam) return "วันนี้";
     if (fromParam && toParam && fromParam === toParam) {
       return dayjs(fromParam).format("DD/MM/YYYY");
@@ -775,7 +827,7 @@ export default function WeighbridgeDashboardPage() {
     {
       title: "ชั่งน้ำหนัก",
       key: "weighActions",
-      width: 400,
+      width: PRODUCTION_OUTPUT_ENABLED ? 400 : 320,
       fixed: "right",
       render: (_value, record) => {
         const {
@@ -789,6 +841,7 @@ export default function WeighbridgeDashboardPage() {
         const pendingLoaded =
           !pendingOutputQuery.isLoading && !pendingOutputQuery.isError;
         const alreadyStockSent =
+          PRODUCTION_OUTPUT_ENABLED &&
           pendingLoaded &&
           Boolean(record.weighOutAt) &&
           !canStockIn &&
@@ -835,21 +888,23 @@ export default function WeighbridgeDashboardPage() {
             >
               {isPaid ? "จ่ายแล้ว" : "จ่ายเงิน"}
             </Button>
-            <Button
-              size="small"
-              type={canStockIn ? "primary" : "default"}
-              disabled={!canStockIn}
-              onClick={() => {
-                if (!canStockIn) {
-                  return;
-                }
-                router.push(
-                  `/receiving/production-output/stock-requests/create?ticketId=${encodeURIComponent(record.id)}`,
-                );
-              }}
-            >
-              {alreadyStockSent ? "เข้าคลังแล้ว" : "เข้าคลัง"}
-            </Button>
+            {PRODUCTION_OUTPUT_ENABLED ? (
+              <Button
+                size="small"
+                type={canStockIn ? "primary" : "default"}
+                disabled={!canStockIn}
+                onClick={() => {
+                  if (!canStockIn) {
+                    return;
+                  }
+                  router.push(
+                    `/receiving/production-output/stock-requests/create?ticketId=${encodeURIComponent(record.id)}`,
+                  );
+                }}
+              >
+                {alreadyStockSent ? "เข้าคลังแล้ว" : "เข้าคลัง"}
+              </Button>
+            ) : null}
           </div>
         );
       },
@@ -859,6 +914,115 @@ export default function WeighbridgeDashboardPage() {
   return (
     <MasterPageGate isLoading={dashboardQuery.isLoading}>
       <section className={styles.page}>
+        <header className={styles.pageHeader}>
+          <div className={styles.headerAccent} aria-hidden>
+            <CarOutlined />
+          </div>
+          <div className={styles.headerContent}>
+            <p className={styles.eyebrow}>Receiving</p>
+            <h1 className={styles.pageTitle}>รับซื้อยาง</h1>
+            <p className={styles.pageSubtitle}>
+              {dateLabel}
+              {searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · กดแถวเพื่อดูรายละเอียดตั๋ว
+            </p>
+          </div>
+          <div className={styles.scopeSwitch}>
+            <span
+              className={[
+                styles.scopeSwitchLabel,
+                !showAll ? styles.scopeSwitchLabelActive : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              วันนี้
+            </span>
+            <Switch
+              checked={showAll}
+              onChange={(checked) => {
+                if (checked) {
+                  updateParams({ all: true });
+                  return;
+                }
+                updateParams({ all: false, from: null, to: null });
+              }}
+              aria-label="สลับแสดงทั้งหมดหรือแค่วันนี้"
+            />
+            <span
+              className={[
+                styles.scopeSwitchLabel,
+                showAll ? styles.scopeSwitchLabelActive : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              ทั้งหมด
+            </span>
+          </div>
+          <div className={styles.headerActions}>
+            <Button
+              className={styles.dashboardButton}
+              icon={<BarChartOutlined />}
+              onClick={() => router.push("/receiving/dashboard")}
+            >
+              Dashboard
+            </Button>
+            {PRODUCTION_OUTPUT_ENABLED ? (
+              <>
+                <Button
+                  className={styles.dashboardButton}
+                  onClick={() =>
+                    router.push("/receiving/pending-production-output")
+                  }
+                >
+                  ตั๋วรอรับผลผลิต
+                </Button>
+                <Badge
+                  count={pendingStockRequestCount}
+                  size="small"
+                  offset={[-4, 4]}
+                >
+                  <Button
+                    className={styles.dashboardButton}
+                    onClick={() =>
+                      router.push(
+                        "/receiving/production-output/stock-requests",
+                      )
+                    }
+                  >
+                    คำขอรับผลผลิต
+                  </Button>
+                </Badge>
+              </>
+            ) : null}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              className={styles.openTicketButton}
+              onClick={openTicketDrawer}
+            >
+              เปิดตั๋วชั่ง
+            </Button>
+          </div>
+        </header>
+
+        <div className={styles.statsStrip}>
+          <div className={styles.statHighlight}>
+            <span>น้ำหนักรวม</span>
+            <strong>
+              {formatWeight(summary?.totalNetWeightKgToday ?? "0")}
+              <small> กก.</small>
+            </strong>
+          </div>
+          <div className={[styles.statHighlight, styles.statHighlightAccent].join(" ")}>
+            <span>ยอดเงินรวม</span>
+            <strong>
+              {formatMoney(summary?.totalAmountToday ?? "0")}
+              <small> บาท</small>
+            </strong>
+          </div>
+        </div>
+
         <div className={styles.summaryGrid}>
           {summaryCards.map((card) => {
             const active =
@@ -891,118 +1055,81 @@ export default function WeighbridgeDashboardPage() {
           })}
         </div>
 
-        <div className={styles.metricRow}>
-          <div className={styles.metricItem}>
-            <span>น้ำหนักรวม</span>
-            <strong>
-              {formatWeight(summary?.totalNetWeightKgToday ?? "0")} กก.
-            </strong>
-          </div>
-          <div className={styles.metricItem}>
-            <span>ยอดเงินรวม</span>
-            <strong>
-              {formatMoney(summary?.totalAmountToday ?? "0")} บาท
-            </strong>
-          </div>
-        </div>
-
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
               <h3>รายการรับซื้อยาง</h3>
               <p>
-                {dateLabel} · ดูรายการ{activeStageLabel}
-                {searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · กดแถวเพื่อดูรายละเอียด
+                ดูรายการ{activeStageLabel} · {filteredTickets.length} รายการ
               </p>
-            </div>
-
-            <div className={styles.listHeaderActions}>
-              <Button
-                className={styles.dashboardButton}
-                onClick={() => router.push("/receiving/dashboard")}
-              >
-                Dashboard
-              </Button>
-              <Button
-                className={styles.dashboardButton}
-                onClick={() =>
-                  router.push("/receiving/pending-production-output")
-                }
-              >
-                ตั๋วรอรับผลผลิต
-              </Button>
-              <Button
-                className={styles.dashboardButton}
-                onClick={() =>
-                  router.push("/receiving/production-output/stock-requests")
-                }
-              >
-                คำขอรับผลผลิต
-              </Button>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                className={styles.openTicketButton}
-                onClick={openTicketDrawer}
-              >
-                เปิดตั๋วชั่ง
-              </Button>
             </div>
           </div>
 
           <div className={styles.filterBar}>
-            <Input
-              allowClear
-              value={searchDraft}
-              prefix={<SearchOutlined />}
-              placeholder="ค้นหาเลขตั๋ว ผู้ขาย ทะเบียนรถ คนขับ ใบรับซื้อ"
-              className={styles.filterSearch}
-              onChange={(event) => setSearchDraft(event.target.value)}
-            />
-            <RangePicker
-              allowClear
-              value={dateRangeValue}
-              format="DD/MM/YYYY"
-              placeholder={["วันที่เริ่มต้น", "วันที่สิ้นสุด"]}
-              className={styles.filterDateRange}
-              onChange={(values) => {
-                if (!values || !values[0] || !values[1]) {
-                  updateParams({ from: null, to: null });
-                  return;
-                }
-                updateParams({
-                  from: values[0].format("YYYY-MM-DD"),
-                  to: values[1].format("YYYY-MM-DD"),
-                });
-              }}
-            />
-            <div className={styles.stageChips}>
-              {STAGE_OPTIONS.map((option) => {
-                const active = stage === option.key;
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    className={[
-                      styles.stageChip,
-                      active ? styles.stageChipActive : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    onClick={() => {
-                      if (option.key === "stock-in") {
-                        router.push("/receiving/pending-production-output");
-                        return;
-                      }
-                      updateParams({ stage: option.key });
-                    }}
-                    title={option.description}
-                  >
-                    <span>{option.label}</span>
-                    <em>{stageCounts[option.key]}</em>
-                  </button>
-                );
-              })}
+            <div className={styles.filterTop}>
+              <div className={styles.filterField}>
+                <span>ค้นหา</span>
+                <Input
+                  allowClear
+                  value={searchDraft}
+                  prefix={<SearchOutlined />}
+                  placeholder="เลขตั๋ว ผู้ขาย ทะเบียนรถ คนขับ ใบรับซื้อ"
+                  className={styles.filterSearch}
+                  onChange={(event) => setSearchDraft(event.target.value)}
+                />
+              </div>
+              <div className={styles.filterField}>
+                <span>ช่วงวันทำงาน</span>
+                <RangePicker
+                  allowClear
+                  value={dateRangeValue}
+                  format="DD/MM/YYYY"
+                  placeholder={["เริ่มต้น", "สิ้นสุด"]}
+                  className={styles.filterDateRange}
+                  onChange={(values) => {
+                    if (!values || !values[0] || !values[1]) {
+                      updateParams({ from: null, to: null, all: false });
+                      return;
+                    }
+                    updateParams({
+                      from: values[0].format("YYYY-MM-DD"),
+                      to: values[1].format("YYYY-MM-DD"),
+                      all: false,
+                    });
+                  }}
+                />
+              </div>
+            </div>
+            <div className={styles.stageStrip}>
+              <span className={styles.stageStripLabel}>ขั้นตอน</span>
+              <div className={styles.stageChips}>
+                {STAGE_OPTIONS.map((option) => {
+                  const active = stage === option.key;
+                  return (
+                    <button
+                      key={option.key}
+                      type="button"
+                      className={[
+                        styles.stageChip,
+                        active ? styles.stageChipActive : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onClick={() => {
+                        if (option.key === "stock-in") {
+                          router.push("/receiving/pending-production-output");
+                          return;
+                        }
+                        updateParams({ stage: option.key });
+                      }}
+                      title={option.description}
+                    >
+                      <span>{option.label}</span>
+                      <em>{stageCounts[option.key]}</em>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

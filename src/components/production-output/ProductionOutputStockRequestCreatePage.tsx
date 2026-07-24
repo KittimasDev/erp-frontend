@@ -271,7 +271,11 @@ export default function ProductionOutputStockRequestCreatePage({
   );
   const formLocked = Boolean(primaryTicketId && ticketLock.locked);
 
-  const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
+  const itemsQuery = useItemsQuery({
+    isActive: true,
+    isStockItem: true,
+    itemType: "FINISHED_GOODS",
+  });
   const unitsQuery = useUnitsQuery({ isActive: true });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery(

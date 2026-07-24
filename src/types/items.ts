@@ -39,6 +39,7 @@ export type ItemQueryParams = {
   isActive?: boolean;
   isPurchaseItem?: boolean;
   isStockItem?: boolean;
+  isSalesItem?: boolean;
 };
 
 export type CreateItemRequest = {

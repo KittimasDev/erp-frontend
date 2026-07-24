@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Input, Modal, Spin } from "antd";
+import { App, Button, Input, Modal, Spin } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -66,6 +66,7 @@ function statusClass(status: string) {
 
 export default function PurchaseRequestDetailPage({ id }: Props) {
   const router = useRouter();
+  const { modal } = App.useApp();
   const query = usePurchaseRequestQuery(id);
   const submitMutation = useSubmitPurchaseRequestMutation();
   const approveMutation = useApprovePurchaseRequestMutation();
@@ -323,7 +324,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                   danger
                   loading={busy}
                   onClick={() =>
-                    Modal.confirm({
+                    modal.confirm({
                       title: "ยืนยันยกเลิกใบขอซื้อ?",
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })
@@ -363,7 +364,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                   danger
                   loading={busy}
                   onClick={() =>
-                    Modal.confirm({
+                    modal.confirm({
                       title: "ยืนยันยกเลิกใบขอซื้อ?",
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })

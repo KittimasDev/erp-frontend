@@ -155,8 +155,25 @@ export type InventoryLotBalanceListApiResponse = {
 export const STOCK_MOVEMENT_TYPE_LABEL: Record<string, string> = {
   RECEIVE: "รับเข้า",
   ISSUE: "เบิกออก",
+  SALES_OUT: "ขายออก",
   ADJUST_IN: "ปรับเพิ่ม",
   ADJUST_OUT: "ปรับลด",
   TRANSFER_IN: "โอนเข้า",
   TRANSFER_OUT: "โอนออก",
 };
+
+/** แสดงประเภทบนหน้า Stock Movement — ISSUE จากใบจ่ายขายแสดงเป็นขายออก */
+export function resolveStockMovementTypeLabel(row: {
+  movementType: string;
+  referenceDocType?: string;
+}): string {
+  const type = row.movementType?.toUpperCase();
+  const ref = (row.referenceDocType ?? "").toUpperCase();
+  if (
+    type === "SALES_OUT" ||
+    (type === "ISSUE" && (ref === "PICKING" || ref === "DISPATCH_ORDER"))
+  ) {
+    return STOCK_MOVEMENT_TYPE_LABEL.SALES_OUT;
+  }
+  return STOCK_MOVEMENT_TYPE_LABEL[type] ?? row.movementType;
+}

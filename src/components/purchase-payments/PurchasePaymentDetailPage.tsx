@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Form, Input, Modal, Spin } from "antd";
+import { App, Button, DatePicker, Form, Input, Modal, Spin } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -87,6 +87,7 @@ function PurchasePaymentDetailView({
   data: SupplierPaymentVoucher;
 }) {
   const router = useRouter();
+  const { modal } = App.useApp();
   const confirmMutation = useConfirmPurchasePaymentMutation();
   const cancelMutation = useCancelPurchasePaymentMutation();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -273,7 +274,7 @@ function PurchasePaymentDetailView({
                   danger
                   loading={busy}
                   onClick={() =>
-                    Modal.confirm({
+                    modal.confirm({
                       title: "ยืนยันยกเลิกใบสำคัญจ่าย?",
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })

@@ -13,5 +13,7 @@ export function useWeighbridgeTicketQuery(id: string) {
     queryFn: () => getWeighbridgeTicket(getAccessToken(), id),
     enabled: Boolean(id),
     refetchOnMount: "always",
+    refetchInterval: 2000,
+    refetchIntervalInBackground: false,
   });
 }

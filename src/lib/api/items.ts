@@ -49,6 +49,10 @@ function buildItemsQuery(params?: ItemQueryParams) {
     search.set("isStockItem", String(params.isStockItem));
   }
 
+  if (params.isSalesItem !== undefined && params.isSalesItem !== null) {
+    search.set("isSalesItem", String(params.isSalesItem));
+  }
+
   const query = search.toString();
   return query ? `?${query}` : "";
 }

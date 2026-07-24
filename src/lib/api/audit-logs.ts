@@ -21,6 +21,9 @@ export function getAuditLogs(
   if (params.documentType?.trim()) {
     search.set("documentType", params.documentType.trim());
   }
+  if (params.documentId?.trim()) {
+    search.set("documentId", params.documentId.trim());
+  }
   if (params.performedById?.trim()) {
     search.set("performedById", params.performedById.trim());
   }

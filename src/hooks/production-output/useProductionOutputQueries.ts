@@ -25,11 +25,13 @@ export const productionOutputPendingTicketsQueryKey = [
 
 export function useProductionOutputPendingTicketsQuery(
   params?: ProductionOutputPendingTicketQueryParams,
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: [...productionOutputPendingTicketsQueryKey, params ?? {}],
     queryFn: () =>
       getProductionOutputPendingTickets(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }
 

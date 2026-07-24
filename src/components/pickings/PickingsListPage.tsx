@@ -1,0 +1,261 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Badge, Button, DatePicker, Input, Select, Space, Table, Tag } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import {
+  EditOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  ShoppingOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
+
+import {
+  usePickingsQuery,
+  useReadySalesOrdersForPickingQuery,
+} from "@/hooks/pickings/usePickingsQuery";
+import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { RoleCode } from "@/lib/auth/role-codes";
+import type { Picking } from "@/types/pickings";
+import {
+  PICKING_STATUS_LABEL,
+  type PickingStatus,
+} from "@/types/pickings";
+import styles from "./PickingsListPage.module.css";
+
+function formatDate(value?: string) {
+  if (!value) return "—";
+  return dayjs(value).format("DD/MM/YYYY");
+}
+
+export default function PickingsListPage() {
+  const router = useRouter();
+  const [keyword, setKeyword] = useState("");
+  const [status, setStatus] = useState<string | undefined>();
+  const [customerId, setCustomerId] = useState<string | undefined>();
+  const [date, setDate] = useState<dayjs.Dayjs | null>(null);
+  const [applied, setApplied] = useState<{
+    keyword?: string;
+    status?: string;
+    customerId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }>({});
+
+  const canWrite =
+    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+    isAdministrator();
+
+  const customersQuery = useCustomersQuery();
+  const query = usePickingsQuery(applied);
+  const readySosQuery = useReadySalesOrdersForPickingQuery();
+  const rows = query.data?.data ?? [];
+  const customers = customersQuery.data?.data ?? [];
+  const readyCount = readySosQuery.data?.data?.length ?? 0;
+
+  const columns: ColumnsType<Picking> = useMemo(
+    () => [
+      {
+        title: "เลขที่",
+        dataIndex: "pickingNo",
+        render: (v: string) => <span className={styles.prNo}>{v}</span>,
+      },
+      {
+        title: "ใบสั่งขาย",
+        dataIndex: "salesOrderNo",
+        render: (v?: string) => v ?? "—",
+      },
+      {
+        title: "ลูกค้า",
+        dataIndex: "customerName",
+        render: (v?: string) => v ?? "—",
+      },
+      {
+        title: "วันที่",
+        dataIndex: "pickingDate",
+        width: 110,
+        render: formatDate,
+      },
+      {
+        title: "สถานะ",
+        dataIndex: "status",
+        width: 120,
+        render: (v: string) => (
+          <Tag
+            color={
+              v === "CONFIRMED" ? "success" : v === "CANCELLED" ? "default" : "processing"
+            }
+          >
+            {PICKING_STATUS_LABEL[v as PickingStatus] ?? v}
+          </Tag>
+        ),
+      },
+      {
+        title: "สร้างโดย",
+        dataIndex: "createdByName",
+        render: (v?: string) => v ?? "—",
+      },
+      {
+        title: "ยืนยันเมื่อ",
+        dataIndex: "confirmedAt",
+        width: 140,
+        render: (v?: string) =>
+          v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—",
+      },
+      {
+        title: "",
+        key: "actions",
+        width: 100,
+        render: (_v, row) => (
+          <Space size={6} onClick={(e) => e.stopPropagation()}>
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => router.push(`/pickings/${row.id}`)}
+            />
+            {canWrite && row.status === "DRAFT" ? (
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => router.push(`/pickings/${row.id}/edit`)}
+              />
+            ) : null}
+          </Space>
+        ),
+      },
+    ],
+    [canWrite, router],
+  );
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.pageHeader}>
+        <div className={styles.headerAccent} aria-hidden>
+          <ShoppingOutlined />
+        </div>
+        <div className={styles.headerContent}>
+          <p className={styles.eyebrow}>Sales · Picking</p>
+          <h1 className={styles.pageTitle}>ใบจ่ายสินค้า</h1>
+          <p className={styles.pageSubtitle}>
+            หยิบสินค้าจากคลังตามใบสั่งขายที่ตรวจสต๊อกแล้ว — ตัดสต๊อกตอนยืนยันเท่านั้น
+          </p>
+        </div>
+        <div className={styles.headerActions}>
+          {canWrite ? (
+            <Link href="/pickings/create-from-sales-order">
+              <Badge count={readyCount} overflowCount={99} offset={[-4, 4]}>
+                <Button
+                  className={styles.primaryBtn}
+                  type="primary"
+                  icon={<PlusOutlined />}
+                >
+                  สร้างจาก SO
+                </Button>
+              </Badge>
+            </Link>
+          ) : null}
+        </div>
+      </header>
+
+      <section className={styles.filterCard}>
+        <div className={styles.filterGrid}>
+          <div className={styles.filterItem}>
+            <label>ค้นหา</label>
+            <Input
+              allowClear
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="เลขที่ / ลูกค้า"
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สถานะ</label>
+            <Select
+              allowClear
+              style={{ width: "100%" }}
+              value={status}
+              onChange={setStatus}
+              options={Object.entries(PICKING_STATUS_LABEL).map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>ลูกค้า</label>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              style={{ width: "100%" }}
+              value={customerId}
+              onChange={setCustomerId}
+              options={customers.map((c) => ({
+                value: c.id,
+                label: `${c.customerCode} — ${c.nameTh}`,
+              }))}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>วันที่</label>
+            <DatePicker
+              value={date}
+              onChange={setDate}
+              format="DD/MM/YYYY"
+              style={{ width: "100%" }}
+            />
+          </div>
+        </div>
+        <div className={styles.filterActions}>
+          <Button
+            onClick={() => {
+              setKeyword("");
+              setStatus(undefined);
+              setCustomerId(undefined);
+              setDate(null);
+              setApplied({});
+            }}
+          >
+            เคลียร์
+          </Button>
+          <Button
+            type="primary"
+            className={styles.primaryBtn}
+            icon={<SearchOutlined />}
+            onClick={() =>
+              setApplied({
+                keyword: keyword.trim() || undefined,
+                status,
+                customerId,
+                dateFrom: date ? date.format("YYYY-MM-DD") : undefined,
+                dateTo: date ? date.format("YYYY-MM-DD") : undefined,
+              })
+            }
+          >
+            ค้นหา
+          </Button>
+        </div>
+      </section>
+
+      <section className={styles.tableCard}>
+        <Table
+          rowKey="id"
+          loading={query.isLoading}
+          columns={columns}
+          dataSource={rows}
+          pagination={{ pageSize: 10, showSizeChanger: false }}
+          onRow={(row) => ({
+            onClick: () => router.push(`/pickings/${row.id}`),
+          })}
+          locale={{ emptyText: "ยังไม่มีใบจ่ายสินค้า" }}
+        />
+      </section>
+    </div>
+  );
+}

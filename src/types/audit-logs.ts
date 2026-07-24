@@ -26,6 +26,7 @@ export type AuditLogQueryParams = {
   moduleCode?: string;
   screenCode?: string;
   documentType?: string;
+  documentId?: string;
   performedById?: string;
   dateFrom?: string;
   dateTo?: string;

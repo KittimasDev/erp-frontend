@@ -22,6 +22,8 @@ export type UserQueryParams = {
   q?: string;
   isActive?: boolean;
   roleId?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type CreateUserRequest = {
@@ -52,10 +54,17 @@ export type UserApiResponse = {
   data: AppUser;
 };
 
+export type UserListData = {
+  items: AppUser[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export type UserListApiResponse = {
   statusCode?: number;
   message: string;
-  data: AppUser[];
+  data: UserListData;
 };
 
 export type Role = {
