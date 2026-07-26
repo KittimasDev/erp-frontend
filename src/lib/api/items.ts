@@ -26,12 +26,12 @@ function buildItemsQuery(params?: ItemQueryParams) {
     search.set("itemCategoryId", params.itemCategoryId);
   }
 
-  if (params.unitId) {
-    search.set("unitId", params.unitId);
+  if (params.itemCategoryCode?.trim()) {
+    search.set("itemCategoryCode", params.itemCategoryCode.trim());
   }
 
-  if (params.itemType?.trim()) {
-    search.set("itemType", params.itemType.trim());
+  if (params.unitId) {
+    search.set("unitId", params.unitId);
   }
 
   if (params.isActive !== undefined && params.isActive !== null) {

@@ -34,8 +34,8 @@ export type ItemQueryParams = {
   code?: string;
   name?: string;
   itemCategoryId?: string;
+  itemCategoryCode?: string;
   unitId?: string;
-  itemType?: string;
   isActive?: boolean;
   isPurchaseItem?: boolean;
   isStockItem?: boolean;
@@ -47,7 +47,6 @@ export type CreateItemRequest = {
   name: string;
   itemCategoryId: string;
   unitId: string;
-  itemType?: string;
   warehouseGroup?: string;
   isPurchaseItem?: boolean;
   isStockItem?: boolean;

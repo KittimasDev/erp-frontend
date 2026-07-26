@@ -43,7 +43,6 @@ type ItemFilterFormValues = {
   name?: string;
   itemCategoryId?: string;
   unitId?: string;
-  itemType?: string;
   isActive?: boolean | null;
   isPurchaseItem?: boolean | null;
   isStockItem?: boolean | null;
@@ -54,7 +53,6 @@ const FILTER_KEYS = [
   "name",
   "itemCategoryId",
   "unitId",
-  "itemType",
   "isActive",
   "isPurchaseItem",
   "isStockItem",
@@ -83,11 +81,6 @@ function parseFiltersFromSearch(
   const unitId = searchParams.get("unitId")?.trim();
   if (unitId) {
     params.unitId = unitId;
-  }
-
-  const itemType = searchParams.get("itemType")?.trim();
-  if (itemType) {
-    params.itemType = itemType;
   }
 
   const isActiveRaw = searchParams.get("isActive");
@@ -120,7 +113,6 @@ function toFormValues(params: ItemQueryParams): ItemFilterFormValues {
     name: params.name,
     itemCategoryId: params.itemCategoryId,
     unitId: params.unitId,
-    itemType: params.itemType,
     isActive: params.isActive,
     isPurchaseItem: params.isPurchaseItem,
     isStockItem: params.isStockItem,
@@ -144,10 +136,6 @@ function buildSearchFromForm(values: ItemFilterFormValues): URLSearchParams {
 
   if (values.unitId) {
     next.set("unitId", values.unitId);
-  }
-
-  if (values.itemType?.trim()) {
-    next.set("itemType", values.itemType.trim());
   }
 
   if (values.isActive === true || values.isActive === false) {
@@ -289,7 +277,7 @@ export default function ItemsPage() {
       ),
     },
     {
-      title: "หมวดหมู่",
+      title: "หมวดหมู่สินค้า",
       key: "itemCategory",
       width: 160,
       render: (_, record) => (
@@ -308,15 +296,6 @@ export default function ItemsPage() {
         <span className={styles.symbolText}>
           {record.unit?.code || "-"}
         </span>
-      ),
-    },
-    {
-      title: "ประเภท",
-      dataIndex: "itemType",
-      key: "itemType",
-      width: 130,
-      render: (value?: string) => (
-        <span className={styles.symbolText}>{value || "-"}</span>
       ),
     },
     {
@@ -434,7 +413,7 @@ export default function ItemsPage() {
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
             <h3>ค้นหาสินค้า</h3>
-            <p>กรองด้วยรหัส ชื่อ หมวดหมู่ หน่วย ประเภท และสถานะ</p>
+            <p>กรองด้วยรหัส ชื่อ หมวดหมู่สินค้า หน่วย และสถานะ</p>
           </div>
 
           {hasFilters ? (
@@ -469,7 +448,7 @@ export default function ItemsPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="itemCategoryId" label="หมวดหมู่">
+              <Form.Item name="itemCategoryId" label="หมวดหมู่สินค้า">
                 <Select
                   allowClear
                   showSearch
@@ -497,12 +476,6 @@ export default function ItemsPage() {
                     label: `${unit.code} — ${unit.nameTh}`,
                   }))}
                 />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="itemType" label="ประเภท">
-                <Input allowClear placeholder="เช่น RAW_TIRE" />
               </Form.Item>
             </Col>
 

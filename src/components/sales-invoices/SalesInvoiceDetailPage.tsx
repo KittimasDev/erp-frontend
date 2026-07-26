@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, DatePicker, Form, Input, Modal, Select, Spin, Table } from "antd";
+import { App, Button, DatePicker, Form, Input, InputNumber, Modal, Select, Spin, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   ArrowLeftOutlined,
@@ -95,10 +95,20 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
   const [payOpen, setPayOpen] = useState(false);
   const [payForm] = Form.useForm<{
     paymentMethod: string;
+    amount: number;
     paidAt: dayjs.Dayjs;
     transactionRef?: string;
     remark?: string;
   }>();
+
+  const paidAmount = (data.payments ?? []).reduce(
+    (sum, p) => sum + (Number(p.amount) || 0),
+    0,
+  );
+  const outstandingAmount = Math.max(
+    0,
+    (Number(data.totalAmount) || 0) - paidAmount,
+  );
 
   const canWrite =
     userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
@@ -236,31 +246,36 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               >
                 Confirm
               </Button>
-              <Button
-                danger
-                icon={<CloseOutlined />}
-                loading={busy}
-                onClick={() => {
-                  modal.confirm({
-                    title: "ยกเลิกใบแจ้งหนี้?",
-                    content: "ยกเลิกได้เฉพาะสถานะ DRAFT",
-                    okText: "ยกเลิกเอกสาร",
-                    okButtonProps: { danger: true },
-                    cancelText: "ปิด",
-                    onOk: async () => {
-                      await cancelMutation.mutateAsync(data.id);
-                      router.push("/sales-invoices");
-                    },
-                  });
-                }}
-              >
-                Cancel
-              </Button>
             </>
           ) : null}
           {canWrite &&
+          (data.status === "DRAFT" ||
+            (data.status === "POSTED" && data.paymentStatus === "UNPAID")) ? (
+            <Button
+              danger
+              icon={<CloseOutlined />}
+              loading={busy}
+              onClick={() => {
+                modal.confirm({
+                  title: "ยกเลิกใบแจ้งหนี้?",
+                  content: "ยกเลิกได้เฉพาะใบแจ้งหนี้ที่ยังไม่รับชำระ",
+                  okText: "ยกเลิกเอกสาร",
+                  okButtonProps: { danger: true },
+                  cancelText: "ปิด",
+                  onOk: async () => {
+                    await cancelMutation.mutateAsync(data.id);
+                    router.push("/sales-invoices");
+                  },
+                });
+              }}
+            >
+              Cancel
+            </Button>
+          ) : null}
+          {canWrite &&
           data.status === "POSTED" &&
-          data.paymentStatus === "UNPAID" ? (
+          (data.paymentStatus === "UNPAID" ||
+            data.paymentStatus === "PARTIALLY_PAID") ? (
             <Button
               type="primary"
               icon={<DollarOutlined />}
@@ -268,6 +283,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               onClick={() => {
                 payForm.setFieldsValue({
                   paymentMethod: "TRANSFER",
+                  amount: outstandingAmount,
                   paidAt: dayjs(),
                 });
                 setPayOpen(true);
@@ -389,6 +405,22 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                   <strong>{formatMoney(data.totalAmount)}</strong>
                 </div>
               </div>
+              {data.paymentStatus ? (
+                <>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>ชำระแล้ว</span>
+                    <div className={styles.metaValue}>
+                      {formatMoney(String(paidAmount))}
+                    </div>
+                  </div>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>คงค้าง</span>
+                    <div className={styles.metaValue}>
+                      <strong>{formatMoney(String(outstandingAmount))}</strong>
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
 
@@ -432,7 +464,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       </div>
 
       <Modal
-        title="รับชำระเต็มจำนวน"
+        title="รับชำระเงิน"
         open={payOpen}
         onCancel={() => setPayOpen(false)}
         okText="บันทึกรับชำระ"
@@ -443,6 +475,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
             id: data.id,
             body: {
               paymentMethod: values.paymentMethod,
+              amount: values.amount,
               paidAt: values.paidAt.format("YYYY-MM-DD"),
               transactionRef: values.transactionRef?.trim() || undefined,
               remark: values.remark?.trim() || undefined,
@@ -451,6 +484,10 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           setPayOpen(false);
         }}
       >
+        <p>
+          ยอดคงค้าง: <strong>{formatMoney(String(outstandingAmount))}</strong>{" "}
+          บาท (จาก {formatMoney(data.totalAmount)} บาท)
+        </p>
         <Form form={payForm} layout="vertical">
           <Form.Item
             name="paymentMethod"
@@ -466,6 +503,32 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
             />
           </Form.Item>
           <Form.Item
+            name="amount"
+            label="จำนวนเงินที่รับชำระ"
+            rules={[
+              { required: true, message: "ระบุจำนวนเงิน" },
+              {
+                validator: (_rule, value) =>
+                  value > 0
+                    ? Promise.resolve()
+                    : Promise.reject(new Error("จำนวนเงินต้องมากกว่า 0")),
+              },
+              {
+                validator: (_rule, value) =>
+                  value <= outstandingAmount + 0.005
+                    ? Promise.resolve()
+                    : Promise.reject(new Error("รับชำระเกินยอดคงค้างไม่ได้")),
+              },
+            ]}
+          >
+            <InputNumber
+              min={0.01}
+              max={outstandingAmount}
+              precision={2}
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+          <Form.Item
             name="paidAt"
             label="วันที่รับชำระ"
             rules={[{ required: true, message: "ระบุวันที่" }]}
@@ -478,9 +541,6 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           <Form.Item name="remark" label="หมายเหตุ">
             <Input.TextArea rows={2} />
           </Form.Item>
-          <p>
-            ยอดรับชำระ: <strong>{formatMoney(data.totalAmount)}</strong> บาท
-          </p>
         </Form>
       </Modal>
     </div>

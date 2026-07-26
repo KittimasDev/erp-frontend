@@ -1,5 +1,9 @@
 export type SalesInvoiceStatus = "DRAFT" | "POSTED" | "CANCELLED" | string;
-export type SalesInvoicePaymentStatus = "UNPAID" | "PAID" | string;
+export type SalesInvoicePaymentStatus =
+  | "UNPAID"
+  | "PARTIALLY_PAID"
+  | "PAID"
+  | string;
 
 export const SALES_INVOICE_STATUS_LABEL: Record<string, string> = {
   DRAFT: "ร่าง",
@@ -9,6 +13,7 @@ export const SALES_INVOICE_STATUS_LABEL: Record<string, string> = {
 
 export const SALES_INVOICE_PAYMENT_STATUS_LABEL: Record<string, string> = {
   UNPAID: "ยังไม่ชำระ",
+  PARTIALLY_PAID: "ชำระบางส่วน",
   PAID: "ชำระแล้ว",
 };
 
@@ -171,6 +176,7 @@ export type UpdateSalesInvoiceBody = {
 
 export type ReceiveSalesInvoicePaymentBody = {
   paymentMethod: string;
+  amount?: number;
   paidAt?: string;
   transactionRef?: string;
   remark?: string;

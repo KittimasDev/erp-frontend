@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
-  Badge,
   Button,
   Col,
   DatePicker,
@@ -11,7 +10,6 @@ import {
   Input,
   Row,
   Select,
-  Space,
   Switch,
   Table,
   Tag,
@@ -38,15 +36,9 @@ import { useSellersQuery } from "@/hooks/sellers/useSellersQuery";
 import { useSellerTypesQuery } from "@/hooks/seller-types/useSellerTypesQuery";
 import { useTrucksQuery } from "@/hooks/trucks/useTrucksQuery";
 import { useWeighbridgeScalesQuery } from "@/hooks/weighbridge-scales/useWeighbridgeScalesQuery";
-import {
-  useProductionOutputPendingTicketsQuery,
-  useProductionOutputStockRequestsQuery,
-} from "@/hooks/production-output/useProductionOutputQueries";
 import type { CreateSellerRequest } from "@/types/sellers";
-import { ProductionOutputRequestStatus } from "@/types/production-output-stock-request";
 import type { Truck } from "@/types/trucks";
 import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
-import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -80,8 +72,7 @@ type ReceivingStage =
   | "classify"
   | "payment"
   | "paid"
-  | "warehouse"
-  | "stock-in";
+  | "warehouse";
 
 const FLOW_LABELS: Record<string, string> = {
   WAITING_WEIGH_IN: "รอชั่งเข้า",
@@ -121,20 +112,16 @@ const STAGE_OPTIONS: {
     label: "เข้าคลัง",
     description: "รอส่งคำขอรับเข้าคลัง",
   },
-  ...(PRODUCTION_OUTPUT_ENABLED
-    ? ([
-        {
-          key: "stock-in",
-          label: "รับผลผลิต",
-          description: "หน้ารายการตั๋วรอรับผลผลิตเข้าคลัง",
-        },
-      ] as const)
-    : []),
 ];
 
-const ACTION_STAGE_KEYS: Array<
-  Exclude<ReceivingStage, "all" | "stock-in">
-> = ["weigh-in", "weigh-out", "classify", "payment", "paid", "warehouse"];
+const ACTION_STAGE_KEYS: Array<Exclude<ReceivingStage, "all">> = [
+  "weigh-in",
+  "weigh-out",
+  "classify",
+  "payment",
+  "paid",
+  "warehouse",
+];
 
 const PAYMENT_METHOD_OPTIONS = [
   { value: "CASH", label: "เงินสด" },
@@ -154,24 +141,11 @@ function parseStage(value: string | null): ReceivingStage {
   ) {
     return value;
   }
-  if (PRODUCTION_OUTPUT_ENABLED && value === "stock-in") {
-    return value;
-  }
   return "all";
 }
 
-function isPendingProductionStockIn(
-  ticket: WeighbridgeTicketListItem,
-  pendingTicketIds: Set<string>,
-) {
-  return pendingTicketIds.has(ticket.id);
-}
-
 /** เงื่อนไขเดียวกับปุ่มในคอลัมน์ "ชั่งน้ำหนัก" — ใช้ทั้ง filter และปุ่ม */
-function getTicketActionFlags(
-  ticket: WeighbridgeTicketListItem,
-  pendingTicketIds: Set<string>,
-) {
+function getTicketActionFlags(ticket: WeighbridgeTicketListItem) {
   const locked =
     ticket.status === "CANCELLED" || ticket.status === "CLOSED";
   const isPaid =
@@ -205,15 +179,12 @@ function getTicketActionFlags(
     (ticket.flowState === "WAITING_PAYMENT" ||
       (ticket.receiptStatus === "CONFIRMED" &&
         ticket.receiptPaymentStatus !== "PAID"));
-  const canStockInProduction = isPendingProductionStockIn(
-    ticket,
-    pendingTicketIds,
-  );
   const canStockInRaw =
     Boolean(ticket.receiptId) &&
     ticket.receiptStatus === "CONFIRMED" &&
-    ticket.receiptStockPostingStatus !== "POSTED";
-  const canStockIn = canStockInRaw || canStockInProduction;
+    ticket.receiptStockPostingStatus !== "POSTED" &&
+    ticket.receiptPaymentStatus === "PAID";
+  const canStockIn = canStockInRaw;
   const stockPosted = ticket.receiptStockPostingStatus === "POSTED";
 
   return {
@@ -225,7 +196,6 @@ function getTicketActionFlags(
     canPay,
     canStockIn,
     canStockInRaw,
-    canStockInProduction,
     stockPosted,
   };
 }
@@ -233,13 +203,12 @@ function getTicketActionFlags(
 function matchesStage(
   ticket: WeighbridgeTicketListItem,
   stage: ReceivingStage,
-  pendingTicketIds: Set<string> = new Set(),
 ) {
-  if (stage === "all" || stage === "stock-in") {
+  if (stage === "all") {
     return true;
   }
 
-  const flags = getTicketActionFlags(ticket, pendingTicketIds);
+  const flags = getTicketActionFlags(ticket);
 
   switch (stage) {
     case "weigh-in":
@@ -427,22 +396,6 @@ export default function WeighbridgeDashboardPage() {
         ? { from: fromParam, to: toParam }
         : undefined,
   );
-  // ต้องใช้ช่วงเดียวกับ dashboard — ห้ามใช้วันจากเบราว์เซอร์คนละวันกับเซิร์ฟเวอร์
-  // ไม่ส่ง from/to = API ใช้วันนี้ของเซิร์ฟเวอร์ (pending ย้อนหลัง 7 วัน)
-  const pendingOutputQuery = useProductionOutputPendingTicketsQuery(
-    showAll
-      ? { all: true }
-      : fromParam || toParam
-        ? { from: fromParam, to: toParam }
-        : undefined,
-    { enabled: PRODUCTION_OUTPUT_ENABLED },
-  );
-  const pendingStockRequestsQuery = useProductionOutputStockRequestsQuery(
-    {
-      status: ProductionOutputRequestStatus.PENDING_APPROVAL,
-    },
-    { enabled: PRODUCTION_OUTPUT_ENABLED },
-  );
   const sellersQuery = useSellersQuery({ isActive: true });
   const sellerTypesQuery = useSellerTypesQuery({ isActive: true });
   const trucksQuery = useTrucksQuery(
@@ -455,14 +408,6 @@ export default function WeighbridgeDashboardPage() {
 
   const summary = dashboardQuery.data?.data.summary;
   const tickets = dashboardQuery.data?.data.tickets ?? [];
-  const pendingOutputTickets = pendingOutputQuery.data?.data ?? [];
-  const pendingOutputCount = pendingOutputTickets.length;
-  const pendingStockRequestCount =
-    pendingStockRequestsQuery.data?.data.length ?? 0;
-  const pendingProductionTicketIds = useMemo(
-    () => new Set(pendingOutputTickets.map((ticket) => ticket.id)),
-    [pendingOutputTickets],
-  );
 
   const sellers = sellersQuery.data?.data ?? [];
   const sellerTypes = sellerTypesQuery.data?.data ?? [];
@@ -568,28 +513,24 @@ export default function WeighbridgeDashboardPage() {
       payment: 0,
       paid: 0,
       warehouse: 0,
-      "stock-in": pendingOutputCount,
     };
     for (const ticket of tickets) {
       for (const key of ACTION_STAGE_KEYS) {
-        if (matchesStage(ticket, key, pendingProductionTicketIds)) {
+        if (matchesStage(ticket, key)) {
           counts[key] += 1;
         }
       }
     }
     return counts;
-  }, [tickets, pendingOutputCount, pendingProductionTicketIds]);
+  }, [tickets]);
 
   const filteredTickets = useMemo(
     () =>
-      stage === "stock-in"
-        ? []
-        : tickets.filter(
-            (ticket) =>
-              matchesStage(ticket, stage, pendingProductionTicketIds) &&
-              matchesSearch(ticket, searchQuery),
-          ),
-    [tickets, stage, searchQuery, pendingProductionTicketIds],
+      tickets.filter(
+        (ticket) =>
+          matchesStage(ticket, stage) && matchesSearch(ticket, searchQuery),
+      ),
+    [tickets, stage, searchQuery],
   );
 
   const selectedTruck = useMemo(
@@ -697,15 +638,6 @@ export default function WeighbridgeDashboardPage() {
       label: "รอเข้าคลัง",
       value: stageCounts.warehouse,
     },
-    ...(PRODUCTION_OUTPUT_ENABLED
-      ? [
-          {
-            key: "stock-in" as ReceivingStage,
-            label: "รับผลผลิตเข้าคลัง",
-            value: pendingOutputCount,
-          },
-        ]
-      : []),
   ];
 
   const openTicketDrawer = () => {
@@ -872,9 +804,8 @@ export default function WeighbridgeDashboardPage() {
           canPay,
           canStockIn,
           canStockInRaw,
-          canStockInProduction,
           stockPosted,
-        } = getTicketActionFlags(record, pendingProductionTicketIds);
+        } = getTicketActionFlags(record);
 
         return (
           <div
@@ -922,20 +853,12 @@ export default function WeighbridgeDashboardPage() {
               type={canStockIn ? "primary" : "default"}
               disabled={!canStockIn}
               onClick={() => {
-                if (!canStockIn) {
+                if (!canStockIn || !canStockInRaw || !record.receiptId) {
                   return;
                 }
-                if (canStockInRaw && record.receiptId) {
-                  router.push(
-                    `/raw-tire-purchase/receipts/${record.receiptId}/stock-posting-request`,
-                  );
-                  return;
-                }
-                if (canStockInProduction) {
-                  router.push(
-                    `/receiving/production-output/stock-requests/create?ticketId=${encodeURIComponent(record.id)}`,
-                  );
-                }
+                router.push(
+                  `/raw-tire-purchase/receipts/${record.receiptId}/stock-posting-request`,
+                );
               }}
             >
               {stockPosted ? "เข้าคลังแล้ว" : "เข้าคลัง"}
@@ -1002,34 +925,6 @@ export default function WeighbridgeDashboardPage() {
             >
               Dashboard
             </Button>
-            {PRODUCTION_OUTPUT_ENABLED ? (
-              <>
-                <Button
-                  className={styles.dashboardButton}
-                  onClick={() =>
-                    router.push("/receiving/pending-production-output")
-                  }
-                >
-                  ตั๋วรอรับผลผลิต
-                </Button>
-                <Badge
-                  count={pendingStockRequestCount}
-                  size="small"
-                  offset={[-4, 4]}
-                >
-                  <Button
-                    className={styles.dashboardButton}
-                    onClick={() =>
-                      router.push(
-                        "/receiving/production-output/stock-requests",
-                      )
-                    }
-                  >
-                    คำขอรับผลผลิต
-                  </Button>
-                </Badge>
-              </>
-            ) : null}
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -1074,10 +969,6 @@ export default function WeighbridgeDashboardPage() {
                   .filter(Boolean)
                   .join(" ")}
                 onClick={() => {
-                  if (card.key === "stock-in") {
-                    router.push("/receiving/pending-production-output");
-                    return;
-                  }
                   updateParams({
                     stage: card.key === stage ? "all" : card.key,
                   });
@@ -1151,10 +1042,6 @@ export default function WeighbridgeDashboardPage() {
                         .filter(Boolean)
                         .join(" ")}
                       onClick={() => {
-                        if (option.key === "stock-in") {
-                          router.push("/receiving/pending-production-output");
-                          return;
-                        }
                         updateParams({ stage: option.key });
                       }}
                       title={option.description}
@@ -1169,32 +1056,7 @@ export default function WeighbridgeDashboardPage() {
           </div>
 
           <div className={styles.cardBody}>
-            {stage === "stock-in" ? (
-              <div style={{ display: "grid", gap: 12 }}>
-                <Typography.Text>
-                  ตั๋วรอรับผลผลิตเข้าคลังในช่วงวันที่เลือก — มี{" "}
-                  <strong>{pendingOutputCount}</strong> ใบที่ยังไม่ได้ส่งคำขอ
-                  (ผงยาง / น้ำมัน Pyrolysis / เศษเหล็ก ฯลฯ)
-                </Typography.Text>
-                <Space wrap>
-                  <Button
-                    type="primary"
-                    onClick={() =>
-                      router.push("/receiving/pending-production-output")
-                    }
-                  >
-                    ตั๋วรอรับผลผลิต ({pendingOutputCount})
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      router.push("/receiving/production-output/stock-requests")
-                    }
-                  >
-                    ดูรายการคำขอ
-                  </Button>
-                </Space>
-              </div>
-            ) : dashboardQuery.isError ? (
+            {dashboardQuery.isError ? (
               <Typography.Text type="danger">
                 {dashboardQuery.error instanceof Error
                   ? dashboardQuery.error.message
@@ -1217,24 +1079,16 @@ export default function WeighbridgeDashboardPage() {
                 }}
                 onRow={(record) => {
                   if (stage === "warehouse") {
-                    const { canStockIn, canStockInRaw, canStockInProduction } =
-                      getTicketActionFlags(record, pendingProductionTicketIds);
+                    const { canStockIn, canStockInRaw } =
+                      getTicketActionFlags(record);
                     return {
                       onClick: () => {
-                        if (!canStockIn) {
+                        if (!canStockIn || !canStockInRaw || !record.receiptId) {
                           return;
                         }
-                        if (canStockInRaw && record.receiptId) {
-                          router.push(
-                            `/raw-tire-purchase/receipts/${record.receiptId}/stock-posting-request`,
-                          );
-                          return;
-                        }
-                        if (canStockInProduction) {
-                          router.push(
-                            `/receiving/production-output/stock-requests/create?ticketId=${encodeURIComponent(record.id)}`,
-                          );
-                        }
+                        router.push(
+                          `/raw-tire-purchase/receipts/${record.receiptId}/stock-posting-request`,
+                        );
                       },
                       className: canStockIn ? styles.clickableRow : undefined,
                       style: canStockIn ? undefined : { cursor: "default" },

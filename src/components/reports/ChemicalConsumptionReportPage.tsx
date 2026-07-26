@@ -70,7 +70,7 @@ export default function ChemicalConsumptionReportPage() {
     warehouseId?: string;
   }>({});
 
-  const itemsQuery = useItemsQuery({ isActive: true, itemType: "CHEMICAL" });
+  const itemsQuery = useItemsQuery({ isActive: true, itemCategoryCode: "CHEMICAL" });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const query = useChemicalConsumptionReportQuery(applied);
 

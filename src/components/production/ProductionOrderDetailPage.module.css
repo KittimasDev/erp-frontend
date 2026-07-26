@@ -1,0 +1,64 @@
+.actionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.infoLabel {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.infoValue {
+  color: var(--unit-gray-dark);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionHead h3 {
+  margin: 0;
+  color: var(--unit-gray-dark);
+  font-size: 16px;
+}
+
+.yieldGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .infoGrid,
+  .yieldGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

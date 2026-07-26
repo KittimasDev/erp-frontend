@@ -67,6 +67,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
     isAdministrator();
   const canCreateInvoice =
+    userHasRole(RoleCode.SALES_OFFICER) ||
     userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
     userHasRole(RoleCode.SALES_MANAGER) ||
     isAdministrator();

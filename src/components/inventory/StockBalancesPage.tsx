@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button, Input, Select, Switch, Table, Typography } from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -16,6 +17,7 @@ import type {
   StockBalanceQueryParams,
   StockBalanceRow,
 } from "@/types/inventory";
+import { getInventoryPageScope } from "./inventory-page-copy";
 import styles from "./StockBalancesPage.module.css";
 
 function formatQty(value?: string) {
@@ -26,7 +28,27 @@ function formatQty(value?: string) {
   return num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
 }
 
+function pageCopy(itemCategoryCode?: string) {
+  const scope = getInventoryPageScope(itemCategoryCode);
+  if (scope) {
+    return {
+      ...scope,
+      subtitle: "ตรวจสอบยอดคงเหลือ แยกตามสินค้า คลัง และตำแหน่งจัดเก็บ",
+    };
+  }
+  return {
+    eyebrow: "INVENTORY · STOCK BALANCES",
+    title: "ภาพรวมคลังสินค้า",
+    subtitle:
+      "ดูยอดคงเหลือตามสินค้า คลัง และตำแหน่ง — ดูอย่างเดียว ไม่แก้สต๊อกจากหน้านี้",
+  };
+}
+
 export default function StockBalancesPage() {
+  const searchParams = useSearchParams();
+  const itemCategoryCode = searchParams.get("itemCategoryCode")?.trim() || undefined;
+  const copy = pageCopy(itemCategoryCode);
+
   const [draft, setDraft] = useState<{
     warehouseId?: string;
     locationId?: string;
@@ -38,10 +60,11 @@ export default function StockBalancesPage() {
   });
   const [filters, setFilters] = useState<StockBalanceQueryParams>({
     hasStock: true,
+    itemCategoryCode,
   });
 
-  const balancesQuery = useStockBalancesQuery(filters);
-  const summaryQuery = useStockBalanceSummaryQuery(filters);
+  const balancesQuery = useStockBalancesQuery({ ...filters, itemCategoryCode });
+  const summaryQuery = useStockBalanceSummaryQuery({ ...filters, itemCategoryCode });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery(
     draft.warehouseId
@@ -168,12 +191,13 @@ export default function StockBalancesPage() {
       locationId: draft.locationId,
       q: draft.q.trim() || undefined,
       hasStock: draft.hasStock,
+      itemCategoryCode,
     });
   };
 
   const handleClear = () => {
     setDraft({ q: "", hasStock: true });
-    setFilters({ hasStock: true });
+    setFilters({ hasStock: true, itemCategoryCode });
   };
 
   return (
@@ -181,14 +205,11 @@ export default function StockBalancesPage() {
       <section className={styles.page}>
         <div className={styles.header}>
           <div className={styles.headerMain}>
-            <div className={styles.eyebrow}>INVENTORY · STOCK BALANCES</div>
+            <div className={styles.eyebrow}>{copy.eyebrow}</div>
             <Typography.Title level={2} className={styles.title}>
-              ภาพรวมคลังสินค้า
+              {copy.title}
             </Typography.Title>
-            <span className={styles.subtitle}>
-              ดูยอดคงเหลือตามสินค้า คลัง และตำแหน่ง — ดูอย่างเดียว
-              ไม่แก้สต๊อกจากหน้านี้
-            </span>
+            <span className={styles.subtitle}>{copy.subtitle}</span>
           </div>
         </div>
 

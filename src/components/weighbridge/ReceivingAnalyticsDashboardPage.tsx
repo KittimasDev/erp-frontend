@@ -28,11 +28,11 @@ import { useWeighbridgeAnalyticsQuery } from "@/hooks/weighbridge-tickets/useWei
 
 import styles from "./ReceivingAnalyticsDashboardPage.module.css";
 
-const GREEN = "#8ab933";
-const GREEN_DARK = "#6f9720";
-const GREEN_SOFT = "#c5df7a";
-const AMBER = "#d4a017";
-const MUTED = "#8a9199";
+const GREEN = "#739816";
+const GREEN_DARK = "#627F13";
+const GREEN_SOFT = "#A9C46C";
+const AMBER = "#F9BB0C";
+const MUTED = "#77777C";
 
 function formatMoney(value: string | number) {
   const n = Number(value);

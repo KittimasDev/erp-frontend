@@ -7,6 +7,7 @@ import {
   approveProductionOutputStockRequest,
   cancelProductionOutputStockRequest,
   createProductionOutputStockRequestBatch,
+  createProductionOutputStockRequestFromOrder,
   rejectProductionOutputStockRequest,
 } from "@/lib/api/production-output-stock-requests";
 import { ApiError } from "@/lib/api/client";
@@ -14,6 +15,7 @@ import { getAccessToken } from "@/lib/auth/token";
 import type {
   CreateProductionOutputStockRequestBatchBody,
   CreateProductionOutputStockRequestBody,
+  CreateProductionOutputStockRequestFromOrderBody,
   RejectProductionOutputStockRequestBody,
 } from "@/types/production-output-stock-request";
 import { productionOutputPendingTicketsQueryKey } from "./useProductionOutputQueries";
@@ -62,6 +64,43 @@ export function useCreateProductionOutputStockRequestMutation() {
       message.success(response.message);
     },
     onError: (error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "สร้างคำขอรับผลผลิตไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useCreateProductionOutputStockRequestFromOrderMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: ["production-output", "stock-requests", "from-order"],
+    mutationFn: ({
+      productionOrderId,
+      body,
+    }: {
+      productionOrderId: string;
+      body: CreateProductionOutputStockRequestFromOrderBody;
+    }) =>
+      createProductionOutputStockRequestFromOrder(
+        getAccessToken(),
+        productionOrderId,
+        body,
+      ),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({
+        queryKey: productionOutputStockRequestsQueryKey,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["production-orders"],
+      });
+      message.success(response.message || "สร้างคำขอรับผลผลิตเข้าคลังสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message

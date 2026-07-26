@@ -60,11 +60,11 @@
   color: #fff;
   background: linear-gradient(
     135deg,
-    #a3c644 0%,
+    #8CA527 0%,
     var(--pr-green) 58%,
     var(--pr-green-dark) 100%
   );
-  box-shadow: 0 10px 22px rgba(138, 185, 51, 0.28);
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
   font-size: 20px;
 }
 
@@ -200,7 +200,7 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(138, 185, 51, 0.12);
+  background: rgba(115, 152, 22, 0.12);
   color: var(--pr-green-dark);
   font-size: 12px;
   font-weight: 700;
@@ -246,9 +246,9 @@
 }
 
 .actionBtn:hover {
-  border-color: rgba(138, 185, 51, 0.45);
+  border-color: rgba(115, 152, 22, 0.45);
   color: var(--pr-green-dark);
-  background: rgba(138, 185, 51, 0.08);
+  background: rgba(115, 152, 22, 0.08);
 }
 
 .tableFooter {
@@ -289,7 +289,7 @@
   background:
     radial-gradient(
       120% 90% at 100% 0%,
-      rgba(138, 185, 51, 0.22) 0%,
+      rgba(115, 152, 22, 0.22) 0%,
       transparent 55%
     ),
     linear-gradient(180deg, #fff 0%, #fbfdf7 100%);
@@ -500,7 +500,7 @@
   margin-top: 10px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: rgba(138, 185, 51, 0.12);
+  background: rgba(115, 152, 22, 0.12);
   border: 1px solid #d5e3b8;
   color: var(--pr-green-dark);
   font-size: 12px;
@@ -510,7 +510,7 @@
 }
 
 .timelineLink:hover {
-  background: rgba(138, 185, 51, 0.2);
+  background: rgba(115, 152, 22, 0.2);
   border-color: var(--pr-green);
 }
 
@@ -525,7 +525,7 @@
 /* tones */
 .tone_done .timelineDot {
   color: #fff;
-  background: linear-gradient(135deg, #a3c644, var(--pr-green-dark));
+  background: linear-gradient(135deg, #8CA527, var(--pr-green-dark));
   box-shadow: 0 6px 14px rgba(111, 151, 32, 0.28);
 }
 

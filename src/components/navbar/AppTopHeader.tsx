@@ -1,12 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import styles from "./AppTopHeader.module.css";
 
 const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/", title: "Dashboard" },
+  { href: "/production/production-orders", title: "ใบสั่งผลิต (Pyrolysis)" },
+  { href: "/reports/ar-aging", title: "รายงานลูกหนี้คงค้าง" },
+  { href: "/reports/sales-invoices", title: "รายงานใบแจ้งหนี้" },
+  { href: "/reports/sales-payments", title: "รายงานรับชำระเงิน" },
   { href: "/procurement/tracking", title: "ติดตามจัดซื้อ" },
   { href: "/purchase-orders", title: "ใบสั่งซื้อ PO" },
   { href: "/purchase-requests/approvals", title: "อนุมัติใบขอซื้อ" },
@@ -16,36 +20,36 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/quotations", title: "ใบเสนอราคา" },
   { href: "/sales-orders", title: "ใบสั่งขาย" },
   { href: "/sales-orders/stock-verification", title: "ตรวจสอบสต๊อกขาย" },
-  { href: "/pickings", title: "ใบจ่ายสินค้า" },
-  { href: "/packings", title: "ใบบรรจุสินค้า" },
+  { href: "/pickings", title: "ใบจ่ายสินค้า / Picking" },
+  { href: "/packings", title: "ใบบรรจุสินค้า / Packing" },
   { href: "/delivery-orders", title: "ใบส่งสินค้า" },
   { href: "/sales-invoices/pending", title: "รอออกใบแจ้งหนี้" },
   { href: "/sales-invoices", title: "ใบแจ้งหนี้ขาย" },
   { href: "/sales-tracking", title: "ติดตามการขายและจัดส่ง" },
   { href: "/laboratory/samples", title: "ตัวอย่างตรวจสอบ (LIMS)" },
-  { href: "/goods-receipts", title: "รับสินค้าเข้าคลัง" },
+  { href: "/goods-receipts", title: "รับสินค้าเข้าคลัง (PO)" },
   { href: "/purchase-payments/pending", title: "รอจ่ายเงิน Supplier" },
   { href: "/purchase-payments", title: "ประวัติการจ่ายเงิน" },
-  { href: "/receiving", title: "รับซื้อยาง" },
+  { href: "/receiving", title: "ตั๋วชั่งรับซื้อยาง" },
   { href: "/inventory/stock-inquiry", title: "ตรวจสอบสต๊อก" },
   { href: "/inventory/issues", title: "เบิกจ่ายสินค้า" },
   { href: "/inventory/stock-control", title: "นับและปรับปรุงสต๊อก" },
   { href: "/inventory/stock-balances", title: "ยอดคงเหลือ" },
-  { href: "/inventory/stock-movements", title: "ประวัติสต๊อก" },
-  { href: "/inventory/lots", title: "ยอดคงเหลือแยก Lot" },
-  { href: "/inventory/material-issues", title: "เบิกของออกจากคลัง" },
+  { href: "/inventory/stock-movements", title: "ความเคลื่อนไหวสต๊อก" },
+  { href: "/inventory/lots", title: "Lot สินค้า" },
+  { href: "/inventory/material-issues", title: "เบิกวัตถุดิบจากคลัง" },
   { href: "/inventory/chemical-issues", title: "เบิกจ่ายสารเคมี" },
   { href: "/inventory/stock-transfers", title: "โอนย้ายสินค้า" },
   { href: "/inventory/stock-counts", title: "นับสต๊อก" },
   { href: "/inventory/stock-adjustments", title: "ใบปรับปรุงสต๊อก" },
   { href: "/warehouse/approvals", title: "อนุมัติงานคลัง" },
-  { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับสินค้าเข้าคลัง" },
+  { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับยางเข้าคลัง" },
   { href: "/warehouse/production-output-approvals", title: "อนุมัติรับผลผลิตเข้าคลัง" },
-  { href: "/receiving/pending-production-output", title: "ตั๋วรอรับผลผลิตเข้าคลัง" },
-  { href: "/receiving/production-output/stock-requests", title: "คำขอรับผลผลิตเข้าคลัง" },
+  { href: "/receiving/pending-production-output", title: "รับผลผลิตเข้าคลัง" },
+  { href: "/receiving/production-output/stock-requests", title: "ขอรับผลผลิตเข้าคลัง" },
   { href: "/users", title: "ผู้ใช้งาน" },
   { href: "/settings/roles", title: "Roles" },
-  { href: "/settings/permissions", title: "Permissions" },
+  { href: "/settings/permissions", title: "Permission Matrix" },
   { href: "/settings/audit-logs", title: "Audit Log" },
   { href: "/reports/procurement", title: "รายงานจัดซื้อ" },
   { href: "/reports/inventory", title: "รายงานคลัง" },
@@ -71,7 +75,42 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters", title: "Master Data" },
 ];
 
-function resolvePageTitle(pathname: string) {
+function inventoryItemCategoryTitle(
+  pathname: string,
+  itemCategoryCode: string | null,
+): string | null {
+  const value = itemCategoryCode?.trim();
+  if (!value || value.includes(",")) {
+    return null;
+  }
+
+  const titleMap: Record<string, Record<string, string>> = {
+    "/inventory/stock-balances": {
+      RAW_MATERIAL: "ยอดคงเหลือวัตถุดิบ",
+      FINISHED_GOODS: "ยอดคงเหลือสินค้าสำเร็จรูป",
+    },
+    "/inventory/lots": {
+      RAW_MATERIAL: "Lot วัตถุดิบ",
+      FINISHED_GOODS: "Lot สินค้าสำเร็จรูป",
+    },
+    "/inventory/stock-movements": {
+      RAW_MATERIAL: "ความเคลื่อนไหววัตถุดิบ",
+      FINISHED_GOODS: "ความเคลื่อนไหวสินค้าสำเร็จรูป",
+    },
+  };
+
+  return titleMap[pathname]?.[value] ?? null;
+}
+
+function resolvePageTitle(pathname: string, itemCategoryCode?: string | null) {
+  const categoryTitle = inventoryItemCategoryTitle(
+    pathname,
+    itemCategoryCode ?? null,
+  );
+  if (categoryTitle) {
+    return categoryTitle;
+  }
+
   if (pathname.startsWith("/purchase-requests/") && pathname.endsWith("/edit")) {
     return "แก้ไขใบขอซื้อ";
   }
@@ -126,7 +165,7 @@ function resolvePageTitle(pathname: string) {
   }
 
   if (pathname === "/receiving/pending-production-output") {
-    return "ตั๋วรอรับผลผลิตเข้าคลัง";
+    return "รับผลผลิตเข้าคลัง";
   }
 
   if (pathname === "/users" || pathname === "/user") {
@@ -134,19 +173,19 @@ function resolvePageTitle(pathname: string) {
   }
 
   if (/^\/receiving\/receipts\/[^/]+\/payment$/.test(pathname)) {
-    return "ใบสำคัญจ่าย / จ่ายเงินผู้ขาย";
+    return "จ่ายเงินผู้ขายยาง";
   }
 
   if (/^\/receiving\/receipts\/[^/]+$/.test(pathname)) {
-    return "ใบรับซื้อยาง";
+    return "ใบรับซื้อ / คัดแยก";
   }
 
   if (/^\/receiving\/[^/]+\/classification$/.test(pathname)) {
-    return "คัดแยกประเภทสินค้า";
+    return "ใบรับซื้อ / คัดแยก";
   }
 
   if (/^\/receiving\/[^/]+$/.test(pathname)) {
-    return "ชั่งน้ำหนักรับซื้อยาง";
+    return "ตั๋วชั่งรับซื้อยาง";
   }
 
   const exact = PAGE_TITLES.find((item) => item.href === pathname);
@@ -223,8 +262,13 @@ const IconBell = () => (
 
 export default function AppTopHeader() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const itemCategoryCode = searchParams.get("itemCategoryCode");
 
-  const title = useMemo(() => resolvePageTitle(pathname), [pathname]);
+  const title = useMemo(
+    () => resolvePageTitle(pathname, itemCategoryCode),
+    [pathname, itemCategoryCode],
+  );
   const todayLabel = useMemo(() => formatThaiDate(new Date()), []);
 
   return (

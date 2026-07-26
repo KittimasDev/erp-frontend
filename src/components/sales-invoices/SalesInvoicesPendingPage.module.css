@@ -33,7 +33,7 @@
     ),
     radial-gradient(
       ellipse 50% 80% at 0% 100%,
-      rgba(138, 185, 51, 0.18),
+      rgba(115, 152, 22, 0.18),
       transparent 50%
     ),
     linear-gradient(145deg, #fbfcf8 0%, #f3f6ea 48%, #eef3e2 100%);
@@ -290,7 +290,7 @@
   min-width: 28px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(138, 185, 51, 0.14);
+  background: rgba(115, 152, 22, 0.14);
   color: var(--pay-green-dark);
   font-size: 12px;
   font-weight: 700;
@@ -346,9 +346,9 @@
 }
 
 .actionBtn:hover {
-  border-color: rgba(138, 185, 51, 0.45);
+  border-color: rgba(115, 152, 22, 0.45);
   color: var(--pay-green-dark);
-  background: rgba(138, 185, 51, 0.08);
+  background: rgba(115, 152, 22, 0.08);
 }
 
 .table :global(.ant-table) {

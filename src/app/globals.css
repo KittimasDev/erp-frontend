@@ -89,12 +89,40 @@ body {
 }
 
 .mainLayout {
+  /* SMT Energy brand tokens — scoped to Main Content only, Sidebar/Header keep the :root palette above */
+  --brand-primary: #739816;
+  --brand-primary-hover: #627f13;
+  --brand-primary-active: #536c10;
+  --brand-primary-soft: #f2f6e8;
+
+  --brand-secondary: #f9bb0c;
+  --brand-secondary-hover: #dfa709;
+  --brand-secondary-soft: #fff8df;
+
+  --brand-dark: #646468;
+  --brand-text: #3f3f43;
+  --brand-muted: #77777c;
+  --brand-border: #e1e2dd;
+  --brand-background: #f7f8f5;
+  --brand-surface: #ffffff;
+
+  --erp-green: var(--brand-primary);
+  --erp-green-dark: var(--brand-primary-hover);
+  --erp-green-soft: var(--brand-primary-soft);
+  --erp-bg: var(--brand-background);
+  --erp-surface: var(--brand-surface);
+  --erp-text: var(--brand-text);
+  --erp-muted: var(--brand-muted);
+  --erp-border: var(--brand-border);
+
   width: 100%;
   max-width: 1480px;
   margin: 0 auto;
   padding: 34px 32px 34px;
   box-sizing: border-box;
   flex: 1;
+  background: var(--brand-background);
+  color: var(--brand-text);
 }
 
 .pageLoading {

@@ -32,7 +32,9 @@ import type {
 import {
   DEDUCTION_TYPE_LABELS,
   PAYMENT_STATUS_LABELS,
+  RAW_TIRE_FLOW_STEP_LABELS,
   RECEIPT_STATUS_LABELS,
+  STOCK_POSTING_STATUS_LABELS,
 } from "@/types/raw-tire-purchase-receipt";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -317,9 +319,58 @@ export default function RawTirePurchaseReceiptDetailPage({
                       {PAYMENT_STATUS_LABELS[receipt.paymentStatus] ??
                         receipt.paymentStatus}
                     </Tag>
+                    <Tag
+                      className={styles.flowTag}
+                      color={
+                        receipt.stockPostingStatus === "POSTED"
+                          ? "success"
+                          : "default"
+                      }
+                    >
+                      {STOCK_POSTING_STATUS_LABELS[
+                        receipt.stockPostingStatus
+                      ] ?? receipt.stockPostingStatus}
+                    </Tag>
+                    {receipt.currentStep ? (
+                      <Tag color="blue" className={styles.flowTag}>
+                        {RAW_TIRE_FLOW_STEP_LABELS[receipt.currentStep] ??
+                          receipt.currentStep}
+                      </Tag>
+                    ) : null}
                   </div>
                 </div>
               </div>
+              {receipt.nextAction ? (
+                <div className={styles.cardBody}>
+                  <div className={styles.receiptRemarkBox}>
+                    <span>ขั้นตอนถัดไป</span>
+                    <strong>
+                      {receipt.currentStep === "COMPLETED" ||
+                      receipt.stockPostingStatus === "POSTED"
+                        ? "เข้าคลังแล้ว"
+                        : receipt.nextAction}
+                    </strong>
+                  </div>
+                  {receipt.nextActionHref &&
+                  receipt.currentStep !== "COMPLETED" &&
+                  receipt.stockPostingStatus !== "POSTED" ? (
+                    <div
+                      className={styles.weighActions}
+                      style={{ marginTop: 12 }}
+                    >
+                      <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        onClick={() =>
+                          router.push(receipt.nextActionHref as string)
+                        }
+                      >
+                        {receipt.nextAction}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               {receipt.remark ? (
                 <div className={styles.cardBody}>
                   <div className={styles.receiptRemarkBox}>
@@ -465,32 +516,53 @@ export default function RawTirePurchaseReceiptDetailPage({
                       >
                         พิมพ์ใบรับซื้อ
                       </Button>
-                      <Button
-                        type="primary"
-                        className={styles.submitButton}
-                        onClick={() =>
-                          router.push(
-                            `/receiving/receipts/${receiptId}/payment`,
-                          )
-                        }
-                      >
-                        ไปหน้าจ่ายเงิน
-                      </Button>
-                      <Button
-                        type="default"
-                        disabled={
-                          receipt.stockPostingStatus === "POSTED" || isBusy
-                        }
-                        onClick={() =>
-                          router.push(
-                            `/raw-tire-purchase/receipts/${receiptId}/stock-posting-request`,
-                          )
-                        }
-                      >
-                        {receipt.stockPostingStatus === "POSTED"
-                          ? "รับเข้าคลังแล้ว"
-                          : "ส่งคำขอรับเข้าคลัง"}
-                      </Button>
+                      {receipt.paymentStatus !== "PAID" ? (
+                        <Button
+                          type="primary"
+                          className={styles.submitButton}
+                          onClick={() =>
+                            router.push(
+                              `/receiving/receipts/${receiptId}/payment`,
+                            )
+                          }
+                        >
+                          ไปหน้าจ่ายเงิน
+                        </Button>
+                      ) : null}
+                      {receipt.paymentStatus === "PAID" &&
+                      receipt.stockPostingStatus === "POSTED" ? (
+                        <Tag color="success">เข้าคลังแล้ว</Tag>
+                      ) : null}
+                      {receipt.paymentStatus === "PAID" &&
+                      receipt.stockPostingStatus !== "POSTED" ? (
+                        <Button
+                          type="primary"
+                          className={styles.submitButton}
+                          disabled={isBusy}
+                          onClick={() =>
+                            router.push(
+                              receipt.nextActionHref ||
+                                `/raw-tire-purchase/receipts/${receiptId}/stock-posting-request`,
+                            )
+                          }
+                        >
+                          {receipt.nextAction || "ส่งคำขอรับเข้าคลัง"}
+                        </Button>
+                      ) : null}
+                      {receipt.paymentStatus !== "PAID" &&
+                      receipt.stockPostingStatus !== "POSTED" ? (
+                        <Button
+                          type="default"
+                          disabled={isBusy}
+                          onClick={() =>
+                            router.push(
+                              `/raw-tire-purchase/receipts/${receiptId}/stock-posting-request`,
+                            )
+                          }
+                        >
+                          ส่งคำขอรับเข้าคลัง
+                        </Button>
+                      ) : null}
                     </>
                   ) : null}
 

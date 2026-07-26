@@ -12,6 +12,7 @@ function buildQuery(params?: StockIssueQueryParams) {
   const search = new URLSearchParams();
   if (params.issueNo?.trim()) search.set("issueNo", params.issueNo.trim());
   if (params.status?.trim()) search.set("status", params.status.trim());
+  if (params.productionOrderId) search.set("productionOrderId", params.productionOrderId);
   if (params.dateFrom) search.set("dateFrom", params.dateFrom);
   if (params.dateTo) search.set("dateTo", params.dateTo);
   if (params.page != null) search.set("page", String(params.page));

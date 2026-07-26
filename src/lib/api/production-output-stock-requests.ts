@@ -1,10 +1,14 @@
 import { apiFetch } from "./client";
 import type {
+  AvailableMaterialIssueListApiResponse,
   CreateProductionOutputStockRequestBatchBody,
   CreateProductionOutputStockRequestBody,
+  CreateProductionOutputStockRequestFromOrderBody,
+  ProductionOutputReadyOrderListApiResponse,
   ProductionOutputStockRequestApiResponse,
   ProductionOutputStockRequestListApiResponse,
   ProductionOutputStockRequestQueryParams,
+  QueryProductionOutputReadyOrdersParams,
   RejectProductionOutputStockRequestBody,
 } from "@/types/production-output-stock-request";
 
@@ -70,6 +74,75 @@ export function createProductionOutputStockRequestBatch(
   return apiFetch<ProductionOutputStockRequestListApiResponse>(
     "/api/production-output/stock-requests/batch",
     { method: "POST", token, body },
+  );
+}
+
+export function getProductionOutputReadyOrders(
+  token: string,
+  params?: QueryProductionOutputReadyOrdersParams,
+) {
+  const search = new URLSearchParams();
+  if (params?.from) {
+    search.set("from", params.from);
+  }
+  if (params?.to) {
+    search.set("to", params.to);
+  }
+  if (params?.all) {
+    search.set("all", "true");
+  }
+  if (params?.q?.trim()) {
+    search.set("q", params.q.trim());
+  }
+  const query = search.toString();
+  return apiFetch<ProductionOutputReadyOrderListApiResponse>(
+    `/api/production-output/stock-requests/ready-production-orders${
+      query ? `?${query}` : ""
+    }`,
+    { method: "GET", token },
+  );
+}
+
+export function createProductionOutputStockRequestFromOrder(
+  token: string,
+  productionOrderId: string,
+  body: CreateProductionOutputStockRequestFromOrderBody,
+) {
+  return apiFetch<ProductionOutputStockRequestApiResponse>(
+    `/api/production-output/stock-requests/from-production-order/${productionOrderId}`,
+    { method: "POST", token, body },
+  );
+}
+
+export function getAvailableMaterialIssues(
+  token: string,
+  params?: { productionOrderId?: string },
+) {
+  const search = new URLSearchParams();
+  if (params?.productionOrderId) {
+    search.set("productionOrderId", params.productionOrderId);
+  }
+  const query = search.toString();
+  return apiFetch<AvailableMaterialIssueListApiResponse>(
+    `/api/production-output/stock-requests/available-material-issues${
+      query ? `?${query}` : ""
+    }`,
+    { method: "GET", token },
+  );
+}
+
+export function replaceProductionOutputMaterialIssues(
+  token: string,
+  id: string,
+  materialIssueIds: string[],
+) {
+  return apiFetch<ProductionOutputStockRequestApiResponse>(
+    `/api/production-output/stock-requests/${id}/material-issues`,
+    {
+      method: "POST",
+      token,
+      body: { materialIssueIds },
+    },
   );
 }
 

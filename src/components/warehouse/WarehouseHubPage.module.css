@@ -42,11 +42,11 @@
   color: #fff;
   background: linear-gradient(
     135deg,
-    #a3c644 0%,
+    #8CA527 0%,
     var(--erp-green, #8ab933) 58%,
     var(--erp-green-dark, #6f9720) 100%
   );
-  box-shadow: 0 10px 22px rgba(138, 185, 51, 0.28);
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
   font-size: 22px;
 }
 
@@ -107,8 +107,8 @@
 }
 
 .hubCard:hover:not(:disabled) {
-  border-color: rgba(138, 185, 51, 0.45);
-  box-shadow: 0 10px 24px rgba(138, 185, 51, 0.12);
+  border-color: rgba(115, 152, 22, 0.45);
+  box-shadow: 0 10px 24px rgba(115, 152, 22, 0.12);
   transform: translateY(-1px);
 }
 
@@ -148,7 +148,7 @@
   place-items: center;
   border-radius: 999px;
   color: var(--erp-green-dark, #6f9720);
-  background: rgba(138, 185, 51, 0.12);
+  background: rgba(115, 152, 22, 0.12);
 }
 
 .hubCardDisabled .hubCardArrow {

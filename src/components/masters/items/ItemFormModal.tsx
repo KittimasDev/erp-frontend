@@ -22,7 +22,6 @@ type ItemFormValues = {
   name: string;
   itemCategoryId: string;
   unitId: string;
-  itemType?: string;
   warehouseGroup?: string;
   minimumStockQty?: number | null;
   defaultShelfLifeDays?: number | null;
@@ -46,18 +45,6 @@ type ItemFormModalProps = {
   onCancel: () => void;
   onSubmit: (values: CreateItemRequest) => void;
 };
-
-const ITEM_TYPE_OPTIONS = [
-  { value: "RAW_TIRE", label: "RAW_TIRE" },
-  { value: "CHEMICAL", label: "CHEMICAL" },
-  { value: "PYROLYSIS_OIL", label: "PYROLYSIS_OIL" },
-  { value: "RCB", label: "RCB" },
-  { value: "STEEL_WIRE", label: "STEEL_WIRE" },
-  { value: "STEEL_FINES", label: "STEEL_FINES" },
-  { value: "SPARE_PART", label: "SPARE_PART" },
-  { value: "FINISHED_GOODS", label: "FINISHED_GOODS" },
-  { value: "SERVICE", label: "SERVICE" },
-];
 
 const WAREHOUSE_GROUP_OPTIONS = [
   { value: "RAW_MATERIAL", label: "RAW_MATERIAL" },
@@ -95,7 +82,6 @@ export default function ItemFormModal({
         name: initialItem.itemNameTh,
         itemCategoryId: initialItem.itemCategoryId,
         unitId: initialItem.unitId,
-        itemType: initialItem.itemType,
         warehouseGroup: initialItem.warehouseGroup,
         minimumStockQty: Number(initialItem.minimumStockQty || 0),
         defaultShelfLifeDays: initialItem.defaultShelfLifeDays,
@@ -118,7 +104,6 @@ export default function ItemFormModal({
       name: "",
       itemCategoryId: undefined,
       unitId: undefined,
-      itemType: undefined,
       warehouseGroup: undefined,
       minimumStockQty: 0,
       defaultShelfLifeDays: undefined,
@@ -143,7 +128,6 @@ export default function ItemFormModal({
       name: values.name.trim(),
       itemCategoryId: values.itemCategoryId,
       unitId: values.unitId,
-      itemType: values.itemType || undefined,
       warehouseGroup: values.warehouseGroup || undefined,
       minimumStockQty: values.minimumStockQty ?? 0,
       defaultShelfLifeDays:
@@ -225,20 +209,6 @@ export default function ItemFormModal({
               ]}
             >
               <Input size="large" placeholder="เช่น RM-001" autoComplete="off" />
-            </Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12}>
-            <Form.Item
-              label="ประเภทสินค้า"
-              name="itemType"
-            >
-              <Select
-                allowClear
-                size="large"
-                placeholder="เลือกประเภท"
-                options={ITEM_TYPE_OPTIONS}
-              />
             </Form.Item>
           </Col>
         </Row>

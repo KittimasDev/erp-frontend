@@ -25,7 +25,7 @@
   border-radius: 20px;
   border: 1px solid rgba(111, 151, 32, 0.18);
   background:
-    radial-gradient(ellipse 80% 120% at 100% 0%, rgba(138, 185, 51, 0.22), transparent 55%),
+    radial-gradient(ellipse 80% 120% at 100% 0%, rgba(115, 152, 22, 0.22), transparent 55%),
     radial-gradient(ellipse 50% 80% at 0% 100%, rgba(61, 139, 116, 0.12), transparent 50%),
     linear-gradient(145deg, #fbfcf8 0%, #f0f5e8 48%, #e8f0dc 100%);
   box-shadow: 0 12px 32px rgba(47, 52, 58, 0.06);
@@ -74,7 +74,7 @@
   place-items: center;
   border-radius: 999px;
   color: #fff;
-  background: linear-gradient(135deg, #a3c644, var(--gr-green-dark));
+  background: linear-gradient(135deg, #8CA527, var(--gr-green-dark));
   font-size: 13px;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .statChip:hover {
-  border-color: rgba(138, 185, 51, 0.45);
+  border-color: rgba(115, 152, 22, 0.45);
   box-shadow: 0 8px 18px rgba(47, 52, 58, 0.06);
   transform: translateY(-1px);
 }
@@ -148,7 +148,7 @@
 .statChipActive {
   border-color: rgba(111, 151, 32, 0.55);
   background: linear-gradient(180deg, #f7faef 0%, #fff 100%);
-  box-shadow: 0 0 0 3px rgba(138, 185, 51, 0.12);
+  box-shadow: 0 0 0 3px rgba(115, 152, 22, 0.12);
 }
 
 .statLabel {
@@ -376,9 +376,9 @@
 }
 
 .actionBtn:hover {
-  border-color: rgba(138, 185, 51, 0.45);
+  border-color: rgba(115, 152, 22, 0.45);
   color: var(--gr-green-dark);
-  background: rgba(138, 185, 51, 0.08);
+  background: rgba(115, 152, 22, 0.08);
 }
 
 .tableFooter {

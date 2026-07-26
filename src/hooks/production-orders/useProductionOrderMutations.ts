@@ -1,0 +1,185 @@
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { App } from "antd";
+
+import { ApiError } from "@/lib/api/client";
+import {
+  addProductionOrderLog,
+  cancelProductionOrder,
+  completeProductionOrder,
+  createProductionOrder,
+  endProductionOrderDowntime,
+  recordProductionOrderDowntime,
+  startProductionOrder,
+} from "@/lib/api/production-orders";
+import { getAccessToken } from "@/lib/auth/token";
+import type {
+  CompleteProductionOrderBody,
+  CreateProductionOrderBody,
+  CreateProductionOrderLogBody,
+  EndDowntimeBody,
+  RecordDowntimeBody,
+} from "@/types/production-order";
+import { productionOrdersQueryKey } from "./useProductionOrderQueries";
+
+function useInvalidateProductionOrders() {
+  const queryClient = useQueryClient();
+  return () =>
+    queryClient.invalidateQueries({ queryKey: productionOrdersQueryKey });
+}
+
+export function useCreateProductionOrderMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "create"],
+    mutationFn: (body: CreateProductionOrderBody) =>
+      createProductionOrder(getAccessToken(), body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "สร้างใบสั่งผลิตสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "สร้างใบสั่งผลิตไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useCancelProductionOrderMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "cancel"],
+    mutationFn: (id: string) => cancelProductionOrder(getAccessToken(), id),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "ยกเลิกใบสั่งผลิตแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useStartProductionOrderMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "start"],
+    mutationFn: (id: string) => startProductionOrder(getAccessToken(), id),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "เริ่มผลิตสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "เริ่มผลิตไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useCompleteProductionOrderMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "complete"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: CompleteProductionOrderBody;
+    }) => completeProductionOrder(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "ยืนยันเสร็จสิ้นการผลิตสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ยืนยันเสร็จสิ้นไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useRecordProductionOrderDowntimeMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "downtime", "start"],
+    mutationFn: ({ id, body }: { id: string; body: RecordDowntimeBody }) =>
+      recordProductionOrderDowntime(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "บันทึก Downtime สำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "บันทึก Downtime ไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useEndProductionOrderDowntimeMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "downtime", "end"],
+    mutationFn: ({
+      id,
+      downtimeId,
+      body,
+    }: {
+      id: string;
+      downtimeId: string;
+      body: EndDowntimeBody;
+    }) => endProductionOrderDowntime(getAccessToken(), id, downtimeId, body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "ปิดรายการ Downtime สำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ปิดรายการไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useAddProductionOrderLogMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "log"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: CreateProductionOrderLogBody;
+    }) => addProductionOrderLog(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "บันทึกข้อมูลการผลิตสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "บันทึกไม่สำเร็จ",
+      );
+    },
+  });
+}

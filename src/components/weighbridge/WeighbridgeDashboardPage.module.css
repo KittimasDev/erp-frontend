@@ -42,11 +42,11 @@
   color: #fff;
   background: linear-gradient(
     135deg,
-    #a3c644 0%,
+    #8CA527 0%,
     var(--erp-green, #8ab933) 58%,
     var(--erp-green-dark, #6f9720) 100%
   );
-  box-shadow: 0 10px 22px rgba(138, 185, 51, 0.28);
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
   font-size: 22px;
 }
 
@@ -145,7 +145,7 @@
 .statHighlightAccent::before {
   background: linear-gradient(
     180deg,
-    #a3c644 0%,
+    #8CA527 0%,
     var(--erp-green, #8ab933) 100%
   );
 }
@@ -215,19 +215,19 @@
 }
 
 .summaryCardButton:hover {
-  border-color: rgba(138, 185, 51, 0.45);
-  box-shadow: 0 10px 24px rgba(138, 185, 51, 0.12);
+  border-color: rgba(115, 152, 22, 0.45);
+  box-shadow: 0 10px 24px rgba(115, 152, 22, 0.12);
   transform: translateY(-1px);
 }
 
 .summaryCardActive {
-  border-color: rgba(138, 185, 51, 0.55);
+  border-color: rgba(115, 152, 22, 0.55);
   background: linear-gradient(
     180deg,
-    rgba(138, 185, 51, 0.14) 0%,
-    rgba(138, 185, 51, 0.06) 100%
+    rgba(115, 152, 22, 0.14) 0%,
+    rgba(115, 152, 22, 0.06) 100%
   );
-  box-shadow: 0 10px 24px rgba(138, 185, 51, 0.14);
+  box-shadow: 0 10px 24px rgba(115, 152, 22, 0.14);
 }
 
 .summaryCardActive::after {
@@ -407,17 +407,17 @@
 }
 
 .stageChip:hover {
-  border-color: rgba(138, 185, 51, 0.45);
+  border-color: rgba(115, 152, 22, 0.45);
 }
 
 .stageChipActive {
-  border-color: rgba(138, 185, 51, 0.55);
-  background: rgba(138, 185, 51, 0.12);
+  border-color: rgba(115, 152, 22, 0.55);
+  background: rgba(115, 152, 22, 0.12);
   color: var(--erp-green-dark, #6f9720);
 }
 
 .stageChipActive em {
-  background: rgba(138, 185, 51, 0.22);
+  background: rgba(115, 152, 22, 0.22);
   color: var(--erp-green-dark, #6f9720);
 }
 
@@ -462,15 +462,15 @@
   padding-inline: 16px !important;
   border-radius: 11px !important;
   font-weight: 600 !important;
-  border-color: rgba(138, 185, 51, 0.45) !important;
+  border-color: rgba(115, 152, 22, 0.45) !important;
   color: var(--erp-green-dark, #6f9720) !important;
-  background: rgba(138, 185, 51, 0.08) !important;
+  background: rgba(115, 152, 22, 0.08) !important;
 }
 
 .dashboardButton:hover {
-  border-color: rgba(138, 185, 51, 0.7) !important;
+  border-color: rgba(115, 152, 22, 0.7) !important;
   color: var(--erp-green-dark, #6f9720) !important;
-  background: rgba(138, 185, 51, 0.14) !important;
+  background: rgba(115, 152, 22, 0.14) !important;
 }
 
 .openTicketButton {
@@ -482,11 +482,11 @@
   font-weight: 700 !important;
   background: linear-gradient(
     135deg,
-    #a3c644 0%,
+    #8CA527 0%,
     var(--erp-green, #8ab933) 60%,
     var(--erp-green-dark, #6f9720) 100%
   ) !important;
-  box-shadow: 0 8px 18px rgba(138, 185, 51, 0.28) !important;
+  box-shadow: 0 8px 18px rgba(115, 152, 22, 0.28) !important;
 }
 
 .cardBody {
@@ -515,8 +515,8 @@
   margin-bottom: 8px;
   padding: 14px 16px;
   border-radius: 12px;
-  background: var(--erp-green-soft, rgba(138, 185, 51, 0.12));
-  border: 1px solid rgba(138, 185, 51, 0.18);
+  background: var(--erp-green-soft, rgba(115, 152, 22, 0.12));
+  border: 1px solid rgba(115, 152, 22, 0.18);
 }
 
 .previewBox h4 {
@@ -556,7 +556,7 @@
   font-weight: 700 !important;
   background: linear-gradient(
     135deg,
-    #a3c644 0%,
+    #8CA527 0%,
     var(--erp-green, #8ab933) 60%,
     var(--erp-green-dark, #6f9720) 100%
   ) !important;
@@ -652,7 +652,7 @@
   background:
     linear-gradient(135deg, rgba(163, 198, 68, 0.18), rgba(255, 255, 255, 0.9)),
     #f7f9f2;
-  border-bottom: 1px solid rgba(138, 185, 51, 0.16);
+  border-bottom: 1px solid rgba(115, 152, 22, 0.16);
 }
 
 .sellerHero {
@@ -807,7 +807,7 @@
 .ticketInfoPanelTitle {
   margin-bottom: 10px;
   padding-bottom: 8px;
-  border-bottom: 1.5px solid rgba(138, 185, 51, 0.35);
+  border-bottom: 1.5px solid rgba(115, 152, 22, 0.35);
   color: var(--erp-green-dark, #6f9720);
   font-size: 13px;
   font-weight: 700;
@@ -882,8 +882,8 @@
 }
 
 .ticketWeightNet {
-  border-color: rgba(138, 185, 51, 0.4);
-  background: rgba(138, 185, 51, 0.1);
+  border-color: rgba(115, 152, 22, 0.4);
+  background: rgba(115, 152, 22, 0.1);
 }
 
 .ticketWeightNet strong {
@@ -968,7 +968,7 @@
   border-radius: 999px;
   background: linear-gradient(
     135deg,
-    #a3c644 0%,
+    #8CA527 0%,
     var(--erp-green, #8ab933) 60%,
     var(--erp-green-dark, #6f9720) 100%
   );
@@ -976,7 +976,7 @@
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.02em;
-  box-shadow: 0 8px 20px rgba(138, 185, 51, 0.35);
+  box-shadow: 0 8px 20px rgba(115, 152, 22, 0.35);
 }
 
 @keyframes stepCardUpdateBanner {
@@ -996,18 +996,18 @@
 
 @keyframes stepCardFlash {
   0% {
-    border-color: rgba(138, 185, 51, 0.75);
+    border-color: rgba(115, 152, 22, 0.75);
     box-shadow:
-      0 0 0 0 rgba(138, 185, 51, 0.4),
+      0 0 0 0 rgba(115, 152, 22, 0.4),
       0 8px 22px rgba(47, 52, 58, 0.05);
-    background: rgba(138, 185, 51, 0.18);
+    background: rgba(115, 152, 22, 0.18);
   }
   35% {
-    border-color: rgba(138, 185, 51, 0.55);
+    border-color: rgba(115, 152, 22, 0.55);
     box-shadow:
-      0 0 0 6px rgba(138, 185, 51, 0.16),
-      0 10px 28px rgba(138, 185, 51, 0.18);
-    background: rgba(138, 185, 51, 0.1);
+      0 0 0 6px rgba(115, 152, 22, 0.16),
+      0 10px 28px rgba(115, 152, 22, 0.18);
+    background: rgba(115, 152, 22, 0.1);
   }
   100% {
     border-color: var(--erp-border, rgba(0, 0, 0, 0.06));
@@ -1017,12 +1017,12 @@
 }
 
 .stepCardActive {
-  border-color: rgba(138, 185, 51, 0.5);
-  box-shadow: 0 10px 28px rgba(138, 185, 51, 0.16);
+  border-color: rgba(115, 152, 22, 0.5);
+  box-shadow: 0 10px 28px rgba(115, 152, 22, 0.16);
 }
 
 .stepCardDone {
-  border-color: rgba(138, 185, 51, 0.28);
+  border-color: rgba(115, 152, 22, 0.28);
 }
 
 .stepCardLocked {
@@ -1068,12 +1068,12 @@
 }
 
 .stepBadgeActive {
-  background: rgba(138, 185, 51, 0.18);
+  background: rgba(115, 152, 22, 0.18);
   color: var(--erp-green-dark, #6f9720);
 }
 
 .stepBadgeDone {
-  background: rgba(138, 185, 51, 0.22);
+  background: rgba(115, 152, 22, 0.22);
   color: var(--erp-green-dark, #6f9720);
 }
 
@@ -1130,8 +1130,8 @@
 }
 
 .stepMetaHighlight {
-  border-color: rgba(138, 185, 51, 0.4);
-  background: rgba(138, 185, 51, 0.1);
+  border-color: rgba(115, 152, 22, 0.4);
+  background: rgba(115, 152, 22, 0.1);
 }
 
 .stepMetaHighlight strong {
@@ -1201,8 +1201,8 @@
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(138, 185, 51, 0.35);
-  background: rgba(138, 185, 51, 0.08);
+  border: 1px solid rgba(115, 152, 22, 0.35);
+  background: rgba(115, 152, 22, 0.08);
 }
 
 .stepResultBanner span {
@@ -1230,8 +1230,8 @@
 }
 
 .weighCardActive {
-  border-color: rgba(138, 185, 51, 0.45);
-  box-shadow: 0 10px 28px rgba(138, 185, 51, 0.14);
+  border-color: rgba(115, 152, 22, 0.45);
+  box-shadow: 0 10px 28px rgba(115, 152, 22, 0.14);
 }
 
 .weighForm {
@@ -1289,7 +1289,7 @@
   background:
     radial-gradient(
       120% 80% at 100% 0%,
-      rgba(138, 185, 51, 0.14),
+      rgba(115, 152, 22, 0.14),
       transparent 55%
     ),
     #ffffff;
@@ -1439,8 +1439,8 @@
 }
 
 .summaryAmountHighlight {
-  border-color: rgba(138, 185, 51, 0.35);
-  background: rgba(138, 185, 51, 0.08);
+  border-color: rgba(115, 152, 22, 0.35);
+  background: rgba(115, 152, 22, 0.08);
 }
 
 .summaryAmountHighlight strong {
@@ -1476,8 +1476,8 @@
 }
 
 .weightGuideOk {
-  border-color: rgba(138, 185, 51, 0.4);
-  background: rgba(138, 185, 51, 0.1);
+  border-color: rgba(115, 152, 22, 0.4);
+  background: rgba(115, 152, 22, 0.1);
 }
 
 .weightGuideOk strong {

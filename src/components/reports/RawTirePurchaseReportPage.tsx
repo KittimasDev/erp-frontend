@@ -188,6 +188,20 @@ export default function RawTirePurchaseReportPage() {
         render: (value: string) => STOCK_POSTING_STATUS_LABEL[value] ?? value,
       },
       {
+        title: "ขั้นตอนถัดไป",
+        key: "nextAction",
+        width: 160,
+        render: (_v, row) =>
+          row.stockPostingStatus === "POSTED" ||
+          row.currentStep === "COMPLETED" ? (
+            <span>เข้าคลังแล้ว</span>
+          ) : row.nextActionHref ? (
+            <Link href={row.nextActionHref}>{row.nextAction ?? "ดำเนินการ"}</Link>
+          ) : (
+            (row.nextAction ?? "—")
+          ),
+      },
+      {
         title: "",
         key: "actions",
         width: 60,

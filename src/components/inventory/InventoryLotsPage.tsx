@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button, Input, Select, Switch, Table, Typography } from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -14,6 +15,7 @@ import type {
   InventoryLotBalanceRow,
   InventoryLotQueryParams,
 } from "@/types/inventory";
+import { getInventoryPageScope } from "./inventory-page-copy";
 import styles from "./InventoryLotsPage.module.css";
 
 function formatQty(value?: string) {
@@ -42,7 +44,27 @@ function lotStatusClass(status?: string) {
   return styles.statusMuted;
 }
 
+function pageCopy(itemCategoryCode?: string) {
+  const scope = getInventoryPageScope(itemCategoryCode);
+  if (scope) {
+    return {
+      ...scope,
+      subtitle: "ตรวจสอบ Lot และยอดคงเหลือราย Lot",
+    };
+  }
+  return {
+    eyebrow: "INVENTORY · LOTS",
+    title: "ยอดคงเหลือแยก Lot",
+    subtitle:
+      "ตรวจสอบ Lot จากใบรับซื้อยาง รับผลผลิต และเอกสารต้นทางอื่น — ดูอย่างเดียว",
+  };
+}
+
 export default function InventoryLotsPage() {
+  const searchParams = useSearchParams();
+  const itemCategoryCode = searchParams.get("itemCategoryCode")?.trim() || undefined;
+  const copy = pageCopy(itemCategoryCode);
+
   const [draft, setDraft] = useState<{
     warehouseId?: string;
     locationId?: string;
@@ -55,9 +77,10 @@ export default function InventoryLotsPage() {
   });
   const [filters, setFilters] = useState<InventoryLotQueryParams>({
     hasStock: true,
+    itemCategoryCode,
   });
 
-  const lotsQuery = useInventoryLotsQuery(filters);
+  const lotsQuery = useInventoryLotsQuery({ ...filters, itemCategoryCode });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery(
     draft.warehouseId
@@ -242,12 +265,13 @@ export default function InventoryLotsPage() {
       status: draft.status,
       q: draft.q.trim() || undefined,
       hasStock: draft.hasStock,
+      itemCategoryCode,
     });
   };
 
   const handleClear = () => {
     setDraft({ q: "", hasStock: true });
-    setFilters({ hasStock: true });
+    setFilters({ hasStock: true, itemCategoryCode });
   };
 
   return (
@@ -255,14 +279,11 @@ export default function InventoryLotsPage() {
       <section className={styles.page}>
         <div className={styles.header}>
           <div className={styles.headerMain}>
-            <div className={styles.eyebrow}>INVENTORY · LOTS</div>
+            <div className={styles.eyebrow}>{copy.eyebrow}</div>
             <Typography.Title level={2} className={styles.title}>
-              ยอดคงเหลือแยก Lot
+              {copy.title}
             </Typography.Title>
-            <span className={styles.subtitle}>
-              ตรวจสอบ Lot จากใบรับซื้อยาง รับผลผลิต และเอกสารต้นทางอื่น —
-              ดูอย่างเดียว
-            </span>
+            <span className={styles.subtitle}>{copy.subtitle}</span>
           </div>
         </div>
 

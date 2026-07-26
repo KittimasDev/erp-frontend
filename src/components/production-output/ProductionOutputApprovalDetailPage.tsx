@@ -228,6 +228,31 @@ export default function ProductionOutputApprovalDetailPage({
                         {request.lotNo || "สร้างตอนอนุมัติ"}
                       </span>
                     </div>
+                    {request.productionOrderId ? (
+                      <div className={styles.field}>
+                        <span className={styles.fieldLabel}>ใบสั่งผลิตต้นทาง</span>
+                        <span className={styles.fieldValue}>
+                          <button
+                            type="button"
+                            style={{
+                              border: "none",
+                              background: "transparent",
+                              padding: 0,
+                              cursor: "pointer",
+                              color: "inherit",
+                              textDecoration: "underline",
+                            }}
+                            onClick={() =>
+                              router.push(
+                                `/production/production-orders/${request.productionOrderId}`,
+                              )
+                            }
+                          >
+                            {request.productionOrderNo ?? request.productionOrderId}
+                          </button>
+                        </span>
+                      </div>
+                    ) : null}
                     <div className={styles.field}>
                       <span className={styles.fieldLabel}>ผู้ขอ</span>
                       <span className={styles.fieldValue}>
@@ -266,6 +291,34 @@ export default function ProductionOutputApprovalDetailPage({
                         รวม {refs.length} ตั๋ว
                       </div>
                     </>
+                  ) : (
+                    <span className={styles.fieldValue}>-</span>
+                  )}
+                </div>
+
+                <div className={styles.cardHeader}>
+                  <h3>วัตถุดิบที่ใช้ผลิต</h3>
+                  <p>ใบเบิกวัตถุดิบที่แท็กกับคำขอนี้ (trace only)</p>
+                </div>
+                <div className={styles.cardBody}>
+                  {(request.linkedMaterialIssues ?? []).length > 0 ? (
+                    <div className={styles.ticketList}>
+                      {(request.linkedMaterialIssues ?? []).map((issue) => (
+                        <button
+                          key={issue.id}
+                          type="button"
+                          className={styles.ticketChip}
+                          style={{ cursor: "pointer" }}
+                          onClick={() =>
+                            router.push(`/inventory/material-issues/${issue.id}`)
+                          }
+                        >
+                          {issue.issueNo}
+                          {" · "}
+                          {formatDate(issue.issueDate)}
+                        </button>
+                      ))}
+                    </div>
                   ) : (
                     <span className={styles.fieldValue}>-</span>
                   )}
@@ -323,6 +376,20 @@ export default function ProductionOutputApprovalDetailPage({
                     <p className={styles.actionHint}>
                       ต้องมีสิทธิ์ WAREHOUSE_MANAGER เพื่ออนุมัติหรือไม่อนุมัติ
                     </p>
+                  </div>
+                ) : null}
+
+                {isApproved ? (
+                  <div className={styles.actionCard}>
+                    <p className={styles.actionHint}>
+                      อนุมัติแล้ว — ดูรายการเคลื่อนไหวสต๊อกที่เกิดจากคำขอนี้ได้
+                    </p>
+                    <Button
+                      block
+                      onClick={() => router.push("/inventory/stock-movements")}
+                    >
+                      ดู Stock Movement
+                    </Button>
                   </div>
                 ) : null}
 

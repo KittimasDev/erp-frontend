@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import type { ReactNode } from "react";
 
@@ -36,6 +36,7 @@ const ROLE = {
   ACCOUNTING_OFFICER: "ACCOUNTING_OFFICER",
   SALES_OFFICER: "SALES_OFFICER",
   SALES_MANAGER: "SALES_MANAGER",
+  PRODUCTION_OFFICER: "PRODUCTION_OFFICER",
 } as const;
 
 const IconChevron = ({ open }: { open: boolean }) => (
@@ -442,14 +443,238 @@ const IconAuditLog = () => (
     />
   </svg>
 );
+const RAW_TIRE_ROLES = [
+  ROLE.WEIGHBRIDGE_OFFICER,
+  ROLE.WAREHOUSE_MANAGER,
+  ROLE.ACCOUNTING_OFFICER,
+  ROLE.EXECUTIVE,
+  ROLE.PROCUREMENT_MANAGER,
+] as const;
+
 const rawTireMenus: MenuItem[] = [
   {
     key: "receiving",
-    label: "รับซื้อยาง",
+    label: "ตั๋วชั่งรับซื้อยาง",
     href: "/receiving",
     icon: <IconReceiving />,
+    roles: [...RAW_TIRE_ROLES],
+  },
+  // {
+  //   key: "receiving-classify",
+  //   label: "ใบรับซื้อ / คัดแยก",
+  //   href: "/receiving?stage=classify",
+  //   icon: <IconReceiving />,
+  //   roles: [...RAW_TIRE_ROLES],
+  // },
+  // {
+  //   key: "receiving-payment",
+  //   label: "จ่ายเงินผู้ขายยาง",
+  //   href: "/receiving?stage=payment",
+  //   icon: <IconPayment />,
+  //   roles: [
+  //     ROLE.WEIGHBRIDGE_OFFICER,
+  //     ROLE.ACCOUNTING_OFFICER,
+  //     ROLE.EXECUTIVE,
+  //   ],
+  // },
+  {
+    key: "stock-posting-approvals",
+    label: "อนุมัติรับยางเข้าคลัง",
+    href: "/warehouse/stock-posting-approvals",
+    icon: <IconWarehouse />,
+    roles: [ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
+  },
+  // {
+  //   key: "reports-receiving-raw",
+  //   label: "รายงานรับซื้อยาง",
+  //   href: "/reports/receiving",
+  //   icon: <IconReport />,
+  //   roles: [
+  //     ROLE.WEIGHBRIDGE_OFFICER,
+  //     ROLE.PROCUREMENT_MANAGER,
+  //     ROLE.WAREHOUSE_OFFICER,
+  //     ROLE.WAREHOUSE_MANAGER,
+  //     ROLE.ACCOUNTING_OFFICER,
+  //     ROLE.EXECUTIVE,
+  //   ],
+  // },
+];
+
+const rawMaterialWarehouseMenus: MenuItem[] = [
+  {
+    key: "rm-stock-balances",
+    label: "ยอดคงเหลือวัตถุดิบ",
+    href: "/inventory/stock-balances?itemCategoryCode=RAW_MATERIAL",
+    icon: <IconWarehouse />,
     roles: [
-      ROLE.WEIGHBRIDGE_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "rm-lots",
+    label: "Lot วัตถุดิบ",
+    href: "/inventory/lots?itemCategoryCode=RAW_MATERIAL",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "rm-material-issues",
+    label: "เบิกวัตถุดิบจากคลัง",
+    href: "/inventory/material-issues",
+    icon: <IconMaterialIssue />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
+    key: "rm-stock-transfers",
+    label: "โอนย้ายวัตถุดิบ",
+    href: "/inventory/stock-transfers",
+    icon: <IconStockTransfer />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
+    key: "rm-stock-control",
+    label: "นับและปรับปรุงสต๊อกวัตถุดิบ",
+    href: "/inventory/stock-control",
+    icon: <IconStockCount />,
+    matchHrefs: [
+      "/inventory/stock-control",
+      "/inventory/stock-counts",
+      "/inventory/stock-adjustments",
+    ],
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
+    key: "rm-stock-movements",
+    label: "ความเคลื่อนไหววัตถุดิบ",
+    href: "/inventory/stock-movements?itemCategoryCode=RAW_MATERIAL",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "goods-receipts",
+    label: "รับสินค้าเข้าคลัง (PO)",
+    href: "/goods-receipts",
+    icon: <IconReceiving />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+];
+
+const productionMenus: MenuItem[] = [
+  {
+    key: "production-orders",
+    label: "ใบสั่งผลิต (Pyrolysis)",
+    href: "/production/production-orders",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "production-output-stock-requests",
+    label: "ขอรับผลผลิตเข้าคลัง",
+    href: "/receiving/production-output/stock-requests",
+    icon: <IconReceiving />,
+    matchHrefs: [
+      "/receiving/production-output/stock-requests",
+      "/receiving/production-output/stock-requests/create",
+    ],
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+];
+
+const finishedGoodsWarehouseMenus: MenuItem[] = [
+  {
+    key: "production-output-approvals",
+    label: "อนุมัติรับผลผลิตเข้าคลัง",
+    href: "/warehouse/production-output-approvals",
+    icon: <IconWarehouse />,
+    roles: [ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
+  },
+  {
+    key: "fg-stock-balances",
+    label: "ยอดคงเหลือ FG",
+    href: "/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "fg-lots",
+    label: "Lot สินค้าสำเร็จรูป",
+    href: "/inventory/lots?itemCategoryCode=FINISHED_GOODS",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "pickings",
+    label: "ใบจ่ายสินค้า / Picking",
+    href: "/pickings",
+    icon: <IconMaterialIssue />,
+    roles: [
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "packings",
+    label: "ใบบรรจุสินค้า / Packing",
+    href: "/packings",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "fg-stock-movements",
+    label: "ความเคลื่อนไหว FG",
+    href: "/inventory/stock-movements?itemCategoryCode=FINISHED_GOODS",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
       ROLE.WAREHOUSE_MANAGER,
       ROLE.ACCOUNTING_OFFICER,
       ROLE.EXECUTIVE,
@@ -506,8 +731,8 @@ const purchaseMenus: MenuItem[] = [
   },
 ];
 
-// เรียงตาม Flow การขายจริง: ลูกค้า → ใบเสนอราคา → ใบสั่งขาย → ตรวจสอบสต๊อก →
-// Picking → Packing → Delivery → ติดตามภาพรวม
+// เรียงตาม Flow การขาย: ลูกค้า → ใบเสนอราคา → ใบสั่งขาย → ตรวจสอบสต๊อก → Delivery → แจ้งหนี้
+// Picking/Packing ย้ายไปหมวดคลัง FG
 const salesMenus: MenuItem[] = [
   {
     key: "sd-customers",
@@ -554,30 +779,6 @@ const salesMenus: MenuItem[] = [
     ],
   },
   {
-    key: "pickings",
-    label: "ใบจ่ายสินค้า",
-    href: "/pickings",
-    icon: <IconMaterialIssue />,
-    roles: [
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "packings",
-    label: "ใบบรรจุสินค้า",
-    href: "/packings",
-    icon: <IconWarehouse />,
-    roles: [
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
     key: "delivery-orders",
     label: "ใบส่งสินค้า",
     href: "/delivery-orders",
@@ -616,85 +817,6 @@ const salesMenus: MenuItem[] = [
       ROLE.EXECUTIVE,
       ROLE.ACCOUNTING_OFFICER,
     ],
-  },
-];
-
-const warehouseMenus: MenuItem[] = [
-  {
-    key: "goods-receipts",
-    label: "รับสินค้าเข้าคลัง",
-    href: "/goods-receipts",
-    icon: <IconReceiving />,
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.PROCUREMENT_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "stock-inquiry",
-    label: "ตรวจสอบสต๊อก",
-    href: "/inventory/stock-inquiry",
-    icon: <IconWarehouse />,
-    matchHrefs: [
-      "/inventory/stock-inquiry",
-      "/inventory/stock-balances",
-      "/inventory/lots",
-      "/inventory/stock-movements",
-    ],
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "inventory-issues",
-    label: "เบิกจ่ายสินค้า",
-    href: "/inventory/issues",
-    icon: <IconMaterialIssue />,
-    matchHrefs: [
-      "/inventory/issues",
-      "/inventory/material-issues",
-      "/inventory/chemical-issues",
-    ],
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
-  },
-  {
-    key: "stock-transfers",
-    label: "โอนย้ายสินค้า",
-    href: "/inventory/stock-transfers",
-    icon: <IconStockTransfer />,
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
-  },
-  {
-    key: "stock-control",
-    label: "นับและปรับปรุงสต๊อก",
-    href: "/inventory/stock-control",
-    icon: <IconStockCount />,
-    matchHrefs: [
-      "/inventory/stock-control",
-      "/inventory/stock-counts",
-      "/inventory/stock-adjustments",
-    ],
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
-  },
-  {
-    key: "warehouse-approvals",
-    label: "อนุมัติงานคลัง",
-    href: "/warehouse/approvals",
-    icon: <IconWarehouse />,
-    matchHrefs: [
-      "/warehouse/approvals",
-      "/warehouse/stock-posting-approvals",
-      "/warehouse/production-output-approvals",
-    ],
-    roles: [ROLE.WAREHOUSE_MANAGER],
   },
 ];
 
@@ -768,6 +890,42 @@ const reportMenus: MenuItem[] = [
     href: "/reports/chemical-consumption",
     icon: <IconReport />,
     roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
+  },
+  {
+    key: "reports-ar-aging",
+    label: "รายงานลูกหนี้คงค้าง",
+    href: "/reports/ar-aging",
+    icon: <IconReport />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "reports-sales-invoices",
+    label: "รายงานใบแจ้งหนี้",
+    href: "/reports/sales-invoices",
+    icon: <IconReport />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "reports-sales-payments",
+    label: "รายงานรับชำระเงิน",
+    href: "/reports/sales-payments",
+    icon: <IconReport />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
   },
 ];
 
@@ -953,9 +1111,11 @@ const masterMenus: MenuItem[] = [
 
 const ALL_MENU_ITEMS = [
   ...rawTireMenus,
+  ...rawMaterialWarehouseMenus,
+  ...productionMenus,
+  ...finishedGoodsWarehouseMenus,
   ...purchaseMenus,
   ...salesMenus,
-  ...warehouseMenus,
   ...laboratoryMenus,
   ...financeMenus,
   ...reportMenus,
@@ -963,8 +1123,13 @@ const ALL_MENU_ITEMS = [
   ...masterMenus,
 ];
 
+function hrefPathname(href: string) {
+  return href.split("?")[0];
+}
+
 function matchesHref(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const path = hrefPathname(href);
+  return pathname === path || pathname.startsWith(`${path}/`);
 }
 
 /** เลือกเมนูที่ตรงที่สุด (match path ยาวที่สุด) รวม matchHrefs ของ hub */
@@ -975,7 +1140,7 @@ function resolveActiveMenuHref(pathname: string): string | null {
     const candidates =
       item.matchHrefs && item.matchHrefs.length > 0
         ? item.matchHrefs
-        : [item.href];
+        : [hrefPathname(item.href)];
 
     for (const candidate of candidates) {
       if (!matchesHref(pathname, candidate)) continue;
@@ -988,7 +1153,54 @@ function resolveActiveMenuHref(pathname: string): string | null {
   return best?.href ?? null;
 }
 
-function isActive(item: MenuItem, pathname: string) {
+function isReceivingStageMenu(item: MenuItem) {
+  return item.href.startsWith("/receiving?");
+}
+
+function isItemCategoryCodeMenu(item: MenuItem) {
+  return item.href.includes("itemCategoryCode=");
+}
+
+function isActive(
+  item: MenuItem,
+  pathname: string,
+  searchParams?: URLSearchParams,
+) {
+  if (isReceivingStageMenu(item)) {
+    if (pathname !== "/receiving") {
+      return false;
+    }
+    const stage = new URLSearchParams(item.href.split("?")[1]).get("stage");
+    return searchParams?.get("stage") === stage;
+  }
+
+  if (isItemCategoryCodeMenu(item)) {
+    const path = hrefPathname(item.href);
+    if (!matchesHref(pathname, path)) {
+      return false;
+    }
+    const expected = new URLSearchParams(item.href.split("?")[1]).get(
+      "itemCategoryCode",
+    );
+    return searchParams?.get("itemCategoryCode") === expected;
+  }
+
+  if (item.href === "/receiving") {
+    if (pathname === "/receiving") {
+      const stage = searchParams?.get("stage");
+      return !stage || stage === "all";
+    }
+    // ticket / classification / receipt detail under receiving — but not production-output
+    if (
+      pathname.startsWith("/receiving/") &&
+      !pathname.startsWith("/receiving/production-output") &&
+      !pathname.startsWith("/receiving/pending-production-output")
+    ) {
+      return resolveActiveMenuHref(pathname) === item.href;
+    }
+    return false;
+  }
+
   return resolveActiveMenuHref(pathname) === item.href;
 }
 
@@ -1035,8 +1247,9 @@ function renderMenuButton(
   pathname: string,
   collapsed: boolean,
   handleGo: (href: string) => void,
+  searchParams?: URLSearchParams,
 ) {
-  const active = isActive(item, pathname);
+  const active = isActive(item, pathname, searchParams);
 
   return (
     <button
@@ -1063,13 +1276,20 @@ export default function AppHeader({
 }: AppHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [masterOpen, setMasterOpen] = useState(isMasterActive(pathname));
 
   const visibleRawTireMenus = filterMenus(rawTireMenus);
+  const visibleRawMaterialWarehouseMenus = filterMenus(
+    rawMaterialWarehouseMenus,
+  );
+  const visibleProductionMenus = filterMenus(productionMenus);
+  const visibleFinishedGoodsWarehouseMenus = filterMenus(
+    finishedGoodsWarehouseMenus,
+  );
   const visiblePurchaseMenus = filterMenus(purchaseMenus);
   const visibleSalesMenus = filterMenus(salesMenus);
-  const visibleWarehouseMenus = filterMenus(warehouseMenus);
   const visibleLaboratoryMenus = filterMenus(laboratoryMenus);
   const visibleFinanceMenus = filterMenus(financeMenus);
   const visibleReportMenus = filterMenus(reportMenus);
@@ -1123,19 +1343,67 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleRawTireMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
                 )}
               </div>
             </div>
           ) : null}
 
-          {visiblePurchaseMenus.length > 0 ? (
+          {visibleRawMaterialWarehouseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>จัดซื้อทั่วไป</div>
+              <div className={styles.groupTitle}>คลังวัตถุดิบ</div>
 
               <div className={styles.groupItems}>
-                {visiblePurchaseMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
+                {visibleRawMaterialWarehouseMenus.map((item) =>
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {visibleProductionMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>การผลิต</div>
+
+              <div className={styles.groupItems}>
+                {visibleProductionMenus.map((item) =>
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
+                )}
+              </div>
+            </div>
+          ) : null}
+
+          {visibleFinishedGoodsWarehouseMenus.length > 0 ? (
+            <div className={styles.groupBlock}>
+              <div className={styles.groupTitle}>คลังสินค้าสำเร็จรูป</div>
+
+              <div className={styles.groupItems}>
+                {visibleFinishedGoodsWarehouseMenus.map((item) =>
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
                 )}
               </div>
             </div>
@@ -1147,19 +1415,31 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleSalesMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
                 )}
               </div>
             </div>
           ) : null}
 
-          {visibleWarehouseMenus.length > 0 ? (
+          {visiblePurchaseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>คลังสินค้า</div>
+              <div className={styles.groupTitle}>จัดซื้อทั่วไป</div>
 
               <div className={styles.groupItems}>
-                {visibleWarehouseMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
+                {visiblePurchaseMenus.map((item) =>
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
                 )}
               </div>
             </div>
@@ -1171,7 +1451,13 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleLaboratoryMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
                 )}
               </div>
             </div>
@@ -1183,7 +1469,13 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleFinanceMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
                 )}
               </div>
             </div>
@@ -1195,7 +1487,13 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleReportMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
                 )}
               </div>
             </div>
@@ -1207,7 +1505,13 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleSettingMenus.map((item) =>
-                  renderMenuButton(item, pathname, collapsed, handleGo),
+                  renderMenuButton(
+                    item,
+                    pathname,
+                    collapsed,
+                    handleGo,
+                    searchParams,
+                  ),
                 )}
 
                 {visibleMasterMenus.length > 0 ? (
@@ -1233,7 +1537,11 @@ export default function AppHeader({
                     {!collapsed && masterOpen && (
                       <div className={styles.subMenu}>
                         {visibleMasterMenus.map((item) => {
-                          const active = isActive(item, pathname);
+                          const active = isActive(
+                            item,
+                            pathname,
+                            searchParams,
+                          );
 
                           return (
                             <button

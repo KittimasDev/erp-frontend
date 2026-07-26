@@ -31,7 +31,7 @@
       rgba(61, 139, 116, 0.14),
       transparent 55%),
     radial-gradient(ellipse 50% 80% at 0% 100%,
-      rgba(138, 185, 51, 0.16),
+      rgba(115, 152, 22, 0.16),
       transparent 50%),
     linear-gradient(145deg, #fbfcf8 0%, #f3f6ea 48%, #eef3e2 100%);
   box-shadow: 0 12px 32px rgba(47, 52, 58, 0.06);
@@ -379,9 +379,9 @@
 }
 
 .actionBtn:hover {
-  border-color: rgba(138, 185, 51, 0.45);
+  border-color: rgba(115, 152, 22, 0.45);
   color: var(--pay-green-dark);
-  background: rgba(138, 185, 51, 0.08);
+  background: rgba(115, 152, 22, 0.08);
 }
 
 .table :global(.ant-table) {

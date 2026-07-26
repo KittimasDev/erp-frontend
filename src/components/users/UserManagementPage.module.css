@@ -34,9 +34,9 @@
 .hint {
   margin: -4px 0 16px;
   padding: 12px 16px;
-  border: 1px solid rgba(138, 185, 51, 0.28);
+  border: 1px solid rgba(115, 152, 22, 0.28);
   border-radius: 12px;
-  background: rgba(138, 185, 51, 0.08);
+  background: rgba(115, 152, 22, 0.08);
   color: var(--erp-text, #2f343a);
   font-size: 13px;
   line-height: 1.45;

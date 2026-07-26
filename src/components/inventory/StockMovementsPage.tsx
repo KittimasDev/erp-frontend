@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Button,
   DatePicker,
@@ -28,6 +29,7 @@ import {
   resolveStockMovementTypeLabel,
   STOCK_MOVEMENT_TYPE_LABEL,
 } from "@/types/inventory";
+import { getInventoryPageScope } from "./inventory-page-copy";
 import styles from "./StockMovementsPage.module.css";
 
 type DraftFilters = {
@@ -74,14 +76,36 @@ function movementTagColor(label: string): string | undefined {
   }
 }
 
+function pageCopy(itemCategoryCode?: string) {
+  const scope = getInventoryPageScope(itemCategoryCode);
+  if (scope) {
+    return {
+      ...scope,
+      subtitle: "ตรวจสอบประวัติความเคลื่อนไหวของสินค้า",
+    };
+  }
+  return {
+    eyebrow: "Inventory · Audit",
+    title: "ประวัติความเคลื่อนไหวสต๊อก",
+    subtitle:
+      "ตรวจสอบรับเข้า · เบิกออก · ขายออก · ปรับยอด · โอนคลัง พร้อมเอกสารต้นทาง",
+  };
+}
+
 export default function StockMovementsPage() {
+  const searchParams = useSearchParams();
+  const itemCategoryCode = searchParams.get("itemCategoryCode")?.trim() || undefined;
+  const copy = pageCopy(itemCategoryCode);
+
   const [draft, setDraft] = useState<DraftFilters>({
     q: "",
     range: null,
   });
-  const [filters, setFilters] = useState<StockMovementQueryParams>({});
+  const [filters, setFilters] = useState<StockMovementQueryParams>({
+    itemCategoryCode,
+  });
 
-  const movementsQuery = useStockMovementsQuery(filters);
+  const movementsQuery = useStockMovementsQuery({ ...filters, itemCategoryCode });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const rows = movementsQuery.data?.data ?? [];
 
@@ -233,12 +257,13 @@ export default function StockMovementsPage() {
       q: draft.q.trim() || undefined,
       from: draft.range?.[0]?.format("YYYY-MM-DD"),
       to: draft.range?.[1]?.format("YYYY-MM-DD"),
+      itemCategoryCode,
     });
   };
 
   const clearFilters = () => {
     setDraft({ q: "", range: null });
-    setFilters({});
+    setFilters({ itemCategoryCode });
   };
 
   if (movementsQuery.isLoading && !movementsQuery.data) {
@@ -256,12 +281,9 @@ export default function StockMovementsPage() {
           <HistoryOutlined />
         </div>
         <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Inventory · Audit</p>
-          <h1 className={styles.pageTitle}>ประวัติความเคลื่อนไหวสต๊อก</h1>
-          <p className={styles.pageSubtitle}>
-            ตรวจสอบรับเข้า · เบิกออก · ขายออก · ปรับยอด · โอนคลัง
-            พร้อมเอกสารต้นทาง
-          </p>
+          <p className={styles.eyebrow}>{copy.eyebrow}</p>
+          <h1 className={styles.pageTitle}>{copy.title}</h1>
+          <p className={styles.pageSubtitle}>{copy.subtitle}</p>
         </div>
         <div className={styles.headerMeta}>
           <span className={styles.headerMetaLabel}>รายการที่พบ</span>

@@ -13,6 +13,7 @@ export const RoleCode = {
   EXECUTIVE: "EXECUTIVE",
   SALES_OFFICER: "SALES_OFFICER",
   SALES_MANAGER: "SALES_MANAGER",
+  PRODUCTION_OFFICER: "PRODUCTION_OFFICER",
 } as const;
 
 export type RoleCodeValue = (typeof RoleCode)[keyof typeof RoleCode];

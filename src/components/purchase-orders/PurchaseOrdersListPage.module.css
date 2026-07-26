@@ -49,11 +49,11 @@
   color: #fff;
   background: linear-gradient(
     135deg,
-    #a3c644 0%,
+    #8CA527 0%,
     var(--pr-green) 58%,
     var(--pr-green-dark) 100%
   );
-  box-shadow: 0 10px 22px rgba(138, 185, 51, 0.28);
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
   font-size: 20px;
 }
 
@@ -198,7 +198,7 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(138, 185, 51, 0.12);
+  background: rgba(115, 152, 22, 0.12);
   color: var(--pr-green-dark);
   font-size: 12px;
   font-weight: 700;
@@ -244,9 +244,9 @@
 }
 
 .actionBtn:hover {
-  border-color: rgba(138, 185, 51, 0.45);
+  border-color: rgba(115, 152, 22, 0.45);
   color: var(--pr-green-dark);
-  background: rgba(138, 185, 51, 0.08);
+  background: rgba(115, 152, 22, 0.08);
 }
 
 .tableFooter {

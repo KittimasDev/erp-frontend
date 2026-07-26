@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useProductionOrdersQuery } from "@/hooks/production-orders/useProductionOrderQueries";
 import {
   useCreateStockIssueMutation,
   useUpdateStockIssueMutation,
@@ -38,6 +39,7 @@ type LineValues = {
 type FormValues = {
   issueDate: dayjs.Dayjs;
   remark?: string;
+  productionOrderId?: string;
   items: LineValues[];
 };
 
@@ -58,6 +60,7 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
   const lotsQuery = useInventoryLotsQuery({ hasStock: true });
+  const productionOrdersQuery = useProductionOrdersQuery({ limit: 100 });
 
   const items = (itemsQuery.data?.data ?? []).filter((item) => item.isIssueItem);
   const units = unitsQuery.data?.data ?? [];
@@ -68,6 +71,7 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
     ? locationsQuery.data.data
     : [];
   const lots = lotsQuery.data?.data ?? [];
+  const productionOrders = productionOrdersQuery.data?.data.items ?? [];
 
   const watchedItems = Form.useWatch("items", form) ?? [];
 
@@ -88,6 +92,7 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
     form.setFieldsValue({
       issueDate: dayjs(data.issueDate),
       remark: data.remark,
+      productionOrderId: data.productionOrderId,
       items: (data.items ?? []).map((item) => ({
         itemId: item.itemId,
         unitId: item.unitId,
@@ -123,6 +128,7 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
     const body: CreateStockIssueBody = {
       issueDate: values.issueDate.format("YYYY-MM-DD"),
       remark: values.remark?.trim() || undefined,
+      productionOrderId: values.productionOrderId || undefined,
       items: (values.items ?? []).map((item, index) => ({
         itemId: item.itemId as string,
         unitId: item.unitId as string,
@@ -194,6 +200,24 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                     rules={[{ required: true, message: "กรุณาเลือกวันที่เบิก" }]}
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                  </Form.Item>
+
+                  <Form.Item
+                    className={styles.field}
+                    label="ใบสั่งผลิต (optional)"
+                    name="productionOrderId"
+                  >
+                    <Select
+                      allowClear
+                      showSearch
+                      optionFilterProp="label"
+                      placeholder="ผูกกับใบสั่งผลิต (ถ้ามี)"
+                      loading={productionOrdersQuery.isLoading}
+                      options={productionOrders.map((order) => ({
+                        value: order.id,
+                        label: `${order.orderNo}${order.batchNo ? ` · ${order.batchNo}` : ""}`,
+                      }))}
+                    />
                   </Form.Item>
 
                   <Form.Item

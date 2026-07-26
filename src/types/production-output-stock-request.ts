@@ -24,6 +24,26 @@ export type ProductionOutputStockRequestReference = {
   referenceDocNo?: string;
 };
 
+export type LinkedMaterialIssueItem = {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  lotNo?: string;
+  quantity: string;
+  unitCode?: string;
+  warehouseCode?: string;
+  warehouseName?: string;
+};
+
+export type LinkedMaterialIssue = {
+  id: string;
+  issueNo: string;
+  status: string;
+  issueDate: string;
+  productionOrderId?: string;
+  items: LinkedMaterialIssueItem[];
+};
+
 export type ProductionOutputStockRequest = {
   id: string;
   requestNo: string;
@@ -41,10 +61,13 @@ export type ProductionOutputStockRequest = {
   locationCode?: string;
   locationName?: string;
   postingDate: string;
+  productionOrderId?: string;
+  productionOrderNo?: string;
   referenceDocType?: string;
   referenceDocId?: string;
   referenceDocNo?: string;
   references?: ProductionOutputStockRequestReference[];
+  linkedMaterialIssues?: LinkedMaterialIssue[];
   lotNo?: string;
   status: string;
   remark?: string;
@@ -81,6 +104,7 @@ export type CreateProductionOutputStockRequestBody = {
   references?: ProductionOutputReferenceInput[];
   lotNo?: string;
   remark?: string;
+  materialIssueIds?: string[];
 };
 
 export type CreateProductionOutputStockRequestBatchBody = {
@@ -111,6 +135,48 @@ export type ProductionOutputStockRequestListApiResponse = {
   statusCode?: number;
   message: string;
   data: ProductionOutputStockRequest[];
+};
+
+export type QueryProductionOutputReadyOrdersParams = {
+  from?: string;
+  to?: string;
+  all?: boolean;
+  q?: string;
+};
+
+export type ProductionOutputReadyOrder = {
+  id: string;
+  orderNo: string;
+  batchNo?: string;
+  productionDate: string;
+  status: string;
+  completedAt?: string;
+  totalRequestCount: number;
+  blockedItemIds: string[];
+};
+
+export type ProductionOutputReadyOrderListApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: ProductionOutputReadyOrder[];
+};
+
+export type AvailableMaterialIssueListApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: LinkedMaterialIssue[];
+};
+
+export type CreateProductionOutputStockRequestFromOrderBody = {
+  itemId: string;
+  unitId: string;
+  quantity: string;
+  warehouseId: string;
+  warehouseLocationId: string;
+  postingDate?: string;
+  lotNo?: string;
+  remark?: string;
+  materialIssueIds?: string[];
 };
 
 /** ล็อก Step 5 / ฟอร์มสร้าง เมื่อมีคำขอรออนุมัติหรืออนุมัติแล้วของตั๋วนี้ */

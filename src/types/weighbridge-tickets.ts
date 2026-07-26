@@ -35,6 +35,9 @@ export type WeighbridgeTicketListItem = {
   createdAt: string;
   weighOutAt?: string;
   flowState?: string;
+  currentStep?: string;
+  nextAction?: string;
+  nextActionHref?: string;
   receiptId?: string;
   receiptNo?: string;
   receiptStatus?: string;
@@ -117,6 +120,9 @@ export type WeighbridgeTicketDetail = {
   createdAt: string;
   updatedAt: string;
   flowState?: string;
+  currentStep?: string;
+  nextAction?: string;
+  nextActionHref?: string;
   displayStatus: string;
   canWeighIn: boolean;
   canEditWeighIn?: boolean;

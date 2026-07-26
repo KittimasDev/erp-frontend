@@ -29,8 +29,12 @@ import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateProductionOutputStockRequestMutation } from "@/hooks/production-output/useProductionOutputMutations";
-import { useProductionOutputStockRequestsQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import {
+  useAvailableMaterialIssuesQuery,
+  useProductionOutputStockRequestsQuery,
+} from "@/hooks/production-output/useProductionOutputQueries";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
+import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
@@ -189,11 +193,23 @@ export default function ProductionOutputStockRequestCreatePage({
   const primaryTicketId = batchTickets[0]?.id ?? ticketId;
   const isMultiTicket = batchTickets.length > 1;
 
+  const purchaseTicketQuery = useWeighbridgeTicketQuery(primaryTicketId ?? "");
+  const purchaseTicket = purchaseTicketQuery.data?.data;
+  const isPurchaseInTicket =
+    Boolean(primaryTicketId) && purchaseTicket?.ticketType === "PURCHASE_IN";
+  const purchaseInRedirectHref = purchaseTicket?.nextActionHref
+    ? purchaseTicket.nextActionHref
+    : purchaseTicket?.receiptId
+      ? `/receiving/receipts/${purchaseTicket.receiptId}`
+      : primaryTicketId
+        ? `/receiving/${primaryTicketId}/classification`
+        : "/receiving";
+
   const sourceQueries = useQueries({
     queries: batchTickets.map((ticket) => ({
       queryKey: [...ticketClassificationQueryKey, ticket.id],
       queryFn: () => getTicketClassification(getAccessToken(), ticket.id),
-      enabled: Boolean(ticket.id),
+      enabled: Boolean(ticket.id) && !isPurchaseInTicket,
     })),
   });
 
@@ -262,7 +278,7 @@ export default function ProductionOutputStockRequestCreatePage({
           referenceDocId: primaryTicketId,
         }
       : undefined,
-    { enabled: Boolean(primaryTicketId) },
+    { enabled: Boolean(primaryTicketId) && !isPurchaseInTicket },
   );
   const ticketLock = useMemo(
     () =>
@@ -274,7 +290,7 @@ export default function ProductionOutputStockRequestCreatePage({
   const itemsQuery = useItemsQuery({
     isActive: true,
     isStockItem: true,
-    itemType: "FINISHED_GOODS",
+    itemCategoryCode: "FINISHED_GOODS",
   });
   const unitsQuery = useUnitsQuery({ isActive: true });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
@@ -283,6 +299,13 @@ export default function ProductionOutputStockRequestCreatePage({
     { enabled: Boolean(warehouseId) },
   );
   const createMutation = useCreateProductionOutputStockRequestMutation();
+  const [selectedMaterialIssueIds, setSelectedMaterialIssueIds] = useState<
+    string[]
+  >([]);
+  const availableMaterialIssuesQuery = useAvailableMaterialIssuesQuery(
+    undefined,
+    { enabled: canRequest && !formLocked },
+  );
 
   const items = itemsQuery.data?.data ?? [];
   const units = unitsQuery.data?.data ?? [];
@@ -426,6 +449,10 @@ export default function ProductionOutputStockRequestCreatePage({
         postingDate: values.postingDate.format("YYYY-MM-DD"),
         lotNo: line.lotNo?.trim() || undefined,
         remark: values.remark?.trim() || undefined,
+        materialIssueIds:
+          selectedMaterialIssueIds.length > 0
+            ? selectedMaterialIssueIds
+            : undefined,
         ...(batchTickets.length === 0 && !ticketId
           ? {
               referenceDocNo: values.referenceDocNo?.trim() || undefined,
@@ -467,10 +494,13 @@ export default function ProductionOutputStockRequestCreatePage({
   return (
     <MasterPageGate
       isLoading={
+        (Boolean(primaryTicketId) && purchaseTicketQuery.isLoading) ||
         itemsQuery.isLoading ||
         unitsQuery.isLoading ||
         warehousesQuery.isLoading ||
-        (Boolean(primaryTicketId) && ticketRequestsQuery.isLoading)
+        (Boolean(primaryTicketId) &&
+          !isPurchaseInTicket &&
+          ticketRequestsQuery.isLoading)
       }
     >
       <section className={masterStyles.page}>
@@ -486,25 +516,51 @@ export default function ProductionOutputStockRequestCreatePage({
               ขอรับผลผลิตเข้าคลัง
             </Typography.Title>
             <Typography.Text className={masterStyles.pageSubtitle}>
-              {isMultiTicket
-                ? `รวบ ${batchTickets.length} ตั๋วในคำขอเดียว — จำนวนที่กรอกเป็นยอดรวมทั้งชุด แล้วรออนุมัติก่อน POST สต๊อก`
-                : batchTickets[0]?.ticketNo
-                  ? `ตั๋วชั่ง ${batchTickets[0].ticketNo} — ดูยอดรับก่อนหน้า แล้วกรอกผลผลิตที่จะเข้าคลัง`
-                  : "ยางย่อยเป็นวัตถุดิบหลายชนิดได้ — เพิ่มได้หลายรายการในครั้งเดียว แล้วรอหัวหน้าคลังอนุมัติก่อน POST สต๊อก"}
+              รับเฉพาะสินค้าสำเร็จรูป (FINISHED_GOODS) เช่น น้ำมัน Pyrolysis,
+              rCB, เศษลวดเหล็ก — เริ่มจากใบสั่งผลิต ไม่ใช่ตั๋วชั่งรับซื้อยาง
             </Typography.Text>
           </div>
           <Button
             icon={<ArrowLeftOutlined />}
             className={masterStyles.editButton}
-            onClick={() => router.push(backHref)}
+            onClick={() =>
+              router.push(
+                isPurchaseInTicket ? purchaseInRedirectHref : backHref,
+              )
+            }
           >
-            {fromBatch
-              ? "กลับรายการรอรับผลผลิต"
-              : ticketId
-                ? "กลับตั๋วชั่ง"
-                : "กลับรายการ"}
+            {isPurchaseInTicket
+              ? "กลับ flow รับซื้อยาง"
+              : fromBatch
+                ? "กลับรายการรอรับผลผลิต"
+                : ticketId
+                  ? "กลับตั๋วชั่ง"
+                  : "กลับรายการ"}
           </Button>
         </div>
+
+        {isPurchaseInTicket ? (
+          <Alert
+            type="warning"
+            showIcon
+            title="ตั๋วชั่งรับซื้อยางไม่ใช้หน้านี้"
+            description={
+              <div>
+                <p style={{ marginBottom: 8 }}>
+                  ตั๋วนี้เป็น PURCHASE_IN — ใช้ flow คัดแยก / ใบรับซื้อ / จ่ายเงิน
+                  / รับยางดิบเข้าคลังเท่านั้น
+                </p>
+                <Button
+                  type="primary"
+                  onClick={() => router.push(purchaseInRedirectHref)}
+                >
+                  {purchaseTicket?.nextAction || "ไปดำเนินการรับซื้อยาง"}
+                </Button>
+              </div>
+            }
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
 
         {!canRequest ? (
           <Alert
@@ -514,7 +570,7 @@ export default function ProductionOutputStockRequestCreatePage({
           />
         ) : null}
 
-        {primaryTicketId && ticketLock.message ? (
+        {primaryTicketId && !isPurchaseInTicket && ticketLock.message ? (
           <Alert
             type={ticketLock.locked ? "info" : "warning"}
             showIcon
@@ -541,7 +597,7 @@ export default function ProductionOutputStockRequestCreatePage({
           />
         ) : null}
 
-        {batchTickets.length > 0 ? (
+        {!isPurchaseInTicket && batchTickets.length > 0 ? (
           <div className={styles.sourceCard}>
             <div className={styles.sourceHeader}>
               <div>
@@ -647,6 +703,7 @@ export default function ProductionOutputStockRequestCreatePage({
           </div>
         ) : null}
 
+        {!isPurchaseInTicket ? (
         <div className={styles.layout}>
           <div className={styles.formCard}>
             <Form
@@ -666,10 +723,10 @@ export default function ProductionOutputStockRequestCreatePage({
                   <div className={masterStyles.sectionTitle}>
                     <span className={masterStyles.sectionLine} />
                     <div>
-                      <strong>1. รายการผลผลิต / วัตถุดิบ</strong>
+                      <strong>1. รายการผลผลิตที่รับเข้าคลัง</strong>
                       <span>
-                        เลือกจาก Master สินค้า / วัตถุดิบ — เพิ่มได้หลายรายการ
-                        เช่น ผงยาง, น้ำมัน Pyrolysis, เศษเหล็ก
+                        รับเฉพาะ FINISHED_GOODS เช่น น้ำมัน Pyrolysis, rCB,
+                        เศษลวดเหล็ก — เพิ่มได้หลายรายการ
                       </span>
                     </div>
                   </div>
@@ -714,7 +771,7 @@ export default function ProductionOutputStockRequestCreatePage({
                               <Form.Item
                                 className={styles.formGridFull}
                                 name={[field.name, "itemId"]}
-                                label="สินค้า / วัตถุดิบ"
+                                label="สินค้าสำเร็จรูป"
                                 rules={[
                                   { required: true, message: "เลือกสินค้า" },
                                 ]}
@@ -723,7 +780,7 @@ export default function ProductionOutputStockRequestCreatePage({
                                   size="large"
                                   showSearch
                                   optionFilterProp="label"
-                                  placeholder="ค้นหารหัสหรือชื่อสินค้า / วัตถุดิบ"
+                                  placeholder="ค้นหารหัสหรือชื่อสินค้าสำเร็จรูป"
                                   options={itemOptions}
                                   loading={itemsQuery.isFetching}
                                   onChange={(value) =>
@@ -732,7 +789,7 @@ export default function ProductionOutputStockRequestCreatePage({
                                   notFoundContent={
                                     itemsQuery.isFetching
                                       ? "กำลังโหลด..."
-                                      : "ไม่พบสินค้าคุมสต๊อกที่ใช้งาน"
+                                      : "ไม่พบสินค้าสำเร็จรูป (FINISHED_GOODS) ที่ใช้งาน"
                                   }
                                 />
                               </Form.Item>
@@ -795,7 +852,7 @@ export default function ProductionOutputStockRequestCreatePage({
                           className={styles.addLineButton}
                           onClick={() => add({ ...EMPTY_LINE })}
                         >
-                          เพิ่มรายการวัตถุดิบ
+                          เพิ่มรายการผลผลิต
                         </Button>
                       </div>
                     )}
@@ -864,7 +921,7 @@ export default function ProductionOutputStockRequestCreatePage({
                       <strong>3. เอกสารอ้างอิง</strong>
                       <span>
                         {isMultiTicket
-                          ? `ตั๋วชั่ง ${batchTickets.length} ใบ — ใช้ร่วมทุกรายการวัตถุดิบ (จำนวนด้านบนเป็นยอดรวม)`
+                          ? `ตั๋วชั่ง ${batchTickets.length} ใบ — ใช้ร่วมทุกรายการผลผลิต (จำนวนด้านบนเป็นยอดรวม)`
                           : "ใส่เพิ่มได้ถ้ามี — ใช้ร่วมทุกรายการ"}
                       </span>
                     </div>
@@ -889,8 +946,8 @@ export default function ProductionOutputStockRequestCreatePage({
                               height: 28,
                               padding: "0 12px",
                               borderRadius: 999,
-                              background: "rgba(138, 185, 51, 0.12)",
-                              color: "#6f9720",
+                              background: "rgba(115, 152, 22, 0.12)",
+                              color: "#627F13",
                               fontSize: 13,
                               fontWeight: 700,
                             }}
@@ -933,6 +990,56 @@ export default function ProductionOutputStockRequestCreatePage({
                     </Col>
                   </Row>
                 </div>
+
+                <div className={styles.sectionBlock}>
+                  <div className={masterStyles.sectionTitle}>
+                    <span className={masterStyles.sectionLine} />
+                    <div>
+                      <strong>4. วัตถุดิบที่ใช้ผลิต (optional)</strong>
+                      <span>
+                        แท็กใบเบิกวัตถุดิบ POSTED เพื่อ trace — ไม่ตัดสต๊อกซ้ำ
+                      </span>
+                    </div>
+                  </div>
+                  <Table
+                    size="small"
+                    rowKey="id"
+                    loading={availableMaterialIssuesQuery.isFetching}
+                    pagination={false}
+                    dataSource={availableMaterialIssuesQuery.data?.data ?? []}
+                    locale={{ emptyText: "ไม่มีใบเบิก POSTED ให้เลือก" }}
+                    rowSelection={{
+                      selectedRowKeys: selectedMaterialIssueIds,
+                      onChange: (keys) =>
+                        setSelectedMaterialIssueIds(keys as string[]),
+                      getCheckboxProps: () => ({ disabled: formLocked }),
+                    }}
+                    columns={[
+                      {
+                        title: "เลขที่เบิก",
+                        dataIndex: "issueNo",
+                        key: "issueNo",
+                      },
+                      {
+                        title: "วันที่",
+                        dataIndex: "issueDate",
+                        key: "issueDate",
+                        render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+                      },
+                      {
+                        title: "รายการ",
+                        key: "items",
+                        render: (_, row) =>
+                          (row.items ?? [])
+                            .map(
+                              (line) =>
+                                `${line.itemCode ?? ""} ${formatQty(line.quantity)}`,
+                            )
+                            .join(", ") || "—",
+                      },
+                    ]}
+                  />
+                </div>
               </div>
 
               <div className={styles.footerBar}>
@@ -968,7 +1075,7 @@ export default function ProductionOutputStockRequestCreatePage({
               <div className={styles.summaryEyebrow}>LIVE PREVIEW</div>
               <h3 className={styles.summaryTitle}>สรุปคำขอ</h3>
               <p className={styles.summaryLead}>
-                {previewLines.length} รายการวัตถุดิบจะถูกส่งเข้าคลังชุดเดียวกัน
+                {previewLines.length} รายการผลผลิตจะถูกส่งเข้าคลังชุดเดียวกัน
               </p>
             </div>
 
@@ -989,7 +1096,7 @@ export default function ProductionOutputStockRequestCreatePage({
               <div className={styles.previewLabel}>จะรับเข้า</div>
               {previewLines.length === 0 ? (
                 <p className={styles.previewValue}>
-                  เพิ่มรายการวัตถุดิบเพื่อดูสรุป
+                  เพิ่มรายการผลผลิตเพื่อดูสรุป
                 </p>
               ) : (
                 <ul className={styles.previewList}>
@@ -1055,6 +1162,7 @@ export default function ProductionOutputStockRequestCreatePage({
             </div>
           </aside>
         </div>
+        ) : null}
       </section>
     </MasterPageGate>
   );

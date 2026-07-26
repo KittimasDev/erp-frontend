@@ -67,6 +67,9 @@ export type ReceiptDetail = {
   status: string;
   paymentStatus: string;
   stockPostingStatus: string;
+  currentStep?: string;
+  nextAction?: string;
+  nextActionHref?: string;
   remark?: string;
   weighbridgeTicketId?: string;
   grossWeightKg: string;
@@ -131,8 +134,19 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
 
 export const STOCK_POSTING_STATUS_LABELS: Record<string, string> = {
   NOT_POSTED: "ยังไม่รับเข้าสต๊อก",
+  PARTIALLY_POSTED: "รับเข้าสต๊อกบางส่วน",
   POSTED: "รับเข้าสต๊อกแล้ว",
   CANCELLED: "ยกเลิกรับเข้า",
+};
+
+export const RAW_TIRE_FLOW_STEP_LABELS: Record<string, string> = {
+  WEIGH_IN: "ชั่งเข้า",
+  WEIGH_OUT: "ชั่งออก",
+  RECEIPT: "คัดแยก / ใบรับซื้อ",
+  PAYMENT: "จ่ายเงิน",
+  STOCK_IN: "เข้าคลัง",
+  COMPLETED: "เข้าคลังแล้ว",
+  CANCELLED: "ยกเลิก",
 };
 
 export const DEDUCTION_TYPE_LABELS: Record<string, string> = {

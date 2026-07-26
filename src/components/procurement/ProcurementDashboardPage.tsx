@@ -25,9 +25,9 @@ import type { ProcurementTrackingRow } from "@/types/procurement-dashboard";
 
 import styles from "./ProcurementDashboardPage.module.css";
 
-const GREEN = "#8ab933";
-const GREEN_DARK = "#6f9720";
-const MUTED = "#8a9199";
+const GREEN = "#739816";
+const GREEN_DARK = "#627F13";
+const MUTED = "#77777C";
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
   UNPAID: "รอจ่าย",

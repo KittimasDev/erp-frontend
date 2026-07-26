@@ -14,6 +14,9 @@ export type RawTirePurchaseReportRow = {
   paymentStatus: string;
   stockPostingStatus: string;
   status: string;
+  currentStep?: string;
+  nextAction?: string;
+  nextActionHref?: string;
   createdAt: string;
 };
 

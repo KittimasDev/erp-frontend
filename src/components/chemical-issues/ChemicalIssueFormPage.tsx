@@ -56,7 +56,7 @@ export default function ChemicalIssueFormPage({ mode, id }: Props) {
   const createMutation = useCreateChemicalIssueMutation();
   const updateMutation = useUpdateChemicalIssueMutation();
 
-  const itemsQuery = useItemsQuery({ isActive: true, itemType: "CHEMICAL" });
+  const itemsQuery = useItemsQuery({ isActive: true, itemCategoryCode: "CHEMICAL" });
   const unitsQuery = useUnitsQuery({ isActive: true });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });

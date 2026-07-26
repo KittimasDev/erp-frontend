@@ -40,6 +40,7 @@ export type StockBalanceQueryParams = {
   locationId?: string;
   itemId?: string;
   itemCategoryId?: string;
+  itemCategoryCode?: string;
   q?: string;
   hasStock?: boolean;
 };
@@ -83,6 +84,7 @@ export type StockMovementQueryParams = {
   referenceDocType?: string;
   from?: string;
   to?: string;
+  itemCategoryCode?: string;
   q?: string;
 };
 
@@ -118,6 +120,7 @@ export type InventoryLotQueryParams = {
   locationId?: string;
   itemId?: string;
   status?: string;
+  itemCategoryCode?: string;
   q?: string;
   hasStock?: boolean;
 };

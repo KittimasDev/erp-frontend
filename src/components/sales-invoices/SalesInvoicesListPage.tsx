@@ -319,6 +319,7 @@ export default function SalesInvoicesListPage() {
               style={{ width: "100%" }}
               options={[
                 { value: "UNPAID", label: "ยังไม่ชำระ" },
+                { value: "PARTIALLY_PAID", label: "ชำระบางส่วน" },
                 { value: "PAID", label: "ชำระแล้ว" },
               ]}
             />

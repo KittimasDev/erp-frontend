@@ -55,6 +55,7 @@ export type StockIssue = {
   issuedBy?: StockIssueUserSummary;
   postedAt?: string;
   remark?: string;
+  productionOrderId?: string;
   items: StockIssueItem[];
   createdAt: string;
   updatedAt: string;
@@ -70,6 +71,7 @@ export type StockIssueListData = {
 export type StockIssueQueryParams = {
   issueNo?: string;
   status?: string;
+  productionOrderId?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -90,6 +92,7 @@ export type CreateStockIssueItemBody = {
 export type CreateStockIssueBody = {
   issueDate: string;
   remark?: string;
+  productionOrderId?: string;
   items: CreateStockIssueItemBody[];
 };
 
@@ -108,6 +111,7 @@ export type UpdateStockIssueItemBody = {
 export type UpdateStockIssueBody = {
   issueDate?: string;
   remark?: string;
+  productionOrderId?: string;
   items?: UpdateStockIssueItemBody[];
 };
 
