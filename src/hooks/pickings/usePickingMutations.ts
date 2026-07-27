@@ -41,7 +41,7 @@ export function useCreatePickingFromSalesOrderMutation() {
       createPickingFromSalesOrder(getAccessToken(), salesOrderId, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "สร้างใบจ่ายสินค้าสำเร็จ");
+      message.success(res.message || "เปิดใบจ่ายสินค้าแล้ว");
     },
     onError: (e: Error) =>
       message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ"),

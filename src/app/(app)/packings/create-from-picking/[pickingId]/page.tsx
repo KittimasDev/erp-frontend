@@ -20,12 +20,16 @@ export default function Page({
     (async () => {
       try {
         const res = await createMutation.mutateAsync({ pickingId });
-        if (!cancelled) {
-          router.replace(`/packings/${res.data.id}/edit`);
-        }
+        if (cancelled) return;
+        const packing = res.data;
+        const target =
+          packing.status === "DRAFT"
+            ? `/packings/${packing.id}/edit`
+            : `/packings/${packing.id}`;
+        router.replace(target);
       } catch {
         if (!cancelled) {
-          router.replace("/packings/create-from-picking");
+          router.replace(`/pickings/${pickingId}`);
         }
       }
     })();
@@ -37,7 +41,7 @@ export default function Page({
 
   return (
     <div style={{ padding: 48, textAlign: "center" }}>
-      <Spin tip="กำลังสร้างใบบรรจุสินค้า..." />
+      <Spin description="กำลังเปิดใบบรรจุสินค้า..." />
     </div>
   );
 }

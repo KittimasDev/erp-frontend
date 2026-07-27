@@ -9,6 +9,10 @@ import dayjs from "dayjs";
 
 import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
+import {
+  resolveSalesOrderProgress,
+  SALES_ORDER_FLOW_STEPS,
+} from "@/lib/sales/sales-order-progress";
 import type { SalesOrder } from "@/types/sales-orders";
 import {
   SALES_ORDER_STATUS_LABEL,
@@ -21,6 +25,10 @@ function statusColor(status: string) {
     case "COMPLETED":
       return "success";
     case "CONFIRMED":
+    case "STOCK_CHECKED":
+    case "PICKING":
+    case "PACKED":
+    case "DELIVERED":
     case "PARTIALLY_ISSUED":
       return "processing";
     case "CANCELLED":
@@ -42,6 +50,43 @@ function formatMoney(value?: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function SalesOrderProgressCell({ status }: { status: string }) {
+  const progress = resolveSalesOrderProgress(status);
+  return (
+    <div
+      className={`${styles.progressCell} ${styles[`progress_${progress.tone}`]}`}
+    >
+      <div className={styles.progressMeta}>
+        <span className={styles.progressCount}>
+          {progress.tone === "stopped" && progress.current === 0
+            ? "—"
+            : `${progress.current}/${progress.total}`}
+        </span>
+        <span className={styles.progressLabel}>{progress.label}</span>
+      </div>
+      <div
+        className={styles.progressTrack}
+        style={{
+          gridTemplateColumns: `repeat(${progress.total}, minmax(0, 1fr))`,
+        }}
+        aria-hidden
+      >
+        {SALES_ORDER_FLOW_STEPS.map((step, index) => {
+          const stepNo = index + 1;
+          const filled = stepNo <= progress.current;
+          return (
+            <span
+              key={step.key}
+              className={`${styles.progressSeg} ${filled ? styles.progressSegOn : ""}`}
+              title={step.label}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default function SalesOrdersListPage() {
@@ -112,12 +157,19 @@ export default function SalesOrdersListPage() {
         title: "ยอดสุทธิ",
         dataIndex: "totalAmount",
         align: "right",
+        width: 120,
         render: (value: string) => formatMoney(value),
+      },
+      {
+        title: "ขั้นตอน",
+        key: "progress",
+        width: 220,
+        render: (_v, row) => <SalesOrderProgressCell status={row.status} />,
       },
       {
         title: "สถานะ",
         dataIndex: "status",
-        width: 150,
+        width: 140,
         render: (value: string) => (
           <Tag color={statusColor(value)}>
             {SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value}
@@ -152,7 +204,8 @@ export default function SalesOrdersListPage() {
           <p className={styles.eyebrow}>Sales · Sales Order</p>
           <h1 className={styles.pageTitle}>ใบสั่งขาย</h1>
           <p className={styles.pageSubtitle}>
-            ติดตามใบสั่งขายที่เปิดจากใบเสนอราคาที่ลูกค้ายืนยันแล้ว
+            ติดตาม 7 ขั้นตอน: ร่าง → ยืนยัน → ตรวจสต๊อก → จ่ายสินค้า → บรรจุ →
+            ส่งสินค้า → เสร็จสิ้น
           </p>
         </div>
       </header>

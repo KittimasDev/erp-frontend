@@ -42,7 +42,7 @@ export function useCreatePackingFromPickingMutation() {
     }) => createPackingFromPicking(getAccessToken(), pickingId, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "สร้างใบบรรจุสำเร็จ");
+      message.success(res.message || "เปิดใบบรรจุแล้ว");
     },
     onError: (e: Error) =>
       message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ"),

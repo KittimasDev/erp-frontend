@@ -59,16 +59,26 @@ function resolveStepTone(step: SalesTrackingTimelineStep): StepTone {
     return "cancelled";
   }
 
-  if (["DONE", "DELIVERED", "ACCEPTED"].includes(status)) {
+  if (
+    ["DONE", "DELIVERED", "ACCEPTED", "COMPLETED", "PARTIALLY_ISSUED"].includes(
+      status,
+    ) ||
+    status.endsWith("/PAID") ||
+    status === "PAID"
+  ) {
     return "done";
   }
 
+  if (status.endsWith("/PARTIALLY_PAID") || status.endsWith("/UNPAID")) {
+    return "active";
+  }
+
   if (status === "CONFIRMED") {
-    // Delivery confirmed = พร้อม Mark Delivered
+    // Delivery confirmed = พร้อม Mark Delivered / SO confirmed = ขั้น SO เสร็จแล้ว
     return step.step === "Delivery" ? "active" : "done";
   }
 
-  if (["STOCK_CHECKED", "PICKING", "PACKED"].includes(status)) {
+  if (["STOCK_CHECKED", "PICKING", "PACKED", "POSTED"].includes(status)) {
     return "done";
   }
 
@@ -93,6 +103,8 @@ function stepIcon(stepName: string) {
       return <InboxOutlined />;
     case "Delivery":
       return <CarOutlined />;
+    case "Invoice":
+      return <ExportOutlined />;
     default:
       return <ClockCircleFilled />;
   }
@@ -118,8 +130,17 @@ function statusLabel(status?: string) {
     CANCELLED: "ยกเลิก",
     REJECTED: "ปฏิเสธ",
     STOCK_CHECKED: "ตรวจสต๊อกแล้ว",
-    PICKING: "กำลังจ่าย",
+    PICKING: "จ่ายสินค้าแล้ว",
     PACKED: "บรรจุแล้ว",
+    COMPLETED: "เสร็จสิ้น",
+    PARTIALLY_ISSUED: "จ่ายบางส่วน",
+    "POSTED/UNPAID": "โพสต์แล้ว / รอชำระ",
+    "POSTED/PARTIALLY_PAID": "โพสต์แล้ว / ชำระบางส่วน",
+    "POSTED/PAID": "โพสต์แล้ว / ชำระครบ",
+    POSTED: "โพสต์แล้ว",
+    UNPAID: "รอชำระ",
+    PARTIALLY_PAID: "ชำระบางส่วน",
+    PAID: "ชำระครบ",
   };
   return map[status.toUpperCase()] ?? status;
 }
@@ -222,6 +243,7 @@ export default function SalesTrackingPage() {
           <h1 className={styles.pageTitle}>ติดตามการขายและจัดส่ง</h1>
           <p className={styles.pageSubtitle}>
             ดูภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery
+            → Invoice / Payment
           </p>
         </div>
       </header>

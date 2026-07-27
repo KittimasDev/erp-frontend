@@ -33,6 +33,40 @@ import {
 } from "@/types/quotations";
 import styles from "./QuotationsListPage.module.css";
 
+const QUOTATION_FLOW_STEPS = [
+  { key: "DRAFT", label: "ร่าง" },
+  { key: "SENT", label: "ส่งแล้ว" },
+  { key: "ACCEPTED", label: "ลูกค้ายืนยัน" },
+  { key: "SALES_ORDER", label: "เปิด SO" },
+] as const;
+
+type QuotationProgress = {
+  current: number;
+  total: number;
+  label: string;
+  tone: "active" | "done" | "stopped";
+};
+
+function resolveQuotationProgress(row: Quotation): QuotationProgress {
+  const total = QUOTATION_FLOW_STEPS.length;
+  if (row.status === "CANCELLED") {
+    return { current: 0, total, label: "ยกเลิก", tone: "stopped" };
+  }
+  if (row.status === "REJECTED") {
+    return { current: 2, total, label: "ลูกค้าปฏิเสธ", tone: "stopped" };
+  }
+  if (row.salesOrderId) {
+    return { current: 4, total, label: "เปิด SO แล้ว", tone: "done" };
+  }
+  if (row.status === "ACCEPTED") {
+    return { current: 3, total, label: "ลูกค้ายืนยัน", tone: "active" };
+  }
+  if (row.status === "SENT") {
+    return { current: 2, total, label: "ส่งแล้ว", tone: "active" };
+  }
+  return { current: 1, total, label: "ร่าง", tone: "active" };
+}
+
 function statusColor(status: string) {
   switch (status) {
     case "ACCEPTED":
@@ -60,6 +94,40 @@ function formatMoney(value?: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function QuotationProgressCell({ row }: { row: Quotation }) {
+  const progress = resolveQuotationProgress(row);
+  return (
+    <div
+      className={`${styles.progressCell} ${styles[`progress_${progress.tone}`]}`}
+    >
+      <div className={styles.progressMeta}>
+        <span className={styles.progressCount}>
+          {progress.tone === "stopped" && progress.current === 0
+            ? "—"
+            : `${progress.current}/${progress.total}`}
+        </span>
+        <span className={styles.progressLabel}>{progress.label}</span>
+      </div>
+      <div className={styles.progressTrack} aria-hidden>
+        {QUOTATION_FLOW_STEPS.map((step, index) => {
+          const stepNo = index + 1;
+          const filled = stepNo <= progress.current;
+          return (
+            <span
+              key={step.key}
+              className={`${styles.progressSeg} ${filled ? styles.progressSegOn : ""}`}
+              title={step.label}
+            />
+          );
+        })}
+      </div>
+      {row.salesOrderNo ? (
+        <span className={styles.progressSo}>{row.salesOrderNo}</span>
+      ) : null}
+    </div>
+  );
 }
 
 export default function QuotationsListPage() {
@@ -137,7 +205,14 @@ export default function QuotationsListPage() {
         title: "ยอดสุทธิ",
         dataIndex: "totalAmount",
         align: "right",
+        width: 120,
         render: (value: string) => formatMoney(value),
+      },
+      {
+        title: "ขั้นตอน",
+        key: "progress",
+        width: 180,
+        render: (_v, row) => <QuotationProgressCell row={row} />,
       },
       {
         title: "สถานะ",
@@ -184,7 +259,8 @@ export default function QuotationsListPage() {
           <p className={styles.eyebrow}>Sales · Quotation</p>
           <h1 className={styles.pageTitle}>ใบเสนอราคา</h1>
           <p className={styles.pageSubtitle}>
-            สร้างและติดตามใบเสนอราคาให้ลูกค้า — ยังไม่ตัดสต๊อก
+            ติดตาม 4 ขั้นตอน: ร่าง → ส่งแล้ว → ลูกค้ายืนยัน → เปิด SO —
+            ยังไม่ตัดสต๊อก
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -281,6 +357,7 @@ export default function QuotationsListPage() {
           dataSource={rows}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           className={styles.table}
+          scroll={{ x: 980 }}
           onRow={(row) => ({
             onClick: () => router.push(`/quotations/${row.id}`),
           })}

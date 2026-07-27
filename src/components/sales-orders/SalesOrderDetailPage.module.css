@@ -314,6 +314,65 @@
   color: var(--pr-green-dark);
 }
 
+.progressBox {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.progressMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.progressCount {
+  color: var(--pr-green-dark);
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.progressLabel {
+  color: var(--pr-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.progressTrack {
+  display: grid;
+  gap: 3px;
+}
+
+.progressSeg {
+  height: 6px;
+  border-radius: 999px;
+  background: #e8eaed;
+}
+
+.progressSegOn {
+  background: var(--pr-green);
+}
+
+.progress_done .progressCount,
+.progress_done .progressSegOn {
+  color: #389e0d;
+}
+
+.progress_done .progressSegOn {
+  background: #52c41a;
+}
+
+.progress_stopped .progressCount,
+.progress_stopped .progressLabel {
+  color: #8a9199;
+}
+
+.progress_stopped .progressSegOn {
+  background: #bfbfbf;
+}
+
 .statusRejected {
   background: rgba(239, 68, 68, 0.12);
   color: #b91c1c;

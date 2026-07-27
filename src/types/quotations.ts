@@ -65,6 +65,9 @@ export type Quotation = {
   taxRateId?: string;
   taxRate?: QuotationTaxRateSummary;
   status: QuotationStatus | string;
+  /** ใบสั่งขายที่เปิดจาก QT นี้ (ถ้ามี) */
+  salesOrderId?: string;
+  salesOrderNo?: string;
   validUntil?: string;
   subtotalAmount: string;
   discountAmount: string;

@@ -220,6 +220,71 @@
   background: #f8faf5 !important;
 }
 
+.progressCell {
+  display: grid;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.progressMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.progressCount {
+  color: var(--pr-green-dark);
+  font-size: 13px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.progressLabel {
+  color: var(--pr-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.progressTrack {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.progressSeg {
+  height: 6px;
+  border-radius: 999px;
+  background: #e8eaed;
+}
+
+.progressSegOn {
+  background: var(--pr-green);
+}
+
+.progress_done .progressCount,
+.progress_done .progressSegOn {
+  color: #389e0d;
+}
+
+.progress_done .progressSegOn {
+  background: #52c41a;
+}
+
+.progress_stopped .progressCount,
+.progress_stopped .progressLabel {
+  color: #8a9199;
+}
+
+.progress_stopped .progressSegOn {
+  background: #bfbfbf;
+}
+
+.progressSo {
+  color: var(--pr-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .actionBtn {
   width: 32px;
   height: 32px;

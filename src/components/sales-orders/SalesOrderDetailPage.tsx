@@ -31,6 +31,10 @@ import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrac
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
+  resolveSalesOrderProgress,
+  SALES_ORDER_FLOW_STEPS,
+} from "@/lib/sales/sales-order-progress";
+import {
   SALES_ORDER_STATUS_LABEL,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
@@ -57,12 +61,12 @@ function formatMoney(value?: string) {
 function statusClass(status: string) {
   switch (status) {
     case "COMPLETED":
-    case "DELIVERED":
       return styles.statusApproved;
     case "CONFIRMED":
     case "STOCK_CHECKED":
     case "PICKING":
     case "PACKED":
+    case "DELIVERED":
     case "PARTIALLY_ISSUED":
       return styles.statusPending;
     case "CANCELLED":
@@ -169,6 +173,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   }
 
   const busy = confirmMutation.isPending || cancelMutation.isPending;
+  const progress = resolveSalesOrderProgress(data.status);
 
   const printPdf = () => {
     void generateSalesOrderPdf({
@@ -230,7 +235,23 @@ export default function SalesOrderDetailPage({ id }: Props) {
         </Button>
       );
     } else if (data.status === "STOCK_CHECKED") {
-      nextStepButton = (
+      const picking = findStep(timeline, "Picking");
+      nextStepButton = picking?.href ? (
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<ShoppingOutlined />}
+          onClick={() =>
+            router.push(
+              picking.status === "DRAFT"
+                ? `${picking.href}/edit`
+                : (picking.href as string),
+            )
+          }
+        >
+          เปิดใบจ่ายสินค้า
+        </Button>
+      ) : (
         <Button
           className={styles.primaryBtn}
           type="primary"
@@ -284,7 +305,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           สร้างใบส่งสินค้า
         </Button>
       );
-    } else if (data.status === "DELIVERED") {
+    } else if (data.status === "DELIVERED" || data.status === "COMPLETED") {
       const invoice = findStep(timeline, "Invoice");
       const delivery = findStep(timeline, "Delivery");
       if (invoice?.href) {
@@ -298,7 +319,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             ดูใบแจ้งหนี้
           </Button>
         );
-      } else if (delivery?.documentId) {
+      } else if (data.status === "DELIVERED" && delivery?.documentId) {
         nextStepButton = (
           <Button
             className={styles.primaryBtn}
@@ -598,6 +619,36 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
             {SALES_ORDER_STATUS_LABEL[data.status as SalesOrderStatus] ??
               data.status}
+          </div>
+          <div
+            className={`${styles.progressBox} ${styles[`progress_${progress.tone}`]}`}
+          >
+            <div className={styles.progressMeta}>
+              <span className={styles.progressCount}>
+                {progress.tone === "stopped" && progress.current === 0
+                  ? "—"
+                  : `${progress.current}/${progress.total}`}
+              </span>
+              <span className={styles.progressLabel}>{progress.label}</span>
+            </div>
+            <div
+              className={styles.progressTrack}
+              style={{
+                gridTemplateColumns: `repeat(${progress.total}, minmax(0, 1fr))`,
+              }}
+              aria-hidden
+            >
+              {SALES_ORDER_FLOW_STEPS.map((step, index) => {
+                const filled = index + 1 <= progress.current;
+                return (
+                  <span
+                    key={step.key}
+                    className={`${styles.progressSeg} ${filled ? styles.progressSegOn : ""}`}
+                    title={step.label}
+                  />
+                );
+              })}
+            </div>
           </div>
           {tracking?.currentStep ? (
             <p className={styles.sectionHint} style={{ margin: "8px 0 0" }}>

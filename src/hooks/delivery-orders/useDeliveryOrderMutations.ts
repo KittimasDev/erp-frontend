@@ -41,7 +41,7 @@ export function useCreateDeliveryOrderFromPackingMutation() {
       createDeliveryOrderFromPacking(getAccessToken(), packingId, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "สร้างใบส่งสำเร็จ");
+      message.success(res.message || "เปิดใบส่งแล้ว");
     },
     onError: (e: Error) =>
       message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ"),

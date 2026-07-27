@@ -21,7 +21,10 @@ import { quotationsQueryKey } from "./useQuotationsQuery";
 function useInvalidateQuotations() {
   const queryClient = useQueryClient();
   return () =>
-    queryClient.invalidateQueries({ queryKey: quotationsQueryKey });
+    queryClient.invalidateQueries({
+      queryKey: quotationsQueryKey,
+      refetchType: "all",
+    });
 }
 
 export function useCreateQuotationMutation() {
@@ -60,11 +63,13 @@ export function useUpdateQuotationMutation() {
 
 export function useSendQuotationMutation() {
   const { message } = App.useApp();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateQuotations();
   return useMutation({
     mutationKey: [...quotationsQueryKey, "send"],
     mutationFn: (id: string) => sendQuotation(getAccessToken(), id),
-    onSuccess: async () => {
+    onSuccess: async (res, id) => {
+      queryClient.setQueryData([...quotationsQueryKey, "detail", id], res);
       await invalidate();
       message.success("ส่งใบเสนอราคาสำเร็จ");
     },
@@ -76,11 +81,13 @@ export function useSendQuotationMutation() {
 
 export function useAcceptQuotationMutation() {
   const { message } = App.useApp();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateQuotations();
   return useMutation({
     mutationKey: [...quotationsQueryKey, "accept"],
     mutationFn: (id: string) => acceptQuotation(getAccessToken(), id),
-    onSuccess: async () => {
+    onSuccess: async (res, id) => {
+      queryClient.setQueryData([...quotationsQueryKey, "detail", id], res);
       await invalidate();
       message.success("ยืนยันรับใบเสนอราคาสำเร็จ");
     },
@@ -92,11 +99,13 @@ export function useAcceptQuotationMutation() {
 
 export function useRejectQuotationMutation() {
   const { message } = App.useApp();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateQuotations();
   return useMutation({
     mutationKey: [...quotationsQueryKey, "reject"],
     mutationFn: (id: string) => rejectQuotation(getAccessToken(), id),
-    onSuccess: async () => {
+    onSuccess: async (res, id) => {
+      queryClient.setQueryData([...quotationsQueryKey, "detail", id], res);
       await invalidate();
       message.success("ปฏิเสธใบเสนอราคาสำเร็จ");
     },
@@ -108,11 +117,13 @@ export function useRejectQuotationMutation() {
 
 export function useCancelQuotationMutation() {
   const { message } = App.useApp();
+  const queryClient = useQueryClient();
   const invalidate = useInvalidateQuotations();
   return useMutation({
     mutationKey: [...quotationsQueryKey, "cancel"],
     mutationFn: (id: string) => cancelQuotation(getAccessToken(), id),
-    onSuccess: async () => {
+    onSuccess: async (res, id) => {
+      queryClient.setQueryData([...quotationsQueryKey, "detail", id], res);
       await invalidate();
       message.success("ยกเลิกใบเสนอราคาสำเร็จ");
     },

@@ -318,6 +318,9 @@ export default function QuotationDetailPage({ id }: Props) {
               <>
                 {canConfirm ? (
                   <>
+                    <p className={styles.actionHint}>
+                      สถานะปัจจุบัน: ส่งแล้ว — รอลูกค้าตอบรับ
+                    </p>
                     <Button
                       className={styles.primaryBtn}
                       type="primary"
@@ -325,7 +328,7 @@ export default function QuotationDetailPage({ id }: Props) {
                       loading={busy}
                       onClick={() => acceptMutation.mutate(data.id)}
                     >
-                      ลูกค้ายืนยัน (Accepted)
+                      บันทึกว่าลูกค้าตอบรับแล้ว
                     </Button>
                     <Button
                       danger
@@ -338,7 +341,7 @@ export default function QuotationDetailPage({ id }: Props) {
                         })
                       }
                     >
-                      ลูกค้าปฏิเสธ
+                      บันทึกว่าลูกค้าปฏิเสธ
                     </Button>
                   </>
                 ) : null}

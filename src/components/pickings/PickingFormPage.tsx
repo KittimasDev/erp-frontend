@@ -21,11 +21,13 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   CloseOutlined,
+  ExportOutlined,
   FilePdfOutlined,
   InboxOutlined,
   InfoCircleOutlined,
   QuestionCircleOutlined,
   SaveOutlined,
+  ShoppingCartOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -414,20 +416,39 @@ export default function PickingFormPage({ id, mode }: Props) {
           <InboxOutlined />
         </div>
         <div className={styles.headerContent}>
-          <Link href="/pickings" className={styles.backLink}>
-            <ArrowLeftOutlined /> กลับรายการ
-          </Link>
+          <div className={styles.backRow}>
+            <Link href="/pickings" className={styles.backLink}>
+              <ArrowLeftOutlined /> กลับรายการใบจ่าย
+            </Link>
+            <Link
+              href={
+                data.salesOrderId
+                  ? `/sales-orders/${data.salesOrderId}`
+                  : "/sales-orders"
+              }
+              className={styles.backLink}
+            >
+              <ShoppingCartOutlined /> กลับใบสั่งขาย
+            </Link>
+          </div>
           <p className={styles.eyebrow}>
             {editable ? "Picking · Edit" : "Picking · Detail"}
           </p>
           <h1 className={styles.pageTitle}>{data.pickingNo}</h1>
           <div className={styles.metaRow}>
-            <span className={styles.metaChip}>
-              SO{" "}
-              <span className={styles.metaChipMuted}>
-                {data.salesOrderNo ?? "—"}
+            {data.salesOrderId ? (
+              <Link
+                href={`/sales-orders/${data.salesOrderId}`}
+                className={styles.docLink}
+              >
+                SO {data.salesOrderNo ?? data.salesOrderId}
+                <ExportOutlined className={styles.docLinkIcon} />
+              </Link>
+            ) : (
+              <span className={styles.metaChip}>
+                SO <span className={styles.metaChipMuted}>—</span>
               </span>
-            </span>
+            )}
             <span className={styles.metaChip}>
               ลูกค้า{" "}
               <span className={styles.metaChipMuted}>
@@ -448,6 +469,19 @@ export default function PickingFormPage({ id, mode }: Props) {
           </div>
         </div>
         <div className={styles.headerActions}>
+          <Button
+            className={styles.secondaryBtn}
+            icon={<ShoppingCartOutlined />}
+            onClick={() =>
+              router.push(
+                data.salesOrderId
+                  ? `/sales-orders/${data.salesOrderId}`
+                  : "/sales-orders",
+              )
+            }
+          >
+            ไปใบสั่งขาย
+          </Button>
           <Button
             className={styles.secondaryBtn}
             icon={<FilePdfOutlined />}

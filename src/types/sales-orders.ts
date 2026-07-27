@@ -13,7 +13,7 @@ export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {
   DRAFT: "ร่าง",
   CONFIRMED: "ยืนยันแล้ว",
   STOCK_CHECKED: "ตรวจสต๊อกแล้ว",
-  PICKING: "กำลังจ่ายสินค้า",
+  PICKING: "จ่ายสินค้าแล้ว",
   PACKED: "บรรจุแล้ว",
   DELIVERED: "ส่งแล้ว",
   PARTIALLY_ISSUED: "จ่ายสินค้าบางส่วน",

@@ -13,11 +13,17 @@
   padding-bottom: 24px;
 }
 
+.backRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
 .backLink {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
   color: var(--pr-muted);
   font-size: 13px;
   font-weight: 600;
@@ -122,6 +128,35 @@
 .metaChipMuted {
   color: var(--pr-muted);
   font-weight: 500;
+}
+
+.docLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(115, 152, 22, 0.12);
+  border: 1px solid #d5e3b8;
+  color: var(--pr-green-dark);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.docLink:hover {
+  background: rgba(115, 152, 22, 0.2);
+  border-color: var(--pr-green);
+  transform: translateY(-1px);
+}
+
+.docLinkIcon {
+  font-size: 11px;
+  opacity: 0.85;
 }
 
 .headerActions {

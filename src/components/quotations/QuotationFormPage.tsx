@@ -73,7 +73,11 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const updateMutation = useUpdateQuotationMutation();
 
   const customersQuery = useCustomersQuery();
-  const itemsQuery = useItemsQuery({ isActive: true });
+  const itemsQuery = useItemsQuery({
+    isActive: true,
+    isSalesItem: true,
+    itemCategoryCode: "FINISHED_GOODS",
+  });
   const unitsQuery = useUnitsQuery({ isActive: true });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
   const taxRatesQuery = useTaxRatesQuery({ isActive: true });

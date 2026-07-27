@@ -67,6 +67,10 @@ export type StockMovementRow = {
   quantityOut: string;
   unitCost: string;
   amount: string;
+  /** รายรับ (บาท) จากราคาใบสั่งขาย — ไม่ใช่ต้นทุนตัดสต๊อก */
+  revenueAmount?: string;
+  /** รายจ่าย (บาท) จากมูลค่าซื้อรับเข้า (GR / รับซื้อยาง) */
+  expenseAmount?: string;
   balanceQuantityAfter: string;
   lotId?: string;
   lotNo?: string;

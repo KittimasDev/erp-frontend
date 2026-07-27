@@ -59,6 +59,15 @@ function formatQtyTotal(value: number) {
   });
 }
 
+function formatMoney(value?: string | number) {
+  const n = Number(value ?? 0);
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function movementTagColor(label: string): string | undefined {
   switch (label) {
     case STOCK_MOVEMENT_TYPE_LABEL.RECEIVE:
@@ -122,9 +131,13 @@ export default function StockMovementsPage() {
     let inQty = 0;
     let outQty = 0;
     let salesCount = 0;
+    let revenue = 0;
+    let expense = 0;
     for (const row of rows) {
       inQty += Number(row.quantityIn) || 0;
       outQty += Number(row.quantityOut) || 0;
+      revenue += Number(row.revenueAmount) || 0;
+      expense += Number(row.expenseAmount) || 0;
       if (
         resolveStockMovementTypeLabel(row) ===
         STOCK_MOVEMENT_TYPE_LABEL.SALES_OUT
@@ -132,7 +145,7 @@ export default function StockMovementsPage() {
         salesCount += 1;
       }
     }
-    return { inQty, outQty, salesCount, total: rows.length };
+    return { inQty, outQty, salesCount, revenue, expense, total: rows.length };
   }, [rows]);
 
   const columns: ColumnsType<StockMovementRow> = [
@@ -206,6 +219,27 @@ export default function StockMovementsPage() {
         const n = Number(v);
         if (!n) return <span className={styles.qtyMuted}>—</span>;
         return <span className={styles.qtyOut}>−{formatQty(v)}</span>;
+      },
+    },
+    {
+      title: "มูลค่า (บาท)",
+      key: "money",
+      align: "right",
+      width: 130,
+      render: (_, row) => {
+        const revenue = Number(row.revenueAmount) || 0;
+        const expense = Number(row.expenseAmount) || 0;
+        if (revenue > 0) {
+          return (
+            <span className={styles.moneyIn}>+{formatMoney(revenue)}</span>
+          );
+        }
+        if (expense > 0) {
+          return (
+            <span className={styles.moneyOut}>−{formatMoney(expense)}</span>
+          );
+        }
+        return <span className={styles.qtyMuted}>—</span>;
       },
     },
     {
@@ -300,6 +334,14 @@ export default function StockMovementsPage() {
           <span>ยอดออก (ในผลลัพธ์)</span>
           <strong>−{formatQtyTotal(summary.outQty)}</strong>
         </div>
+        <div className={`${styles.summaryCard} ${styles.summaryIn}`}>
+          <span>รายรับ (ในผลลัพธ์)</span>
+          <strong>+{formatMoney(summary.revenue)}</strong>
+        </div>
+        <div className={`${styles.summaryCard} ${styles.summaryOut}`}>
+          <span>รายจ่าย (ในผลลัพธ์)</span>
+          <strong>−{formatMoney(summary.expense)}</strong>
+        </div>
         <div className={`${styles.summaryCard} ${styles.summarySales}`}>
           <span>รายการขายออก</span>
           <strong>{summary.salesCount}</strong>
@@ -388,7 +430,8 @@ export default function StockMovementsPage() {
           <div className={styles.toolbarLeft}>
             <p className={styles.toolbarTitle}>รายการเคลื่อนไหว</p>
             <p className={styles.toolbarHint}>
-              สีเขียว = เข้าคลัง · สีแดง = ออกคลัง · สีฟ้า = ขายออกจากใบจ่าย
+              สีเขียว = เข้าคลัง / รายรับ · สีแดง = ออกคลัง / รายจ่าย · สีฟ้า =
+              ขายออกจากใบจ่าย (มูลค่าจากราคาใบสั่งขาย)
             </p>
           </div>
         </div>
@@ -403,7 +446,7 @@ export default function StockMovementsPage() {
             showTotal: (t) => `ทั้งหมด ${t} รายการ`,
             showSizeChanger: false,
           }}
-          scroll={{ x: 1400 }}
+          scroll={{ x: 1530 }}
           locale={{ emptyText: "ยังไม่มีการเคลื่อนไหวตามเงื่อนไข" }}
         />
       </section>

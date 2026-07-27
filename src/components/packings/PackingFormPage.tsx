@@ -10,6 +10,7 @@ import {
   DatePicker,
   Input,
   InputNumber,
+  Space,
   Spin,
   Table,
   Tag,
@@ -157,13 +158,23 @@ export default function PackingFormPage({ id, mode }: Props) {
           return `${Number(item.packedQty).toLocaleString("th-TH")} ${item.unitCode ?? ""}`;
         }
         return (
-          <InputNumber
-            min={0.001}
-            value={row.packedQty}
-            style={{ width: "100%" }}
-            addonAfter={item.unitCode}
-            onChange={(v) => updateRow(item.id, { packedQty: Number(v) || 0 })}
-          />
+          <Space.Compact style={{ width: "100%" }}>
+            <InputNumber
+              min={0.001}
+              value={row.packedQty}
+              style={{ width: "100%" }}
+              onChange={(v) =>
+                updateRow(item.id, { packedQty: Number(v) || 0 })
+              }
+            />
+            {item.unitCode ? (
+              <Input
+                style={{ width: 72 }}
+                value={item.unitCode}
+                disabled
+              />
+            ) : null}
+          </Space.Compact>
         );
       },
     },
@@ -206,9 +217,21 @@ export default function PackingFormPage({ id, mode }: Props) {
           <InboxOutlined />
         </div>
         <div className={styles.headerContent}>
-          <Link href="/packings" className={styles.backLink}>
-            <ArrowLeftOutlined /> กลับรายการ
-          </Link>
+          <div className={styles.backRow}>
+            <Link href="/packings" className={styles.backLink}>
+              <ArrowLeftOutlined /> กลับรายการใบบรรจุ
+            </Link>
+            <Link
+              href={
+                data.salesOrderId
+                  ? `/sales-orders/${data.salesOrderId}`
+                  : "/sales-orders"
+              }
+              className={styles.backLink}
+            >
+              <ShoppingCartOutlined /> กลับใบสั่งขาย
+            </Link>
+          </div>
           <p className={styles.eyebrow}>
             {editable ? "Packing · Edit" : "Packing · Detail"}
           </p>
@@ -257,6 +280,19 @@ export default function PackingFormPage({ id, mode }: Props) {
           </div>
         </div>
         <div className={styles.headerActions}>
+          <Button
+            className={styles.secondaryBtn}
+            icon={<ShoppingCartOutlined />}
+            onClick={() =>
+              router.push(
+                data.salesOrderId
+                  ? `/sales-orders/${data.salesOrderId}`
+                  : "/sales-orders",
+              )
+            }
+          >
+            ไปใบสั่งขาย
+          </Button>
           <Button
             className={styles.secondaryBtn}
             icon={<FilePdfOutlined />}
@@ -350,6 +386,23 @@ export default function PackingFormPage({ id, mode }: Props) {
           type="success"
           showIcon
           title="ยืนยันแล้ว — ใบสั่งขายเปลี่ยนสถานะเป็น PACKED พร้อมสร้างใบส่งสินค้า"
+          action={
+            <Button
+              size="small"
+              type="primary"
+              className={styles.primaryBtn}
+              icon={<ShoppingCartOutlined />}
+              onClick={() =>
+                router.push(
+                  data.salesOrderId
+                    ? `/sales-orders/${data.salesOrderId}`
+                    : "/sales-orders",
+                )
+              }
+            >
+              ไปใบสั่งขาย
+            </Button>
+          }
         />
       ) : null}
 

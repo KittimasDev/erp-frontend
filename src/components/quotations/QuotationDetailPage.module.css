@@ -360,6 +360,13 @@
   gap: 8px;
 }
 
+.actionHint {
+  margin: 0 0 4px;
+  color: var(--pr-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .primaryBtn {
   height: 42px !important;
   border-radius: 10px !important;

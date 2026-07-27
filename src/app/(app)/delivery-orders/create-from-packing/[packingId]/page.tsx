@@ -20,9 +20,18 @@ export default function Page({
     (async () => {
       try {
         const res = await createMutation.mutateAsync({ packingId });
-        if (!cancelled) router.replace(`/delivery-orders/${res.data.id}/edit`);
+        if (cancelled) return;
+        const delivery = res.data;
+        const editable =
+          delivery.status === "DRAFT" || delivery.status === "CONFIRMED";
+        const target = editable
+          ? `/delivery-orders/${delivery.id}/edit`
+          : `/delivery-orders/${delivery.id}`;
+        router.replace(target);
       } catch {
-        if (!cancelled) router.replace("/delivery-orders/create-from-packing");
+        if (!cancelled) {
+          router.replace(`/packings/${packingId}`);
+        }
       }
     })();
     return () => {
@@ -33,7 +42,7 @@ export default function Page({
 
   return (
     <div style={{ padding: 48, textAlign: "center" }}>
-      <Spin tip="กำลังสร้างใบส่งสินค้า..." />
+      <Spin description="กำลังเปิดใบส่งสินค้า..." />
     </div>
   );
 }
