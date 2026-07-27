@@ -29,10 +29,7 @@ import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateProductionOutputStockRequestMutation } from "@/hooks/production-output/useProductionOutputMutations";
-import {
-  useAvailableMaterialIssuesQuery,
-  useProductionOutputStockRequestsQuery,
-} from "@/hooks/production-output/useProductionOutputQueries";
+import { useProductionOutputStockRequestsQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
@@ -299,36 +296,8 @@ export default function ProductionOutputStockRequestCreatePage({
     { enabled: Boolean(warehouseId) },
   );
   const createMutation = useCreateProductionOutputStockRequestMutation();
-  const [selectedMaterialIssueIds, setSelectedMaterialIssueIds] = useState<
-    string[]
-  >([]);
-  const [materialIssueSearch, setMaterialIssueSearch] = useState("");
-  const availableMaterialIssuesQuery = useAvailableMaterialIssuesQuery(
-    undefined,
-    { enabled: canRequest && !formLocked },
-  );
 
-  const availableMaterialIssues =
-    availableMaterialIssuesQuery.data?.data ?? [];
-  const filteredMaterialIssues = useMemo(() => {
-    const q = materialIssueSearch.trim().toLowerCase();
-    if (!q) {
-      return availableMaterialIssues;
-    }
-    return availableMaterialIssues.filter((issue) => {
-      if (issue.issueNo.toLowerCase().includes(q)) {
-        return true;
-      }
-      return (issue.items ?? []).some(
-        (line) =>
-          (line.itemCode ?? "").toLowerCase().includes(q) ||
-          (line.itemNameTh ?? "").toLowerCase().includes(q),
-      );
-    });
-  }, [availableMaterialIssues, materialIssueSearch]);
-
-  const items = itemsQuery.data?.data ?? [];
-  const units = unitsQuery.data?.data ?? [];
+  const items = itemsQuery.data?.data ?? [];  const units = unitsQuery.data?.data ?? [];
   const warehouses = warehousesQuery.data?.data ?? [];
   const locations = locationsQuery.data?.data ?? [];
 
@@ -469,10 +438,6 @@ export default function ProductionOutputStockRequestCreatePage({
         postingDate: values.postingDate.format("YYYY-MM-DD"),
         lotNo: line.lotNo?.trim() || undefined,
         remark: values.remark?.trim() || undefined,
-        materialIssueIds:
-          selectedMaterialIssueIds.length > 0
-            ? selectedMaterialIssueIds
-            : undefined,
         ...(batchTickets.length === 0 && !ticketId
           ? {
               referenceDocNo: values.referenceDocNo?.trim() || undefined,
@@ -1009,70 +974,6 @@ export default function ProductionOutputStockRequestCreatePage({
                       </Form.Item>
                     </Col>
                   </Row>
-                </div>
-
-                <div className={styles.sectionBlock}>
-                  <div className={masterStyles.sectionTitle}>
-                    <span className={masterStyles.sectionLine} />
-                    <div>
-                      <strong>4. วัตถุดิบที่ใช้ผลิต (optional)</strong>
-                      <span>
-                        แท็กใบเบิกวัตถุดิบ POSTED เพื่อ trace — ไม่ตัดสต๊อกซ้ำ
-                      </span>
-                    </div>
-                  </div>
-                  <Input.Search
-                    allowClear
-                    size="large"
-                    value={materialIssueSearch}
-                    onChange={(e) => setMaterialIssueSearch(e.target.value)}
-                    placeholder="ค้นหาเลขที่เบิก / รหัสสินค้า / ชื่อสินค้า"
-                    style={{ marginBottom: 12, maxWidth: 420 }}
-                    disabled={formLocked}
-                  />
-                  <Table
-                    size="small"
-                    rowKey="id"
-                    loading={availableMaterialIssuesQuery.isFetching}
-                    pagination={false}
-                    dataSource={filteredMaterialIssues}
-                    locale={{
-                      emptyText: materialIssueSearch.trim()
-                        ? "ไม่พบตามคำค้น"
-                        : "ไม่มีใบเบิก POSTED ให้เลือก",
-                    }}
-                    rowSelection={{
-                      selectedRowKeys: selectedMaterialIssueIds,
-                      preserveSelectedRowKeys: true,
-                      onChange: (keys) =>
-                        setSelectedMaterialIssueIds(keys as string[]),
-                      getCheckboxProps: () => ({ disabled: formLocked }),
-                    }}
-                    columns={[
-                      {
-                        title: "เลขที่เบิก",
-                        dataIndex: "issueNo",
-                        key: "issueNo",
-                      },
-                      {
-                        title: "วันที่",
-                        dataIndex: "issueDate",
-                        key: "issueDate",
-                        render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
-                      },
-                      {
-                        title: "รายการ",
-                        key: "items",
-                        render: (_, row) =>
-                          (row.items ?? [])
-                            .map(
-                              (line) =>
-                                `${line.itemCode ?? ""} ${formatQty(line.quantity)}`,
-                            )
-                            .join(", ") || "—",
-                      },
-                    ]}
-                  />
                 </div>
               </div>
 

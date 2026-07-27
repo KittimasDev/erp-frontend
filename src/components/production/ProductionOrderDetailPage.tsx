@@ -36,7 +36,6 @@ import {
   useStartProductionOrderMutation,
 } from "@/hooks/production-orders/useProductionOrderMutations";
 import {
-  useAvailableMaterialIssuesQuery,
   useProductionOutputReadyOrdersQuery,
   useProductionOutputStockRequestsQuery,
 } from "@/hooks/production-output/useProductionOutputQueries";
@@ -111,17 +110,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const [logNote, setLogNote] = useState("");
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestForm] = Form.useForm();
-  const [selectedMaterialIssueIds, setSelectedMaterialIssueIds] = useState<
-    string[]
-  >([]);
 
   const readyOrdersQuery = useProductionOutputReadyOrdersQuery(
     { all: true },
     { enabled: requestOpen },
-  );
-  const availableMaterialIssuesQuery = useAvailableMaterialIssuesQuery(
-    { productionOrderId: orderId },
-    { enabled: requestOpen && Boolean(orderId) },
   );
   const blockedItemIds = useMemo(
     () =>
@@ -162,10 +154,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
       warehouseId: values.warehouseId,
       warehouseLocationId: values.warehouseLocationId,
       remark: values.remark || undefined,
-      materialIssueIds:
-        selectedMaterialIssueIds.length > 0
-          ? selectedMaterialIssueIds
-          : undefined,
     };
     createFromOrderMutation.mutate(
       { productionOrderId: orderId, body },
@@ -173,7 +161,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
         onSuccess: () => {
           setRequestOpen(false);
           requestForm.resetFields();
-          setSelectedMaterialIssueIds([]);
           void relatedRequestsQuery.refetch();
         },
       },
@@ -543,14 +530,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       row.status === "APPROVED" ? row.lotNo || "-" : "-",
                   },
                   {
-                    title: "วัตถุดิบที่แท็ก",
-                    key: "linkedMi",
-                    render: (_, row) =>
-                      (row.linkedMaterialIssues ?? [])
-                        .map((mi) => mi.issueNo)
-                        .join(", ") || "-",
-                  },
-                  {
                     title: "สถานะ",
                     dataIndex: "status",
                     key: "status",
@@ -586,9 +565,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
         <Modal
           title="ยืนยันเสร็จสิ้นการผลิต"
           open={completeOpen}
-          onCancel={() => setCompleteOpen(false)}
+          onCancel={() => {
+            setCompleteOpen(false);
+            setSignatureName("");
+          }}
           okText="ยืนยัน"
-          okButtonProps={{ disabled: !signatureName.trim() }}
+          okButtonProps={{
+            disabled: signatureName.trim().toLowerCase() !== "done",
+          }}
           confirmLoading={completeMutation.isPending}
           onOk={() =>
             completeMutation.mutate(
@@ -602,11 +586,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             )
           }
         >
-          <p>พิมพ์ชื่อ-นามสกุลเต็มของผู้ยืนยัน ต้องตรงกับผู้ใช้งานที่ login อยู่</p>
+          <p>
+            พิมพ์ <strong>done</strong> เพื่อยืนยันเสร็จสิ้นการผลิต
+          </p>
           <Input
             value={signatureName}
             onChange={(e) => setSignatureName(e.target.value)}
-            placeholder="ชื่อ-นามสกุล"
+            placeholder="done"
+            autoFocus
           />
         </Modal>
 
@@ -673,10 +660,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
         <Modal
           title="ขอรับผลผลิตเข้าคลัง"
           open={requestOpen}
-          onCancel={() => {
-            setRequestOpen(false);
-            setSelectedMaterialIssueIds([]);
-          }}
+          onCancel={() => setRequestOpen(false)}
           okText="ส่งคำขอ"
           confirmLoading={createFromOrderMutation.isPending}
           onOk={handleSubmitOutputRequest}
@@ -767,44 +751,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   value: loc.id,
                   label: `${loc.locationCode} — ${loc.locationName}`,
                 }))}
-              />
-            </Form.Item>
-            <Form.Item
-              label="วัตถุดิบที่ใช้ผลิต (optional)"
-              extra="เลือกใบเบิก POSTED ที่ผูกใบสั่งผลิตนี้ — ใช้เพื่อ trace ไม่ตัดสต๊อกซ้ำ"
-            >
-              <Table
-                size="small"
-                rowKey="id"
-                loading={availableMaterialIssuesQuery.isFetching}
-                pagination={false}
-                dataSource={availableMaterialIssuesQuery.data?.data ?? []}
-                locale={{ emptyText: "ไม่มีใบเบิก POSTED ของใบสั่งผลิตนี้" }}
-                rowSelection={{
-                  selectedRowKeys: selectedMaterialIssueIds,
-                  onChange: (keys) =>
-                    setSelectedMaterialIssueIds(keys as string[]),
-                }}
-                columns={[
-                  { title: "เลขที่เบิก", dataIndex: "issueNo", key: "issueNo" },
-                  {
-                    title: "วันที่",
-                    dataIndex: "issueDate",
-                    key: "issueDate",
-                    render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
-                  },
-                  {
-                    title: "รายการ",
-                    key: "items",
-                    render: (_, row) =>
-                      (row.items ?? [])
-                        .map(
-                          (line) =>
-                            `${line.itemCode ?? ""} ${fmt(line.quantity)}`,
-                        )
-                        .join(", ") || "-",
-                  },
-                ]}
               />
             </Form.Item>
             <Form.Item name="remark" label="หมายเหตุ">

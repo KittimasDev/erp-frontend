@@ -295,34 +295,6 @@ export default function ProductionOutputApprovalDetailPage({
                     <span className={styles.fieldValue}>-</span>
                   )}
                 </div>
-
-                <div className={styles.cardHeader}>
-                  <h3>วัตถุดิบที่ใช้ผลิต</h3>
-                  <p>ใบเบิกวัตถุดิบที่แท็กกับคำขอนี้ (trace only)</p>
-                </div>
-                <div className={styles.cardBody}>
-                  {(request.linkedMaterialIssues ?? []).length > 0 ? (
-                    <div className={styles.ticketList}>
-                      {(request.linkedMaterialIssues ?? []).map((issue) => (
-                        <button
-                          key={issue.id}
-                          type="button"
-                          className={styles.ticketChip}
-                          style={{ cursor: "pointer" }}
-                          onClick={() =>
-                            router.push(`/inventory/material-issues/${issue.id}`)
-                          }
-                        >
-                          {issue.issueNo}
-                          {" · "}
-                          {formatDate(issue.issueDate)}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className={styles.fieldValue}>-</span>
-                  )}
-                </div>
               </div>
 
               <aside className={styles.sideCard}>
