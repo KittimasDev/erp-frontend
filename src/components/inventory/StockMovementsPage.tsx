@@ -21,6 +21,7 @@ import dayjs, { type Dayjs } from "dayjs";
 
 import { useStockMovementsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
+import { formatErpDate, formatErpTime } from "@/lib/datetime/erp-timezone";
 import type {
   StockMovementQueryParams,
   StockMovementRow,
@@ -154,13 +155,15 @@ export default function StockMovementsPage() {
       dataIndex: "movementDate",
       key: "movementDate",
       width: 150,
-      render: (v: string) => {
-        if (!v) return "—";
-        const d = dayjs(v);
+      render: (_v: string, row) => {
+        // วันจาก movementDate / เวลาจริงจาก createdAt (movementDate เก่ามักเป็น 00:00 UTC)
+        const dateText = formatErpDate(row.movementDate);
+        const timeText = formatErpTime(row.createdAt ?? row.movementDate);
+        if (dateText === "—" && timeText === "—") return "—";
         return (
           <div className={styles.dateCell}>
-            <span className={styles.dateMain}>{d.format("DD/MM/YYYY")}</span>
-            <span className={styles.dateSub}>{d.format("HH:mm")}</span>
+            <span className={styles.dateMain}>{dateText}</span>
+            <span className={styles.dateSub}>{timeText}</span>
           </div>
         );
       },
