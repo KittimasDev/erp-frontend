@@ -302,10 +302,30 @@ export default function ProductionOutputStockRequestCreatePage({
   const [selectedMaterialIssueIds, setSelectedMaterialIssueIds] = useState<
     string[]
   >([]);
+  const [materialIssueSearch, setMaterialIssueSearch] = useState("");
   const availableMaterialIssuesQuery = useAvailableMaterialIssuesQuery(
     undefined,
     { enabled: canRequest && !formLocked },
   );
+
+  const availableMaterialIssues =
+    availableMaterialIssuesQuery.data?.data ?? [];
+  const filteredMaterialIssues = useMemo(() => {
+    const q = materialIssueSearch.trim().toLowerCase();
+    if (!q) {
+      return availableMaterialIssues;
+    }
+    return availableMaterialIssues.filter((issue) => {
+      if (issue.issueNo.toLowerCase().includes(q)) {
+        return true;
+      }
+      return (issue.items ?? []).some(
+        (line) =>
+          (line.itemCode ?? "").toLowerCase().includes(q) ||
+          (line.itemNameTh ?? "").toLowerCase().includes(q),
+      );
+    });
+  }, [availableMaterialIssues, materialIssueSearch]);
 
   const items = itemsQuery.data?.data ?? [];
   const units = unitsQuery.data?.data ?? [];
@@ -1001,15 +1021,29 @@ export default function ProductionOutputStockRequestCreatePage({
                       </span>
                     </div>
                   </div>
+                  <Input.Search
+                    allowClear
+                    size="large"
+                    value={materialIssueSearch}
+                    onChange={(e) => setMaterialIssueSearch(e.target.value)}
+                    placeholder="ค้นหาเลขที่เบิก / รหัสสินค้า / ชื่อสินค้า"
+                    style={{ marginBottom: 12, maxWidth: 420 }}
+                    disabled={formLocked}
+                  />
                   <Table
                     size="small"
                     rowKey="id"
                     loading={availableMaterialIssuesQuery.isFetching}
                     pagination={false}
-                    dataSource={availableMaterialIssuesQuery.data?.data ?? []}
-                    locale={{ emptyText: "ไม่มีใบเบิก POSTED ให้เลือก" }}
+                    dataSource={filteredMaterialIssues}
+                    locale={{
+                      emptyText: materialIssueSearch.trim()
+                        ? "ไม่พบตามคำค้น"
+                        : "ไม่มีใบเบิก POSTED ให้เลือก",
+                    }}
                     rowSelection={{
                       selectedRowKeys: selectedMaterialIssueIds,
+                      preserveSelectedRowKeys: true,
                       onChange: (keys) =>
                         setSelectedMaterialIssueIds(keys as string[]),
                       getCheckboxProps: () => ({ disabled: formLocked }),
