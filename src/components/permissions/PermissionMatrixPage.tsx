@@ -47,14 +47,14 @@ const FUNCTION_ORDER = [
 /** ลำดับและชื่อแสดงกลุ่มโมดูลใน Permission Matrix */
 const MODULE_SECTIONS: Array<{ code: string; label: string }> = [
   { code: "DASHBOARD", label: "แดชบอร์ด" },
-  { code: "SALES", label: "ขาย" },
-  { code: "PROCUREMENT", label: "จัดซื้อ" },
   { code: "RAW_TIRE", label: "รับซื้อยาง" },
-  { code: "WAREHOUSE", label: "คลัง · อนุมัติงานคลัง" },
   { code: "INVENTORY", label: "คลัง · สต๊อก" },
   { code: "PRODUCTION", label: "ผลิต" },
-  { code: "OIL_TANK_FARM", label: "ถังน้ำมัน" },
+  { code: "WAREHOUSE", label: "คลัง · อนุมัติ / FG / Picking" },
+  { code: "PROCUREMENT", label: "จัดซื้อ · จ่ายเงิน" },
+  { code: "SALES", label: "ขาย" },
   { code: "LABORATORY", label: "ห้องแล็บ" },
+  { code: "OIL_TANK_FARM", label: "ถังน้ำมัน" },
   { code: "MAINTENANCE", label: "ซ่อมบำรุง" },
   { code: "HRM", label: "บุคคล" },
   { code: "REPORTS", label: "รายงาน" },

@@ -246,6 +246,28 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                       {item.itemCode ?? "—"} · ราคา{" "}
                       {formatMoney(item.unitPrice)}
                     </p>
+                    <div className={styles.itemMeta}>
+                      <span>
+                        คลังปลายทาง:{" "}
+                        {item.expectedWarehouseCode || item.expectedWarehouseName
+                          ? `${item.expectedWarehouseCode ?? ""}${
+                              item.expectedWarehouseCode &&
+                              item.expectedWarehouseName
+                                ? " — "
+                                : ""
+                            }${item.expectedWarehouseName ?? ""}`
+                          : "ระบุตอนรับของ"}
+                      </span>
+                      {item.expectedLocationCode || item.expectedLocationName ? (
+                        <span>
+                          ตำแหน่ง: {item.expectedLocationCode ?? ""}
+                          {item.expectedLocationCode && item.expectedLocationName
+                            ? " — "
+                            : ""}
+                          {item.expectedLocationName ?? ""}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <div className={styles.itemQty}>
                     <strong>{formatMoney(item.amount)}</strong>
@@ -412,15 +434,37 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             <div className={styles.flowNote}>
               <strong>ใบรับของที่อ้างอิง PO นี้</strong>
               <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
-                {linkedGrs.map((gr) => (
-                  <li key={gr.id}>
-                    <Link href={`/goods-receipts/${gr.id}`}>
-                      {gr.grNo}
-                    </Link>{" "}
-                    · {GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status} ·{" "}
-                    {formatDate(gr.grDate)}
-                  </li>
-                ))}
+                {linkedGrs.map((gr) => {
+                  const warehouses = Array.from(
+                    new Map(
+                      (gr.items ?? [])
+                        .filter((line) => line.warehouse)
+                        .map((line) => [
+                          line.warehouseId,
+                          `${line.warehouse?.warehouseCode ?? ""} — ${
+                            line.warehouse?.warehouseName ?? ""
+                          }`.trim(),
+                        ]),
+                    ).values(),
+                  );
+                  return (
+                    <li key={gr.id}>
+                      <Link href={`/goods-receipts/${gr.id}`}>
+                        {gr.grNo}
+                      </Link>{" "}
+                      · {GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status} ·{" "}
+                      {formatDate(gr.grDate)}
+                      {warehouses.length > 0 ? (
+                        <>
+                          <br />
+                          <span style={{ color: "#5c6570", fontSize: 12 }}>
+                            คลังที่รับเข้า: {warehouses.join(", ")}
+                          </span>
+                        </>
+                      ) : null}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ) : null}

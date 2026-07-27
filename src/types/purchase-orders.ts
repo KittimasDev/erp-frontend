@@ -58,7 +58,11 @@ export type PurchaseOrderItem = {
   discountAmount: string;
   amount: string;
   expectedWarehouseId?: string;
+  expectedWarehouseCode?: string;
+  expectedWarehouseName?: string;
   expectedLocationId?: string;
+  expectedLocationCode?: string;
+  expectedLocationName?: string;
   sortOrder: number;
 };
 
