@@ -16,6 +16,7 @@ import type {
 } from "@/types/goods-receipts";
 import { goodsReceiptsQueryKey } from "./useGoodsReceiptsQuery";
 import { purchaseOrdersQueryKey } from "../purchase-orders/usePurchaseOrdersQuery";
+import { purchasePaymentsQueryKey } from "../purchase-payments/usePurchasePaymentsQuery";
 
 export function useCreateGoodsReceiptFromPoMutation() {
   const queryClient = useQueryClient();
@@ -75,6 +76,7 @@ export function useConfirmGoodsReceiptMutation() {
       message.success(res.message || "Confirm ใบรับของสำเร็จ");
       void queryClient.invalidateQueries({ queryKey: goodsReceiptsQueryKey });
       void queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
+      void queryClient.invalidateQueries({ queryKey: purchasePaymentsQueryKey });
     },
     onError: (err: Error) => {
       message.error(err.message || "Confirm ใบรับของไม่สำเร็จ");

@@ -6,7 +6,9 @@ import { App, Button, Spin } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
+  DollarOutlined,
   EditOutlined,
+  HistoryOutlined,
   InboxOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -66,14 +68,26 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
     userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
     userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
     isAdministrator();
+  const canReceive = canWrite;
+  const canPay =
+    userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
 
   const poId = data?.purchaseOrderId ?? data?.purchaseOrder?.id;
   const poQuery = usePurchaseOrderQuery(poId);
   const po = poQuery.data?.data;
   const grByPoQuery = useGoodsReceiptsByPoQuery(poId);
   const linkedGrs = grByPoQuery.data?.data ?? [];
-  const paymentByPoQuery = usePurchasePaymentByPoQuery(poId);
+  const paymentByPoQuery = usePurchasePaymentByPoQuery(
+    po &&
+      (po.status === "COMPLETED" ||
+        po.status === "PARTIALLY_RECEIVED" ||
+        po.paymentStatus === "PAID")
+      ? poId
+      : undefined,
+  );
   const linkedPayment = paymentByPoQuery.data?.data ?? null;
+  const isPaid =
+    po?.paymentStatus === "PAID" || linkedPayment?.status === "PAID";
 
   if (query.isLoading) {
     return (
@@ -276,6 +290,95 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   ยกเลิกเอกสาร
                 </Button>
               </>
+            ) : null}
+
+            {data.status === "CONFIRMED" &&
+            canReceive &&
+            po?.status === "PARTIALLY_RECEIVED" &&
+            poId ? (
+              <Button
+                className={styles.primaryBtn}
+                type="primary"
+                icon={<InboxOutlined />}
+                onClick={() =>
+                  router.push(`/goods-receipts/create-from-po/${poId}`)
+                }
+              >
+                รับของต่อ
+              </Button>
+            ) : null}
+
+            {data.status === "CONFIRMED" &&
+            po?.status === "COMPLETED" &&
+            isPaid &&
+            linkedPayment ? (
+              <Button
+                className={styles.secondaryBtn}
+                icon={<HistoryOutlined />}
+                onClick={() =>
+                  router.push(`/purchase-payments/${linkedPayment.id}`)
+                }
+              >
+                ดูประวัติการจ่ายเงิน
+              </Button>
+            ) : null}
+
+            {data.status === "CONFIRMED" &&
+            canPay &&
+            po?.status === "COMPLETED" &&
+            !isPaid &&
+            !linkedPayment &&
+            poId ? (
+              <Button
+                className={styles.primaryBtn}
+                type="primary"
+                icon={<DollarOutlined />}
+                onClick={() =>
+                  router.push(`/purchase-payments/create-from-po/${poId}`)
+                }
+              >
+                จ่ายเงิน
+              </Button>
+            ) : null}
+
+            {data.status === "CONFIRMED" &&
+            canPay &&
+            po?.status === "COMPLETED" &&
+            !isPaid &&
+            linkedPayment?.status === "DRAFT" ? (
+              <Button
+                className={styles.primaryBtn}
+                type="primary"
+                icon={<DollarOutlined />}
+                onClick={() =>
+                  router.push(`/purchase-payments/${linkedPayment.id}`)
+                }
+              >
+                ดูใบสำคัญจ่าย (DRAFT)
+              </Button>
+            ) : null}
+
+            {data.status === "CONFIRMED" &&
+            po?.status === "COMPLETED" &&
+            !isPaid &&
+            !canPay &&
+            poId ? (
+              <Button
+                className={styles.primaryBtn}
+                type="primary"
+                icon={<DollarOutlined />}
+                onClick={() =>
+                  router.push(
+                    linkedPayment
+                      ? `/purchase-payments/${linkedPayment.id}`
+                      : `/purchase-orders/${poId}`,
+                  )
+                }
+              >
+                {linkedPayment
+                  ? "ดูใบสำคัญจ่าย"
+                  : "ไปใบสั่งซื้อ · ขั้นจ่ายเงิน"}
+              </Button>
             ) : null}
           </div>
 
