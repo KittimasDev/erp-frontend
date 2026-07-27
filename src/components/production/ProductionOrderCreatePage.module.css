@@ -1,0 +1,246 @@
+:root {
+  --po-green: var(--erp-green, #8ab933);
+  --po-green-dark: var(--erp-green-dark, #6f9720);
+  --po-text: var(--erp-text, #2f343a);
+  --po-muted: var(--erp-muted, #8a9199);
+  --po-border: #e8eaed;
+  --po-soft: #f2f6e8;
+}
+
+.page {
+  display: grid;
+  gap: 18px;
+  padding-bottom: 8px;
+}
+
+/* ─── Header ─── */
+
+.pageHeader {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  padding: 18px 22px;
+  border: 1px solid var(--po-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
+}
+
+.pageHeader::after {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  right: -60px;
+  bottom: -100px;
+  border-radius: 50%;
+  background: var(--po-green);
+  opacity: 0.12;
+}
+
+.headerAccent {
+  position: relative;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    #8ca527 0%,
+    var(--po-green) 58%,
+    var(--po-green-dark) 100%
+  );
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
+  font-size: 20px;
+}
+
+.headerContent {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--po-green-dark);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--po-text);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pageSubtitle {
+  margin: 6px 0 0;
+  color: var(--po-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: var(--po-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.backLink:hover {
+  color: var(--po-green-dark);
+}
+
+/* ─── Form Card ─── */
+
+.formCard {
+  padding: 22px;
+  border: 1px solid var(--po-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(47, 52, 58, 0.04);
+}
+
+.sectionTitle {
+  margin: 0 0 16px;
+  color: var(--po-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.fieldLabel {
+  color: var(--po-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ─── Input Items (raw materials) ─── */
+
+.materialsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.materialsList {
+  display: grid;
+  gap: 14px;
+}
+
+.materialCard {
+  position: relative;
+  padding: 16px;
+  border: 1px solid var(--po-border);
+  border-radius: 14px;
+  background: #fafbfc;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.materialCard:hover {
+  border-color: #cdd5bb;
+  box-shadow: 0 4px 12px rgba(115, 152, 22, 0.1);
+}
+
+.materialCardNo {
+  position: absolute;
+  top: -10px;
+  left: 14px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--po-green);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.materialGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.materialQtyRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 14px;
+  align-items: end;
+  margin-top: 14px;
+}
+
+.removeBtn {
+  height: 32px !important;
+  border-radius: 8px !important;
+}
+
+/* ─── Footer Actions ─── */
+
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px solid var(--po-border);
+  margin-top: 22px;
+}
+
+.primaryBtn {
+  height: 42px !important;
+  border-radius: 10px !important;
+  border: 0 !important;
+  background: var(--po-green-dark) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
+}
+
+.secondaryBtn {
+  height: 42px !important;
+  border-radius: 10px !important;
+}
+
+@media (max-width: 900px) {
+  .fieldGrid,
+  .materialGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .materialQtyRow {
+    grid-template-columns: 1fr;
+  }
+}

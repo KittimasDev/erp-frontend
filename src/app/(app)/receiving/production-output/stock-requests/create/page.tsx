@@ -14,12 +14,15 @@ function CreatePageWithParams() {
   const fromBatch =
     searchParams.get("fromBatch") === "1" ||
     searchParams.get("fromQueue") === "1";
+  const productionOrderId =
+    searchParams.get("productionOrderId") ?? undefined;
 
   return (
     <ProductionOutputStockRequestCreatePage
       ticketId={ticketId}
       ticketNo={ticketNo}
       fromBatch={fromBatch}
+      productionOrderId={productionOrderId}
     />
   );
 }

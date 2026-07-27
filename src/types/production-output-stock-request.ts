@@ -9,6 +9,7 @@ export type ProductionOutputRequestStatusValue =
   (typeof ProductionOutputRequestStatus)[keyof typeof ProductionOutputRequestStatus];
 
 export const REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET = "WEIGHBRIDGE_TICKET";
+export const REFERENCE_DOC_TYPE_PRODUCTION_ORDER = "PRODUCTION_ORDER";
 
 export const PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL: Record<string, string> = {
   PENDING_APPROVAL: "รออนุมัติ",

@@ -118,6 +118,52 @@
   line-height: 1.45;
 }
 
+.refOrderCard {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(115, 152, 22, 0.28);
+  background: rgba(115, 152, 22, 0.06);
+}
+
+.refOrderHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.refOrderNo {
+  color: var(--unit-green-dark, #6f9720);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.refOrderMeta {
+  margin-top: 4px;
+  color: var(--unit-muted, #8a9199);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.refOrderStats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  color: var(--unit-muted, #8a9199);
+  font-size: 12px;
+}
+
+.refOrderStats strong {
+  color: var(--unit-text, #2f343a);
+}
+
+.refOrderBlocked {
+  color: #b45309;
+  font-weight: 600;
+}
+
 .sourceWeightChips {
   display: flex;
   flex-wrap: wrap;

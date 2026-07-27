@@ -38,9 +38,13 @@ export function useStockMovementsQuery(params?: StockMovementQueryParams) {
   });
 }
 
-export function useInventoryLotsQuery(params?: InventoryLotQueryParams) {
+export function useInventoryLotsQuery(
+  params?: InventoryLotQueryParams,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: [...inventoryQueryKey, "lots", params ?? {}],
     queryFn: () => getInventoryLots(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }

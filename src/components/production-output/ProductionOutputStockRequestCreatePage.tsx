@@ -29,7 +29,10 @@ import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateProductionOutputStockRequestMutation } from "@/hooks/production-output/useProductionOutputMutations";
-import { useProductionOutputStockRequestsQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import {
+  useProductionOutputReadyOrdersQuery,
+  useProductionOutputStockRequestsQuery,
+} from "@/hooks/production-output/useProductionOutputQueries";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
@@ -46,9 +49,11 @@ import type {
 } from "@/types/production-output-stock-request";
 import {
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
+  REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
   REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET,
   resolveProductionOutputTicketLock,
 } from "@/types/production-output-stock-request";
+import { PRODUCTION_ORDER_STATUS_LABEL } from "@/types/production-order";
 import {
   clearProductionOutputTicketBatch,
   peekProductionOutputTicketBatch,
@@ -70,6 +75,7 @@ type FormValues = {
   warehouseId: string;
   warehouseLocationId: string;
   postingDate: dayjs.Dayjs;
+  productionOrderId?: string;
   referenceDocNo?: string;
   remark?: string;
   lines: LineValues[];
@@ -80,6 +86,8 @@ type Props = {
   ticketNo?: string;
   /** เปิดจาก pending แบบรวบหลายตั๋วในคำขอเดียว */
   fromBatch?: boolean;
+  /** เปิดพร้อมอ้างอิงใบสั่งผลิต (จากหน้า production-orders) */
+  productionOrderId?: string;
 };
 
 type SourceTicketSummary = {
@@ -158,12 +166,14 @@ export default function ProductionOutputStockRequestCreatePage({
   ticketId,
   ticketNo,
   fromBatch = false,
+  productionOrderId: initialProductionOrderId,
 }: Props) {
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const warehouseId = Form.useWatch("warehouseId", form);
   const warehouseLocationId = Form.useWatch("warehouseLocationId", form);
   const postingDate = Form.useWatch("postingDate", form);
+  const selectedProductionOrderId = Form.useWatch("productionOrderId", form);
   const lines = Form.useWatch("lines", form) ?? [];
 
   const canRequest =
@@ -297,7 +307,20 @@ export default function ProductionOutputStockRequestCreatePage({
   );
   const createMutation = useCreateProductionOutputStockRequestMutation();
 
-  const items = itemsQuery.data?.data ?? [];  const units = unitsQuery.data?.data ?? [];
+  const showProductionOrderRef = batchTickets.length === 0 && !ticketId;
+  const readyOrdersQuery = useProductionOutputReadyOrdersQuery(
+    { all: true },
+    { enabled: showProductionOrderRef },
+  );
+  const readyOrders = readyOrdersQuery.data?.data ?? [];
+  const selectedProductionOrder = useMemo(
+    () => readyOrders.find((row) => row.id === selectedProductionOrderId),
+    [readyOrders, selectedProductionOrderId],
+  );
+  const blockedItemIds = selectedProductionOrder?.blockedItemIds ?? [];
+
+  const items = itemsQuery.data?.data ?? [];
+  const units = unitsQuery.data?.data ?? [];
   const warehouses = warehousesQuery.data?.data ?? [];
   const locations = locationsQuery.data?.data ?? [];
 
@@ -325,12 +348,13 @@ export default function ProductionOutputStockRequestCreatePage({
     form.setFieldsValue({
       postingDate: dayjs(),
       lines: [{ ...EMPTY_LINE }],
+      productionOrderId: initialProductionOrderId,
       referenceDocNo:
         batchTickets.length === 1
           ? batchTickets[0].ticketNo
           : undefined,
     });
-  }, [form, batchTickets]);
+  }, [form, batchTickets, initialProductionOrderId]);
 
   useEffect(() => {
     form.setFieldValue("warehouseLocationId", undefined);
@@ -341,8 +365,24 @@ export default function ProductionOutputStockRequestCreatePage({
       items.map((item) => ({
         value: item.id,
         label: `${item.itemCode} — ${item.itemNameTh}`,
+        disabled: blockedItemIds.includes(item.id),
       })),
-    [items],
+    [items, blockedItemIds],
+  );
+
+  const productionOrderOptions = useMemo(
+    () =>
+      readyOrders.map((order) => ({
+        value: order.id,
+        label: [
+          order.orderNo,
+          order.batchNo ? `Batch ${order.batchNo}` : null,
+          dayjs(order.productionDate).format("DD/MM/YYYY"),
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      })),
+    [readyOrders],
   );
 
   const unitOptions = useMemo(
@@ -428,6 +468,27 @@ export default function ProductionOutputStockRequestCreatePage({
       return;
     }
 
+    if (selectedProductionOrder && blockedItemIds.length > 0) {
+      const duplicateItems = filledLines.filter((line) =>
+        blockedItemIds.includes(line.itemId as string),
+      );
+      if (duplicateItems.length > 0) {
+        form.setFields(
+          duplicateItems.map((line) => ({
+            name: [
+              "lines",
+              values.lines.findIndex((row) => row.itemId === line.itemId),
+              "itemId",
+            ],
+            errors: [
+              "สินค้านี้มีคำขอรออนุมัติหรืออนุมัติแล้วสำหรับใบสั่งผลิตนี้",
+            ],
+          })),
+        );
+        return;
+      }
+    }
+
     const itemsBody: CreateProductionOutputStockRequestBody[] =
       filledLines.map((line) => ({
         itemId: line.itemId as string,
@@ -438,7 +499,9 @@ export default function ProductionOutputStockRequestCreatePage({
         postingDate: values.postingDate.format("YYYY-MM-DD"),
         lotNo: line.lotNo?.trim() || undefined,
         remark: values.remark?.trim() || undefined,
-        ...(batchTickets.length === 0 && !ticketId
+        ...(batchTickets.length === 0 &&
+        !ticketId &&
+        !values.productionOrderId
           ? {
               referenceDocNo: values.referenceDocNo?.trim() || undefined,
             }
@@ -461,7 +524,15 @@ export default function ProductionOutputStockRequestCreatePage({
                   values.referenceDocNo?.trim() || ticketNo || undefined,
               },
             ]
-          : undefined;
+          : values.productionOrderId
+            ? [
+                {
+                  referenceDocType: REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
+                  referenceDocId: values.productionOrderId,
+                  referenceDocNo: selectedProductionOrder?.orderNo,
+                },
+              ]
+            : undefined;
 
     const payload: CreateProductionOutputStockRequestBatchBody = {
       items: itemsBody,
@@ -907,7 +978,9 @@ export default function ProductionOutputStockRequestCreatePage({
                       <span>
                         {isMultiTicket
                           ? `ตั๋วชั่ง ${batchTickets.length} ใบ — ใช้ร่วมทุกรายการผลผลิต (จำนวนด้านบนเป็นยอดรวม)`
-                          : "ใส่เพิ่มได้ถ้ามี — ใช้ร่วมทุกรายการ"}
+                          : showProductionOrderRef
+                            ? "เลือกใบสั่งผลิตที่เสร็จสิ้นแล้ว หรือใส่เลขที่เอกสารอื่น (ถ้ามี)"
+                            : "ใส่เพิ่มได้ถ้ามี — ใช้ร่วมทุกรายการ"}
                       </span>
                     </div>
                   </div>
@@ -951,6 +1024,111 @@ export default function ProductionOutputStockRequestCreatePage({
                         </Typography.Text>
                       ) : null}
                     </div>
+                  ) : showProductionOrderRef ? (
+                    <>
+                      <Row gutter={14}>
+                        <Col xs={24} md={12}>
+                          <Form.Item
+                            name="productionOrderId"
+                            label="ใบสั่งผลิต"
+                            extra="เฉพาะใบที่สถานะเสร็จสิ้น (COMPLETED)"
+                          >
+                            <Select
+                              size="large"
+                              allowClear
+                              showSearch
+                              optionFilterProp="label"
+                              placeholder="เลือกใบสั่งผลิต"
+                              loading={readyOrdersQuery.isLoading}
+                              options={productionOrderOptions}
+                              onChange={(value) => {
+                                if (value) {
+                                  form.setFieldValue("referenceDocNo", undefined);
+                                }
+                              }}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12}>
+                          <Form.Item
+                            name="referenceDocNo"
+                            label="เลขที่เอกสารอ้างอิง (อื่น)"
+                            extra={
+                              selectedProductionOrderId
+                                ? "ล้างใบสั่งผลิตก่อน ถ้าต้องการใส่เลขที่เอง"
+                                : "ใช้เมื่อไม่ได้เลือกใบสั่งผลิต"
+                            }
+                          >
+                            <Input
+                              size="large"
+                              placeholder="ถ้ามี"
+                              disabled={Boolean(selectedProductionOrderId)}
+                            />
+                          </Form.Item>
+                        </Col>
+                      </Row>
+
+                      {selectedProductionOrder ? (
+                        <div className={styles.refOrderCard}>
+                          <div className={styles.refOrderHead}>
+                            <div>
+                              <Link
+                                href={`/production/production-orders/${selectedProductionOrder.id}`}
+                                className={styles.refOrderNo}
+                              >
+                                {selectedProductionOrder.orderNo}
+                              </Link>
+                              <div className={styles.refOrderMeta}>
+                                {[
+                                  selectedProductionOrder.batchNo
+                                    ? `Batch ${selectedProductionOrder.batchNo}`
+                                    : null,
+                                  `ผลิต ${dayjs(selectedProductionOrder.productionDate).format("DD/MM/YYYY")}`,
+                                  selectedProductionOrder.completedAt
+                                    ? `เสร็จ ${dayjs(selectedProductionOrder.completedAt).format("DD/MM/YYYY HH:mm")}`
+                                    : null,
+                                  PRODUCTION_ORDER_STATUS_LABEL[
+                                    selectedProductionOrder.status
+                                  ] ?? selectedProductionOrder.status,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </div>
+                            </div>
+                            <div className={styles.refOrderStats}>
+                              <span>
+                                คำขอที่เคยสร้าง{" "}
+                                <strong>
+                                  {selectedProductionOrder.totalRequestCount}
+                                </strong>
+                              </span>
+                              {blockedItemIds.length > 0 ? (
+                                <span className={styles.refOrderBlocked}>
+                                  มี {blockedItemIds.length} สินค้าที่ขอซ้ำไม่ได้
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      ) : readyOrdersQuery.isSuccess &&
+                        readyOrders.length === 0 ? (
+                        <Alert
+                          type="info"
+                          showIcon
+                          title="ยังไม่มีใบสั่งผลิตที่เสร็จสิ้น"
+                          description={
+                            <>
+                              สร้างและปิดใบสั่งผลิตที่{" "}
+                              <Link href="/production/production-orders">
+                                /production/production-orders
+                              </Link>{" "}
+                              ก่อน หรือใส่เลขที่เอกสารอ้างอิงด้านบน
+                            </>
+                          }
+                          style={{ marginBottom: 16 }}
+                        />
+                      ) : null}
+                    </>
                   ) : (
                     <Row gutter={14}>
                       <Col xs={24} md={12}>
@@ -1055,7 +1233,9 @@ export default function ProductionOutputStockRequestCreatePage({
                 <strong>
                   {batchTickets.length > 0
                     ? `${batchTickets.length} ตั๋ว`
-                    : "—"}
+                    : selectedProductionOrder
+                      ? selectedProductionOrder.orderNo
+                      : "—"}
                 </strong>
               </div>
               <div className={styles.summaryRow}>
