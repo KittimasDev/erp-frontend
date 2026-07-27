@@ -275,6 +275,35 @@
   margin-top: 4px;
 }
 
+.previewSubList {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--unit-text, #2f343a);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.previewSubList li + li {
+  margin-top: 4px;
+}
+
+.previewSubQty {
+  color: var(--unit-gray, #5c6570);
+  font-weight: 600;
+}
+
+.previewStatus {
+  color: var(--unit-muted, #8a9199);
+  font-size: 12px;
+}
+
+.previewLoading {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+}
+
 .footerBar {
   display: flex;
   align-items: center;

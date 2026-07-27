@@ -22,6 +22,10 @@ function buildItemsQuery(params?: ItemQueryParams) {
     search.set("name", params.name.trim());
   }
 
+  if (params.description?.trim()) {
+    search.set("description", params.description.trim());
+  }
+
   if (params.itemCategoryId) {
     search.set("itemCategoryId", params.itemCategoryId);
   }

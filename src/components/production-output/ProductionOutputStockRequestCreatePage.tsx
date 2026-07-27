@@ -33,6 +33,10 @@ import {
   useProductionOutputReadyOrdersQuery,
   useProductionOutputStockRequestsQuery,
 } from "@/hooks/production-output/useProductionOutputQueries";
+import {
+  useProductionOrderQuery,
+  useProductionOrderSummaryQuery,
+} from "@/hooks/production-orders/useProductionOrderQueries";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
@@ -318,6 +322,107 @@ export default function ProductionOutputStockRequestCreatePage({
     [readyOrders, selectedProductionOrderId],
   );
   const blockedItemIds = selectedProductionOrder?.blockedItemIds ?? [];
+
+  const productionOrderDetailQuery = useProductionOrderQuery(
+    selectedProductionOrderId ?? undefined,
+  );
+  const productionOrderSummaryQuery = useProductionOrderSummaryQuery(
+    selectedProductionOrderId ?? undefined,
+  );
+  const productionOrderRequestsQuery = useProductionOutputStockRequestsQuery(
+    selectedProductionOrderId
+      ? {
+          referenceDocType: REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
+          referenceDocId: selectedProductionOrderId,
+        }
+      : undefined,
+    { enabled: Boolean(selectedProductionOrderId) },
+  );
+
+  const productionOrderRefLoading =
+    productionOrderDetailQuery.isLoading ||
+    productionOrderSummaryQuery.isLoading ||
+    productionOrderRequestsQuery.isLoading;
+
+  const productionOrderRefError =
+    (productionOrderDetailQuery.isError &&
+      productionOrderDetailQuery.error instanceof Error &&
+      productionOrderDetailQuery.error.message) ||
+    (productionOrderSummaryQuery.isError &&
+      productionOrderSummaryQuery.error instanceof Error &&
+      productionOrderSummaryQuery.error.message) ||
+    (productionOrderRequestsQuery.isError &&
+      productionOrderRequestsQuery.error instanceof Error &&
+      productionOrderRequestsQuery.error.message) ||
+    null;
+
+  const productionOrderRefSummary = useMemo(() => {
+    if (!selectedProductionOrderId) {
+      return null;
+    }
+
+    const summary = productionOrderSummaryQuery.data?.data;
+    const order = productionOrderDetailQuery.data?.data;
+    const requests = productionOrderRequestsQuery.data?.data ?? [];
+    const orderNo =
+      selectedProductionOrder?.orderNo ?? order?.orderNo ?? "—";
+
+    if (!summary && !order && requests.length === 0) {
+      return null;
+    }
+
+    const inputItems = (order?.inputItems ?? [])
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((item) => ({
+        key: item.id,
+        label:
+          item.itemCode && item.itemNameTh
+            ? `${item.itemCode} — ${item.itemNameTh}`
+            : item.itemNameTh || item.itemCode || "—",
+        qty: formatQty(item.actualQty || item.plannedQty),
+        unitCode: item.unitCode,
+      }));
+
+    const outputByItem = (summary?.outputByItem ?? []).map((item) => ({
+      key: item.itemId,
+      label:
+        item.itemCode && item.itemNameTh
+          ? `${item.itemCode} — ${item.itemNameTh}`
+          : item.itemNameTh || item.itemCode || "—",
+      qty: formatQty(item.quantity),
+    }));
+
+    const previousRequests = requests.map((req) => ({
+      key: req.id,
+      requestNo: req.requestNo,
+      itemLabel:
+        req.itemCode && req.itemNameTh
+          ? `${req.itemCode} — ${req.itemNameTh}`
+          : req.itemNameTh || req.itemCode || "—",
+      qty: formatQty(req.quantity),
+      unitCode: req.unitCode,
+      status: req.status,
+      statusLabel:
+        PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[req.status] ?? req.status,
+    }));
+
+    return {
+      orderNo,
+      totalInputQty: summary?.totalInputQty ?? "0",
+      totalOutputQty: summary?.totalOutputQty ?? "0",
+      yieldPercent: summary?.yieldPercent ?? 0,
+      inputItems,
+      outputByItem,
+      previousRequests,
+    };
+  }, [
+    selectedProductionOrderId,
+    selectedProductionOrder?.orderNo,
+    productionOrderSummaryQuery.data?.data,
+    productionOrderDetailQuery.data?.data,
+    productionOrderRequestsQuery.data?.data,
+  ]);
 
   const items = itemsQuery.data?.data ?? [];
   const units = unitsQuery.data?.data ?? [];
@@ -1205,6 +1310,96 @@ export default function ProductionOutputStockRequestCreatePage({
               </div>
             ) : null}
 
+            {selectedProductionOrderId ? (
+              <div className={styles.previewBox}>
+                <div className={styles.previewLabel}>
+                  จากใบสั่งผลิต{" "}
+                  {productionOrderRefSummary?.orderNo ??
+                    selectedProductionOrder?.orderNo ??
+                    "—"}
+                </div>
+                {productionOrderRefLoading ? (
+                  <div className={styles.previewLoading}>
+                    <Spin size="small" />
+                  </div>
+                ) : productionOrderRefError ? (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message={productionOrderRefError}
+                  />
+                ) : productionOrderRefSummary ? (
+                  <>
+                    <p className={styles.previewMeta}>
+                      <strong>วัตถุดิบเข้าจริง</strong>{" "}
+                      {formatQty(productionOrderRefSummary.totalInputQty)}
+                    </p>
+                    {productionOrderRefSummary.inputItems.length > 0 ? (
+                      <ul className={styles.previewSubList}>
+                        {productionOrderRefSummary.inputItems.map((item) => (
+                          <li key={item.key}>
+                            {item.label}{" "}
+                            <span className={styles.previewSubQty}>
+                              {item.qty}
+                              {item.unitCode ? ` ${item.unitCode}` : ""}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <p className={styles.previewMeta}>
+                      <strong>ผลผลิตเข้าคลังแล้ว</strong>{" "}
+                      {formatQty(productionOrderRefSummary.totalOutputQty)}
+                      {" · "}Yield{" "}
+                      {productionOrderRefSummary.yieldPercent.toLocaleString(
+                        "th-TH",
+                        { maximumFractionDigits: 2 },
+                      )}
+                      %
+                    </p>
+                    {productionOrderRefSummary.outputByItem.length > 0 ? (
+                      <ul className={styles.previewSubList}>
+                        {productionOrderRefSummary.outputByItem.map((item) => (
+                          <li key={item.key}>
+                            {item.label}{" "}
+                            <span className={styles.previewSubQty}>
+                              {item.qty}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    <p className={styles.previewMeta}>
+                      <strong>คำขอที่เคยส่ง</strong>{" "}
+                      {productionOrderRefSummary.previousRequests.length} รายการ
+                    </p>
+                    {productionOrderRefSummary.previousRequests.length > 0 ? (
+                      <ul className={styles.previewSubList}>
+                        {productionOrderRefSummary.previousRequests.map(
+                          (req) => (
+                            <li key={req.key}>
+                              {req.requestNo} · {req.itemLabel}{" "}
+                              <span className={styles.previewSubQty}>
+                                {req.qty}
+                                {req.unitCode ? ` ${req.unitCode}` : ""}
+                              </span>{" "}
+                              <span className={styles.previewStatus}>
+                                ({req.statusLabel})
+                              </span>
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    ) : null}
+                  </>
+                ) : (
+                  <p className={styles.previewMeta}>
+                    ไม่พบข้อมูลสรุปจากใบสั่งผลิต
+                  </p>
+                )}
+              </div>
+            ) : null}
+
             <div className={styles.previewBox}>
               <div className={styles.previewLabel}>จะรับเข้า</div>
               {previewLines.length === 0 ? (
@@ -1234,7 +1429,9 @@ export default function ProductionOutputStockRequestCreatePage({
                   {batchTickets.length > 0
                     ? `${batchTickets.length} ตั๋ว`
                     : selectedProductionOrder
-                      ? selectedProductionOrder.orderNo
+                      ? productionOrderRefSummary
+                        ? `${selectedProductionOrder.orderNo} · วัตถุดิบ ${formatQty(productionOrderRefSummary.totalInputQty)}`
+                        : selectedProductionOrder.orderNo
                       : "—"}
                 </strong>
               </div>

@@ -8,6 +8,7 @@ export type Item = {
   id: string;
   itemCode: string;
   itemNameTh: string;
+  description?: string;
   itemCategoryId: string;
   itemCategory?: ItemRelationSummary;
   unitId: string;
@@ -33,6 +34,7 @@ export type Item = {
 export type ItemQueryParams = {
   code?: string;
   name?: string;
+  description?: string;
   itemCategoryId?: string;
   itemCategoryCode?: string;
   unitId?: string;
@@ -45,6 +47,7 @@ export type ItemQueryParams = {
 export type CreateItemRequest = {
   code: string;
   name: string;
+  description?: string;
   itemCategoryId: string;
   unitId: string;
   warehouseGroup?: string;

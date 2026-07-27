@@ -41,6 +41,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 type ItemFilterFormValues = {
   code?: string;
   name?: string;
+  description?: string;
   itemCategoryId?: string;
   unitId?: string;
   isActive?: boolean | null;
@@ -51,6 +52,7 @@ type ItemFilterFormValues = {
 const FILTER_KEYS = [
   "code",
   "name",
+  "description",
   "itemCategoryId",
   "unitId",
   "isActive",
@@ -71,6 +73,11 @@ function parseFiltersFromSearch(
   const name = searchParams.get("name")?.trim();
   if (name) {
     params.name = name;
+  }
+
+  const description = searchParams.get("description")?.trim();
+  if (description) {
+    params.description = description;
   }
 
   const itemCategoryId = searchParams.get("itemCategoryId")?.trim();
@@ -111,6 +118,7 @@ function toFormValues(params: ItemQueryParams): ItemFilterFormValues {
   return {
     code: params.code,
     name: params.name,
+    description: params.description,
     itemCategoryId: params.itemCategoryId,
     unitId: params.unitId,
     isActive: params.isActive,
@@ -128,6 +136,10 @@ function buildSearchFromForm(values: ItemFilterFormValues): URLSearchParams {
 
   if (values.name?.trim()) {
     next.set("name", values.name.trim());
+  }
+
+  if (values.description?.trim()) {
+    next.set("description", values.description.trim());
   }
 
   if (values.itemCategoryId) {
@@ -277,6 +289,15 @@ export default function ItemsPage() {
       ),
     },
     {
+      title: "คำอธิบาย",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
+      render: (value?: string) => (
+        <span className={styles.symbolText}>{value || "-"}</span>
+      ),
+    },
+    {
       title: "หมวดหมู่สินค้า",
       key: "itemCategory",
       width: 160,
@@ -413,7 +434,7 @@ export default function ItemsPage() {
           <div>
             <div className={styles.filterEyebrow}>SEARCH</div>
             <h3>ค้นหาสินค้า</h3>
-            <p>กรองด้วยรหัส ชื่อ หมวดหมู่สินค้า หน่วย และสถานะ</p>
+            <p>กรองด้วยรหัส ชื่อ คำอธิบาย หมวดหมู่สินค้า หน่วย และสถานะ</p>
           </div>
 
           {hasFilters ? (
@@ -444,6 +465,12 @@ export default function ItemsPage() {
             <Col xs={24} sm={12} lg={6}>
               <Form.Item name="name" label="ชื่อสินค้า">
                 <Input allowClear placeholder="เช่น ยาง" />
+              </Form.Item>
+            </Col>
+
+            <Col xs={24} sm={12} lg={6}>
+              <Form.Item name="description" label="คำอธิบาย">
+                <Input allowClear placeholder="เช่น pyrolysis" />
               </Form.Item>
             </Col>
 

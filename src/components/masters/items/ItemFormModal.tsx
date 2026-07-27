@@ -20,6 +20,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 type ItemFormValues = {
   code: string;
   name: string;
+  description?: string;
   itemCategoryId: string;
   unitId: string;
   warehouseGroup?: string;
@@ -80,6 +81,7 @@ export default function ItemFormModal({
       form.setFieldsValue({
         code: initialItem.itemCode,
         name: initialItem.itemNameTh,
+        description: initialItem.description,
         itemCategoryId: initialItem.itemCategoryId,
         unitId: initialItem.unitId,
         warehouseGroup: initialItem.warehouseGroup,
@@ -102,6 +104,7 @@ export default function ItemFormModal({
     form.setFieldsValue({
       code: "",
       name: "",
+      description: "",
       itemCategoryId: undefined,
       unitId: undefined,
       warehouseGroup: undefined,
@@ -126,6 +129,7 @@ export default function ItemFormModal({
     onSubmit({
       code: values.code.trim(),
       name: values.name.trim(),
+      description: values.description?.trim() || undefined,
       itemCategoryId: values.itemCategoryId,
       unitId: values.unitId,
       warehouseGroup: values.warehouseGroup || undefined,
@@ -224,6 +228,14 @@ export default function ItemFormModal({
           <Input
             size="large"
             placeholder="เช่น ยางรถยนต์ใช้แล้ว"
+            autoComplete="off"
+          />
+        </Form.Item>
+
+        <Form.Item label="คำอธิบาย" name="description">
+          <Input.TextArea
+            rows={3}
+            placeholder="เช่น ยางรถยนต์ใช้แล้วสำหรับผลิตน้ำมัน pyrolysis"
             autoComplete="off"
           />
         </Form.Item>
