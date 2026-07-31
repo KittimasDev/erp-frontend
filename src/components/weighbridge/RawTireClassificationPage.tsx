@@ -33,6 +33,7 @@ import {
   DEDUCTION_TYPE_OPTIONS,
   RECEIPT_STATUS_LABELS,
 } from "@/types/raw-tire-classification";
+import { createClientId } from "@/utils/createClientId";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -81,7 +82,7 @@ function formatMoney(value?: string | number) {
 
 function createItemRow(partial?: Partial<ItemRow>): ItemRow {
   return {
-    key: partial?.key ?? crypto.randomUUID(),
+    key: partial?.key ?? createClientId(),
     tireClassificationId: partial?.tireClassificationId ?? "",
     weightKg: partial?.weightKg ?? 0,
     description: partial?.description,
@@ -103,7 +104,7 @@ function createDeductionRow(
       : undefined;
 
   return {
-    key: partial?.key ?? crypto.randomUUID(),
+    key: partial?.key ?? createClientId(),
     deductionType: partial?.deductionType ?? "WATER",
     deductionWeightKg: partial?.deductionWeightKg ?? 0,
     description: partial?.description,
