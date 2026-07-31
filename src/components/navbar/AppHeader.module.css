@@ -423,6 +423,51 @@
   font-size: 12px;
 }
 
+.logoutButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(185, 28, 28, 0.18);
+  border-radius: 12px;
+  background: rgba(185, 28, 28, 0.06);
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.logoutButton:hover {
+  background: rgba(185, 28, 28, 0.12);
+  border-color: rgba(185, 28, 28, 0.28);
+}
+
+.sidebarCollapsed .logoutButton {
+  width: 40px;
+  padding: 0;
+}
+
+.logoutLabel {
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    opacity 0.4s ease,
+    max-width 0.4s ease;
+  max-width: 120px;
+  opacity: 1;
+}
+
+.sidebarCollapsed .logoutLabel {
+  opacity: 0;
+  max-width: 0;
+}
+
 @media (max-width: 640px) {
   .sidebarTop {
     padding-inline: 12px;

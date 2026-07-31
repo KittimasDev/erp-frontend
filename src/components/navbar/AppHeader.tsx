@@ -1,15 +1,30 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { LogoutOutlined } from "@ant-design/icons";
 
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import {
+  getStoredUser,
+  isAdministrator,
+  userHasRole,
+  type StoredUser,
+} from "@/lib/auth/session";
+import { clearAccessToken } from "@/lib/auth/token";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 
 import styles from "./AppHeader.module.css";
 
+function initialsFromUser(user: StoredUser | null) {
+  const source = user?.displayName?.trim() || user?.username?.trim() || "?";
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
+  }
+  return source.slice(0, 2).toUpperCase();
+}
 // เพิ่ม/ลบเมนู (route) ในไฟล์นี้ทุกครั้ง ต้องอัปเดต Permission Matrix seed ด้วย:
 // backend/src/security/permissions/permission-seed-data.ts (SCREEN_SEED_DEFINITIONS)
 
@@ -1279,6 +1294,20 @@ export default function AppHeader({
   const searchParams = useSearchParams();
 
   const [masterOpen, setMasterOpen] = useState(isMasterActive(pathname));
+  const [user, setUser] = useState<StoredUser | null>(null);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+  }, []);
+
+  const avatarLabel = useMemo(() => initialsFromUser(user), [user]);
+  const roleLabel =
+    user?.roles?.[0]?.roleName ?? user?.roles?.[0]?.roleCode ?? "ERP";
+
+  const handleLogout = () => {
+    clearAccessToken();
+    window.location.replace("/login");
+  };
 
   const visibleRawTireMenus = filterMenus(rawTireMenus);
   const visibleRawMaterialWarehouseMenus = filterMenus(
@@ -1569,13 +1598,26 @@ export default function AppHeader({
 
         <div className={styles.sidebarBottom}>
           <div className={styles.sidebarProfile}>
-            <div className={styles.avatar}>PR</div>
+            <div className={styles.avatar} title={user?.displayName || user?.username || ""}>
+              {avatarLabel}
+            </div>
 
             <div className={styles.profileText}>
-              <strong>Purchase</strong>
-              <span>ERP Module</span>
+              <strong>{user?.displayName || user?.username || "ผู้ใช้"}</strong>
+              <span>{roleLabel}</span>
             </div>
           </div>
+
+          <button
+            type="button"
+            className={styles.logoutButton}
+            onClick={handleLogout}
+            title="ออกจากระบบ"
+            aria-label="ออกจากระบบ"
+          >
+            <LogoutOutlined />
+            <span className={styles.logoutLabel}>ออกจากระบบ</span>
+          </button>
         </div>
       </div>
     </aside>

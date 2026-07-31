@@ -20,6 +20,7 @@ export type WeighbridgeDashboardQueryParams = {
 
 export function useWeighbridgeDashboardQuery(
   params?: WeighbridgeDashboardQueryParams | string,
+  options?: { enabled?: boolean },
 ) {
   const normalized: WeighbridgeDashboardQueryParams | undefined =
     typeof params === "string"
@@ -44,5 +45,7 @@ export function useWeighbridgeDashboardQuery(
     ],
     queryFn: () =>
       getWeighbridgeDashboard(getAccessToken(), { from, to, date, all }),
+    enabled: options?.enabled ?? true,
+    retry: false,
   });
 }

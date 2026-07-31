@@ -14,6 +14,7 @@ export const procurementSummaryQueryKey = [
 
 export function useProcurementSummaryQuery(
   params: ProcurementSummaryQueryParams = {},
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: [
@@ -22,5 +23,7 @@ export function useProcurementSummaryQuery(
       params.dateTo ?? "",
     ],
     queryFn: () => getProcurementSummary(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
+    retry: false,
   });
 }
