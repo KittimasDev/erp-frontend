@@ -15,6 +15,8 @@ import type {
   UpdateStockIssueBody,
 } from "@/types/stock-issues";
 import { stockIssuesQueryKey } from "./useStockIssuesQuery";
+import { notificationsQueryKey } from "@/hooks/notifications/useNotificationsQueries";
+import { inventoryQueryKey } from "@/hooks/inventory/useInventoryQueries";
 
 export function useCreateStockIssueMutation() {
   const queryClient = useQueryClient();
@@ -75,6 +77,8 @@ export function useApproveStockIssueMutation() {
     onSuccess: (res) => {
       message.success(res.message || "อนุมัติและตัดสต๊อกสำเร็จ");
       void queryClient.invalidateQueries({ queryKey: stockIssuesQueryKey });
+      void queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
+      void queryClient.invalidateQueries({ queryKey: inventoryQueryKey });
     },
     onError: (err: Error) => {
       message.error(err.message || "อนุมัติใบเบิกของไม่สำเร็จ");

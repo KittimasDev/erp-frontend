@@ -406,3 +406,11 @@
     grid-template-columns: 1fr;
   }
 }
+
+.lowStockRow > td {
+  background: #fff1f0 !important;
+}
+
+.lowStockRow:hover > td {
+  background: #ffe4e1 !important;
+}

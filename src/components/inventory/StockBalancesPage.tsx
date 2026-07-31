@@ -353,6 +353,9 @@ export default function StockBalancesPage() {
               columns={columns}
               dataSource={rows}
               loading={balancesQuery.isFetching}
+              rowClassName={(row) =>
+                row.isLowStock ? styles.lowStockRow : ""
+              }
               pagination={{
                 pageSize: 15,
                 showTotal: (total) => `ทั้งหมด ${total} รายการ`,

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   getInventoryLots,
+  getLowStockItems,
   getStockBalanceSummary,
   getStockBalances,
   getStockMovements,
@@ -11,6 +12,7 @@ import {
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   InventoryLotQueryParams,
+  LowStockQueryParams,
   StockBalanceQueryParams,
   StockMovementQueryParams,
 } from "@/types/inventory";
@@ -46,5 +48,12 @@ export function useInventoryLotsQuery(
     queryKey: [...inventoryQueryKey, "lots", params ?? {}],
     queryFn: () => getInventoryLots(getAccessToken(), params),
     enabled: options?.enabled ?? true,
+  });
+}
+
+export function useLowStockItemsQuery(params?: LowStockQueryParams) {
+  return useQuery({
+    queryKey: [...inventoryQueryKey, "low-stock", params ?? {}],
+    queryFn: () => getLowStockItems(getAccessToken(), params),
   });
 }

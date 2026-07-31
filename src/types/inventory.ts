@@ -20,6 +20,10 @@ export type StockBalanceRow = {
   quantityOnHold: string;
   quantityBlocked: string;
   averageCost: string;
+  /** สต๊อกขั้นต่ำของสินค้า */
+  minimumStockQty?: string;
+  /** ยอดรวมทุกคลังของสินค้าต่ำกว่าขั้นต่ำ */
+  isLowStock?: boolean;
   updatedAt: string;
 };
 
@@ -157,6 +161,26 @@ export type InventoryLotBalanceListApiResponse = {
   statusCode: number;
   message: string;
   data: InventoryLotBalanceRow[];
+};
+
+export type LowStockRow = {
+  itemId: string;
+  itemCode: string;
+  itemNameTh: string;
+  itemCategoryName?: string;
+  minimumStockQty: string;
+  totalQuantityOnHand: string;
+  shortageQty: string;
+};
+
+export type LowStockListApiResponse = {
+  statusCode: number;
+  message: string;
+  data: LowStockRow[];
+};
+
+export type LowStockQueryParams = {
+  warehouseId?: string;
 };
 
 export const STOCK_MOVEMENT_TYPE_LABEL: Record<string, string> = {

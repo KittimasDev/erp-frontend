@@ -14,6 +14,7 @@ import {
 import dayjs from "dayjs";
 
 import { useStockIssuesQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
+import { useLowStockItemsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { StockIssue } from "@/types/stock-issues";
@@ -69,6 +70,7 @@ export default function MaterialIssuesListPage() {
     page: 1,
     limit: 1,
   });
+  const lowStockQuery = useLowStockItemsQuery();
 
   const rows = query.data?.data.items ?? [];
   const total = query.data?.data.total ?? 0;
@@ -76,6 +78,11 @@ export default function MaterialIssuesListPage() {
   const draftTotal = draftQuery.data?.data.total ?? 0;
   const postedTotal = postedQuery.data?.data.total ?? 0;
   const cancelledTotal = cancelledQuery.data?.data.total ?? 0;
+
+  const lowStockItemIds = useMemo(
+    () => new Set((lowStockQuery.data?.data ?? []).map((row) => row.itemId)),
+    [lowStockQuery.data?.data],
+  );
 
   const applySearch = () => {
     setPage(1);
@@ -325,6 +332,11 @@ export default function MaterialIssuesListPage() {
           loading={query.isLoading}
           pagination={false}
           className={styles.table}
+          rowClassName={(row) =>
+            (row.items ?? []).some((item) => lowStockItemIds.has(item.itemId))
+              ? styles.lowStockRow
+              : ""
+          }
           onRow={(row) => ({
             onClick: () => router.push(`/inventory/material-issues/${row.id}`),
           })}

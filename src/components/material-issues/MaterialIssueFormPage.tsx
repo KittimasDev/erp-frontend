@@ -21,8 +21,6 @@ import {
 } from "@/hooks/stock-issues/useStockIssueMutations";
 import { useStockIssueQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
-import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
-import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateStockIssueBody } from "@/types/stock-issues";
 import styles from "./MaterialIssueFormPage.module.css";
 
@@ -57,19 +55,11 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
 
   const itemsQuery = useItemsQuery({ isActive: true });
   const unitsQuery = useUnitsQuery({ isActive: true });
-  const warehousesQuery = useWarehousesQuery({ isActive: true });
-  const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
   const lotsQuery = useInventoryLotsQuery({ hasStock: true });
   const productionOrdersQuery = useProductionOrdersQuery({ limit: 100 });
 
   const items = (itemsQuery.data?.data ?? []).filter((item) => item.isIssueItem);
   const units = unitsQuery.data?.data ?? [];
-  const warehouses = Array.isArray(warehousesQuery.data?.data)
-    ? warehousesQuery.data.data
-    : [];
-  const locations = Array.isArray(locationsQuery.data?.data)
-    ? locationsQuery.data.data
-    : [];
   const lots = lotsQuery.data?.data ?? [];
   const productionOrders = productionOrdersQuery.data?.data.items ?? [];
 
@@ -256,12 +246,44 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                     <div className={styles.lineList}>
                       {fields.map(({ key, name, ...restField }, index) => {
                         const line = watchedItems[index];
-                        const availableLocations = locations.filter(
-                          (loc) => loc.warehouseId === line?.warehouseId,
-                        );
-                        const availableLots = lots.filter(
+                        const lotsForItem = lots.filter(
                           (lot) =>
                             lot.itemId === line?.itemId &&
+                            Number(lot.quantityAvailable) > 0,
+                        );
+                        const warehouseOptions = Array.from(
+                          new Map(
+                            lotsForItem
+                              .filter((lot) => Boolean(lot.warehouseId))
+                              .map((lot) => [
+                                lot.warehouseId,
+                                {
+                                  value: lot.warehouseId,
+                                  label: `${lot.warehouseCode} — ${lot.warehouseName}`,
+                                },
+                              ]),
+                          ).values(),
+                        );
+                        const locationOptions = Array.from(
+                          new Map(
+                            lotsForItem
+                              .filter(
+                                (lot) =>
+                                  Boolean(lot.locationId) &&
+                                  line?.warehouseId &&
+                                  lot.warehouseId === line.warehouseId,
+                              )
+                              .map((lot) => [
+                                lot.locationId,
+                                {
+                                  value: lot.locationId,
+                                  label: `${lot.locationCode} — ${lot.locationName}`,
+                                },
+                              ]),
+                          ).values(),
+                        );
+                        const availableLots = lotsForItem.filter(
+                          (lot) =>
                             lot.warehouseId === line?.warehouseId &&
                             lot.locationId === line?.locationId,
                         );
@@ -315,6 +337,14 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                                         selected.unitId,
                                       );
                                     }
+                                    form.setFieldValue(
+                                      ["items", name, "warehouseId"],
+                                      undefined,
+                                    );
+                                    form.setFieldValue(
+                                      ["items", name, "locationId"],
+                                      undefined,
+                                    );
                                     form.setFieldValue(
                                       ["items", name, "lotId"],
                                       undefined,
@@ -384,10 +414,16 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                                 <Select
                                   showSearch
                                   optionFilterProp="label"
-                                  options={warehouses.map((w) => ({
-                                    value: w.id,
-                                    label: `${w.warehouseCode} — ${w.warehouseName}`,
-                                  }))}
+                                  loading={lotsQuery.isLoading}
+                                  disabled={!line?.itemId}
+                                  placeholder={
+                                    !line?.itemId
+                                      ? "เลือกสินค้าเพื่อดูคลัง"
+                                      : warehouseOptions.length === 0
+                                        ? "ไม่มีคลังที่มีสต๊อก"
+                                        : "เลือกคลังที่มีสต๊อก"
+                                  }
+                                  options={warehouseOptions}
                                   onChange={() => {
                                     form.setFieldValue(
                                       ["items", name, "locationId"],
@@ -411,11 +447,16 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                                 <Select
                                   showSearch
                                   optionFilterProp="label"
-                                  disabled={!line?.warehouseId}
-                                  options={availableLocations.map((loc) => ({
-                                    value: loc.id,
-                                    label: `${loc.locationCode} — ${loc.locationName}`,
-                                  }))}
+                                  disabled={!line?.itemId || !line?.warehouseId}
+                                  loading={lotsQuery.isLoading}
+                                  placeholder={
+                                    !line?.warehouseId
+                                      ? "เลือกคลังก่อน"
+                                      : locationOptions.length === 0
+                                        ? "ไม่มีตำแหน่งที่มีสต๊อก"
+                                        : "เลือกตำแหน่งที่มีสต๊อก"
+                                  }
+                                  options={locationOptions}
                                   onChange={() => {
                                     form.setFieldValue(
                                       ["items", name, "lotId"],

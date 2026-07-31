@@ -504,7 +504,7 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
   {
     key: "rm-stock-balances",
     label: "ยอดคงเหลือวัตถุดิบ",
-    href: "/inventory/stock-balances?itemCategoryCode=RAW_MATERIAL",
+    href: "/inventory/stock-balances",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -517,7 +517,7 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
   {
     key: "rm-lots",
     label: "Lot วัตถุดิบ",
-    href: "/inventory/lots?itemCategoryCode=RAW_MATERIAL",
+    href: "/inventory/lots",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -556,7 +556,7 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
   {
     key: "rm-stock-movements",
     label: "ความเคลื่อนไหววัตถุดิบ",
-    href: "/inventory/stock-movements?itemCategoryCode=RAW_MATERIAL",
+    href: "/inventory/stock-movements",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,

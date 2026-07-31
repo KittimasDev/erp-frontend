@@ -90,6 +90,71 @@
   box-shadow: 0 0 0 2px var(--erp-bg, #f5f7fa);
 }
 
+.notifPanel {
+  width: min(380px, 86vw);
+  max-height: 420px;
+  display: grid;
+  gap: 8px;
+}
+
+.notifHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px 4px;
+  border-bottom: 1px solid #eef0f2;
+}
+
+.notifList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.notifItem {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  border: 1px solid #eef0f2;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.notifItem:hover {
+  border-color: rgba(239, 68, 68, 0.35);
+  background: #fffafa;
+}
+
+.notifItemUnread {
+  background: #fff1f0;
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.notifItemTitle {
+  color: #2f343a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.notifItemMessage {
+  color: #5c6570;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.notifItemMeta {
+  color: #8a9199;
+  font-size: 11px;
+}
+
 @media (max-width: 900px) {
   .topHeaderInner {
     padding: 14px 18px 6px;

@@ -2,6 +2,8 @@ import { apiFetch } from "./client";
 import type {
   InventoryLotBalanceListApiResponse,
   InventoryLotQueryParams,
+  LowStockListApiResponse,
+  LowStockQueryParams,
   StockBalanceListApiResponse,
   StockBalanceQueryParams,
   StockBalanceSummaryApiResponse,
@@ -68,6 +70,16 @@ export function getInventoryLots(
 ) {
   return apiFetch<InventoryLotBalanceListApiResponse>(
     `/api/inventory/lots${toQuery(params)}`,
+    { method: "GET", token },
+  );
+}
+
+export function getLowStockItems(
+  token: string,
+  params?: LowStockQueryParams,
+) {
+  return apiFetch<LowStockListApiResponse>(
+    `/api/inventory/stock-balances/low-stock${toQuery(params)}`,
     { method: "GET", token },
   );
 }

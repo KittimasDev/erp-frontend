@@ -1,7 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { App, Button, Empty, Popover, Typography } from "antd";
+import dayjs from "dayjs";
+
+import {
+  useMarkAllNotificationsReadMutation,
+  useMarkNotificationReadMutation,
+  useNotificationsQuery,
+  useNotificationsUnreadCountQuery,
+} from "@/hooks/notifications/useNotificationsQueries";
+import { isAdministrator } from "@/lib/auth/session";
+import type { AppNotification } from "@/types/notifications";
 
 import styles from "./AppTopHeader.module.css";
 
@@ -264,13 +275,111 @@ const IconBell = () => (
 export default function AppTopHeader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { notification } = App.useApp();
   const itemCategoryCode = searchParams.get("itemCategoryCode");
+  const isAdmin = isAdministrator();
+  const [open, setOpen] = useState(false);
+  const toastedIdsRef = useRef<Set<string>>(new Set());
+  const primedRef = useRef(false);
 
   const title = useMemo(
     () => resolvePageTitle(pathname, itemCategoryCode),
     [pathname, itemCategoryCode],
   );
   const todayLabel = useMemo(() => formatThaiDate(new Date()), []);
+
+  const listQuery = useNotificationsQuery({ enabled: isAdmin });
+  const unreadQuery = useNotificationsUnreadCountQuery({ enabled: isAdmin });
+  const markReadMutation = useMarkNotificationReadMutation();
+  const markAllMutation = useMarkAllNotificationsReadMutation();
+
+  const notifications = listQuery.data?.data ?? [];
+  const unreadCount = unreadQuery.data?.data.count ?? 0;
+
+  useEffect(() => {
+    if (!isAdmin) {
+      return;
+    }
+    const unread = notifications.filter((row) => !row.read);
+    if (!primedRef.current) {
+      unread.forEach((row) => toastedIdsRef.current.add(row.id));
+      primedRef.current = true;
+      return;
+    }
+    for (const row of unread) {
+      if (toastedIdsRef.current.has(row.id)) {
+        continue;
+      }
+      toastedIdsRef.current.add(row.id);
+      notification.warning({
+        title: row.title,
+        description: row.message,
+        placement: "bottomRight",
+        duration: 6,
+        onClick: () => {
+          void handleOpenNotification(row);
+        },
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleOpenNotification uses latest mutations
+  }, [isAdmin, notifications, notification]);
+
+  async function handleOpenNotification(row: AppNotification) {
+    setOpen(false);
+    if (!row.read) {
+      try {
+        await markReadMutation.mutateAsync(row.id);
+      } catch {
+        // navigation still useful even if mark-read fails
+      }
+    }
+    router.push(row.href || "/inventory/stock-balances");
+  }
+
+  const panel = (
+    <div className={styles.notifPanel}>
+      <div className={styles.notifHeader}>
+        <Typography.Text strong>การแจ้งเตือน</Typography.Text>
+        {unreadCount > 0 ? (
+          <Button
+            type="link"
+            size="small"
+            loading={markAllMutation.isPending}
+            onClick={() => markAllMutation.mutate()}
+          >
+            อ่านทั้งหมด
+          </Button>
+        ) : null}
+      </div>
+      {notifications.length === 0 ? (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="ยังไม่มีการแจ้งเตือน"
+        />
+      ) : (
+        <ul className={styles.notifList}>
+          {notifications.map((row) => (
+            <li key={row.id}>
+              <button
+                type="button"
+                className={`${styles.notifItem} ${
+                  row.read ? "" : styles.notifItemUnread
+                }`}
+                onClick={() => void handleOpenNotification(row)}
+              >
+                <span className={styles.notifItemTitle}>{row.title}</span>
+                <span className={styles.notifItemMessage}>{row.message}</span>
+                <span className={styles.notifItemMeta}>
+                  {dayjs(row.createdAt).format("DD/MM/YYYY HH:mm")}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 
   return (
     <header className={styles.topHeader}>
@@ -285,14 +394,39 @@ export default function AppTopHeader() {
             <span>{todayLabel}</span>
           </div>
 
-          <button
-            type="button"
-            className={styles.bellButton}
-            aria-label="การแจ้งเตือน"
-          >
-            <IconBell />
-            <span className={styles.bellBadge}>3</span>
-          </button>
+          {isAdmin ? (
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              open={open}
+              onOpenChange={setOpen}
+              content={panel}
+              arrow={false}
+            >
+              <button
+                type="button"
+                className={styles.bellButton}
+                aria-label="การแจ้งเตือน"
+              >
+                <IconBell />
+                {unreadCount > 0 ? (
+                  <span className={styles.bellBadge}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
+              </button>
+            </Popover>
+          ) : (
+            <button
+              type="button"
+              className={styles.bellButton}
+              aria-label="การแจ้งเตือน"
+              disabled
+              title="การแจ้งเตือนสต๊อกต่ำสำหรับผู้ดูแลระบบ"
+            >
+              <IconBell />
+            </button>
+          )}
         </div>
       </div>
     </header>

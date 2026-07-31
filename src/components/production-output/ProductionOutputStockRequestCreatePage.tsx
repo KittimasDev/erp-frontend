@@ -301,7 +301,6 @@ export default function ProductionOutputStockRequestCreatePage({
   const itemsQuery = useItemsQuery({
     isActive: true,
     isStockItem: true,
-    itemCategoryCode: "FINISHED_GOODS",
   });
   const unitsQuery = useUnitsQuery({ isActive: true });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
@@ -677,8 +676,9 @@ export default function ProductionOutputStockRequestCreatePage({
               ขอรับผลผลิตเข้าคลัง
             </Typography.Title>
             <Typography.Text className={masterStyles.pageSubtitle}>
-              รับเฉพาะสินค้าสำเร็จรูป (FINISHED_GOODS) เช่น น้ำมัน Pyrolysis,
-              rCB, เศษลวดเหล็ก — เริ่มจากใบสั่งผลิต ไม่ใช่ตั๋วชั่งรับซื้อยาง
+              เลือกสินค้าจาก master ที่เป็นสินค้าคลัง (is stock item) —
+              เช่น ผลผลิตหรือวัสดุอื่นที่ต้องการรับเข้า — เริ่มจากใบสั่งผลิต
+              ไม่ใช่ตั๋วชั่งรับซื้อยาง
             </Typography.Text>
           </div>
           <Button
@@ -886,8 +886,8 @@ export default function ProductionOutputStockRequestCreatePage({
                     <div>
                       <strong>1. รายการผลผลิตที่รับเข้าคลัง</strong>
                       <span>
-                        รับเฉพาะ FINISHED_GOODS เช่น น้ำมัน Pyrolysis, rCB,
-                        เศษลวดเหล็ก — เพิ่มได้หลายรายการ
+                        เลือกสินค้าจาก master ที่ใช้งานและเป็นสินค้าคลัง —
+                        เพิ่มได้หลายรายการ
                       </span>
                     </div>
                   </div>
@@ -932,7 +932,7 @@ export default function ProductionOutputStockRequestCreatePage({
                               <Form.Item
                                 className={styles.formGridFull}
                                 name={[field.name, "itemId"]}
-                                label="สินค้าสำเร็จรูป"
+                                label="สินค้า"
                                 rules={[
                                   { required: true, message: "เลือกสินค้า" },
                                 ]}
@@ -941,7 +941,7 @@ export default function ProductionOutputStockRequestCreatePage({
                                   size="large"
                                   showSearch
                                   optionFilterProp="label"
-                                  placeholder="ค้นหารหัสหรือชื่อสินค้าสำเร็จรูป"
+                                  placeholder="ค้นหารหัสหรือชื่อสินค้า"
                                   options={itemOptions}
                                   loading={itemsQuery.isFetching}
                                   onChange={(value) =>
@@ -950,7 +950,7 @@ export default function ProductionOutputStockRequestCreatePage({
                                   notFoundContent={
                                     itemsQuery.isFetching
                                       ? "กำลังโหลด..."
-                                      : "ไม่พบสินค้าสำเร็จรูป (FINISHED_GOODS) ที่ใช้งาน"
+                                      : "ไม่พบสินค้าคลังที่ใช้งาน"
                                   }
                                 />
                               </Form.Item>
