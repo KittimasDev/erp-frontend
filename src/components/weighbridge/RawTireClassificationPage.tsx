@@ -776,20 +776,53 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                   <h3>รายการคัดแยกประเภทสินค้า</h3>
                   <p>
                     รวมน้ำหนักคัดแยกควรเท่ากับน้ำหนักสุทธิ{" "}
-                    {formatWeight(netWeightTarget)} กก.
+                    {formatWeight(netWeightTarget)} กก. · ต้องมีประเภทสินค้า +
+                    กฎราคาใน master จึงเลือกในรายการได้
                   </p>
                 </div>
-                {canEdit ? (
-                  <Button
-                    icon={<PlusOutlined />}
-                    onClick={() =>
-                      setItems((prev) => [...prev, createItemRow()])
-                    }
-                  >
-                    เพิ่มรายการ
-                  </Button>
-                ) : null}
+                <div className={styles.listHeaderActions}>
+                  <div className={styles.masterLinksGroup}>
+                    <span className={styles.masterLinksLabel}>Master</span>
+                    <div className={styles.masterLinksButtons}>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          router.push("/masters/tire-classifications")
+                        }
+                      >
+                        ประเภทสินค้า
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          router.push("/masters/raw-tire-price-rules")
+                        }
+                      >
+                        กฎราคา
+                      </Button>
+                    </div>
+                  </div>
+                  {canEdit ? (
+                    <Button
+                      icon={<PlusOutlined />}
+                      onClick={() =>
+                        setItems((prev) => [...prev, createItemRow()])
+                      }
+                    >
+                      เพิ่มรายการ
+                    </Button>
+                  ) : null}
+                </div>
               </div>
+
+              {classificationOptions.length === 0 ? (
+                <div className={styles.cardBody}>
+                  <Typography.Text type="warning">
+                    ยังไม่มีประเภทสินค้าในระบบ — ไปสร้างที่ master
+                    ประเภทสินค้า และตั้งกฎราคาให้ครบก่อนคัดแยก
+                  </Typography.Text>
+                </div>
+              ) : null}
 
               <div className={styles.weightGuide}>
                 <div className={styles.weightGuideItem}>

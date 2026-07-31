@@ -385,9 +385,58 @@ export default function RawTirePurchaseReceiptDetailPage({
               <div className={styles.listHeader}>
                 <div>
                   <h3>รายการประเภทสินค้า</h3>
-                  <p>รายการคัดแยกจากใบรับซื้อ</p>
+                  <p>
+                    ต้องมีประเภทสินค้า + กฎราคาครบ แล้วคัดแยกจากตั๋ว
+                    จึงจะมีรายการที่นี่
+                  </p>
+                </div>
+                <div className={styles.listHeaderActions}>
+                  <div className={styles.masterLinksGroup}>
+                    <span className={styles.masterLinksLabel}>Master</span>
+                    <div className={styles.masterLinksButtons}>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          router.push("/masters/tire-classifications")
+                        }
+                      >
+                        ประเภทสินค้า
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() =>
+                          router.push("/masters/raw-tire-price-rules")
+                        }
+                      >
+                        กฎราคา
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
+              {receipt.items.length === 0 && receipt.canEditClassification ? (
+                <div className={styles.cardBody}>
+                  <Typography.Text type="secondary">
+                    ยังไม่มีรายการคัดแยก — สร้างประเภท/กฎราคาที่ master
+                    แล้วกลับไปแก้ไขคัดแยกจากตั๋ว
+                  </Typography.Text>
+                  {receipt.weighbridgeTicketId ? (
+                    <div className={styles.classificationActions}>
+                      <Button
+                        type="primary"
+                        disabled={isBusy}
+                        onClick={() =>
+                          router.push(
+                            `/receiving/${receipt.weighbridgeTicketId}/classification`,
+                          )
+                        }
+                      >
+                        ไปคัดแยกประเภทสินค้า
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
               <Table
                 rowKey="id"
                 columns={itemColumns}
@@ -395,6 +444,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                 pagination={false}
                 size="middle"
                 scroll={{ x: 900 }}
+                locale={{ emptyText: "ไม่มีรายการประเภทสินค้า" }}
               />
             </div>
 

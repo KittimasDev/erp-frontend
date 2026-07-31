@@ -457,6 +457,45 @@
   align-items: center;
 }
 
+.masterLinksGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(115, 152, 22, 0.28);
+  background: rgba(115, 152, 22, 0.06);
+}
+
+.masterLinksLabel {
+  flex: none;
+  color: #6f9720;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.masterLinksButtons {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.masterLinksButtons :global(.ant-btn) {
+  border-color: rgba(115, 152, 22, 0.35) !important;
+  color: #5c7f18 !important;
+  background: #fff !important;
+  font-weight: 600;
+}
+
+.masterLinksButtons :global(.ant-btn:hover) {
+  border-color: rgba(115, 152, 22, 0.65) !important;
+  color: #4f6e14 !important;
+  background: #f7faef !important;
+}
+
 .dashboardButton {
   height: 40px !important;
   padding-inline: 16px !important;
@@ -1616,6 +1655,21 @@
   .listHeaderActions {
     width: 100%;
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .masterLinksGroup {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .masterLinksButtons {
+    flex: 1;
+    flex-wrap: wrap;
+  }
+
+  .masterLinksButtons :global(.ant-btn) {
+    flex: 1;
   }
 
   .dashboardButton,

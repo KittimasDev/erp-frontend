@@ -17,3 +17,6 @@ alwaysApply: true
 - Next.js เวอร์ชันนี้ (16+) auto-optimize `antd`, `@ant-design/icons`, `recharts` ผ่าน `optimizePackageImports` default อยู่แล้ว — **ไม่ต้อง**เพิ่มใน `next.config.ts` เอง
 - ก่อนเพิ่ม dependency หนักตัวใหม่ (canvas/pdf/chart lib) คิดก่อนว่าต้องใช้ทุกหน้าไหม ถ้าใช้เฉพาะบางปุ่ม/บาง action ให้ lazy-load ตั้งแต่แรก
 - **ห้าม** `crypto.randomUUID()` ใน client code — prod/LAN มักเป็น `http://192.168.x.x` (ไม่ใช่ secure context) จะได้ `crypto.randomUUID is not a function` ทั้งที่ localhost ผ่าน; ใช้ `createClientId()` จาก `src/utils/createClientId.ts` แทน (skill **`tanstack-query-frontend`**)
+- **Ant Design toast/modal/notification** — ใช้ `App.useApp()` เท่านั้น ห้าม `message.*` / `Modal.confirm` / `notification.*` แบบ static import; component ต้องอยู่ใต้ `<AntdApp>` (มีใน `src/app/layout.tsx` แล้ว)
+- **`notification.*` args** — ใช้ `title` + `description` ห้ามใส่ `message` (deprecated / console error); อย่าสับสนกับ `message.success()` ของ toast API
+- Modal ใหม่ในโปรเจกต์นี้ใช้ `open` + `destroyOnHidden` (ไม่ใช้ `visible` / `destroyOnClose`) — รายละเอียดดู skill **`antd-erp-frontend`**
