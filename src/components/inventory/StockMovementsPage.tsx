@@ -117,7 +117,15 @@ export default function StockMovementsPage() {
 
   const movementsQuery = useStockMovementsQuery({ ...filters, itemCategoryCode });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
-  const rows = movementsQuery.data?.data ?? [];
+  const rows = useMemo(() => {
+    const list = movementsQuery.data?.data ?? [];
+    // ล่าสุดขึ้นก่อน — ใช้ createdAt (เวลาทำรายการ) เป็นหลัก
+    return [...list].sort((a, b) => {
+      const aTime = new Date(a.createdAt ?? a.movementDate).getTime();
+      const bTime = new Date(b.createdAt ?? b.movementDate).getTime();
+      return bTime - aTime;
+    });
+  }, [movementsQuery.data?.data]);
 
   const warehouseOptions = useMemo(
     () =>
