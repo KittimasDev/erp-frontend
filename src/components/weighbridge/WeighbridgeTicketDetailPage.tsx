@@ -1461,6 +1461,17 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         รับเข้าคลังแล้ว
                       </Typography.Text>
                       <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        onClick={() =>
+                          router.push(
+                            `/receiving/receipts/${ticket.receiptId}/warehouse-receipt`,
+                          )
+                        }
+                      >
+                        ดูใบรับเข้าคลัง
+                      </Button>
+                      <Button
                         onClick={() =>
                           router.push(
                             `/receiving/receipts/${ticket.receiptId}`,

@@ -72,6 +72,13 @@ export function createSeller(token: string, body: CreateSellerRequest) {
   });
 }
 
+export function getSeller(token: string, id: string) {
+  return apiFetch<SellerApiResponse>(`/api/master-data/sellers/${id}`, {
+    method: "GET",
+    token,
+  });
+}
+
 export function updateSeller(
   token: string,
   id: string,

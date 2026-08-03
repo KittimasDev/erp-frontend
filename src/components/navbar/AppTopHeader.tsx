@@ -184,6 +184,10 @@ function resolvePageTitle(pathname: string, itemCategoryCode?: string | null) {
     return "ผู้ใช้งาน";
   }
 
+  if (/^\/receiving\/receipts\/[^/]+\/warehouse-receipt$/.test(pathname)) {
+    return "ใบรับสินค้าเข้าคลัง";
+  }
+
   if (/^\/receiving\/receipts\/[^/]+\/payment$/.test(pathname)) {
     return "จ่ายเงินผู้ขายยาง";
   }

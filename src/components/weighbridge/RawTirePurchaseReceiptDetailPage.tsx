@@ -581,7 +581,20 @@ export default function RawTirePurchaseReceiptDetailPage({
                       ) : null}
                       {receipt.paymentStatus === "PAID" &&
                       receipt.stockPostingStatus === "POSTED" ? (
-                        <Tag color="success">เข้าคลังแล้ว</Tag>
+                        <>
+                          <Tag color="success">เข้าคลังแล้ว</Tag>
+                          <Button
+                            type="primary"
+                            className={styles.submitButton}
+                            onClick={() =>
+                              router.push(
+                                `/receiving/receipts/${receiptId}/warehouse-receipt`,
+                              )
+                            }
+                          >
+                            ดูใบรับเข้าคลัง
+                          </Button>
+                        </>
                       ) : null}
                       {receipt.paymentStatus === "PAID" &&
                       receipt.stockPostingStatus !== "POSTED" ? (
