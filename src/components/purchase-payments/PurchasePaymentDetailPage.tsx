@@ -8,6 +8,7 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   DollarOutlined,
+  FilePdfOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -87,10 +88,11 @@ function PurchasePaymentDetailView({
   data: SupplierPaymentVoucher;
 }) {
   const router = useRouter();
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
   const confirmMutation = useConfirmPurchasePaymentMutation();
   const cancelMutation = useCancelPurchasePaymentMutation();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [confirmForm] = Form.useForm<{
     paymentDate: dayjs.Dayjs;
     transactionRef?: string;
@@ -107,6 +109,25 @@ function PurchasePaymentDetailView({
   const linkedGrs = grByPoQuery.data?.data ?? [];
 
   const busy = confirmMutation.isPending || cancelMutation.isPending;
+
+  const handlePrintPdf = async () => {
+    setIsPrinting(true);
+    try {
+      const {
+        generateSupplierPaymentVoucherPdf,
+        mapSupplierPaymentVoucherToPdfData,
+      } = await import("@/utils/generateSupplierPaymentVoucherPdf");
+      await generateSupplierPaymentVoucherPdf(
+        mapSupplierPaymentVoucherToPdfData(data),
+      );
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "พิมพ์ใบสำคัญจ่ายไม่สำเร็จ",
+      );
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -128,6 +149,14 @@ function PurchasePaymentDetailView({
             onClick={() => router.push("/purchase-payments")}
           >
             กลับ
+          </Button>
+          <Button
+            type="primary"
+            icon={<FilePdfOutlined />}
+            loading={isPrinting}
+            onClick={() => void handlePrintPdf()}
+          >
+            พิมพ์ PDF
           </Button>
         </div>
       </header>

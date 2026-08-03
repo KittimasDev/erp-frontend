@@ -14,7 +14,6 @@ import {
   EyeOutlined,
   FilePdfOutlined,
   FileTextOutlined,
-  HistoryOutlined,
   InboxOutlined,
   PaperClipOutlined,
   UploadOutlined,
@@ -40,6 +39,7 @@ import { RoleCode } from "@/lib/auth/role-codes";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import { SUPPLIER_PAYMENT_STATUS_LABEL } from "@/types/purchase-payments";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./PurchaseOrderDetailPage.module.css";
 
@@ -127,14 +127,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   );
   const linkedGrs = grByPoQuery.data?.data ?? [];
 
-  const paymentByPoQuery = usePurchasePaymentByPoQuery(
-    data &&
-      (data.status === "COMPLETED" ||
-        data.status === "PARTIALLY_RECEIVED" ||
-        data.paymentStatus === "PAID")
-      ? data.id
-      : undefined,
-  );
+  const paymentByPoQuery = usePurchasePaymentByPoQuery(data?.id);
   const linkedPayment = paymentByPoQuery.data?.data ?? null;
   const isPaid =
     data?.paymentStatus === "PAID" || linkedPayment?.status === "PAID";
@@ -558,15 +551,16 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </Button>
             ) : null}
 
-            {data.status === "COMPLETED" && isPaid && linkedPayment ? (
+            {linkedPayment ? (
               <Button
                 className={styles.secondaryBtn}
-                icon={<HistoryOutlined />}
+                icon={<DollarOutlined />}
                 onClick={() =>
                   router.push(`/purchase-payments/${linkedPayment.id}`)
                 }
               >
-                ดูประวัติการจ่ายเงิน
+                ดูใบสำคัญจ่าย
+                {linkedPayment.voucherNo ? ` ${linkedPayment.voucherNo}` : ""}
               </Button>
             ) : null}
 
@@ -584,23 +578,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                   )
                 }
               >
-                จ่ายเงิน
-              </Button>
-            ) : null}
-
-            {canPay &&
-            data.status === "COMPLETED" &&
-            !isPaid &&
-            linkedPayment?.status === "DRAFT" ? (
-              <Button
-                className={styles.primaryBtn}
-                type="primary"
-                icon={<DollarOutlined />}
-                onClick={() =>
-                  router.push(`/purchase-payments/${linkedPayment.id}`)
-                }
-              >
-                ดูใบสำคัญจ่าย (DRAFT)
+                จ่ายเงิน / สร้างใบสำคัญจ่าย
               </Button>
             ) : null}
 
@@ -657,6 +635,24 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     </li>
                   );
                 })}
+              </ul>
+            </div>
+          ) : null}
+
+          {linkedPayment ? (
+            <div className={styles.flowNote}>
+              <strong>ใบสำคัญจ่าย</strong>
+              <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+                <li>
+                  <Link href={`/purchase-payments/${linkedPayment.id}`}>
+                    {linkedPayment.voucherNo}
+                  </Link>{" "}
+                  ·{" "}
+                  {SUPPLIER_PAYMENT_STATUS_LABEL[linkedPayment.status] ??
+                    linkedPayment.status}{" "}
+                  · {formatDate(linkedPayment.voucherDate)} ·{" "}
+                  {formatMoney(linkedPayment.totalAmount)}
+                </li>
               </ul>
             </div>
           ) : null}
