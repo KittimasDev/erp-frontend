@@ -22,14 +22,19 @@ import {
 import { useRouter } from "next/navigation";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useRawTirePaymentQuery } from "@/hooks/raw-tire-payment/useRawTirePaymentQuery";
 import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
+import { useSellerQuery } from "@/hooks/sellers/useSellerQuery";
+import { useStockPostingRequestByReceiptQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import {
   useWeighInMutation,
   useWeighOutMutation,
 } from "@/hooks/weighbridge-tickets/useWeighTicketMutations";
 import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
+import { StockPostingRequestStatus } from "@/types/stock-posting-request";
+import { buildRawTireWarehouseReceiptSlipData } from "@/utils/buildRawTireWarehouseReceiptSlipData";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -204,6 +209,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const [weighInFlash, setWeighInFlash] = useState(false);
   const [weighOutFlash, setWeighOutFlash] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isPrintingWarehouseSlip, setIsPrintingWarehouseSlip] = useState(false);
   const prevGrossWeightRef = useRef<string | null>(null);
   const prevWeighOutKeyRef = useRef<string | null>(null);
   const weighInFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -219,6 +225,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const ticket = ticketQuery.data?.data;
   const receiptQuery = useRawTirePurchaseReceiptQuery(ticket?.receiptId ?? "");
   const receipt = receiptQuery.data?.data ?? null;
+  const stockQuery = useStockPostingRequestByReceiptQuery(ticket?.receiptId);
+  const stockRequest = stockQuery.data?.data ?? null;
+  const sellerQuery = useSellerQuery(receipt?.seller?.id);
+  const seller = sellerQuery.data?.data;
 
   useEffect(() => {
     if (!ticket) {
@@ -324,6 +334,47 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const stockRequestPending =
     paymentView?.flowState === "STOCK_REQUEST_PENDING";
   const readyForStockIn = paid && Boolean(ticket?.receiptId) && !stockPosted;
+  const canViewWarehouseSlip =
+    stockPosted &&
+    Boolean(receipt) &&
+    Boolean(stockRequest) &&
+    (receipt?.stockPostingStatus === "POSTED" ||
+      stockRequest?.status === StockPostingRequestStatus.APPROVED);
+
+  const lotsQuery = useInventoryLotsQuery(
+    { q: receipt?.receiptNo },
+    { enabled: Boolean(canViewWarehouseSlip && receipt?.receiptNo) },
+  );
+  const lots = lotsQuery.data?.data ?? [];
+
+  const warehouseSlipData = useMemo(() => {
+    if (!canViewWarehouseSlip || !receipt || !stockRequest) {
+      return null;
+    }
+    return buildRawTireWarehouseReceiptSlipData({
+      receipt,
+      request: stockRequest,
+      lots,
+      sellerAddress: seller?.address,
+      sellerTaxId: seller?.taxId,
+    });
+  }, [
+    canViewWarehouseSlip,
+    lots,
+    receipt,
+    seller?.address,
+    seller?.taxId,
+    stockRequest,
+  ]);
+
+  const warehouseSlipLoading =
+    Boolean(stockPosted && ticket?.receiptId) &&
+    (receiptQuery.isLoading ||
+      stockQuery.isLoading ||
+      (Boolean(canViewWarehouseSlip && receipt?.receiptNo) &&
+        lotsQuery.isLoading) ||
+      (Boolean(receipt?.seller?.id) && sellerQuery.isLoading));
+
   const maxStepIndex = 4;
   const nextActionHref = ticket?.nextActionHref;
   const nextActionLabel = ticket?.nextAction;
@@ -518,19 +569,24 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                 />
                 {nextActionLabel ? (
                   <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                    <Tag
+                      color={
+                        ticket?.currentStep === "COMPLETED" || stockPosted
+                          ? "success"
+                          : "processing"
+                      }
+                    >
+                      {nextActionLabel}
+                    </Tag>
                     {nextActionHref && ticket?.currentStep !== "COMPLETED" ? (
                       <Button
                         type="primary"
                         className={styles.submitButton}
                         onClick={() => router.push(nextActionHref)}
                       >
-                        {nextActionLabel}
+                        ไปดำเนินการต่อ
                       </Button>
-                    ) : (
-                      <Tag color={stockPosted ? "success" : "default"}>
-                        {nextActionLabel}
-                      </Tag>
-                    )}
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1181,7 +1237,8 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div className={styles.stepCardTitle}>
                       <h3>Step 3 · ตั๋วชั่ง</h3>
                       <p>
-                        คัดแยกรายการยาง บันทึกน้ำหนัก/การหัก และยืนยันตั๋วชั่งก่อนออกใบจ่ายเงิน
+                        คัดแยกรายการยาง บันทึกน้ำหนัก/การหัก
+                        แล้วยืนยันยอดก่อนออกใบจ่ายเงิน
                       </p>
                     </div>
                   </div>
@@ -1309,8 +1366,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div className={styles.stepCardTitle}>
                       <h3>Step 4 · ออกใบจ่ายเงิน</h3>
                       <p>
-                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย ตามยอดจากตั๋วชั่ง —
-                        คนละขั้นตอนกับ “ยืนยันตั๋วชั่ง”
+                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย ตามยอดจากตั๋วชั่งที่ยืนยันแล้ว
                       </p>
                     </div>
                   </div>
@@ -1331,7 +1387,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       : readyToPay
                         ? "รอออกใบจ่ายเงิน"
                         : hasReceipt
-                          ? "รอยืนยันตั๋วชั่งก่อน"
+                          ? "ตั๋วชั่งยังเป็นร่าง"
                           : "รอมีตั๋วชั่ง"}
                   </Tag>
                 </div>
@@ -1400,7 +1456,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                   ) : hasReceipt ? (
                     <>
                       <div className={styles.stepEmptyHint}>
-                        ตั๋วชั่งยังเป็นร่าง — กด “ยืนยันตั๋วชั่ง” ในหน้ารายละเอียดก่อน
+                        ตั๋วชั่งยังเป็นร่าง — กด “ยืนยันยอด” ในหน้ารายละเอียดก่อน
                         (ล็อกยอดน้ำหนัก/เงิน) แล้วค่อยกลับมาออกใบจ่ายเงินที่ Step นี้
                       </div>
                       <div className={styles.weighActions} style={{ marginTop: 16 }}>
@@ -1510,19 +1566,38 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
 
                   {stockPosted ? (
                     <div className={styles.weighActions} style={{ marginTop: 16 }}>
-                      <Typography.Text type="success">
-                        รับเข้าคลังแล้ว
-                      </Typography.Text>
                       <Button
                         type="primary"
                         className={styles.submitButton}
+                        icon={<PrinterOutlined />}
+                        disabled={!warehouseSlipData || isPrintingWarehouseSlip}
+                        loading={
+                          isPrintingWarehouseSlip || warehouseSlipLoading
+                        }
+                        onClick={() => {
+                          if (!warehouseSlipData) return;
+                          setIsPrintingWarehouseSlip(true);
+                          void import(
+                            "@/utils/generateRawTireWarehouseReceiptPdf"
+                          )
+                            .then(({ generateRawTireWarehouseReceiptPdf }) =>
+                              generateRawTireWarehouseReceiptPdf(
+                                warehouseSlipData,
+                              ),
+                            )
+                            .finally(() => setIsPrintingWarehouseSlip(false));
+                        }}
+                      >
+                        พิมพ์ใบรับสินค้า
+                      </Button>
+                      <Button
                         onClick={() =>
                           router.push(
                             `/receiving/receipts/${ticket.receiptId}/warehouse-receipt`,
                           )
                         }
                       >
-                        ดูใบรับเข้าคลัง
+                        ดูเต็มจอ
                       </Button>
                       <Button
                         onClick={() =>

@@ -343,7 +343,7 @@ export default function RawTirePurchaseReceiptDetailPage({
               {receipt.nextAction ? (
                 <div className={styles.cardBody}>
                   <div className={styles.receiptRemarkBox}>
-                    <span>ขั้นตอนถัดไป</span>
+                    <span>สถานะขั้นตอน</span>
                     <strong>
                       {receipt.currentStep === "COMPLETED" ||
                       receipt.stockPostingStatus === "POSTED"
@@ -352,6 +352,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                     </strong>
                   </div>
                   {receipt.nextActionHref &&
+                  receipt.status !== "DRAFT" &&
                   receipt.currentStep !== "COMPLETED" &&
                   receipt.stockPostingStatus !== "POSTED" ? (
                     <div
@@ -365,7 +366,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                           router.push(receipt.nextActionHref as string)
                         }
                       >
-                        {receipt.nextAction}
+                        ไปดำเนินการต่อ
                       </Button>
                     </div>
                   ) : null}
@@ -558,6 +559,19 @@ export default function RawTirePurchaseReceiptDetailPage({
 
                   {receipt.status === "CONFIRMED" ? (
                     <>
+                      {receipt.canEditClassification &&
+                      receipt.weighbridgeTicketId ? (
+                        <Button
+                          disabled={isBusy}
+                          onClick={() =>
+                            router.push(
+                              `/receiving/${receipt.weighbridgeTicketId}/classification`,
+                            )
+                          }
+                        >
+                          แก้ไขคัดแยก
+                        </Button>
+                      ) : null}
                       <Button
                         icon={<PrinterOutlined />}
                         disabled={!receipt.canPrint || isBusy}

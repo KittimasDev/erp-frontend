@@ -8,6 +8,7 @@ import {
   CheckOutlined,
   DollarOutlined,
   EditOutlined,
+  FilePdfOutlined,
   HistoryOutlined,
   InboxOutlined,
 } from "@ant-design/icons";
@@ -110,6 +111,67 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
 
   const busy = confirmMutation.isPending || cancelMutation.isPending;
 
+  const formatPdfMoney = (value?: string) => {
+    const n = Number(value ?? 0);
+    if (Number.isNaN(n)) return "0.00";
+    return n.toLocaleString("th-TH", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const formatPdfQty = (value?: string) => {
+    const n = Number(value ?? 0);
+    if (Number.isNaN(n)) return "0";
+    return n.toLocaleString("th-TH", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3,
+    });
+  };
+
+  const printPdf = async () => {
+    const subtotal = Number(data.subtotalAmount) || 0;
+    const discount = Number(data.discountAmount) || 0;
+    const afterDiscount = Math.max(0, subtotal - discount);
+    const { generateGoodsReceiptPdf } = await import(
+      "@/utils/generateGoodsReceiptPdf"
+    );
+    await generateGoodsReceiptPdf({
+      grNo: data.grNo,
+      grDate: formatDate(data.grDate),
+      poNo: data.purchaseOrder?.poNo ?? "—",
+      deliveryDate: formatDate(data.grDate),
+      vendorCode: data.creditor?.creditorCode ?? "—",
+      vendorName: data.creditor?.nameTh ?? "—",
+      vendorAddress: data.creditor?.address,
+      vendorTaxId: data.creditor?.taxId,
+      vendorPhone: data.creditor?.contactPhone,
+      remark: data.remark?.trim() || "",
+      items: (data.items ?? []).map((item, index) => ({
+        no: index + 1,
+        itemCode: item.itemCode ?? "—",
+        itemName: item.itemNameTh ?? item.description ?? "—",
+        warehouse: item.warehouse
+          ? `${item.warehouse.warehouseName}${
+              item.location ? ` / ${item.location.locationName}` : ""
+            }`
+          : "—",
+        lotNo: item.lotNo,
+        unit: item.unitNameTh ?? item.unitCode ?? "—",
+        quantity: formatPdfQty(item.quantity),
+        unitPrice: formatPdfMoney(item.unitPrice),
+        amount: formatPdfMoney(item.amount),
+      })),
+      subtotalAmount: formatPdfMoney(data.subtotalAmount),
+      discountAmount: formatPdfMoney(data.discountAmount),
+      afterDiscountAmount: formatPdfMoney(String(afterDiscount)),
+      vatAmount: formatPdfMoney(data.vatAmount),
+      netAmount: formatPdfMoney(data.totalAmount),
+      netAmountRaw: Number(data.totalAmount) || 0,
+      preparedBy: data.receivedBy?.displayName,
+    });
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -130,6 +192,9 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
             onClick={() => router.push("/goods-receipts")}
           >
             กลับ
+          </Button>
+          <Button icon={<FilePdfOutlined />} onClick={() => void printPdf()}>
+            พิมพ์ PDF
           </Button>
         </div>
       </header>

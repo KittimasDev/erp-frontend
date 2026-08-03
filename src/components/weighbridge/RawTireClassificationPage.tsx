@@ -158,6 +158,20 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
   const canClassify = context?.canClassify ?? false;
   const effectiveOn = toDateOnly(receipt?.receiptDate);
 
+  const editLockReason = (() => {
+    if (canEdit || !receipt) return null;
+    if (receipt.status === "CANCELLED") return "ใบรับซื้อถูกยกเลิกแล้ว";
+    if (receipt.paymentStatus === "PAID") return "จ่ายเงินแล้ว — ล็อกการแก้ไขคัดแยก";
+    if (
+      receipt.stockPostingStatus &&
+      receipt.stockPostingStatus !== "NOT_POSTED"
+    ) {
+      return "รับเข้าคลังแล้ว — ล็อกการแก้ไขคัดแยก";
+    }
+    if (!canClassify) return null;
+    return "ไม่สามารถแก้ไขคัดแยกได้ตอนนี้";
+  })();
+
   const priceRulesQuery = useRawTirePriceRulesQuery({
     isActive: true,
     effectiveOn,
@@ -700,6 +714,9 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                     {!canClassify ? (
                       <Tag color="warning">ต้องชั่งเข้า-ออกครบก่อน</Tag>
                     ) : null}
+                    {editLockReason ? (
+                      <Tag color="default">{editLockReason}</Tag>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -982,7 +999,9 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                     loading={saveMutation.isPending}
                     onClick={() => void handleSaveDraft()}
                   >
-                    บันทึกร่าง
+                    {receipt?.status === "CONFIRMED"
+                      ? "บันทึกการแก้ไข"
+                      : "บันทึกร่าง"}
                   </Button>
                   <Button
                     disabled={!canEdit || !receipt || isBusy}
@@ -1001,7 +1020,9 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
                       }
                     }}
                   >
-                    ไปยืนยันใบรับซื้อ
+                    {receipt?.status === "CONFIRMED"
+                      ? "ไปหน้าใบรับซื้อ"
+                      : "ไปยืนยันใบรับซื้อ"}
                   </Button>
                   <Button
                     danger

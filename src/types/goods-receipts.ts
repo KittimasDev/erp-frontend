@@ -14,6 +14,9 @@ export type GoodsReceiptCreditorSummary = {
   id: string;
   creditorCode: string;
   nameTh: string;
+  taxId?: string;
+  address?: string;
+  contactPhone?: string;
 };
 
 export type GoodsReceiptPoSummary = {

@@ -33,6 +33,8 @@ export type RawTirePurchaseReceipt = {
   receiptNo: string;
   receiptDate: string;
   status: string;
+  paymentStatus?: string;
+  stockPostingStatus?: string;
   remark?: string;
   grossWeightKg: string;
   tareWeightKg: string;
