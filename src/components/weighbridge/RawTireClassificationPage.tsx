@@ -682,7 +682,7 @@ export default function RawTireClassificationPage({ ticketId }: Props) {
               <div className={styles.cardHeader}>
                 <div className={styles.detailTitleRow}>
                   <div>
-                    <h3>คัดแยกประเภทสินค้า / สร้างรายการรับซื้อ</h3>
+                    <h3>ตั๋วชั่ง · คัดแยกประเภทสินค้า</h3>
                     <p>
                       ตั๋ว {ticket.ticketNo}
                       {receipt

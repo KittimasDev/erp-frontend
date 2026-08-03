@@ -179,6 +179,63 @@
   white-space: pre-wrap;
 }
 
+.attachmentList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.attachmentItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--pr-border);
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.attachmentMeta {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.attachmentName {
+  color: var(--pr-text);
+  font-size: 13px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.attachmentDesc {
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.attachmentActions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 6px;
+}
+
+.previewImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70vh;
+  object-fit: contain;
+}
+
+.previewFrame {
+  width: 100%;
+  min-height: 70vh;
+  border: 0;
+}
+
 .itemList {
   display: grid;
   gap: 10px;

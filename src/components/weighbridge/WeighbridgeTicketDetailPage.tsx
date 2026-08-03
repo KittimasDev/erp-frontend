@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  App,
   Button,
   Form,
   Input,
@@ -15,12 +16,14 @@ import {
 import {
   ArrowLeftOutlined,
   EditOutlined,
+  PrinterOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useRawTirePaymentQuery } from "@/hooks/raw-tire-payment/useRawTirePaymentQuery";
+import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import {
   useWeighInMutation,
@@ -52,10 +55,10 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
 
 const FLOW_LABELS: Record<string, string> = {
   WAITING_WEIGH_IN: "รอชั่งเข้า",
-  WAITING_SORT: "รอคัดแยก",
+  WAITING_SORT: "รอทำตั๋วชั่ง",
   WAITING_WEIGH_OUT: "รอชั่งออก",
   WAITING_APPROVAL: "รออนุมัติ",
-  WAITING_PAYMENT: "รอจ่ายเงิน",
+  WAITING_PAYMENT: "รอออกใบจ่ายเงิน",
   PAYMENT_PAID: "จ่ายเงินแล้ว",
   WAITING_STOCK_IN: "รอเข้าคลัง",
   STOCK_REQUEST_PENDING: "รออนุมัติเข้าคลัง",
@@ -191,6 +194,7 @@ type Props = {
 
 export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
   const [weighInForm] = Form.useForm<WeighFormValues>();
   const [weighOutForm] = Form.useForm<WeighFormValues>();
   const weighInManual = Form.useWatch("isManual", weighInForm);
@@ -199,6 +203,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const [weighOutEditMode, setWeighOutEditMode] = useState(false);
   const [weighInFlash, setWeighInFlash] = useState(false);
   const [weighOutFlash, setWeighOutFlash] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const prevGrossWeightRef = useRef<string | null>(null);
   const prevWeighOutKeyRef = useRef<string | null>(null);
   const weighInFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -212,6 +217,8 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const weighInMutation = useWeighInMutation(ticketId);
   const weighOutMutation = useWeighOutMutation(ticketId);
   const ticket = ticketQuery.data?.data;
+  const receiptQuery = useRawTirePurchaseReceiptQuery(ticket?.receiptId ?? "");
+  const receipt = receiptQuery.data?.data ?? null;
 
   useEffect(() => {
     if (!ticket) {
@@ -328,6 +335,32 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const showWeighInForm = canCreateWeighIn || (canUpdateWeighIn && weighInEditMode);
   const showWeighOutForm =
     canCreateWeighOut || (canUpdateWeighOut && weighOutEditMode);
+
+  const handlePrintTicket = async () => {
+    if (!ticket) return;
+    if (!ticket.weighOutAt) {
+      message.warning("พิมพ์ตั๋วชั่งได้หลังชั่งออกครบแล้ว");
+      return;
+    }
+    setIsPrinting(true);
+    try {
+      const { generateWeighbridgeTicketPdf, mapWeighbridgeTicketToPdfData } =
+        await import("@/utils/generateWeighbridgeTicketPdf");
+      await generateWeighbridgeTicketPdf(
+        mapWeighbridgeTicketToPdfData({
+          ticket,
+          receipt,
+          isPaid: paid,
+        }),
+      );
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "พิมพ์ตั๋วชั่งไม่สำเร็จ",
+      );
+    } finally {
+      setIsPrinting(false);
+    }
+  };
   const isUpdatingWeighIn = canUpdateWeighIn && weighInEditMode;
   const isUpdatingWeighOut = canUpdateWeighOut && weighOutEditMode;
   const weightEditWillResetReceipt = Boolean(ticket?.receiptId);
@@ -411,16 +444,29 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
           >
             กลับภาพรวม
           </Button>
-          <Button
-            icon={<ReloadOutlined />}
-            loading={ticketQuery.isFetching || paymentQuery.isFetching}
-            onClick={() => {
-              void ticketQuery.refetch();
-              void paymentQuery.refetch();
-            }}
-          >
-            รีเฟรช
-          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              icon={<PrinterOutlined />}
+              loading={isPrinting || receiptQuery.isFetching}
+              disabled={!ticket?.weighOutAt}
+              onClick={() => void handlePrintTicket()}
+            >
+              พิมพ์ตั๋วชั่ง
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={ticketQuery.isFetching || paymentQuery.isFetching}
+              onClick={() => {
+                void ticketQuery.refetch();
+                void paymentQuery.refetch();
+                if (ticket?.receiptId) {
+                  void receiptQuery.refetch();
+                }
+              }}
+            >
+              รีเฟรช
+            </Button>
+          </div>
         </div>
 
         {ticketQuery.isError ? (
@@ -465,8 +511,8 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                   items={[
                     { title: "ชั่งเข้า" },
                     { title: "ชั่งออก" },
-                    { title: "คัดแยก / ใบรับซื้อ" },
-                    { title: "จ่ายเงิน" },
+                    { title: "ตั๋วชั่ง" },
+                    { title: "ออกใบจ่ายเงิน" },
                     { title: "เข้าคลัง" },
                   ]}
                 />
@@ -755,7 +801,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         {isUpdatingWeighIn && weightEditWillResetReceipt ? (
                           <div className={styles.stepEmptyHint}>
                             แก้ไขน้ำหนักแล้ว ระบบจะยกเลิกใบรับซื้อปัจจุบัน
-                            และต้องคัดแยก / สร้างใบรับซื้อใหม่ที่ Step 3
+                            และต้องทำตั๋วชั่งใหม่ที่ Step 3
                           </div>
                         ) : null}
 
@@ -769,7 +815,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           {isUpdatingWeighIn && weightEditWillResetReceipt ? (
                             <Popconfirm
                               title="ยืนยันแก้ไขน้ำหนักเข้า"
-                              description="ใบรับซื้อที่มีอยู่จะถูกยกเลิก และต้องทำ Step 3 คัดแยกใหม่"
+                              description="ใบรับซื้อที่มีอยู่จะถูกยกเลิก และต้องทำตั๋วชั่งใหม่ที่ Step 3"
                               okText="ยืนยัน"
                               cancelText="ยกเลิก"
                               onConfirm={() => void weighInForm.submit()}
@@ -1011,7 +1057,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         {isUpdatingWeighOut && weightEditWillResetReceipt ? (
                           <div className={styles.stepEmptyHint}>
                             แก้ไขน้ำหนักแล้ว ระบบจะยกเลิกใบรับซื้อปัจจุบัน
-                            และต้องคัดแยก / สร้างใบรับซื้อใหม่ที่ Step 3
+                            และต้องทำตั๋วชั่งใหม่ที่ Step 3
                           </div>
                         ) : null}
 
@@ -1025,7 +1071,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           {isUpdatingWeighOut && weightEditWillResetReceipt ? (
                             <Popconfirm
                               title="ยืนยันแก้ไขน้ำหนักออก"
-                              description="ใบรับซื้อที่มีอยู่จะถูกยกเลิก และต้องทำ Step 3 คัดแยกใหม่"
+                              description="ใบรับซื้อที่มีอยู่จะถูกยกเลิก และต้องทำตั๋วชั่งใหม่ที่ Step 3"
                               okText="ยืนยัน"
                               cancelText="ยกเลิก"
                               onConfirm={() => void weighOutForm.submit()}
@@ -1133,9 +1179,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       3
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 3 · สร้างใบรับซื้อ</h3>
+                      <h3>Step 3 · ตั๋วชั่ง</h3>
                       <p>
-                        คัดแยกรายการยางและบันทึกก่อน จึงจะออกใบรับซื้อได้
+                        คัดแยกรายการยาง บันทึกน้ำหนัก/การหัก และยืนยันตั๋วชั่งก่อนออกใบจ่ายเงิน
                       </p>
                     </div>
                   </div>
@@ -1150,9 +1196,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     }
                   >
                     {ticket.receiptId
-                      ? "มีใบรับซื้อแล้ว"
+                      ? "มีตั๋วชั่งแล้ว"
                       : currentStep === 2
-                        ? "พร้อมสร้างใบสั่งซื้อ"
+                        ? "พร้อมทำตั๋วชั่ง"
                         : "รอชั่งออก"}
                   </Tag>
                 </div>
@@ -1169,11 +1215,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       </strong>
                     </div>
                     <div className={styles.stepMetaItem}>
-                      <span>ใบรับซื้อ</span>
+                      <span>ตั๋วชั่ง / ใบรับซื้อ</span>
                       <strong>
                         {ticket.receiptNo
                           ? `${ticket.receiptNo} (${RECEIPT_STATUS_LABELS[ticket.receiptStatus ?? ""] ?? ticket.receiptStatus ?? "-"})`
-                          : "ยังไม่มี — ต้องคัดแยกก่อน"}
+                          : "ยังไม่มี — ต้องทำตั๋วชั่งก่อน"}
                       </strong>
                     </div>
                   </div>
@@ -1191,7 +1237,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             )
                           }
                         >
-                          สร้างใบรับซื้อ 
+                          ทำตั๋วชั่ง
                         </Button>
                       ) : (
                         <>
@@ -1204,7 +1250,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               )
                             }
                           >
-                            เปิดใบรับซื้อ {ticket.receiptNo}
+                            เปิดตั๋วชั่ง {ticket.receiptNo}
                           </Button>
                           <Button
                             onClick={() =>
@@ -1213,14 +1259,21 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               )
                             }
                           >
-                            แก้ไขการคัดแยก
+                            แก้ไขตั๋วชั่ง
+                          </Button>
+                          <Button
+                            icon={<PrinterOutlined />}
+                            loading={isPrinting}
+                            onClick={() => void handlePrintTicket()}
+                          >
+                            พิมพ์ตั๋วชั่ง
                           </Button>
                         </>
                       )}
                     </div>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      บันทึกชั่งเข้าและชั่งออกให้ครบก่อน แล้วค่อยคัดแยกเพื่อสร้างใบรับซื้อ
+                      บันทึกชั่งเข้าและชั่งออกให้ครบก่อน แล้วค่อยทำตั๋วชั่ง
                     </div>
                   )}
                 </div>
@@ -1254,10 +1307,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       4
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 4 · จ่ายเงิน</h3>
+                      <h3>Step 4 · ออกใบจ่ายเงิน</h3>
                       <p>
-                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — คนละขั้นตอนกับ
-                        “ยืนยันยอดใบรับซื้อ”
+                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย ตามยอดจากตั๋วชั่ง —
+                        คนละขั้นตอนกับ “ยืนยันตั๋วชั่ง”
                       </p>
                     </div>
                   </div>
@@ -1276,10 +1329,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     {paid
                       ? "จ่ายเงินแล้ว"
                       : readyToPay
-                        ? "รอจ่ายเงิน"
+                        ? "รอออกใบจ่ายเงิน"
                         : hasReceipt
-                          ? "รอยืนยันยอดก่อน"
-                          : "รอมีใบรับซื้อ"}
+                          ? "รอยืนยันตั๋วชั่งก่อน"
+                          : "รอมีตั๋วชั่ง"}
                   </Tag>
                 </div>
                 <div className={styles.stepCardBody}>
@@ -1341,14 +1394,14 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           )
                         }
                       >
-                        จ่ายเงิน
+                        ออกใบจ่ายเงิน
                       </Button>
                     </div>
                   ) : hasReceipt ? (
                     <>
                       <div className={styles.stepEmptyHint}>
-                        ใบรับซื้อยังเป็นร่าง — กด “ยืนยันยอดใบรับซื้อ” ในหน้ารายละเอียดก่อน
-                        (ล็อกยอดน้ำหนัก/เงิน) แล้วค่อยกลับมาจ่ายเงินที่ Step นี้
+                        ตั๋วชั่งยังเป็นร่าง — กด “ยืนยันตั๋วชั่ง” ในหน้ารายละเอียดก่อน
+                        (ล็อกยอดน้ำหนัก/เงิน) แล้วค่อยกลับมาออกใบจ่ายเงินที่ Step นี้
                       </div>
                       <div className={styles.weighActions} style={{ marginTop: 16 }}>
                         <Button
@@ -1360,13 +1413,13 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             )
                           }
                         >
-                          เปิดใบรับซื้อเพื่อยืนยันยอด
+                          เปิดตั๋วชั่งเพื่อยืนยันยอด
                         </Button>
                       </div>
                     </>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      สร้างใบรับซื้อจาก Step 3 ก่อน แล้วค่อยยืนยันยอดและจ่ายเงิน
+                      ทำตั๋วชั่งจาก Step 3 ก่อน แล้วค่อยยืนยันยอดและออกใบจ่ายเงิน
                     </div>
                   )}
                 </div>
@@ -1426,7 +1479,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           ? "รอส่งคำขอเข้าคลัง"
                           : paid
                             ? "พร้อมเข้าคลัง"
-                            : "รอจ่ายเงินก่อน"}
+                            : "รอออกใบจ่ายเงินก่อน"}
                   </Tag>
                 </div>
                 <div className={styles.stepCardBody}>
@@ -1508,7 +1561,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     </div>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      จ่ายเงินใน Step 4 ให้เสร็จก่อน แล้วค่อยส่งคำขอรับยางดิบเข้าคลัง
+                      ออกใบจ่ายเงินใน Step 4 ให้เสร็จก่อน แล้วค่อยส่งคำขอรับยางดิบเข้าคลัง
                     </div>
                   )}
                 </div>

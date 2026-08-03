@@ -14,7 +14,12 @@ import {
   Select,
   Spin,
 } from "antd";
-import { ArrowLeftOutlined, InboxOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  DeleteOutlined,
+  InboxOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { useCreateGoodsReceiptFromPoMutation } from "@/hooks/goods-receipts/useGoodsReceiptMutations";
@@ -28,13 +33,17 @@ const EMPTY_GRS: never[] = [];
 const EMPTY_WAREHOUSES: never[] = [];
 const EMPTY_LOCATIONS: never[] = [];
 
-type LineValues = {
-  selected: boolean;
-  purchaseOrderItemId: string;
+type DestinationValues = {
   quantity?: number;
   warehouseId?: string;
   locationId?: string;
   lotNo?: string;
+};
+
+type LineValues = {
+  selected: boolean;
+  purchaseOrderItemId: string;
+  destinations: DestinationValues[];
 };
 
 type FormValues = {
@@ -43,10 +52,16 @@ type FormValues = {
   items: LineValues[];
 };
 
-type Props = { purchaseOrderId: string };
+type Props = {
+  purchaseOrderId: string;
+  backHref?: string;
+  pageTitle?: string;
+};
 
 export default function GoodsReceiptCreateFromPoPage({
   purchaseOrderId,
+  backHref,
+  pageTitle = "รับของจากใบสั่งซื้อ",
 }: Props) {
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
@@ -67,6 +82,9 @@ export default function GoodsReceiptCreateFromPoPage({
     ? locationsQuery.data.data
     : EMPTY_LOCATIONS;
   const watchedItems = Form.useWatch("items", form) ?? [];
+
+  const resolvedBackHref =
+    backHref ?? `/purchase-orders/${purchaseOrderId}`;
 
   const receivedByPoItem = useMemo(() => {
     const map = new Map<string, number>();
@@ -90,6 +108,8 @@ export default function GoodsReceiptCreateFromPoPage({
         receivedQty: number;
         remainingQty: number;
         unitLabel: string;
+        expectedWarehouseId?: string;
+        expectedLocationId?: string;
       }
     >();
     for (const item of po?.items ?? []) {
@@ -102,6 +122,8 @@ export default function GoodsReceiptCreateFromPoPage({
         receivedQty: received,
         remainingQty: remaining,
         unitLabel: item.unitNameTh ?? item.unitCode ?? "",
+        expectedWarehouseId: item.expectedWarehouseId,
+        expectedLocationId: item.expectedLocationId,
       });
     }
     return map;
@@ -122,10 +144,17 @@ export default function GoodsReceiptCreateFromPoPage({
         return {
           selected: remaining > 0,
           purchaseOrderItemId: item.id,
-          quantity: remaining > 0 ? remaining : undefined,
-          warehouseId: item.expectedWarehouseId ?? undefined,
-          locationId: item.expectedLocationId ?? undefined,
-          lotNo: undefined,
+          destinations:
+            remaining > 0
+              ? [
+                  {
+                    quantity: remaining,
+                    warehouseId: item.expectedWarehouseId ?? undefined,
+                    locationId: item.expectedLocationId ?? undefined,
+                    lotNo: undefined,
+                  },
+                ]
+              : [],
         };
       }),
     });
@@ -149,7 +178,7 @@ export default function GoodsReceiptCreateFromPoPage({
           description="ไม่สามารถโหลดใบสั่งซื้อหรือประวัติการรับของได้ ลองรีเฟรชหน้าอีกครั้ง"
         />
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับรายการใบสั่งซื้อ</Link>
+          <Link href="/purchase-orders/receive">กลับรายการรับของ</Link>
         </div>
       </div>
     );
@@ -160,7 +189,7 @@ export default function GoodsReceiptCreateFromPoPage({
       <div className={styles.page}>
         ไม่พบใบสั่งซื้อ
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับ</Link>
+          <Link href="/purchase-orders/receive">กลับ</Link>
         </div>
       </div>
     );
@@ -183,46 +212,69 @@ export default function GoodsReceiptCreateFromPoPage({
   }
 
   const onFinish = async (values: FormValues) => {
-    const selected = values.items.filter((item) => {
-      if (!item.selected || (item.quantity ?? 0) <= 0) return false;
-      const remaining =
-        lineMetaByPoItemId.get(item.purchaseOrderItemId)?.remainingQty ?? 0;
-      return remaining > 0;
-    });
-    if (!selected.length) {
+    const flat: Array<{
+      purchaseOrderItemId: string;
+      quantity: number;
+      warehouseId: string;
+      locationId: string;
+      lotNo?: string;
+      label: string;
+    }> = [];
+
+    for (const item of values.items) {
+      if (!item.selected) continue;
+      const meta = lineMetaByPoItemId.get(item.purchaseOrderItemId);
+      const remaining = meta?.remainingQty ?? 0;
+      if (remaining <= 0) continue;
+      const label = meta?.itemLabel ?? "รายการ";
+      const destinations = (item.destinations ?? []).filter(
+        (d) => (d.quantity ?? 0) > 0,
+      );
+      if (!destinations.length) continue;
+
+      let sumQty = 0;
+      for (const dest of destinations) {
+        if (!dest.warehouseId || !dest.locationId) {
+          form.setFields([
+            {
+              name: "items",
+              errors: [`${label}: ระบุคลังและตำแหน่งให้ครบทุกปลายทาง`],
+            },
+          ]);
+          return;
+        }
+        sumQty += Number(dest.quantity);
+        flat.push({
+          purchaseOrderItemId: item.purchaseOrderItemId,
+          quantity: Number(dest.quantity),
+          warehouseId: dest.warehouseId,
+          locationId: dest.locationId,
+          lotNo: dest.lotNo?.trim() || undefined,
+          label,
+        });
+      }
+      sumQty = Number(sumQty.toFixed(3));
+      if (sumQty > remaining + 1e-9) {
+        form.setFields([
+          {
+            name: "items",
+            errors: [
+              `${label}: รวมจำนวนปลายทาง ${sumQty} เกินที่เหลือ ${remaining}`,
+            ],
+          },
+        ]);
+        return;
+      }
+    }
+
+    if (!flat.length) {
       form.setFields([
         {
           name: "items",
-          errors: ["เลือกอย่างน้อย 1 รายการที่ต้องการรับ"],
+          errors: ["เลือกอย่างน้อย 1 รายการและระบุจำนวนรับ"],
         },
       ]);
       return;
-    }
-
-    for (const item of selected) {
-      const remaining =
-        lineMetaByPoItemId.get(item.purchaseOrderItemId)?.remainingQty ?? 0;
-      const label =
-        lineMetaByPoItemId.get(item.purchaseOrderItemId)?.itemLabel ??
-        "รายการ";
-      if (!item.warehouseId || !item.locationId) {
-        form.setFields([
-          {
-            name: "items",
-            errors: ["ระบุคลังและตำแหน่งจัดเก็บให้ครบทุกรายการที่รับ"],
-          },
-        ]);
-        return;
-      }
-      if ((item.quantity ?? 0) > remaining + 1e-9) {
-        form.setFields([
-          {
-            name: "items",
-            errors: [`${label} รับเกินจำนวนที่เหลือ`],
-          },
-        ]);
-        return;
-      }
     }
 
     const response = await createMutation.mutateAsync({
@@ -230,13 +282,7 @@ export default function GoodsReceiptCreateFromPoPage({
       body: {
         grDate: values.grDate.format("YYYY-MM-DD"),
         remark: values.remark?.trim() || undefined,
-        items: selected.map((item) => ({
-          purchaseOrderItemId: item.purchaseOrderItemId,
-          quantity: Number(item.quantity),
-          warehouseId: item.warehouseId!,
-          locationId: item.locationId!,
-          lotNo: item.lotNo?.trim() || undefined,
-        })),
+        items: flat.map(({ label: _label, ...item }) => item),
       },
     });
     router.push(`/goods-receipts/${response.data.id}`);
@@ -246,6 +292,21 @@ export default function GoodsReceiptCreateFromPoPage({
     (meta) => meta.remainingQty > 0,
   );
 
+  const selectedPreview = watchedItems.flatMap((item) => {
+    if (!item?.selected) return [];
+    const meta = lineMetaByPoItemId.get(item.purchaseOrderItemId);
+    const dests = (item.destinations ?? []).filter((d) => (d.quantity ?? 0) > 0);
+    if (!dests.length) return [];
+    return [
+      {
+        label: meta?.itemLabel ?? "—",
+        qty: dests.reduce((s, d) => s + Number(d.quantity ?? 0), 0),
+        unit: meta?.unitLabel ?? "",
+        destCount: dests.length,
+      },
+    ];
+  });
+
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -254,14 +315,14 @@ export default function GoodsReceiptCreateFromPoPage({
         </div>
         <div className={styles.headerContent}>
           <p className={styles.eyebrow}>Goods Receipt</p>
-          <h1 className={styles.pageTitle}>สร้างใบรับของจาก PO</h1>
+          <h1 className={styles.pageTitle}>{pageTitle}</h1>
           <p className={styles.pageSubtitle}>
             {po.poNo} · {po.creditor?.nameTh ?? "—"}
           </p>
         </div>
         <div className={styles.backLink}>
-          <Link href={`/purchase-orders/${po.id}`}>
-            <Button icon={<ArrowLeftOutlined />}>กลับ PO</Button>
+          <Link href={resolvedBackHref}>
+            <Button icon={<ArrowLeftOutlined />}>กลับ</Button>
           </Link>
         </div>
       </header>
@@ -300,6 +361,12 @@ export default function GoodsReceiptCreateFromPoPage({
               </div>
 
               <div className={styles.sectionBlock}>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>รายการรับเข้าคลัง</h2>
+                  <p className={styles.sectionHint}>
+                    แยกสินค้าบรรทัดเดียวเข้าได้หลายคลัง — รวมจำนวนห้ามเกินที่เหลือ
+                  </p>
+                </div>
                 <Form.List name="items">
                   {(fields) => (
                     <div className={styles.lineList}>
@@ -310,11 +377,15 @@ export default function GoodsReceiptCreateFromPoPage({
                           (po.items ?? [])[index]?.id ??
                           "";
                         const meta = lineMetaByPoItemId.get(poItemId);
-                        const remainingQty = meta?.remainingQty ?? 0;
-                        const disabled = remainingQty <= 0;
-                        const locs = locations.filter(
-                          (loc) => loc.warehouseId === line?.warehouseId,
+                        const remaining = meta?.remainingQty ?? 0;
+                        const disabled = remaining <= 0;
+                        const destinations = line?.destinations ?? [];
+                        const destSum = Number(
+                          destinations
+                            .reduce((s, d) => s + Number(d.quantity ?? 0), 0)
+                            .toFixed(3),
                         );
+
                         return (
                           <div key={key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
@@ -325,12 +396,14 @@ export default function GoodsReceiptCreateFromPoPage({
                                 style={{ marginBottom: 0 }}
                               >
                                 <Checkbox disabled={disabled}>
-                                  {meta?.itemLabel || `รายการที่ ${index + 1}`}
+                                  <strong>
+                                    {meta?.itemLabel || `รายการที่ ${index + 1}`}
+                                  </strong>
                                 </Checkbox>
                               </Form.Item>
-                              <span>
+                              <span className={styles.sectionHint}>
                                 สั่ง {meta?.orderedQty ?? 0} · รับแล้ว{" "}
-                                {meta?.receivedQty ?? 0} · เหลือ {remainingQty}{" "}
+                                {meta?.receivedQty ?? 0} · เหลือ {remaining}{" "}
                                 {meta?.unitLabel}
                               </span>
                             </div>
@@ -341,103 +414,185 @@ export default function GoodsReceiptCreateFromPoPage({
                             >
                               <Input />
                             </Form.Item>
-                            <div className={styles.lineGrid}>
-                              <Form.Item
-                                {...restField}
-                                className={styles.field}
-                                label="จำนวนรับ"
-                                name={[name, "quantity"]}
-                                rules={[
-                                  {
-                                    validator: async (_, value) => {
-                                      if (!line?.selected) return;
-                                      if (!(value > 0)) {
-                                        throw new Error("ต้องมากกว่า 0");
-                                      }
-                                      if (value > remainingQty + 1e-9) {
-                                        throw new Error("เกินจำนวนที่เหลือ");
-                                      }
-                                    },
-                                  },
-                                ]}
-                              >
-                                <InputNumber
-                                  min={0.001}
-                                  max={remainingQty || undefined}
-                                  style={{ width: "100%" }}
-                                  disabled={disabled || !line?.selected}
-                                />
-                              </Form.Item>
-                              <Form.Item
-                                {...restField}
-                                className={styles.field}
-                                label="คลัง"
-                                name={[name, "warehouseId"]}
-                                rules={[
-                                  {
-                                    validator: async (_, value) => {
-                                      if (!line?.selected) return;
-                                      if (!value) throw new Error("เลือกคลัง");
-                                    },
-                                  },
-                                ]}
-                              >
-                                <Select
-                                  showSearch
-                                  optionFilterProp="label"
-                                  disabled={disabled || !line?.selected}
-                                  options={warehouses.map((w) => ({
-                                    value: w.id,
-                                    label: `${w.warehouseCode} — ${w.warehouseName}`,
-                                  }))}
-                                  onChange={() => {
-                                    form.setFieldValue(
-                                      ["items", name, "locationId"],
-                                      undefined,
-                                    );
-                                  }}
-                                />
-                              </Form.Item>
-                              <Form.Item
-                                {...restField}
-                                className={styles.field}
-                                label="ตำแหน่ง"
-                                name={[name, "locationId"]}
-                                rules={[
-                                  {
-                                    validator: async (_, value) => {
-                                      if (!line?.selected) return;
-                                      if (!value)
-                                        throw new Error("เลือกตำแหน่ง");
-                                    },
-                                  },
-                                ]}
-                              >
-                                <Select
-                                  showSearch
-                                  optionFilterProp="label"
-                                  disabled={
-                                    disabled ||
-                                    !line?.selected ||
-                                    !line?.warehouseId
-                                  }
-                                  options={locs.map((loc) => ({
-                                    value: loc.id,
-                                    label: `${loc.locationCode} — ${loc.locationName}`,
-                                  }))}
-                                />
-                              </Form.Item>
-                              <Form.Item
-                                {...restField}
-                                className={styles.field}
-                                label="Lot (ถ้ามี)"
-                                name={[name, "lotNo"]}
-                              >
-                                <Input
-                                  disabled={disabled || !line?.selected}
-                                />
-                              </Form.Item>
-                            </div>
+
+                            {line?.selected && !disabled ? (
+                              <Form.List name={[name, "destinations"]}>
+                                {(destFields, { add, remove }) => (
+                                  <div className={styles.destList}>
+                                    {destFields.map(({ key: destKey, name: destName, ...destRest }) => {
+                                      const dest =
+                                        destinations[destName] ?? {};
+                                      const locs = locations.filter(
+                                        (loc) =>
+                                          loc.warehouseId === dest.warehouseId,
+                                      );
+                                      const otherSum = Number(
+                                        destinations
+                                          .reduce((s, d, i) => {
+                                            if (i === destName) return s;
+                                            return s + Number(d.quantity ?? 0);
+                                          }, 0)
+                                          .toFixed(3),
+                                      );
+                                      const maxForThis = Number(
+                                        Math.max(
+                                          0.001,
+                                          remaining - otherSum,
+                                        ).toFixed(3),
+                                      );
+
+                                      return (
+                                        <div
+                                          key={destKey}
+                                          className={styles.destCard}
+                                        >
+                                          <div className={styles.destCardHead}>
+                                            <span>
+                                              ปลายทางที่ {destName + 1}
+                                            </span>
+                                            {destFields.length > 1 ? (
+                                              <Button
+                                                type="text"
+                                                danger
+                                                size="small"
+                                                icon={<DeleteOutlined />}
+                                                onClick={() =>
+                                                  remove(destName)
+                                                }
+                                              >
+                                                ลบ
+                                              </Button>
+                                            ) : null}
+                                          </div>
+                                          <div className={styles.lineGrid}>
+                                            <Form.Item
+                                              {...destRest}
+                                              className={styles.field}
+                                              label="จำนวนรับ"
+                                              name={[destName, "quantity"]}
+                                              rules={[
+                                                {
+                                                  validator: async (_, value) => {
+                                                    if (!(value > 0)) {
+                                                      throw new Error(
+                                                        "ต้องมากกว่า 0",
+                                                      );
+                                                    }
+                                                    if (
+                                                      value >
+                                                      maxForThis + 1e-9
+                                                    ) {
+                                                      throw new Error(
+                                                        "เกินจำนวนที่เหลือของบรรทัดนี้",
+                                                      );
+                                                    }
+                                                  },
+                                                },
+                                              ]}
+                                            >
+                                              <InputNumber
+                                                min={0.001}
+                                                max={maxForThis}
+                                                style={{ width: "100%" }}
+                                              />
+                                            </Form.Item>
+                                            <Form.Item
+                                              {...destRest}
+                                              className={styles.field}
+                                              label="คลัง"
+                                              name={[destName, "warehouseId"]}
+                                              rules={[
+                                                {
+                                                  required: true,
+                                                  message: "เลือกคลัง",
+                                                },
+                                              ]}
+                                            >
+                                              <Select
+                                                showSearch
+                                                optionFilterProp="label"
+                                                options={warehouses.map(
+                                                  (w) => ({
+                                                    value: w.id,
+                                                    label: `${w.warehouseCode} — ${w.warehouseName}`,
+                                                  }),
+                                                )}
+                                                onChange={() => {
+                                                  form.setFieldValue(
+                                                    [
+                                                      "items",
+                                                      name,
+                                                      "destinations",
+                                                      destName,
+                                                      "locationId",
+                                                    ],
+                                                    undefined,
+                                                  );
+                                                }}
+                                              />
+                                            </Form.Item>
+                                            <Form.Item
+                                              {...destRest}
+                                              className={styles.field}
+                                              label="ตำแหน่ง"
+                                              name={[destName, "locationId"]}
+                                              rules={[
+                                                {
+                                                  required: true,
+                                                  message: "เลือกตำแหน่ง",
+                                                },
+                                              ]}
+                                            >
+                                              <Select
+                                                showSearch
+                                                optionFilterProp="label"
+                                                options={locs.map((loc) => ({
+                                                  value: loc.id,
+                                                  label: `${loc.locationCode} — ${loc.locationName}`,
+                                                }))}
+                                              />
+                                            </Form.Item>
+                                            <Form.Item
+                                              {...destRest}
+                                              className={styles.field}
+                                              label="Lot (ถ้ามี)"
+                                              name={[destName, "lotNo"]}
+                                            >
+                                              <Input />
+                                            </Form.Item>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                    <div className={styles.destFooter}>
+                                      <Button
+                                        type="dashed"
+                                        icon={<PlusOutlined />}
+                                        disabled={destSum >= remaining - 1e-9}
+                                        onClick={() =>
+                                          add({
+                                            quantity: Number(
+                                              Math.max(
+                                                0.001,
+                                                remaining - destSum,
+                                              ).toFixed(3),
+                                            ),
+                                            warehouseId: undefined,
+                                            locationId: undefined,
+                                          })
+                                        }
+                                      >
+                                        เพิ่มปลายทางคลัง
+                                      </Button>
+                                      <span className={styles.sectionHint}>
+                                        รวมรับ {destSum} / เหลือ {remaining}{" "}
+                                        {meta?.unitLabel}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </Form.List>
+                            ) : null}
                           </div>
                         );
                       })}
@@ -446,13 +601,15 @@ export default function GoodsReceiptCreateFromPoPage({
                 </Form.List>
               </div>
             </div>
+
             <div className={styles.footerBar}>
-              <div />
+              <p className={styles.footerHint}>
+                บันทึกเป็น DRAFT — Confirm ที่ใบรับของเพื่อเข้าสต๊อกตามคลังที่เลือก
+              </p>
               <div className={styles.footerActions}>
                 <Button
-                  onClick={() =>
-                    router.push(`/purchase-orders/${purchaseOrderId}`)
-                  }
+                  className={styles.cancelBtn}
+                  onClick={() => router.push(resolvedBackHref)}
                 >
                   ยกเลิก
                 </Button>
@@ -463,17 +620,46 @@ export default function GoodsReceiptCreateFromPoPage({
                   loading={createMutation.isPending}
                   disabled={!hasReceivableLines}
                 >
-                  สร้างใบรับของ
+                  บันทึกใบรับของ
                 </Button>
               </div>
             </div>
           </section>
+
           <aside className={styles.summaryCard}>
-            <p className={styles.summaryEyebrow}>จาก PO</p>
-            <h2 className={styles.summaryTitle}>{po.poNo}</h2>
-            <p className={styles.summaryLead}>
-              เลือกเฉพาะรายการที่รับรอบนี้ได้ (partial receive)
-            </p>
+            <div>
+              <p className={styles.summaryEyebrow}>สรุปการรับ</p>
+              <h2 className={styles.summaryTitle}>{po.poNo}</h2>
+            </div>
+            <div className={styles.summaryRows}>
+              <div className={styles.summaryRow}>
+                <span>ผู้ขาย</span>
+                <strong>{po.creditor?.nameTh ?? "—"}</strong>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>รายการที่รับ</span>
+                <strong>{selectedPreview.length}</strong>
+              </div>
+            </div>
+            {selectedPreview.length > 0 ? (
+              <ul className={styles.previewList}>
+                {selectedPreview.map((row) => (
+                  <li key={row.label}>
+                    {row.label}: {row.qty} {row.unit}
+                    {row.destCount > 1 ? ` (${row.destCount} คลัง)` : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className={styles.sectionHint}>ยังไม่ได้เลือกจำนวนรับ</p>
+            )}
+            <div className={styles.flowNote}>
+              <strong>หมายเหตุ</strong>
+              <p>
+                สามารถแยกจำนวนของสินค้าเดียวกันเข้าหลายคลังได้
+                รวมแล้วต้องไม่เกินจำนวนที่เหลือบน PO
+              </p>
+            </div>
           </aside>
         </div>
       </Form>

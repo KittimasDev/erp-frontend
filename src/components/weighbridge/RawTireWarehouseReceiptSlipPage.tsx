@@ -7,8 +7,10 @@ import { Alert, Button, Spin, Typography } from "antd";
 import { ArrowLeftOutlined, PrinterOutlined } from "@ant-design/icons";
 
 import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
+import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useSellerQuery } from "@/hooks/sellers/useSellerQuery";
 import { useStockPostingRequestByReceiptQuery } from "@/hooks/stock-posting/useStockPostingQueries";
+import type { InventoryLotBalanceRow } from "@/types/inventory";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
 import { numberToThaiBahtText } from "@/utils/numberToThaiBahtText";
 import type { WarehouseReceiptSlipData } from "@/utils/generateRawTireWarehouseReceiptPdf";
@@ -44,6 +46,39 @@ function formatDate(value?: string) {
   return date.toLocaleDateString("th-TH");
 }
 
+function resolveLotNo(params: {
+  receiptNo: string;
+  sortOrder: number;
+  itemId?: string;
+  lots: InventoryLotBalanceRow[];
+}) {
+  const { receiptNo, sortOrder, itemId, lots } = params;
+  const related = lots.filter(
+    (lot) =>
+      lot.sourceDocumentNo === receiptNo ||
+      lot.lotNo.includes(receiptNo),
+  );
+
+  if (itemId) {
+    const byItem = related.filter((lot) => lot.itemId === itemId);
+    if (byItem.length > 0) {
+      return [...new Set(byItem.map((lot) => lot.lotNo))].join(", ");
+    }
+  }
+
+  const suffix = String(sortOrder + 1).padStart(2, "0");
+  const byOrder = related.find(
+    (lot) =>
+      lot.lotNo === `IL-${receiptNo}-${suffix}` ||
+      lot.lotNo.startsWith(`IL-${receiptNo}-${suffix}-`),
+  );
+  if (byOrder) {
+    return byOrder.lotNo;
+  }
+
+  return "";
+}
+
 function buildSlipData(params: {
   receipt: NonNullable<
     ReturnType<typeof useRawTirePurchaseReceiptQuery>["data"]
@@ -53,18 +88,15 @@ function buildSlipData(params: {
       ReturnType<typeof useStockPostingRequestByReceiptQuery>["data"]
     >["data"]
   >;
+  lots: InventoryLotBalanceRow[];
   sellerAddress?: string;
   sellerTaxId?: string;
 }): WarehouseReceiptSlipData {
-  const { receipt, request, sellerAddress, sellerTaxId } = params;
-  const warehouseLabel = [request.warehouseCode, request.warehouseName]
-    .filter(Boolean)
-    .join(" - ");
-  const locationPart = [request.locationCode, request.locationName]
-    .filter(Boolean)
-    .join(" ");
+  const { receipt, request, lots, sellerAddress, sellerTaxId } = params;
   const warehouse =
-    [warehouseLabel, locationPart].filter(Boolean).join(" / ") || "-";
+    [request.warehouseName || request.warehouseCode, request.locationCode]
+      .filter(Boolean)
+      .join(" - ") || "-";
 
   const subtotal = Number(receipt.subtotalAmount) || 0;
   const discount = Number(receipt.deductionAmount) || 0;
@@ -87,11 +119,18 @@ function buildSlipData(params: {
       fromRequest?.classificationName ||
       item.classificationName ||
       "-";
+    const lotNo = resolveLotNo({
+      receiptNo: receipt.receiptNo,
+      sortOrder: item.sortOrder ?? index,
+      itemId: fromRequest?.itemId,
+      lots,
+    });
     return {
       no: index + 1,
       productCode,
       productName,
       warehouse,
+      lotNo,
       unit: "กก.",
       quantity: formatQty(fromRequest?.weightKg ?? item.weightKg),
       unitPrice: formatMoney(fromRequest?.pricePerKg ?? item.pricePerKg),
@@ -112,12 +151,13 @@ function buildSlipData(params: {
     licensePlate:
       receipt.truck?.licensePlate ||
       receipt.ticket?.truckLicensePlate ||
-      "-",
+      "",
     sellerCode: receipt.seller.sellerCode,
     sellerName: receipt.seller.sellerName,
-    sellerAddress: sellerAddress || "-",
-    sellerTaxId: sellerTaxId || "-",
-    sellerPhone: receipt.seller.phone || "-",
+    sellerAddress: sellerAddress || "",
+    sellerTaxId: sellerTaxId || "",
+    sellerPhone: receipt.seller.phone || "",
+    remark: receipt.remark || "",
     items,
     subtotalAmount: formatMoney(subtotal),
     discountAmount: formatMoney(discount),
@@ -151,6 +191,12 @@ export default function RawTireWarehouseReceiptSlipPage({
       request?.status === StockPostingRequestStatus.APPROVED) &&
     Boolean(request);
 
+  const lotsQuery = useInventoryLotsQuery(
+    { q: receipt?.receiptNo },
+    { enabled: Boolean(canView && receipt?.receiptNo) },
+  );
+  const lots = lotsQuery.data?.data ?? [];
+
   const slipData = useMemo(() => {
     if (!receipt || !request || !canView) {
       return null;
@@ -158,14 +204,16 @@ export default function RawTireWarehouseReceiptSlipPage({
     return buildSlipData({
       receipt,
       request,
+      lots,
       sellerAddress: seller?.address,
       sellerTaxId: seller?.taxId,
     });
-  }, [canView, receipt, request, seller?.address, seller?.taxId]);
+  }, [canView, lots, receipt, request, seller?.address, seller?.taxId]);
 
   const loading =
     receiptQuery.isLoading ||
     stockQuery.isLoading ||
+    (Boolean(canView && receipt?.receiptNo) && lotsQuery.isLoading) ||
     (Boolean(receipt?.seller?.id) && sellerQuery.isLoading);
 
   const handlePrint = async () => {
@@ -248,7 +296,7 @@ export default function RawTireWarehouseReceiptSlipPage({
                 85 ถนนโยธา แขวงตลาดน้อย เขตสัมพันธวงศ์ กรุงเทพมหานคร 10100
               </p>
               <p className={styles.companyAddress}>
-                เบอร์ออฟฟิศ : 02-2359565-8 · เลขประจำตัวผู้เสียภาษี 0 1055
+                เบอร์ติดต่อ : 02-2359565-8 เลขประจำตัวผู้เสียภาษี 0 1055
                 63023 12 4
               </p>
             </div>
@@ -260,45 +308,57 @@ export default function RawTireWarehouseReceiptSlipPage({
             <div className={styles.infoBox}>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>รหัสผู้ขาย</span>
-                <span>{slipData.sellerCode}</span>
+                <span className={styles.infoValue}>{slipData.sellerCode}</span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>ชื่อผู้ขาย</span>
-                <span>{slipData.sellerName}</span>
+                <span className={styles.infoValue}>{slipData.sellerName}</span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>ที่อยู่</span>
-                <span>{slipData.sellerAddress}</span>
+                <span className={styles.infoValue}>
+                  {slipData.sellerAddress || "\u00a0"}
+                </span>
               </div>
               <div className={styles.infoRow}>
                 <span className={styles.infoLabel}>เลขประจำตัวผู้เสียภาษี</span>
-                <span>{slipData.sellerTaxId}</span>
+                <span className={styles.infoValue}>
+                  {slipData.sellerTaxId || "\u00a0"}
+                </span>
               </div>
               <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>โทร.</span>
-                <span>{slipData.sellerPhone}</span>
+                <span className={styles.infoLabel}>โทร</span>
+                <span className={styles.infoValue}>
+                  {slipData.sellerPhone || "\u00a0"}
+                </span>
               </div>
             </div>
             <div className={styles.infoBox}>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>เลขที่เอกสาร</span>
-                <span>{slipData.documentNo}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>วันที่เอกสาร</span>
-                <span>{slipData.documentDate}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>เลขที่ใบรับซื้อ</span>
-                <span>{slipData.receiptNo}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>วันที่รถมาส่งสินค้า</span>
-                <span>{slipData.deliveryDate}</span>
-              </div>
-              <div className={styles.infoRow}>
-                <span className={styles.infoLabel}>เลขทะเบียนรถ</span>
-                <span>{slipData.licensePlate}</span>
+              <div className={styles.metaGrid}>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>เลขที่เอกสาร</span>
+                  <span className={styles.metaValue}>{slipData.documentNo}</span>
+                </div>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>วันที่เอกสาร</span>
+                  <span className={styles.metaValue}>
+                    {slipData.documentDate || "\u00a0"}
+                  </span>
+                </div>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>เลขที่ PO</span>
+                  <span className={styles.metaValue}>{slipData.receiptNo}</span>
+                </div>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>วันที่รถมาส่งสินค้า</span>
+                  <span className={styles.metaValue}>{slipData.deliveryDate}</span>
+                </div>
+                <div className={styles.metaCell}>
+                  <span className={styles.metaLabel}>เลขทะเบียนรถ</span>
+                  <span className={styles.metaValue}>
+                    {slipData.licensePlate || "\u00a0"}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -306,13 +366,12 @@ export default function RawTireWarehouseReceiptSlipPage({
           <table className={styles.itemsTable}>
             <thead>
               <tr>
-                <th style={{ width: 52 }}>ลำดับ</th>
+                <th style={{ width: 48 }}>ลำดับ</th>
                 <th>รหัสสินค้า / รายละเอียด</th>
-                <th style={{ width: 110 }}>คลัง</th>
-                <th style={{ width: 64 }}>หน่วย</th>
-                <th style={{ width: 80 }}>จำนวน</th>
-                <th style={{ width: 96 }}>ราคาต่อหน่วย</th>
-                <th style={{ width: 110 }}>จำนวนเงินรวม</th>
+                <th style={{ width: 56 }}>หน่วย</th>
+                <th style={{ width: 72 }}>จำนวน</th>
+                <th style={{ width: 88 }}>ราคาต่อหน่วย</th>
+                <th style={{ width: 100 }}>จำนวนเงินรวม</th>
               </tr>
             </thead>
             <tbody>
@@ -327,7 +386,6 @@ export default function RawTireWarehouseReceiptSlipPage({
                       <td className={styles.empty} />
                       <td className={styles.empty} />
                       <td className={styles.empty} />
-                      <td className={styles.empty} />
                     </tr>
                   );
                 }
@@ -335,9 +393,16 @@ export default function RawTireWarehouseReceiptSlipPage({
                   <tr key={item.no}>
                     <td className={styles.textCenter}>{item.no}</td>
                     <td>
-                      {item.productCode} {item.productName}
+                      <div>
+                        {item.productCode} {item.productName}
+                      </div>
+                      <div className={styles.warehouseLine}>
+                        คลัง : {item.warehouse}
+                      </div>
+                      {item.lotNo ? (
+                        <div className={styles.lotLine}>Lot : {item.lotNo}</div>
+                      ) : null}
                     </td>
-                    <td className={styles.textCenter}>{item.warehouse}</td>
                     <td className={styles.textCenter}>{item.unit}</td>
                     <td className={styles.textRight}>{item.quantity}</td>
                     <td className={styles.textRight}>{item.unitPrice}</td>
@@ -348,8 +413,12 @@ export default function RawTireWarehouseReceiptSlipPage({
             </tbody>
           </table>
 
-          <div className={styles.summaryWrap}>
-            <div className={styles.bahtText}>( {bahtText} )</div>
+          <div className={styles.footerBlock}>
+            <div className={styles.remarkPane}>
+              <div className={styles.remarkLabel}>หมายเหตุ</div>
+              <div className={styles.remarkBody}>{slipData.remark}</div>
+              <div className={styles.bahtText}>( {bahtText} )</div>
+            </div>
             <table className={styles.summaryTable}>
               <tbody>
                 <tr>
@@ -383,19 +452,19 @@ export default function RawTireWarehouseReceiptSlipPage({
               <div className={styles.sigLine} />
               <div className={styles.sigName}>{slipData.preparedBy}</div>
               <div className={styles.sigRole}>ผู้จัดทำ</div>
-              <div className={styles.sigDate}>วันที่ ___/___/______</div>
+              <div className={styles.sigDate}>วันที่ ____/____/________</div>
             </div>
             <div className={styles.sig}>
               <div className={styles.sigLine} />
               <div className={styles.sigName}>{slipData.verifiedBy}</div>
               <div className={styles.sigRole}>ผู้ตรวจสอบ</div>
-              <div className={styles.sigDate}>วันที่ ___/___/______</div>
+              <div className={styles.sigDate}>วันที่ ____/____/________</div>
             </div>
             <div className={styles.sig}>
               <div className={styles.sigLine} />
               <div className={styles.sigName}>{slipData.approvedBy}</div>
               <div className={styles.sigRole}>ผู้อนุมัติ</div>
-              <div className={styles.sigDate}>วันที่ ___/___/______</div>
+              <div className={styles.sigDate}>วันที่ ____/____/________</div>
             </div>
           </div>
         </article>

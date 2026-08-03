@@ -11,6 +11,10 @@ export default function Page({
 }) {
   const { purchaseOrderId } = use(params);
   return (
-    <GoodsReceiptCreateFromPoPage purchaseOrderId={purchaseOrderId} />
+    <GoodsReceiptCreateFromPoPage
+      purchaseOrderId={purchaseOrderId}
+      backHref={`/purchase-orders/${purchaseOrderId}`}
+      pageTitle="รับของจากใบสั่งซื้อ"
+    />
   );
 }

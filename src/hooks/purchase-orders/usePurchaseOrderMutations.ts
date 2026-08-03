@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
 import { ApiError } from "@/lib/api/client";
+import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
 import {
   cancelPurchaseOrder,
   confirmPurchaseOrder,
@@ -11,6 +12,10 @@ import {
   updatePurchaseOrder,
 } from "@/lib/api/purchase-orders";
 import { getAccessToken } from "@/lib/auth/token";
+import {
+  ATTACHMENT_GROUP_QUOTATION,
+  DOCUMENT_TYPE_PO,
+} from "@/types/document-attachments";
 import type {
   CreatePurchaseOrderFromPrBody,
   UpdatePurchaseOrderBody,
@@ -105,6 +110,42 @@ export function useCancelPurchaseOrderMutation() {
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useUploadPurchaseOrderAttachmentMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseOrdersQueryKey, "upload-attachment"],
+    mutationFn: ({
+      documentId,
+      file,
+      description,
+    }: {
+      documentId: string;
+      file: File;
+      description?: string;
+    }) =>
+      uploadDocumentAttachment(getAccessToken(), {
+        file,
+        documentType: DOCUMENT_TYPE_PO,
+        documentId,
+        attachmentGroup: ATTACHMENT_GROUP_QUOTATION,
+        description,
+      }),
+    onSuccess: (res, vars) => {
+      message.success(res.message || "อัปโหลดใบเสนอราคาสำเร็จ");
+      void queryClient.invalidateQueries({
+        queryKey: [...purchaseOrdersQueryKey, "attachments", vars.documentId],
+      });
+    },
+    onError: (err: Error) => {
+      message.error(
+        err instanceof ApiError ? err.message : "อัปโหลดไฟล์ไม่สำเร็จ",
       );
     },
   });

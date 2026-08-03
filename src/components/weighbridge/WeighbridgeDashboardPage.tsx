@@ -76,10 +76,10 @@ type ReceivingStage =
 
 const FLOW_LABELS: Record<string, string> = {
   WAITING_WEIGH_IN: "รอชั่งเข้า",
-  WAITING_SORT: "รอคัดแยก",
+  WAITING_SORT: "รอทำตั๋วชั่ง",
   WAITING_WEIGH_OUT: "รอชั่งออก",
   WAITING_APPROVAL: "รออนุมัติ",
-  WAITING_PAYMENT: "รอจ่ายเงิน",
+  WAITING_PAYMENT: "รอออกใบจ่ายเงิน",
   PAYMENT_PAID: "จ่ายเงินแล้ว",
   WAITING_STOCK_IN: "รอเข้าคลัง",
   STOCK_REQUEST_PENDING: "รออนุมัติเข้าคลัง",
@@ -98,13 +98,13 @@ const STAGE_OPTIONS: {
   { key: "weigh-out", label: "ชั่งออก", description: "รอชั่งน้ำหนักออก" },
   {
     key: "classify",
-    label: "ออกใบจ่ายเงิน",
-    description: "คัดแยก / สร้างใบรับซื้อเพื่อออกเอกสารจ่าย",
+    label: "ตั๋วชั่ง",
+    description: "คัดแยก / บันทึกตั๋วชั่งเพื่อออกใบจ่ายเงิน",
   },
   {
     key: "payment",
-    label: "จ่ายเงิน",
-    description: "รอจ่ายเงินผู้ขาย",
+    label: "ออกใบจ่ายเงิน",
+    description: "รอออกใบจ่ายเงินผู้ขาย",
   },
   { key: "paid", label: "จ่ายแล้ว", description: "จ่ายเงินครบแล้ว" },
   {
@@ -620,12 +620,12 @@ export default function WeighbridgeDashboardPage() {
     },
     {
       key: "classify" as ReceivingStage,
-      label: "รอออกใบจ่ายเงิน",
+      label: "รอทำตั๋วชั่ง",
       value: stageCounts.classify,
     },
     {
       key: "payment" as ReceivingStage,
-      label: "รอจ่ายเงิน",
+      label: "รอออกใบจ่ายเงิน",
       value: stageCounts.payment,
     },
     {
@@ -836,7 +836,7 @@ export default function WeighbridgeDashboardPage() {
                 router.push(`/receiving/${record.id}/classification`)
               }
             >
-              ออกใบจ่ายเงิน
+              ตั๋วชั่ง
             </Button>
             <Button
               size="small"
@@ -846,7 +846,7 @@ export default function WeighbridgeDashboardPage() {
                 router.push(`/receiving/receipts/${record.receiptId}/payment`)
               }
             >
-              {isPaid ? "จ่ายแล้ว" : "จ่ายเงิน"}
+              {isPaid ? "จ่ายแล้ว" : "ออกใบจ่ายเงิน"}
             </Button>
             <Button
               size="small"

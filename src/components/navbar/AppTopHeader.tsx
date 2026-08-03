@@ -24,6 +24,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/reports/sales-payments", title: "รายงานรับชำระเงิน" },
   { href: "/procurement/tracking", title: "ติดตามจัดซื้อ" },
   { href: "/purchase-orders", title: "ใบสั่งซื้อ PO" },
+  { href: "/purchase-orders/receive", title: "รับของ (PO)" },
   { href: "/purchase-requests/approvals", title: "อนุมัติใบขอซื้อ" },
   { href: "/purchase-requests/create", title: "สร้างใบขอซื้อ" },
   { href: "/purchase-requests", title: "ใบขอซื้อ PR" },
@@ -184,20 +185,24 @@ function resolvePageTitle(pathname: string, itemCategoryCode?: string | null) {
     return "ผู้ใช้งาน";
   }
 
+  if (/^\/purchase-orders\/[^/]+\/receive$/.test(pathname)) {
+    return "รับของจากใบสั่งซื้อ";
+  }
+
   if (/^\/receiving\/receipts\/[^/]+\/warehouse-receipt$/.test(pathname)) {
     return "ใบรับสินค้าเข้าคลัง";
   }
 
   if (/^\/receiving\/receipts\/[^/]+\/payment$/.test(pathname)) {
-    return "จ่ายเงินผู้ขายยาง";
+    return "ออกใบจ่ายเงิน";
   }
 
   if (/^\/receiving\/receipts\/[^/]+$/.test(pathname)) {
-    return "ใบรับซื้อ / คัดแยก";
+    return "ตั๋วชั่ง / ใบรับซื้อ";
   }
 
   if (/^\/receiving\/[^/]+\/classification$/.test(pathname)) {
-    return "ใบรับซื้อ / คัดแยก";
+    return "ตั๋วชั่ง / คัดแยก";
   }
 
   if (/^\/receiving\/[^/]+$/.test(pathname)) {

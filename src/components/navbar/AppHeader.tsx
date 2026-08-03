@@ -733,6 +733,16 @@ const purchaseMenus: MenuItem[] = [
     ],
   },
   {
+    key: "purchase-orders-receive",
+    label: "รับของ (PO)",
+    href: "/purchase-orders/receive",
+    icon: <IconPurchaseOrder />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+    ],
+  },
+  {
     key: "procurement-tracking",
     label: "ติดตามจัดซื้อ",
     href: "/procurement/tracking",

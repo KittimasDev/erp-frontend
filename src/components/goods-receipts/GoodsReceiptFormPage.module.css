@@ -176,9 +176,40 @@
   font-size: 13px;
 }
 
+.destList {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.destCard {
+  padding: 12px 12px 2px;
+  border: 1px dashed var(--pr-border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.destCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  color: var(--pr-green-dark);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.destFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
 .lineGrid {
   display: grid;
-  grid-template-columns: 1.4fr 0.7fr 0.9fr;
+  grid-template-columns: 1fr 1.2fr 1.2fr 0.9fr;
   gap: 0 12px;
 }
 

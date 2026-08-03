@@ -141,6 +141,33 @@
   font-size: 12px;
 }
 
+.pendingFileList {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.pendingFileItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--pr-border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.pendingFileName {
+  min-width: 0;
+  color: var(--pr-text);
+  font-size: 13px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  App,
   Button,
   DatePicker,
   Form,
@@ -11,10 +12,15 @@ import {
   InputNumber,
   Select,
   Spin,
+  Upload,
 } from "antd";
+import type { UploadProps } from "antd";
 import {
   ArrowLeftOutlined,
+  DeleteOutlined,
   FileAddOutlined,
+  PaperClipOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -24,6 +30,12 @@ import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useCreatePurchaseOrderFromPrMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import { usePurchaseOrderByPrQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchaseRequestQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
+import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
+import { getAccessToken } from "@/lib/auth/token";
+import {
+  ATTACHMENT_GROUP_QUOTATION,
+  DOCUMENT_TYPE_PO,
+} from "@/types/document-attachments";
 import styles from "./PurchaseOrderFormPage.module.css";
 
 type LineValues = {
@@ -48,6 +60,14 @@ type Props = {
   purchaseRequestId: string;
 };
 
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
 function formatMoney(value: number) {
   return value.toLocaleString("th-TH", {
     minimumFractionDigits: 2,
@@ -59,7 +79,10 @@ export default function PurchaseOrderCreateFromPrPage({
   purchaseRequestId,
 }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
   const prQuery = usePurchaseRequestQuery(purchaseRequestId);
   const existingPoQuery = usePurchaseOrderByPrQuery(purchaseRequestId);
   const createMutation = useCreatePurchaseOrderFromPrMutation();
@@ -143,6 +166,33 @@ export default function PurchaseOrderCreateFromPrPage({
     return { subtotal, discount, vat, total };
   }, [watchedDiscount, watchedItems, selectedTax, lineMetaByPrItemId, pr?.items]);
 
+  const uploadProps: UploadProps = {
+    multiple: true,
+    showUploadList: false,
+    accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
+    beforeUpload: (file) => {
+      if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
+        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        return Upload.LIST_IGNORE;
+      }
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        return Upload.LIST_IGNORE;
+      }
+      setPendingFiles((prev) => {
+        if (prev.some((f) => f.name === file.name && f.size === file.size)) {
+          return prev;
+        }
+        return [...prev, file];
+      });
+      return false;
+    },
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   if (prQuery.isLoading || existingPoQuery.isLoading) {
     return (
       <div className={styles.page}>
@@ -173,6 +223,8 @@ export default function PurchaseOrderCreateFromPrPage({
     );
   }
 
+  const saving = createMutation.isPending || isUploadingAttachments;
+
   const onFinish = async (values: FormValues) => {
     const response = await createMutation.mutateAsync({
       purchaseRequestId,
@@ -191,7 +243,38 @@ export default function PurchaseOrderCreateFromPrPage({
         })),
       },
     });
-    router.push(`/purchase-orders/${response.data.id}`);
+
+    const poId = response.data.id;
+    if (pendingFiles.length > 0) {
+      setIsUploadingAttachments(true);
+      let failed = 0;
+      try {
+        for (const file of pendingFiles) {
+          try {
+            await uploadDocumentAttachment(getAccessToken(), {
+              file,
+              documentType: DOCUMENT_TYPE_PO,
+              documentId: poId,
+              attachmentGroup: ATTACHMENT_GROUP_QUOTATION,
+            });
+          } catch (error) {
+            failed += 1;
+            console.error(error);
+          }
+        }
+        if (failed > 0) {
+          message.warning(
+            `สร้าง PO สำเร็จ แต่แนบไฟล์ไม่สำเร็จ ${failed} ไฟล์ — แนบใหม่ได้ที่หน้ารายละเอียด`,
+          );
+        } else {
+          message.success(`แนบใบเสนอราคา ${pendingFiles.length} ไฟล์แล้ว`);
+        }
+      } finally {
+        setIsUploadingAttachments(false);
+      }
+    }
+
+    router.push(`/purchase-orders/${poId}`);
   };
 
   return (
@@ -340,7 +423,10 @@ export default function PurchaseOrderCreateFromPrPage({
                                   { required: true, message: "ระบุราคา" },
                                 ]}
                               >
-                                <InputNumber min={0} style={{ width: "100%" }} />
+                                <InputNumber
+                                  min={0}
+                                  style={{ width: "100%" }}
+                                />
                               </Form.Item>
                               <Form.Item
                                 {...restField}
@@ -348,7 +434,10 @@ export default function PurchaseOrderCreateFromPrPage({
                                 label="ส่วนลดรายการ"
                                 name={[name, "discountAmount"]}
                               >
-                                <InputNumber min={0} style={{ width: "100%" }} />
+                                <InputNumber
+                                  min={0}
+                                  style={{ width: "100%" }}
+                                />
                               </Form.Item>
                               <Form.Item
                                 {...restField}
@@ -365,6 +454,49 @@ export default function PurchaseOrderCreateFromPrPage({
                     </div>
                   )}
                 </Form.List>
+              </div>
+
+              <div className={styles.sectionBlock}>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>
+                    <PaperClipOutlined /> ใบเสนอราคา / หลักฐานราคา
+                  </h2>
+                  <p className={styles.sectionHint}>
+                    แนบใบเสนอราคาจากพ่อค้าเพื่อยืนยันว่าราคาใน PO ตรงตามที่เสนอ
+                  </p>
+                </div>
+                <Upload {...uploadProps}>
+                  <Button icon={<UploadOutlined />} disabled={saving}>
+                    เลือกไฟล์แนบ
+                  </Button>
+                </Upload>
+                <p className={styles.sectionHint}>
+                  รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB —
+                  จะอัปโหลดเมื่อกดบันทึก
+                </p>
+                {pendingFiles.length > 0 ? (
+                  <ul className={styles.pendingFileList}>
+                    {pendingFiles.map((file, index) => (
+                      <li
+                        key={`${file.name}-${file.size}-${index}`}
+                        className={styles.pendingFileItem}
+                      >
+                        <span className={styles.pendingFileName}>
+                          {file.name}
+                        </span>
+                        <Button
+                          type="text"
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          disabled={saving}
+                          onClick={() => removePendingFile(index)}
+                          aria-label={`ลบ ${file.name}`}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             </div>
 
@@ -383,7 +515,7 @@ export default function PurchaseOrderCreateFromPrPage({
                   className={styles.saveBtn}
                   type="primary"
                   htmlType="submit"
-                  loading={createMutation.isPending}
+                  loading={saving}
                 >
                   บันทึกใบสั่งซื้อ
                 </Button>
@@ -412,6 +544,10 @@ export default function PurchaseOrderCreateFromPrPage({
               <div className={styles.summaryRow}>
                 <span>รวมทั้งสิ้น</span>
                 <strong>{formatMoney(preview.total)}</strong>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>ไฟล์แนบ</span>
+                <strong>{pendingFiles.length}</strong>
               </div>
             </div>
             <div className={styles.flowNote}>

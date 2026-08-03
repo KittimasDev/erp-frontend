@@ -1,35 +1,57 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Spin } from "antd";
+import { App, Button, Modal, Spin, Upload } from "antd";
+import type { UploadProps } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
+  DownloadOutlined,
   DollarOutlined,
   EditOutlined,
+  EyeOutlined,
   FilePdfOutlined,
   FileTextOutlined,
   HistoryOutlined,
   InboxOutlined,
+  PaperClipOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import {
   useCancelPurchaseOrderMutation,
   useConfirmPurchaseOrderMutation,
+  useUploadPurchaseOrderAttachmentMutation,
 } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
-import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import {
+  usePurchaseOrderAttachmentsQuery,
+  usePurchaseOrderQuery,
+} from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import { ApiError } from "@/lib/api/client";
+import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { getAccessToken } from "@/lib/auth/token";
 import { RoleCode } from "@/lib/auth/role-codes";
+import type { DocumentAttachment } from "@/types/document-attachments";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./PurchaseOrderDetailPage.module.css";
 
 type Props = { id: string };
+
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -59,14 +81,31 @@ function statusClass(status: string) {
   }
 }
 
+function isImageMime(mimeType?: string) {
+  return Boolean(mimeType?.startsWith("image/"));
+}
+
+function attachmentDisplayName(file: DocumentAttachment) {
+  return file.originalFileName || "ไฟล์แนบ";
+}
+
 export default function PurchaseOrderDetailPage({ id }: Props) {
   const router = useRouter();
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
   const query = usePurchaseOrderQuery(id);
+  const attachmentsQuery = usePurchaseOrderAttachmentsQuery(id);
   const confirmMutation = useConfirmPurchaseOrderMutation();
   const cancelMutation = useCancelPurchaseOrderMutation();
+  const uploadMutation = useUploadPurchaseOrderAttachmentMutation();
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewIsImage, setPreviewIsImage] = useState(false);
 
   const data = query.data?.data;
+  const attachments = attachmentsQuery.data?.data ?? [];
   const canWrite =
     userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
     userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
@@ -79,6 +118,9 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     isAdministrator();
   const canPay =
     userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
+  const canUploadAttachment =
+    canWrite &&
+    (data?.status === "DRAFT" || data?.status === "CONFIRMED");
 
   const grByPoQuery = useGoodsReceiptsByPoQuery(
     data ? data.id : undefined,
@@ -96,6 +138,82 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const linkedPayment = paymentByPoQuery.data?.data ?? null;
   const isPaid =
     data?.paymentStatus === "PAID" || linkedPayment?.status === "PAID";
+
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setPreviewTitle("");
+    setPreviewIsImage(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
+  const downloadAttachment = async (file: DocumentAttachment) => {
+    try {
+      const { blob, filename } = await downloadDocumentAttachment(
+        getAccessToken(),
+        file.id,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename || attachmentDisplayName(file);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "ดาวน์โหลดไฟล์ไม่สำเร็จ",
+      );
+    }
+  };
+
+  const openAttachmentPreview = async (file: DocumentAttachment) => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewTitle(attachmentDisplayName(file));
+    setPreviewIsImage(isImageMime(file.mimeType));
+    try {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      const { blob } = await downloadDocumentAttachment(
+        getAccessToken(),
+        file.id,
+      );
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch (error) {
+      setPreviewOpen(false);
+      message.error(
+        error instanceof ApiError ? error.message : "เปิดไฟล์ไม่สำเร็จ",
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const uploadProps: UploadProps = {
+    showUploadList: false,
+    accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
+    beforeUpload: (file) => {
+      if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
+        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        return Upload.LIST_IGNORE;
+      }
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        return Upload.LIST_IGNORE;
+      }
+      if (!data) {
+        return Upload.LIST_IGNORE;
+      }
+      void uploadMutation.mutateAsync({ documentId: data.id, file });
+      return false;
+    },
+  };
 
   if (query.isLoading) {
     return (
@@ -116,7 +234,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     );
   }
 
-  const busy = confirmMutation.isPending || cancelMutation.isPending;
+  const busy =
+    confirmMutation.isPending ||
+    cancelMutation.isPending ||
+    uploadMutation.isPending;
 
   const printPdf = async () => {
     const { generatePurchaseOrderPdf } = await import(
@@ -289,6 +410,73 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
           ) : null}
+
+          <div className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>
+                <PaperClipOutlined /> ใบเสนอราคา / ไฟล์แนบ
+              </h2>
+            </div>
+            {attachmentsQuery.isLoading ? (
+              <p className={styles.textBlock}>
+                <Spin size="small" /> กำลังโหลดไฟล์แนบ...
+              </p>
+            ) : attachments.length === 0 ? (
+              <p className={styles.textBlock}>ยังไม่มีไฟล์แนบใบเสนอราคา</p>
+            ) : (
+              <ul className={styles.attachmentList}>
+                {attachments.map((file) => (
+                  <li key={file.id} className={styles.attachmentItem}>
+                    <div className={styles.attachmentMeta}>
+                      <span className={styles.attachmentName}>
+                        {attachmentDisplayName(file)}
+                      </span>
+                      {file.description ? (
+                        <span className={styles.attachmentDesc}>
+                          {file.description}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className={styles.attachmentActions}>
+                      {(isImageMime(file.mimeType) ||
+                        file.mimeType === "application/pdf") && (
+                        <Button
+                          size="small"
+                          icon={<EyeOutlined />}
+                          onClick={() => void openAttachmentPreview(file)}
+                        >
+                          ดู
+                        </Button>
+                      )}
+                      <Button
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        onClick={() => void downloadAttachment(file)}
+                      >
+                        ดาวน์โหลด
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canUploadAttachment ? (
+              <Upload {...uploadProps}>
+                <Button
+                  icon={<UploadOutlined />}
+                  loading={uploadMutation.isPending}
+                  style={{ marginTop: 10 }}
+                >
+                  อัปโหลดใบเสนอราคา
+                </Button>
+              </Upload>
+            ) : null}
+            {canUploadAttachment ? (
+              <p className={styles.sectionHint}>
+                รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB
+              </p>
+            ) : null}
+          </div>
         </section>
 
         <aside className={styles.sideCard}>
@@ -316,6 +504,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             <div className={styles.sideRow}>
               <span>รวมทั้งสิ้น</span>
               <strong>{formatMoney(data.totalAmount)}</strong>
+            </div>
+            <div className={styles.sideRow}>
+              <span>ไฟล์แนบ</span>
+              <strong>{attachments.length}</strong>
             </div>
           </div>
 
@@ -359,7 +551,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 type="primary"
                 icon={<InboxOutlined />}
                 onClick={() =>
-                  router.push(`/goods-receipts/create-from-po/${data.id}`)
+                  router.push(`/purchase-orders/${data.id}/receive`)
                 }
               >
                 รับของ
@@ -500,6 +692,34 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           />
         </aside>
       </div>
+
+      <Modal
+        open={previewOpen}
+        title={previewTitle || "ดูไฟล์แนบ"}
+        onCancel={closePreview}
+        footer={null}
+        width={previewIsImage ? 720 : 900}
+        destroyOnHidden
+      >
+        {previewLoading || !previewUrl ? (
+          <div className={styles.stateCard}>
+            <Spin /> กำลังโหลดไฟล์...
+          </div>
+        ) : previewIsImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewUrl}
+            alt={previewTitle}
+            className={styles.previewImage}
+          />
+        ) : (
+          <iframe
+            title={previewTitle}
+            src={previewUrl}
+            className={styles.previewFrame}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
