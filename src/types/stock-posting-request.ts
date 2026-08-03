@@ -39,6 +39,15 @@ export type StockPostingReceiptItem = {
   pricePerKg: string;
   amount: string;
   unitId?: string;
+  postedWeightKg?: string;
+  remainingWeightKg?: string;
+  receivedWeightKg?: string;
+  warehouseId?: string;
+  warehouseCode?: string;
+  warehouseName?: string;
+  warehouseLocationId?: string;
+  locationCode?: string;
+  locationName?: string;
 };
 
 export type StockPostingRequest = {
@@ -70,11 +79,19 @@ export type StockPostingRequest = {
   items?: StockPostingReceiptItem[];
 };
 
-export type CreateStockPostingRequestBody = {
+export type CreateStockPostingRequestItemBody = {
+  purchaseItemId: string;
+  receivedWeightKg: number;
   warehouseId: string;
   warehouseLocationId: string;
+};
+
+export type CreateStockPostingRequestBody = {
+  warehouseId?: string;
+  warehouseLocationId?: string;
   postingDate: string;
   remark?: string;
+  items?: CreateStockPostingRequestItemBody[];
 };
 
 export type RejectStockPostingRequestBody = {

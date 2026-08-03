@@ -36,6 +36,8 @@ export type ReceiptItem = {
   classificationCode?: string;
   classificationName?: string;
   weightKg: string;
+  postedWeightKg?: string;
+  remainingWeightKg?: string;
   pricePerKg: string;
   amount: string;
   description?: string;

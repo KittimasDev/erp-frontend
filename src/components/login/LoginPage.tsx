@@ -137,14 +137,16 @@ export default function LoginPage() {
   );
 }
 
+const COMPANY_LOGO_URL = "/smt-energy-logo.png";
+
 function Brand({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <div className={`${styles.brand} ${isMobile ? styles.brandMobile : ""}`}>
-      <div className={styles.logoMark} />
-      <div className={styles.brandText}>
-        <strong>SMT</strong>
-        <span>ENERGY CO., LTD.</span>
-      </div>
+      <img
+        src={COMPANY_LOGO_URL}
+        alt="SMT Energy Co., Ltd."
+        className={styles.logoImage}
+      />
     </div>
   );
 }

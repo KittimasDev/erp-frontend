@@ -4,6 +4,7 @@ import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  App,
   Button,
   DatePicker,
   Form,
@@ -22,6 +23,7 @@ import dayjs from "dayjs";
 
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useStockBalancesQuery } from "@/hooks/inventory/useInventoryQueries";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
@@ -65,8 +67,16 @@ function formatMoney(value: number) {
   });
 }
 
+function formatQty(value: number) {
+  return value.toLocaleString("th-TH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+}
+
 export default function QuotationFormPage({ mode, id }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const detailQuery = useQuotationQuery(mode === "edit" ? id : undefined);
   const createMutation = useCreateQuotationMutation();
@@ -77,6 +87,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
     isActive: true,
     isSalesItem: true,
     itemCategoryCode: "FINISHED_GOODS",
+  });
+  const balancesQuery = useStockBalancesQuery({
+    itemCategoryCode: "FINISHED_GOODS",
+    hasStock: true,
   });
   const unitsQuery = useUnitsQuery({ isActive: true });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
@@ -92,6 +106,37 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const watchedDiscount = Form.useWatch("discountAmount", form) ?? 0;
   const watchedTaxId = Form.useWatch("taxRateId", form);
   const watchedCustomerId = Form.useWatch("customerId", form);
+
+  const availableByItemId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of balancesQuery.data?.data ?? []) {
+      const qty = Number(row.quantityAvailable || 0);
+      if (!(qty > 1e-9)) continue;
+      map.set(
+        row.itemId,
+        Number(((map.get(row.itemId) ?? 0) + qty).toFixed(3)),
+      );
+    }
+    return map;
+  }, [balancesQuery.data?.data]);
+
+  const selectedItemIds = useMemo(
+    () =>
+      new Set(
+        watchedItems
+          .map((line) => line?.itemId)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    [watchedItems],
+  );
+
+  const selectableItems = useMemo(() => {
+    return items.filter((item) => {
+      const available = availableByItemId.get(item.id) ?? 0;
+      if (available > 1e-9) return true;
+      return mode === "edit" && selectedItemIds.has(item.id);
+    });
+  }, [items, availableByItemId, mode, selectedItemIds]);
 
   useEffect(() => {
     if (mode === "create") {
@@ -162,15 +207,74 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
   const saving = createMutation.isPending || updateMutation.isPending;
 
+  const getAvailableForLine = (index: number, itemId?: string) => {
+    if (!itemId) return 0;
+    const total = availableByItemId.get(itemId) ?? 0;
+    const usedElsewhere = watchedItems.reduce((sum, line, i) => {
+      if (i === index || line?.itemId !== itemId) return sum;
+      return sum + (Number(line?.quantity) || 0);
+    }, 0);
+    return Number(Math.max(0, total - usedElsewhere).toFixed(3));
+  };
+
   const handleItemChange = (index: number, itemId?: string) => {
     const item = items.find((row) => row.id === itemId);
     if (item?.unitId) {
       form.setFieldValue(["items", index, "unitId"], item.unitId);
     }
+    const available = (() => {
+      if (!itemId) return 0;
+      const total = availableByItemId.get(itemId) ?? 0;
+      const usedElsewhere = watchedItems.reduce((sum, line, i) => {
+        if (i === index || line?.itemId !== itemId) return sum;
+        return sum + (Number(line?.quantity) || 0);
+      }, 0);
+      return Number(Math.max(0, total - usedElsewhere).toFixed(3));
+    })();
+    const currentQty = Number(
+      form.getFieldValue(["items", index, "quantity"]) || 0,
+    );
+    if (!currentQty || currentQty > available) {
+      form.setFieldValue(
+        ["items", index, "quantity"],
+        available > 0 ? available : undefined,
+      );
+    }
   };
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
+
+    for (const [index, line] of values.items.entries()) {
+      const itemId = line.itemId as string;
+      const qty = Number(line.quantity) || 0;
+      const available = availableByItemId.get(itemId) ?? 0;
+      const item = items.find((row) => row.id === itemId);
+      const label = item
+        ? `${item.itemCode} — ${item.itemNameTh}`
+        : `รายการที่ ${index + 1}`;
+
+      if (!(available > 1e-9) && mode === "create") {
+        message.error(`${label}: ไม่มีสต๊อกพร้อมใช้`);
+        return;
+      }
+
+      const usedElsewhere = values.items.reduce((sum, other, i) => {
+        if (i === index || other.itemId !== itemId) return sum;
+        return sum + (Number(other.quantity) || 0);
+      }, 0);
+      const remaining = Number(
+        Math.max(0, available - usedElsewhere).toFixed(3),
+      );
+
+      if (qty > remaining + 1e-9) {
+        message.error(
+          `${label}: จำนวน ${formatQty(qty)} เกินคงเหลือที่ขอได้ ${formatQty(remaining)} (สต๊อกพร้อมใช้ ${formatQty(available)})`,
+        );
+        return;
+      }
+    }
+
     const body: CreateQuotationBody = {
       quotationDate: values.quotationDate.format("YYYY-MM-DD"),
       customerId: values.customerId,
@@ -211,6 +315,8 @@ export default function QuotationFormPage({ mode, id }: Props) {
     );
   };
 
+  const itemsLoading = itemsQuery.isLoading || balancesQuery.isLoading;
+
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -223,14 +329,16 @@ export default function QuotationFormPage({ mode, id }: Props) {
             {mode === "create" ? "สร้างใบเสนอราคา" : "แก้ไขใบเสนอราคา"}
           </h1>
           <p className={styles.pageSubtitle}>
-            เลือกลูกค้าและรายการสินค้า — ระบบคำนวณยอดให้หลังบันทึก
+            เลือกลูกค้าและสินค้าที่มีสต๊อกพร้อมใช้ — แสดงจำนวนคงเหลือในรายการ
           </p>
         </div>
         <div className={styles.headerActions}>
           <Button
             icon={<ArrowLeftOutlined />}
             onClick={() =>
-              router.push(mode === "edit" && id ? `/quotations/${id}` : "/quotations")
+              router.push(
+                mode === "edit" && id ? `/quotations/${id}` : "/quotations",
+              )
             }
           >
             กลับ
@@ -326,6 +434,12 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
               <div className={styles.sectionBlock}>
                 <Typography.Title level={5}>รายการสินค้า</Typography.Title>
+                <Typography.Paragraph
+                  type="secondary"
+                  style={{ marginTop: -4, marginBottom: 12 }}
+                >
+                  เลือกได้เฉพาะสินค้าที่มีสต๊อกพร้อมใช้ &gt; 0 และจำนวนที่ขอต้องไม่เกินคงเหลือ
+                </Typography.Paragraph>
                 <Form.List
                   name="items"
                   rules={[
@@ -342,94 +456,149 @@ export default function QuotationFormPage({ mode, id }: Props) {
                 >
                   {(fields, { add, remove }, { errors }) => (
                     <div className={styles.lineList}>
-                      {fields.map((field, index) => (
-                        <div key={field.key} className={styles.lineCard}>
-                          <div className={styles.lineCardHeader}>
-                            <strong>รายการที่ {index + 1}</strong>
-                            {fields.length > 1 ? (
-                              <Button
-                                type="text"
-                                danger
-                                icon={<DeleteOutlined />}
-                                onClick={() => remove(field.name)}
+                      {fields.map((field, index) => {
+                        const lineItemId = watchedItems[index]?.itemId;
+                        const availableTotal = lineItemId
+                          ? (availableByItemId.get(lineItemId) ?? 0)
+                          : 0;
+                        const maxQty = getAvailableForLine(index, lineItemId);
+
+                        return (
+                          <div key={field.key} className={styles.lineCard}>
+                            <div className={styles.lineCardHeader}>
+                              <strong>รายการที่ {index + 1}</strong>
+                              {fields.length > 1 ? (
+                                <Button
+                                  type="text"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  onClick={() => remove(field.name)}
+                                >
+                                  ลบ
+                                </Button>
+                              ) : null}
+                            </div>
+                            <div className={styles.formGrid}>
+                              <Form.Item
+                                className={styles.formGridFull}
+                                name={[field.name, "itemId"]}
+                                label="สินค้า"
+                                rules={[
+                                  { required: true, message: "เลือกสินค้า" },
+                                ]}
+                                extra={
+                                  lineItemId
+                                    ? `สต๊อกพร้อมใช้รวม ${formatQty(availableTotal)} · ขอในบรรทัดนี้ได้สูงสุด ${formatQty(maxQty)}`
+                                    : "แสดงเฉพาะสินค้าที่มีสต๊อกพร้อมใช้"
+                                }
                               >
-                                ลบ
-                              </Button>
-                            ) : null}
+                                <Select
+                                  showSearch
+                                  optionFilterProp="label"
+                                  placeholder="เลือกสินค้าที่มีสต๊อก"
+                                  loading={itemsLoading}
+                                  notFoundContent={
+                                    itemsLoading
+                                      ? "กำลังโหลด..."
+                                      : "ไม่พบสินค้าที่มีสต๊อกพร้อมใช้"
+                                  }
+                                  options={selectableItems.map((item) => {
+                                    const available =
+                                      availableByItemId.get(item.id) ?? 0;
+                                    return {
+                                      value: item.id,
+                                      label: `${item.itemCode} — ${item.itemNameTh} (คงเหลือ ${formatQty(available)})`,
+                                    };
+                                  })}
+                                  onChange={(value) =>
+                                    handleItemChange(index, value)
+                                  }
+                                />
+                              </Form.Item>
+                              <Form.Item
+                                name={[field.name, "quantity"]}
+                                label="จำนวน"
+                                rules={[
+                                  { required: true, message: "กรอกจำนวน" },
+                                  {
+                                    validator: async (_, value) => {
+                                      const qty = Number(value) || 0;
+                                      const itemId = form.getFieldValue([
+                                        "items",
+                                        index,
+                                        "itemId",
+                                      ]) as string | undefined;
+                                      if (!itemId) return;
+                                      const max = getAvailableForLine(
+                                        index,
+                                        itemId,
+                                      );
+                                      if (qty > max + 1e-9) {
+                                        return Promise.reject(
+                                          new Error(
+                                            `ต้องไม่เกินคงเหลือ ${formatQty(max)}`,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  },
+                                ]}
+                              >
+                                <InputNumber
+                                  min={0.001}
+                                  max={maxQty > 0 ? maxQty : undefined}
+                                  step={0.001}
+                                  style={{ width: "100%" }}
+                                  disabled={!lineItemId}
+                                />
+                              </Form.Item>
+                              <Form.Item
+                                name={[field.name, "unitId"]}
+                                label="หน่วย"
+                                rules={[
+                                  { required: true, message: "เลือกหน่วย" },
+                                ]}
+                              >
+                                <Select
+                                  showSearch
+                                  optionFilterProp="label"
+                                  options={units.map((u) => ({
+                                    value: u.id,
+                                    label: `${u.code} — ${u.nameTh}`,
+                                  }))}
+                                />
+                              </Form.Item>
+                              <Form.Item
+                                name={[field.name, "unitPrice"]}
+                                label="ราคา/หน่วย"
+                                rules={[
+                                  { required: true, message: "กรอกราคา" },
+                                ]}
+                              >
+                                <InputNumber min={0} style={{ width: "100%" }} />
+                              </Form.Item>
+                              <Form.Item
+                                name={[field.name, "discountAmount"]}
+                                label="ส่วนลดรายการ"
+                              >
+                                <InputNumber min={0} style={{ width: "100%" }} />
+                              </Form.Item>
+                              <Form.Item
+                                className={styles.formGridFull}
+                                name={[field.name, "description"]}
+                                label="รายละเอียด"
+                              >
+                                <Input />
+                              </Form.Item>
+                            </div>
                           </div>
-                          <div className={styles.formGrid}>
-                            <Form.Item
-                              className={styles.formGridFull}
-                              name={[field.name, "itemId"]}
-                              label="สินค้า"
-                              rules={[{ required: true, message: "เลือกสินค้า" }]}
-                            >
-                              <Select
-                                showSearch
-                                optionFilterProp="label"
-                                placeholder="เลือกจาก Master สินค้า"
-                                notFoundContent={
-                                  itemsQuery.isLoading
-                                    ? "กำลังโหลด..."
-                                    : "ไม่พบสินค้าที่ใช้งาน — ไปเพิ่มที่ Master สินค้า"
-                                }
-                                options={items.map((item) => ({
-                                  value: item.id,
-                                  label: `${item.itemCode} — ${item.itemNameTh}`,
-                                }))}
-                                onChange={(value) =>
-                                  handleItemChange(index, value)
-                                }
-                              />
-                            </Form.Item>
-                            <Form.Item
-                              name={[field.name, "quantity"]}
-                              label="จำนวน"
-                              rules={[{ required: true, message: "กรอกจำนวน" }]}
-                            >
-                              <InputNumber min={0.001} step={0.001} style={{ width: "100%" }} />
-                            </Form.Item>
-                            <Form.Item
-                              name={[field.name, "unitId"]}
-                              label="หน่วย"
-                              rules={[{ required: true, message: "เลือกหน่วย" }]}
-                            >
-                              <Select
-                                showSearch
-                                optionFilterProp="label"
-                                options={units.map((u) => ({
-                                  value: u.id,
-                                  label: `${u.code} — ${u.nameTh}`,
-                                }))}
-                              />
-                            </Form.Item>
-                            <Form.Item
-                              name={[field.name, "unitPrice"]}
-                              label="ราคา/หน่วย"
-                              rules={[{ required: true, message: "กรอกราคา" }]}
-                            >
-                              <InputNumber min={0} style={{ width: "100%" }} />
-                            </Form.Item>
-                            <Form.Item
-                              name={[field.name, "discountAmount"]}
-                              label="ส่วนลดรายการ"
-                            >
-                              <InputNumber min={0} style={{ width: "100%" }} />
-                            </Form.Item>
-                            <Form.Item
-                              className={styles.formGridFull}
-                              name={[field.name, "description"]}
-                              label="รายละเอียด"
-                            >
-                              <Input />
-                            </Form.Item>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       <Button
                         type="dashed"
                         block
                         icon={<PlusOutlined />}
+                        disabled={selectableItems.length === 0}
                         onClick={() => add({ discountAmount: 0 })}
                       >
                         เพิ่มรายการ
@@ -495,10 +664,12 @@ export default function QuotationFormPage({ mode, id }: Props) {
             </div>
           </div>
           <p className={styles.masterHint}>
-            ดึงจาก Master —{" "}
-            <Link href="/customers">ลูกค้า</Link>
+            สินค้าที่มีสต๊อก {selectableItems.length} รายการ ·{" "}
+            <Link href="/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS">
+              ดูยอดคงเหลือ
+            </Link>
             {" · "}
-            <Link href="/masters/items">สินค้า</Link>
+            <Link href="/customers">ลูกค้า</Link>
           </p>
         </aside>
       </div>

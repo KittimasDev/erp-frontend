@@ -1371,7 +1371,11 @@ export default function AppHeader({
       <div className={styles.sidebarInner}>
         <div className={styles.sidebarTop}>
           <div className={styles.logoBlock}>
-            {collapsed ? "SMT" : "SMT ERP"}
+            <img
+              src="/smt-energy-logo.png"
+              alt="SMT Energy"
+              className={styles.logoImage}
+            />
           </div>
         </div>
 

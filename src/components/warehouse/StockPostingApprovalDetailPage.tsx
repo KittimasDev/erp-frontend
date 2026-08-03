@@ -164,12 +164,32 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
         ),
     },
     {
-      title: "น้ำหนัก (กก.)",
+      title: "น้ำหนักขอรับเข้า (กก.)",
       dataIndex: "weightKg",
       key: "weightKg",
       align: "right",
-      width: 130,
+      width: 140,
       render: (value: string) => formatWeight(value),
+    },
+    {
+      title: "คลัง / ตำแหน่ง",
+      key: "warehouse",
+      width: 200,
+      render: (_, row) =>
+        row.warehouseName || row.locationName ? (
+          <div>
+            <div>
+              {row.warehouseCode ? `${row.warehouseCode} · ` : ""}
+              {row.warehouseName ?? "-"}
+            </div>
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {row.locationCode ? `${row.locationCode} · ` : ""}
+              {row.locationName ?? "-"}
+            </Typography.Text>
+          </div>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "ราคา/กก.",

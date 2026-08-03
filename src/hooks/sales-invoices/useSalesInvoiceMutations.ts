@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
 import { ApiError } from "@/lib/api/client";
+import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
 import {
   cancelSalesInvoice,
   confirmSalesInvoice,
@@ -12,6 +13,10 @@ import {
   updateSalesInvoice,
 } from "@/lib/api/sales-invoices";
 import { getAccessToken } from "@/lib/auth/token";
+import {
+  ATTACHMENT_GROUP_PAYMENT,
+  DOCUMENT_TYPE_SALES_INVOICE,
+} from "@/types/document-attachments";
 import type {
   CreateSalesInvoiceFromDeliveryBody,
   ReceiveSalesInvoicePaymentBody,
@@ -129,6 +134,48 @@ export function useCancelSalesInvoiceMutation() {
         error instanceof ApiError
           ? error.message
           : "ยกเลิกใบแจ้งหนี้ไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useUploadSalesInvoicePaymentAttachmentMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...salesInvoicesQueryKey, "upload-payment-attachment"],
+    mutationFn: ({
+      documentId,
+      file,
+      description,
+    }: {
+      documentId: string;
+      file: File;
+      description?: string;
+    }) =>
+      uploadDocumentAttachment(getAccessToken(), {
+        file,
+        documentType: DOCUMENT_TYPE_SALES_INVOICE,
+        documentId,
+        attachmentGroup: ATTACHMENT_GROUP_PAYMENT,
+        description,
+      }),
+    onSuccess: (res, vars) => {
+      message.success(res.message || "อัปโหลดไฟล์ยืนยันชำระเงินสำเร็จ");
+      void queryClient.invalidateQueries({
+        queryKey: [
+          ...salesInvoicesQueryKey,
+          "payment-attachments",
+          vars.documentId,
+        ],
+      });
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "อัปโหลดไฟล์ยืนยันชำระเงินไม่สำเร็จ",
       );
     },
   });

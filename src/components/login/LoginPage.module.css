@@ -116,48 +116,17 @@
   gap: 14px;
 }
 
-.logoMark {
-  width: 54px;
-  height: 60px;
-  flex: none;
-  position: relative;
-  border-radius: 22px 22px 22px 7px;
-  transform: rotate(-8deg);
-  background: linear-gradient(145deg, #9bc52e 0%, var(--green) 55%, var(--green-dark) 100%);
-  box-shadow:
-    0 16px 28px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.28);
-}
-
-.logoMark::after {
-  content: "";
-  position: absolute;
-  width: 18px;
-  height: 34px;
-  right: 7px;
-  bottom: 5px;
-  border-radius: 12px 12px 12px 4px;
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.brandText strong {
+.logoImage {
+  height: 64px;
+  width: auto;
+  max-width: min(280px, 100%);
   display: block;
-  font-size: 34px;
-  line-height: 1;
-  letter-spacing: 0.025em;
+  object-fit: contain;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
-
-.brandText span {
-  display: block;
-  margin-top: 6px;
-  color: #dff2b3;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-}
-
-.brandMobile .brandText strong { color: var(--gray); }
-.brandMobile .brandText span { color: var(--green); }
 
 .hero {
   max-width: 510px;
@@ -492,13 +461,7 @@
     max-width: 430px;
   }
   .mobileBrand { display: flex; }
-  .logoMark {
-    width: 46px;
-    height: 52px;
-    border-radius: 20px 20px 20px 6px;
-  }
-  .brandText strong { font-size: 28px; }
-  .brandText span { font-size: 9px; }
+  .logoImage { height: 48px; }
   .welcomeBadge {
     height: 34px;
     padding: 0 12px;

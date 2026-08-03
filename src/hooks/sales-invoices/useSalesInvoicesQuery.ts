@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { getDocumentAttachments } from "@/lib/api/document-attachments";
 import {
   getPendingSalesInvoices,
   getSalesInvoice,
@@ -9,6 +10,10 @@ import {
   getSalesInvoices,
 } from "@/lib/api/sales-invoices";
 import { getAccessToken } from "@/lib/auth/token";
+import {
+  ATTACHMENT_GROUP_PAYMENT,
+  DOCUMENT_TYPE_SALES_INVOICE,
+} from "@/types/document-attachments";
 import type { SalesInvoiceQueryParams } from "@/types/sales-invoices";
 
 export const salesInvoicesQueryKey = ["sales-invoices"] as const;
@@ -44,5 +49,23 @@ export function useSalesInvoiceByDeliveryQuery(deliveryOrderId?: string) {
     queryFn: () =>
       getSalesInvoiceByDelivery(getAccessToken(), deliveryOrderId as string),
     enabled: Boolean(deliveryOrderId),
+  });
+}
+
+export function useSalesInvoicePaymentAttachmentsQuery(invoiceId?: string) {
+  return useQuery({
+    queryKey: [...salesInvoicesQueryKey, "payment-attachments", invoiceId],
+    queryFn: () =>
+      getDocumentAttachments(getAccessToken(), {
+        documentType: DOCUMENT_TYPE_SALES_INVOICE,
+        documentId: invoiceId as string,
+      }),
+    enabled: Boolean(invoiceId),
+    select: (res) => ({
+      ...res,
+      data: (res.data ?? []).filter(
+        (row) => row.attachmentGroup === ATTACHMENT_GROUP_PAYMENT,
+      ),
+    }),
   });
 }

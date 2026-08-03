@@ -26,3 +26,6 @@ export type DocumentAttachmentApiResponse = {
 
 export const DOCUMENT_TYPE_PO = "PO";
 export const ATTACHMENT_GROUP_QUOTATION = "QUOTATION";
+
+export const DOCUMENT_TYPE_SALES_INVOICE = "SALES_INVOICE";
+export const ATTACHMENT_GROUP_PAYMENT = "PAYMENT";
