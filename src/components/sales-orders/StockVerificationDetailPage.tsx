@@ -23,6 +23,7 @@ import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
   SALES_ORDER_STATUS_LABEL,
+  type SalesOrderStatus,
   type SalesOrderStockVerificationLine,
 } from "@/types/sales-orders";
 import styles from "./StockVerificationDetailPage.module.css";
@@ -165,7 +166,8 @@ export default function StockVerificationDetailPage({ id }: Props) {
               ? `${order.customer.customerCode} — ${order.customer.nameTh}`
               : "—"}{" "}
             · วันที่ SO {formatDate(order.soDate)} ·{" "}
-            {SALES_ORDER_STATUS_LABEL[order.status] ?? order.status}
+            {SALES_ORDER_STATUS_LABEL[order.status as SalesOrderStatus] ??
+              order.status}
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -243,7 +245,8 @@ export default function StockVerificationDetailPage({ id }: Props) {
               <span
                 className={`${styles.statusPill} ${statusClass(order.status)}`}
               >
-                {SALES_ORDER_STATUS_LABEL[order.status] ?? order.status}
+                {SALES_ORDER_STATUS_LABEL[order.status as SalesOrderStatus] ??
+              order.status}
               </span>
             </div>
             <div className={styles.metaGrid}>

@@ -20,3 +20,5 @@ alwaysApply: true
 - **Ant Design toast/modal/notification** — ใช้ `App.useApp()` เท่านั้น ห้าม `message.*` / `Modal.confirm` / `notification.*` แบบ static import; component ต้องอยู่ใต้ `<AntdApp>` (มีใน `src/app/layout.tsx` แล้ว)
 - **`notification.*` args** — ใช้ `title` + `description` ห้ามใส่ `message` (deprecated / console error); อย่าสับสนกับ `message.success()` ของ toast API
 - Modal ใหม่ในโปรเจกต์นี้ใช้ `open` + `destroyOnHidden` (ไม่ใช้ `visible` / `destroyOnClose`) — รายละเอียดดู skill **`antd-erp-frontend`**
+- **TypeScript `*_STATUS_LABEL[status]`** — ถ้า field เป็น `SomeStatus | string` หรือ `string` ต้อง cast เช่น `LABEL[status as SomeStatus] ?? status` ไม่งั้น `next build` พัง (dev อาจไม่โชว์) — skill **`erp-frontend-verify`**
+- **หลังแก้ frontend ทุกครั้ง** — รัน `cd frontend_web && npm run build` จนผ่านก่อนบอกว่างานเสร็จ (บังคับ; lint/dev ไม่พอจับ type error บางแบบ) — skill **`erp-frontend-verify`**
