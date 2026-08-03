@@ -717,7 +717,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
           const filesToUpload = pendingFiles
             .map((f) => f.originFileObj)
-            .filter((f): f is File => Boolean(f));
+            .filter((f): f is NonNullable<typeof f> => Boolean(f));
           for (const file of filesToUpload) {
             await uploadPaymentProof(
               file,
