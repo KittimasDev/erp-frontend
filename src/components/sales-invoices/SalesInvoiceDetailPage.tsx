@@ -172,17 +172,6 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     userHasRole(RoleCode.SALES_MANAGER) ||
     isAdministrator();
 
-  const canReceivePayment =
-    canWrite &&
-    data.status === "POSTED" &&
-    (data.paymentStatus === "UNPAID" ||
-      data.paymentStatus === "PARTIALLY_PAID");
-
-  const canUploadPaymentProof =
-    canWrite &&
-    data.status === "POSTED" &&
-    ((data.payments?.length ?? 0) > 0 || canReceivePayment);
-
   const busy =
     confirmMutation.isPending ||
     receiveMutation.isPending ||
@@ -294,23 +283,6 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     },
     onChange: ({ fileList }) => {
       setPendingFiles(fileList);
-    },
-  };
-
-  const directUploadProps: UploadProps = {
-    showUploadList: false,
-    accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
-    beforeUpload: (file) => {
-      if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
-        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
-        return Upload.LIST_IGNORE;
-      }
-      if (file.size > MAX_ATTACHMENT_BYTES) {
-        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
-        return Upload.LIST_IGNORE;
-      }
-      void uploadPaymentProof(file);
-      return false;
     },
   };
 
@@ -592,8 +564,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           </div>
 
           {(data.payments?.length ?? 0) > 0 ||
-          paymentAttachments.length > 0 ||
-          canUploadPaymentProof ? (
+          paymentAttachments.length > 0 ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h2 className={styles.sectionTitle}>การรับชำระ</h2>
@@ -630,24 +601,13 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
               <div className={styles.attachmentBlock}>
                 <div className={styles.attachmentHead}>
-                  <strong>ไฟล์ยืนยันการชำระเงิน</strong>
-                  {canUploadPaymentProof ? (
-                    <Upload {...directUploadProps}>
-                      <Button
-                        size="small"
-                        icon={<UploadOutlined />}
-                        loading={uploadAttachmentMutation.isPending}
-                      >
-                        แนบไฟล์
-                      </Button>
-                    </Upload>
-                  ) : null}
+                  <strong>หลักฐานการชำระเงิน</strong>
                 </div>
                 {attachmentsQuery.isLoading ? (
                   <Spin size="small" />
                 ) : paymentAttachments.length === 0 ? (
                   <p className={styles.attachmentEmpty}>
-                    ยังไม่มีไฟล์ยืนยัน — แนบสลิปโอน/หลักฐานได้ตอนรับชำระหรือหลังบันทึก
+                    ยังไม่มีหลักฐาน — แนบได้ตอนรับชำระเงิน
                   </p>
                 ) : (
                   <ul className={styles.attachmentList}>
