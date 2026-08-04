@@ -957,6 +957,12 @@ const reportMenus: MenuItem[] = [
 
 const settingMenus: MenuItem[] = [
   {
+    key: "temp-cases",
+    label: "Case / Issue",
+    href: "/case",
+    icon: <IconReport />,
+  },
+  {
     key: "users",
     label: "จัดการผู้ใช้งานและแผนก",
     href: "/users",

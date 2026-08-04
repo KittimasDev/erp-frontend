@@ -18,6 +18,7 @@ import styles from "./AppTopHeader.module.css";
 
 const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/", title: "Dashboard" },
+  { href: "/case", title: "Case / Issue" },
   { href: "/production/production-orders", title: "ใบสั่งผลิต (Pyrolysis)" },
   { href: "/reports/ar-aging", title: "รายงานลูกหนี้คงค้าง" },
   { href: "/reports/sales-invoices", title: "รายงานใบแจ้งหนี้" },
