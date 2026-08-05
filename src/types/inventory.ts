@@ -49,6 +49,30 @@ export type StockBalanceQueryParams = {
   hasStock?: boolean;
 };
 
+export type StockBalanceByItemRow = {
+  itemId: string;
+  itemCode: string;
+  itemNameTh: string;
+  itemCategoryName?: string;
+  unitId: string;
+  unitCode?: string;
+  totalQuantityOnHand: string;
+  totalQuantityAvailable: string;
+  totalQuantityReserved: string;
+  totalQuantityOnHold: string;
+  totalQuantityBlocked: string;
+  warehouseCount: number;
+  locationCount: number;
+  minimumStockQty?: string;
+  isLowStock: boolean;
+};
+
+export type StockBalanceByItemListApiResponse = {
+  statusCode: number;
+  message: string;
+  data: StockBalanceByItemRow[];
+};
+
 export type StockMovementRow = {
   id: string;
   movementDate: string;
@@ -120,7 +144,26 @@ export type InventoryLotBalanceRow = {
   quantityAvailable: string;
   quantityReserved: string;
   averageCost: string;
+  expiryDate?: string;
+  expirySource?: "LOT" | "CALCULATED";
+  daysUntilExpiry?: number;
+  expiryStatus: LotExpiryStatus;
   updatedAt: string;
+};
+
+export type LotExpiryStatus =
+  | "EXPIRED"
+  | "CRITICAL"
+  | "WARNING"
+  | "OK"
+  | "UNKNOWN";
+
+export const LOT_EXPIRY_STATUS_LABEL: Record<LotExpiryStatus, string> = {
+  EXPIRED: "หมดอายุแล้ว",
+  CRITICAL: "วิกฤต (≤7 วัน)",
+  WARNING: "ใกล้หมดอายุ (≤30 วัน)",
+  OK: "ปกติ",
+  UNKNOWN: "ไม่ทราบ",
 };
 
 export type InventoryLotQueryParams = {
@@ -131,6 +174,7 @@ export type InventoryLotQueryParams = {
   itemCategoryCode?: string;
   q?: string;
   hasStock?: boolean;
+  nearExpiry?: boolean;
 };
 
 export type StockBalanceListApiResponse = {

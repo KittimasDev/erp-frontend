@@ -4,6 +4,7 @@ import type {
   InventoryLotQueryParams,
   LowStockListApiResponse,
   LowStockQueryParams,
+  StockBalanceByItemListApiResponse,
   StockBalanceListApiResponse,
   StockBalanceQueryParams,
   StockBalanceSummaryApiResponse,
@@ -33,6 +34,16 @@ export function getStockBalances(
 ) {
   return apiFetch<StockBalanceListApiResponse>(
     `/api/inventory/stock-balances${toQuery(params)}`,
+    { method: "GET", token },
+  );
+}
+
+export function getStockBalancesByItem(
+  token: string,
+  params?: StockBalanceQueryParams,
+) {
+  return apiFetch<StockBalanceByItemListApiResponse>(
+    `/api/inventory/stock-balances/by-item${toQuery(params)}`,
     { method: "GET", token },
   );
 }

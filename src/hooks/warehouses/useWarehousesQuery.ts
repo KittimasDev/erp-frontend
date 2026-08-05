@@ -12,5 +12,6 @@ export function useWarehousesQuery(params?: WarehouseQueryParams) {
   return useQuery({
     queryKey: [...warehousesQueryKey, params ?? {}],
     queryFn: () => getWarehouses(getAccessToken(), params),
+    staleTime: 300_000,
   });
 }

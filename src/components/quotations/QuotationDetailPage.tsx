@@ -29,7 +29,6 @@ import {
   QUOTATION_STATUS_LABEL,
   type QuotationStatus,
 } from "@/types/quotations";
-import { generateSalesQuotationPdf } from "@/utils/generateSalesQuotationPdf";
 import styles from "./QuotationDetailPage.module.css";
 
 type Props = { id: string };
@@ -107,8 +106,11 @@ export default function QuotationDetailPage({ id }: Props) {
     cancelMutation.isPending;
   const creatingSalesOrder = createSalesOrderMutation.isPending;
 
-  const printPdf = () => {
-    void generateSalesQuotationPdf({
+  const printPdf = async () => {
+    const { generateSalesQuotationPdf } = await import(
+      "@/utils/generateSalesQuotationPdf"
+    );
+    await generateSalesQuotationPdf({
       quotationNo: data.quotationNo,
       quotationDate: formatDate(data.quotationDate),
       customerName: data.customer?.nameTh ?? "—",

@@ -19,7 +19,6 @@ import { getAccessToken } from "@/lib/auth/token";
 import { ApiError } from "@/lib/api/client";
 import type { LabTestResult } from "@/types/laboratory";
 import { LAB_SAMPLE_STATUS_LABEL } from "@/types/laboratory";
-import { generateLabCoaPdf } from "@/utils/generateLabCoaPdf";
 import styles from "./LabSampleDetailPage.module.css";
 
 type Props = { id: string };
@@ -80,6 +79,7 @@ export default function LabSampleDetailPage({ id }: Props) {
         getLabSampleQrCode(token, id).catch(() => null),
       ]);
       const coa = coaRes.data;
+      const { generateLabCoaPdf } = await import("@/utils/generateLabCoaPdf");
       await generateLabCoaPdf({
         sampleNo: coa.sample.sampleNo,
         sampleType: coa.sample.sampleType,

@@ -63,9 +63,9 @@ export default function AppShell({
           <AppTopHeader />
         </Suspense>
 
-        <div className="mainLayout" key={pathname}>
+        <main id="main-content" className="mainLayout" key={pathname}>
           <ConfigProvider theme={mainContentTheme}>{children}</ConfigProvider>
-        </div>
+        </main>
       </div>
     </div>
   );

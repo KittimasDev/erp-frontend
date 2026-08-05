@@ -40,7 +40,6 @@ import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { PackingItem } from "@/types/packings";
 import { PACKING_STATUS_LABEL } from "@/types/packings";
-import { generatePackingPdf } from "@/utils/generatePackingPdf";
 import styles from "./PackingFormPage.module.css";
 
 type Props = { id: string; mode: "view" | "edit" };
@@ -296,7 +295,10 @@ export default function PackingFormPage({ id, mode }: Props) {
           <Button
             className={styles.secondaryBtn}
             icon={<FilePdfOutlined />}
-            onClick={() => {
+            onClick={async () => {
+              const { generatePackingPdf } = await import(
+                "@/utils/generatePackingPdf"
+              );
               void generatePackingPdf({
                 packingNo: data.packingNo,
                 packingDate: dayjs(data.packingDate).format("DD/MM/YYYY"),

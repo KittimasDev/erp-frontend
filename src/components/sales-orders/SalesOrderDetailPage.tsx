@@ -39,7 +39,6 @@ import {
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
-import { generateSalesOrderPdf } from "@/utils/generateSalesOrderPdf";
 import styles from "./SalesOrderDetailPage.module.css";
 
 type Props = { id: string };
@@ -175,8 +174,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const busy = confirmMutation.isPending || cancelMutation.isPending;
   const progress = resolveSalesOrderProgress(data.status);
 
-  const printPdf = () => {
-    void generateSalesOrderPdf({
+  const printPdf = async () => {
+    const { generateSalesOrderPdf } = await import(
+      "@/utils/generateSalesOrderPdf"
+    );
+    await generateSalesOrderPdf({
       soNo: data.soNo,
       soDate: formatDate(data.soDate),
       customerName: data.customer?.nameTh ?? "—",

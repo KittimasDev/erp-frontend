@@ -7,6 +7,7 @@ import {
   getLowStockItems,
   getStockBalanceSummary,
   getStockBalances,
+  getStockBalancesByItem,
   getStockMovements,
 } from "@/lib/api/inventory";
 import { getAccessToken } from "@/lib/auth/token";
@@ -19,10 +20,25 @@ import type {
 
 export const inventoryQueryKey = ["inventory"] as const;
 
-export function useStockBalancesQuery(params?: StockBalanceQueryParams) {
+export function useStockBalancesQuery(
+  params?: StockBalanceQueryParams,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: [...inventoryQueryKey, "stock-balances", params ?? {}],
     queryFn: () => getStockBalances(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useStockBalancesByItemQuery(
+  params?: StockBalanceQueryParams,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: [...inventoryQueryKey, "stock-balances-by-item", params ?? {}],
+    queryFn: () => getStockBalancesByItem(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }
 

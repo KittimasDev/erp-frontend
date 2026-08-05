@@ -27,22 +27,20 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         return;
       }
 
+      // Optimistic shell after mount — must not read localStorage in useState initializer (hydration mismatch)
+      if (!cancelled) {
+        setReady(true);
+      }
+
       try {
         const me = await getMe(getAccessToken());
         if (!cancelled) {
           setStoredUser(me.data);
         }
       } catch {
-        // /me ตรวจสอบสิทธิ์ไม่ได้ (token หมดอายุ, ไม่ผ่านสิทธิ์, หรือเรียก backend ไม่ได้เลย)
-        // ไม่ปล่อยให้ค้างอยู่ในสถานะไม่ชัดเจน — พาไปหน้า login ใหม่เสมอ
         if (!cancelled) {
           redirectToLogin(next);
         }
-        return;
-      }
-
-      if (!cancelled) {
-        setReady(true);
       }
     }
 

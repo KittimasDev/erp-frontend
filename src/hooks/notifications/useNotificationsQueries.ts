@@ -15,13 +15,23 @@ export const notificationsQueryKey = ["notifications"] as const;
 /** ดึง noti บ่อยขึ้น — หลังอนุมัติเบิกควร invalidate ทันทีด้วย */
 const POLL_MS = 5_000;
 
+/** หยุด poll ซ้ำเมื่อ API ล้ม (เช่น backend ยังไม่รัน) — ลด log ECONNREFUSED ใน terminal */
+function notificationPollInterval(query: {
+  state: { status: string };
+}): number | false {
+  if (query.state.status === "error") {
+    return false;
+  }
+  return POLL_MS;
+}
+
 export function useNotificationsQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: [...notificationsQueryKey, "list"],
     queryFn: () => getNotifications(getAccessToken()),
     enabled: (options?.enabled ?? true) && hasAccessToken(),
-    refetchInterval: POLL_MS,
-    refetchOnWindowFocus: true,
+    refetchInterval: notificationPollInterval,
+    refetchOnWindowFocus: (query) => query.state.status !== "error",
   });
 }
 
@@ -32,8 +42,8 @@ export function useNotificationsUnreadCountQuery(options?: {
     queryKey: [...notificationsQueryKey, "unread-count"],
     queryFn: () => getNotificationsUnreadCount(getAccessToken()),
     enabled: (options?.enabled ?? true) && hasAccessToken(),
-    refetchInterval: POLL_MS,
-    refetchOnWindowFocus: true,
+    refetchInterval: notificationPollInterval,
+    refetchOnWindowFocus: (query) => query.state.status !== "error",
   });
 }
 

@@ -10,7 +10,13 @@ export default function QueryProvider({ children }: { children: ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 30_000,
-            retry: 1,
+            // ไม่ retry ซ้ำเมื่อ backend ไม่รัน (Failed to fetch / proxy ECONNREFUSED)
+            retry: (failureCount, error) => {
+              if (error instanceof TypeError) {
+                return false;
+              }
+              return failureCount < 1;
+            },
             refetchOnWindowFocus: false,
           },
           mutations: {

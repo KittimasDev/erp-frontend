@@ -303,6 +303,7 @@
     minmax(140px, 0.9fr)
     minmax(200px, 1.2fr)
     auto
+    auto
     auto;
   gap: 12px;
   align-items: end;
@@ -371,4 +372,60 @@
   .header {
     flex-direction: column;
   }
+}
+
+.expiryExpiredRow > td {
+  background: #fff1f0 !important;
+}
+
+.expiryExpiredRow:hover > td {
+  background: #ffe4e1 !important;
+}
+
+.expiryCriticalRow > td {
+  background: #fff2e8 !important;
+}
+
+.expiryCriticalRow:hover > td {
+  background: #ffe7d9 !important;
+}
+
+.expiryWarningRow > td {
+  background: #fffbe6 !important;
+}
+
+.expiryWarningRow:hover > td {
+  background: #fff7cc !important;
+}
+
+.expiryBadgeExpired {
+  background: rgba(207, 19, 34, 0.14);
+  color: #cf1322;
+}
+
+.expiryBadgeCritical {
+  background: rgba(212, 56, 13, 0.14);
+  color: #d4380d;
+}
+
+.expiryBadgeWarning {
+  background: rgba(212, 136, 6, 0.16);
+  color: #d48806;
+}
+
+.expiryBadgeOk {
+  background: #eef0f3;
+  color: #5c6570;
+}
+
+.metricDanger {
+  color: #cf1322 !important;
+}
+
+.metricCritical {
+  color: #d4380d !important;
+}
+
+.metricWarning {
+  color: #d48806 !important;
 }

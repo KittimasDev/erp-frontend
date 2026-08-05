@@ -14,6 +14,10 @@ import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWareh
 import type {
   InventoryLotBalanceRow,
   InventoryLotQueryParams,
+  LotExpiryStatus,
+} from "@/types/inventory";
+import {
+  LOT_EXPIRY_STATUS_LABEL,
 } from "@/types/inventory";
 import { getInventoryPageScope } from "./inventory-page-copy";
 import styles from "./InventoryLotsPage.module.css";
@@ -44,19 +48,60 @@ function lotStatusClass(status?: string) {
   return styles.statusMuted;
 }
 
+function expiryStatusClass(status?: string) {
+  const value = (status ?? "").toUpperCase();
+  if (value === "EXPIRED") {
+    return styles.expiryBadgeExpired;
+  }
+  if (value === "CRITICAL") {
+    return styles.expiryBadgeCritical;
+  }
+  if (value === "WARNING") {
+    return styles.expiryBadgeWarning;
+  }
+  return styles.expiryBadgeOk;
+}
+
+function expiryRowClass(status?: string) {
+  const value = (status ?? "").toUpperCase();
+  if (value === "EXPIRED") {
+    return styles.expiryExpiredRow;
+  }
+  if (value === "CRITICAL") {
+    return styles.expiryCriticalRow;
+  }
+  if (value === "WARNING") {
+    return styles.expiryWarningRow;
+  }
+  return "";
+}
+
+function formatDaysUntilExpiry(days?: number) {
+  if (days == null || Number.isNaN(days)) {
+    return null;
+  }
+  if (days < 0) {
+    return `เลยมา ${Math.abs(days)} วัน`;
+  }
+  if (days === 0) {
+    return "หมดอายุวันนี้";
+  }
+  return `เหลือ ${days} วัน`;
+}
+
 function pageCopy(itemCategoryCode?: string) {
   const scope = getInventoryPageScope(itemCategoryCode);
   if (scope) {
     return {
       ...scope,
-      subtitle: "ตรวจสอบ Lot และยอดคงเหลือราย Lot",
+      subtitle: "ตรวจสอบ Lot และยอดคงเหลือราย Lot — แถวสีเตือนเมื่อใกล้หมดอายุ",
     };
   }
   return {
     eyebrow: "INVENTORY · LOTS",
     title: "ยอดคงเหลือแยก Lot",
     subtitle:
-      "ตรวจสอบ Lot จากใบรับซื้อยาง รับผลผลิต และเอกสารต้นทางอื่น — ดูอย่างเดียว",
+      "ตรวจสอบ Lot จากใบรับซื้อยาง รับผลผลิต และเอกสารต้นทางอื่น — แถวสีเตือนเมื่อใกล้หมดอายุ",
   };
 }
 
@@ -71,9 +116,11 @@ export default function InventoryLotsPage() {
     status?: string;
     q: string;
     hasStock: boolean;
+    nearExpiry: boolean;
   }>({
     q: "",
     hasStock: true,
+    nearExpiry: false,
   });
   const [filters, setFilters] = useState<InventoryLotQueryParams>({
     hasStock: true,
@@ -98,6 +145,9 @@ export default function InventoryLotsPage() {
     let totalAvailable = 0;
     let activeLots = 0;
     let pendingQc = 0;
+    let expiredLots = 0;
+    let criticalLots = 0;
+    let warningLots = 0;
 
     for (const row of rows) {
       lotIds.add(row.lotId);
@@ -110,6 +160,14 @@ export default function InventoryLotsPage() {
       if ((row.qcStatus ?? "").toUpperCase() === "PENDING") {
         pendingQc += 1;
       }
+      const expiry = (row.expiryStatus ?? "").toUpperCase();
+      if (expiry === "EXPIRED") {
+        expiredLots += 1;
+      } else if (expiry === "CRITICAL") {
+        criticalLots += 1;
+      } else if (expiry === "WARNING") {
+        warningLots += 1;
+      }
     }
 
     return {
@@ -118,6 +176,9 @@ export default function InventoryLotsPage() {
       items: itemIds.size,
       activeLots,
       pendingQc,
+      expiredLots,
+      criticalLots,
+      warningLots,
       totalOnHand,
       totalAvailable,
     };
@@ -156,6 +217,7 @@ export default function InventoryLotsPage() {
       : "ทุกคลัง",
     filters.status ? `สถานะ ${filters.status}` : null,
     filters.hasStock === false ? "รวมยอดศูนย์" : "เฉพาะมียอด",
+    filters.nearExpiry ? "ใกล้หมดอายุ" : null,
     filters.q ? `ค้นหา “${filters.q}”` : null,
   ]
     .filter(Boolean)
@@ -225,6 +287,36 @@ export default function InventoryLotsPage() {
       ),
     },
     {
+      title: "หมดอายุ",
+      key: "expiry",
+      width: 170,
+      render: (_, row) => {
+        const status = (row.expiryStatus ?? "UNKNOWN") as LotExpiryStatus;
+        const daysLabel = formatDaysUntilExpiry(row.daysUntilExpiry);
+        return (
+          <div className={styles.itemCell}>
+            <span className={styles.itemName}>
+              {row.expiryDate ? formatDate(row.expiryDate) : "-"}
+            </span>
+            {daysLabel ? (
+              <span
+                className={`${styles.statusPill} ${expiryStatusClass(row.expiryStatus)}`}
+              >
+                {daysLabel}
+              </span>
+            ) : (
+              <span className={styles.metaMuted}>
+                {LOT_EXPIRY_STATUS_LABEL[status] ?? status}
+              </span>
+            )}
+            {row.expirySource === "CALCULATED" ? (
+              <span className={styles.metaMuted}>คำนวณจากอายุเก็บ</span>
+            ) : null}
+          </div>
+        );
+      },
+    },
+    {
       title: "สถานะ",
       key: "status",
       width: 150,
@@ -265,12 +357,13 @@ export default function InventoryLotsPage() {
       status: draft.status,
       q: draft.q.trim() || undefined,
       hasStock: draft.hasStock,
+      nearExpiry: draft.nearExpiry || undefined,
       itemCategoryCode,
     });
   };
 
   const handleClear = () => {
-    setDraft({ q: "", hasStock: true });
+    setDraft({ q: "", hasStock: true, nearExpiry: false });
     setFilters({ hasStock: true, itemCategoryCode });
   };
 
@@ -305,6 +398,21 @@ export default function InventoryLotsPage() {
             <strong className={styles.summaryCompact}>
               {formatQty(String(stats.totalOnHand))}
             </strong>
+          </div>
+        </div>
+
+        <div className={styles.metricRow}>
+          <div className={styles.metricItem}>
+            <span>หมดอายุแล้ว</span>
+            <strong className={styles.metricDanger}>{stats.expiredLots}</strong>
+          </div>
+          <div className={styles.metricItem}>
+            <span>วิกฤต (≤7 วัน)</span>
+            <strong className={styles.metricCritical}>{stats.criticalLots}</strong>
+          </div>
+          <div className={styles.metricItem}>
+            <span>ใกล้หมดอายุ (≤30 วัน)</span>
+            <strong className={styles.metricWarning}>{stats.warningLots}</strong>
           </div>
         </div>
 
@@ -398,6 +506,16 @@ export default function InventoryLotsPage() {
             </div>
             <div className={styles.stockToggle}>
               <Switch
+                checked={draft.nearExpiry}
+                checkedChildren="ใกล้หมดอายุ"
+                unCheckedChildren="ทั้งหมด"
+                onChange={(checked) =>
+                  setDraft((prev) => ({ ...prev, nearExpiry: checked }))
+                }
+              />
+            </div>
+            <div className={styles.stockToggle}>
+              <Switch
                 checked={draft.hasStock}
                 checkedChildren="มียอด"
                 unCheckedChildren="ทั้งหมด"
@@ -432,12 +550,13 @@ export default function InventoryLotsPage() {
               columns={columns}
               dataSource={rows}
               loading={lotsQuery.isFetching}
+              rowClassName={(row) => expiryRowClass(row.expiryStatus)}
               pagination={{
                 pageSize: 15,
                 showTotal: (total) => `ทั้งหมด ${total} รายการ`,
                 hideOnSinglePage: true,
               }}
-              scroll={{ x: 1100 }}
+              scroll={{ x: 1280 }}
               locale={{
                 emptyText: (
                   <div className={styles.emptyState}>

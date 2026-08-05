@@ -50,7 +50,6 @@ import { RoleCode } from "@/lib/auth/role-codes";
 import type { PickingItem } from "@/types/pickings";
 import { PICKING_STATUS_LABEL } from "@/types/pickings";
 import type { SalesOrderStockVerificationLine } from "@/types/sales-orders";
-import { generatePickingPdf } from "@/utils/generatePickingPdf";
 import styles from "./PickingFormPage.module.css";
 
 type Props = { id: string; mode: "view" | "edit" };
@@ -485,7 +484,10 @@ export default function PickingFormPage({ id, mode }: Props) {
           <Button
             className={styles.secondaryBtn}
             icon={<FilePdfOutlined />}
-            onClick={() => {
+            onClick={async () => {
+              const { generatePickingPdf } = await import(
+                "@/utils/generatePickingPdf"
+              );
               void generatePickingPdf({
                 pickingNo: data.pickingNo,
                 pickingDate: dayjs(data.pickingDate).format("DD/MM/YYYY"),

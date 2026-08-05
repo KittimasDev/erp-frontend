@@ -42,7 +42,6 @@ import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { DeliveryOrderItem } from "@/types/delivery-orders";
 import { DELIVERY_ORDER_STATUS_LABEL } from "@/types/delivery-orders";
-import { generateDeliveryOrderPdf } from "@/utils/generateDeliveryOrderPdf";
 import styles from "./DeliveryOrderFormPage.module.css";
 
 type Props = { id: string; mode: "view" | "edit" };
@@ -246,7 +245,10 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           <Button
             className={styles.secondaryBtn}
             icon={<FilePdfOutlined />}
-            onClick={() => {
+            onClick={async () => {
+              const { generateDeliveryOrderPdf } = await import(
+                "@/utils/generateDeliveryOrderPdf"
+              );
               void generateDeliveryOrderPdf({
                 deliveryOrderNo: data.deliveryOrderNo,
                 deliveryDate: dayjs(data.deliveryDate).format("DD/MM/YYYY"),

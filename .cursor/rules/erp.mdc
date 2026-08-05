@@ -5,7 +5,7 @@ alwaysApply: true
 
 # ERP Frontend Rules
 
-อ่าน [AGENTS.md](../../../AGENTS.md) ที่ root workspace ก่อนทำงานที่เกี่ยวข้องกับ backend หรือ API
+อ่าน [AGENTS.md](../../../AGENTS.md) ที่ root workspace ก่อนทำงานที่เกี่ยวข้องกับ backend หรือ API — งาน feature ใหญ่/คลัง อ่าน skill โปรเจกต **`erp-smt`** ที่ `.cursor/skills/erp-smt/SKILL.md`
 
 - Frontend path: `frontend_web/` — Next.js, Ant Design, port 3000
 - เรียก API ด้วย relative path `/api/*` (Next.js proxy ไป backend)
@@ -22,3 +22,4 @@ alwaysApply: true
 - Modal ใหม่ในโปรเจกต์นี้ใช้ `open` + `destroyOnHidden` (ไม่ใช้ `visible` / `destroyOnClose`) — รายละเอียดดู skill **`antd-erp-frontend`**
 - **TypeScript `*_STATUS_LABEL[status]`** — ถ้า field เป็น `SomeStatus | string` หรือ `string` ต้อง cast เช่น `LABEL[status as SomeStatus] ?? status` ไม่งั้น `next build` พัง (dev อาจไม่โชว์) — skill **`erp-frontend-verify`**
 - **หลังแก้ frontend ทุกครั้ง** — รัน `cd frontend_web && npm run build` จนผ่านก่อนบอกว่างานเสร็จ (บังคับ; lint/dev ไม่พอจับ type error บางแบบ) — skill **`erp-frontend-verify`**
+- **Performance / Lighthouse / bundle / loading / a11y / hydration** — อ่าน skill **`erp-frontend-perf`** ก่อนเพิ่มหน้า, import lib หนัก, แก้ shell/auth, หรืออ่าน `localStorage` ใน render; Lighthouse ต้องรันบน `npm run build && npm run start` ไม่ใช่ `dev`
