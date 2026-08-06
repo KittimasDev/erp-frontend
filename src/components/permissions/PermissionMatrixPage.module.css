@@ -35,6 +35,13 @@
   text-transform: uppercase;
 }
 
+.lockedRoleHint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .roleSelect,
 .moduleSelect {
   width: 100%;
@@ -99,6 +106,13 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.sectionActions {
+  float: right;
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
 }
 
 .screenCell {

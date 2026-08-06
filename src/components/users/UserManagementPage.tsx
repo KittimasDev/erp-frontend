@@ -5,21 +5,27 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, Typography } from "antd";
 import {
   ApartmentOutlined,
+  SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import DepartmentsPage from "@/components/masters/departments/DepartmentsPage";
+import PermissionMatrixPage from "@/components/permissions/PermissionMatrixPage";
 import { isAdministrator } from "@/lib/auth/session";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
+import RolesPage from "./RolesPage";
 import UsersPage from "./UsersPage";
 import styles from "./UserManagementPage.module.css";
 
-type ManagementTab = "users" | "departments";
+type ManagementTab = "users" | "departments" | "roles";
 
 function resolveTab(raw: string | null): ManagementTab {
-  return raw === "departments" ? "departments" : "users";
+  if (raw === "departments" || raw === "roles") {
+    return raw;
+  }
+  return "users";
 }
 
 export default function UserManagementPage() {
@@ -27,11 +33,21 @@ export default function UserManagementPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  const tabParam = searchParams.get("tab");
+  const roleIdParam = searchParams.get("roleId");
+  const isMatrixView = tabParam === "permissions" && Boolean(roleIdParam);
+
   useEffect(() => {
     if (!isAdministrator()) {
       router.replace("/");
     }
   }, [router, pathname]);
+
+  useEffect(() => {
+    if (tabParam === "permissions" && !roleIdParam) {
+      router.replace("/users?tab=roles");
+    }
+  }, [router, tabParam, roleIdParam]);
 
   const activeTab = useMemo(
     () => resolveTab(searchParams.get("tab")),
@@ -45,13 +61,22 @@ export default function UserManagementPage() {
     } else {
       next.set("tab", key);
     }
-    // Drop department/user filter params when switching tabs to avoid confusion
-    ["q", "isActive", "roleId", "code", "name"].forEach((keyName) =>
+    ["q", "isActive", "code", "name", "roleId"].forEach((keyName) =>
       next.delete(keyName),
     );
     const query = next.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
   };
+
+  if (isMatrixView) {
+    return (
+      <MasterPageGate>
+        <section className={masterStyles.page}>
+          <PermissionMatrixPage embedded fromRoles />
+        </section>
+      </MasterPageGate>
+    );
+  }
 
   return (
     <MasterPageGate>
@@ -63,24 +88,30 @@ export default function UserManagementPage() {
           <div className={masterStyles.headerContent}>
             <div className={masterStyles.eyebrow}>SECURITY · ORGANIZATION</div>
             <Typography.Title level={2} className={masterStyles.pageTitle}>
-              จัดการผู้ใช้งานและแผนก
+              บุคคล / ผู้ใช้งาน · แผนก · บทบาท
             </Typography.Title>
             <Typography.Text className={masterStyles.pageSubtitle}>
-              จัดแผนกองค์กรและบัญชีผู้ใช้ไว้ที่เดียวกัน เพื่อตั้งค่าได้ต่อเนื่อง
+              บุคคล = ข้อมูล HR + บัญชี login ที่เดียวกัน · แผนก = ส่วนงาน ·
+              บทบาท = สิทธิ์ใช้งานระบบ
             </Typography.Text>
           </div>
           <div />
         </div>
 
         <div className={styles.hint}>
-          แนะนำลำดับงาน: สร้าง<strong> แผนก </strong>ก่อน → จากนั้นไปแท็บ
-          <strong> ผู้ใช้งาน </strong>เพื่อสร้างบัญชีและกำหนด Role
+          ลำดับที่แนะนำ: สร้าง<strong> แผนก </strong>(ถ้าต้องการ) → สร้าง
+          <strong> บทบาท </strong>และกด <strong>ตั้งสิทธิ์</strong> → จากนั้น
+          <strong> บุคคล/ผู้ใช้งาน </strong> (กรอก HR + login ในฟอร์มเดียว)
+          <br />
+          ปิด &quot;เปิด login ERP&quot; ได้สำหรับพนักงานที่ไม่ใช้ระบบ — ยังใช้
+          ข้อมูลคนเดียวกันกับเวลางาน/OT/ลา
         </div>
 
         <Tabs
           className={styles.tabs}
           activeKey={activeTab}
           onChange={setTab}
+          destroyOnHidden
           items={[
             {
               key: "departments",
@@ -91,6 +122,16 @@ export default function UserManagementPage() {
                 </span>
               ),
               children: <DepartmentsPage embedded />,
+            },
+            {
+              key: "roles",
+              label: (
+                <span className={styles.tabLabel}>
+                  <SafetyCertificateOutlined />
+                  บทบาท
+                </span>
+              ),
+              children: <RolesPage embedded />,
             },
             {
               key: "users",

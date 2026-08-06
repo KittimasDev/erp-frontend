@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Button, Input, Select, Switch, Table, Tabs, Typography } from "antd";
+import { Button, Input, Select, Switch, Table, Tabs, Typography, Alert } from "antd";
 import {
   AppstoreOutlined,
   ClearOutlined,
@@ -145,6 +145,13 @@ export default function StockBalancesPage() {
   ]
     .filter(Boolean)
     .join(" · ");
+
+  const pageError =
+    (activeView === "by-item"
+      ? balancesByItemQuery.error
+      : balancesQuery.error) ??
+    summaryQuery.error ??
+    warehousesQuery.error;
 
   const setView = (view: StockBalanceView) => {
     const next = new URLSearchParams(searchParams.toString());
@@ -425,6 +432,20 @@ export default function StockBalancesPage() {
             <span className={styles.subtitle}>{copy.subtitle}</span>
           </div>
         </div>
+
+        {pageError ? (
+          <Alert
+            type="error"
+            showIcon
+            message={
+              pageError instanceof Error
+                ? pageError.message
+                : "โหลดข้อมูลไม่สำเร็จ"
+            }
+            description="ถ้าเพิ่งแก้ Permission Matrix ให้ตรวจที่ /users ว่าบัญชีนี้ผูก role ที่ติ๊กไว้ — เมนูจะรีเฟรชหลัง Save โดยไม่ต้อง logout"
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>

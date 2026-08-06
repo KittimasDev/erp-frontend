@@ -30,4 +30,5 @@ export function clearAccessToken() {
 
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem("user");
+  localStorage.removeItem("erp_my_permissions");
 }

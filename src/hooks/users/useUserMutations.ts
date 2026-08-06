@@ -7,6 +7,7 @@ import {
   activateUser,
   createUser,
   deactivateUser,
+  deleteUser,
   resetUserPassword,
   updateUser,
 } from "@/lib/api/users";
@@ -119,6 +120,24 @@ export function useDeactivateUserMutation() {
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError ? error.message : "ปิดใช้งานไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useDeleteUserMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateUsers();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteUser(getAccessToken(), id),
+    onSuccess: (res) => {
+      message.success(res.message || "ลบผู้ใช้งานสำเร็จ");
+      invalidate();
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ลบผู้ใช้งานไม่สำเร็จ",
       );
     },
   });

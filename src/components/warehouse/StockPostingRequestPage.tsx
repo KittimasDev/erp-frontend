@@ -30,6 +30,7 @@ import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRaw
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { userHasRole } from "@/lib/auth/session";
+import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { ReceiptItem } from "@/types/raw-tire-purchase-receipt";
 import {
@@ -128,7 +129,16 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
   const [form] = Form.useForm<FormValues>();
   const [lineDrafts, setLineDrafts] = useState<Record<string, LineDraft>>({});
 
-  const canRequest = userHasRole(RoleCode.WAREHOUSE_OFFICER);
+  const canRequest =
+    hasPermission(
+      "RECEIVING.EDIT",
+      "RECEIVING.ADD",
+      "STOCK_POSTING_APPROVALS.ADD",
+    ) ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+        userHasRole(RoleCode.WEIGHBRIDGE_OFFICER) ||
+        userHasRole(RoleCode.ADMINISTRATOR)));
   const receiptQuery = useRawTirePurchaseReceiptQuery(receiptId);
   const existingQuery = useStockPostingRequestByReceiptQuery(receiptId);
   const warehousesQuery = useWarehousesQuery({ isActive: true });
@@ -422,8 +432,8 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                   <div className={styles.card}>
                     <div className={styles.cardBody}>
                       <Typography.Text type="warning">
-                        ต้องมีสิทธิ์เจ้าหน้าที่คลัง (WAREHOUSE_OFFICER)
-                        เพื่อส่งคำขอรับเข้าคลัง
+                        ต้องมีสิทธิ์ส่งคำขอเข้าคลัง (RECEIVING.EDIT / ADD
+                        หรือ STOCK_POSTING_APPROVALS.ADD ใน Permission Matrix)
                       </Typography.Text>
                     </div>
                   </div>

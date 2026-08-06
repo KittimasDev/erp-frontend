@@ -4,24 +4,61 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
 import { ApiError } from "@/lib/api/client";
-import { updateRolePermissions } from "@/lib/api/permissions";
+import {
+  getMyPermissions,
+  updateRolePermissions,
+} from "@/lib/api/permissions";
+import {
+  setStoredPermissionsAndNotify,
+} from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
 import type { RolePermissionAssignment } from "@/types/permissions";
 
 import { rolePermissionsQueryKey } from "./useRolePermissionsQuery";
 
-export function useUpdateRolePermissionsMutation(roleId: string) {
-  const { message } = App.useApp();
+type RoleMeta = {
+  roleCode?: string;
+  roleName?: string;
+};
+
+export function useUpdateRolePermissionsMutation(
+  roleId: string,
+  roleMeta?: RoleMeta,
+) {
+  const { message, notification } = App.useApp();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (assignments: RolePermissionAssignment[]) =>
       updateRolePermissions(getAccessToken(), roleId, { assignments }),
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       message.success(res.message || "บันทึกสิทธิ์สำเร็จ");
       queryClient.invalidateQueries({
         queryKey: rolePermissionsQueryKey(roleId),
       });
+
+      try {
+        const token = getAccessToken();
+        if (token) {
+          const mePerms = await getMyPermissions(token);
+          setStoredPermissionsAndNotify(mePerms.data);
+        }
+        const roleLabel =
+          roleMeta?.roleCode && roleMeta?.roleName
+            ? `${roleMeta.roleCode} (${roleMeta.roleName})`
+            : roleMeta?.roleCode || roleMeta?.roleName || "role นี้";
+        notification.success({
+          title: "อัปเดตสิทธิ์แล้ว",
+          description: `เมนูรีเฟรชจาก Permission Matrix แล้ว — มีผลกับผู้ใช้ที่ถูกผูก ${roleLabel}`,
+          duration: 5,
+        });
+      } catch {
+        notification.warning({
+          title: "บันทึกแล้ว แต่รีเฟรชเมนูไม่สำเร็จ",
+          description: "ลองเปลี่ยนหน้าหรือ login ใหม่เพื่อโหลดสิทธิ์ล่าสุด",
+          duration: 6,
+        });
+      }
     },
     onError: (error: Error) => {
       message.error(

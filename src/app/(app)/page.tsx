@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 
-import HomeDashboardPage from "@/components/home/HomeDashboardPage";
+import HomePortalPage from "@/components/home/HomePortalPage";
 import PageLoading from "@/components/common/PageLoading";
 
-export default function DashboardPage() {
+export default function PortalHomePage() {
   return (
-    <Suspense fallback={<PageLoading label="กำลังโหลดแดชบอร์ด..." />}>
-      <HomeDashboardPage />
+    <Suspense fallback={<PageLoading label="กำลังโหลด Portal..." />}>
+      <HomePortalPage />
     </Suspense>
   );
 }

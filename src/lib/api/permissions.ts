@@ -1,9 +1,17 @@
 import { apiFetch } from "./client";
 import type {
+  MyPermissionsApiResponse,
   RolePermissionsApiResponse,
   ScreenCatalogListApiResponse,
   UpdateRolePermissionsRequest,
 } from "@/types/permissions";
+
+export function getMyPermissions(token: string) {
+  return apiFetch<MyPermissionsApiResponse>("/api/permissions/me", {
+    method: "GET",
+    token,
+  });
+}
 
 export function getPermissionScreens(token: string) {
   return apiFetch<ScreenCatalogListApiResponse>("/api/permissions/screens", {

@@ -39,3 +39,15 @@ export type RolePermissionsApiResponse = {
 export type UpdateRolePermissionsRequest = {
   assignments: RolePermissionAssignment[];
 };
+
+export type MyPermissionsData = {
+  mode: "matrix" | "legacy";
+  screenCodes: string[];
+  permissionCodes: string[];
+};
+
+export type MyPermissionsApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: MyPermissionsData;
+};

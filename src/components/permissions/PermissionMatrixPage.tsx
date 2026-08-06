@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
   Checkbox,
@@ -12,6 +12,7 @@ import {
   Typography,
 } from "antd";
 import {
+  ArrowLeftOutlined,
   DeleteOutlined,
   PlusOutlined,
   SafetyCertificateOutlined,
@@ -44,13 +45,13 @@ const FUNCTION_ORDER = [
   "PRINT",
 ];
 
-/** ลำดับและชื่อแสดงกลุ่มโมดูลใน Permission Matrix */
+/** ลำดับและชื่อแสดงกลุ่มโมดูลใน Permission Matrix — ตรงกลุ่ม sidebar */
 const MODULE_SECTIONS: Array<{ code: string; label: string }> = [
   { code: "DASHBOARD", label: "แดชบอร์ด" },
   { code: "RAW_TIRE", label: "รับซื้อยาง" },
-  { code: "INVENTORY", label: "คลัง · สต๊อก" },
+  { code: "INVENTORY", label: "คลังวัตถุดิบ" },
   { code: "PRODUCTION", label: "ผลิต" },
-  { code: "WAREHOUSE", label: "คลัง · อนุมัติ / FG / Picking" },
+  { code: "WAREHOUSE", label: "คลังสินค้าสำเร็จรูป" },
   { code: "PROCUREMENT", label: "จัดซื้อ · จ่ายเงิน" },
   { code: "SALES", label: "ขาย" },
   { code: "LABORATORY", label: "ห้องแล็บ" },
@@ -95,9 +96,20 @@ function groupScreensByModule(screens: ScreenCatalog[]) {
   }));
 }
 
-export default function PermissionMatrixPage() {
+type PermissionMatrixPageProps = {
+  embedded?: boolean;
+  fromRoles?: boolean;
+};
+
+export default function PermissionMatrixPage({
+  embedded = false,
+  fromRoles = false,
+}: PermissionMatrixPageProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const lockedRoleId = searchParams.get("roleId");
+  const roleLocked = fromRoles || Boolean(lockedRoleId);
 
   useEffect(() => {
     if (!isAdministrator()) {
@@ -113,17 +125,20 @@ export default function PermissionMatrixPage() {
     [screensQuery.data],
   );
 
-  const [roleId, setRoleId] = useState<string | undefined>();
   const [moduleFilter, setModuleFilter] = useState<string[]>([]);
   const [roleModalOpen, setRoleModalOpen] = useState(false);
-  const selectedRoleId = roleId ?? roles[0]?.id;
+
+  const selectedRoleId = lockedRoleId ?? roles[0]?.id;
   const rolePermissionsQuery = useRolePermissionsQuery(selectedRoleId);
+  const selectedRole = roles.find((role) => role.id === selectedRoleId);
   const updateMutation = useUpdateRolePermissionsMutation(
     selectedRoleId ?? "",
+    selectedRole
+      ? { roleCode: selectedRole.roleCode, roleName: selectedRole.roleName }
+      : undefined,
   );
   const createRoleMutation = useCreateRoleMutation();
   const deleteRoleMutation = useDeleteRoleMutation();
-  const selectedRole = roles.find((role) => role.id === selectedRoleId);
 
   const [allowed, setAllowed] = useState<Record<string, boolean>>({});
   const serverAssignments = rolePermissionsQuery.data?.data.assignments;
@@ -139,6 +154,10 @@ export default function PermissionMatrixPage() {
     }
     setAllowed(next);
   }
+
+  const goBackToRoles = () => {
+    router.replace("/users?tab=roles");
+  };
 
   /** แสดงคอลัมน์ครบทุก action รวม APPROVE — หน้าจอที่ไม่มีสิทธิ์นี้จะเป็น — */
   const functionCodes = FUNCTION_ORDER;
@@ -176,6 +195,20 @@ export default function PermissionMatrixPage() {
     setAllowed((prev) => ({ ...prev, [permissionId]: !prev[permissionId] }));
   };
 
+  /** ติ๊ก/ถอด VIEW ทั้งกลุ่มโมดูลที่เห็นบนตาราง */
+  const setGroupViewAllowed = (groupScreens: ScreenCatalog[], value: boolean) => {
+    setAllowed((prev) => {
+      const next = { ...prev };
+      for (const screen of groupScreens) {
+        const viewFn = screen.functions.find((fn) => fn.functionCode === "VIEW");
+        if (viewFn?.permissionId) {
+          next[viewFn.permissionId] = value;
+        }
+      }
+      return next;
+    });
+  };
+
   const handleSave = () => {
     if (!selectedRoleId) {
       return;
@@ -189,46 +222,66 @@ export default function PermissionMatrixPage() {
     updateMutation.mutate(assignments);
   };
 
+  const handleDeleteRole = () => {
+    if (!selectedRole) return;
+    deleteRoleMutation.mutate(selectedRole.id, {
+      onSuccess: () => {
+        goBackToRoles();
+      },
+    });
+  };
+
   const isLoading = rolesQuery.isLoading || screensQuery.isLoading;
 
+  const headerActions = (
+    <div className={styles.headerActions}>
+      {fromRoles ? (
+        <Button size="large" icon={<ArrowLeftOutlined />} onClick={goBackToRoles}>
+          กลับไปบทบาท
+        </Button>
+      ) : null}
+      <Button
+        size="large"
+        icon={<PlusOutlined />}
+        onClick={() => setRoleModalOpen(true)}
+      >
+        สร้างบทบาทใหม่
+      </Button>
+      <Button
+        type="primary"
+        size="large"
+        className={masterStyles.createButton}
+        icon={<SaveOutlined />}
+        loading={updateMutation.isPending}
+        disabled={!selectedRoleId || screens.length === 0}
+        onClick={handleSave}
+      >
+        บันทึกสิทธิ์
+      </Button>
+    </div>
+  );
+
   return (
-    <MasterPageGate isLoading={isLoading}>
+    <MasterPageGate isLoading={!embedded && isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>
-            <SafetyCertificateOutlined />
+        {!embedded ? (
+          <div className={masterStyles.pageHeader}>
+            <div className={masterStyles.headerAccent}>
+              <SafetyCertificateOutlined />
+            </div>
+            <div className={masterStyles.headerContent}>
+              <div className={masterStyles.eyebrow}>SECURITY</div>
+              <Typography.Title level={2} className={masterStyles.pageTitle}>
+                Permission Matrix
+              </Typography.Title>
+              <Typography.Text className={masterStyles.pageSubtitle}>
+                กำหนดสิทธิ์รายหน้าจอต่อบทบาท — คอลัมน์ APPROVE
+                ใช้จำกัดเฉพาะ role ที่อนุมัติได้
+              </Typography.Text>
+            </div>
+            {headerActions}
           </div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>SECURITY</div>
-            <Typography.Title level={2} className={masterStyles.pageTitle}>
-              Permission Matrix
-            </Typography.Title>
-            <Typography.Text className={masterStyles.pageSubtitle}>
-              กำหนดสิทธิ์รายหน้าจอต่อบทบาท — คอลัมน์ APPROVE
-              ใช้จำกัดเฉพาะ role ที่อนุมัติได้
-            </Typography.Text>
-          </div>
-          <div className={styles.headerActions}>
-            <Button
-              size="large"
-              icon={<PlusOutlined />}
-              onClick={() => setRoleModalOpen(true)}
-            >
-              สร้างบทบาทใหม่
-            </Button>
-            <Button
-              type="primary"
-              size="large"
-              className={masterStyles.createButton}
-              icon={<SaveOutlined />}
-              loading={updateMutation.isPending}
-              disabled={!selectedRoleId || screens.length === 0}
-              onClick={handleSave}
-            >
-              บันทึกสิทธิ์
-            </Button>
-          </div>
-        </div>
+        ) : null}
 
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>
@@ -236,9 +289,15 @@ export default function PermissionMatrixPage() {
               <div className={masterStyles.filterEyebrow}>FILTER</div>
               <h3>เลือกบทบาทและโมดูล</h3>
               <p>
-                เลือกบทบาทเพื่อแก้สิทธิ์ แล้วเลือกโมดูลได้หลายอันเพื่อกรองตาราง
+                {fromRoles
+                  ? "กำลังตั้งสิทธิ์สำหรับบทบาทที่เลือก — เปลี่ยนบทบาทได้ที่แท็บ บทบาท"
+                  : "เลือกบทบาทเพื่อแก้สิทธิ์ แล้วเลือกโมดูลได้หลายอันเพื่อกรองตาราง"}
+                {moduleFilter.length > 0
+                  ? " — กำลังกรองโมดูล: ติ๊กสิทธิ์ในโมดูลอื่นด้วยก่อนบันทึก ถ้าต้องการให้ขึ้นเมนูครบ"
+                  : ""}
               </p>
             </div>
+            {embedded ? headerActions : null}
           </div>
           <div className={styles.filterFields}>
             <label className={styles.filterField}>
@@ -247,7 +306,7 @@ export default function PermissionMatrixPage() {
                 <Select
                   className={styles.roleSelect}
                   value={selectedRoleId}
-                  onChange={setRoleId}
+                  disabled={roleLocked}
                   showSearch
                   optionFilterProp="label"
                   placeholder="เลือกบทบาท"
@@ -266,22 +325,17 @@ export default function PermissionMatrixPage() {
                   okText="ลบ"
                   cancelText="ยกเลิก"
                   okButtonProps={{ danger: true }}
-                  disabled={!selectedRole || selectedRole.isSystemRole}
-                  onConfirm={() => {
-                    if (!selectedRole) return;
-                    deleteRoleMutation.mutate(selectedRole.id, {
-                      onSuccess: () => setRoleId(undefined),
-                    });
-                  }}
+                  disabled={!selectedRole}
+                  onConfirm={handleDeleteRole}
                 >
                   <Button
                     className={masterStyles.deleteButton}
                     icon={<DeleteOutlined />}
                     loading={deleteRoleMutation.isPending}
-                    disabled={!selectedRole || selectedRole.isSystemRole}
+                    disabled={!selectedRole}
                     title={
-                      selectedRole?.isSystemRole
-                        ? "บทบาทมาตรฐานของระบบ ลบไม่ได้"
+                      selectedRole
+                        ? "ลบได้ถ้ายังไม่มีผู้ใช้ผูกบทบาทนี้"
                         : undefined
                     }
                   >
@@ -365,6 +419,26 @@ export default function PermissionMatrixPage() {
                           <span className={styles.sectionMeta}>
                             {group.code} · {group.screens.length} หน้าจอ
                           </span>
+                          <span className={styles.sectionActions}>
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() =>
+                                setGroupViewAllowed(group.screens, true)
+                              }
+                            >
+                              ติ๊ก VIEW ทั้งกลุ่ม
+                            </Button>
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() =>
+                                setGroupViewAllowed(group.screens, false)
+                              }
+                            >
+                              ถอด VIEW
+                            </Button>
+                          </span>
                         </td>
                       </tr>
                       {group.screens.map((screen) => {
@@ -420,7 +494,9 @@ export default function PermissionMatrixPage() {
           createRoleMutation.mutate(values, {
             onSuccess: (res) => {
               setRoleModalOpen(false);
-              setRoleId(res.data.id);
+              router.replace(
+                `/users?tab=permissions&roleId=${encodeURIComponent(res.data.id)}`,
+              );
             },
           });
         }}

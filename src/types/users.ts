@@ -8,6 +8,13 @@ export type AppUser = {
   displayName: string;
   email?: string;
   phone?: string;
+  employeeCode?: string;
+  departmentId?: string;
+  departmentName?: string;
+  position?: string;
+  hireDate?: string;
+  employmentRemark?: string;
+  canLogin: boolean;
   isActive: boolean;
   isLocked: boolean;
   mustChangePassword: boolean;
@@ -22,6 +29,7 @@ export type UserQueryParams = {
   q?: string;
   isActive?: boolean;
   roleId?: string;
+  departmentId?: string;
   page?: number;
   limit?: number;
 };
@@ -31,8 +39,14 @@ export type CreateUserRequest = {
   displayName: string;
   email?: string;
   phone?: string;
-  password: string;
-  roleIds: string[];
+  employeeCode?: string;
+  departmentId?: string;
+  position?: string;
+  hireDate?: string;
+  employmentRemark?: string;
+  canLogin?: boolean;
+  password?: string;
+  roleIds?: string[];
   isActive?: boolean;
 };
 
@@ -40,6 +54,12 @@ export type UpdateUserRequest = {
   displayName?: string;
   email?: string;
   phone?: string;
+  employeeCode?: string;
+  departmentId?: string | null;
+  position?: string;
+  hireDate?: string;
+  employmentRemark?: string;
+  canLogin?: boolean;
   isActive?: boolean;
   roleIds?: string[];
 };

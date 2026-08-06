@@ -7,6 +7,7 @@ import {
   Col,
   Form,
   Input,
+  Popconfirm,
   Row,
   Select,
   Space,
@@ -26,11 +27,12 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
-import { isAdministrator } from "@/lib/auth/session";
+import { getStoredUser, isAdministrator } from "@/lib/auth/session";
 import {
   useActivateUserMutation,
   useCreateUserMutation,
   useDeactivateUserMutation,
+  useDeleteUserMutation,
   useResetUserPasswordMutation,
   useUpdateUserMutation,
 } from "@/hooks/users/useUserMutations";
@@ -120,6 +122,8 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
   const resetMutation = useResetUserPasswordMutation();
   const activateMutation = useActivateUserMutation();
   const deactivateMutation = useDeactivateUserMutation();
+  const deleteMutation = useDeleteUserMutation();
+  const currentUserId = getStoredUser()?.id;
 
   useEffect(() => {
     form.setFieldsValue({
@@ -146,8 +150,14 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
     if (values.roleId) {
       next.set("roleId", values.roleId);
     }
+    // แท็บ users เป็นค่าเริ่มต้น — อย่าพก tab=departments ไว้
     const query = next.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const handleClearFilters = () => {
+    form.resetFields();
+    router.replace(pathname);
   };
 
   const columns: ColumnsType<AppUser> = [
@@ -171,6 +181,21 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
       ),
     },
     {
+      title: "รหัส / แผนก",
+      key: "hr",
+      width: 180,
+      render: (_, record) => (
+        <div className={styles.contactCell}>
+          <span className={styles.contactPrimary}>
+            {record.employeeCode?.trim() || "—"}
+          </span>
+          <span className={styles.contactSecondary}>
+            {record.departmentName?.trim() || "ไม่ระบุแผนก"}
+          </span>
+        </div>
+      ),
+    },
+    {
       title: "ติดต่อ",
       key: "contact",
       width: 200,
@@ -184,6 +209,17 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           </span>
         </div>
       ),
+    },
+    {
+      title: "Login ERP",
+      key: "canLogin",
+      width: 100,
+      render: (_, record) =>
+        record.canLogin ? (
+          <Tag color="blue">เปิด</Tag>
+        ) : (
+          <Tag>ปิด</Tag>
+        ),
     },
     {
       title: "บทบาท",
@@ -254,29 +290,50 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
     {
       title: "จัดการ",
       key: "actions",
-      width: 190,
+      width: 260,
       align: "center",
-      render: (_, record) => (
-        <div className={styles.actionGroup}>
-          <Button
-            className={masterStyles.editButton}
-            onClick={() => {
-              setModalMode("edit");
-              setEditingUser(record);
-              setModalOpen(true);
-            }}
-          >
-            แก้ไข
-          </Button>
-          <Button
-            className={styles.resetButton}
-            icon={<KeyOutlined />}
-            onClick={() => setResetUser(record)}
-          >
-            รหัสผ่าน
-          </Button>
-        </div>
-      ),
+      render: (_, record) => {
+        const isSelf = Boolean(currentUserId && record.id === currentUserId);
+        return (
+          <div className={styles.actionGroup}>
+            <Button
+              className={masterStyles.editButton}
+              onClick={() => {
+                setModalMode("edit");
+                setEditingUser(record);
+                setModalOpen(true);
+              }}
+            >
+              แก้ไข
+            </Button>
+            <Button
+              className={styles.resetButton}
+              icon={<KeyOutlined />}
+              onClick={() => setResetUser(record)}
+            >
+              รหัสผ่าน
+            </Button>
+            <Popconfirm
+              title="ลบผู้ใช้งาน?"
+              description={`ลบ "@${record.username}" ถาวร — กู้คืนไม่ได้`}
+              okText="ลบ"
+              cancelText="ยกเลิก"
+              okButtonProps={{ danger: true }}
+              disabled={isSelf}
+              onConfirm={() => deleteMutation.mutate(record.id)}
+            >
+              <Button
+                className={masterStyles.deleteButton}
+                danger
+                disabled={isSelf}
+                loading={deleteMutation.isPending}
+              >
+                ลบ
+              </Button>
+            </Popconfirm>
+          </div>
+        );
+      },
     },
   ];
 
@@ -389,6 +446,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                     showSearch
                     optionFilterProp="label"
                     placeholder="ทั้งหมด"
+                    listHeight={360}
                     options={roles.map((role) => ({
                       value: role.id,
                       label: `${role.roleCode} — ${role.roleName}`,
@@ -421,8 +479,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                     <Button
                       icon={<ClearOutlined />}
                       onClick={() => {
-                        form.resetFields();
-                        router.replace(pathname);
+                        handleClearFilters();
                         setPage(1);
                       }}
                     >

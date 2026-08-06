@@ -1,0 +1,249 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Button,
+  Popconfirm,
+  Space,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
+import {
+  PlusOutlined,
+  SafetyCertificateOutlined,
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+
+import MasterPageGate from "@/components/common/MasterPageGate";
+import RoleFormModal from "@/components/permissions/RoleFormModal";
+import {
+  useCreateRoleMutation,
+  useDeleteRoleMutation,
+} from "@/hooks/users/useRoleMutations";
+import { useRolesQuery } from "@/hooks/users/useRolesQuery";
+import type { Role } from "@/types/users";
+import masterStyles from "@/components/masters/shared/master-page.module.css";
+
+type RolesPageProps = {
+  embedded?: boolean;
+};
+
+export default function RolesPage({ embedded = false }: RolesPageProps) {
+  const router = useRouter();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
+  const rolesQuery = useRolesQuery();
+  const createMutation = useCreateRoleMutation();
+  const deleteMutation = useDeleteRoleMutation();
+
+  const roles = rolesQuery.data?.data ?? [];
+  const customCount = useMemo(
+    () => roles.filter((role) => !role.isSystemRole).length,
+    [roles],
+  );
+  const systemCount = roles.length - customCount;
+
+  const columns: ColumnsType<Role> = [
+    {
+      title: "รหัส",
+      dataIndex: "roleCode",
+      key: "roleCode",
+      width: 260,
+      render: (value: string) => <code>{value}</code>,
+    },
+    {
+      title: "ชื่อบทบาท",
+      dataIndex: "roleName",
+      key: "roleName",
+    },
+    {
+      title: "คำอธิบาย",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
+      render: (value?: string) => value?.trim() || "—",
+    },
+    {
+      title: "ประเภท",
+      key: "type",
+      width: 120,
+      render: (_, record) =>
+        record.isSystemRole ? (
+          <Tag color="blue">ระบบ</Tag>
+        ) : (
+          <Tag color="green">กำหนดเอง</Tag>
+        ),
+    },
+    {
+      title: "จัดการ",
+      key: "actions",
+      width: 220,
+      render: (_, record) => (
+        <Space wrap>
+          <Button
+            size="small"
+            onClick={() =>
+              router.push(`/users?tab=permissions&roleId=${record.id}`)
+            }
+          >
+            ตั้งสิทธิ์
+          </Button>
+          <Popconfirm
+            title="ลบบทบาทนี้?"
+            description={
+              record.isSystemRole
+                ? "บทบาทนี้เคยเป็นของระบบ — ลบแล้วจะไม่ถูกสร้างกลับตอน restart (ต้องไม่มีผู้ใช้ผูก)"
+                : "ลบได้เฉพาะบทบาทที่ยังไม่มีผู้ใช้ผูกอยู่"
+            }
+            okText="ลบ"
+            cancelText="ยกเลิก"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => deleteMutation.mutate(record.id)}
+          >
+            <Button size="small" danger loading={deleteMutation.isPending}>
+              ลบ
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <MasterPageGate isLoading={!embedded && rolesQuery.isLoading}>
+      <section className={masterStyles.page}>
+        {!embedded ? (
+          <div className={masterStyles.pageHeader}>
+            <div className={masterStyles.headerAccent}>
+              <SafetyCertificateOutlined />
+            </div>
+            <div className={masterStyles.headerContent}>
+              <div className={masterStyles.eyebrow}>SECURITY · ROLES</div>
+              <Typography.Title level={2} className={masterStyles.pageTitle}>
+                บทบาทผู้ใช้งาน
+              </Typography.Title>
+              <Typography.Text className={masterStyles.pageSubtitle}>
+                สร้างบทบาท (Role) เพื่อกำหนดสิทธิ์ — ไม่ใช่แผนกองค์กร
+              </Typography.Text>
+            </div>
+            <Button
+              type="primary"
+              size="large"
+              className={masterStyles.createButton}
+              icon={<PlusOutlined />}
+              onClick={() => setModalOpen(true)}
+            >
+              เพิ่มบทบาท
+            </Button>
+          </div>
+        ) : null}
+
+        <div className={masterStyles.summaryRow}>
+          <div
+            className={`${masterStyles.summaryCard} ${masterStyles.summaryTotal}`}
+          >
+            <div className={masterStyles.summaryIcon}>Σ</div>
+            <div>
+              <span className={masterStyles.summaryLabel}>บทบาททั้งหมด</span>
+              <strong>{roles.length}</strong>
+            </div>
+          </div>
+          <div
+            className={`${masterStyles.summaryCard} ${masterStyles.summaryActive}`}
+          >
+            <div className={masterStyles.summaryIcon}>✓</div>
+            <div>
+              <span className={masterStyles.summaryLabel}>มาตรฐานระบบ</span>
+              <strong>{systemCount}</strong>
+            </div>
+          </div>
+          <div
+            className={`${masterStyles.summaryCard} ${masterStyles.summaryInactive}`}
+          >
+            <div className={masterStyles.summaryIcon}>+</div>
+            <div>
+              <span className={masterStyles.summaryLabel}>กำหนดเอง</span>
+              <strong>{customCount}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className={masterStyles.tableCard}>
+          <div className={masterStyles.tableHeader}>
+            <div>
+              <div className={masterStyles.tableEyebrow}>ROLE CATALOG</div>
+              <h3>รายการบทบาท</h3>
+              <p>
+                ใช้เลือกตอนสร้าง/แก้ไขผู้ใช้งาน — แผนกอยู่แท็บอื่น ไม่ใช่บทบาท
+              </p>
+            </div>
+            <Space>
+              {embedded ? (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  className={masterStyles.createButton}
+                  onClick={() => setModalOpen(true)}
+                >
+                  เพิ่มบทบาท
+                </Button>
+              ) : null}
+              <div className={masterStyles.tableCount}>
+                {roles.length} รายการ
+              </div>
+            </Space>
+          </div>
+
+          {rolesQuery.isError ? (
+            <div className={masterStyles.errorBox}>
+              <Typography.Text type="danger">
+                {rolesQuery.error instanceof Error
+                  ? rolesQuery.error.message
+                  : "โหลดบทบาทไม่สำเร็จ"}
+              </Typography.Text>
+            </div>
+          ) : (
+            <Table
+              rowKey="id"
+              className={masterStyles.dataTable}
+              columns={columns}
+              dataSource={roles}
+              loading={rolesQuery.isLoading || rolesQuery.isFetching}
+              pagination={{
+                current: page,
+                pageSize,
+                showSizeChanger: true,
+                pageSizeOptions: [20, 50, 100],
+                showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+                onChange: (nextPage, nextSize) => {
+                  setPage(nextPage);
+                  if (nextSize && nextSize !== pageSize) {
+                    setPageSize(nextSize);
+                    setPage(1);
+                  }
+                },
+              }}
+              scroll={{ x: 900 }}
+              locale={{ emptyText: "ยังไม่มีบทบาท" }}
+            />
+          )}
+        </div>
+
+        <RoleFormModal
+          open={modalOpen}
+          confirmLoading={createMutation.isPending}
+          onCancel={() => setModalOpen(false)}
+          onSubmit={(values) => {
+            createMutation.mutate(values, {
+              onSuccess: () => setModalOpen(false),
+            });
+          }}
+        />
+      </section>
+    </MasterPageGate>
+  );
+}

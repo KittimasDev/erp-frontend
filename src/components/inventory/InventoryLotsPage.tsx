@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Input, Select, Switch, Table, Typography } from "antd";
+import { Alert, Button, Input, Select, Switch, Table, Typography } from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
@@ -137,6 +137,7 @@ export default function InventoryLotsPage() {
   );
 
   const rows = lotsQuery.data?.data ?? [];
+  const pageError = lotsQuery.error ?? warehousesQuery.error;
 
   const stats = useMemo(() => {
     const lotIds = new Set<string>();
@@ -379,6 +380,20 @@ export default function InventoryLotsPage() {
             <span className={styles.subtitle}>{copy.subtitle}</span>
           </div>
         </div>
+
+        {pageError ? (
+          <Alert
+            type="error"
+            showIcon
+            message={
+              pageError instanceof Error
+                ? pageError.message
+                : "โหลดข้อมูลไม่สำเร็จ"
+            }
+            description="ถ้าเพิ่งแก้ Permission Matrix ให้ตรวจที่ /users ว่าบัญชีนี้ผูก role ที่ติ๊กไว้ — เมนูจะรีเฟรชหลัง Save โดยไม่ต้อง logout"
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>

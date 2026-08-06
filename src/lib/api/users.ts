@@ -76,3 +76,10 @@ export function deactivateUser(token: string, id: string) {
     token,
   });
 }
+
+export function deleteUser(token: string, id: string) {
+  return apiFetch<UserApiResponse>(`/api/users/${id}`, {
+    method: "DELETE",
+    token,
+  });
+}

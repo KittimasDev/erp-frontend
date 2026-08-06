@@ -1,0 +1,499 @@
+import { RoleCode } from "@/lib/auth/role-codes";
+import {
+  canAccessAnyScreen,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
+
+export type PortalModuleTone =
+  | "green"
+  | "teal"
+  | "olive"
+  | "amber"
+  | "slate"
+  | "indigo"
+  | "rose"
+  | "cyan"
+  | "stone";
+
+export type PortalModuleDef = {
+  key: string;
+  code: string;
+  label: string;
+  description: string;
+  href: string;
+  tone: PortalModuleTone;
+  /** Match AppHeader group visibility (legacy mode) */
+  roles?: string[];
+  adminOnly?: boolean;
+  /** Permission Matrix screenCodes — tile shows if any is allowed */
+  screenCodes: string[];
+  requiresProductionOutput?: boolean;
+};
+
+/**
+ * Domain tiles for home portal — mirrors AppHeader menu groups.
+ * Keep screenCodes in sync with permission-seed-data + AppHeader.
+ */
+export const PORTAL_MODULES: PortalModuleDef[] = [
+  {
+    key: "dashboard",
+    code: "DB",
+    label: "แดชบอร์ด",
+    description: "ภาพรวมผู้บริหาร · คลัง · รับยาง",
+    href: "/dashboard/executive",
+    tone: "stone",
+    screenCodes: [
+      "EXECUTIVE_DASHBOARD",
+      "WAREHOUSE_DASHBOARD",
+      "RAW_TIRE_DASHBOARD",
+    ],
+    roles: [
+      RoleCode.EXECUTIVE,
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.WEIGHBRIDGE_OFFICER,
+      RoleCode.PROCUREMENT_MANAGER,
+    ],
+  },
+  {
+    key: "raw-tire",
+    code: "RT",
+    label: "รับซื้อยาง",
+    description: "ตั๋วชั่ง · อนุมัติเข้าคลัง",
+    href: "/receiving",
+    tone: "olive",
+    screenCodes: ["RECEIVING", "STOCK_POSTING_APPROVALS", "FLOOR_SCALE_TICKETS"],
+    roles: [
+      RoleCode.WEIGHBRIDGE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.EXECUTIVE,
+      RoleCode.PROCUREMENT_MANAGER,
+    ],
+  },
+  {
+    key: "purchase",
+    code: "PO",
+    label: "จัดซื้อ",
+    description: "PR · PO · รับของ · ติดตาม",
+    href: "/purchase-requests",
+    tone: "amber",
+    screenCodes: [
+      "PURCHASE_REQUESTS",
+      "PURCHASE_REQUEST_APPROVALS",
+      "PURCHASE_ORDERS",
+      "PURCHASE_ORDERS_RECEIVE",
+      "PROCUREMENT_TRACKING",
+    ],
+    roles: [
+      "REQUESTER",
+      RoleCode.PROCUREMENT_OFFICER,
+      RoleCode.PROCUREMENT_MANAGER,
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "rm-warehouse",
+    code: "RM",
+    label: "คลังวัตถุดิบ",
+    description: "ยอดคงเหลือ · เบิก · โอน · นับ",
+    href: "/inventory/stock-balances",
+    tone: "green",
+    screenCodes: [
+      "STOCK_BALANCES",
+      "INVENTORY_LOTS",
+      "MATERIAL_ISSUES",
+      "CHEMICAL_ISSUES",
+      "TIRE_PREP_ISSUES",
+      "INVENTORY_ISSUES",
+      "STOCK_INQUIRY",
+      "STOCK_TRANSFERS",
+      "STOCK_CONTROL",
+      "STOCK_MOVEMENTS",
+      "GOODS_RECEIPTS",
+    ],
+    roles: [
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.PROCUREMENT_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "production",
+    code: "PRD",
+    label: "การผลิต",
+    description: "ใบสั่งผลิต · รับผลผลิต",
+    href: "/production/production-orders",
+    tone: "teal",
+    screenCodes: [
+      "PRODUCTION_ORDERS",
+      "PRODUCTION_OUTPUT_STOCK_REQUESTS",
+      "PENDING_PRODUCTION_OUTPUT",
+      "TIRE_PREP_STAGES",
+      "RCB_PROCESSING",
+    ],
+    roles: [
+      RoleCode.PRODUCTION_OFFICER,
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "fg-warehouse",
+    code: "FG",
+    label: "คลังสำเร็จรูป",
+    description: "ยอด FG · Picking · Packing",
+    href: "/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS",
+    tone: "cyan",
+    screenCodes: [
+      "WAREHOUSE_APPROVALS",
+      "FG_STOCK_BALANCES",
+      "FG_INVENTORY_LOTS",
+      "PICKINGS",
+      "PACKINGS",
+      "PRODUCTION_OUTPUT_APPROVALS",
+      "FG_STOCK_MOVEMENTS",
+    ],
+    roles: [
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.SALES_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "sales",
+    code: "SD",
+    label: "ขาย",
+    description: "เสนอราคา · SO · ส่ง · แจ้งหนี้",
+    href: "/sales-orders",
+    tone: "indigo",
+    screenCodes: [
+      "MASTERS_CUSTOMERS",
+      "QUOTATIONS",
+      "SALES_ORDERS",
+      "SALES_STOCK_VERIFICATION",
+      "DELIVERY_ORDERS",
+      "SALES_INVOICES_PENDING",
+      "SALES_INVOICES",
+      "SALES_TRACKING",
+    ],
+    roles: [
+      RoleCode.SALES_OFFICER,
+      RoleCode.SALES_MANAGER,
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "laboratory",
+    code: "LAB",
+    label: "ห้องปฏิบัติการ",
+    description: "ตัวอย่างตรวจสอบ (LIMS)",
+    href: "/laboratory/samples",
+    tone: "rose",
+    screenCodes: ["LAB_SAMPLES"],
+    roles: [
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.PROCUREMENT_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "oil-tank-farm",
+    code: "OIL",
+    label: "ถังน้ำมัน",
+    description: "ถัง · รับ · โอน · จ่าย",
+    href: "/oil-tank-farm/tanks",
+    tone: "amber",
+    screenCodes: [
+      "OIL_TANKS",
+      "OIL_RECEIVINGS",
+      "OIL_TRANSFERS",
+      "OIL_DISPATCHES",
+    ],
+    roles: [
+      RoleCode.PRODUCTION_OFFICER,
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "maintenance",
+    code: "MNT",
+    label: "ซ่อมบำรุง",
+    description: "อุปกรณ์ · ใบงาน · PM",
+    href: "/maintenance/equipment",
+    tone: "slate",
+    screenCodes: ["EQUIPMENT", "WORK_ORDERS", "PM_SCHEDULES"],
+    roles: [
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.PRODUCTION_OFFICER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "hrm",
+    code: "HRM",
+    label: "บุคคล",
+    description: "พนักงาน · เวลางาน · OT · ลา",
+    href: "/users",
+    tone: "indigo",
+    screenCodes: [
+      "USERS",
+      "ROLES",
+      "HRM_ATTENDANCE",
+      "HRM_OVERTIME",
+      "HRM_LEAVE",
+    ],
+    roles: [RoleCode.EXECUTIVE],
+  },
+  {
+    key: "finance",
+    code: "FIN",
+    label: "การเงิน",
+    description: "จ่าย Supplier · ประวัติจ่าย",
+    href: "/purchase-payments",
+    tone: "slate",
+    screenCodes: ["PURCHASE_PAYMENTS_PENDING", "PURCHASE_PAYMENTS"],
+    roles: [
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.PROCUREMENT_MANAGER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "reports",
+    code: "RPT",
+    label: "รายงาน",
+    description: "จัดซื้อ · รับยาง · ขาย · ลูกหนี้",
+    href: "/reports/procurement",
+    tone: "stone",
+    screenCodes: [
+      "REPORTS_PROCUREMENT",
+      "REPORTS_RECEIVING",
+      "REPORTS_CHEMICAL_CONSUMPTION",
+      "REPORTS_AR_AGING",
+      "REPORTS_SALES_INVOICES",
+      "REPORTS_SALES_PAYMENTS",
+      "REPORTS_INVENTORY",
+      "REPORTS_PAYMENTS",
+    ],
+    roles: [
+      RoleCode.PROCUREMENT_OFFICER,
+      RoleCode.PROCUREMENT_MANAGER,
+      RoleCode.WEIGHBRIDGE_OFFICER,
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.SALES_OFFICER,
+      RoleCode.SALES_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.EXECUTIVE,
+    ],
+  },
+  {
+    key: "master",
+    code: "MST",
+    label: "Master / ตั้งค่า",
+    description: "ข้อมูลหลัก · ผู้ใช้ · สิทธิ์",
+    href: "/masters/items",
+    tone: "slate",
+    screenCodes: [
+      "MASTERS_ITEMS",
+      "MASTERS_VENDORS",
+      "MASTERS_CUSTOMERS",
+      "USERS",
+      "PERMISSIONS",
+      "AUDIT_LOGS",
+      "ROLES",
+      "TEMP_CASES",
+      "WAREHOUSES",
+      "WAREHOUSE_LOCATIONS",
+      "MASTERS_UNITS",
+      "MASTERS_SELLERS",
+      "MASTERS_SELLER_TYPES",
+      "MASTERS_WEIGHBRIDGE_SCALES",
+    ],
+    roles: [
+      RoleCode.SALES_OFFICER,
+      RoleCode.SALES_MANAGER,
+      RoleCode.PROCUREMENT_OFFICER,
+      RoleCode.PROCUREMENT_MANAGER,
+      RoleCode.WAREHOUSE_OFFICER,
+      RoleCode.WAREHOUSE_MANAGER,
+      RoleCode.ACCOUNTING_OFFICER,
+      RoleCode.EXECUTIVE,
+      RoleCode.WEIGHBRIDGE_OFFICER,
+    ],
+  },
+];
+
+export function canSeePortalModule(mod: PortalModuleDef): boolean {
+  if (mod.requiresProductionOutput && !PRODUCTION_OUTPUT_ENABLED) {
+    return false;
+  }
+  if (isAdministrator()) {
+    return true;
+  }
+
+  // Matrix: screenCodes only (adminOnly applies in legacy mode)
+  if (isMatrixPermissionMode()) {
+    return canAccessAnyScreen(mod.screenCodes);
+  }
+
+  if (mod.adminOnly) {
+    return false;
+  }
+
+  if (!mod.roles || mod.roles.length === 0) {
+    return false;
+  }
+  return mod.roles.some((role) => userHasRole(role));
+}
+
+/** Pick a hub URL the current user can open (avoid landing on a forbidden report). */
+export function resolvePortalHref(mod: PortalModuleDef): string {
+  if (isMatrixPermissionMode()) {
+    if (mod.key === "dashboard") {
+      if (canAccessAnyScreen(["EXECUTIVE_DASHBOARD"])) {
+        return "/dashboard/executive";
+      }
+      if (canAccessAnyScreen(["WAREHOUSE_DASHBOARD"])) {
+        return "/inventory/dashboard";
+      }
+      if (canAccessAnyScreen(["RAW_TIRE_DASHBOARD"])) {
+        return "/receiving/dashboard";
+      }
+    }
+    if (mod.key === "hrm") {
+      if (canAccessAnyScreen(["USERS"])) return "/users";
+      if (canAccessAnyScreen(["HRM_ATTENDANCE"])) return "/hrm/attendance";
+      if (canAccessAnyScreen(["HRM_OVERTIME"])) {
+        return "/hrm/overtime-requests";
+      }
+      return "/hrm/leave-requests";
+    }
+    if (mod.key === "raw-tire") {
+      if (canAccessAnyScreen(["RECEIVING"])) return "/receiving";
+      if (canAccessAnyScreen(["STOCK_POSTING_APPROVALS"])) {
+        return "/warehouse/stock-posting-approvals";
+      }
+    }
+    if (mod.key === "finance") {
+      if (canAccessAnyScreen(["PURCHASE_PAYMENTS_PENDING"])) {
+        return "/purchase-payments/pending";
+      }
+      return "/purchase-payments";
+    }
+    if (mod.key === "master") {
+      if (canAccessAnyScreen(["USERS"])) return "/users";
+      if (canAccessAnyScreen(["MASTERS_ITEMS"])) return "/masters/items";
+      if (canAccessAnyScreen(["TEMP_CASES"])) return "/case";
+      return mod.href;
+    }
+    if (mod.key === "reports") {
+      if (canAccessAnyScreen(["REPORTS_PROCUREMENT"])) {
+        return "/reports/procurement";
+      }
+      if (canAccessAnyScreen(["REPORTS_RECEIVING"])) {
+        return "/reports/receiving";
+      }
+      if (canAccessAnyScreen(["REPORTS_AR_AGING"])) {
+        return "/reports/ar-aging";
+      }
+      if (canAccessAnyScreen(["REPORTS_CHEMICAL_CONSUMPTION"])) {
+        return "/reports/chemical-consumption";
+      }
+      return "/reports/receiving";
+    }
+    if (mod.key === "purchase") {
+      if (canAccessAnyScreen(["PURCHASE_REQUESTS"])) {
+        return "/purchase-requests";
+      }
+      if (canAccessAnyScreen(["PURCHASE_ORDERS_RECEIVE"])) {
+        return "/purchase-orders/receive";
+      }
+      if (canAccessAnyScreen(["PURCHASE_ORDERS"])) {
+        return "/purchase-orders";
+      }
+    }
+  }
+
+  if (mod.key === "finance") {
+    if (userHasRole(RoleCode.ACCOUNTING_OFFICER)) {
+      return "/purchase-payments/pending";
+    }
+    return "/purchase-payments";
+  }
+
+  if (mod.key === "master") {
+    if (isAdministrator()) {
+      return "/users";
+    }
+    return "/masters/items";
+  }
+
+  if (mod.key === "reports") {
+    if (
+      userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
+      userHasRole(RoleCode.PROCUREMENT_MANAGER)
+    ) {
+      return "/reports/procurement";
+    }
+    if (userHasRole(RoleCode.WEIGHBRIDGE_OFFICER)) {
+      return "/reports/receiving";
+    }
+    if (
+      userHasRole(RoleCode.SALES_OFFICER) ||
+      userHasRole(RoleCode.SALES_MANAGER)
+    ) {
+      return "/reports/ar-aging";
+    }
+    if (
+      userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+      userHasRole(RoleCode.WAREHOUSE_MANAGER)
+    ) {
+      return "/reports/chemical-consumption";
+    }
+    return "/reports/receiving";
+  }
+
+  if (mod.key === "purchase") {
+    if (
+      userHasRole("REQUESTER") &&
+      !userHasRole(RoleCode.PROCUREMENT_OFFICER) &&
+      !userHasRole(RoleCode.PROCUREMENT_MANAGER)
+    ) {
+      return "/purchase-requests";
+    }
+    if (
+      userHasRole(RoleCode.WAREHOUSE_OFFICER) &&
+      !userHasRole(RoleCode.PROCUREMENT_OFFICER) &&
+      !userHasRole(RoleCode.PROCUREMENT_MANAGER)
+    ) {
+      return "/purchase-orders/receive";
+    }
+  }
+
+  return mod.href;
+}
+
+export function getVisiblePortalModules(): PortalModuleDef[] {
+  return PORTAL_MODULES.filter(canSeePortalModule);
+}

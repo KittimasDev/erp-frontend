@@ -79,7 +79,7 @@ const FLOW_LABELS: Record<string, string> = {
   WAITING_SORT: "รอทำตั๋วชั่ง",
   WAITING_WEIGH_OUT: "รอชั่งออก",
   WAITING_APPROVAL: "รออนุมัติ",
-  WAITING_PAYMENT: "รอออกใบจ่ายเงิน",
+  WAITING_PAYMENT: "รอจ่ายเงินหรือเข้าคลัง",
   PAYMENT_PAID: "จ่ายเงินแล้ว",
   WAITING_STOCK_IN: "รอเข้าคลัง",
   STOCK_REQUEST_PENDING: "รออนุมัติเข้าคลัง",
@@ -96,21 +96,17 @@ const STAGE_OPTIONS: {
   { key: "all", label: "ทั้งหมด", description: "ทุกรายการในช่วงที่เลือก" },
   { key: "weigh-in", label: "ชั่งเข้า", description: "รอชั่งน้ำหนักเข้า" },
   { key: "weigh-out", label: "ชั่งออก", description: "รอชั่งน้ำหนักออก" },
-  {
-    key: "classify",
-    label: "ตั๋วชั่ง",
-    description: "คัดแยก / บันทึกตั๋วชั่งเพื่อออกใบจ่ายเงิน",
-  },
+  { key: "classify", label: "ตั๋วชั่ง", description: "คัดแยก / ยืนยันยอด" },
   {
     key: "payment",
     label: "ออกใบจ่ายเงิน",
-    description: "รอออกใบจ่ายเงินผู้ขาย",
+    description: "จ่ายก่อนหรือหลังเข้าคลังก็ได้",
   },
   { key: "paid", label: "จ่ายแล้ว", description: "จ่ายเงินครบแล้ว" },
   {
     key: "warehouse",
     label: "เข้าคลัง",
-    description: "รอส่งคำขอรับเข้าคลัง",
+    description: "ส่งคำขอรับเข้าคลัง (จ่ายก่อนก็ได้)",
   },
 ];
 
@@ -148,23 +144,24 @@ function parseStage(value: string | null): ReceivingStage {
 function getTicketActionFlags(ticket: WeighbridgeTicketListItem) {
   const locked =
     ticket.status === "CANCELLED" || ticket.status === "CLOSED";
+  // จ่ายเงินจริงเท่านั้น — อย่าใช้ STOCK_* เป็น proxy ของ PAID (เข้าคลังก่อนจ่ายได้)
   const isPaid =
-    ticket.flowState === "PAYMENT_PAID" ||
-    ticket.flowState === "WAITING_STOCK_IN" ||
-    ticket.flowState === "STOCK_REQUEST_PENDING" ||
-    ticket.flowState === "STOCK_POSTED" ||
-    ticket.receiptPaymentStatus === "PAID";
+    ticket.receiptPaymentStatus === "PAID" ||
+    ticket.flowState === "PAYMENT_PAID";
+  const stockPosted = ticket.receiptStockPostingStatus === "POSTED";
+  // ล็อกชั่ง/คัดแยกเมื่อจ่ายแล้ว หรือรับเข้าคลังแล้ว
+  const weightsLocked = locked || isPaid || stockPosted;
   const receiptLocked =
     isPaid ||
+    stockPosted ||
     ticket.flowState === "WAITING_PAYMENT" ||
-    ticket.flowState === "STOCK_POSTED" ||
-    ticket.receiptStatus === "CONFIRMED";
+    ticket.receiptStatus === "CONFIRMED" ||
+    ticket.receiptStatus === "APPROVED";
 
   const canWeighIn =
-    !locked && !isPaid && Number(ticket.grossWeightKg) <= 0;
+    !weightsLocked && Number(ticket.grossWeightKg) <= 0;
   const canWeighOut =
-    !locked &&
-    !isPaid &&
+    !weightsLocked &&
     Number(ticket.grossWeightKg) > 0 &&
     !ticket.weighOutAt;
   const canClassify =
@@ -172,20 +169,22 @@ function getTicketActionFlags(ticket: WeighbridgeTicketListItem) {
     !receiptLocked &&
     Boolean(ticket.weighOutAt) &&
     Number(ticket.netWeightKg) > 0;
+  // จ่ายได้หลังยืนยันยอด — เข้าคลังไปแล้วก็ยังจ่ายได้
   const canPay =
     !locked &&
     !isPaid &&
     Boolean(ticket.receiptId) &&
-    (ticket.flowState === "WAITING_PAYMENT" ||
-      (ticket.receiptStatus === "CONFIRMED" &&
-        ticket.receiptPaymentStatus !== "PAID"));
+    (ticket.receiptStatus === "CONFIRMED" ||
+      ticket.receiptStatus === "APPROVED") &&
+    ticket.receiptPaymentStatus !== "PAID";
+  // เข้าคลังได้หลังยืนยันยอดแล้ว — ไม่บังคับจ่ายเงินก่อน
   const canStockInRaw =
     Boolean(ticket.receiptId) &&
-    ticket.receiptStatus === "CONFIRMED" &&
+    (ticket.receiptStatus === "CONFIRMED" ||
+      ticket.receiptStatus === "APPROVED") &&
     ticket.receiptStockPostingStatus !== "POSTED" &&
-    ticket.receiptPaymentStatus === "PAID";
+    ticket.flowState !== "STOCK_REQUEST_PENDING";
   const canStockIn = canStockInRaw;
-  const stockPosted = ticket.receiptStockPostingStatus === "POSTED";
 
   return {
     locked,
@@ -625,7 +624,7 @@ export default function WeighbridgeDashboardPage() {
     },
     {
       key: "payment" as ReceivingStage,
-      label: "รอออกใบจ่ายเงิน",
+      label: "รอจ่ายเงิน / เข้าคลัง",
       value: stageCounts.payment,
     },
     {

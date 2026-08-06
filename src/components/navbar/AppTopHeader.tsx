@@ -17,8 +17,26 @@ import type { AppNotification } from "@/types/notifications";
 import styles from "./AppTopHeader.module.css";
 
 const PAGE_TITLES: Array<{ href: string; title: string }> = [
-  { href: "/", title: "Dashboard" },
+  { href: "/", title: "Portal" },
   { href: "/case", title: "Case / Issue" },
+  { href: "/dashboard/executive", title: "ภาพรวมผู้บริหาร" },
+  { href: "/inventory/dashboard", title: "ภาพรวมคลังสินค้า" },
+  { href: "/receiving/dashboard", title: "ภาพรวมรับซื้อยาง" },
+  { href: "/weighbridge/floor-scale-tickets", title: "ชั่งน้ำหนัก Floor Scale" },
+  { href: "/production/tire-prep-stages", title: "ขั้นตอนเตรียมยาง" },
+  { href: "/production/rcb-processing", title: "กระบวนการผลิต rCB" },
+  { href: "/inventory/tire-prep-issues", title: "เบิกยางเข้ากระบวนการเตรียมยาง" },
+  { href: "/hrm/employees", title: "ข้อมูลพนักงาน" },
+  { href: "/hrm/attendance", title: "บันทึกเวลาเข้า-ออกงาน" },
+  { href: "/hrm/overtime-requests", title: "คำขอทำงานล่วงเวลา (OT)" },
+  { href: "/hrm/leave-requests", title: "คำขอลางาน" },
+  { href: "/maintenance/equipment", title: "อุปกรณ์/เครื่องจักร" },
+  { href: "/maintenance/work-orders", title: "ใบสั่งงานซ่อมบำรุง" },
+  { href: "/maintenance/pm-schedules", title: "แผนบำรุงรักษา (PM)" },
+  { href: "/oil-tank-farm/tanks", title: "จัดการถังเก็บน้ำมัน" },
+  { href: "/oil-tank-farm/receivings", title: "รับน้ำมันเข้าถัง" },
+  { href: "/oil-tank-farm/transfers", title: "โอนย้ายน้ำมันระหว่างถัง" },
+  { href: "/oil-tank-farm/dispatches", title: "จ่ายน้ำมันออกจากถัง" },
   { href: "/production/production-orders", title: "ใบสั่งผลิต (Pyrolysis)" },
   { href: "/reports/ar-aging", title: "รายงานลูกหนี้คงค้าง" },
   { href: "/reports/sales-invoices", title: "รายงานใบแจ้งหนี้" },
@@ -63,7 +81,6 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/receiving/production-output/stock-requests", title: "ขอรับผลผลิตเข้าคลัง" },
   { href: "/users", title: "ผู้ใช้งาน" },
   { href: "/settings/roles", title: "Roles" },
-  { href: "/settings/permissions", title: "Permission Matrix" },
   { href: "/settings/audit-logs", title: "Audit Log" },
   { href: "/reports/procurement", title: "รายงานจัดซื้อ" },
   { href: "/reports/inventory", title: "รายงานคลัง" },
@@ -116,7 +133,11 @@ function inventoryItemCategoryTitle(
   return titleMap[pathname]?.[value] ?? null;
 }
 
-function resolvePageTitle(pathname: string, itemCategoryCode?: string | null) {
+function resolvePageTitle(
+  pathname: string,
+  itemCategoryCode?: string | null,
+  tab?: string | null,
+) {
   const categoryTitle = inventoryItemCategoryTitle(
     pathname,
     itemCategoryCode ?? null,
@@ -183,6 +204,15 @@ function resolvePageTitle(pathname: string, itemCategoryCode?: string | null) {
   }
 
   if (pathname === "/users" || pathname === "/user") {
+    if (tab === "departments") {
+      return "แผนก";
+    }
+    if (tab === "roles") {
+      return "บทบาท";
+    }
+    if (tab === "permissions") {
+      return "สิทธิ์";
+    }
     return "ผู้ใช้งาน";
   }
 
@@ -230,7 +260,7 @@ function resolvePageTitle(pathname: string, itemCategoryCode?: string | null) {
   }
 
   if (pathname === "/") {
-    return "Dashboard";
+    return "Portal";
   }
 
   return "ภาพรวมระบบ";
@@ -288,14 +318,15 @@ export default function AppTopHeader() {
   const router = useRouter();
   const { notification } = App.useApp();
   const itemCategoryCode = searchParams.get("itemCategoryCode");
+  const usersTab = searchParams.get("tab");
   const isAdmin = isAdministrator();
   const [open, setOpen] = useState(false);
   const toastedIdsRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
 
   const title = useMemo(
-    () => resolvePageTitle(pathname, itemCategoryCode),
-    [pathname, itemCategoryCode],
+    () => resolvePageTitle(pathname, itemCategoryCode, usersTab),
+    [pathname, itemCategoryCode, usersTab],
   );
   const todayLabel = useMemo(() => formatThaiDate(new Date()), []);
 

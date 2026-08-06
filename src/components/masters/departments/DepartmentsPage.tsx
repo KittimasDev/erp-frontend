@@ -117,7 +117,7 @@ export default function DepartmentsPage({
   const [editingDepartment, setEditingDepartment] =
     useState<Department | null>(null);
   const [page, setPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(50);
 
   const filters = useMemo(
     () => parseFiltersFromSearch(searchParams),
@@ -144,6 +144,9 @@ export default function DepartmentsPage({
 
   const applyFiltersToUrl = (values: DepartmentFilterFormValues) => {
     const next = buildSearchFromForm(values);
+    if (embedded) {
+      next.set("tab", "departments");
+    }
     const query = next.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
   };
@@ -154,6 +157,10 @@ export default function DepartmentsPage({
 
   const handleClearFilters = () => {
     form.resetFields();
+    if (embedded) {
+      router.replace(`${pathname}?tab=departments`);
+      return;
+    }
     router.replace(pathname);
   };
 
@@ -476,9 +483,16 @@ export default function DepartmentsPage({
             pagination={{
               current: page,
               pageSize,
-              showSizeChanger: false,
+              showSizeChanger: true,
+              pageSizeOptions: [20, 50, 100],
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
-              onChange: setPage,
+              onChange: (nextPage, nextSize) => {
+                setPage(nextPage);
+                if (nextSize && nextSize !== pageSize) {
+                  setPageSize(nextSize);
+                  setPage(1);
+                }
+              },
             }}
             scroll={{ x: 900 }}
             locale={{

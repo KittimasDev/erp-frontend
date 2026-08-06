@@ -1,14 +1,21 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { Suspense } from "react";
+type PageProps = {
+  searchParams: Promise<{ roleId?: string | string[] }>;
+};
 
-import PageLoading from "@/components/common/PageLoading";
-import PermissionMatrixPage from "@/components/permissions/PermissionMatrixPage";
+export default async function PermissionsRedirectPage({
+  searchParams,
+}: PageProps) {
+  const params = await searchParams;
+  const raw = params.roleId;
+  const roleId =
+    typeof raw === "string" ? raw : Array.isArray(raw) ? raw[0] : undefined;
 
-export default function Page() {
-  return (
-    <Suspense fallback={<PageLoading />}>
-      <PermissionMatrixPage />
-    </Suspense>
-  );
+  if (roleId) {
+    redirect(
+      `/users?tab=permissions&roleId=${encodeURIComponent(roleId)}`,
+    );
+  }
+  redirect("/users?tab=roles");
 }

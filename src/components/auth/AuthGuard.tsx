@@ -5,7 +5,12 @@ import { usePathname } from "next/navigation";
 
 import PageLoading from "@/components/common/PageLoading";
 import { getMe } from "@/lib/api/auth";
+import { getMyPermissions } from "@/lib/api/permissions";
 import { redirectToLogin } from "@/lib/auth/redirect-to-login";
+import {
+  clearStoredPermissions,
+  setStoredPermissionsAndNotify,
+} from "@/lib/auth/permissions-access";
 import { setStoredUser } from "@/lib/auth/session";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
 
@@ -23,22 +28,26 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
     async function checkAuth() {
       if (!hasAccessToken()) {
+        clearStoredPermissions();
         redirectToLogin(next);
         return;
       }
 
-      // Optimistic shell after mount — must not read localStorage in useState initializer (hydration mismatch)
-      if (!cancelled) {
-        setReady(true);
-      }
-
       try {
-        const me = await getMe(getAccessToken());
-        if (!cancelled) {
-          setStoredUser(me.data);
+        const token = getAccessToken();
+        const [me, perms] = await Promise.all([
+          getMe(token),
+          getMyPermissions(token),
+        ]);
+        if (cancelled) {
+          return;
         }
+        setStoredUser(me.data);
+        setStoredPermissionsAndNotify(perms.data);
+        setReady(true);
       } catch {
         if (!cancelled) {
+          clearStoredPermissions();
           redirectToLogin(next);
         }
       }
