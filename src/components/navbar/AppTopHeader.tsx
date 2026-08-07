@@ -11,7 +11,7 @@ import {
   useNotificationsQuery,
   useNotificationsUnreadCountQuery,
 } from "@/hooks/notifications/useNotificationsQueries";
-import { isAdministrator } from "@/lib/auth/session";
+import { hasAccessToken } from "@/lib/auth/token";
 import type { AppNotification } from "@/types/notifications";
 
 import styles from "./AppTopHeader.module.css";
@@ -213,6 +213,9 @@ function resolvePageTitle(
     if (tab === "permissions") {
       return "สิทธิ์";
     }
+    if (tab === "notifications") {
+      return "การแจ้งเตือน";
+    }
     return "ผู้ใช้งาน";
   }
 
@@ -319,7 +322,7 @@ export default function AppTopHeader() {
   const { notification } = App.useApp();
   const itemCategoryCode = searchParams.get("itemCategoryCode");
   const usersTab = searchParams.get("tab");
-  const isAdmin = isAdministrator();
+  const isLoggedIn = hasAccessToken();
   const [open, setOpen] = useState(false);
   const toastedIdsRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
@@ -330,8 +333,10 @@ export default function AppTopHeader() {
   );
   const todayLabel = useMemo(() => formatThaiDate(new Date()), []);
 
-  const listQuery = useNotificationsQuery({ enabled: isAdmin });
-  const unreadQuery = useNotificationsUnreadCountQuery({ enabled: isAdmin });
+  const listQuery = useNotificationsQuery({ enabled: isLoggedIn });
+  const unreadQuery = useNotificationsUnreadCountQuery({
+    enabled: isLoggedIn,
+  });
   const markReadMutation = useMarkNotificationReadMutation();
   const markAllMutation = useMarkAllNotificationsReadMutation();
 
@@ -339,7 +344,7 @@ export default function AppTopHeader() {
   const unreadCount = unreadQuery.data?.data.count ?? 0;
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!isLoggedIn) {
       return;
     }
     const unread = notifications.filter((row) => !row.read);
@@ -353,18 +358,23 @@ export default function AppTopHeader() {
         continue;
       }
       toastedIdsRef.current.add(row.id);
-      notification.warning({
+      const toastArgs = {
         title: row.title,
         description: row.message,
-        placement: "bottomRight",
+        placement: "bottomRight" as const,
         duration: 6,
         onClick: () => {
           void handleOpenNotification(row);
         },
-      });
+      };
+      if (row.type === "LOW_STOCK") {
+        notification.warning(toastArgs);
+      } else {
+        notification.info(toastArgs);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleOpenNotification uses latest mutations
-  }, [isAdmin, notifications, notification]);
+  }, [isLoggedIn, notifications, notification]);
 
   async function handleOpenNotification(row: AppNotification) {
     setOpen(false);
@@ -405,7 +415,11 @@ export default function AppTopHeader() {
               <button
                 type="button"
                 className={`${styles.notifItem} ${
-                  row.read ? "" : styles.notifItemUnread
+                  row.read
+                    ? ""
+                    : row.type === "LOW_STOCK"
+                      ? styles.notifItemUnreadLowStock
+                      : styles.notifItemUnread
                 }`}
                 onClick={() => void handleOpenNotification(row)}
               >
@@ -435,7 +449,7 @@ export default function AppTopHeader() {
             <span>{todayLabel}</span>
           </div>
 
-          {isAdmin ? (
+          {isLoggedIn ? (
             <Popover
               trigger="click"
               placement="bottomRight"
@@ -463,7 +477,7 @@ export default function AppTopHeader() {
               className={styles.bellButton}
               aria-label="การแจ้งเตือน"
               disabled
-              title="การแจ้งเตือนสต๊อกต่ำสำหรับผู้ดูแลระบบ"
+              title="เข้าสู่ระบบเพื่อดูการแจ้งเตือน"
             >
               <IconBell />
             </button>

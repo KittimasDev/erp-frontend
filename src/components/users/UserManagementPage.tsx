@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, Typography } from "antd";
 import {
   ApartmentOutlined,
+  BellOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -15,14 +16,19 @@ import PermissionMatrixPage from "@/components/permissions/PermissionMatrixPage"
 import { isAdministrator } from "@/lib/auth/session";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
+import NotificationSettingsPage from "./NotificationSettingsPage";
 import RolesPage from "./RolesPage";
 import UsersPage from "./UsersPage";
 import styles from "./UserManagementPage.module.css";
 
-type ManagementTab = "users" | "departments" | "roles";
+type ManagementTab = "users" | "departments" | "roles" | "notifications";
 
 function resolveTab(raw: string | null): ManagementTab {
-  if (raw === "departments" || raw === "roles") {
+  if (
+    raw === "departments" ||
+    raw === "roles" ||
+    raw === "notifications"
+  ) {
     return raw;
   }
   return "users";
@@ -61,7 +67,7 @@ export default function UserManagementPage() {
     } else {
       next.set("tab", key);
     }
-    ["q", "isActive", "code", "name", "roleId"].forEach((keyName) =>
+    ["q", "isActive", "code", "name", "roleId", "event"].forEach((keyName) =>
       next.delete(keyName),
     );
     const query = next.toString();
@@ -132,6 +138,16 @@ export default function UserManagementPage() {
                 </span>
               ),
               children: <RolesPage embedded />,
+            },
+            {
+              key: "notifications",
+              label: (
+                <span className={styles.tabLabel}>
+                  <BellOutlined />
+                  การแจ้งเตือน
+                </span>
+              ),
+              children: <NotificationSettingsPage embedded />,
             },
             {
               key: "users",
