@@ -518,19 +518,29 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
             </Space>
           </div>
 
-          <Table
-            rowKey="id"
-            className={masterStyles.dataTable}
-            columns={columns}
-            dataSource={users}
-            pagination={{
-              current: page,
-              pageSize,
-              total: users.length,
-              onChange: setPage,
-              showSizeChanger: false,
-            }}
-          />
+          {usersQuery.isError ? (
+            <Typography.Text type="danger">
+              โหลดรายชื่อไม่สำเร็จ:{" "}
+              {usersQuery.error instanceof Error
+                ? usersQuery.error.message
+                : "เกิดข้อผิดพลาด"}
+            </Typography.Text>
+          ) : (
+            <Table
+              rowKey="id"
+              className={masterStyles.dataTable}
+              columns={columns}
+              dataSource={users}
+              loading={usersQuery.isLoading || usersQuery.isFetching}
+              pagination={{
+                current: page,
+                pageSize,
+                total: users.length,
+                onChange: setPage,
+                showSizeChanger: false,
+              }}
+            />
+          )}
         </div>
 
         <UserFormModal

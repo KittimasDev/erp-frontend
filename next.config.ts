@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
   // ปิดเครื่องหมาย Next.js (dev indicator) มุมจอตอนพัฒนา
   devIndicators: false,
 
+  // forward browser console (warn/error) ไปที่ terminal ตอน next dev — ดู client error ได้โดยไม่ต้องเปิด devtools
+  logging: {
+    browserToTerminal: "warn",
+  },
+
   async rewrites() {
     return [
       {

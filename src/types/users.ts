@@ -51,6 +51,7 @@ export type CreateUserRequest = {
 };
 
 export type UpdateUserRequest = {
+  username?: string;
   displayName?: string;
   email?: string;
   phone?: string;

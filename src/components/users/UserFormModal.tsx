@@ -5,7 +5,12 @@ import { DatePicker, Form, Input, Modal, Select, Switch } from "antd";
 import dayjs from "dayjs";
 
 import { useDepartmentsQuery } from "@/hooks/departments/useDepartmentsQuery";
-import type { AppUser, CreateUserRequest, Role } from "@/types/users";
+import type {
+  AppUser,
+  CreateUserRequest,
+  Role,
+  UpdateUserRequest,
+} from "@/types/users";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 type UserFormValues = {
@@ -31,13 +36,7 @@ type UserFormModalProps = {
   roles: Role[];
   confirmLoading?: boolean;
   onCancel: () => void;
-  onSubmit: (
-    values:
-      | CreateUserRequest
-      | (Omit<CreateUserRequest, "password" | "username"> & {
-          roleIds?: string[];
-        }),
-  ) => void;
+  onSubmit: (values: CreateUserRequest | UpdateUserRequest) => void;
 };
 
 export default function UserFormModal({
@@ -123,6 +122,7 @@ export default function UserFormModal({
     }
 
     onSubmit({
+      username: values.canLogin ? values.username.trim() : undefined,
       displayName: values.displayName.trim(),
       employeeCode: values.employeeCode?.trim() || undefined,
       departmentId: values.departmentId,
@@ -231,7 +231,7 @@ export default function UserFormModal({
                 { max: 100 },
               ]}
             >
-              <Input disabled={!isCreateMode} placeholder="เช่น weigh.officer" />
+              <Input placeholder="เช่น weigh.officer" />
             </Form.Item>
 
             {isCreateMode ? (
