@@ -133,7 +133,15 @@ export default function NotificationSettingsPage({
       key: "name",
       render: (_, row) => (
         <div>
-          <Typography.Text strong>{row.nameTh}</Typography.Text>
+          <Space size={8} wrap>
+            <Typography.Text strong>{row.nameTh}</Typography.Text>
+            {row.code.includes("PURCHASE_REQUEST") ? (
+              <Tag color="green">PR</Tag>
+            ) : null}
+            {row.code.includes("STOCK_POSTING") ? (
+              <Tag color="blue">รับยาง</Tag>
+            ) : null}
+          </Space>
           <div>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {row.descriptionTh}
@@ -282,9 +290,15 @@ export default function NotificationSettingsPage({
   }
 
   const events = eventsQuery.data?.data ?? [];
+  const eventsError =
+    eventsQuery.error instanceof Error
+      ? eventsQuery.error.message
+      : eventsQuery.isError
+        ? "โหลดรายการแจ้งเตือนไม่สำเร็จ"
+        : null;
 
   return (
-    <MasterPageGate isLoading={!embedded && eventsQuery.isLoading}>
+    <MasterPageGate isLoading={eventsQuery.isLoading}>
       <section className={masterStyles.page}>
         <div style={{ marginBottom: 16 }}>
           <Typography.Title level={4} style={{ margin: 0 }}>
@@ -293,8 +307,24 @@ export default function NotificationSettingsPage({
           </Typography.Title>
           <Typography.Text type="secondary">
             เลือกรายการเพื่อกำหนดว่าบทบาทไหนจะได้รับแจ้งเตือนเมื่อมีงานเข้าคิว
+            {events.length > 0 ? ` (${events.length} รายการ)` : null}
           </Typography.Text>
         </div>
+
+        {eventsError ? (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="โหลดรายการไม่สำเร็จ"
+            description={eventsError}
+            action={
+              <Button size="small" onClick={() => void eventsQuery.refetch()}>
+                ลองใหม่
+              </Button>
+            }
+          />
+        ) : null}
 
         <Table
           rowKey="code"

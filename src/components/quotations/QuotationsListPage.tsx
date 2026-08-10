@@ -24,6 +24,10 @@ import dayjs from "dayjs";
 
 import { useQuotationsQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
+import {
+  getScreenActionPermissions,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { Quotation } from "@/types/quotations";
@@ -144,10 +148,14 @@ export default function QuotationsListPage() {
     dateTo?: string;
   }>({});
 
-  const canWrite =
+  const quotationActions = getScreenActionPermissions("QUOTATIONS");
+  const legacyWrite =
     userHasRole(RoleCode.SALES_OFFICER) ||
     userHasRole(RoleCode.SALES_MANAGER) ||
     isAdministrator();
+  const matrixMode = isMatrixPermissionMode();
+  const canCreate = matrixMode ? quotationActions.canAdd : legacyWrite;
+  const canEdit = matrixMode ? quotationActions.canEdit : legacyWrite;
 
   const customersQuery = useCustomersQuery();
   const customers = customersQuery.data?.data ?? [];
@@ -235,7 +243,7 @@ export default function QuotationsListPage() {
               icon={<EyeOutlined />}
               onClick={() => router.push(`/quotations/${row.id}`)}
             />
-            {canWrite && row.status === "DRAFT" ? (
+            {canEdit && row.status === "DRAFT" ? (
               <Button
                 size="small"
                 icon={<EditOutlined />}
@@ -246,7 +254,7 @@ export default function QuotationsListPage() {
         ),
       },
     ],
-    [canWrite, router],
+    [canEdit, router],
   );
 
   return (
@@ -264,7 +272,7 @@ export default function QuotationsListPage() {
           </p>
         </div>
         <div className={styles.headerActions}>
-          {canWrite ? (
+          {canCreate ? (
             <Link href="/quotations/create">
               <Button
                 className={styles.primaryBtn}

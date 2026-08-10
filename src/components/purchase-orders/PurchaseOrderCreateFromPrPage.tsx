@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -24,6 +24,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import { useVendorsQuery } from "@/hooks/vendors/useVendorsQuery";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
@@ -31,6 +32,12 @@ import { useCreatePurchaseOrderFromPrMutation } from "@/hooks/purchase-orders/us
 import { usePurchaseOrderByPrQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchaseRequestQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
+import {
+  getScreenActionPermissions,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
+import { RoleCode } from "@/lib/auth/role-codes";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken } from "@/lib/auth/token";
 import {
   ATTACHMENT_GROUP_QUOTATION,
@@ -75,6 +82,32 @@ function formatMoney(value: number) {
   });
 }
 
+/** อนุญาตเฉพาะตัวเลขและจุดทศนิยม (บล็อก e / + / - / ตัวอักษร) */
+function blockNonNumericKey(event: KeyboardEvent<HTMLInputElement>) {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+  const allowedKeys = new Set([
+    "Backspace",
+    "Delete",
+    "Tab",
+    "Escape",
+    "Enter",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+  ]);
+  if (allowedKeys.has(event.key)) {
+    return;
+  }
+  if (!/^[0-9.]$/.test(event.key)) {
+    event.preventDefault();
+  }
+}
+
 export default function PurchaseOrderCreateFromPrPage({
   purchaseRequestId,
 }: Props) {
@@ -83,6 +116,18 @@ export default function PurchaseOrderCreateFromPrPage({
   const [form] = Form.useForm<FormValues>();
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [isUploadingAttachments, setIsUploadingAttachments] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
+
+  const poActions = getScreenActionPermissions("PURCHASE_ORDERS");
+  const legacyWrite =
+    userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
+    userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
+    isAdministrator();
+  const canCreatePo = isMatrixPermissionMode()
+    ? poActions.canAdd
+    : legacyWrite;
+
   const prQuery = usePurchaseRequestQuery(purchaseRequestId);
   const existingPoQuery = usePurchaseOrderByPrQuery(purchaseRequestId);
   const createMutation = useCreatePurchaseOrderFromPrMutation();
@@ -193,10 +238,25 @@ export default function PurchaseOrderCreateFromPrPage({
     setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  if (!canCreatePo) {
+    return <AccessDenied screenCodes={["PURCHASE_ORDERS"]} />;
+  }
+
   if (prQuery.isLoading || existingPoQuery.isLoading) {
     return (
       <div className={styles.page}>
         <Spin /> กำลังโหลดใบขอซื้อ...
+      </div>
+    );
+  }
+
+  if (prQuery.isError) {
+    return (
+      <div className={styles.page}>
+        โหลดใบขอซื้อไม่สำเร็จ — ตรวจสิทธิ์ใบสั่งซื้อ (ADD/VIEW) ใน Permission Matrix
+        <div style={{ marginTop: 12 }}>
+          <Link href="/purchase-orders">กลับรายการใบสั่งซื้อ</Link>
+        </div>
       </div>
     );
   }
@@ -206,7 +266,7 @@ export default function PurchaseOrderCreateFromPrPage({
       <div className={styles.page}>
         ไม่พบใบขอซื้อ
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-requests">กลับ</Link>
+          <Link href="/purchase-orders">กลับรายการใบสั่งซื้อ</Link>
         </div>
       </div>
     );
@@ -223,58 +283,71 @@ export default function PurchaseOrderCreateFromPrPage({
     );
   }
 
-  const saving = createMutation.isPending || isUploadingAttachments;
+  const saving =
+    isSubmitting || createMutation.isPending || isUploadingAttachments;
 
   const onFinish = async (values: FormValues) => {
-    const response = await createMutation.mutateAsync({
-      purchaseRequestId,
-      body: {
-        poDate: values.poDate.format("YYYY-MM-DD"),
-        creditorId: values.creditorId,
-        paymentTermId: values.paymentTermId,
-        taxRateId: values.taxRateId,
-        discountAmount: values.discountAmount ?? 0,
-        remark: values.remark?.trim() || undefined,
-        items: values.items.map((item) => ({
-          purchaseRequestItemId: item.purchaseRequestItemId,
-          unitPrice: Number(item.unitPrice),
-          discountAmount: Number(item.discountAmount) || 0,
-          description: item.description?.trim() || undefined,
-        })),
-      },
-    });
-
-    const poId = response.data.id;
-    if (pendingFiles.length > 0) {
-      setIsUploadingAttachments(true);
-      let failed = 0;
-      try {
-        for (const file of pendingFiles) {
-          try {
-            await uploadDocumentAttachment(getAccessToken(), {
-              file,
-              documentType: DOCUMENT_TYPE_PO,
-              documentId: poId,
-              attachmentGroup: ATTACHMENT_GROUP_QUOTATION,
-            });
-          } catch (error) {
-            failed += 1;
-            console.error(error);
-          }
-        }
-        if (failed > 0) {
-          message.warning(
-            `สร้าง PO สำเร็จ แต่แนบไฟล์ไม่สำเร็จ ${failed} ไฟล์ — แนบใหม่ได้ที่หน้ารายละเอียด`,
-          );
-        } else {
-          message.success(`แนบใบเสนอราคา ${pendingFiles.length} ไฟล์แล้ว`);
-        }
-      } finally {
-        setIsUploadingAttachments(false);
-      }
+    if (submitLockRef.current) {
+      return;
     }
+    submitLockRef.current = true;
+    setIsSubmitting(true);
 
-    router.push(`/purchase-orders/${poId}`);
+    try {
+      const response = await createMutation.mutateAsync({
+        purchaseRequestId,
+        body: {
+          poDate: values.poDate.format("YYYY-MM-DD"),
+          creditorId: values.creditorId,
+          paymentTermId: values.paymentTermId,
+          taxRateId: values.taxRateId,
+          discountAmount: values.discountAmount ?? 0,
+          remark: values.remark?.trim() || undefined,
+          items: values.items.map((item) => ({
+            purchaseRequestItemId: item.purchaseRequestItemId,
+            unitPrice: Number(item.unitPrice),
+            discountAmount: Number(item.discountAmount) || 0,
+            description: item.description?.trim() || undefined,
+          })),
+        },
+      });
+
+      const poId = response.data.id;
+      if (pendingFiles.length > 0) {
+        setIsUploadingAttachments(true);
+        let failed = 0;
+        try {
+          for (const file of pendingFiles) {
+            try {
+              await uploadDocumentAttachment(getAccessToken(), {
+                file,
+                documentType: DOCUMENT_TYPE_PO,
+                documentId: poId,
+                attachmentGroup: ATTACHMENT_GROUP_QUOTATION,
+              });
+            } catch (error) {
+              failed += 1;
+              console.error(error);
+            }
+          }
+          if (failed > 0) {
+            message.warning(
+              `สร้าง PO สำเร็จ แต่แนบไฟล์ไม่สำเร็จ ${failed} ไฟล์ — แนบใหม่ได้ที่หน้ารายละเอียด`,
+            );
+          } else {
+            message.success(`แนบใบเสนอราคา ${pendingFiles.length} ไฟล์แล้ว`);
+          }
+        } finally {
+          setIsUploadingAttachments(false);
+        }
+      }
+
+      router.replace(`/purchase-orders/${poId}`);
+    } catch {
+      // mutation onError already toasts
+      submitLockRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -297,7 +370,12 @@ export default function PurchaseOrderCreateFromPrPage({
         </div>
       </header>
 
-      <Form form={form} layout="vertical" onFinish={onFinish}>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        disabled={saving}
+      >
         <div className={styles.layout}>
           <section className={styles.formCard}>
             <div className={styles.formBody}>
@@ -421,11 +499,25 @@ export default function PurchaseOrderCreateFromPrPage({
                                 name={[name, "unitPrice"]}
                                 rules={[
                                   { required: true, message: "ระบุราคา" },
+                                  {
+                                    type: "number",
+                                    min: 0,
+                                    message: "ราคาต้องเป็นตัวเลข ≥ 0",
+                                  },
                                 ]}
                               >
                                 <InputNumber
                                   min={0}
+                                  precision={2}
+                                  inputMode="decimal"
+                                  controls={false}
                                   style={{ width: "100%" }}
+                                  placeholder="0.00"
+                                  onKeyDown={blockNonNumericKey}
+                                  parser={(value) =>
+                                    Number((value ?? "").replace(/[^\d.]/g, "")) ||
+                                    0
+                                  }
                                 />
                               </Form.Item>
                               <Form.Item
@@ -507,6 +599,7 @@ export default function PurchaseOrderCreateFromPrPage({
               <div className={styles.footerActions}>
                 <Button
                   className={styles.cancelBtn}
+                  disabled={saving}
                   onClick={() => router.push(`/purchase-requests/${pr.id}`)}
                 >
                   ยกเลิก
@@ -516,6 +609,7 @@ export default function PurchaseOrderCreateFromPrPage({
                   type="primary"
                   htmlType="submit"
                   loading={saving}
+                  disabled={saving}
                 >
                   บันทึกใบสั่งซื้อ
                 </Button>

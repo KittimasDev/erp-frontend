@@ -47,14 +47,7 @@ export default function PurchasePaymentCreateFromPoPage({
     }
   }, [existing, router]);
 
-  useEffect(() => {
-    form.setFieldsValue({
-      voucherDate: dayjs(),
-      paymentMethod: "TRANSFER",
-    });
-  }, [form]);
-
-  if (poQuery.isLoading || existingQuery.isLoading) {
+  if (poQuery.isLoading || existingQuery.isLoading || existing?.id) {
     return (
       <div className={styles.page}>
         <Spin /> กำลังโหลด...
@@ -106,8 +99,15 @@ export default function PurchasePaymentCreateFromPoPage({
         </div>
       </header>
 
-      <Form form={form} layout="vertical" onFinish={onFinish}>
-        <div className={styles.layout}>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        initialValues={{
+          voucherDate: dayjs(),
+          paymentMethod: "TRANSFER",
+        }}
+      >        <div className={styles.layout}>
           <section className={styles.formCard}>
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>

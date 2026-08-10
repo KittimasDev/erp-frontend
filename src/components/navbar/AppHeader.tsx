@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { Badge } from "antd";
 import { LogoutOutlined } from "@ant-design/icons";
 
 import {
@@ -29,6 +30,9 @@ import {
 } from "@/lib/auth/portal-module";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
+import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
+import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 
 import styles from "./AppHeader.module.css";
 
@@ -1584,8 +1588,11 @@ function renderMenuButton(
   collapsed: boolean,
   handleGo: (href: string) => void,
   searchParams?: URLSearchParams,
+  badgeCount?: number,
 ) {
   const active = isActive(item, pathname, searchParams);
+  const count =
+    typeof badgeCount === "number" && badgeCount > 0 ? badgeCount : 0;
 
   return (
     <button
@@ -1597,6 +1604,14 @@ function renderMenuButton(
     >
       <span className={styles.menuItemIcon}>{item.icon}</span>
       <span className={styles.menuItemText}>{item.label}</span>
+      {count > 0 ? (
+        <Badge
+          count={count}
+          overflowCount={99}
+          size="small"
+          className={styles.menuBadge}
+        />
+      ) : null}
     </button>
   );
 }
@@ -1678,6 +1693,19 @@ export default function AppHeader({
     finishedGoodsWarehouseMenus,
   );
   const visiblePurchaseMenus = filterMenus(purchaseMenus);
+  const pendingPrApprovalsCountQuery =
+    usePendingPurchaseRequestApprovalsCountQuery();
+  const pendingPrApprovalsCount = pendingPrApprovalsCountQuery.data ?? 0;
+  const pendingStockPostingApprovalsCountQuery =
+    usePendingStockPostingApprovalsCountQuery();
+  const pendingStockPostingApprovalsCount =
+    pendingStockPostingApprovalsCountQuery.data ?? 0;
+  const pendingProductionOutputStockRequestsCountQuery =
+    usePendingProductionOutputStockRequestsCountQuery({
+      enabled: PRODUCTION_OUTPUT_ENABLED,
+    });
+  const pendingProductionOutputStockRequestsCount =
+    pendingProductionOutputStockRequestsCountQuery.data ?? 0;
   const visibleSalesMenus = filterMenus(salesMenus);
   const visibleLaboratoryMenus = filterMenus(laboratoryMenus);
   const visibleOilTankFarmMenus = filterMenus(oilTankFarmMenus);
@@ -1804,6 +1832,9 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    item.key === "stock-posting-approvals"
+                      ? pendingStockPostingApprovalsCount
+                      : undefined,
                   ),
                 )}
               </div>
@@ -1841,6 +1872,9 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    item.key === "production-output-stock-requests"
+                      ? pendingProductionOutputStockRequestsCount
+                      : undefined,
                   ),
                 )}
               </div>
@@ -1896,6 +1930,9 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    item.key === "purchase-request-approvals"
+                      ? pendingPrApprovalsCount
+                      : undefined,
                   ),
                 )}
               </div>

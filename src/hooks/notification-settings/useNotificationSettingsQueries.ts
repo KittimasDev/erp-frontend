@@ -18,6 +18,8 @@ export function useNotificationEventsQuery(options?: { enabled?: boolean }) {
     queryKey: [...notificationSettingsQueryKey, "events"],
     queryFn: () => getNotificationEvents(getAccessToken()),
     enabled: options?.enabled ?? true,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 }
 

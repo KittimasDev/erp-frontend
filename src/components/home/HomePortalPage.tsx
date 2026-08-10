@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Badge } from "antd";
 import {
   ExperimentOutlined,
   FundOutlined,
@@ -28,6 +29,10 @@ import {
   getStoredUser,
   type StoredUser,
 } from "@/lib/auth/session";
+import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
+import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
+import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import {
   getVisiblePortalModules,
   resolvePortalHref,
@@ -118,6 +123,24 @@ export default function HomePortalPage() {
     return getVisiblePortalModules();
   }, [mounted, user, permsTick]);
 
+  const pendingPrApprovalsCountQuery =
+    usePendingPurchaseRequestApprovalsCountQuery({
+      enabled: mounted,
+    });
+  const pendingPrApprovalsCount = pendingPrApprovalsCountQuery.data ?? 0;
+  const pendingStockPostingApprovalsCountQuery =
+    usePendingStockPostingApprovalsCountQuery({
+      enabled: mounted,
+    });
+  const pendingStockPostingApprovalsCount =
+    pendingStockPostingApprovalsCountQuery.data ?? 0;
+  const pendingProductionOutputStockRequestsCountQuery =
+    usePendingProductionOutputStockRequestsCountQuery({
+      enabled: mounted && PRODUCTION_OUTPUT_ENABLED,
+    });
+  const pendingProductionOutputStockRequestsCount =
+    pendingProductionOutputStockRequestsCountQuery.data ?? 0;
+
   const displayName = user?.displayName || user?.username || "ผู้ใช้งาน";
   const roleLabel =
     user?.roles?.[0]?.roleName ?? user?.roles?.[0]?.roleCode ?? "ERP";
@@ -163,20 +186,43 @@ export default function HomePortalPage() {
         </div>
       ) : (
         <div className={styles.grid}>
-          {modules.map((mod) => (
-            <button
-              key={mod.key}
-              type="button"
-              className={`${styles.tile} ${TONE_CLASS[mod.tone]}`}
-              onClick={() => openModule(mod)}
-              aria-label={`${mod.label} — ${mod.description}`}
-            >
-              <span className={styles.tileIcon}>{moduleIcon(mod.key)}</span>
-              <span className={styles.tileCode}>{mod.code}</span>
-              <span className={styles.tileLabel}>{mod.label}</span>
-              <span className={styles.tileDesc}>{mod.description}</span>
-            </button>
-          ))}
+          {modules.map((mod) => {
+            const pendingBadgeCount =
+              mod.key === "purchase"
+                ? pendingPrApprovalsCount
+                : mod.key === "raw-tire"
+                  ? pendingStockPostingApprovalsCount
+                  : mod.key === "production"
+                    ? pendingProductionOutputStockRequestsCount
+                    : 0;
+            const showPendingBadge = pendingBadgeCount > 0;
+
+            return (
+              <Badge
+                key={mod.key}
+                count={showPendingBadge ? pendingBadgeCount : 0}
+                overflowCount={99}
+                offset={[-6, 8]}
+                className={styles.tileBadgeWrap}
+              >
+                <button
+                  type="button"
+                  className={`${styles.tile} ${TONE_CLASS[mod.tone]}`}
+                  onClick={() => openModule(mod)}
+                  aria-label={
+                    showPendingBadge
+                      ? `${mod.label} — ${mod.description} — รออนุมัติ ${pendingBadgeCount} รายการ`
+                      : `${mod.label} — ${mod.description}`
+                  }
+                >
+                  <span className={styles.tileIcon}>{moduleIcon(mod.key)}</span>
+                  <span className={styles.tileCode}>{mod.code}</span>
+                  <span className={styles.tileLabel}>{mod.label}</span>
+                  <span className={styles.tileDesc}>{mod.description}</span>
+                </button>
+              </Badge>
+            );
+          })}
         </div>
       )}
     </section>

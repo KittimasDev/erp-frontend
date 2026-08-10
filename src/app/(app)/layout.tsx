@@ -1,5 +1,7 @@
 import AppShell from "@/components/navbar/AppShell";
 import AuthGuard from "@/components/auth/AuthGuard";
+import PageLoading from "@/components/common/PageLoading";
+import { Suspense } from "react";
 
 export default function AppShellLayout({
   children,
@@ -7,8 +9,10 @@ export default function AppShellLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthGuard>
-      <AppShell>{children}</AppShell>
-    </AuthGuard>
+    <Suspense fallback={<PageLoading label="กำลังตรวจสอบสิทธิ์..." />}>
+      <AuthGuard>
+        <AppShell>{children}</AppShell>
+      </AuthGuard>
+    </Suspense>
   );
 }

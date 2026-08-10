@@ -1,8 +1,10 @@
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
   canAccessAnyScreen,
+  canAccessScreen,
   isMatrixPermissionMode,
 } from "@/lib/auth/permissions-access";
+import { SCREEN_CODE_HUB_HREF } from "@/lib/auth/screen-routes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 
@@ -367,72 +369,20 @@ export function canSeePortalModule(mod: PortalModuleDef): boolean {
   return mod.roles.some((role) => userHasRole(role));
 }
 
-/** Pick a hub URL the current user can open (avoid landing on a forbidden report). */
+/** Pick a hub URL the current user can open (avoid landing on a forbidden page). */
 export function resolvePortalHref(mod: PortalModuleDef): string {
   if (isMatrixPermissionMode()) {
-    if (mod.key === "dashboard") {
-      if (canAccessAnyScreen(["EXECUTIVE_DASHBOARD"])) {
-        return "/dashboard/executive";
+    for (const code of mod.screenCodes) {
+      if (!canAccessScreen(code)) {
+        continue;
       }
-      if (canAccessAnyScreen(["WAREHOUSE_DASHBOARD"])) {
-        return "/inventory/dashboard";
-      }
-      if (canAccessAnyScreen(["RAW_TIRE_DASHBOARD"])) {
-        return "/receiving/dashboard";
+      const href = SCREEN_CODE_HUB_HREF[code];
+      if (href) {
+        return href;
       }
     }
-    if (mod.key === "hrm") {
-      if (canAccessAnyScreen(["USERS"])) return "/users";
-      if (canAccessAnyScreen(["HRM_ATTENDANCE"])) return "/hrm/attendance";
-      if (canAccessAnyScreen(["HRM_OVERTIME"])) {
-        return "/hrm/overtime-requests";
-      }
-      return "/hrm/leave-requests";
-    }
-    if (mod.key === "raw-tire") {
-      if (canAccessAnyScreen(["RECEIVING"])) return "/receiving";
-      if (canAccessAnyScreen(["STOCK_POSTING_APPROVALS"])) {
-        return "/warehouse/stock-posting-approvals";
-      }
-    }
-    if (mod.key === "finance") {
-      if (canAccessAnyScreen(["PURCHASE_PAYMENTS_PENDING"])) {
-        return "/purchase-payments/pending";
-      }
-      return "/purchase-payments";
-    }
-    if (mod.key === "master") {
-      if (canAccessAnyScreen(["USERS"])) return "/users";
-      if (canAccessAnyScreen(["MASTERS_ITEMS"])) return "/masters/items";
-      if (canAccessAnyScreen(["TEMP_CASES"])) return "/case";
-      return mod.href;
-    }
-    if (mod.key === "reports") {
-      if (canAccessAnyScreen(["REPORTS_PROCUREMENT"])) {
-        return "/reports/procurement";
-      }
-      if (canAccessAnyScreen(["REPORTS_RECEIVING"])) {
-        return "/reports/receiving";
-      }
-      if (canAccessAnyScreen(["REPORTS_AR_AGING"])) {
-        return "/reports/ar-aging";
-      }
-      if (canAccessAnyScreen(["REPORTS_CHEMICAL_CONSUMPTION"])) {
-        return "/reports/chemical-consumption";
-      }
-      return "/reports/receiving";
-    }
-    if (mod.key === "purchase") {
-      if (canAccessAnyScreen(["PURCHASE_REQUESTS"])) {
-        return "/purchase-requests";
-      }
-      if (canAccessAnyScreen(["PURCHASE_ORDERS_RECEIVE"])) {
-        return "/purchase-orders/receive";
-      }
-      if (canAccessAnyScreen(["PURCHASE_ORDERS"])) {
-        return "/purchase-orders";
-      }
-    }
+    // Tile visible but no mapped hub — stay on portal
+    return "/";
   }
 
   if (mod.key === "finance") {

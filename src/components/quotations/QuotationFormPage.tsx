@@ -4,7 +4,6 @@ import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  App,
   Button,
   DatePicker,
   Form,
@@ -32,6 +31,13 @@ import {
   useUpdateQuotationMutation,
 } from "@/hooks/quotations/useQuotationMutations";
 import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
+import AccessDenied from "@/components/auth/AccessDenied";
+import {
+  getScreenActionPermissions,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { RoleCode } from "@/lib/auth/role-codes";
 import type { CreateQuotationBody } from "@/types/quotations";
 import styles from "./QuotationFormPage.module.css";
 
@@ -76,21 +82,28 @@ function formatQty(value: number) {
 
 export default function QuotationFormPage({ mode, id }: Props) {
   const router = useRouter();
-  const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const detailQuery = useQuotationQuery(mode === "edit" ? id : undefined);
   const createMutation = useCreateQuotationMutation();
   const updateMutation = useUpdateQuotationMutation();
 
+  const quotationActions = getScreenActionPermissions("QUOTATIONS");
+  const matrixMode = isMatrixPermissionMode();
+  const legacyWrite =
+    userHasRole(RoleCode.SALES_OFFICER) ||
+    userHasRole(RoleCode.SALES_MANAGER) ||
+    isAdministrator();
+  const canCreate = matrixMode ? quotationActions.canAdd : legacyWrite;
+  const canEdit = matrixMode ? quotationActions.canEdit : legacyWrite;
+  const allowed = mode === "create" ? canCreate : canEdit;
+
   const customersQuery = useCustomersQuery();
   const itemsQuery = useItemsQuery({
     isActive: true,
-    isSalesItem: true,
     itemCategoryCode: "FINISHED_GOODS",
   });
   const balancesQuery = useStockBalancesQuery({
     itemCategoryCode: "FINISHED_GOODS",
-    hasStock: true,
   });
   const unitsQuery = useUnitsQuery({ isActive: true });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
@@ -120,23 +133,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
     return map;
   }, [balancesQuery.data?.data]);
 
-  const selectedItemIds = useMemo(
-    () =>
-      new Set(
-        watchedItems
-          .map((line) => line?.itemId)
-          .filter((value): value is string => Boolean(value)),
-      ),
-    [watchedItems],
-  );
-
   const selectableItems = useMemo(() => {
-    return items.filter((item) => {
-      const available = availableByItemId.get(item.id) ?? 0;
-      if (available > 1e-9) return true;
-      return mode === "edit" && selectedItemIds.has(item.id);
-    });
-  }, [items, availableByItemId, mode, selectedItemIds]);
+    // ใบเสนอราคายังไม่ตัดสต๊อก — แสดงสินค้า FG ที่ใช้งานได้ทั้งหมด
+    return items;
+  }, [items]);
 
   useEffect(() => {
     if (mode === "create") {
@@ -207,73 +207,15 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
   const saving = createMutation.isPending || updateMutation.isPending;
 
-  const getAvailableForLine = (index: number, itemId?: string) => {
-    if (!itemId) return 0;
-    const total = availableByItemId.get(itemId) ?? 0;
-    const usedElsewhere = watchedItems.reduce((sum, line, i) => {
-      if (i === index || line?.itemId !== itemId) return sum;
-      return sum + (Number(line?.quantity) || 0);
-    }, 0);
-    return Number(Math.max(0, total - usedElsewhere).toFixed(3));
-  };
-
   const handleItemChange = (index: number, itemId?: string) => {
     const item = items.find((row) => row.id === itemId);
     if (item?.unitId) {
       form.setFieldValue(["items", index, "unitId"], item.unitId);
     }
-    const available = (() => {
-      if (!itemId) return 0;
-      const total = availableByItemId.get(itemId) ?? 0;
-      const usedElsewhere = watchedItems.reduce((sum, line, i) => {
-        if (i === index || line?.itemId !== itemId) return sum;
-        return sum + (Number(line?.quantity) || 0);
-      }, 0);
-      return Number(Math.max(0, total - usedElsewhere).toFixed(3));
-    })();
-    const currentQty = Number(
-      form.getFieldValue(["items", index, "quantity"]) || 0,
-    );
-    if (!currentQty || currentQty > available) {
-      form.setFieldValue(
-        ["items", index, "quantity"],
-        available > 0 ? available : undefined,
-      );
-    }
   };
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
-
-    for (const [index, line] of values.items.entries()) {
-      const itemId = line.itemId as string;
-      const qty = Number(line.quantity) || 0;
-      const available = availableByItemId.get(itemId) ?? 0;
-      const item = items.find((row) => row.id === itemId);
-      const label = item
-        ? `${item.itemCode} — ${item.itemNameTh}`
-        : `รายการที่ ${index + 1}`;
-
-      if (!(available > 1e-9) && mode === "create") {
-        message.error(`${label}: ไม่มีสต๊อกพร้อมใช้`);
-        return;
-      }
-
-      const usedElsewhere = values.items.reduce((sum, other, i) => {
-        if (i === index || other.itemId !== itemId) return sum;
-        return sum + (Number(other.quantity) || 0);
-      }, 0);
-      const remaining = Number(
-        Math.max(0, available - usedElsewhere).toFixed(3),
-      );
-
-      if (qty > remaining + 1e-9) {
-        message.error(
-          `${label}: จำนวน ${formatQty(qty)} เกินคงเหลือที่ขอได้ ${formatQty(remaining)} (สต๊อกพร้อมใช้ ${formatQty(available)})`,
-        );
-        return;
-      }
-    }
 
     const body: CreateQuotationBody = {
       quotationDate: values.quotationDate.format("YYYY-MM-DD"),
@@ -317,6 +259,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
   const itemsLoading = itemsQuery.isLoading || balancesQuery.isLoading;
 
+  if (!allowed) {
+    return <AccessDenied screenCodes={["QUOTATIONS"]} />;
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -329,7 +275,8 @@ export default function QuotationFormPage({ mode, id }: Props) {
             {mode === "create" ? "สร้างใบเสนอราคา" : "แก้ไขใบเสนอราคา"}
           </h1>
           <p className={styles.pageSubtitle}>
-            เลือกลูกค้าและสินค้าที่มีสต๊อกพร้อมใช้ — แสดงจำนวนคงเหลือในรายการ
+            เลือกลูกค้าและสินค้าสำเร็จรูป — แสดงยอดคงเหลือเพื่ออ้างอิง
+            (ยังไม่ตัดสต๊อก)
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -438,7 +385,8 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   type="secondary"
                   style={{ marginTop: -4, marginBottom: 12 }}
                 >
-                  เลือกได้เฉพาะสินค้าที่มีสต๊อกพร้อมใช้ &gt; 0 และจำนวนที่ขอต้องไม่เกินคงเหลือ
+                  เลือกสินค้าสำเร็จรูปที่เปิดใช้งานได้ — ใบเสนอราคายังไม่ตัดสต๊อก
+                  (แสดงยอดคงเหลือเพื่ออ้างอิง)
                 </Typography.Paragraph>
                 <Form.List
                   name="items"
@@ -461,7 +409,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
                         const availableTotal = lineItemId
                           ? (availableByItemId.get(lineItemId) ?? 0)
                           : 0;
-                        const maxQty = getAvailableForLine(index, lineItemId);
 
                         return (
                           <div key={field.key} className={styles.lineCard}>
@@ -488,19 +435,19 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                 ]}
                                 extra={
                                   lineItemId
-                                    ? `สต๊อกพร้อมใช้รวม ${formatQty(availableTotal)} · ขอในบรรทัดนี้ได้สูงสุด ${formatQty(maxQty)}`
-                                    : "แสดงเฉพาะสินค้าที่มีสต๊อกพร้อมใช้"
+                                    ? `สต๊อกพร้อมใช้ (อ้างอิง): ${formatQty(availableTotal)}`
+                                    : "สินค้าสำเร็จรูปที่เปิดใช้งาน"
                                 }
                               >
                                 <Select
                                   showSearch
                                   optionFilterProp="label"
-                                  placeholder="เลือกสินค้าที่มีสต๊อก"
+                                  placeholder="เลือกสินค้า"
                                   loading={itemsLoading}
                                   notFoundContent={
                                     itemsLoading
                                       ? "กำลังโหลด..."
-                                      : "ไม่พบสินค้าที่มีสต๊อกพร้อมใช้"
+                                      : "ไม่พบสินค้าสำเร็จรูป"
                                   }
                                   options={selectableItems.map((item) => {
                                     const available =
@@ -522,22 +469,9 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                   { required: true, message: "กรอกจำนวน" },
                                   {
                                     validator: async (_, value) => {
-                                      const qty = Number(value) || 0;
-                                      const itemId = form.getFieldValue([
-                                        "items",
-                                        index,
-                                        "itemId",
-                                      ]) as string | undefined;
-                                      if (!itemId) return;
-                                      const max = getAvailableForLine(
-                                        index,
-                                        itemId,
-                                      );
-                                      if (qty > max + 1e-9) {
+                                      if (!(Number(value) > 0)) {
                                         return Promise.reject(
-                                          new Error(
-                                            `ต้องไม่เกินคงเหลือ ${formatQty(max)}`,
-                                          ),
+                                          new Error("จำนวนต้องมากกว่า 0"),
                                         );
                                       }
                                     },
@@ -546,7 +480,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               >
                                 <InputNumber
                                   min={0.001}
-                                  max={maxQty > 0 ? maxQty : undefined}
                                   step={0.001}
                                   style={{ width: "100%" }}
                                   disabled={!lineItemId}
@@ -664,7 +597,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
             </div>
           </div>
           <p className={styles.masterHint}>
-            สินค้าที่มีสต๊อก {selectableItems.length} รายการ ·{" "}
+            สินค้าสำเร็จรูป {selectableItems.length} รายการ ·{" "}
             <Link href="/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS">
               ดูยอดคงเหลือ
             </Link>

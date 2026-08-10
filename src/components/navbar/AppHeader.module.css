@@ -187,6 +187,7 @@
 .groupBlock {
   padding: 0 12px;
   margin-top: 8px;
+  overflow: visible;
 }
 
 .sidebarCollapsed .groupBlock {
@@ -222,6 +223,7 @@
   flex-direction: column;
   gap: 4px;
   align-items: stretch;
+  overflow: visible;
 }
 
 .menuItem {
@@ -238,6 +240,7 @@
   padding: 10px 14px;
   text-align: left;
   cursor: pointer;
+  overflow: visible;
   transition:
     width 0.4s ease,
     padding 0.4s ease,
@@ -317,6 +320,24 @@
 
 .sidebarCollapsed .menuItemText {
   display: none;
+}
+
+.menuBadge {
+  position: absolute !important;
+  top: 2px;
+  right: 4px;
+  z-index: 3;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.menuBadge :global(.ant-badge-count) {
+  box-shadow: 0 0 0 2px #eeece6;
+}
+
+.sidebarCollapsed .menuBadge {
+  top: 0;
+  right: 0;
 }
 
 .chevron {

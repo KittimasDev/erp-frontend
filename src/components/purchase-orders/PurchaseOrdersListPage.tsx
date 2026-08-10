@@ -25,6 +25,10 @@ import dayjs from "dayjs";
 
 import { usePurchaseOrdersQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchaseOrdersPendingFromPrQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
+import {
+  getScreenActionPermissions,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { PurchaseOrder } from "@/types/purchase-orders";
@@ -76,10 +80,14 @@ export default function PurchaseOrdersListPage() {
   const [pendingPage, setPendingPage] = useState(1);
   const pendingLimit = 10;
 
-  const canWrite =
+  const poActions = getScreenActionPermissions("PURCHASE_ORDERS");
+  const legacyWrite =
     userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
     userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
     isAdministrator();
+  const matrixMode = isMatrixPermissionMode();
+  const canCreatePo = matrixMode ? poActions.canAdd : legacyWrite;
+  const canEditPo = matrixMode ? poActions.canEdit : legacyWrite;
 
   const query = usePurchaseOrdersQuery({ ...applied, page, limit });
   const rows = query.data?.data.items ?? [];
@@ -148,10 +156,11 @@ export default function PurchaseOrdersListPage() {
       {
         title: "จัดการ",
         key: "action",
-        width: canWrite ? 170 : 70,
+        width: canCreatePo ? 200 : 72,
         align: "center",
+        fixed: "right",
         render: (_v, row) => (
-          <Space size={6}>
+          <Space size={6} wrap>
             <button
               className={styles.actionBtn}
               type="button"
@@ -160,7 +169,7 @@ export default function PurchaseOrdersListPage() {
             >
               <EyeOutlined />
             </button>
-            {canWrite ? (
+            {canCreatePo ? (
               <Button
                 type="primary"
                 size="small"
@@ -177,7 +186,7 @@ export default function PurchaseOrdersListPage() {
         ),
       },
     ],
-    [canWrite, pendingPage, router],
+    [canCreatePo, pendingPage, router],
   );
 
   const columns: ColumnsType<PurchaseOrder> = useMemo(
@@ -257,7 +266,7 @@ export default function PurchaseOrdersListPage() {
             >
               <EyeOutlined />
             </button>
-            {canWrite && row.status === "DRAFT" ? (
+            {canEditPo && row.status === "DRAFT" ? (
               <button
                 className={styles.actionBtn}
                 type="button"
@@ -271,7 +280,7 @@ export default function PurchaseOrdersListPage() {
         ),
       },
     ],
-    [canWrite, limit, page, router],
+    [canEditPo, limit, page, router],
   );
 
   return (
@@ -308,10 +317,21 @@ export default function PurchaseOrdersListPage() {
           dataSource={pendingPrs}
           loading={pendingQuery.isLoading}
           pagination={false}
-          className={styles.table}
+          className={`${styles.table} ${styles.pendingTable}`}
+          scroll={{ x: 960 }}
           locale={{
             emptyText: "ยังไม่มีใบขอซื้อที่อนุมัติแล้วรอสร้างใบสั่งซื้อ",
           }}
+          onRow={(row) =>
+            canCreatePo
+              ? {
+                  onDoubleClick: () =>
+                    router.push(`/purchase-orders/create-from-pr/${row.id}`),
+                  style: { cursor: "pointer" },
+                  title: "ดับเบิลคลิกเพื่อสร้างใบสั่งซื้อ",
+                }
+              : {}
+          }
         />
 
         {pendingTotal > pendingLimit ? (

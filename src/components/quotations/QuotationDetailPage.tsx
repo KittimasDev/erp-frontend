@@ -23,6 +23,10 @@ import {
 } from "@/hooks/quotations/useQuotationMutations";
 import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { useCreateSalesOrderFromQuotationMutation } from "@/hooks/sales-orders/useSalesOrderMutations";
+import {
+  getScreenActionPermissions,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
@@ -73,12 +77,20 @@ export default function QuotationDetailPage({ id }: Props) {
   const createSalesOrderMutation = useCreateSalesOrderFromQuotationMutation();
 
   const data = query.data?.data;
-  const canWrite =
+  const quotationActions = getScreenActionPermissions("QUOTATIONS");
+  const salesOrderActions = getScreenActionPermissions("SALES_ORDERS");
+  const matrixMode = isMatrixPermissionMode();
+  const legacyWrite =
     userHasRole(RoleCode.SALES_OFFICER) ||
     userHasRole(RoleCode.SALES_MANAGER) ||
     isAdministrator();
-  const canConfirm =
+  const legacyConfirm =
     userHasRole(RoleCode.SALES_MANAGER) || isAdministrator();
+  const canWrite = matrixMode ? quotationActions.canEdit : legacyWrite;
+  const canConfirm = matrixMode ? quotationActions.canApprove : legacyConfirm;
+  const canCreateSalesOrder = matrixMode
+    ? salesOrderActions.canAdd
+    : legacyWrite;
 
   if (query.isLoading) {
     return (
@@ -364,7 +376,7 @@ export default function QuotationDetailPage({ id }: Props) {
               </>
             ) : null}
 
-            {data.status === "ACCEPTED" && canWrite ? (
+            {data.status === "ACCEPTED" && canCreateSalesOrder ? (
               <Button
                 className={styles.primaryBtn}
                 type="primary"

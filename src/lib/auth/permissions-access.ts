@@ -92,3 +92,58 @@ export function hasPermission(...permissionCodes: string[]): boolean {
     access.permissionCodes.includes(code),
   );
 }
+
+export type ScreenActionPermissions = {
+  canView: boolean;
+  canAdd: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canApprove: boolean;
+};
+
+/**
+ * Matrix CRUD/action flags for a screen. Legacy mode → all true (RolesGuard/API gate).
+ * Admin (*) → all true.
+ */
+export function getScreenActionPermissions(
+  screenCode: string,
+): ScreenActionPermissions {
+  if (!isMatrixPermissionMode()) {
+    return {
+      canView: true,
+      canAdd: true,
+      canEdit: true,
+      canDelete: true,
+      canApprove: true,
+    };
+  }
+
+  const access = getStoredPermissions();
+  if (access?.permissionCodes.includes("*")) {
+    return {
+      canView: true,
+      canAdd: true,
+      canEdit: true,
+      canDelete: true,
+      canApprove: true,
+    };
+  }
+
+  const canView =
+    canAccessScreen(screenCode) ||
+    hasPermission(
+      `${screenCode}.VIEW`,
+      `${screenCode}.ADD`,
+      `${screenCode}.EDIT`,
+      `${screenCode}.DELETE`,
+      `${screenCode}.APPROVE`,
+    );
+
+  return {
+    canView,
+    canAdd: hasPermission(`${screenCode}.ADD`),
+    canEdit: hasPermission(`${screenCode}.EDIT`),
+    canDelete: hasPermission(`${screenCode}.DELETE`),
+    canApprove: hasPermission(`${screenCode}.APPROVE`),
+  };
+}

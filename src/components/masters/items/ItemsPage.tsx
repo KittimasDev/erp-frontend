@@ -29,6 +29,7 @@ import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUpdateItemMutation } from "@/hooks/items/useUpdateItemMutation";
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
+import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import type {
   CreateItemRequest,
   Item,
@@ -202,6 +203,9 @@ export default function ItemsPage() {
   const activeItems = items.filter((item) => item.isActive).length;
   const inactiveItems = items.filter((item) => !item.isActive).length;
 
+  const { canAdd, canEdit, canDelete } =
+    getScreenActionPermissions("MASTERS_ITEMS");
+
   const applyFiltersToUrl = (values: ItemFilterFormValues) => {
     const next = buildSearchFromForm(values);
     const query = next.toString();
@@ -338,38 +342,46 @@ export default function ItemsPage() {
           </Tag>
         ),
     },
-    {
-      title: "จัดการ",
-      key: "actions",
-      width: 180,
-      align: "center",
-      render: (_, record) => (
-        <Space size={8}>
-          <Button
-            className={styles.editButton}
-            onClick={() => openEditModal(record)}
-          >
-            แก้ไข
-          </Button>
+    ...(canEdit || canDelete
+      ? ([
+          {
+            title: "จัดการ",
+            key: "actions",
+            width: 180,
+            align: "center" as const,
+            render: (_: unknown, record: Item) => (
+              <Space size={8}>
+                {canEdit ? (
+                  <Button
+                    className={styles.editButton}
+                    onClick={() => openEditModal(record)}
+                  >
+                    แก้ไข
+                  </Button>
+                ) : null}
 
-          <Popconfirm
-            title="ลบสินค้า"
-            description={`ต้องการลบ "${record.itemCode}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={deleteMutation.isPending}
-            >
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
+                {canDelete ? (
+                  <Popconfirm
+                    title="ลบสินค้า"
+                    description={`ต้องการลบ "${record.itemCode}" หรือไม่?`}
+                    okText="ลบ"
+                    cancelText="ยกเลิก"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={() => deleteMutation.mutate(record.id)}
+                  >
+                    <Button
+                      className={styles.deleteButton}
+                      loading={deleteMutation.isPending}
+                    >
+                      ลบ
+                    </Button>
+                  </Popconfirm>
+                ) : null}
+              </Space>
+            ),
+          },
+        ] satisfies ColumnsType<Item>)
+      : []),
   ];
 
   return (
@@ -390,15 +402,19 @@ export default function ItemsPage() {
           </Typography.Text>
         </div>
 
-        <Button
-          type="primary"
-          size="large"
-          className={styles.createButton}
-          icon={<PlusOutlined />}
-          onClick={openCreateModal}
-        >
-          เพิ่มสินค้า
-        </Button>
+        {canAdd ? (
+          <Button
+            type="primary"
+            size="large"
+            className={styles.createButton}
+            icon={<PlusOutlined />}
+            onClick={openCreateModal}
+          >
+            เพิ่มสินค้า
+          </Button>
+        ) : (
+          <div />
+        )}
       </div>
 
       <div className={styles.summaryRow}>

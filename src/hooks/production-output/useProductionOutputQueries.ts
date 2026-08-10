@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 import {
   getProductionOutputApproval,
   getProductionOutputApprovals,
@@ -11,17 +12,32 @@ import {
   getProductionOutputStockRequests,
 } from "@/lib/api/production-output-stock-requests";
 import { getProductionOutputPendingTickets } from "@/lib/api/production-output-pending-tickets";
-import { getAccessToken } from "@/lib/auth/token";
+import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
 import type { ProductionOutputPendingTicketQueryParams } from "@/types/production-output-pending-tickets";
-import type {
-  ProductionOutputStockRequestQueryParams,
-  QueryProductionOutputReadyOrdersParams,
+import {
+  ProductionOutputRequestStatus,
+  type ProductionOutputStockRequestQueryParams,
+  type QueryProductionOutputReadyOrdersParams,
 } from "@/types/production-output-stock-request";
 
 export const productionOutputStockRequestsQueryKey = [
   "production-output",
   "stock-requests",
 ] as const;
+
+export const pendingProductionOutputStockRequestsCountQueryKey = [
+  ...productionOutputStockRequestsQueryKey,
+  "pending-approval-count",
+] as const;
+
+const COUNT_POLL_MS = 30_000;
+
+function countPollInterval(query: { state: { status: string } }): number | false {
+  if (query.state.status === "error") {
+    return false;
+  }
+  return COUNT_POLL_MS;
+}
 
 export const productionOutputPendingTicketsQueryKey = [
   "production-output",
@@ -49,6 +65,28 @@ export function useProductionOutputStockRequestsQuery(
     queryFn: () =>
       getProductionOutputStockRequests(getAccessToken(), params),
     enabled: options?.enabled ?? true,
+  });
+}
+
+/** จำนวนคำขอรับผลผลิตรออนุมัติ สำหรับ badge (เมนู / หน้าแรก) */
+export function usePendingProductionOutputStockRequestsCountQuery(options?: {
+  enabled?: boolean;
+}) {
+  return useQuery({
+    queryKey: pendingProductionOutputStockRequestsCountQueryKey,
+    queryFn: () =>
+      getProductionOutputStockRequests(getAccessToken(), {
+        status: ProductionOutputRequestStatus.PENDING_APPROVAL,
+      }),
+    enabled:
+      (options?.enabled ?? true) &&
+      hasAccessToken() &&
+      PRODUCTION_OUTPUT_ENABLED,
+    refetchInterval: countPollInterval,
+    refetchOnMount: true,
+    refetchOnWindowFocus: (query) => query.state.status !== "error",
+    retry: 1,
+    select: (res) => res?.data?.length ?? 0,
   });
 }
 
