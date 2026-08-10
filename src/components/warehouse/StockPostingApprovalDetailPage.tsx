@@ -25,8 +25,12 @@ import {
   useRejectStockPostingRequestMutation,
 } from "@/hooks/stock-posting/useStockPostingMutations";
 import { useStockPostingApprovalQuery } from "@/hooks/stock-posting/useStockPostingQueries";
-import { userHasRole } from "@/lib/auth/session";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { userHasRole } from "@/lib/auth/session";
 import type { StockPostingReceiptItem } from "@/types/stock-posting-request";
 import {
   STOCK_POSTING_REQUEST_STATUS_LABEL,
@@ -95,7 +99,11 @@ function statusTagColor(status: string) {
 
 export default function StockPostingApprovalDetailPage({ requestId }: Props) {
   const router = useRouter();
-  const canApprove = userHasRole(RoleCode.WAREHOUSE_MANAGER);
+  const canApprove =
+    hasPermission("STOCK_POSTING_APPROVALS.APPROVE") ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+        userHasRole(RoleCode.ADMINISTRATOR)));
   const detailQuery = useStockPostingApprovalQuery(requestId);
   const approveMutation = useApproveStockPostingRequestMutation();
   const rejectMutation = useRejectStockPostingRequestMutation();
@@ -435,8 +443,9 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
               <div className={styles.card}>
                 <div className={styles.cardBody}>
                   <Typography.Text type="warning">
-                    ต้องมีสิทธิ์หัวหน้าคลัง (WAREHOUSE_MANAGER)
-                    เพื่ออนุมัติหรือไม่อนุมัติ
+                    ดูรายละเอียดได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์{" "}
+                    <strong>STOCK_POSTING_APPROVALS · APPROVE</strong> ที่หน้า
+                    ผู้ใช้งาน → การอนุญาต
                   </Typography.Text>
                 </div>
               </div>

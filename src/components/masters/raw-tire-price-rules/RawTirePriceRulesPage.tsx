@@ -170,6 +170,32 @@ export default function RawTirePriceRulesPage() {
     [classifications],
   );
 
+  /** ฟอร์มเพิ่ม/แก้กฎ — แสดงเฉพาะประเภทที่ active (ถ้าแก้กฎที่ผูกประเภทปิดอยู่ ให้คงตัวเดิมในรายการ) */
+  const formClassificationOptions = useMemo(() => {
+    const active = classifications.filter((item) => item.isActive);
+    if (
+      modalMode === "edit" &&
+      editingRule?.tireClassificationId &&
+      !active.some((item) => item.id === editingRule.tireClassificationId)
+    ) {
+      const current = classifications.find(
+        (item) => item.id === editingRule.tireClassificationId,
+      );
+      if (current) {
+        return [...active, current].map((item) => ({
+          value: item.id,
+          label: `${item.classificationCode} — ${item.classificationName}${
+            item.isActive ? "" : " (ปิดใช้งาน)"
+          }`,
+        }));
+      }
+    }
+    return active.map((item) => ({
+      value: item.id,
+      label: `${item.classificationCode} — ${item.classificationName}`,
+    }));
+  }, [classifications, modalMode, editingRule]);
+
   const classificationLabelById = useMemo(() => {
     const map = new Map<string, string>();
     for (const item of classifications) {
@@ -570,7 +596,7 @@ export default function RawTirePriceRulesPage() {
         open={modalOpen}
         mode={modalMode}
         initialRule={editingRule}
-        classificationOptions={classificationOptions}
+        classificationOptions={formClassificationOptions}
         classificationsLoading={classificationsQuery.isLoading}
         confirmLoading={
           createMutation.isPending || updateMutation.isPending

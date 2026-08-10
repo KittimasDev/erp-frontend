@@ -115,12 +115,37 @@
   gap: 2px;
 }
 
+.matrixToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.columnHeader {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
 .screenCell {
-  display: grid;
-  gap: 2px;
   padding: 12px 14px;
   border-bottom: 1px solid #eceef1;
   white-space: nowrap;
+}
+
+.screenRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.screenMeta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
 }
 
 .screenName {

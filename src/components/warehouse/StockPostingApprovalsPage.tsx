@@ -14,8 +14,12 @@ import MasterPageGate from "@/components/common/MasterPageGate";
 import { useStockPostingApprovalsQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import { getStockPostingApprovals } from "@/lib/api/stock-posting-requests";
 import { getAccessToken } from "@/lib/auth/token";
-import { userHasRole } from "@/lib/auth/session";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { userHasRole } from "@/lib/auth/session";
 import type { StockPostingRequest } from "@/types/stock-posting-request";
 import {
   STOCK_POSTING_REQUEST_STATUS_LABEL,
@@ -77,7 +81,11 @@ export default function StockPostingApprovalsPage() {
   const [status, setStatus] = useState<string>(
     StockPostingRequestStatus.PENDING_APPROVAL,
   );
-  const canApprove = userHasRole(RoleCode.WAREHOUSE_MANAGER);
+  const canApprove =
+    hasPermission("STOCK_POSTING_APPROVALS.APPROVE") ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+        userHasRole(RoleCode.ADMINISTRATOR)));
   const approvalsQuery = useStockPostingApprovalsQuery(status);
   const rows = approvalsQuery.data?.data ?? [];
 
@@ -284,7 +292,7 @@ export default function StockPostingApprovalsPage() {
           <div className={styles.summaryCard} style={{ cursor: "default" }}>
             <span>สิทธิ์</span>
             <strong style={{ fontSize: 16 }}>
-              {canApprove ? "หัวหน้าคลัง" : "ดูอย่างเดียว"}
+              {canApprove ? "อนุมัติได้" : "ดูอย่างเดียว"}
             </strong>
           </div>
         </div>
@@ -293,7 +301,8 @@ export default function StockPostingApprovalsPage() {
           <div className={styles.card}>
             <div className={styles.cardBody}>
               <Typography.Text type="secondary">
-                ดูรายการได้ — การอนุมัติ/ไม่อนุมัติต้องมีสิทธิ์ WAREHOUSE_MANAGER
+                ดูรายการได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์{" "}
+                STOCK_POSTING_APPROVALS · APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต
               </Typography.Text>
             </div>
           </div>

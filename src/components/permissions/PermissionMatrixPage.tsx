@@ -195,18 +195,80 @@ export default function PermissionMatrixPage({
     setAllowed((prev) => ({ ...prev, [permissionId]: !prev[permissionId] }));
   };
 
-  /** ติ๊ก/ถอด VIEW ทั้งกลุ่มโมดูลที่เห็นบนตาราง */
-  const setGroupViewAllowed = (groupScreens: ScreenCatalog[], value: boolean) => {
+  const setPermissionsAllowed = (
+    permissionIds: string[],
+    value: boolean,
+  ) => {
+    if (permissionIds.length === 0) {
+      return;
+    }
     setAllowed((prev) => {
       const next = { ...prev };
-      for (const screen of groupScreens) {
-        const viewFn = screen.functions.find((fn) => fn.functionCode === "VIEW");
-        if (viewFn?.permissionId) {
-          next[viewFn.permissionId] = value;
-        }
+      for (const id of permissionIds) {
+        next[id] = value;
       }
       return next;
     });
+  };
+
+  const permissionIdsForScreens = (groupScreens: ScreenCatalog[]) =>
+    groupScreens.flatMap((screen) =>
+      screen.functions
+        .map((fn) => fn.permissionId)
+        .filter((id): id is string => Boolean(id)),
+    );
+
+  const permissionIdsForFunction = (
+    groupScreens: ScreenCatalog[],
+    functionCode: string,
+  ) =>
+    groupScreens
+      .map(
+        (screen) =>
+          screen.functions.find((fn) => fn.functionCode === functionCode)
+            ?.permissionId,
+      )
+      .filter((id): id is string => Boolean(id));
+
+  const visibleScreens = useMemo(
+    () => moduleGroups.flatMap((group) => group.screens),
+    [moduleGroups],
+  );
+
+  const setScreenAllowed = (screen: ScreenCatalog, value: boolean) => {
+    setPermissionsAllowed(
+      screen.functions
+        .map((fn) => fn.permissionId)
+        .filter((id): id is string => Boolean(id)),
+      value,
+    );
+  };
+
+  const screenAllState = (screen: ScreenCatalog) => {
+    const ids = screen.functions
+      .map((fn) => fn.permissionId)
+      .filter((id): id is string => Boolean(id));
+    if (ids.length === 0) {
+      return { checked: false, indeterminate: false };
+    }
+    const allowedCount = ids.filter((id) => allowed[id]).length;
+    return {
+      checked: allowedCount === ids.length,
+      indeterminate: allowedCount > 0 && allowedCount < ids.length,
+    };
+  };
+
+  const columnAllState = (functionCode: string) => {
+    const ids = permissionIdsForFunction(visibleScreens, functionCode);
+    if (ids.length === 0) {
+      return { checked: false, indeterminate: false, disabled: true };
+    }
+    const allowedCount = ids.filter((id) => allowed[id]).length;
+    return {
+      checked: allowedCount === ids.length,
+      indeterminate: allowedCount > 0 && allowedCount < ids.length,
+      disabled: false,
+    };
   };
 
   const handleSave = () => {
@@ -368,13 +430,39 @@ export default function PermissionMatrixPage({
               <div className={masterStyles.tableEyebrow}>MATRIX</div>
               <h3>สิทธิ์ตามหน้าจอ</h3>
               <p>
-                ติ๊ก APPROVE ให้เฉพาะบทบาทที่อนุมัติได้ — หน้าจอ Master /
-                รายงานที่ไม่มีขั้นอนุมัติจะแสดง —
+                ติ๊กทั้งแถว / ทั้งกลุ่ม / ทั้งคอลัมน์ได้ — หรือใช้ปุ่มเปิด/ปิด
+                ทั้งหมดที่กำลังแสดง แล้วกดบันทึกสิทธิ์
               </p>
             </div>
-            <div className={masterStyles.tableCount}>
-              {visibleScreenCount}
-              {moduleFilter.length > 0 ? ` / ${screens.length}` : ""} หน้าจอ
+            <div className={styles.matrixToolbar}>
+              <div className={masterStyles.tableCount}>
+                {visibleScreenCount}
+                {moduleFilter.length > 0 ? ` / ${screens.length}` : ""} หน้าจอ
+              </div>
+              <Button
+                size="small"
+                disabled={visibleScreenCount === 0}
+                onClick={() =>
+                  setPermissionsAllowed(
+                    permissionIdsForScreens(visibleScreens),
+                    true,
+                  )
+                }
+              >
+                เปิดทั้งหมดที่เห็น
+              </Button>
+              <Button
+                size="small"
+                disabled={visibleScreenCount === 0}
+                onClick={() =>
+                  setPermissionsAllowed(
+                    permissionIdsForScreens(visibleScreens),
+                    false,
+                  )
+                }
+              >
+                ปิดทั้งหมดที่เห็น
+              </Button>
             </div>
           </div>
 
@@ -398,11 +486,31 @@ export default function PermissionMatrixPage({
                 <thead>
                   <tr>
                     <th className={styles.screenHeaderCell}>หน้าจอ</th>
-                    {functionCodes.map((code) => (
-                      <th key={code} className={styles.functionHeaderCell}>
-                        {code}
-                      </th>
-                    ))}
+                    {functionCodes.map((code) => {
+                      const colState = columnAllState(code);
+                      return (
+                        <th key={code} className={styles.functionHeaderCell}>
+                          <div className={styles.columnHeader}>
+                            <span>{code}</span>
+                            <Checkbox
+                              checked={colState.checked}
+                              indeterminate={colState.indeterminate}
+                              disabled={colState.disabled}
+                              title={`ติ๊ก/ถอด ${code} ทั้งตารางที่เห็น`}
+                              onChange={(event) =>
+                                setPermissionsAllowed(
+                                  permissionIdsForFunction(
+                                    visibleScreens,
+                                    code,
+                                  ),
+                                  event.target.checked,
+                                )
+                              }
+                            />
+                          </div>
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -424,19 +532,40 @@ export default function PermissionMatrixPage({
                               type="link"
                               size="small"
                               onClick={() =>
-                                setGroupViewAllowed(group.screens, true)
+                                setPermissionsAllowed(
+                                  permissionIdsForFunction(
+                                    group.screens,
+                                    "VIEW",
+                                  ),
+                                  true,
+                                )
                               }
                             >
-                              ติ๊ก VIEW ทั้งกลุ่ม
+                              VIEW ทั้งกลุ่ม
                             </Button>
                             <Button
                               type="link"
                               size="small"
                               onClick={() =>
-                                setGroupViewAllowed(group.screens, false)
+                                setPermissionsAllowed(
+                                  permissionIdsForScreens(group.screens),
+                                  true,
+                                )
                               }
                             >
-                              ถอด VIEW
+                              เปิดทั้งหมด
+                            </Button>
+                            <Button
+                              type="link"
+                              size="small"
+                              onClick={() =>
+                                setPermissionsAllowed(
+                                  permissionIdsForScreens(group.screens),
+                                  false,
+                                )
+                              }
+                            >
+                              ปิดทั้งหมด
                             </Button>
                           </span>
                         </td>
@@ -445,15 +574,31 @@ export default function PermissionMatrixPage({
                         const fnByCode = new Map(
                           screen.functions.map((fn) => [fn.functionCode, fn]),
                         );
+                        const rowState = screenAllState(screen);
                         return (
                           <tr key={screen.id}>
                             <td className={styles.screenCell}>
-                              <span className={styles.screenName}>
-                                {screen.screenName}
-                              </span>
-                              <span className={styles.screenModule}>
-                                {screen.screenCode}
-                              </span>
+                              <div className={styles.screenRow}>
+                                <Checkbox
+                                  checked={rowState.checked}
+                                  indeterminate={rowState.indeterminate}
+                                  title="ติ๊ก/ถอดสิทธิ์ทั้งแถวนี้"
+                                  onChange={(event) =>
+                                    setScreenAllowed(
+                                      screen,
+                                      event.target.checked,
+                                    )
+                                  }
+                                />
+                                <div className={styles.screenMeta}>
+                                  <span className={styles.screenName}>
+                                    {screen.screenName}
+                                  </span>
+                                  <span className={styles.screenModule}>
+                                    {screen.screenCode}
+                                  </span>
+                                </div>
+                              </div>
                             </td>
                             {functionCodes.map((code) => {
                               const fn = fnByCode.get(code);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   App,
   Button,
@@ -191,6 +191,32 @@ function resolvePaymentStatusLabel(view: PaymentView) {
     return PAYMENT_STATUS_LABELS.UNPAID;
   }
   return "ยังไม่มีใบรับซื้อ";
+}
+
+/** อนุญาตเฉพาะตัวเลขและจุดทศนิยม (บล็อก e / + / - / ตัวอักษร) */
+function blockNonNumericWeightKey(event: KeyboardEvent<HTMLInputElement>) {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+  const allowedKeys = new Set([
+    "Backspace",
+    "Delete",
+    "Tab",
+    "Escape",
+    "Enter",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+  ]);
+  if (allowedKeys.has(event.key)) {
+    return;
+  }
+  if (!/^[0-9.]$/.test(event.key)) {
+    event.preventDefault();
+  }
 }
 
 type Props = {
@@ -792,6 +818,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                                   required: true,
                                   message: "กรุณากรอกน้ำหนักเข้า",
                                 },
+                                {
+                                  type: "number",
+                                  min: 0.001,
+                                  message: "น้ำหนักเข้าต้องมากกว่า 0",
+                                },
                               ]}
                             >
                               <InputNumber
@@ -801,6 +832,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                                 size="large"
                                 className={styles.stepMetaInput}
                                 placeholder="เช่น 18500.500"
+                                inputMode="decimal"
+                                controls
+                                onKeyDown={blockNonNumericWeightKey}
                               />
                             </Form.Item>
                           </div>
@@ -845,23 +879,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               className={`${styles.stepMetaControlItem} ${styles.stepMetaControlFull}`}
                             >
                               <span>เหตุผลการกรอกเอง</span>
-                              <Form.Item
-                                name="reason"
-                                rules={
-                                  isUpdatingWeighIn
-                                    ? undefined
-                                    : [
-                                        {
-                                          required: true,
-                                          message:
-                                            "กรุณาระบุเหตุผลการกรอกเอง",
-                                        },
-                                      ]
-                                }
-                              >
+                              <Form.Item name="reason">
                                 <Input.TextArea
                                   rows={2}
-                                  placeholder="เช่น เครื่องชั่งยังไม่เชื่อมต่อ"
+                                  placeholder="เช่น เครื่องชั่งยังไม่เชื่อมต่อ (ไม่บังคับ)"
                                 />
                               </Form.Item>
                             </div>
@@ -1038,6 +1059,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                                   required: true,
                                   message: "กรุณากรอกน้ำหนักออก",
                                 },
+                                {
+                                  type: "number",
+                                  min: 0.001,
+                                  message: "น้ำหนักออกต้องมากกว่า 0",
+                                },
                               ]}
                             >
                               <InputNumber
@@ -1047,6 +1073,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                                 size="large"
                                 className={styles.stepMetaInput}
                                 placeholder="เช่น 8500.250"
+                                inputMode="decimal"
+                                controls
+                                onKeyDown={blockNonNumericWeightKey}
                               />
                             </Form.Item>
                           </div>
@@ -1101,23 +1130,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               className={`${styles.stepMetaControlItem} ${styles.stepMetaControlFull}`}
                             >
                               <span>เหตุผลการกรอกเอง</span>
-                              <Form.Item
-                                name="reason"
-                                rules={
-                                  isUpdatingWeighOut
-                                    ? undefined
-                                    : [
-                                        {
-                                          required: true,
-                                          message:
-                                            "กรุณาระบุเหตุผลการกรอกเอง",
-                                        },
-                                      ]
-                                }
-                              >
+                              <Form.Item name="reason">
                                 <Input.TextArea
                                   rows={2}
-                                  placeholder="เช่น อ่านค่าจากหน้าจอเครื่องชั่ง"
+                                  placeholder="เช่น อ่านจากหน้าจอเครื่องชั่ง (ไม่บังคับ)"
                                 />
                               </Form.Item>
                             </div>
