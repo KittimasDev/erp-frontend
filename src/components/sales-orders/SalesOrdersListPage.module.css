@@ -297,6 +297,11 @@
   background: var(--pr-green);
 }
 
+.progressSegCurrent {
+  background: var(--pr-green-dark);
+  box-shadow: 0 0 0 1px rgba(111, 151, 32, 0.35);
+}
+
 .progress_done .progressCount,
 .progress_done .progressSegOn {
   color: #389e0d;

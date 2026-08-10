@@ -38,6 +38,7 @@ import {
   useUpdatePickingMutation,
 } from "@/hooks/pickings/usePickingMutations";
 import { usePickingQuery } from "@/hooks/pickings/usePickingsQuery";
+import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useAvailableLocationsQuery } from "@/hooks/dispatch-orders/useDispatchOrdersQuery";
 import {
   useSalesOrderAvailableWarehousesQuery,
@@ -126,6 +127,7 @@ export default function PickingFormPage({ id, mode }: Props) {
     data?.salesOrderId,
   );
   const verifyQuery = useSalesOrderStockVerificationQuery(data?.salesOrderId);
+  const trackingQuery = useSalesTrackingDetailQuery(data?.salesOrderId);
 
   const canWrite =
     userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
@@ -254,6 +256,38 @@ export default function PickingFormPage({ id, mode }: Props) {
     PICKING_STATUS_LABEL[data.status as keyof typeof PICKING_STATUS_LABEL] ??
     data.status;
 
+  const packingStep = trackingQuery.data?.data?.timeline?.find(
+    (step) => step.step === "Packing",
+  );
+  const packingHref =
+    packingStep?.href && packingStep.status !== "CANCELLED"
+      ? packingStep.status === "DRAFT"
+        ? `${packingStep.href}/edit`
+        : packingStep.href
+      : undefined;
+
+  const renderItemLotHint = (item: PickingItem) => {
+    const row = rows.find((r) => r.id === item.id);
+    const lotLabel =
+      row?.lotNo ?? row?.lotId ?? item.lotNo ?? item.lotId ?? undefined;
+
+    if (!item.requiresLotControl) return null;
+
+    if (lotLabel) {
+      return <span className={styles.lotInfo}>Lot {lotLabel}</span>;
+    }
+
+    if (editable) {
+      return (
+        <span className={styles.lotHint}>
+          สินค้าควบคุม Lot — เลือกคลัง/ตำแหน่งแล้วกด &quot;แนะนำ FIFO&quot;
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   const columns: ColumnsType<PickingItem> = [
     {
       title: "สินค้า",
@@ -262,9 +296,7 @@ export default function PickingFormPage({ id, mode }: Props) {
         <div>
           <div className={styles.itemCode}>{item.itemCode}</div>
           <div className={styles.itemName}>{item.itemNameTh}</div>
-          {item.requiresLotControl ? (
-            <span className={styles.lotRequired}>ต้องระบุ Lot</span>
-          ) : null}
+          {renderItemLotHint(item)}
         </div>
       ),
     },
@@ -360,10 +392,12 @@ export default function PickingFormPage({ id, mode }: Props) {
     {
       title: (
         <span className={styles.colHelp}>
-          Lot
-          <Tooltip title={FIFO_TOOLTIP} placement="top">
-            <QuestionCircleOutlined className={styles.helpIcon} />
-          </Tooltip>
+          Lot{editable ? " (แนะนำอัตโนมัติ)" : ""}
+          {editable ? (
+            <Tooltip title={FIFO_TOOLTIP} placement="top">
+              <QuestionCircleOutlined className={styles.helpIcon} />
+            </Tooltip>
+          ) : null}
         </span>
       ),
       key: "lot",
@@ -557,14 +591,72 @@ export default function PickingFormPage({ id, mode }: Props) {
               </Button>
             </>
           ) : null}
+          {!editable && data.status === "DRAFT" && canWrite ? (
+            <Button
+              type="primary"
+              className={styles.primaryBtn}
+              icon={<CheckOutlined />}
+              onClick={() => router.push(`/pickings/${id}/edit`)}
+            >
+              แก้ไขและยืนยันตัดสต๊อก
+            </Button>
+          ) : null}
+          {!editable && data.status === "CONFIRMED" ? (
+            packingHref ? (
+              <Button
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<InboxOutlined />}
+                onClick={() => router.push(packingHref)}
+              >
+                เปิดใบบรรจุสินค้า
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<InboxOutlined />}
+                onClick={() =>
+                  router.push(`/packings/create-from-picking/${id}`)
+                }
+              >
+                สร้างใบบรรจุสินค้า
+              </Button>
+            )
+          ) : null}
+          <Button
+            className={styles.secondaryBtn}
+            icon={<ArrowLeftOutlined />}
+            onClick={() => router.push("/pickings")}
+          >
+            กลับรายการ
+          </Button>
         </div>
       </header>
+
+      {!editable && data.status === "DRAFT" ? (
+        <Alert
+          type="info"
+          showIcon
+          title="ใบจ่ายอยู่สถานะร่าง"
+          description={
+            canWrite
+              ? "กด «แก้ไขและยืนยันตัดสต๊อก» เพื่อเลือกคลัง/ตำแหน่ง — ระบบจะแนะนำ Lot ให้อัตโนมัติ (FIFO) ไม่ต้องกรอก Lot เอง"
+              : "รอเจ้าหน้าที่คลังแก้ไขและยืนยันตัดสต๊อก"
+          }
+        />
+      ) : null}
 
       {data.status === "CONFIRMED" ? (
         <Alert
           type="success"
           showIcon
           title="ยืนยันแล้ว — สต๊อกถูกตัดและมี stock movement ประเภท SALES_OUT (ขายออก)"
+          description={
+            packingHref
+              ? "ขั้นถัดไป: เปิดใบบรรจุสินค้าเพื่อดำเนินการต่อ"
+              : "ขั้นถัดไป: สร้างใบบรรจุสินค้าจากใบจ่ายนี้"
+          }
         />
       ) : null}
 
@@ -644,6 +736,60 @@ export default function PickingFormPage({ id, mode }: Props) {
           scroll={{ x: 900 }}
         />
       </section>
+
+      {!editable ? (
+        <section className={styles.actionFooter}>
+          <div className={styles.actionFooterText}>
+            {data.status === "CONFIRMED"
+              ? "ดำเนินการต่อ — สร้างหรือเปิดใบบรรจุสินค้า"
+              : data.status === "DRAFT" && canWrite
+                ? "แก้ไขใบจ่ายแล้วยืนยันตัดสต๊อกเพื่อไปขั้นบรรจุ"
+                : "กลับไปรายการหรือใบสั่งขาย"}
+          </div>
+          <div className={styles.actionFooterButtons}>
+            <Button
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.push("/pickings")}
+            >
+              กลับรายการใบจ่าย
+            </Button>
+            {data.salesOrderId ? (
+              <Button
+                icon={<ShoppingCartOutlined />}
+                onClick={() =>
+                  router.push(`/sales-orders/${data.salesOrderId}`)
+                }
+              >
+                กลับใบสั่งขาย
+              </Button>
+            ) : null}
+            {data.status === "DRAFT" && canWrite ? (
+              <Button
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<CheckOutlined />}
+                onClick={() => router.push(`/pickings/${id}/edit`)}
+              >
+                แก้ไขและยืนยันตัดสต๊อก
+              </Button>
+            ) : null}
+            {data.status === "CONFIRMED" ? (
+              <Button
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<InboxOutlined />}
+                onClick={() =>
+                  router.push(
+                    packingHref ?? `/packings/create-from-picking/${id}`,
+                  )
+                }
+              >
+                {packingHref ? "เปิดใบบรรจุสินค้า" : "สร้างใบบรรจุสินค้า"}
+              </Button>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

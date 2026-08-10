@@ -19,20 +19,23 @@ import {
 import dayjs from "dayjs";
 
 import DocumentAuditTrail from "@/components/common/DocumentAuditTrail";
+import SalesOrderTimeline from "@/components/sales/SalesOrderTimeline";
 import {
   useCancelSalesOrderMutation,
   useConfirmSalesOrderMutation,
+  useConfirmStockVerificationMutation,
 } from "@/hooks/sales-orders/useSalesOrderMutations";
 import {
   useSalesOrderQuery,
   useSalesOrderStockVerificationQuery,
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
   resolveSalesOrderProgress,
-  SALES_ORDER_FLOW_STEPS,
 } from "@/lib/sales/sales-order-progress";
 import {
   SALES_ORDER_STATUS_LABEL,
@@ -75,44 +78,6 @@ function statusClass(status: string) {
   }
 }
 
-function stepIcon(step: string) {
-  switch (step) {
-    case "Quotation":
-      return <FileTextOutlined />;
-    case "Stock Verification":
-      return <SearchOutlined />;
-    case "Picking":
-      return <ShoppingOutlined />;
-    case "Packing":
-      return <InboxOutlined />;
-    case "Delivery":
-      return <CarOutlined />;
-    case "Invoice":
-      return <FileTextOutlined />;
-    default:
-      return <FileTextOutlined />;
-  }
-}
-
-function stepLabel(step: string) {
-  switch (step) {
-    case "Quotation":
-      return "ใบเสนอราคา";
-    case "Stock Verification":
-      return "ตรวจสอบสต๊อก";
-    case "Picking":
-      return "ใบจ่ายสินค้า";
-    case "Packing":
-      return "ใบบรรจุสินค้า";
-    case "Delivery":
-      return "ใบส่งสินค้า";
-    case "Invoice":
-      return "ใบแจ้งหนี้";
-    default:
-      return step;
-  }
-}
-
 function findStep(
   timeline: SalesTrackingTimelineStep[],
   step: string,
@@ -127,26 +92,30 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const stockVerificationQuery = useSalesOrderStockVerificationQuery(id);
   const trackingQuery = useSalesTrackingDetailQuery(id);
   const confirmMutation = useConfirmSalesOrderMutation();
+  const confirmStockMutation = useConfirmStockVerificationMutation();
   const cancelMutation = useCancelSalesOrderMutation();
+  const stockVerificationActions = useScreenActionPermissions(
+    "SALES_STOCK_VERIFICATION",
+  );
+  const matrixMode = isMatrixPermissionMode();
 
   const data = query.data?.data;
   const stockVerification = stockVerificationQuery.data?.data;
   const tracking = trackingQuery.data?.data;
   const timeline = tracking?.timeline ?? [];
-  const relatedDocs = timeline.filter(
-    (step) =>
-      step.step !== "Sales Order" &&
-      step.step !== "Quotation" &&
-      (Boolean(step.href) ||
-        Boolean(step.documentNo) ||
-        Boolean(step.status)),
-  );
 
   const canWrite =
     userHasRole(RoleCode.SALES_OFFICER) ||
     userHasRole(RoleCode.SALES_MANAGER) ||
     isAdministrator();
   const canConfirm = userHasRole(RoleCode.SALES_MANAGER) || isAdministrator();
+  const legacyCanApproveStock =
+    userHasRole(RoleCode.SALES_OFFICER) ||
+    userHasRole(RoleCode.SALES_MANAGER) ||
+    isAdministrator();
+  const canApproveStock = matrixMode
+    ? stockVerificationActions.canApprove
+    : legacyCanApproveStock;
   const canFulfill =
     canWrite ||
     userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
@@ -171,8 +140,30 @@ export default function SalesOrderDetailPage({ id }: Props) {
     );
   }
 
-  const busy = confirmMutation.isPending || cancelMutation.isPending;
+  const busy =
+    confirmMutation.isPending ||
+    cancelMutation.isPending ||
+    confirmStockMutation.isPending;
   const progress = resolveSalesOrderProgress(data.status);
+  const pickingStep = findStep(timeline, "Picking");
+  const packingStep = findStep(timeline, "Packing");
+
+  let flowHint: string | null = null;
+  if (data.status === "STOCK_CHECKED" && pickingStep?.status === "DRAFT") {
+    flowHint =
+      "มีใบจ่ายสินค้าร่างแล้ว — ต้องยืนยันตัดสต๊อกก่อนสร้างใบบรรจุ";
+  } else if (
+    (data.status === "PICKING" || data.status === "PARTIALLY_ISSUED") &&
+    !packingStep?.documentId
+  ) {
+    flowHint =
+      pickingStep?.status !== "CONFIRMED"
+        ? "ต้องยืนยันใบจ่ายสินค้าก่อนจึงจะสร้างใบบรรจุได้"
+        : "ใบจ่ายสินค้ายืนยันแล้ว — กดสร้างใบบรรจุสินค้าเพื่อไปขั้นถัดไป";
+  } else if (data.status === "PACKED" && packingStep?.status === "DRAFT") {
+    flowHint =
+      "มีใบบรรจุร่างแล้ว — ต้องยืนยันใบบรรจุก่อนสร้างใบส่งสินค้า";
+  }
 
   const printPdf = async () => {
     const { generateSalesOrderPdf } = await import(
@@ -224,89 +215,204 @@ export default function SalesOrderDetailPage({ id }: Props) {
   let nextStepButton: ReactNode = null;
   if (canFulfill) {
     if (data.status === "CONFIRMED") {
-      nextStepButton = (
-        <Button
-          className={styles.primaryBtn}
-          type="primary"
-          icon={<SearchOutlined />}
-          onClick={() =>
-            router.push(`/sales-orders/${data.id}/stock-verification`)
-          }
-        >
-          ตรวจสอบสต๊อก
-        </Button>
-      );
+      const stockReady = stockVerification?.isAllAvailable === true;
+      if (stockReady && canApproveStock) {
+        nextStepButton = (
+          <>
+            <Button
+              className={styles.primaryBtn}
+              type="primary"
+              icon={<CheckOutlined />}
+              loading={confirmStockMutation.isPending}
+              onClick={() => confirmStockMutation.mutate(data.id)}
+            >
+              ยืนยันผลตรวจสอบสต๊อก
+            </Button>
+            <Button
+              icon={<SearchOutlined />}
+              onClick={() =>
+                router.push(`/sales-orders/${data.id}/stock-verification`)
+              }
+            >
+              ดูรายละเอียด
+            </Button>
+          </>
+        );
+      } else {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<SearchOutlined />}
+            onClick={() =>
+              router.push(`/sales-orders/${data.id}/stock-verification`)
+            }
+          >
+            {stockReady ? "ดูผลตรวจสต๊อก" : "ตรวจสอบสต๊อก"}
+          </Button>
+        );
+      }
     } else if (data.status === "STOCK_CHECKED") {
       const picking = findStep(timeline, "Picking");
-      nextStepButton = picking?.href ? (
-        <Button
-          className={styles.primaryBtn}
-          type="primary"
-          icon={<ShoppingOutlined />}
-          onClick={() =>
-            router.push(
-              picking.status === "DRAFT"
-                ? `${picking.href}/edit`
-                : (picking.href as string),
-            )
-          }
-        >
-          เปิดใบจ่ายสินค้า
-        </Button>
-      ) : (
-        <Button
-          className={styles.primaryBtn}
-          type="primary"
-          icon={<ShoppingOutlined />}
-          onClick={() =>
-            router.push(`/pickings/create-from-sales-order/${data.id}`)
-          }
-        >
-          สร้างใบจ่ายสินค้า
-        </Button>
-      );
-    } else if (data.status === "PICKING") {
+      if (picking?.href) {
+        const pickingDraft = picking.status === "DRAFT";
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<ShoppingOutlined />}
+            onClick={() =>
+              router.push(
+                pickingDraft ? `${picking.href}/edit` : (picking.href as string),
+              )
+            }
+          >
+            {pickingDraft
+              ? "ยืนยันใบจ่ายสินค้า (ตัดสต๊อก)"
+              : "เปิดใบจ่ายสินค้า"}
+          </Button>
+        );
+      } else {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<ShoppingOutlined />}
+            onClick={() =>
+              router.push(`/pickings/create-from-sales-order/${data.id}`)
+            }
+          >
+            สร้างใบจ่ายสินค้า
+          </Button>
+        );
+      }
+    } else if (
+      data.status === "PICKING" ||
+      data.status === "PARTIALLY_ISSUED"
+    ) {
+      const picking = findStep(timeline, "Picking");
       const packing = findStep(timeline, "Packing");
-      nextStepButton = packing?.href ? (
-        <Button
-          className={styles.primaryBtn}
-          type="primary"
-          icon={<InboxOutlined />}
-          onClick={() => router.push(packing.href as string)}
-        >
-          ดูใบบรรจุสินค้า
-        </Button>
-      ) : (
-        <Button
-          className={styles.primaryBtn}
-          type="primary"
-          icon={<InboxOutlined />}
-          onClick={() => router.push("/packings/create-from-picking")}
-        >
-          สร้างใบบรรจุสินค้า
-        </Button>
-      );
+
+      if (packing?.href) {
+        const packingDraft = packing.status === "DRAFT";
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<InboxOutlined />}
+            onClick={() =>
+              router.push(
+                packingDraft
+                  ? `${packing.href}/edit`
+                  : (packing.href as string),
+              )
+            }
+          >
+            {packingDraft ? "แก้ไข/ยืนยันใบบรรจุ" : "เปิดใบบรรจุสินค้า"}
+          </Button>
+        );
+      } else if (
+        picking?.documentId &&
+        picking.status === "CONFIRMED"
+      ) {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<InboxOutlined />}
+            onClick={() =>
+              router.push(
+                `/packings/create-from-picking/${picking.documentId}`,
+              )
+            }
+          >
+            สร้างใบบรรจุสินค้า
+          </Button>
+        );
+      } else if (picking?.href) {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<ShoppingOutlined />}
+            onClick={() =>
+              router.push(
+                picking.status === "DRAFT"
+                  ? `${picking.href}/edit`
+                  : (picking.href as string),
+              )
+            }
+          >
+            ยืนยันใบจ่ายสินค้าก่อนบรรจุ
+          </Button>
+        );
+      } else {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<InboxOutlined />}
+            onClick={() => router.push("/packings/create-from-picking")}
+          >
+            สร้างใบบรรจุสินค้า
+          </Button>
+        );
+      }
     } else if (data.status === "PACKED") {
+      const packing = findStep(timeline, "Packing");
       const delivery = findStep(timeline, "Delivery");
-      nextStepButton = delivery?.href ? (
-        <Button
-          className={styles.primaryBtn}
-          type="primary"
-          icon={<CarOutlined />}
-          onClick={() => router.push(delivery.href as string)}
-        >
-          ดูใบส่งสินค้า
-        </Button>
-      ) : (
-        <Button
-          className={styles.primaryBtn}
-          type="primary"
-          icon={<CarOutlined />}
-          onClick={() => router.push("/delivery-orders/create-from-packing")}
-        >
-          สร้างใบส่งสินค้า
-        </Button>
-      );
+      if (delivery?.href) {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<CarOutlined />}
+            onClick={() => router.push(delivery.href as string)}
+          >
+            ดูใบส่งสินค้า
+          </Button>
+        );
+      } else if (
+        packing?.documentId &&
+        packing.status === "CONFIRMED"
+      ) {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<CarOutlined />}
+            onClick={() =>
+              router.push(
+                `/delivery-orders/create-from-packing/${packing.documentId}`,
+              )
+            }
+          >
+            สร้างใบส่งสินค้า
+          </Button>
+        );
+      } else if (packing?.href && packing.status === "DRAFT") {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<InboxOutlined />}
+            onClick={() => router.push(`${packing.href}/edit`)}
+          >
+            ยืนยันใบบรรจุก่อนส่งสินค้า
+          </Button>
+        );
+      } else {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<CarOutlined />}
+            onClick={() => router.push("/delivery-orders/create-from-packing")}
+          >
+            สร้างใบส่งสินค้า
+          </Button>
+        );
+      }
     } else if (data.status === "DELIVERED" || data.status === "COMPLETED") {
       const invoice = findStep(timeline, "Invoice");
       const delivery = findStep(timeline, "Delivery");
@@ -366,8 +472,23 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <Button icon={<FilePdfOutlined />} onClick={printPdf}>
             พิมพ์ PDF
           </Button>
+          {nextStepButton}
         </div>
       </header>
+
+      <SalesOrderTimeline
+        salesOrderId={id}
+        loading={trackingQuery.isLoading}
+        refreshing={
+          trackingQuery.isFetching &&
+          !trackingQuery.isLoading &&
+          Boolean(trackingQuery.data)
+        }
+        currentStep={tracking?.currentStep}
+        nextAction={tracking?.nextAction}
+        timeline={timeline}
+        progress={progress}
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
@@ -462,6 +583,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย
               </span>
             </div>
+            {data.status === "CONFIRMED" &&
+            stockVerification?.isAllAvailable &&
+            canApproveStock ? (
+              <p className={styles.stockReadyNote}>
+                สต๊อกพอทุกรายการแล้ว — กด{" "}
+                <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นจ่ายสินค้า
+                (การเปิดหน้านี้เพื่อดูผลอย่างเดียวยังไม่เปลี่ยนสถานะ)
+              </p>
+            ) : null}
             {stockVerificationQuery.isLoading ? (
               <Spin size="small" />
             ) : stockVerification ? (
@@ -552,63 +682,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
           ) : null}
 
           <div className={styles.section}>
-            <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>เอกสารที่เกี่ยวข้อง</h2>
-              <span className={styles.sectionHint}>
-                Picking → Packing → Delivery → Invoice
-              </span>
-            </div>
-            {trackingQuery.isLoading ? (
-              <Spin size="small" />
-            ) : relatedDocs.length > 0 ? (
-              <div className={styles.itemList}>
-                {relatedDocs.map((step) => {
-                  const content = (
-                    <>
-                      <div className={styles.itemIndex}>{stepIcon(step.step)}</div>
-                      <div className={styles.itemBody}>
-                        <p className={styles.itemName}>
-                          {step.documentNo ?? stepLabel(step.step)}
-                        </p>
-                        <p className={styles.itemCode}>
-                          {stepLabel(step.step)}
-                          {step.date ? ` · ${formatDate(step.date)}` : ""}
-                          {step.actorName ? ` · ${step.actorName}` : ""}
-                        </p>
-                      </div>
-                      <div className={styles.itemQty}>
-                        {step.status ? <Tag>{step.status}</Tag> : null}
-                      </div>
-                    </>
-                  );
-                  return step.href ? (
-                    <Link
-                      key={`${step.step}-${step.documentId ?? step.documentNo ?? "x"}`}
-                      href={step.href}
-                      className={styles.itemCard}
-                      style={{ display: "flex" }}
-                    >
-                      {content}
-                    </Link>
-                  ) : (
-                    <div
-                      key={`${step.step}-${step.documentId ?? step.documentNo ?? "x"}`}
-                      className={styles.itemCard}
-                      style={{ display: "flex" }}
-                    >
-                      {content}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className={styles.textBlock}>
-                ยังไม่มีเอกสารจัดส่ง/ใบแจ้งหนี้ — เริ่มจากตรวจสอบสต๊อกแล้วสร้างใบจ่ายสินค้า
-              </p>
-            )}
-          </div>
-
-          <div className={styles.section}>
             <DocumentAuditTrail documentId={data.id} />
           </div>
         </section>
@@ -622,43 +695,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
             {SALES_ORDER_STATUS_LABEL[data.status as SalesOrderStatus] ??
               data.status}
           </div>
-          <div
-            className={`${styles.progressBox} ${styles[`progress_${progress.tone}`]}`}
-          >
-            <div className={styles.progressMeta}>
-              <span className={styles.progressCount}>
-                {progress.tone === "stopped" && progress.current === 0
-                  ? "—"
-                  : `${progress.current}/${progress.total}`}
-              </span>
-              <span className={styles.progressLabel}>{progress.label}</span>
-            </div>
-            <div
-              className={styles.progressTrack}
-              style={{
-                gridTemplateColumns: `repeat(${progress.total}, minmax(0, 1fr))`,
-              }}
-              aria-hidden
-            >
-              {SALES_ORDER_FLOW_STEPS.map((step, index) => {
-                const filled = index + 1 <= progress.current;
-                return (
-                  <span
-                    key={step.key}
-                    className={`${styles.progressSeg} ${filled ? styles.progressSegOn : ""}`}
-                    title={step.label}
-                  />
-                );
-              })}
-            </div>
-          </div>
           {tracking?.currentStep ? (
-            <p className={styles.sectionHint} style={{ margin: "8px 0 0" }}>
+            <p className={styles.sectionHint} style={{ margin: "4px 0 0" }}>
               {tracking.currentStep}
               {tracking.nextAction && tracking.nextAction !== "—"
                 ? ` · ถัดไป: ${tracking.nextAction}`
                 : ""}
             </p>
+          ) : null}
+          {flowHint ? (
+            <p className={styles.flowHint}>{flowHint}</p>
           ) : null}
 
           <div className={styles.sideRows}>

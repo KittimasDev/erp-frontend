@@ -15,7 +15,7 @@ import type {
   CreatePickingFromSalesOrderBody,
   UpdatePickingBody,
 } from "@/types/pickings";
-import { salesOrdersQueryKey } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 
 import { pickingsQueryKey } from "./usePickingsQuery";
 
@@ -23,7 +23,7 @@ function useInvalidate() {
   const qc = useQueryClient();
   return async () => {
     await qc.invalidateQueries({ queryKey: pickingsQueryKey });
-    await qc.invalidateQueries({ queryKey: salesOrdersQueryKey });
+    await invalidateSalesOrderFlowQueries(qc);
   };
 }
 

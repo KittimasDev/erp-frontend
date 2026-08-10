@@ -23,7 +23,15 @@ import type {
   UpdateSalesInvoiceBody,
 } from "@/types/sales-invoices";
 import { deliveryOrdersQueryKey } from "../delivery-orders/useDeliveryOrdersQuery";
+import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 import { salesInvoicesQueryKey } from "./useSalesInvoicesQuery";
+
+async function invalidateSalesInvoiceFlow(queryClient: ReturnType<typeof useQueryClient>) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: salesInvoicesQueryKey }),
+    invalidateSalesOrderFlowQueries(queryClient),
+  ]);
+}
 
 export function useCreateSalesInvoiceFromDeliveryMutation() {
   const queryClient = useQueryClient();
@@ -39,7 +47,7 @@ export function useCreateSalesInvoiceFromDeliveryMutation() {
     }) =>
       createSalesInvoiceFromDelivery(getAccessToken(), deliveryOrderId, body),
     onSuccess: async (res) => {
-      await queryClient.invalidateQueries({ queryKey: salesInvoicesQueryKey });
+      await invalidateSalesInvoiceFlow(queryClient);
       await queryClient.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
       message.success(res.message || "สร้างใบแจ้งหนี้สำเร็จ");
     },
@@ -81,7 +89,7 @@ export function useConfirmSalesInvoiceMutation() {
   return useMutation({
     mutationFn: (id: string) => confirmSalesInvoice(getAccessToken(), id),
     onSuccess: async (res) => {
-      await queryClient.invalidateQueries({ queryKey: salesInvoicesQueryKey });
+      await invalidateSalesInvoiceFlow(queryClient);
       message.success(res.message || "ยืนยันใบแจ้งหนี้สำเร็จ");
     },
     onError: (error: Error) => {
@@ -107,7 +115,7 @@ export function useReceiveSalesInvoicePaymentMutation() {
       body: ReceiveSalesInvoicePaymentBody;
     }) => receiveSalesInvoicePayment(getAccessToken(), id, body),
     onSuccess: async (res) => {
-      await queryClient.invalidateQueries({ queryKey: salesInvoicesQueryKey });
+      await invalidateSalesInvoiceFlow(queryClient);
       message.success(res.message || "รับชำระเงินสำเร็จ");
     },
     onError: (error: Error) => {
@@ -125,7 +133,7 @@ export function useCancelSalesInvoiceMutation() {
   return useMutation({
     mutationFn: (id: string) => cancelSalesInvoice(getAccessToken(), id),
     onSuccess: async (res) => {
-      await queryClient.invalidateQueries({ queryKey: salesInvoicesQueryKey });
+      await invalidateSalesInvoiceFlow(queryClient);
       await queryClient.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
       message.success(res.message || "ยกเลิกใบแจ้งหนี้แล้ว");
     },

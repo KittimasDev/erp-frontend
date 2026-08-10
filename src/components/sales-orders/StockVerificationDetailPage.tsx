@@ -10,6 +10,7 @@ import {
   ExclamationCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
+  ShoppingOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -19,6 +20,9 @@ import {
   useSalesOrderQuery,
   useSalesOrderStockVerificationQuery,
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
@@ -26,6 +30,7 @@ import {
   type SalesOrderStatus,
   type SalesOrderStockVerificationLine,
 } from "@/types/sales-orders";
+import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./StockVerificationDetailPage.module.css";
 
 type Props = { id: string };
@@ -109,22 +114,45 @@ function LocationHints({ row }: { row: SalesOrderStockVerificationLine }) {
   return <span className={styles.hintEmpty}>ไม่มีตำแหน่งพร้อมใช้</span>;
 }
 
+function findTimelineStep(
+  timeline: SalesTrackingTimelineStep[],
+  step: string,
+): SalesTrackingTimelineStep | undefined {
+  return timeline.find((entry) => entry.step === step);
+}
+
 export default function StockVerificationDetailPage({ id }: Props) {
   const router = useRouter();
   const orderQuery = useSalesOrderQuery(id);
   const verifyQuery = useSalesOrderStockVerificationQuery(id);
+  const trackingQuery = useSalesTrackingDetailQuery(id);
   const confirmMutation = useConfirmStockVerificationMutation();
-
-  const canConfirm =
+  const stockVerificationActions = useScreenActionPermissions(
+    "SALES_STOCK_VERIFICATION",
+  );
+  const matrixMode = isMatrixPermissionMode();
+  const legacyCanApprove =
     userHasRole(RoleCode.SALES_OFFICER) ||
     userHasRole(RoleCode.SALES_MANAGER) ||
+    isAdministrator();
+  const canApproveStock = matrixMode
+    ? stockVerificationActions.canApprove
+    : legacyCanApprove;
+  const canFulfill =
+    legacyCanApprove ||
+    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
     isAdministrator();
 
   const order = orderQuery.data?.data;
   const verification = verifyQuery.data?.data;
+  const timeline = trackingQuery.data?.data?.timeline ?? [];
   const lines = verification?.lines ?? [];
   const allOk = verification?.isAllAvailable === true;
   const busy = confirmMutation.isPending || verifyQuery.isFetching;
+  const isConfirmed = order?.status === "CONFIRMED";
+  const isStockChecked = order?.status === "STOCK_CHECKED";
+  const pickingStep = findTimelineStep(timeline, "Picking");
 
   const okCount = lines.filter((line) => line.isAvailable).length;
   const shortCount = lines.length - okCount;
@@ -151,6 +179,110 @@ export default function StockVerificationDetailPage({ id }: Props) {
       </div>
     );
   }
+
+  const renderPrimaryAction = (block = false) => {
+    if (isConfirmed && canApproveStock) {
+      return (
+        <Tooltip
+          title={
+            allOk ? undefined : "มีรายการที่สต๊อกไม่พอ — ไม่สามารถยืนยันได้"
+          }
+        >
+          <Button
+            type="primary"
+            block={block}
+            className={styles.primaryBtn}
+            icon={<CheckOutlined />}
+            disabled={!allOk || busy}
+            loading={confirmMutation.isPending}
+            onClick={async () => {
+              await confirmMutation.mutateAsync(id);
+              router.push(`/sales-orders/${id}`);
+            }}
+          >
+            ยืนยันผลตรวจสอบสต๊อก
+          </Button>
+        </Tooltip>
+      );
+    }
+
+    if (isStockChecked && canFulfill) {
+      const pickingHref = pickingStep?.href;
+      if (pickingHref) {
+        return (
+          <Button
+            type="primary"
+            block={block}
+            className={styles.primaryBtn}
+            icon={<ShoppingOutlined />}
+            onClick={() =>
+              router.push(
+                pickingStep.status === "DRAFT"
+                  ? `${pickingHref}/edit`
+                  : pickingHref,
+              )
+            }
+          >
+            เปิดใบจ่ายสินค้า
+          </Button>
+        );
+      }
+
+      return (
+        <Button
+          type="primary"
+          block={block}
+          className={styles.primaryBtn}
+          icon={<ShoppingOutlined />}
+          onClick={() =>
+            router.push(`/pickings/create-from-sales-order/${order.id}`)
+          }
+        >
+          สร้างใบจ่ายสินค้า
+        </Button>
+      );
+    }
+
+    return null;
+  };
+
+  const statusBannerTitle = isStockChecked
+    ? "ยืนยันผลตรวจสอบสต๊อกแล้ว"
+    : allOk
+      ? "สต๊อกพอทุกรายการ"
+      : "สต๊อกไม่พอบางรายการ";
+
+  const statusBannerText = isStockChecked
+    ? "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — ดำเนินการสร้างหรือเปิดใบจ่ายสินค้าเพื่อไปขั้นถัดไป"
+    : allOk
+      ? "สามารถยืนยันผลตรวจสอบสต๊อกได้ — ขั้นตอนนี้ยังไม่ตัดและไม่จองสต๊อก"
+      : "ระบบจะไม่เปลี่ยนสถานะใบสั่งขายจนกว่าทุกรายการจะมียอดพร้อมขายเพียงพอ";
+
+  const statusBannerTone = isStockChecked
+    ? styles.statusBannerOk
+    : allOk
+      ? styles.statusBannerOk
+      : styles.statusBannerWarn;
+
+  const statusPillLabel = isStockChecked
+    ? "พร้อมจ่ายสินค้า"
+    : allOk
+      ? "พร้อมยืนยัน"
+      : `ขาด ${shortCount} รายการ`;
+
+  const sideNote = isStockChecked ? (
+    <>
+      ตรวจสต๊อกเสร็จแล้ว — กด <strong>สร้างใบจ่ายสินค้า</strong> เพื่อไปขั้นถัดไป
+    </>
+  ) : allOk && canApproveStock ? (
+    <>
+      พร้อมกด <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นถัดไป
+    </>
+  ) : allOk && !canApproveStock ? (
+    <>สต๊อกพอแล้ว — รอเจ้าหน้าที่ขายยืนยันผลตรวจสอบสต๊อก</>
+  ) : (
+    <>ต้องเติมสต๊อกหรือปรับยอดสั่งขายก่อน จึงจะยืนยันผลตรวจได้</>
+  );
 
   return (
     <div className={styles.page}>
@@ -184,58 +316,34 @@ export default function StockVerificationDetailPage({ id }: Props) {
           >
             ตรวจสอบใหม่
           </Button>
-          {canConfirm && order.status === "CONFIRMED" ? (
-            <Tooltip
-              title={
-                allOk
-                  ? undefined
-                  : "มีรายการที่สต๊อกไม่พอ — ไม่สามารถยืนยันได้"
-              }
-            >
-              <Button
-                type="primary"
-                className={styles.primaryBtn}
-                icon={<CheckOutlined />}
-                disabled={!allOk || busy}
-                loading={confirmMutation.isPending}
-                onClick={async () => {
-                  await confirmMutation.mutateAsync(id);
-                  router.push(`/sales-orders/${id}`);
-                }}
-              >
-                ยืนยันผลตรวจสอบสต๊อก
-              </Button>
-            </Tooltip>
-          ) : null}
+          {renderPrimaryAction()}
         </div>
       </header>
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
           <div
-            className={`${styles.statusBanner} ${
-              allOk ? styles.statusBannerOk : styles.statusBannerWarn
-            }`}
+            className={`${styles.statusBanner} ${statusBannerTone}`}
           >
             <div className={styles.statusBannerIcon} aria-hidden>
-              {allOk ? <CheckCircleOutlined /> : <WarningOutlined />}
+              {isStockChecked || allOk ? (
+                <CheckCircleOutlined />
+              ) : (
+                <WarningOutlined />
+              )}
             </div>
             <div>
-              <h2 className={styles.statusBannerTitle}>
-                {allOk ? "สต๊อกพอทุกรายการ" : "สต๊อกไม่พอบางรายการ"}
-              </h2>
-              <p className={styles.statusBannerText}>
-                {allOk
-                  ? "สามารถยืนยันผลตรวจสอบสต๊อกได้ — ขั้นตอนนี้ยังไม่ตัดและไม่จองสต๊อก"
-                  : "ระบบจะไม่เปลี่ยนสถานะใบสั่งขายจนกว่าทุกรายการจะมียอดพร้อมขายเพียงพอ"}
-              </p>
+              <h2 className={styles.statusBannerTitle}>{statusBannerTitle}</h2>
+              <p className={styles.statusBannerText}>{statusBannerText}</p>
             </div>
             <span
               className={`${styles.statusPill} ${
-                allOk ? styles.statusApproved : styles.statusWarn
+                isStockChecked || allOk
+                  ? styles.statusApproved
+                  : styles.statusWarn
               }`}
             >
-              {allOk ? "พร้อมยืนยัน" : `ขาด ${shortCount} รายการ`}
+              {statusPillLabel}
             </span>
           </div>
 
@@ -375,17 +483,9 @@ export default function StockVerificationDetailPage({ id }: Props) {
             </div>
           </div>
 
-          <div className={styles.sideNote}>
-            {allOk ? (
-              <>
-                พร้อมกด <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นถัดไป
-              </>
-            ) : (
-              <>
-                ต้องเติมสต๊อกหรือปรับยอดสั่งขายก่อน จึงจะยืนยันผลตรวจได้
-              </>
-            )}
-          </div>
+          <div className={styles.sideNote}>{sideNote}</div>
+
+          {renderPrimaryAction(true)}
 
           <Button
             block

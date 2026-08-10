@@ -38,12 +38,6 @@ export default function SalesInvoiceCreateFromDeliveryPage({
     }
   }, [existing, router]);
 
-  useEffect(() => {
-    form.setFieldsValue({
-      invoiceDate: dayjs(),
-    });
-  }, [form]);
-
   if (deliveryQuery.isLoading || existingQuery.isLoading) {
     return (
       <div className={styles.page}>
@@ -134,6 +128,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
           form={form}
           layout="vertical"
           onFinish={onFinish}
+          initialValues={{ invoiceDate: dayjs() }}
           style={{ marginTop: 20 }}
         >
           <Form.Item

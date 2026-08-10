@@ -449,6 +449,51 @@
   font-weight: 700;
 }
 
+.lotInfo {
+  display: inline-flex;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(115, 152, 22, 0.1);
+  color: var(--pr-green-dark);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.lotHint {
+  display: block;
+  margin-top: 6px;
+  color: var(--pr-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  max-width: 220px;
+}
+
+.actionFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border: 1px solid var(--pr-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
+}
+
+.actionFooterText {
+  color: var(--pr-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.actionFooterButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
   .pageHeader {
     grid-template-columns: auto 1fr;

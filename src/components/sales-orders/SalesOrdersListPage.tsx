@@ -76,10 +76,18 @@ function SalesOrderProgressCell({ status }: { status: string }) {
         {SALES_ORDER_FLOW_STEPS.map((step, index) => {
           const stepNo = index + 1;
           const filled = stepNo <= progress.current;
+          const current =
+            stepNo === progress.inProgress && progress.tone !== "stopped";
           return (
             <span
               key={step.key}
-              className={`${styles.progressSeg} ${filled ? styles.progressSegOn : ""}`}
+              className={[
+                styles.progressSeg,
+                filled ? styles.progressSegOn : "",
+                current ? styles.progressSegCurrent : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               title={step.label}
             />
           );

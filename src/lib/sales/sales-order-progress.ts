@@ -15,7 +15,10 @@ export const SALES_ORDER_FLOW_STEPS = [
 ] as const;
 
 export type SalesOrderProgress = {
+  /** จำนวนขั้นที่ทำเสร็จแล้ว */
   current: number;
+  /** ขั้นที่กำลังดำเนินการอยู่ */
+  inProgress: number;
   total: number;
   label: string;
   tone: "active" | "done" | "stopped";
@@ -27,24 +30,35 @@ export function resolveSalesOrderProgress(
   const total = SALES_ORDER_FLOW_STEPS.length;
 
   if (status === "CANCELLED") {
-    return { current: 0, total, label: "ยกเลิก", tone: "stopped" };
+    return {
+      current: 0,
+      inProgress: 0,
+      total,
+      label: "ยกเลิก",
+      tone: "stopped",
+    };
   }
 
-  const byStatus: Record<string, { current: number; label: string }> = {
-    DRAFT: { current: 1, label: "ร่าง" },
-    CONFIRMED: { current: 2, label: "ยืนยันแล้ว" },
-    STOCK_CHECKED: { current: 3, label: "ตรวจสต๊อกแล้ว" },
-    PICKING: { current: 4, label: "จ่ายสินค้าแล้ว" },
-    PARTIALLY_ISSUED: { current: 4, label: "จ่ายสินค้าบางส่วน" },
-    PACKED: { current: 5, label: "บรรจุแล้ว" },
-    DELIVERED: { current: 6, label: "ส่งแล้ว · รอแจ้งหนี้/ชำระ" },
-    COMPLETED: { current: 7, label: "เสร็จสิ้น" },
+  /** label = สิ่งที่ต้องทำถัดไป (สอดคล้อง sales-tracking mapStep) */
+  const byStatus: Record<
+    string,
+    { current: number; inProgress: number; label: string }
+  > = {
+    DRAFT: { current: 1, inProgress: 1, label: "รอยืนยันใบสั่งขาย" },
+    CONFIRMED: { current: 2, inProgress: 3, label: "รอตรวจสต๊อก" },
+    STOCK_CHECKED: { current: 3, inProgress: 4, label: "รอจ่ายสินค้า" },
+    PICKING: { current: 4, inProgress: 5, label: "รอบรรจุสินค้า" },
+    PARTIALLY_ISSUED: { current: 4, inProgress: 5, label: "รอบรรจุสินค้า" },
+    PACKED: { current: 5, inProgress: 6, label: "รอส่งสินค้า" },
+    DELIVERED: { current: 6, inProgress: 7, label: "รอแจ้งหนี้/ชำระ" },
+    COMPLETED: { current: 7, inProgress: 7, label: "เสร็จสิ้น" },
   };
 
   const hit = byStatus[status];
   if (hit) {
     return {
       current: hit.current,
+      inProgress: hit.inProgress,
       total,
       label: hit.label,
       tone: hit.current >= total ? "done" : "active",
@@ -53,6 +67,7 @@ export function resolveSalesOrderProgress(
 
   return {
     current: 1,
+    inProgress: 1,
     total,
     label: SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status,
     tone: "active",

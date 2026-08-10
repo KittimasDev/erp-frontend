@@ -16,14 +16,14 @@ import type {
   CreateDeliveryOrderFromPackingBody,
   UpdateDeliveryOrderBody,
 } from "@/types/delivery-orders";
-import { salesOrdersQueryKey } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 import { deliveryOrdersQueryKey } from "./useDeliveryOrdersQuery";
 
 function useInvalidate() {
   const qc = useQueryClient();
   return async () => {
     await qc.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
-    await qc.invalidateQueries({ queryKey: salesOrdersQueryKey });
+    await invalidateSalesOrderFlowQueries(qc);
   };
 }
 

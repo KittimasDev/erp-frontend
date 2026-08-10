@@ -10,6 +10,8 @@ import {
 import { getAccessToken } from "@/lib/auth/token";
 import type { SalesTrackingQueryParams } from "@/types/sales-tracking";
 
+import { SALES_ORDER_LIVE_QUERY_OPTIONS } from "@/hooks/sales-orders/invalidate-sales-order-flow";
+
 export const salesTrackingQueryKey = ["sales-tracking"] as const;
 
 export function useSalesTrackingSummaryQuery() {
@@ -32,5 +34,6 @@ export function useSalesTrackingDetailQuery(salesOrderId?: string) {
     queryFn: () =>
       getSalesTrackingDetail(getAccessToken(), salesOrderId as string),
     enabled: Boolean(salesOrderId),
+    ...SALES_ORDER_LIVE_QUERY_OPTIONS,
   });
 }

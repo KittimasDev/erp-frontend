@@ -15,8 +15,8 @@ import type {
   CreatePackingFromPickingBody,
   UpdatePackingBody,
 } from "@/types/packings";
+import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 import { pickingsQueryKey } from "@/hooks/pickings/usePickingsQuery";
-import { salesOrdersQueryKey } from "@/hooks/sales-orders/useSalesOrdersQuery";
 
 import { packingsQueryKey } from "./usePackingsQuery";
 
@@ -25,7 +25,7 @@ function useInvalidate() {
   return async () => {
     await qc.invalidateQueries({ queryKey: packingsQueryKey });
     await qc.invalidateQueries({ queryKey: pickingsQueryKey });
-    await qc.invalidateQueries({ queryKey: salesOrdersQueryKey });
+    await invalidateSalesOrderFlowQueries(qc);
   };
 }
 

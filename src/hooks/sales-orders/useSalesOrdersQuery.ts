@@ -12,6 +12,8 @@ import {
 import { getAccessToken } from "@/lib/auth/token";
 import type { SalesOrderQueryParams } from "@/types/sales-orders";
 
+import { SALES_ORDER_LIVE_QUERY_OPTIONS } from "./invalidate-sales-order-flow";
+
 export const salesOrdersQueryKey = ["sales-orders"] as const;
 
 export function useSalesOrdersQuery(params?: SalesOrderQueryParams) {
@@ -26,6 +28,7 @@ export function useSalesOrderQuery(id?: string) {
     queryKey: [...salesOrdersQueryKey, "detail", id],
     queryFn: () => getSalesOrder(getAccessToken(), id as string),
     enabled: Boolean(id),
+    ...SALES_ORDER_LIVE_QUERY_OPTIONS,
   });
 }
 
@@ -42,6 +45,7 @@ export function useSalesOrderStockVerificationQuery(id?: string) {
     queryFn: () =>
       getSalesOrderStockVerification(getAccessToken(), id as string),
     enabled: Boolean(id),
+    ...SALES_ORDER_LIVE_QUERY_OPTIONS,
   });
 }
 

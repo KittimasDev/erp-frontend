@@ -14,11 +14,12 @@ import { getAccessToken } from "@/lib/auth/token";
 import type { CreateSalesOrderFromQuotationBody } from "@/types/sales-orders";
 
 import { salesOrdersQueryKey } from "./useSalesOrdersQuery";
+import { invalidateSalesOrderFlowQueries } from "./invalidate-sales-order-flow";
 import { quotationsQueryKey } from "@/hooks/quotations/useQuotationsQuery";
 
 function useInvalidateSalesOrders() {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: salesOrdersQueryKey });
+  return () => invalidateSalesOrderFlowQueries(queryClient);
 }
 
 export function useCreateSalesOrderFromQuotationMutation() {

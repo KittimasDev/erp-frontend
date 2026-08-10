@@ -18,7 +18,7 @@ import type {
 } from "@/types/dispatch-orders";
 
 import { dispatchOrdersQueryKey } from "./useDispatchOrdersQuery";
-import { salesOrdersQueryKey } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 
 function useInvalidateDispatchOrders() {
   const queryClient = useQueryClient();
@@ -37,7 +37,7 @@ export function useCreateDispatchOrderMutation() {
       createDispatchOrder(getAccessToken(), body),
     onSuccess: async (res) => {
       await invalidate();
-      await queryClient.invalidateQueries({ queryKey: salesOrdersQueryKey });
+      await invalidateSalesOrderFlowQueries(queryClient);
       message.success(res.message || "สร้างใบจ่ายสินค้าสำเร็จ");
     },
     onError: (error: Error) => {
@@ -58,7 +58,7 @@ export function useConfirmPickingDispatchOrderMutation() {
     mutationFn: (id: string) => confirmPickingDispatchOrder(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
-      await queryClient.invalidateQueries({ queryKey: salesOrdersQueryKey });
+      await invalidateSalesOrderFlowQueries(queryClient);
       message.success(res.message || "ยืนยันการหยิบสินค้าสำเร็จ");
     },
     onError: (error: Error) => {
@@ -72,12 +72,14 @@ export function useConfirmPickingDispatchOrderMutation() {
 export function usePackDispatchOrderMutation() {
   const { message } = App.useApp();
   const invalidate = useInvalidateDispatchOrders();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationKey: [...dispatchOrdersQueryKey, "pack"],
     mutationFn: (id: string) => packDispatchOrder(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
+      await invalidateSalesOrderFlowQueries(queryClient);
       message.success(res.message || "ยืนยันแพ็คสินค้าสำเร็จ");
     },
     onError: (error: Error) => {
@@ -91,12 +93,14 @@ export function usePackDispatchOrderMutation() {
 export function useCancelDispatchOrderMutation() {
   const { message } = App.useApp();
   const invalidate = useInvalidateDispatchOrders();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationKey: [...dispatchOrdersQueryKey, "cancel"],
     mutationFn: (id: string) => cancelDispatchOrder(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
+      await invalidateSalesOrderFlowQueries(queryClient);
       message.success(res.message || "ยกเลิกใบจ่ายสินค้าสำเร็จ");
     },
     onError: (error: Error) => {
@@ -123,7 +127,7 @@ export function useDispatchDispatchOrderMutation() {
     }) => dispatchDispatchOrder(getAccessToken(), id, body),
     onSuccess: async (res) => {
       await invalidate();
-      await queryClient.invalidateQueries({ queryKey: salesOrdersQueryKey });
+      await invalidateSalesOrderFlowQueries(queryClient);
       message.success(res.message || "ยืนยันจ่ายสินค้าออกสำเร็จ");
     },
     onError: (error: Error) => {
