@@ -8,6 +8,7 @@ import {
   DatePicker,
   Form,
   Input,
+  InputNumber,
   Row,
   Select,
   Switch,
@@ -34,10 +35,11 @@ import { useWeighbridgeDashboardQuery } from "@/hooks/weighbridge-tickets/useWei
 import { useCreateSellerMutation } from "@/hooks/sellers/useCreateSellerMutation";
 import { useSellersQuery } from "@/hooks/sellers/useSellersQuery";
 import { useSellerTypesQuery } from "@/hooks/seller-types/useSellerTypesQuery";
+import { useCreateTruckMutation } from "@/hooks/trucks/useCreateTruckMutation";
 import { useTrucksQuery } from "@/hooks/trucks/useTrucksQuery";
 import { useWeighbridgeScalesQuery } from "@/hooks/weighbridge-scales/useWeighbridgeScalesQuery";
 import type { CreateSellerRequest } from "@/types/sellers";
-import type { Truck } from "@/types/trucks";
+import type { CreateTruckRequest, Truck } from "@/types/trucks";
 import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
@@ -64,6 +66,25 @@ type SellerFormValues = {
   remark?: string;
   isActive: boolean;
 };
+
+type TruckFormValues = {
+  code: string;
+  licensePlate: string;
+  province?: string;
+  truckType?: string;
+  driverName?: string;
+  driverPhone?: string;
+  tareWeightKg?: number | null;
+  isActive: boolean;
+};
+
+const TRUCK_TYPE_OPTIONS = [
+  { value: "car", label: "รถส่วนตัว" },
+  { value: "6_WHEEL", label: "6_WHEEL" },
+  { value: "10_WHEEL", label: "10_WHEEL" },
+  { value: "TRAILER", label: "TRAILER" },
+  { value: "PICKUP", label: "PICKUP" },
+];
 
 type ReceivingStage =
   | "all"
@@ -370,8 +391,10 @@ export default function WeighbridgeDashboardPage() {
   const searchParams = useSearchParams();
   const [ticketForm] = Form.useForm<OpenTicketFormValues>();
   const [sellerForm] = Form.useForm<SellerFormValues>();
+  const [truckForm] = Form.useForm<TruckFormValues>();
   const [ticketDrawerOpen, setTicketDrawerOpen] = useState(false);
   const [sellerDrawerOpen, setSellerDrawerOpen] = useState(false);
+  const [truckDrawerOpen, setTruckDrawerOpen] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
   // SideSheet unmounts Form when closed — use local state instead of Form.useWatch
   const [sellerId, setSellerId] = useState<string | undefined>();
@@ -404,6 +427,7 @@ export default function WeighbridgeDashboardPage() {
   const scalesQuery = useWeighbridgeScalesQuery({ isActive: true });
   const createTicketMutation = useCreateWeighbridgeTicketMutation();
   const createSellerMutation = useCreateSellerMutation();
+  const createTruckMutation = useCreateTruckMutation();
 
   const summary = dashboardQuery.data?.data.summary;
   const tickets = dashboardQuery.data?.data.tickets ?? [];
@@ -601,6 +625,22 @@ export default function WeighbridgeDashboardPage() {
     });
   }, [sellerDrawerOpen, sellerForm]);
 
+  useEffect(() => {
+    if (!truckDrawerOpen) {
+      return;
+    }
+    truckForm.setFieldsValue({
+      code: "",
+      licensePlate: "",
+      province: "",
+      truckType: undefined,
+      driverName: "",
+      driverPhone: "",
+      tareWeightKg: undefined,
+      isActive: true,
+    });
+  }, [truckDrawerOpen, truckForm]);
+
   const summaryCards = [
     {
       key: "all" as ReceivingStage,
@@ -646,9 +686,22 @@ export default function WeighbridgeDashboardPage() {
 
   const closeTicketDrawer = () => {
     setSellerDrawerOpen(false);
+    setTruckDrawerOpen(false);
     setTicketDrawerOpen(false);
     setSellerId(undefined);
     setTruckId(undefined);
+  };
+
+  const handleTicketSheetClose = () => {
+    if (truckDrawerOpen) {
+      setTruckDrawerOpen(false);
+      return;
+    }
+    if (sellerDrawerOpen) {
+      setSellerDrawerOpen(false);
+      return;
+    }
+    closeTicketDrawer();
   };
 
   const handleSellerChange = (value?: string) => {
@@ -696,6 +749,38 @@ export default function WeighbridgeDashboardPage() {
           });
         }
         setSellerDrawerOpen(false);
+      },
+    });
+  };
+
+  const handleCreateTruck = async () => {
+    if (!sellerId) {
+      return;
+    }
+
+    const values = await truckForm.validateFields();
+    const payload: CreateTruckRequest = {
+      code: values.code.trim(),
+      licensePlate: values.licensePlate.trim(),
+      sellerId,
+      province: values.province?.trim() || undefined,
+      truckType: values.truckType || undefined,
+      driverName: values.driverName?.trim() || undefined,
+      driverPhone: values.driverPhone?.trim() || undefined,
+      tareWeightKg:
+        values.tareWeightKg === undefined || values.tareWeightKg === null
+          ? undefined
+          : values.tareWeightKg,
+      isActive: values.isActive,
+    };
+
+    createTruckMutation.mutate(payload, {
+      onSuccess: (response) => {
+        setTruckId(response.data.id);
+        if (ticketDrawerOpen) {
+          ticketForm.setFieldsValue({ truckId: response.data.id });
+        }
+        setTruckDrawerOpen(false);
       },
     });
   };
@@ -1105,7 +1190,11 @@ export default function WeighbridgeDashboardPage() {
         </div>
       </section>
 
-      <SideSheet open={ticketDrawerOpen} width={480} onClose={closeTicketDrawer}>
+      <SideSheet
+        open={ticketDrawerOpen}
+        width={480}
+        onClose={handleTicketSheetClose}
+      >
         <div className={styles.drawerPanel}>
           <div className={styles.drawerHero}>
             <span className={styles.drawerEyebrow}>OPEN TICKET</span>
@@ -1154,27 +1243,44 @@ export default function WeighbridgeDashboardPage() {
               </div>
             </Form.Item>
 
-            <Form.Item
-              label="รถบรรทุก"
-              name="truckId"
-              rules={[{ required: true, message: "กรุณาเลือกรถบรรทุก" }]}
-            >
-              <Select
-                showSearch
-                allowClear
-                size="large"
-                optionFilterProp="label"
-                filterOption={filterSelectOption}
-                placeholder={
-                  sellerId ? "พิมพ์ค้นหาหรือเลือกรถบรรทุก" : "เลือกผู้ขายก่อน"
-                }
-                disabled={!sellerId}
-                loading={trucksQuery.isLoading}
-                options={truckOptions}
-                notFoundContent="ไม่พบรถบรรทุก"
-                onChange={(value) => setTruckId(value)}
-                styles={{ popup: SELECT_POPUP_STYLE }}
-              />
+            <Form.Item label="รถบรรทุก" required>
+              <div className={styles.sellerFieldRow}>
+                <Form.Item
+                  name="truckId"
+                  noStyle
+                  rules={[{ required: true, message: "กรุณาเลือกรถบรรทุก" }]}
+                >
+                  <Select
+                    showSearch
+                    allowClear
+                    size="large"
+                    optionFilterProp="label"
+                    filterOption={filterSelectOption}
+                    placeholder={
+                      sellerId
+                        ? "พิมพ์ค้นหาหรือเลือกรถบรรทุก"
+                        : "เลือกผู้ขายก่อน"
+                    }
+                    disabled={!sellerId}
+                    loading={trucksQuery.isLoading}
+                    options={truckOptions}
+                    notFoundContent="ไม่พบรถบรรทุก"
+                    onChange={(value) => setTruckId(value)}
+                    className={styles.sellerSelect}
+                    styles={{ popup: SELECT_POPUP_STYLE }}
+                  />
+                </Form.Item>
+
+                <Button
+                  size="large"
+                  icon={<CarOutlined />}
+                  disabled={!sellerId}
+                  onClick={() => setTruckDrawerOpen(true)}
+                  className={styles.addSellerButton}
+                >
+                  เพิ่ม
+                </Button>
+              </div>
             </Form.Item>
 
             <Form.Item
@@ -1351,6 +1457,144 @@ export default function WeighbridgeDashboardPage() {
                 onClick={handleCreateSeller}
               >
                 บันทึกผู้ขาย
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </SideSheet>
+
+      <SideSheet
+        open={truckDrawerOpen}
+        width={440}
+        zIndex={1200}
+        onClose={() => setTruckDrawerOpen(false)}
+      >
+        <div className={styles.drawerPanel}>
+          <div className={`${styles.drawerHero} ${styles.sellerHero}`}>
+            <span className={styles.drawerEyebrow}>NEW TRUCK</span>
+            <h2>เพิ่มรถบรรทุก</h2>
+            <p>
+              กรอกข้อมูลรถของ{" "}
+              {sellerOptions.find((s) => s.value === sellerId)?.label ??
+                "ผู้ขายที่เลือก"}{" "}
+              แล้วระบบจะเลือกให้อัตโนมัติ
+            </p>
+          </div>
+
+          <Form
+            form={truckForm}
+            layout="vertical"
+            requiredMark="optional"
+            className={styles.drawerForm}
+          >
+            <Row gutter={12}>
+              <Col span={12}>
+                <Form.Item
+                  label="รหัสรถ"
+                  name="code"
+                  rules={[
+                    { required: true, message: "กรุณากรอกรหัสรถ" },
+                    { max: 100, message: "รหัสต้องไม่เกิน 100 ตัวอักษร" },
+                  ]}
+                >
+                  <Input size="large" placeholder="เช่น TRK-001" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="ทะเบียนรถ"
+                  name="licensePlate"
+                  rules={[
+                    { required: true, message: "กรุณากรอกทะเบียนรถ" },
+                    { max: 100, message: "ทะเบียนต้องไม่เกิน 100 ตัวอักษร" },
+                  ]}
+                >
+                  <Input size="large" placeholder="เช่น กข-1234" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="จังหวัด"
+                  name="province"
+                  rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+                >
+                  <Input size="large" placeholder="เช่น สมุทรปราการ" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label="ประเภทรถ" name="truckType">
+                  <Select
+                    allowClear
+                    size="large"
+                    placeholder="เลือกประเภท"
+                    options={TRUCK_TYPE_OPTIONS}
+                    styles={{ popup: SELECT_POPUP_STYLE }}
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={24}>
+                <Form.Item
+                  label="น้ำหนักรถเปล่า (กก.)"
+                  name="tareWeightKg"
+                  rules={[
+                    {
+                      type: "number",
+                      min: 0,
+                      message: "น้ำหนักต้องไม่ติดลบ",
+                    },
+                  ]}
+                >
+                  <InputNumber
+                    size="large"
+                    min={0}
+                    step={0.001}
+                    style={{ width: "100%" }}
+                    placeholder="เช่น 8500.5"
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="ชื่อคนขับ"
+                  name="driverName"
+                  rules={[{ max: 255, message: "ต้องไม่เกิน 255 ตัวอักษร" }]}
+                >
+                  <Input size="large" placeholder="เช่น สมชาย ใจดี" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item
+                  label="เบอร์โทรคนขับ"
+                  name="driverPhone"
+                  rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+                >
+                  <Input size="large" placeholder="เช่น 0812345678" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <div className={styles.statusRow}>
+              <div>
+                <strong>สถานะใช้งาน</strong>
+                <span>เปิดเพื่อให้เลือกในเอกสารได้</span>
+              </div>
+              <Form.Item name="isActive" valuePropName="checked" noStyle>
+                <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+              </Form.Item>
+            </div>
+
+            <div className={styles.drawerFooter}>
+              <Button size="large" onClick={() => setTruckDrawerOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button
+                type="primary"
+                size="large"
+                className={styles.submitButton}
+                loading={createTruckMutation.isPending}
+                onClick={handleCreateTruck}
+              >
+                บันทึกรถ
               </Button>
             </div>
           </Form>

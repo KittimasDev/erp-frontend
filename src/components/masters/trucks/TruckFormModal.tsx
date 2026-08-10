@@ -30,6 +30,12 @@ type TruckFormModalProps = {
   sellerOptions: SellerOption[];
   sellersLoading?: boolean;
   confirmLoading?: boolean;
+  /** Prefill ผู้ขายตอน create (เช่น จากหน้าเปิดตั๋วชั่ง) */
+  defaultSellerId?: string;
+  /** ล็อก Select ผู้ขาย — ใช้เมื่อสร้างรถผูกกับผู้ขายที่เลือกอยู่แล้ว */
+  lockSellerId?: boolean;
+  /** ต้องสูงกว่า SideSheet (1100) ถ้าเปิดซ้อน drawer — ไม่เช่นนั้นคลิกโดน mask แล้วปิด */
+  zIndex?: number;
   onCancel: () => void;
   onSubmit: (values: CreateTruckRequest) => void;
 };
@@ -49,6 +55,9 @@ export default function TruckFormModal({
   sellerOptions,
   sellersLoading = false,
   confirmLoading = false,
+  defaultSellerId,
+  lockSellerId = false,
+  zIndex,
   onCancel,
   onSubmit,
 }: TruckFormModalProps) {
@@ -82,7 +91,7 @@ export default function TruckFormModal({
     form.setFieldsValue({
       code: "",
       licensePlate: "",
-      sellerId: undefined,
+      sellerId: defaultSellerId,
       province: "",
       truckType: undefined,
       driverName: "",
@@ -90,7 +99,7 @@ export default function TruckFormModal({
       tareWeightKg: undefined,
       isActive: true,
     });
-  }, [open, mode, initialTruck, form]);
+  }, [open, mode, initialTruck, defaultSellerId, form]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
@@ -126,6 +135,8 @@ export default function TruckFormModal({
       destroyOnHidden
       width={720}
       centered
+      zIndex={zIndex}
+      getContainer={() => document.body}
     >
       <div className={styles.modalHeader}>
         <div className={styles.modalIcon}>{isCreateMode ? "+" : "✎"}</div>
@@ -197,13 +208,14 @@ export default function TruckFormModal({
           <Col xs={24} sm={12}>
             <Form.Item label="ผู้ขาย" name="sellerId">
               <Select
-                allowClear
+                allowClear={!lockSellerId}
                 size="large"
                 showSearch
                 optionFilterProp="label"
                 placeholder="เลือกผู้ขาย"
                 loading={sellersLoading}
                 options={sellerOptions}
+                disabled={lockSellerId}
               />
             </Form.Item>
           </Col>
