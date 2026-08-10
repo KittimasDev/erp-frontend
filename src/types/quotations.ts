@@ -7,8 +7,8 @@ export type QuotationStatus =
 
 export const QUOTATION_STATUS_LABEL: Record<QuotationStatus, string> = {
   DRAFT: "ร่าง",
-  SENT: "ส่งแล้ว",
-  ACCEPTED: "ลูกค้ายืนยัน",
+  SENT: "รอลูกค้าตอบรับ",
+  ACCEPTED: "ลูกค้าตอบรับแล้ว",
   REJECTED: "ลูกค้าปฏิเสธ",
   CANCELLED: "ยกเลิก",
 };

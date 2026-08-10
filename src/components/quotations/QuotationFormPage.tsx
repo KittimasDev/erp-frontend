@@ -32,10 +32,8 @@ import {
 } from "@/hooks/quotations/useQuotationMutations";
 import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
 import AccessDenied from "@/components/auth/AccessDenied";
-import {
-  getScreenActionPermissions,
-  isMatrixPermissionMode,
-} from "@/lib/auth/permissions-access";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { CreateQuotationBody } from "@/types/quotations";
@@ -87,7 +85,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const createMutation = useCreateQuotationMutation();
   const updateMutation = useUpdateQuotationMutation();
 
-  const quotationActions = getScreenActionPermissions("QUOTATIONS");
+  const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const matrixMode = isMatrixPermissionMode();
   const legacyWrite =
     userHasRole(RoleCode.SALES_OFFICER) ||

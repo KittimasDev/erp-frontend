@@ -8,10 +8,14 @@ import type { QuotationQueryParams } from "@/types/quotations";
 
 export const quotationsQueryKey = ["quotations"] as const;
 
-export function useQuotationsQuery(params?: QuotationQueryParams) {
+export function useQuotationsQuery(
+  params?: QuotationQueryParams,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: [...quotationsQueryKey, "list", params ?? {}],
     queryFn: () => getQuotations(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }
 

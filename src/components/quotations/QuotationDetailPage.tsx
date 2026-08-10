@@ -23,16 +23,19 @@ import {
 } from "@/hooks/quotations/useQuotationMutations";
 import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { useCreateSalesOrderFromQuotationMutation } from "@/hooks/sales-orders/useSalesOrderMutations";
+import AccessDenied from "@/components/auth/AccessDenied";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
-  getScreenActionPermissions,
   isMatrixPermissionMode,
 } from "@/lib/auth/permissions-access";
+import { QUOTATION_MATRIX_ACTION_LABELS } from "@/lib/auth/quotation-matrix-labels";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
-  QUOTATION_STATUS_LABEL,
-  type QuotationStatus,
-} from "@/types/quotations";
+  QUOTATION_FLOW_STEPS,
+  resolveQuotationFlow,
+  type QuotationFlowTone,
+} from "@/utils/quotation-flow";
 import styles from "./QuotationDetailPage.module.css";
 
 type Props = { id: string };
@@ -51,19 +54,19 @@ function formatMoney(value?: string) {
   });
 }
 
-function statusClass(status: string) {
-  switch (status) {
-    case "ACCEPTED":
-      return styles.statusApproved;
-    case "SENT":
-      return styles.statusPending;
-    case "REJECTED":
-      return styles.statusRejected;
-    case "CANCELLED":
-      return styles.statusCancelled;
-    default:
-      return styles.statusDraft;
+function flowStatusClass(tone: QuotationFlowTone, status: string) {
+  if (tone === "stopped") {
+    return status === "CANCELLED"
+      ? styles.statusCancelled
+      : styles.statusRejected;
   }
+  if (tone === "done") {
+    return styles.statusApproved;
+  }
+  if (tone === "waiting") {
+    return styles.statusPending;
+  }
+  return styles.statusDraft;
 }
 
 export default function QuotationDetailPage({ id }: Props) {
@@ -77,8 +80,8 @@ export default function QuotationDetailPage({ id }: Props) {
   const createSalesOrderMutation = useCreateSalesOrderFromQuotationMutation();
 
   const data = query.data?.data;
-  const quotationActions = getScreenActionPermissions("QUOTATIONS");
-  const salesOrderActions = getScreenActionPermissions("SALES_ORDERS");
+  const quotationActions = useScreenActionPermissions("QUOTATIONS");
+  const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const matrixMode = isMatrixPermissionMode();
   const legacyWrite =
     userHasRole(RoleCode.SALES_OFFICER) ||
@@ -86,6 +89,7 @@ export default function QuotationDetailPage({ id }: Props) {
     isAdministrator();
   const legacyConfirm =
     userHasRole(RoleCode.SALES_MANAGER) || isAdministrator();
+  const canView = matrixMode ? quotationActions.canView : true;
   const canWrite = matrixMode ? quotationActions.canEdit : legacyWrite;
   const canConfirm = matrixMode ? quotationActions.canApprove : legacyConfirm;
   const canCreateSalesOrder = matrixMode
@@ -111,12 +115,17 @@ export default function QuotationDetailPage({ id }: Props) {
     );
   }
 
+  if (matrixMode && !canView) {
+    return <AccessDenied screenCodes={["QUOTATIONS"]} />;
+  }
+
   const busy =
     sendMutation.isPending ||
     acceptMutation.isPending ||
     rejectMutation.isPending ||
     cancelMutation.isPending;
   const creatingSalesOrder = createSalesOrderMutation.isPending;
+  const flow = resolveQuotationFlow(data);
 
   const printPdf = async () => {
     const { generateSalesQuotationPdf } = await import(
@@ -269,9 +278,32 @@ export default function QuotationDetailPage({ id }: Props) {
             <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
             <h2 className={styles.sideTitle}>{data.quotationNo}</h2>
           </div>
-          <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {QUOTATION_STATUS_LABEL[data.status as QuotationStatus] ??
-              data.status}
+          <div className={`${styles.statusPill} ${flowStatusClass(flow.tone, data.status)}`}>
+            {flow.label}
+          </div>
+
+          <div className={styles.flowMini} aria-label="ขั้นตอนใบเสนอราคา">
+            {QUOTATION_FLOW_STEPS.map((step, index) => {
+              const stepNo = index + 1;
+              const filled = flow.step > 0 && stepNo <= flow.step;
+              const current =
+                stepNo === flow.step && flow.tone !== "stopped";
+              return (
+                <div
+                  key={step.key}
+                  className={[
+                    styles.flowMiniStep,
+                    filled ? styles.flowMiniStepOn : "",
+                    current ? styles.flowMiniStepCurrent : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
+                  <span className={styles.flowMiniDot} aria-hidden />
+                  <span>{step.label}</span>
+                </div>
+              );
+            })}
           </div>
 
           <div className={styles.sideRows}>
@@ -334,6 +366,9 @@ export default function QuotationDetailPage({ id }: Props) {
                   <>
                     <p className={styles.actionHint}>
                       สถานะปัจจุบัน: ส่งแล้ว — รอลูกค้าตอบรับ
+                      {matrixMode
+                        ? ` (ต้องมีสิทธิ์ ${QUOTATION_MATRIX_ACTION_LABELS.APPROVE})`
+                        : ""}
                     </p>
                     <Button
                       className={styles.primaryBtn}
@@ -359,6 +394,13 @@ export default function QuotationDetailPage({ id }: Props) {
                     </Button>
                   </>
                 ) : null}
+                {!canConfirm && matrixMode && data.status === "SENT" ? (
+                  <p className={styles.actionHint}>
+                    ดูรายการได้ — การ{QUOTATION_MATRIX_ACTION_LABELS.APPROVE}ต้องเปิดสิทธิ์
+                    QUOTATIONS · {QUOTATION_MATRIX_ACTION_LABELS.APPROVE} ที่ Permission
+                    Matrix
+                  </p>
+                ) : null}
                 {canWrite ? (
                   <Button
                     danger
@@ -374,6 +416,12 @@ export default function QuotationDetailPage({ id }: Props) {
                   </Button>
                 ) : null}
               </>
+            ) : null}
+
+            {data.status === "ACCEPTED" && !data.salesOrderId ? (
+              <p className={styles.actionHint}>
+                สถานะปัจจุบัน: ลูกค้าตอบรับแล้ว — รอเปิด Sales Order
+              </p>
             ) : null}
 
             {data.status === "ACCEPTED" && canCreateSalesOrder ? (

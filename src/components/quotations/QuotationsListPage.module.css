@@ -270,6 +270,27 @@
   background: #52c41a;
 }
 
+.progress_waiting .progressCount {
+  color: #d48806;
+}
+
+.progress_waiting .progressLabel {
+  color: #ad6800;
+}
+
+.progress_waiting .progressSegOn {
+  background: #faad14;
+}
+
+.progress_waiting .progressSegCurrent {
+  background: #fa8c16;
+  box-shadow: 0 0 0 2px rgba(250, 140, 22, 0.25);
+}
+
+.progressSegCurrent {
+  transform: scaleY(1.35);
+}
+
 .progress_stopped .progressCount,
 .progress_stopped .progressLabel {
   color: #8a9199;
@@ -283,6 +304,93 @@
   color: var(--pr-muted);
   font-size: 11px;
   font-weight: 600;
+}
+
+.statusTag {
+  margin-inline-end: 0 !important;
+  border-radius: 999px !important;
+  font-weight: 700 !important;
+}
+
+.actionNeededTag {
+  margin-inline-end: 0 !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+}
+
+.permissionStrip {
+  display: grid;
+  gap: 8px;
+  padding: 14px 18px;
+  border: 1px solid var(--pr-border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
+}
+
+.permissionStripLabel {
+  color: var(--pr-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.permissionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.permissionChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.permissionChipOn {
+  color: var(--pr-green-dark);
+  background: rgba(115, 152, 22, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(115, 152, 22, 0.28);
+}
+
+.permissionChipOff {
+  color: #8a9199;
+  background: #f3f4f6;
+  box-shadow: inset 0 0 0 1px #e5e7eb;
+  text-decoration: line-through;
+  text-decoration-color: rgba(138, 145, 153, 0.7);
+}
+
+.permissionHint {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.approveAlert {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid #ffd591;
+  background: #fff7e6;
+  color: #ad6800;
+  font-size: 13px;
+}
+
+.approveAlert strong {
+  font-size: 14px;
+}
+
+.table :global(.ant-table-tbody > tr).rowNeedsApprove > td {
+  background: #fffdf5 !important;
+}
+
+.table :global(.ant-table-tbody > tr).rowNeedsApprove:hover > td {
+  background: #fff9e6 !important;
 }
 
 .actionBtn {
