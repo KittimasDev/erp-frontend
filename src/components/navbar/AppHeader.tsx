@@ -18,6 +18,15 @@ import {
   isMatrixPermissionMode,
   PERMISSIONS_UPDATED_EVENT,
 } from "@/lib/auth/permissions-access";
+import {
+  clearActivePortalModule,
+  PORTAL_MODULE_LABEL,
+  PORTAL_MODULE_UPDATED_EVENT,
+  portalModuleAllowsMenuGroup,
+  resolveActivePortalModule,
+  type PortalMenuGroupId,
+  type PortalModuleKey,
+} from "@/lib/auth/portal-module";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 
@@ -1609,10 +1618,14 @@ export default function AppHeader({
   const [user, setUser] = useState<StoredUser | null>(null);
   // Re-read matrix on navigation so menu matches latest /permissions/me
   const [permissionsTick, setPermissionsTick] = useState(0);
+  const [portalTick, setPortalTick] = useState(0);
 
   useEffect(() => {
     setUser(getStoredUser());
     setPermissionsTick((n) => n + 1);
+    if (pathname === "/") {
+      clearActivePortalModule();
+    }
   }, [pathname]);
 
   useEffect(() => {
@@ -1620,11 +1633,19 @@ export default function AppHeader({
       setUser(getStoredUser());
       setPermissionsTick((n) => n + 1);
     };
+    const onPortalModuleUpdated = () => {
+      setPortalTick((n) => n + 1);
+    };
     window.addEventListener(PERMISSIONS_UPDATED_EVENT, onPermissionsUpdated);
+    window.addEventListener(PORTAL_MODULE_UPDATED_EVENT, onPortalModuleUpdated);
     return () => {
       window.removeEventListener(
         PERMISSIONS_UPDATED_EVENT,
         onPermissionsUpdated,
+      );
+      window.removeEventListener(
+        PORTAL_MODULE_UPDATED_EVENT,
+        onPortalModuleUpdated,
       );
     };
   }, []);
@@ -1634,12 +1655,19 @@ export default function AppHeader({
     user?.roles?.[0]?.roleName ?? user?.roles?.[0]?.roleCode ?? "ERP";
 
   const handleLogout = () => {
+    clearActivePortalModule();
     clearAccessToken();
     window.location.replace("/login");
   };
 
-  // permissionsTick forces re-filter after AuthGuard writes localStorage
+  // permissionsTick / portalTick force re-filter after AuthGuard / portal tile
   void permissionsTick;
+  void portalTick;
+  const activePortalModule: PortalModuleKey | null =
+    resolveActivePortalModule(pathname);
+  const showMenuGroup = (groupId: PortalMenuGroupId) =>
+    portalModuleAllowsMenuGroup(activePortalModule, groupId);
+
   const visibleDashboardMenus = filterMenus(dashboardMenus);
   const visibleRawTireMenus = filterMenus(rawTireMenus);
   const visibleRawMaterialWarehouseMenus = filterMenus(
@@ -1662,6 +1690,11 @@ export default function AppHeader({
 
   const handleGo = (href: string) => {
     router.push(href);
+  };
+
+  const handleBackToPortal = () => {
+    clearActivePortalModule();
+    router.push("/");
   };
 
   const handleToggleMaster = () => {
@@ -1695,17 +1728,53 @@ export default function AppHeader({
 
       <div className={styles.sidebarInner}>
         <div className={styles.sidebarTop}>
-          <div className={styles.logoBlock}>
+          <button
+            type="button"
+            className={styles.logoBlock}
+            onClick={handleBackToPortal}
+            title="กลับหน้าแรก / เลือกโมดูล"
+            aria-label="กลับหน้าแรก"
+          >
             <img
               src="/smt-energy-logo.png"
               alt="SMT Energy"
               className={styles.logoImage}
             />
-          </div>
+          </button>
         </div>
 
         <div className={styles.navScroll}>
-          {visibleDashboardMenus.length > 0 ? (
+          {activePortalModule ? (
+            <div className={styles.portalContext}>
+              <span className={styles.portalContextLabel}>
+                {PORTAL_MODULE_LABEL[activePortalModule]}
+              </span>
+              <button
+                type="button"
+                className={styles.portalBackButton}
+                onClick={handleBackToPortal}
+                title="กลับหน้าแรกเพื่อเลือกโมดูลอื่น"
+              >
+                เปลี่ยนโมดูล
+              </button>
+            </div>
+          ) : pathname === "/" ? (
+            <div className={styles.portalHint}>
+              เลือกโมดูลจากหน้าแรกเพื่อเปิดเมนู
+            </div>
+          ) : (
+            <div className={styles.portalHint}>
+              <button
+                type="button"
+                className={styles.portalBackButton}
+                onClick={handleBackToPortal}
+              >
+                กลับหน้าแรก
+              </button>
+            </div>
+          )}
+
+          {showMenuGroup("dashboard") && visibleDashboardMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>แดชบอร์ด</div>
 
@@ -1723,7 +1792,7 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleRawTireMenus.length > 0 ? (
+          {showMenuGroup("raw-tire") && visibleRawTireMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>รับซื้อยาง</div>
 
@@ -1741,7 +1810,8 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleRawMaterialWarehouseMenus.length > 0 ? (
+          {showMenuGroup("rm-warehouse") &&
+          visibleRawMaterialWarehouseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>คลังวัตถุดิบ</div>
 
@@ -1759,7 +1829,7 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleProductionMenus.length > 0 ? (
+          {showMenuGroup("production") && visibleProductionMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>การผลิต</div>
 
@@ -1777,7 +1847,8 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleFinishedGoodsWarehouseMenus.length > 0 ? (
+          {showMenuGroup("fg-warehouse") &&
+          visibleFinishedGoodsWarehouseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>คลังสินค้าสำเร็จรูป</div>
 
@@ -1795,7 +1866,7 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleSalesMenus.length > 0 ? (
+          {showMenuGroup("sales") && visibleSalesMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>ขายและจัดส่ง</div>
 
@@ -1813,7 +1884,7 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visiblePurchaseMenus.length > 0 ? (
+          {showMenuGroup("purchase") && visiblePurchaseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>จัดซื้อทั่วไป</div>
 
@@ -1831,7 +1902,7 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleLaboratoryMenus.length > 0 ? (
+          {showMenuGroup("laboratory") && visibleLaboratoryMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>ห้องปฏิบัติการ</div>
 
@@ -1849,7 +1920,8 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleOilTankFarmMenus.length > 0 ? (
+          {showMenuGroup("oil-tank-farm") &&
+          visibleOilTankFarmMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>ถังน้ำมัน</div>
 
@@ -1867,7 +1939,8 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleMaintenanceMenus.length > 0 ? (
+          {showMenuGroup("maintenance") &&
+          visibleMaintenanceMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>ซ่อมบำรุง</div>
 
@@ -1885,9 +1958,9 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleHrmMenus.length > 0 ? (
+          {showMenuGroup("hrm") && visibleHrmMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>บุคคล (HRM)</div>
+              <div className={styles.groupTitle}>บุคคล</div>
 
               <div className={styles.groupItems}>
                 {visibleHrmMenus.map((item) =>
@@ -1903,9 +1976,9 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleFinanceMenus.length > 0 ? (
+          {showMenuGroup("finance") && visibleFinanceMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>บัญชี/การเงิน</div>
+              <div className={styles.groupTitle}>การเงิน</div>
 
               <div className={styles.groupItems}>
                 {visibleFinanceMenus.map((item) =>
@@ -1921,7 +1994,7 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleReportMenus.length > 0 ? (
+          {showMenuGroup("reports") && visibleReportMenus.length > 0 ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>รายงาน</div>
 
@@ -1939,22 +2012,25 @@ export default function AppHeader({
             </div>
           ) : null}
 
-          {visibleSettingMenus.length > 0 || visibleMasterMenus.length > 0 ? (
+          {(showMenuGroup("settings") || showMenuGroup("master")) &&
+          (visibleSettingMenus.length > 0 || visibleMasterMenus.length > 0) ? (
             <div className={styles.groupBlock}>
               <div className={styles.groupTitle}>ตั้งค่าระบบ</div>
 
               <div className={styles.groupItems}>
-                {visibleSettingMenus.map((item) =>
-                  renderMenuButton(
-                    item,
-                    pathname,
-                    collapsed,
-                    handleGo,
-                    searchParams,
-                  ),
-                )}
+                {showMenuGroup("settings")
+                  ? visibleSettingMenus.map((item) =>
+                      renderMenuButton(
+                        item,
+                        pathname,
+                        collapsed,
+                        handleGo,
+                        searchParams,
+                      ),
+                    )
+                  : null}
 
-                {visibleMasterMenus.length > 0 ? (
+                {showMenuGroup("master") && visibleMasterMenus.length > 0 ? (
                   <>
                     <button
                       type="button"

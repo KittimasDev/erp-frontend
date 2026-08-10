@@ -26,8 +26,12 @@ import {
 import dayjs from "dayjs";
 
 import { usePurchaseRequestsQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { userHasRole } from "@/lib/auth/session";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import type { PurchaseRequest } from "@/types/purchase-requests";
 import {
@@ -70,8 +74,14 @@ export default function PurchaseRequestsListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const canApprove =
-    userHasRole(RoleCode.PROCUREMENT_MANAGER) || isAdministrator();
+  const canAccessApprovals =
+    hasPermission(
+      "PURCHASE_REQUEST_APPROVALS.VIEW",
+      "PURCHASE_REQUEST_APPROVALS.APPROVE",
+    ) ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
+        userHasRole(RoleCode.ADMINISTRATOR)));
 
   const query = usePurchaseRequestsQuery({
     ...applied,
@@ -242,7 +252,7 @@ export default function PurchaseRequestsListPage() {
           </p>
         </div>
         <div className={styles.headerActions}>
-          {canApprove ? (
+          {canAccessApprovals ? (
             <Link href="/purchase-requests/approvals">
               <Button className={styles.secondaryBtn} icon={<AuditOutlined />}>
                 รออนุมัติ

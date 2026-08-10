@@ -26,8 +26,12 @@ import { usePurchaseRequestQuery } from "@/hooks/purchase-requests/usePurchaseRe
 import { usePurchaseOrderByPrQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import {
   PURCHASE_REQUEST_STATUS_LABEL,
   type PurchaseRequestStatus,
@@ -76,7 +80,9 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
 
   const data = query.data?.data;
   const canApprove =
-    userHasRole(RoleCode.PROCUREMENT_MANAGER) || isAdministrator();
+    hasPermission("PURCHASE_REQUEST_APPROVALS.APPROVE") ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.PROCUREMENT_MANAGER) || isAdministrator()));
   const canWritePo =
     userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
     userHasRole(RoleCode.PROCUREMENT_MANAGER) ||

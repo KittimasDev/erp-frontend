@@ -57,10 +57,15 @@
   border: none;
   box-shadow: none;
   border-radius: 0;
+  cursor: pointer;
   transition:
     width 0.4s ease,
     height 0.4s ease,
     padding 0.4s ease;
+}
+
+.logoBlock:hover {
+  opacity: 0.9;
 }
 
 .logoImage {
@@ -126,6 +131,57 @@
   overflow-x: hidden;
   overflow-y: auto;
   padding-bottom: 8px;
+}
+
+.portalContext {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 12px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--brand-green-soft);
+  border: 1px solid rgba(138, 185, 51, 0.28);
+}
+
+.portalContextLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--erp-text, #2f343a);
+  line-height: 1.3;
+}
+
+.portalBackButton {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--brand-green-dark);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.portalBackButton:hover {
+  color: var(--brand-green);
+}
+
+.portalHint {
+  margin: 4px 12px 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.sidebarCollapsed .portalContext,
+.sidebarCollapsed .portalHint {
+  display: none;
 }
 
 .groupBlock {

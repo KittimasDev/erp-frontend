@@ -20,6 +20,11 @@ import {
   PERMISSIONS_UPDATED_EVENT,
 } from "@/lib/auth/permissions-access";
 import {
+  clearActivePortalModule,
+  setActivePortalModule,
+  type PortalModuleKey,
+} from "@/lib/auth/portal-module";
+import {
   getStoredUser,
   type StoredUser,
 } from "@/lib/auth/session";
@@ -90,6 +95,8 @@ export default function HomePortalPage() {
     setUser(getStoredUser());
     setMounted(true);
     setTodayLabel(formatThaiDate(new Date()));
+    // หน้าแรก = ออกจากโหมดโมดูล เมนูด้านข้างจะว่างจนกดกล่องใหม่
+    clearActivePortalModule();
   }, []);
 
   useEffect(() => {
@@ -115,6 +122,11 @@ export default function HomePortalPage() {
   const roleLabel =
     user?.roles?.[0]?.roleName ?? user?.roles?.[0]?.roleCode ?? "ERP";
 
+  const openModule = (mod: PortalModuleDef) => {
+    setActivePortalModule(mod.key as PortalModuleKey);
+    router.push(resolvePortalHref(mod));
+  };
+
   return (
     <section className={styles.page}>
       <header className={styles.hero}>
@@ -122,7 +134,8 @@ export default function HomePortalPage() {
           <p className={styles.eyebrow}>SMT ENERGY · PORTAL</p>
           <h1 className={styles.heroTitle}>สวัสดี, {displayName}</h1>
           <p className={styles.heroLead}>
-            เลือกโมดูลเพื่อเริ่มงาน — แสดงเฉพาะระบบที่คุณมีสิทธิ์เข้าถึง
+            เลือกโมดูลเพื่อเริ่มงาน — แสดงเฉพาะระบบที่คุณมีสิทธิ์
+            แล้วเมนูด้านข้างจะเหลือเฉพาะโมดูลที่เลือก
           </p>
           {todayLabel ? (
             <p className={styles.heroDate}>{todayLabel}</p>
@@ -155,7 +168,7 @@ export default function HomePortalPage() {
               key={mod.key}
               type="button"
               className={`${styles.tile} ${TONE_CLASS[mod.tone]}`}
-              onClick={() => router.push(resolvePortalHref(mod))}
+              onClick={() => openModule(mod)}
               aria-label={`${mod.label} — ${mod.description}`}
             >
               <span className={styles.tileIcon}>{moduleIcon(mod.key)}</span>

@@ -22,8 +22,12 @@ import {
   useRejectPurchaseRequestMutation,
 } from "@/hooks/purchase-requests/usePurchaseRequestMutations";
 import { usePendingPurchaseRequestApprovalsQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { userHasRole } from "@/lib/auth/session";
 import type { PurchaseRequest } from "@/types/purchase-requests";
 import styles from "./purchase-request.module.css";
 
@@ -39,8 +43,20 @@ export default function PurchaseRequestApprovalsPage() {
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
+  const canAccessApprovals =
+    hasPermission(
+      "PURCHASE_REQUEST_APPROVALS.VIEW",
+      "PURCHASE_REQUEST_APPROVALS.APPROVE",
+    ) ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
+        userHasRole(RoleCode.ADMINISTRATOR)));
+
   const canApprove =
-    userHasRole(RoleCode.PROCUREMENT_MANAGER) || isAdministrator();
+    hasPermission("PURCHASE_REQUEST_APPROVALS.APPROVE") ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
+        userHasRole(RoleCode.ADMINISTRATOR)));
 
   const query = usePendingPurchaseRequestApprovalsQuery({ page, limit });
   const approveMutation = useApprovePurchaseRequestMutation();
@@ -133,10 +149,12 @@ export default function PurchaseRequestApprovalsPage() {
     [approveMutation, canApprove, limit, page, router],
   );
 
-  if (!canApprove) {
+  if (!canAccessApprovals) {
     return (
       <div className={styles.pageWrap}>
-        คุณไม่มีสิทธิ์เข้าถึงหน้ารออนุมัติใบขอซื้อ
+        คุณไม่มีสิทธิ์เข้าถึงหน้ารออนุมัติใบขอซื้อ — ต้องเปิด{" "}
+        PURCHASE_REQUEST_APPROVALS · VIEW หรือ APPROVE ที่หน้าผู้ใช้งาน →
+        การอนุญาต
         <div style={{ marginTop: 12 }}>
           <Link href="/purchase-requests">กลับรายการ</Link>
         </div>
@@ -162,6 +180,13 @@ export default function PurchaseRequestApprovalsPage() {
         <h1 className={styles.pageTitle}>รายการใบขอซื้อรออนุมัติ</h1>
         <div className={styles.titleLine} />
       </div>
+
+      {!canApprove ? (
+        <p style={{ marginBottom: 12, color: "#8a9199" }}>
+          ดูรายการได้ — การอนุมัติ/ปฏิเสธต้องเปิดสิทธิ์
+          PURCHASE_REQUEST_APPROVALS · APPROVE
+        </p>
+      ) : null}
 
       <div className={styles.tableWrap}>
         <Table

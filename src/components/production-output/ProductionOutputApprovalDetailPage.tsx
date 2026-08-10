@@ -16,8 +16,12 @@ import {
   useRejectProductionOutputStockRequestMutation,
 } from "@/hooks/production-output/useProductionOutputMutations";
 import { useProductionOutputApprovalQuery } from "@/hooks/production-output/useProductionOutputQueries";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { userHasRole } from "@/lib/auth/session";
 import {
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
   ProductionOutputRequestStatus,
@@ -59,7 +63,10 @@ export default function ProductionOutputApprovalDetailPage({
 }: Props) {
   const router = useRouter();
   const canApprove =
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) || isAdministrator();
+    hasPermission("PRODUCTION_OUTPUT_APPROVALS.APPROVE") ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+        userHasRole(RoleCode.ADMINISTRATOR)));
   const detailQuery = useProductionOutputApprovalQuery(requestId);
   const approveMutation = useApproveProductionOutputStockRequestMutation();
   const rejectMutation = useRejectProductionOutputStockRequestMutation();
@@ -346,7 +353,9 @@ export default function ProductionOutputApprovalDetailPage({
                 {!canApprove && isPending ? (
                   <div className={styles.actionCard}>
                     <p className={styles.actionHint}>
-                      ต้องมีสิทธิ์ WAREHOUSE_MANAGER เพื่ออนุมัติหรือไม่อนุมัติ
+                      ดูรายละเอียดได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์{" "}
+                      PRODUCTION_OUTPUT_APPROVALS · APPROVE ที่หน้าผู้ใช้งาน →
+                      การอนุญาต
                     </p>
                   </div>
                 ) : null}

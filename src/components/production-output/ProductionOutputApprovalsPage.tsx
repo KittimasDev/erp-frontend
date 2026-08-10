@@ -7,15 +7,23 @@ import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useProductionOutputApprovalsQuery } from "@/hooks/production-output/useProductionOutputQueries";
-import { userHasRole } from "@/lib/auth/session";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { userHasRole } from "@/lib/auth/session";
 import type { ProductionOutputStockRequest } from "@/types/production-output-stock-request";
 import { PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL } from "@/types/production-output-stock-request";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 export default function ProductionOutputApprovalsPage() {
   const router = useRouter();
-  const canApprove = userHasRole(RoleCode.WAREHOUSE_MANAGER);
+  const canApprove =
+    hasPermission("PRODUCTION_OUTPUT_APPROVALS.APPROVE") ||
+    (!isMatrixPermissionMode() &&
+      (userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+        userHasRole(RoleCode.ADMINISTRATOR)));
   const approvalsQuery = useProductionOutputApprovalsQuery();
   const rows = approvalsQuery.data?.data ?? [];
 
@@ -111,7 +119,8 @@ export default function ProductionOutputApprovalsPage() {
             type="secondary"
             style={{ display: "block", marginBottom: 12 }}
           >
-            ดูรายการได้ — การอนุมัติต้องมีสิทธิ์ WAREHOUSE_MANAGER
+            ดูรายการได้ — การอนุมัติต้องเปิดสิทธิ์ PRODUCTION_OUTPUT_APPROVALS ·
+            APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต
           </Typography.Text>
         ) : null}
 
