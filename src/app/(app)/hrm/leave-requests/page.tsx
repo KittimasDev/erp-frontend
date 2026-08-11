@@ -1,9 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import LeaveRequestsPage from "@/components/hrm/LeaveRequestsPage";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage module="บุคคล (HRM)" title="คำขอลางาน" />
-  );
+  return <LeaveRequestsPage />;
 }

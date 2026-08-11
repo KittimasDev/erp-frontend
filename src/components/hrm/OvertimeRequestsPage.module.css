@@ -1,0 +1,309 @@
+.page {
+  --ot-green: var(--erp-green, #8ab933);
+  --ot-green-dark: var(--erp-green-dark, #6f9720);
+  --ot-text: var(--erp-text, #2f343a);
+  --ot-muted: var(--erp-muted, #8a9199);
+  --ot-border: #e8eaed;
+
+  display: grid;
+  gap: 18px;
+  padding-bottom: 8px;
+}
+
+.pageHeader {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  padding: 18px 22px;
+  border: 1px solid var(--ot-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
+}
+
+.pageHeader::after {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  right: -60px;
+  bottom: -100px;
+  border-radius: 50%;
+  background: var(--ot-green);
+  opacity: 0.12;
+}
+
+.headerAccent {
+  position: relative;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    #8ca527 0%,
+    var(--ot-green) 58%,
+    var(--ot-green-dark) 100%
+  );
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
+  font-size: 20px;
+}
+
+.headerContent {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--ot-green-dark);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--ot-text);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.pageSubtitle {
+  margin: 4px 0 0;
+  color: var(--ot-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pageSubtitle code {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #f6fbef;
+  color: var(--ot-green-dark);
+  font-size: 12px;
+}
+
+/* ---------- การ์ดสรุป: คิวรออนุมัติเด่นที่สุด ---------- */
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  min-height: 104px;
+  padding: 16px 18px;
+  border: 1px solid var(--ot-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.summaryCardAlert {
+  border-color: #ffd591;
+  background: linear-gradient(135deg, #fff7e6 0%, #ffffff 65%);
+}
+
+.summaryCardAlert strong {
+  color: #d46b08 !important;
+}
+
+.summaryCard span {
+  display: block;
+  color: var(--ot-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summaryCard strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--ot-text);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.summaryCard small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ot-muted);
+  font-size: 12px;
+}
+
+/* ---------- toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border: 1px solid var(--ot-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.toolbarRight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tabLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tabCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #fa8c16;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.bulkBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border: 1px solid rgba(138, 185, 51, 0.45);
+  border-radius: 14px;
+  background: #f6fbef;
+  color: var(--ot-green-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------- ตาราง ---------- */
+
+.tableCard {
+  padding: 8px 12px 12px;
+  border: 1px solid var(--ot-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.employeeCell {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.employeeCell strong {
+  color: var(--ot-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.employeeCell span {
+  color: var(--ot-muted);
+  font-size: 11px;
+}
+
+.stackedCell {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+}
+
+.stackedCell span {
+  color: var(--ot-text);
+  font-size: 12px;
+}
+
+.stackedCell small {
+  color: var(--ot-muted);
+  font-size: 11px;
+}
+
+.hoursValue {
+  color: var(--ot-green-dark);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.remarkHint {
+  color: var(--ot-muted);
+  font-size: 11px;
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+.mutedText {
+  color: var(--ot-muted);
+}
+
+.rejectBody p {
+  margin: 0 0 8px;
+  color: var(--ot-muted);
+  font-size: 13px;
+}
+
+/* ---------- กราฟ (รอง) ---------- */
+
+.chartCard {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 16px 18px;
+  border: 1px solid var(--ot-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.chartHeader h3 {
+  margin: 0;
+  color: var(--ot-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.chartHeader p {
+  margin: 2px 0 10px;
+  color: var(--ot-muted);
+  font-size: 12px;
+}
+
+.chartBody {
+  position: relative;
+  height: 260px;
+}
+
+.emptyState {
+  display: grid;
+  place-content: center;
+  height: 100%;
+  margin: 0 !important;
+}
+
+@media (max-width: 1100px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

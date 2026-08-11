@@ -1,12 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import AttendancePage from "@/components/hrm/AttendancePage";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage
-      module="บุคคล (HRM)"
-      title="บันทึกเวลาเข้า-ออกงาน"
-    />
-  );
+  return <AttendancePage />;
 }

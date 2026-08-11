@@ -1,0 +1,525 @@
+.screen {
+  --tc-green: var(--erp-green, #8ab933);
+  --tc-green-dark: var(--erp-green-dark, #6f9720);
+  --tc-text: var(--erp-text, #2f343a);
+  --tc-muted: var(--erp-muted, #8a9199);
+  --tc-border: #e8eaed;
+
+  min-height: 100dvh;
+  padding: 16px 14px calc(28px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #f3f6ec 0%, #f6f7f9 46%, #f6f7f9 100%);
+}
+
+/* จอใหญ่ให้อยู่กลาง แต่ layout หลักคิดจากมือถือก่อน */
+.shell {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.centerScreen {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  min-height: 100dvh;
+  padding: 24px;
+  background: #f6f7f9;
+}
+
+.centerText {
+  margin: 0;
+  color: var(--tc-muted);
+  font-size: 14px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tc-green-dark);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.logoutBtn {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--tc-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--tc-muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.logoutBtn:active {
+  background: #f1f2f4;
+}
+
+/* ---------- นาฬิกา ---------- */
+
+.clockCard {
+  position: relative;
+  overflow: hidden;
+  padding: 22px 20px 20px;
+  border-radius: 22px;
+  color: #fff;
+  text-align: center;
+  background: linear-gradient(
+    145deg,
+    #9ac53c 0%,
+    var(--tc-green) 45%,
+    var(--tc-green-dark) 100%
+  );
+  box-shadow: 0 16px 34px rgba(111, 151, 32, 0.28);
+}
+
+.clockCard::after {
+  content: "";
+  position: absolute;
+  right: -70px;
+  top: -80px;
+  width: 190px;
+  height: 190px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.clockDate {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.92;
+  min-height: 20px;
+}
+
+.clockTime {
+  position: relative;
+  z-index: 1;
+  margin: 4px 0 0;
+  font-size: 56px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.clockSeconds {
+  margin-left: 6px;
+  font-size: 20px;
+  font-weight: 500;
+  opacity: 0.8;
+  vertical-align: super;
+}
+
+.clockUser {
+  position: relative;
+  z-index: 1;
+  margin: 10px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.clockDept {
+  position: relative;
+  z-index: 1;
+  margin: 2px 0 0;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* ---------- แจ้งเตือน IP ---------- */
+
+.alertDanger,
+.alertOk {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.alertDanger {
+  border: 1px solid #ffccc7;
+  background: #fff2f0;
+  color: #a8071a;
+}
+
+.alertDanger strong {
+  display: block;
+  font-size: 14px;
+}
+
+.alertDanger p {
+  margin: 2px 0 0;
+}
+
+.alertOk {
+  align-items: center;
+  border: 1px solid #d9f0c2;
+  background: #f6fbef;
+  color: var(--tc-green-dark);
+}
+
+.alertWarn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #ffe58f;
+  border-radius: 14px;
+  background: #fffbe6;
+  color: #ad6800;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.alertWarn strong {
+  display: block;
+  font-size: 14px;
+}
+
+.alertWarn p {
+  margin: 2px 0 0;
+}
+
+.todayCardNote {
+  margin: 0;
+  color: #ad6800;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ---------- สรุปวันนี้ ---------- */
+
+.todayCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px 14px 14px;
+  border: 1px solid var(--tc-border);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.todayTimes {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.todayItem {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.todayItem span {
+  color: var(--tc-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.todayItem strong {
+  color: var(--tc-text);
+  font-size: 26px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.todayDivider {
+  width: 1px;
+  height: 34px;
+  background: var(--tc-border);
+}
+
+.todayTotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #f6f7f9;
+}
+
+.todayTotal span {
+  color: var(--tc-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.todayTotal strong {
+  color: var(--tc-text);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.statusHint {
+  color: var(--tc-muted);
+  font-size: 12px;
+}
+
+/* ---------- ปุ่มหลัก ---------- */
+
+.actions {
+  display: grid;
+  gap: 12px;
+}
+
+.bigBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  /* ปุ่มใหญ่พอสำหรับนิ้วโป้งบนมือถือ */
+  min-height: 68px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 20px;
+  color: #fff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bigBtn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.bigBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.bigBtnIn {
+  background: linear-gradient(135deg, #9ac53c 0%, var(--tc-green-dark) 100%);
+  box-shadow: 0 12px 26px rgba(111, 151, 32, 0.32);
+}
+
+.bigBtnOut {
+  background: linear-gradient(135deg, #ff9c6e 0%, #d4380d 100%);
+  box-shadow: 0 12px 26px rgba(212, 56, 13, 0.28);
+}
+
+.doneCard {
+  padding: 18px;
+  border: 1px dashed var(--tc-green);
+  border-radius: 18px;
+  background: #f6fbef;
+  text-align: center;
+  color: var(--tc-green-dark);
+}
+
+.doneCard strong {
+  font-size: 16px;
+}
+
+.doneCard p {
+  margin: 4px 0 0;
+  color: var(--tc-muted);
+  font-size: 13px;
+}
+
+/*
+ * เมนูบริการตัวเอง — แถวเต็มความกว้างเสมอ ไม่จับคู่เป็นคอลัมน์
+ * ข้อความเมนูภาษาไทยยาวเกินกว่าจะแบ่งครึ่งจอ 375px แล้วยังอ่านออก
+ */
+.selfServiceLinks {
+  display: grid;
+  gap: 10px;
+}
+
+.selfServiceTitle {
+  margin: 6px 0 0;
+  padding-left: 4px;
+  color: var(--tc-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.selfServiceLink {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  /* 64px = เป้ากดสบายด้วยนิ้วโป้ง */
+  min-height: 64px;
+  padding: 12px 16px;
+  border: 1px solid var(--tc-border);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(47, 52, 58, 0.06);
+  text-decoration: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.selfServiceLink:active {
+  transform: translateY(1px);
+  background: #fafcf5;
+  box-shadow: 0 2px 8px rgba(47, 52, 58, 0.06);
+}
+
+.selfServiceIcon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  color: #fff;
+  font-size: 19px;
+  background: linear-gradient(135deg, #9ac53c 0%, var(--tc-green-dark) 100%);
+  box-shadow: 0 6px 14px rgba(111, 151, 32, 0.28);
+}
+
+.selfServiceIconLeave {
+  background: linear-gradient(135deg, #69b1ff 0%, #1677ff 100%);
+  box-shadow: 0 6px 14px rgba(22, 119, 255, 0.26);
+}
+
+.selfServiceText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.selfServiceText strong {
+  color: var(--tc-text);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.selfServiceText small {
+  color: var(--tc-muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.selfServiceChevron {
+  color: #c4c8cd;
+  font-size: 13px;
+}
+
+/* ---------- ประวัติ ---------- */
+
+.historyCard {
+  padding: 16px 16px 8px;
+  border: 1px solid var(--tc-border);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.historyTitle {
+  margin: 0 0 8px;
+  color: var(--tc-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.historyEmpty {
+  padding: 16px 0;
+  color: var(--tc-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.historyList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historyItem {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #f1f2f4;
+}
+
+.historyItem:first-child {
+  border-top: none;
+}
+
+.historyDate {
+  display: grid;
+  text-align: center;
+}
+
+.historyDate strong {
+  color: var(--tc-text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.historyDate span {
+  color: var(--tc-muted);
+  font-size: 10px;
+}
+
+.historyTimes {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.historyTimes span {
+  color: var(--tc-text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.historyTimes small {
+  color: var(--tc-muted);
+  font-size: 11px;
+}
+
+.historyTag {
+  margin: 0 !important;
+}
+
+@media (min-width: 768px) {
+  .screen {
+    padding-top: 32px;
+  }
+
+  .clockTime {
+    font-size: 64px;
+  }
+}

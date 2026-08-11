@@ -1,12 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import OvertimeRequestsPage from "@/components/hrm/OvertimeRequestsPage";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage
-      module="บุคคล (HRM)"
-      title="คำขอทำงานล่วงเวลา (OT)"
-    />
-  );
+  return <OvertimeRequestsPage />;
 }
