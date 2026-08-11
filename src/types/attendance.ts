@@ -4,13 +4,21 @@ type ApiEnvelope<T> = {
   data: T;
 };
 
-export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT";
+export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE";
 
 export const ATTENDANCE_STATUS_LABEL: Record<string, string> = {
   PRESENT: "ปกติ",
   LATE: "สาย",
   ABSENT: "ขาดงาน",
+  ON_LEAVE: "ลางาน",
 };
+
+/** ON_LEAVE เป็นแถวเสมือนจากใบลา จึงตั้งเองไม่ได้ */
+export const ATTENDANCE_EDITABLE_STATUS_OPTIONS = [
+  { value: "PRESENT", label: "ปกติ" },
+  { value: "LATE", label: "สาย" },
+  { value: "ABSENT", label: "ขาดงาน" },
+];
 
 export const ATTENDANCE_SOURCE_LABEL: Record<string, string> = {
   SELF: "พนักงานกดเอง",
@@ -28,10 +36,33 @@ export type AttendanceRecord = {
   checkOutAt?: string;
   status: string;
   remark?: string;
+  /** ประเภทการลา — มีค่าเฉพาะแถวสถานะ ON_LEAVE */
+  leaveType?: string;
+  /** true = แถวเสมือนจากใบลา แก้ไขไม่ได้ */
+  isLeave?: boolean;
   source?: string;
   checkInIp?: string;
   checkOutIp?: string;
   workHours?: number;
+  editedByName?: string;
+  editedAt?: string;
+};
+
+export type CreateAttendanceRecordRequest = {
+  userId: string;
+  attendanceDate: string;
+  checkInAt: string;
+  checkOutAt?: string;
+  status?: string;
+  remark?: string;
+};
+
+export type UpdateAttendanceRecordRequest = {
+  checkInAt?: string;
+  checkOutAt?: string;
+  clearCheckOut?: boolean;
+  status?: string;
+  remark?: string;
 };
 
 export type MyAttendanceStatus = {
@@ -80,6 +111,8 @@ export type AttendanceSummary = {
   lateCount: number;
   checkedOutCount: number;
   missingCheckOutCount: number;
+  /** จำนวนวัน-คนที่ลา (จากใบลาที่อนุมัติแล้ว) */
+  onLeaveCount: number;
   avgWorkHours: number;
   daily: AttendanceDailyPoint[];
   byUser: AttendanceUserSummary[];

@@ -5,7 +5,9 @@ import type {
   AttendanceRecordListApiResponse,
   AttendanceSummaryApiResponse,
   AttendanceSummaryParams,
+  CreateAttendanceRecordRequest,
   MyAttendanceStatusApiResponse,
+  UpdateAttendanceRecordRequest,
 } from "@/types/attendance";
 
 /* ---------- พนักงานลงเวลาของตัวเอง (หน้า /attendance) ---------- */
@@ -56,6 +58,29 @@ export function getAttendanceRecords(
     `/api/hrm/attendance${query ? `?${query}` : ""}`,
     { method: "GET", token },
   );
+}
+
+export function createAttendanceRecord(
+  token: string,
+  body: CreateAttendanceRecordRequest,
+) {
+  return apiFetch<AttendanceRecordApiResponse>("/api/hrm/attendance", {
+    method: "POST",
+    token,
+    body,
+  });
+}
+
+export function updateAttendanceRecord(
+  token: string,
+  id: string,
+  body: UpdateAttendanceRecordRequest,
+) {
+  return apiFetch<AttendanceRecordApiResponse>(`/api/hrm/attendance/${id}`, {
+    method: "PATCH",
+    token,
+    body,
+  });
 }
 
 export function getAttendanceSummary(

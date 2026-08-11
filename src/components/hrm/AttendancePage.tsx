@@ -9,13 +9,17 @@ import {
   Input,
   Segmented,
   Select,
+  Space,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   ClockCircleOutlined,
   CopyOutlined,
+  EditOutlined,
+  PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
@@ -28,12 +32,13 @@ import {
   Line,
   LineChart,
   ResponsiveContainer,
-  Tooltip,
+  Tooltip as ChartTooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import AttendanceRecordModal from "@/components/hrm/AttendanceRecordModal";
 import {
   useAttendanceRecordsQuery,
   useAttendanceSummaryQuery,
@@ -43,9 +48,11 @@ import {
   ATTENDANCE_STATUS_LABEL,
   type AttendanceRecord,
 } from "@/types/attendance";
+import { LEAVE_TYPE_LABEL } from "@/types/leave";
 
 import styles from "./AttendancePage.module.css";
 
+/** สีกราฟ — ใช้ร่วมกับสี Tag ในตารางให้อ่านง่ายเป็นชุดเดียวกัน */
 const GREEN = "#8ab933";
 const ORANGE = "#fa8c16";
 const BLUE = "#1677ff";
@@ -77,6 +84,7 @@ function noopSubscribe() {
 
 function statusColor(status: string) {
   if (status === "LATE") return "warning";
+  if (status === "ON_LEAVE") return "blue";
   if (status === "ABSENT") return "default";
   return "success";
 }
@@ -113,6 +121,18 @@ export default function AttendancePage() {
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [status, setStatus] = useState<string | undefined>();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<AttendanceRecord | null>(null);
+
+  const openCreate = () => {
+    setEditing(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (row: AttendanceRecord) => {
+    setEditing(row);
+    setModalOpen(true);
+  };
 
   const range = useMemo<{ dateFrom: string; dateTo: string }>(() => {
     if (mode === "day") {
@@ -223,11 +243,13 @@ export default function AttendancePage() {
         title: "สถานะ",
         dataIndex: "status",
         key: "status",
-        width: 90,
+        width: 110,
         align: "center",
-        render: (value: string) => (
+        render: (value: string, row) => (
           <Tag color={statusColor(value)}>
-            {ATTENDANCE_STATUS_LABEL[value] ?? value}
+            {value === "ON_LEAVE" && row.leaveType
+              ? (LEAVE_TYPE_LABEL[row.leaveType] ?? "ลางาน")
+              : (ATTENDANCE_STATUS_LABEL[value] ?? value)}
           </Tag>
         ),
       },
@@ -245,6 +267,39 @@ export default function AttendancePage() {
         key: "checkInIp",
         width: 130,
         render: (value?: string) => value ?? "—",
+      },
+      {
+        title: "จัดการ",
+        key: "action",
+        width: 150,
+        align: "center",
+        fixed: "right",
+        render: (_v, row) =>
+          // แถวลาเป็นของเสมือนจากใบลา ต้องไปแก้ที่หน้าคำขอลาแทน
+          row.isLeave ? (
+            <Tooltip title="มาจากใบลาที่อนุมัติแล้ว — แก้ที่หน้าคำขอลางาน">
+              <span className={styles.pending}>ใบลา</span>
+            </Tooltip>
+          ) : (
+            <Space size={4}>
+              {!row.checkOutAt ? (
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => openEdit(row)}
+                >
+                  ปิดกะ
+                </Button>
+              ) : null}
+              <Button
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => openEdit(row)}
+              >
+                แก้ไข
+              </Button>
+            </Space>
+          ),
       },
     ],
     [],
@@ -354,6 +409,7 @@ export default function AttendancePage() {
                 { label: "ปกติ", value: "PRESENT" },
                 { label: "สาย", value: "LATE" },
                 { label: "ขาดงาน", value: "ABSENT" },
+                { label: "ลางาน", value: "ON_LEAVE" },
               ]}
             />
           </label>
@@ -366,6 +422,10 @@ export default function AttendancePage() {
             }}
           >
             รีเฟรช
+          </Button>
+
+          <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+            บันทึกเวลาย้อนหลัง
           </Button>
         </div>
 
@@ -388,6 +448,12 @@ export default function AttendancePage() {
             <span>ยังไม่กดออกงาน</span>
             <strong className={styles.warnValue}>
               {summary?.missingCheckOutCount ?? 0}
+            </strong>
+          </div>
+          <div className={styles.summaryCard}>
+            <span>ลางาน (วัน-คน)</span>
+            <strong className={styles.leaveValue}>
+              {summary?.onLeaveCount ?? 0}
             </strong>
           </div>
           <div className={styles.summaryCard}>
@@ -427,7 +493,7 @@ export default function AttendancePage() {
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip
+                    <ChartTooltip
                       contentStyle={{
                         borderRadius: 10,
                         border: "1px solid #e4e7eb",
@@ -483,7 +549,7 @@ export default function AttendancePage() {
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip
+                    <ChartTooltip
                       contentStyle={{
                         borderRadius: 10,
                         border: "1px solid #e4e7eb",
@@ -541,7 +607,7 @@ export default function AttendancePage() {
                       axisLine={false}
                       tickLine={false}
                     />
-                    <Tooltip
+                    <ChartTooltip
                       contentStyle={{
                         borderRadius: 10,
                         border: "1px solid #e4e7eb",
@@ -568,7 +634,7 @@ export default function AttendancePage() {
             columns={columns}
             dataSource={rows}
             loading={recordsQuery.isFetching}
-            scroll={{ x: 1080 }}
+            scroll={{ x: 1240 }}
             pagination={{
               pageSize: 20,
               showSizeChanger: true,
@@ -580,6 +646,12 @@ export default function AttendancePage() {
             }}
           />
         </div>
+
+        <AttendanceRecordModal
+          open={modalOpen}
+          record={editing}
+          onClose={() => setModalOpen(false)}
+        />
       </div>
     </MasterPageGate>
   );
