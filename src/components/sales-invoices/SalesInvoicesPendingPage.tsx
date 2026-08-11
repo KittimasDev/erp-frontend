@@ -14,8 +14,7 @@ import {
 import dayjs from "dayjs";
 
 import { usePendingSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { PendingSalesInvoiceDelivery } from "@/types/sales-invoices";
 import styles from "./SalesInvoicesPendingPage.module.css";
 
@@ -40,10 +39,9 @@ export default function SalesInvoicesPendingPage() {
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
 
-  const canWrite =
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
+  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
+  const pendingActions = useScreenActionPermissions("SALES_INVOICES_PENDING");
+  const canWrite = invoiceActions.canAdd || pendingActions.canEdit;
 
   const query = usePendingSalesInvoicesQuery({ page, limit });
   const rows = query.data?.data.items ?? [];

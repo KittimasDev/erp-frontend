@@ -19,8 +19,7 @@ import {
   useReadyPackingsForDeliveryQuery,
 } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { DeliveryOrder } from "@/types/delivery-orders";
 import {
   DELIVERY_ORDER_STATUS_LABEL,
@@ -44,12 +43,9 @@ export default function DeliveryOrdersListPage() {
     customerId?: string;
   }>({});
 
-  const canWrite =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const canAdd = deliveryActions.canAdd;
+  const canEdit = deliveryActions.canEdit;
 
   const customersQuery = useCustomersQuery();
   const query = useDeliveryOrdersQuery(applied);
@@ -92,14 +88,14 @@ export default function DeliveryOrdersListPage() {
         render: (_v, row) => (
           <Space size={6} onClick={(e) => e.stopPropagation()}>
             <Button size="small" icon={<EyeOutlined />} onClick={() => router.push(`/delivery-orders/${row.id}`)} />
-            {canWrite && (row.status === "DRAFT" || row.status === "CONFIRMED") ? (
+            {canEdit && (row.status === "DRAFT" || row.status === "CONFIRMED") ? (
               <Button size="small" icon={<EditOutlined />} onClick={() => router.push(`/delivery-orders/${row.id}/edit`)} />
             ) : null}
           </Space>
         ),
       },
     ],
-    [canWrite, router],
+    [canEdit, router],
   );
 
   return (
@@ -114,7 +110,7 @@ export default function DeliveryOrdersListPage() {
           <p className={styles.pageSubtitle}>จัดส่งหลังบรรจุแล้ว — ไม่ตัดสต๊อกซ้ำ</p>
         </div>
         <div className={styles.headerActions}>
-          {canWrite ? (
+          {canAdd ? (
             <Link href="/delivery-orders/create-from-packing">
               <Badge count={readyCount} overflowCount={99} offset={[-4, 4]}>
                 <Button

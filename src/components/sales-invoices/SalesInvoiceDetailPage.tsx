@@ -45,8 +45,7 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import type { SalesInvoice, SalesInvoiceItem } from "@/types/sales-invoices";
 import {
@@ -167,10 +166,10 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     (Number(data.totalAmount) || 0) - paidAmount,
   );
 
-  const canWrite =
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
+  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
+  const canEdit = invoiceActions.canEdit;
+  const canApprove = invoiceActions.canApprove;
+  const canWrite = canEdit || canApprove;
 
   const busy =
     confirmMutation.isPending ||

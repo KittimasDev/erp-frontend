@@ -22,9 +22,7 @@ import {
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { isMatrixPermissionMode } from "@/lib/auth/permissions-access";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { resolveTimelineStepHref } from "@/lib/sales/sales-tracking-timeline";
 import {
   SALES_ORDER_STATUS_LABEL,
   type SalesOrderStatus,
@@ -127,22 +125,18 @@ export default function StockVerificationDetailPage({ id }: Props) {
   const verifyQuery = useSalesOrderStockVerificationQuery(id);
   const trackingQuery = useSalesTrackingDetailQuery(id);
   const confirmMutation = useConfirmStockVerificationMutation();
+  const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const stockVerificationActions = useScreenActionPermissions(
     "SALES_STOCK_VERIFICATION",
   );
-  const matrixMode = isMatrixPermissionMode();
-  const legacyCanApprove =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
-  const canApproveStock = matrixMode
-    ? stockVerificationActions.canApprove
-    : legacyCanApprove;
+  const pickingActions = useScreenActionPermissions("PICKINGS");
+  const canApproveStock = stockVerificationActions.canApprove;
   const canFulfill =
-    legacyCanApprove ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+    salesOrderActions.canEdit ||
+    stockVerificationActions.canEdit ||
+    stockVerificationActions.canApprove ||
+    pickingActions.canAdd ||
+    pickingActions.canEdit;
 
   const order = orderQuery.data?.data;
   const verification = verifyQuery.data?.data;
@@ -152,7 +146,19 @@ export default function StockVerificationDetailPage({ id }: Props) {
   const busy = confirmMutation.isPending || verifyQuery.isFetching;
   const isConfirmed = order?.status === "CONFIRMED";
   const isStockChecked = order?.status === "STOCK_CHECKED";
+  /** ผ่านขั้นตรวจสต๊อกไปแล้ว (กำลังจ่าย/บรรจุ/ส่ง หรือเสร็จ) — หน้านี้ดูอย่างเดียว */
+  const isPastStockVerification = [
+    "PICKING",
+    "PARTIALLY_ISSUED",
+    "PACKED",
+    "DELIVERED",
+    "COMPLETED",
+  ].includes(order?.status ?? "");
   const pickingStep = findTimelineStep(timeline, "Picking");
+  const pickingHref = pickingStep
+    ? resolveTimelineStepHref(pickingStep, id, timeline)
+    : undefined;
+  const hasPickingDocument = Boolean(pickingStep?.documentId);
 
   const okCount = lines.filter((line) => line.isAvailable).length;
   const shortCount = lines.length - okCount;
@@ -180,7 +186,36 @@ export default function StockVerificationDetailPage({ id }: Props) {
     );
   }
 
+  const openPickingButton = (block = false) => {
+    if (!pickingHref && !hasPickingDocument) return null;
+    const href =
+      pickingHref ??
+      (pickingStep?.documentId
+        ? `/pickings/${pickingStep.documentId}`
+        : undefined);
+    if (!href) return null;
+    const draft = pickingStep?.status === "DRAFT";
+    return (
+      <Button
+        type="primary"
+        block={block}
+        className={styles.primaryBtn}
+        icon={<ShoppingOutlined />}
+        onClick={() =>
+          router.push(draft && !href.endsWith("/edit") ? `${href}/edit` : href)
+        }
+      >
+        {draft ? "เปิดใบจ่ายสินค้า (ร่าง)" : "เปิดใบจ่ายสินค้า"}
+      </Button>
+    );
+  };
+
   const renderPrimaryAction = (block = false) => {
+    // ผ่านขั้นตรวจสต๊อกแล้ว — ไม่ให้สร้าง/ยืนยันซ้ำ มีแค่เปิดเอกสารที่ทำต่อ
+    if (isPastStockVerification) {
+      return openPickingButton(block);
+    }
+
     if (isConfirmed && canApproveStock) {
       return (
         <Tooltip
@@ -207,8 +242,11 @@ export default function StockVerificationDetailPage({ id }: Props) {
     }
 
     if (isStockChecked && canFulfill) {
-      const pickingHref = pickingStep?.href;
-      if (pickingHref) {
+      if (hasPickingDocument || pickingHref) {
+        return openPickingButton(block);
+      }
+
+      if (pickingActions.canAdd) {
         return (
           <Button
             type="primary"
@@ -216,64 +254,66 @@ export default function StockVerificationDetailPage({ id }: Props) {
             className={styles.primaryBtn}
             icon={<ShoppingOutlined />}
             onClick={() =>
-              router.push(
-                pickingStep.status === "DRAFT"
-                  ? `${pickingHref}/edit`
-                  : pickingHref,
-              )
+              router.push(`/pickings/create-from-sales-order/${order.id}`)
             }
           >
-            เปิดใบจ่ายสินค้า
+            สร้างใบจ่ายสินค้า
           </Button>
         );
       }
-
-      return (
-        <Button
-          type="primary"
-          block={block}
-          className={styles.primaryBtn}
-          icon={<ShoppingOutlined />}
-          onClick={() =>
-            router.push(`/pickings/create-from-sales-order/${order.id}`)
-          }
-        >
-          สร้างใบจ่ายสินค้า
-        </Button>
-      );
     }
 
     return null;
   };
 
-  const statusBannerTitle = isStockChecked
-    ? "ยืนยันผลตรวจสอบสต๊อกแล้ว"
-    : allOk
-      ? "สต๊อกพอทุกรายการ"
-      : "สต๊อกไม่พอบางรายการ";
+  const statusBannerTitle = isPastStockVerification
+    ? "ขั้นตอนตรวจสต๊อกเสร็จแล้ว"
+    : isStockChecked
+      ? "ยืนยันผลตรวจสอบสต๊อกแล้ว"
+      : allOk
+        ? "สต๊อกพอทุกรายการ"
+        : "สต๊อกไม่พอบางรายการ";
 
-  const statusBannerText = isStockChecked
-    ? "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — ดำเนินการสร้างหรือเปิดใบจ่ายสินค้าเพื่อไปขั้นถัดไป"
-    : allOk
-      ? "สามารถยืนยันผลตรวจสอบสต๊อกได้ — ขั้นตอนนี้ยังไม่ตัดและไม่จองสต๊อก"
-      : "ระบบจะไม่เปลี่ยนสถานะใบสั่งขายจนกว่าทุกรายการจะมียอดพร้อมขายเพียงพอ";
+  const statusBannerText = isPastStockVerification
+    ? "ใบสั่งขายไปขั้นถัดไปแล้ว — หน้านี้ดูผลตรวจย้อนหลังได้อย่างเดียว ไม่สร้างใบจ่ายใหม่จากที่นี่"
+    : isStockChecked
+      ? hasPickingDocument
+        ? "มีใบจ่ายสินค้าแล้ว — กดเปิดใบจ่ายเพื่อดำเนินการต่อ"
+        : "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบจ่ายสินค้าเพื่อไปขั้นถัดไป"
+      : allOk
+        ? "สามารถยืนยันผลตรวจสอบสต๊อกได้ — ขั้นตอนนี้ยังไม่ตัดและไม่จองสต๊อก"
+        : "ระบบจะไม่เปลี่ยนสถานะใบสั่งขายจนกว่าทุกรายการจะมียอดพร้อมขายเพียงพอ";
 
-  const statusBannerTone = isStockChecked
-    ? styles.statusBannerOk
-    : allOk
+  const statusBannerTone =
+    isPastStockVerification || isStockChecked || allOk
       ? styles.statusBannerOk
       : styles.statusBannerWarn;
 
-  const statusPillLabel = isStockChecked
-    ? "พร้อมจ่ายสินค้า"
-    : allOk
-      ? "พร้อมยืนยัน"
-      : `ขาด ${shortCount} รายการ`;
+  const statusPillLabel = isPastStockVerification
+    ? "เสร็จแล้ว"
+    : isStockChecked
+      ? hasPickingDocument
+        ? "มีใบจ่ายแล้ว"
+        : "พร้อมจ่ายสินค้า"
+      : allOk
+        ? "พร้อมยืนยัน"
+        : `ขาด ${shortCount} รายการ`;
 
-  const sideNote = isStockChecked ? (
+  const sideNote = isPastStockVerification ? (
     <>
-      ตรวจสต๊อกเสร็จแล้ว — กด <strong>สร้างใบจ่ายสินค้า</strong> เพื่อไปขั้นถัดไป
+      ดูผลตรวจได้อย่างเดียว — ไปทำต่อที่{" "}
+      <strong>ใบจ่ายสินค้า</strong> หรือใบสั่งขาย
     </>
+  ) : isStockChecked ? (
+    hasPickingDocument ? (
+      <>
+        มีใบจ่ายแล้ว — กด <strong>เปิดใบจ่ายสินค้า</strong> เพื่อไปขั้นถัดไป
+      </>
+    ) : (
+      <>
+        ตรวจสต๊อกเสร็จแล้ว — กด <strong>สร้างใบจ่ายสินค้า</strong> เพื่อไปขั้นถัดไป
+      </>
+    )
   ) : allOk && canApproveStock ? (
     <>
       พร้อมกด <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นถัดไป
@@ -312,6 +352,12 @@ export default function StockVerificationDetailPage({ id }: Props) {
           <Button
             icon={<ReloadOutlined />}
             loading={verifyQuery.isFetching}
+            disabled={isPastStockVerification}
+            title={
+              isPastStockVerification
+                ? "ขั้นตอนนี้เสร็จแล้ว — ไม่ต้องตรวจสอบใหม่"
+                : undefined
+            }
             onClick={() => void verifyQuery.refetch()}
           >
             ตรวจสอบใหม่
@@ -326,7 +372,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
             className={`${styles.statusBanner} ${statusBannerTone}`}
           >
             <div className={styles.statusBannerIcon} aria-hidden>
-              {isStockChecked || allOk ? (
+              {isPastStockVerification || isStockChecked || allOk ? (
                 <CheckCircleOutlined />
               ) : (
                 <WarningOutlined />
@@ -338,7 +384,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
             </div>
             <span
               className={`${styles.statusPill} ${
-                isStockChecked || allOk
+                isPastStockVerification || isStockChecked || allOk
                   ? styles.statusApproved
                   : styles.statusWarn
               }`}

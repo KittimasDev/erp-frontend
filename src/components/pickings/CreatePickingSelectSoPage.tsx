@@ -7,8 +7,10 @@ import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreatePickingFromSalesOrderMutation } from "@/hooks/pickings/usePickingMutations";
 import { useReadySalesOrdersForPickingQuery } from "@/hooks/pickings/usePickingsQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { ReadySalesOrder } from "@/types/pickings";
 import styles from "./PickingsListPage.module.css";
 
@@ -16,7 +18,13 @@ export default function CreatePickingSelectSoPage() {
   const router = useRouter();
   const query = useReadySalesOrdersForPickingQuery();
   const createMutation = useCreatePickingFromSalesOrderMutation();
+  const pickingActions = useScreenActionPermissions("PICKINGS");
+  const canAdd = pickingActions.canAdd;
   const rows = query.data?.data ?? [];
+
+  if (!canAdd) {
+    return <AccessDenied screenCodes={["PICKINGS"]} />;
+  }
 
   const columns: ColumnsType<ReadySalesOrder> = [
     {
@@ -78,9 +86,9 @@ export default function CreatePickingSelectSoPage() {
       <section className={styles.tableCard}>
         <Table
           rowKey="id"
-          loading={query.isLoading}
           columns={columns}
           dataSource={rows}
+          loading={query.isLoading}
           pagination={false}
           locale={{ emptyText: "ไม่มี SO ที่พร้อมสร้างใบจ่าย" }}
         />

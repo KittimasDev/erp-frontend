@@ -2,6 +2,8 @@ import { apiFetch } from "./client";
 import type {
   CreateQuotationBody,
   QuotationApiResponse,
+  QuotationItemAvailabilityListApiResponse,
+  QuotationItemAvailabilityQueryParams,
   QuotationListApiResponse,
   QuotationQueryParams,
   UpdateQuotationBody,
@@ -32,6 +34,29 @@ function buildQuotationsQuery(params?: QuotationQueryParams) {
 
   const query = search.toString();
   return query ? `?${query}` : "";
+}
+
+function buildQuotationItemAvailabilityQuery(
+  params?: QuotationItemAvailabilityQueryParams,
+) {
+  if (!params?.itemCategoryCode?.trim()) {
+    return "";
+  }
+
+  const search = new URLSearchParams();
+  search.set("itemCategoryCode", params.itemCategoryCode.trim());
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
+export function getQuotationItemAvailability(
+  token: string,
+  params?: QuotationItemAvailabilityQueryParams,
+) {
+  return apiFetch<QuotationItemAvailabilityListApiResponse>(
+    `/api/quotations/item-availability${buildQuotationItemAvailabilityQuery(params)}`,
+    { method: "GET", token },
+  );
 }
 
 export function getQuotations(token: string, params?: QuotationQueryParams) {

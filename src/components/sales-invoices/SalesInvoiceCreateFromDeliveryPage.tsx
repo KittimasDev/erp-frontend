@@ -10,6 +10,8 @@ import dayjs from "dayjs";
 import { useCreateSalesInvoiceFromDeliveryMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import { useSalesInvoiceByDeliveryQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
+import AccessDenied from "@/components/auth/AccessDenied";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./SalesInvoiceFormPage.module.css";
 
 type FormValues = {
@@ -28,6 +30,9 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   const deliveryQuery = useDeliveryOrderQuery(deliveryOrderId);
   const existingQuery = useSalesInvoiceByDeliveryQuery(deliveryOrderId);
   const createMutation = useCreateSalesInvoiceFromDeliveryMutation();
+  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
+  const pendingActions = useScreenActionPermissions("SALES_INVOICES_PENDING");
+  const canAdd = invoiceActions.canAdd || pendingActions.canEdit;
 
   const delivery = deliveryQuery.data?.data;
   const existing = existingQuery.data?.data;
@@ -38,6 +43,9 @@ export default function SalesInvoiceCreateFromDeliveryPage({
     }
   }, [existing, router]);
 
+  if (!canAdd) {
+    return <AccessDenied screenCodes={["SALES_INVOICES"]} />;
+  }
   if (deliveryQuery.isLoading || existingQuery.isLoading) {
     return (
       <div className={styles.page}>

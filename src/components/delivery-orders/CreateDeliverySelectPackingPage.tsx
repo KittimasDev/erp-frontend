@@ -7,8 +7,10 @@ import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreateDeliveryOrderFromPackingMutation } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
 import { useReadyPackingsForDeliveryQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { ReadyPacking } from "@/types/delivery-orders";
 import styles from "./DeliveryOrdersListPage.module.css";
 
@@ -16,7 +18,13 @@ export default function CreateDeliverySelectPackingPage() {
   const router = useRouter();
   const query = useReadyPackingsForDeliveryQuery();
   const createMutation = useCreateDeliveryOrderFromPackingMutation();
+  const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const canAdd = deliveryActions.canAdd;
   const rows = query.data?.data ?? [];
+
+  if (!canAdd) {
+    return <AccessDenied screenCodes={["DELIVERY_ORDERS"]} />;
+  }
 
   const columns: ColumnsType<ReadyPacking> = [
     {

@@ -122,3 +122,17 @@ export type QuotationListApiResponse = {
   message: string;
   data: Quotation[];
 };
+
+export type QuotationItemAvailabilityRow = {
+  itemId: string;
+  quantityAvailable: string;
+};
+
+export type QuotationItemAvailabilityQueryParams = {
+  itemCategoryCode?: string;
+};
+
+export type QuotationItemAvailabilityListApiResponse = {
+  message: string;
+  data: QuotationItemAvailabilityRow[];
+};

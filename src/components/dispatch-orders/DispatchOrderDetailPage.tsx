@@ -21,8 +21,7 @@ import {
   usePackDispatchOrderMutation,
 } from "@/hooks/dispatch-orders/useDispatchOrderMutations";
 import { useDispatchOrderQuery } from "@/hooks/dispatch-orders/useDispatchOrdersQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   DISPATCH_ORDER_STATUS_LABEL,
   type DeliverDispatchOrderBody,
@@ -68,12 +67,9 @@ export default function DispatchOrderDetailPage({ id }: Props) {
   const [form] = Form.useForm<DeliverDispatchOrderBody>();
 
   const data = query.data?.data;
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
-  const canApprove =
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) || isAdministrator();
+  const dispatchActions = useScreenActionPermissions("DISPATCH_ORDERS");
+  const canWrite = dispatchActions.canEdit;
+  const canApprove = dispatchActions.canApprove;
 
   if (query.isLoading) {
     return (

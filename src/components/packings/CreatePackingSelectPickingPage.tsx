@@ -7,8 +7,10 @@ import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreatePackingFromPickingMutation } from "@/hooks/packings/usePackingMutations";
 import { useReadyPickingsForPackingQuery } from "@/hooks/packings/usePackingsQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { ReadyPicking } from "@/types/packings";
 import styles from "./PackingsListPage.module.css";
 
@@ -16,7 +18,13 @@ export default function CreatePackingSelectPickingPage() {
   const router = useRouter();
   const query = useReadyPickingsForPackingQuery();
   const createMutation = useCreatePackingFromPickingMutation();
+  const packingActions = useScreenActionPermissions("PACKINGS");
+  const canAdd = packingActions.canAdd;
   const rows = query.data?.data ?? [];
+
+  if (!canAdd) {
+    return <AccessDenied screenCodes={["PACKINGS"]} />;
+  }
 
   const columns: ColumnsType<ReadyPicking> = [
     {

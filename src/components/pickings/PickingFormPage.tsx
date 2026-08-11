@@ -44,10 +44,10 @@ import {
   useSalesOrderAvailableWarehousesQuery,
   useSalesOrderStockVerificationQuery,
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import AccessDenied from "@/components/auth/AccessDenied";
 import { getFifoLotSuggestion } from "@/lib/api/dispatch-orders";
 import { getAccessToken } from "@/lib/auth/token";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { PickingItem } from "@/types/pickings";
 import { PICKING_STATUS_LABEL } from "@/types/pickings";
 import type { SalesOrderStockVerificationLine } from "@/types/sales-orders";
@@ -129,13 +129,15 @@ export default function PickingFormPage({ id, mode }: Props) {
   const verifyQuery = useSalesOrderStockVerificationQuery(data?.salesOrderId);
   const trackingQuery = useSalesTrackingDetailQuery(data?.salesOrderId);
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  const pickingActions = useScreenActionPermissions("PICKINGS");
+  const canView = pickingActions.canView;
+  const canEdit = pickingActions.canEdit;
+  const canConfirm = pickingActions.canApprove;
+  /** สิทธิ์ดำเนินการบนใบร่าง (แก้ไข / ไปหน้าแก้ไข) */
+  const canWrite = canEdit || canConfirm;
 
   const isDraft = data?.status === "DRAFT";
-  const editable = mode === "edit" && isDraft && canWrite;
+  const editable = mode === "edit" && isDraft && canEdit;
 
   const [pickingDate, setPickingDate] = useState<dayjs.Dayjs | null>(null);
   const [remark, setRemark] = useState("");
@@ -250,6 +252,10 @@ export default function PickingFormPage({ id, mode }: Props) {
         <Spin />
       </div>
     );
+  }
+
+  if (!canView) {
+    return <AccessDenied screenCodes={["PICKINGS"]} />;
   }
 
   const statusLabel =
@@ -552,26 +558,28 @@ export default function PickingFormPage({ id, mode }: Props) {
               >
                 บันทึก DRAFT
               </Button>
-              <Button
-                type="primary"
-                className={styles.primaryBtn}
-                icon={<CheckOutlined />}
-                loading={confirmMutation.isPending}
-                onClick={() =>
-                  modal.confirm({
-                    title: "ยืนยันตัดสต๊อกตามใบจ่ายนี้?",
-                    content:
-                      "ระบบจะตรวจสต๊อกอีกครั้งแล้วตัด quantity_available",
-                    onOk: async () => {
-                      await handleSave();
-                      await confirmMutation.mutateAsync(id);
-                      router.push(`/pickings/${id}`);
-                    },
-                  })
-                }
-              >
-                ยืนยันตัดสต๊อก
-              </Button>
+              {canConfirm ? (
+                <Button
+                  type="primary"
+                  className={styles.primaryBtn}
+                  icon={<CheckOutlined />}
+                  loading={confirmMutation.isPending}
+                  onClick={() =>
+                    modal.confirm({
+                      title: "ยืนยันตัดสต๊อกตามใบจ่ายนี้?",
+                      content:
+                        "ระบบจะตรวจสต๊อกอีกครั้งแล้วตัด quantity_available",
+                      onOk: async () => {
+                        await handleSave();
+                        await confirmMutation.mutateAsync(id);
+                        router.push(`/pickings/${id}`);
+                      },
+                    })
+                  }
+                >
+                  ยืนยันตัดสต๊อก
+                </Button>
+              ) : null}
               <Button
                 danger
                 className={styles.secondaryBtn}

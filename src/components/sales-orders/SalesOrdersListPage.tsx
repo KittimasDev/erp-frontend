@@ -62,9 +62,14 @@ function SalesOrderProgressCell({ status }: { status: string }) {
         <span className={styles.progressCount}>
           {progress.tone === "stopped" && progress.current === 0
             ? "—"
-            : `${progress.current}/${progress.total}`}
+            : `${progress.inProgress}/${progress.total}`}
         </span>
-        <span className={styles.progressLabel}>{progress.label}</span>
+        <span className={styles.progressLabel}>
+          {progress.currentStepLabel}
+          {progress.tone !== "done" && progress.tone !== "stopped"
+            ? ` · ${progress.label}`
+            : ""}
+        </span>
       </div>
       <div
         className={styles.progressTrack}

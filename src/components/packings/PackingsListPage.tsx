@@ -16,8 +16,7 @@ import dayjs from "dayjs";
 
 import { usePackingsQuery, useReadyPickingsForPackingQuery } from "@/hooks/packings/usePackingsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { Packing } from "@/types/packings";
 import { PACKING_STATUS_LABEL, type PackingStatus } from "@/types/packings";
 import styles from "./PackingsListPage.module.css";
@@ -41,10 +40,9 @@ export default function PackingsListPage() {
     dateTo?: string;
   }>({});
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  const packingActions = useScreenActionPermissions("PACKINGS");
+  const canAdd = packingActions.canAdd;
+  const canEdit = packingActions.canEdit;
 
   const customersQuery = useCustomersQuery();
   const query = usePackingsQuery(applied);
@@ -118,7 +116,7 @@ export default function PackingsListPage() {
               icon={<EyeOutlined />}
               onClick={() => router.push(`/packings/${row.id}`)}
             />
-            {canWrite && row.status === "DRAFT" ? (
+            {canEdit && row.status === "DRAFT" ? (
               <Button
                 size="small"
                 icon={<EditOutlined />}
@@ -129,7 +127,7 @@ export default function PackingsListPage() {
         ),
       },
     ],
-    [canWrite, router],
+    [canEdit, router],
   );
 
   return (
@@ -146,7 +144,7 @@ export default function PackingsListPage() {
           </p>
         </div>
         <div className={styles.headerActions}>
-          {canWrite ? (
+          {canAdd ? (
             <Link href="/packings/create-from-picking">
               <Badge count={readyCount} overflowCount={99} offset={[-4, 4]}>
                 <Button

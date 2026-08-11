@@ -19,8 +19,7 @@ import {
   useReadySalesOrdersForPickingQuery,
 } from "@/hooks/pickings/usePickingsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { Picking } from "@/types/pickings";
 import {
   PICKING_STATUS_LABEL,
@@ -47,10 +46,9 @@ export default function PickingsListPage() {
     dateTo?: string;
   }>({});
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  const pickingActions = useScreenActionPermissions("PICKINGS");
+  const canAdd = pickingActions.canAdd;
+  const canEdit = pickingActions.canEdit;
 
   const customersQuery = useCustomersQuery();
   const query = usePickingsQuery(applied);
@@ -119,7 +117,7 @@ export default function PickingsListPage() {
               icon={<EyeOutlined />}
               onClick={() => router.push(`/pickings/${row.id}`)}
             />
-            {canWrite && row.status === "DRAFT" ? (
+            {canEdit && row.status === "DRAFT" ? (
               <Button
                 size="small"
                 icon={<EditOutlined />}
@@ -130,7 +128,7 @@ export default function PickingsListPage() {
         ),
       },
     ],
-    [canWrite, router],
+    [canEdit, router],
   );
 
   return (
@@ -147,7 +145,7 @@ export default function PickingsListPage() {
           </p>
         </div>
         <div className={styles.headerActions}>
-          {canWrite ? (
+          {canAdd ? (
             <Link href="/pickings/create-from-sales-order">
               <Badge count={readyCount} overflowCount={99} offset={[-4, 4]}>
                 <Button

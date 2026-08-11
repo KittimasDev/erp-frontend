@@ -22,7 +22,7 @@ import dayjs from "dayjs";
 
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
-import { useStockBalancesQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useQuotationItemAvailabilityQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
@@ -33,9 +33,6 @@ import {
 import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
 import AccessDenied from "@/components/auth/AccessDenied";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { isMatrixPermissionMode } from "@/lib/auth/permissions-access";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { CreateQuotationBody } from "@/types/quotations";
 import styles from "./QuotationFormPage.module.css";
 
@@ -86,13 +83,8 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const updateMutation = useUpdateQuotationMutation();
 
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
-  const matrixMode = isMatrixPermissionMode();
-  const legacyWrite =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
-  const canCreate = matrixMode ? quotationActions.canAdd : legacyWrite;
-  const canEdit = matrixMode ? quotationActions.canEdit : legacyWrite;
+  const canCreate = quotationActions.canAdd;
+  const canEdit = quotationActions.canEdit;
   const allowed = mode === "create" ? canCreate : canEdit;
 
   const customersQuery = useCustomersQuery();
@@ -100,7 +92,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
     isActive: true,
     itemCategoryCode: "FINISHED_GOODS",
   });
-  const balancesQuery = useStockBalancesQuery({
+  const availabilityQuery = useQuotationItemAvailabilityQuery({
     itemCategoryCode: "FINISHED_GOODS",
   });
   const unitsQuery = useUnitsQuery({ isActive: true });
@@ -120,16 +112,13 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
   const availableByItemId = useMemo(() => {
     const map = new Map<string, number>();
-    for (const row of balancesQuery.data?.data ?? []) {
+    for (const row of availabilityQuery.data?.data ?? []) {
       const qty = Number(row.quantityAvailable || 0);
       if (!(qty > 1e-9)) continue;
-      map.set(
-        row.itemId,
-        Number(((map.get(row.itemId) ?? 0) + qty).toFixed(3)),
-      );
+      map.set(row.itemId, qty);
     }
     return map;
-  }, [balancesQuery.data?.data]);
+  }, [availabilityQuery.data?.data]);
 
   const selectableItems = useMemo(() => {
     // ใบเสนอราคายังไม่ตัดสต๊อก — แสดงสินค้า FG ที่ใช้งานได้ทั้งหมด
@@ -255,7 +244,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
     );
   };
 
-  const itemsLoading = itemsQuery.isLoading || balancesQuery.isLoading;
+  const itemsLoading = itemsQuery.isLoading || availabilityQuery.isLoading;
 
   if (!allowed) {
     return <AccessDenied screenCodes={["QUOTATIONS"]} />;

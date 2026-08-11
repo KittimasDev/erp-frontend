@@ -201,6 +201,41 @@
   line-height: 1.45;
 }
 
+.progressSide {
+  display: grid;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(250, 140, 22, 0.08);
+  border: 1px solid rgba(250, 140, 22, 0.22);
+}
+
+.progressSideTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.progressSideCount {
+  color: #d48806;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.progressSideTop strong {
+  color: var(--pr-text);
+  font-size: 14px;
+}
+
+.progressSideNext {
+  margin: 0;
+  color: var(--pr-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .itemList {
   display: grid;
   gap: 10px;

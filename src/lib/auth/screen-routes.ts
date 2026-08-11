@@ -112,7 +112,29 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   { prefix: "/production/rcb-processing", screenCodes: ["RCB_PROCESSING"] },
 
-  // FG ops
+  // FG ops — create-from-* อนุญาตเข้าด้วย screen ที่เกี่ยวข้องใน flow ขาย
+  // (ยาวกว่า / มาก่อน rule ทั่วไปด้านล่าง)
+  {
+    prefix: "/pickings/create-from-sales-order",
+    screenCodes: ["PICKINGS", "SALES_ORDERS", "SALES_STOCK_VERIFICATION"],
+  },
+  {
+    prefix: "/packings/create-from-picking",
+    screenCodes: ["PACKINGS", "PICKINGS", "SALES_ORDERS"],
+  },
+  {
+    prefix: "/delivery-orders/create-from-packing",
+    screenCodes: ["DELIVERY_ORDERS", "PACKINGS", "SALES_ORDERS"],
+  },
+  {
+    prefix: "/sales-invoices/create-from-delivery",
+    screenCodes: [
+      "SALES_INVOICES",
+      "SALES_INVOICES_PENDING",
+      "DELIVERY_ORDERS",
+      "SALES_ORDERS",
+    ],
+  },
   { prefix: "/pickings", screenCodes: ["PICKINGS"] },
   { prefix: "/packings", screenCodes: ["PACKINGS"] },
   { prefix: "/dispatch-orders", screenCodes: ["DISPATCH_ORDERS"] },

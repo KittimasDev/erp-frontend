@@ -38,8 +38,7 @@ import {
 } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import { useSalesInvoiceByDeliveryQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { DeliveryOrderItem } from "@/types/delivery-orders";
 import { DELIVERY_ORDER_STATUS_LABEL } from "@/types/delivery-orders";
 import styles from "./DeliveryOrderFormPage.module.css";
@@ -55,21 +54,11 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const deliverMutation = useDeliverDeliveryOrderMutation();
   const cancelMutation = useCancelDeliveryOrderMutation();
 
-  const canWrite =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
-  const canConfirm =
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
-  const canCreateInvoice =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
+  const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
+  const canWrite = deliveryActions.canEdit;
+  const canConfirm = deliveryActions.canApprove;
+  const canCreateInvoice = invoiceActions.canAdd;
 
   const data = query.data?.data;
   const invoiceByDeliveryQuery = useSalesInvoiceByDeliveryQuery(

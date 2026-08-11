@@ -1,10 +1,14 @@
 "use client";
 
-import { use, useEffect } from "react";
+import { use, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Spin } from "antd";
+import { Button, Result, Spin } from "antd";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreateDeliveryOrderFromPackingMutation } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { ApiError } from "@/lib/api/client";
 
 export default function Page({
   params,
@@ -14,8 +18,14 @@ export default function Page({
   const { packingId } = use(params);
   const router = useRouter();
   const createMutation = useCreateDeliveryOrderFromPackingMutation();
+  const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const canAdd = deliveryActions.canAdd;
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
+    if (!canAdd) return;
+
     let cancelled = false;
     (async () => {
       try {
@@ -28,17 +38,43 @@ export default function Page({
           ? `/delivery-orders/${delivery.id}/edit`
           : `/delivery-orders/${delivery.id}`;
         router.replace(target);
-      } catch {
-        if (!cancelled) {
-          router.replace(`/packings/${packingId}`);
+      } catch (error) {
+        if (cancelled) return;
+        if (error instanceof ApiError && error.status === 403) {
+          setForbidden(true);
+          return;
         }
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "ไม่สามารถสร้างใบส่งสินค้าได้",
+        );
       }
     })();
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [packingId]);
+  }, [packingId, canAdd]);
+
+  if (!canAdd || forbidden) {
+    return <AccessDenied screenCodes={["DELIVERY_ORDERS"]} />;
+  }
+
+  if (errorMessage) {
+    return (
+      <Result
+        status="error"
+        title="สร้างใบส่งสินค้าไม่สำเร็จ"
+        subTitle={errorMessage}
+        extra={
+          <Link href={`/packings/${packingId}`}>
+            <Button type="primary">กลับใบบรรจุ</Button>
+          </Link>
+        }
+      />
+    );
+  }
 
   return (
     <div style={{ padding: 48, textAlign: "center" }}>

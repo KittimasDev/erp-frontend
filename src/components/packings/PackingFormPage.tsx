@@ -30,14 +30,14 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import {
   useCancelPackingMutation,
   useConfirmPackingMutation,
   useUpdatePackingMutation,
 } from "@/hooks/packings/usePackingMutations";
 import { usePackingQuery } from "@/hooks/packings/usePackingsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { PackingItem } from "@/types/packings";
 import { PACKING_STATUS_LABEL } from "@/types/packings";
 import styles from "./PackingFormPage.module.css";
@@ -59,14 +59,15 @@ export default function PackingFormPage({ id, mode }: Props) {
   const confirmMutation = useConfirmPackingMutation();
   const cancelMutation = useCancelPackingMutation();
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  const packingActions = useScreenActionPermissions("PACKINGS");
+  const canView = packingActions.canView;
+  const canEdit = packingActions.canEdit;
+  const canConfirm = packingActions.canApprove;
+  const canWrite = canEdit || canConfirm;
 
   const data = query.data?.data;
   const isDraft = data?.status === "DRAFT";
-  const editable = mode === "edit" && isDraft && canWrite;
+  const editable = mode === "edit" && isDraft && canEdit;
 
   const [packingDate, setPackingDate] = useState<dayjs.Dayjs | null>(null);
   const [packageType, setPackageType] = useState("");
@@ -130,6 +131,10 @@ export default function PackingFormPage({ id, mode }: Props) {
         <Spin />
       </div>
     );
+  }
+
+  if (!canView) {
+    return <AccessDenied screenCodes={["PACKINGS"]} />;
   }
 
   const statusLabel =
@@ -332,25 +337,27 @@ export default function PackingFormPage({ id, mode }: Props) {
               >
                 บันทึก DRAFT
               </Button>
-              <Button
-                type="primary"
-                className={styles.primaryBtn}
-                icon={<CheckOutlined />}
-                loading={confirmMutation.isPending}
-                onClick={() =>
-                  modal.confirm({
-                    title: "ยืนยันใบบรรจุนี้?",
-                    content: "จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบจ่ายสินค้า",
-                    onOk: async () => {
-                      await handleSave();
-                      await confirmMutation.mutateAsync(id);
-                      router.push(`/packings/${id}`);
-                    },
-                  })
-                }
-              >
-                ยืนยันใบบรรจุ
-              </Button>
+              {canConfirm ? (
+                <Button
+                  type="primary"
+                  className={styles.primaryBtn}
+                  icon={<CheckOutlined />}
+                  loading={confirmMutation.isPending}
+                  onClick={() =>
+                    modal.confirm({
+                      title: "ยืนยันใบบรรจุนี้?",
+                      content: "จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบจ่ายสินค้า",
+                      onOk: async () => {
+                        await handleSave();
+                        await confirmMutation.mutateAsync(id);
+                        router.push(`/packings/${id}`);
+                      },
+                    })
+                  }
+                >
+                  ยืนยันใบบรรจุ
+                </Button>
+              ) : null}
               <Button
                 danger
                 className={styles.secondaryBtn}

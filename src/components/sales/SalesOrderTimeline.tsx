@@ -26,6 +26,7 @@ import {
   type SalesTimelineStepTone,
 } from "@/lib/sales/sales-tracking-timeline";
 import {
+  resolveActiveTimelineStepName,
   SALES_ORDER_FLOW_STEPS,
   type SalesOrderProgress,
 } from "@/lib/sales/sales-order-progress";
@@ -34,6 +35,7 @@ import styles from "./SalesOrderTimeline.module.css";
 
 type Props = {
   salesOrderId: string;
+  salesOrderStatus?: string;
   loading?: boolean;
   refreshing?: boolean;
   currentStep?: string;
@@ -61,23 +63,18 @@ function stepIcon(stepName: string) {
   }
 }
 
-function toneIcon(tone: SalesTimelineStepTone) {
-  if (tone === "done") return <CheckCircleFilled />;
-  if (tone === "cancelled") return <CloseCircleFilled />;
-  if (tone === "active") return <ClockCircleFilled />;
-  return null;
-}
-
 function FlowStepCard({
   step,
   href,
   tone,
-  isCurrentPage,
+  isHere,
+  isFocus,
 }: {
   step: SalesTrackingTimelineStep;
   href?: string;
   tone: SalesTimelineStepTone;
-  isCurrentPage?: boolean;
+  isHere?: boolean;
+  isFocus?: boolean;
 }) {
   const actionLabel = timelineStepActionLabel(step, href);
   const content = (
@@ -88,7 +85,11 @@ function FlowStepCard({
           color={salesTimelineToneTagColor(tone)}
           className={styles.flowStepTag}
         >
-          {salesTimelineStatusLabel(step.status)}
+          {isFocus
+            ? "กำลังทำ"
+            : isHere
+              ? "หน้านี้"
+              : salesTimelineStatusLabel(step.status)}
         </Tag>
       </div>
       <div className={styles.flowStepName}>
@@ -97,7 +98,7 @@ function FlowStepCard({
       <div
         className={`${styles.flowStepAction} ${
           href ? styles.flowStepActionLink : ""
-        } ${isCurrentPage ? styles.flowStepActionHere : ""}`}
+        }`}
       >
         {actionLabel}
         {href ? <ExportOutlined /> : null}
@@ -105,30 +106,30 @@ function FlowStepCard({
     </>
   );
 
+  const className = [
+    styles.flowStep,
+    styles[`flowTone_${tone}`],
+    href ? styles.flowStepClickable : styles.flowStepDisabled,
+    isFocus ? styles.flowStepFocus : "",
+    isHere && !isFocus ? styles.flowStepCurrent : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   if (href) {
     return (
-      <Link
-        href={href}
-        className={`${styles.flowStep} ${styles[`flowTone_${tone}`]} ${styles.flowStepClickable}`}
-      >
+      <Link href={href} className={className}>
         {content}
       </Link>
     );
   }
 
-  return (
-    <div
-      className={`${styles.flowStep} ${styles[`flowTone_${tone}`]} ${
-        isCurrentPage ? styles.flowStepCurrent : styles.flowStepDisabled
-      }`}
-    >
-      {content}
-    </div>
-  );
+  return <div className={className}>{content}</div>;
 }
 
 export default function SalesOrderTimeline({
   salesOrderId,
+  salesOrderStatus,
   loading,
   refreshing,
   currentStep,
@@ -136,74 +137,125 @@ export default function SalesOrderTimeline({
   timeline = [],
   progress,
 }: Props) {
+  const activeTimelineStep = salesOrderStatus
+    ? resolveActiveTimelineStepName(salesOrderStatus)
+    : null;
+  const hasNext = Boolean(nextAction && nextAction !== "—");
+  const nowLabel =
+    currentStep ||
+    progress?.currentStepLabel ||
+    progress?.label ||
+    "—";
+
   return (
     <section className={styles.wrap}>
-      <div className={styles.head}>
-        <div className={styles.headMain}>
-          <p className={styles.eyebrow}>Sales Flow · เอกสารใน Flow</p>
-          <h2 className={styles.title}>
-            ขั้นตอนการดำเนินการ
+      <div className={styles.statusBanner}>
+        <div className={styles.statusBannerMain}>
+          <div className={styles.statusEyebrowRow}>
+            <p className={styles.statusEyebrow}>สถานะตอนนี้</p>
             {refreshing ? (
               <Spin size="small" className={styles.refreshSpin} />
             ) : null}
-          </h2>
-          <p className={styles.subtitle}>
-            กดที่การ์ดแต่ละขั้นเพื่อเปิดเอกสาร — ใบเสนอราคา → ใบสั่งขาย →
-            ตรวจสต๊อก → จ่าย → บรรจุ → ส่ง → แจ้งหนี้
-          </p>
+          </div>
+          <h2 className={styles.statusTitle}>{nowLabel}</h2>
+          {hasNext ? (
+            <p className={styles.statusNext}>
+              <ArrowRightOutlined />
+              <span>
+                ต้องทำถัดไป: <strong>{nextAction}</strong>
+              </span>
+            </p>
+          ) : progress?.tone === "done" ? (
+            <p className={styles.statusNextDone}>ครบทุกขั้นตอนแล้ว</p>
+          ) : null}
         </div>
         {progress ? (
-          <div
-            className={`${styles.progressStrip} ${styles[`progress_${progress.tone}`]}`}
-          >
-            <div className={styles.progressMeta}>
-              <span className={styles.progressCount}>
+          <div className={styles.statusBannerMeta}>
+            <div className={styles.statusFraction}>
+              <span className={styles.statusFractionNum}>
                 {progress.tone === "stopped" && progress.current === 0
                   ? "—"
-                  : `${progress.current}/${progress.total}`}
+                  : progress.inProgress}
               </span>
-              <span className={styles.progressLabel}>{progress.label}</span>
+              <span className={styles.statusFractionDen}>
+                / {progress.total}
+              </span>
             </div>
-            <div className={styles.progressTrack} aria-hidden>
-              {SALES_ORDER_FLOW_STEPS.map((step, index) => {
-                const stepNo = index + 1;
-                const filled = stepNo <= progress.current;
-                const current =
-                  stepNo === progress.inProgress &&
-                  progress.tone !== "stopped";
-                return (
-                  <span
-                    key={step.key}
-                    className={[
-                      styles.progressSeg,
-                      filled ? styles.progressSegOn : "",
-                      current ? styles.progressSegCurrent : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ")}
-                    title={step.label}
-                  />
-                );
-              })}
+            <div className={styles.statusFractionLabel}>
+              ขั้นที่กำลังทำ
+              <br />
+              <strong>{progress.currentStepLabel}</strong>
             </div>
           </div>
         ) : null}
       </div>
 
-      {currentStep || (nextAction && nextAction !== "—") ? (
-        <div className={styles.nextCard}>
-          <div className={styles.nextLabel}>ขั้นตอนปัจจุบัน</div>
-          <div className={styles.nextCurrent}>{currentStep ?? "—"}</div>
-          {nextAction && nextAction !== "—" ? (
-            <div className={styles.nextAction}>
-              <ArrowRightOutlined />
-              <span>ถัดไป: {nextAction}</span>
-            </div>
-          ) : null}
+      {progress ? (
+        <div
+          className={`${styles.stepTracker} ${styles[`progress_${progress.tone}`]}`}
+          role="list"
+          aria-label="ความคืบหน้าใบสั่งขาย"
+        >
+          {SALES_ORDER_FLOW_STEPS.map((step, index) => {
+            const stepNo = index + 1;
+            const done =
+              progress.tone !== "stopped" && stepNo <= progress.current;
+            const current =
+              progress.tone !== "stopped" &&
+              stepNo === progress.inProgress &&
+              progress.tone !== "done";
+            const finished =
+              progress.tone === "done" && stepNo <= progress.current;
+
+            return (
+              <div
+                key={step.key}
+                role="listitem"
+                className={[
+                  styles.stepNode,
+                  done || finished ? styles.stepNodeDone : "",
+                  current ? styles.stepNodeCurrent : "",
+                  progress.tone === "stopped" ? styles.stepNodeStopped : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <div className={styles.stepNodeDot}>
+                  {done || finished ? (
+                    <CheckCircleFilled />
+                  ) : (
+                    <span>{stepNo}</span>
+                  )}
+                </div>
+                <div className={styles.stepNodeLabel}>{step.shortLabel}</div>
+                {current ? (
+                  <div className={styles.stepNodeBadge}>อยู่ตรงนี้</div>
+                ) : null}
+                {index < SALES_ORDER_FLOW_STEPS.length - 1 ? (
+                  <span
+                    className={[
+                      styles.stepConnector,
+                      done || finished ? styles.stepConnectorOn : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    aria-hidden
+                  />
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       ) : null}
 
       <div className={styles.body}>
+        <div className={styles.bodyHead}>
+          <p className={styles.eyebrow}>เอกสารใน Flow</p>
+          <p className={styles.subtitle}>
+            กดการ์ดเพื่อเปิดเอกสาร — การ์ดสีส้มคือขั้นที่ต้องทำตอนนี้
+          </p>
+        </div>
+
         {loading ? (
           <div className={styles.loading}>
             <Spin size="small" /> กำลังโหลดขั้นตอน...
@@ -221,15 +273,21 @@ export default function SalesOrderTimeline({
                 salesOrderId,
                 timeline,
               );
-              const isCurrentPage = step.step === "Sales Order";
+              const isHere = step.step === "Sales Order";
+              const isFocus =
+                activeTimelineStep === step.step || tone === "active";
 
               return (
-                <div key={`${step.step}-${step.documentId ?? index}`} className={styles.flowItem}>
+                <div
+                  key={`${step.step}-${step.documentId ?? index}`}
+                  className={styles.flowItem}
+                >
                   <FlowStepCard
                     step={step}
                     href={href}
-                    tone={tone}
-                    isCurrentPage={isCurrentPage}
+                    tone={isFocus && tone === "pending" ? "active" : tone}
+                    isHere={isHere}
+                    isFocus={isFocus}
                   />
                   {index < timeline.length - 1 ? (
                     <RightOutlined

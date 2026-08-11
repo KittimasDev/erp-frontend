@@ -113,8 +113,15 @@ export function resolveTimelineStepHref(
 
   switch (step.step) {
     case "Stock Verification":
+      // ดูผลตรวจย้อนหลังได้เสมอ แต่ไม่ใช่จุดเริ่มสร้างใบจ่าย
       return `/sales-orders/${salesOrderId}/stock-verification`;
     case "Picking":
+      if (picking?.documentId) {
+        return picking.status === "DRAFT"
+          ? `/pickings/${picking.documentId}/edit`
+          : `/pickings/${picking.documentId}`;
+      }
+      // สร้างได้เฉพาะเมื่อยังไม่มีเอกสาร picking
       return `/pickings/create-from-sales-order/${salesOrderId}`;
     case "Packing":
       if (picking?.documentId && picking.status === "CONFIRMED") {

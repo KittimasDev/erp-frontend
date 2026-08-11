@@ -25,12 +25,7 @@ import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { useCreateSalesOrderFromQuotationMutation } from "@/hooks/sales-orders/useSalesOrderMutations";
 import AccessDenied from "@/components/auth/AccessDenied";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import {
-  isMatrixPermissionMode,
-} from "@/lib/auth/permissions-access";
 import { QUOTATION_MATRIX_ACTION_LABELS } from "@/lib/auth/quotation-matrix-labels";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import {
   QUOTATION_FLOW_STEPS,
   resolveQuotationFlow,
@@ -82,19 +77,10 @@ export default function QuotationDetailPage({ id }: Props) {
   const data = query.data?.data;
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
-  const matrixMode = isMatrixPermissionMode();
-  const legacyWrite =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
-  const legacyConfirm =
-    userHasRole(RoleCode.SALES_MANAGER) || isAdministrator();
-  const canView = matrixMode ? quotationActions.canView : true;
-  const canWrite = matrixMode ? quotationActions.canEdit : legacyWrite;
-  const canConfirm = matrixMode ? quotationActions.canApprove : legacyConfirm;
-  const canCreateSalesOrder = matrixMode
-    ? salesOrderActions.canAdd
-    : legacyWrite;
+  const canView = quotationActions.canView;
+  const canWrite = quotationActions.canEdit;
+  const canConfirm = quotationActions.canApprove;
+  const canCreateSalesOrder = salesOrderActions.canAdd;
 
   if (query.isLoading) {
     return (
@@ -115,7 +101,7 @@ export default function QuotationDetailPage({ id }: Props) {
     );
   }
 
-  if (matrixMode && !canView) {
+  if (!canView) {
     return <AccessDenied screenCodes={["QUOTATIONS"]} />;
   }
 
@@ -365,10 +351,8 @@ export default function QuotationDetailPage({ id }: Props) {
                 {canConfirm ? (
                   <>
                     <p className={styles.actionHint}>
-                      สถานะปัจจุบัน: ส่งแล้ว — รอลูกค้าตอบรับ
-                      {matrixMode
-                        ? ` (ต้องมีสิทธิ์ ${QUOTATION_MATRIX_ACTION_LABELS.APPROVE})`
-                        : ""}
+                      สถานะปัจจุบัน: ส่งแล้ว — รอลูกค้าตอบรับ (ต้องมีสิทธิ์{" "}
+                      {QUOTATION_MATRIX_ACTION_LABELS.APPROVE})
                     </p>
                     <Button
                       className={styles.primaryBtn}
@@ -394,7 +378,7 @@ export default function QuotationDetailPage({ id }: Props) {
                     </Button>
                   </>
                 ) : null}
-                {!canConfirm && matrixMode && data.status === "SENT" ? (
+                {!canConfirm && data.status === "SENT" ? (
                   <p className={styles.actionHint}>
                     ดูรายการได้ — การ{QUOTATION_MATRIX_ACTION_LABELS.APPROVE}ต้องเปิดสิทธิ์
                     QUOTATIONS · {QUOTATION_MATRIX_ACTION_LABELS.APPROVE} ที่ Permission

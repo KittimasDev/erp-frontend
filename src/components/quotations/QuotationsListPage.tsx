@@ -58,8 +58,6 @@ import { useQuotationsQuery } from "@/hooks/quotations/useQuotationsQuery";
 
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 
-import { isMatrixPermissionMode } from "@/lib/auth/permissions-access";
-
 import {
 
   QUOTATION_MATRIX_ACTION_LABELS,
@@ -67,10 +65,6 @@ import {
   QUOTATION_MATRIX_ACTION_ORDER,
 
 } from "@/lib/auth/quotation-matrix-labels";
-
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-
-import { RoleCode } from "@/lib/auth/role-codes";
 
 import type { Quotation } from "@/types/quotations";
 
@@ -338,23 +332,13 @@ export default function QuotationsListPage() {
 
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
 
-  const legacyWrite =
+  const canView = quotationActions.canView;
 
-    userHasRole(RoleCode.SALES_OFFICER) ||
+  const canCreate = quotationActions.canAdd;
 
-    userHasRole(RoleCode.SALES_MANAGER) ||
+  const canEdit = quotationActions.canEdit;
 
-    isAdministrator();
-
-  const matrixMode = isMatrixPermissionMode();
-
-  const canView = matrixMode ? quotationActions.canView : true;
-
-  const canCreate = matrixMode ? quotationActions.canAdd : legacyWrite;
-
-  const canEdit = matrixMode ? quotationActions.canEdit : legacyWrite;
-
-  const canApprove = matrixMode ? quotationActions.canApprove : legacyWrite;
+  const canApprove = quotationActions.canApprove;
 
 
 
@@ -598,7 +582,7 @@ export default function QuotationsListPage() {
 
 
 
-  if (matrixMode && !canView) {
+  if (!canView) {
 
     return <AccessDenied screenCodes={["QUOTATIONS"]} />;
 
@@ -664,21 +648,17 @@ export default function QuotationsListPage() {
 
 
 
-      {matrixMode ? (
+      <QuotationPermissionStrip
 
-        <QuotationPermissionStrip
+        canView={canView}
 
-          canView={canView}
+        canAdd={canCreate}
 
-          canAdd={canCreate}
+        canEdit={canEdit}
 
-          canEdit={canEdit}
+        canApprove={canApprove}
 
-          canApprove={canApprove}
-
-        />
-
-      ) : null}
+      />
 
 
 

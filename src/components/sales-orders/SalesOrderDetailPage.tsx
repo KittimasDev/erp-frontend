@@ -18,6 +18,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import DocumentAuditTrail from "@/components/common/DocumentAuditTrail";
 import SalesOrderTimeline from "@/components/sales/SalesOrderTimeline";
 import {
@@ -31,9 +32,6 @@ import {
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { isMatrixPermissionMode } from "@/lib/auth/permissions-access";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import {
   resolveSalesOrderProgress,
 } from "@/lib/sales/sales-order-progress";
@@ -94,32 +92,38 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const confirmMutation = useConfirmSalesOrderMutation();
   const confirmStockMutation = useConfirmStockVerificationMutation();
   const cancelMutation = useCancelSalesOrderMutation();
+  const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const stockVerificationActions = useScreenActionPermissions(
     "SALES_STOCK_VERIFICATION",
   );
-  const matrixMode = isMatrixPermissionMode();
+  const pickingActions = useScreenActionPermissions("PICKINGS");
+  const packingActions = useScreenActionPermissions("PACKINGS");
+  const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
 
   const data = query.data?.data;
   const stockVerification = stockVerificationQuery.data?.data;
   const tracking = trackingQuery.data?.data;
   const timeline = tracking?.timeline ?? [];
 
-  const canWrite =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
-  const canConfirm = userHasRole(RoleCode.SALES_MANAGER) || isAdministrator();
-  const legacyCanApproveStock =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
-  const canApproveStock = matrixMode
-    ? stockVerificationActions.canApprove
-    : legacyCanApproveStock;
+  const canView = salesOrderActions.canView;
+  const canWrite = salesOrderActions.canEdit;
+  const canConfirm = salesOrderActions.canApprove;
+  const canApproveStock = stockVerificationActions.canApprove;
   const canFulfill =
-    canWrite ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER);
+    salesOrderActions.canEdit ||
+    salesOrderActions.canApprove ||
+    stockVerificationActions.canView ||
+    stockVerificationActions.canEdit ||
+    stockVerificationActions.canApprove ||
+    pickingActions.canAdd ||
+    pickingActions.canEdit ||
+    packingActions.canAdd ||
+    packingActions.canEdit ||
+    deliveryActions.canAdd ||
+    deliveryActions.canEdit ||
+    invoiceActions.canAdd ||
+    invoiceActions.canEdit;
 
   if (query.isLoading) {
     return (
@@ -138,6 +142,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
         </div>
       </div>
     );
+  }
+
+  if (!canView) {
+    return <AccessDenied screenCodes={["SALES_ORDERS"]} />;
   }
 
   const busy =
@@ -254,6 +262,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
       }
     } else if (data.status === "STOCK_CHECKED") {
       const picking = findStep(timeline, "Picking");
+      const canCreatePicking = pickingActions.canAdd;
+      const canEditPicking = pickingActions.canEdit;
       if (picking?.href) {
         const pickingDraft = picking.status === "DRAFT";
         nextStepButton = (
@@ -263,16 +273,18 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() =>
               router.push(
-                pickingDraft ? `${picking.href}/edit` : (picking.href as string),
+                pickingDraft && canEditPicking
+                  ? `${picking.href}/edit`
+                  : (picking.href as string),
               )
             }
           >
-            {pickingDraft
+            {pickingDraft && canEditPicking
               ? "ยืนยันใบจ่ายสินค้า (ตัดสต๊อก)"
               : "เปิดใบจ่ายสินค้า"}
           </Button>
         );
-      } else {
+      } else if (canCreatePicking) {
         nextStepButton = (
           <Button
             className={styles.primaryBtn}
@@ -478,6 +490,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
       <SalesOrderTimeline
         salesOrderId={id}
+        salesOrderStatus={data.status}
         loading={trackingQuery.isLoading}
         refreshing={
           trackingQuery.isFetching &&
@@ -695,14 +708,19 @@ export default function SalesOrderDetailPage({ id }: Props) {
             {SALES_ORDER_STATUS_LABEL[data.status as SalesOrderStatus] ??
               data.status}
           </div>
-          {tracking?.currentStep ? (
-            <p className={styles.sectionHint} style={{ margin: "4px 0 0" }}>
-              {tracking.currentStep}
-              {tracking.nextAction && tracking.nextAction !== "—"
-                ? ` · ถัดไป: ${tracking.nextAction}`
-                : ""}
+          <div className={styles.progressSide}>
+            <div className={styles.progressSideTop}>
+              <span className={styles.progressSideCount}>
+                ขั้น {progress.inProgress}/{progress.total}
+              </span>
+              <strong>{progress.currentStepLabel}</strong>
+            </div>
+            <p className={styles.progressSideNext}>
+              {tracking?.nextAction && tracking.nextAction !== "—"
+                ? `ถัดไป: ${tracking.nextAction}`
+                : progress.label}
             </p>
-          ) : null}
+          </div>
           {flowHint ? (
             <p className={styles.flowHint}>{flowHint}</p>
           ) : null}
@@ -749,6 +767,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 {nextStepButton}
                 {cancelButton}
               </>
+            ) : null}
+
+            {!canFulfill &&
+            !(data.status === "DRAFT" && canConfirm) &&
+            !cancelButton ? (
+              <p className={styles.sectionHint}>
+                บัญชีนี้มีสิทธิ์ดูอย่างเดียว — ติดต่อผู้ดูแลระบบหากต้องดำเนินการ
+              </p>
             ) : null}
           </div>
         </aside>
