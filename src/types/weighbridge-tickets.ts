@@ -158,6 +158,7 @@ export type ClassificationPlanItem = {
 export type ClassificationPlanDeduction = {
   deductionType: string;
   description?: string;
+  deductionPricePerKg?: number;
 };
 
 export type ClassificationPlan = {

@@ -1473,6 +1473,26 @@
   color: #8a5a12;
 }
 
+.classifyDeductionPlanList {
+  display: grid;
+  gap: 8px;
+}
+
+.classifyDeductionPlanRow {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.7fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #eadcc8;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.classifyDeductionPlanNote {
+  grid-column: 1 / -1;
+}
+
 .classifyFooter {
   display: flex;
   justify-content: flex-end;
@@ -1869,7 +1889,8 @@
   .classifySplit,
   .classifyTypeRowTop,
   .classifyDeductionGrid,
-  .classifyDocGrid {
+  .classifyDocGrid,
+  .classifyDeductionPlanRow {
     grid-template-columns: 1fr;
   }
 

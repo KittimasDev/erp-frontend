@@ -243,6 +243,7 @@ export default function ReceivingTicketClassifyWeighPanel({
         createDeductionRow({
           deductionType: item.deductionType,
           description: item.description,
+          deductionPricePerKg: item.deductionPricePerKg,
         }),
       ),
     );
@@ -360,6 +361,10 @@ export default function ReceivingTicketClassifyWeighPanel({
         .map((item) => ({
           deductionType: item.deductionType,
           description: item.description?.trim() || undefined,
+          deductionPricePerKg:
+            item.deductionPricePerKg === undefined
+              ? undefined
+              : Number(item.deductionPricePerKg),
         })),
       remark: planRemark.trim() || undefined,
     });
@@ -647,8 +652,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                     <p className={styles.classifyEyebrow}>รายการหัก</p>
                     <h4>สารปนเปื้อน</h4>
                     <p>
-                      เลือกประเภทที่มีบนรถ เช่น น้ำ ดิน โลหะ — ขั้นถัดไปกรอกน้ำหนัก ราคาหัก
-                      (บาท/กก.) และยอดเงินได้
+                      เลือกประเภทที่มีบนรถ แล้วใส่ราคาหัก (บาท/กก.) ได้เลย — น้ำหนักกรอกในขั้นถัดไป
                     </p>
                   </div>
                   <span
@@ -682,31 +686,73 @@ export default function ReceivingTicketClassifyWeighPanel({
                     );
                   })}
                 </div>
-                {deductions
-                  .filter((item) => item.deductionType === "OTHER")
-                  .map((item) => (
-                    <Input
-                      key={item.key}
-                      aria-label="รายละเอียดรายการหักอื่นๆ"
-                      placeholder="ระบุรายการหักอื่นๆ (จำเป็น)"
-                      value={item.description ?? ""}
-                      disabled={!canSavePlan}
-                      onChange={(event) =>
-                        setDeductions((prev) =>
-                          prev.map((row) =>
-                            row.key === item.key
-                              ? { ...row, description: event.target.value }
-                              : row,
-                          ),
-                        )
-                      }
-                    />
-                  ))}
-                {!selectedDeductions.size ? (
+                {deductions.length ? (
+                  <div className={styles.classifyDeductionPlanList}>
+                    {deductions.map((item) => {
+                      const label =
+                        DEDUCTION_TYPE_OPTIONS.find(
+                          (option) => option.value === item.deductionType,
+                        )?.label ?? item.deductionType;
+                      return (
+                        <div key={item.key} className={styles.classifyDeductionPlanRow}>
+                          <div className={styles.classifyNoteLabel}>
+                            {label}
+                            <span>ราคาหักต่อกิโลกรัม</span>
+                          </div>
+                          <InputNumber
+                            aria-label={`ราคาหัก ${label}`}
+                            min={0}
+                            step={0.01}
+                            className={styles.stepMetaInput}
+                            value={item.deductionPricePerKg}
+                            placeholder="บาท/กก."
+                            disabled={!canSavePlan}
+                            onKeyDown={blockNonNumericWeightKey}
+                            onChange={(value) =>
+                              setDeductions((prev) =>
+                                prev.map((row) =>
+                                  row.key === item.key
+                                    ? withDeductionAmount(row, {
+                                        deductionPricePerKg:
+                                          typeof value === "number"
+                                            ? value
+                                            : undefined,
+                                      })
+                                    : row,
+                                ),
+                              )
+                            }
+                          />
+                          {item.deductionType === "OTHER" ? (
+                            <Input
+                              className={styles.classifyDeductionPlanNote}
+                              aria-label="รายละเอียดรายการหักอื่นๆ"
+                              placeholder="ระบุรายการหักอื่นๆ (จำเป็น)"
+                              value={item.description ?? ""}
+                              disabled={!canSavePlan}
+                              onChange={(event) =>
+                                setDeductions((prev) =>
+                                  prev.map((row) =>
+                                    row.key === item.key
+                                      ? {
+                                          ...row,
+                                          description: event.target.value,
+                                        }
+                                      : row,
+                                  ),
+                                )
+                              }
+                            />
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
                   <div className={styles.classifyEmpty}>
                     ไม่มีสารปนเปื้อนก็ข้ามได้
                   </div>
-                ) : null}
+                )}
               </section>
             </div>
 
