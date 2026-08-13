@@ -1,0 +1,484 @@
+.page {
+  --sh-green: var(--erp-green, #8ab933);
+  --sh-green-dark: var(--erp-green-dark, #6f9720);
+  --sh-text: var(--erp-text, #2f343a);
+  --sh-muted: var(--erp-muted, #8a9199);
+  --sh-border: #e8eaed;
+
+  display: grid;
+  gap: 18px;
+  padding-bottom: 8px;
+}
+
+.pageHeader {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  padding: 18px 22px;
+  border: 1px solid var(--sh-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
+}
+
+.pageHeader::after {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  right: -60px;
+  bottom: -100px;
+  border-radius: 50%;
+  background: var(--sh-green);
+  opacity: 0.12;
+}
+
+.headerAccent {
+  position: relative;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    #8ca527 0%,
+    var(--sh-green) 58%,
+    var(--sh-green-dark) 100%
+  );
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
+  font-size: 20px;
+}
+
+.headerContent {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--sh-green-dark);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--sh-text);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.pageSubtitle {
+  margin: 4px 0 0;
+  color: var(--sh-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--sh-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.filterField {
+  display: grid;
+  gap: 6px;
+}
+
+.filterField > span {
+  color: var(--sh-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  min-height: 92px;
+  padding: 16px 18px;
+  border: 1px solid var(--sh-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.summaryCardAccent {
+  border-color: rgba(138, 185, 51, 0.4);
+  background: linear-gradient(135deg, #f7fbef 0%, #ffffff 60%);
+}
+
+.summaryCard span {
+  display: block;
+  color: var(--sh-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.summaryCard strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--sh-text);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.warnValue {
+  color: #d46b08 !important;
+}
+
+.holidayValue {
+  color: #1677ff !important;
+}
+
+.calendarCard {
+  padding: 8px 16px 16px;
+  border: 1px solid var(--sh-border);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.noShiftEmpty {
+  padding: 12px 0 4px;
+}
+
+/* ---------- ช่องวันในปฏิทิน ---------- */
+
+.cell {
+  display: grid;
+  gap: 3px;
+  overflow: hidden;
+}
+
+.cellHoliday {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #e6f4ff;
+  color: #0958d9;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cellHolidayMaintenance {
+  background: #fff7e6;
+  color: #d46b08;
+}
+
+.cellRound {
+  display: grid;
+  grid-template-columns: 8px 1fr auto auto;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.cellDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.cellRoundName {
+  color: var(--sh-text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cellRoundTime {
+  color: var(--sh-muted);
+}
+
+.cellRoundCount {
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #f2f5ea;
+  color: var(--sh-green-dark);
+  text-align: center;
+  font-weight: 700;
+}
+
+.cellRoundCountEmpty {
+  background: #fff1f0;
+  color: #cf1322;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--sh-border);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sh-muted);
+  font-size: 12px;
+}
+
+/* ---------- ลิ้นชักรายวัน ---------- */
+
+.drawerTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sh-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.holidayBody {
+  display: grid;
+  gap: 6px;
+}
+
+.holidayBody p {
+  margin: 0;
+  font-size: 12px;
+}
+
+.holidayHint {
+  color: var(--sh-muted);
+}
+
+.drawerSection {
+  display: grid;
+  gap: 10px;
+}
+
+.drawerSectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.drawerSectionHead h3 {
+  margin: 0;
+  color: var(--sh-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.roundList {
+  display: grid;
+  gap: 12px;
+}
+
+.roundCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--sh-border);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.roundHead {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.roundColor {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.roundTitle {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.roundTitle strong {
+  color: var(--sh-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.roundTitle span {
+  color: var(--sh-muted);
+  font-size: 12px;
+}
+
+.roundNote {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fafafa;
+  color: var(--sh-muted);
+  font-size: 12px;
+}
+
+.roundToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px dashed var(--sh-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--sh-green-dark);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.roundToggle:hover {
+  background: #f7fbef;
+}
+
+.roundToggle > span {
+  flex: 1;
+  text-align: left;
+}
+
+.memberArea {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.memberLoading {
+  display: grid;
+  place-items: center;
+  padding: 12px 0;
+}
+
+.memberList {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.memberItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.memberName {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.memberName strong {
+  color: var(--sh-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.memberName span {
+  color: var(--sh-muted);
+  font-size: 11px;
+}
+
+.memberAdd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- modal จัดการกะ / ลงกะเป็นช่วง ---------- */
+
+.masterToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.masterToolbar p {
+  margin: 0;
+  color: var(--sh-muted);
+  font-size: 12px;
+}
+
+.masterForm {
+  margin-bottom: 16px;
+  padding: 14px 16px 4px;
+  border: 1px solid var(--sh-border);
+  border-radius: 12px;
+  background: #fafafa;
+}
+
+.masterFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
+.bulkResult {
+  display: grid;
+  gap: 2px;
+}
+
+.bulkResult p {
+  margin: 0;
+  font-size: 12px;
+}
+
+@media (max-width: 1280px) {
+  .summaryGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .masterFormGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -211,6 +211,20 @@ export default function AttendancePage() {
         render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
       },
       {
+        title: "กะ",
+        key: "shift",
+        width: 130,
+        render: (_v, row) =>
+          row.shiftName ? (
+            <div className={styles.employeeCell}>
+              <strong>{row.shiftName}</strong>
+              <span>เข้ากะ {row.shiftStartTime ?? "—"}</span>
+            </div>
+          ) : (
+            <span className={styles.pending}>ยังไม่จัดกะ</span>
+          ),
+      },
+      {
         title: "เข้างาน",
         dataIndex: "checkInAt",
         key: "checkInAt",
@@ -243,13 +257,15 @@ export default function AttendancePage() {
         title: "สถานะ",
         dataIndex: "status",
         key: "status",
-        width: 110,
+        width: 130,
         align: "center",
         render: (value: string, row) => (
           <Tag color={statusColor(value)}>
             {value === "ON_LEAVE" && row.leaveType
               ? (LEAVE_TYPE_LABEL[row.leaveType] ?? "ลางาน")
-              : (ATTENDANCE_STATUS_LABEL[value] ?? value)}
+              : value === "LATE" && row.lateMinutes
+                ? `สาย ${row.lateMinutes} นาที`
+                : (ATTENDANCE_STATUS_LABEL[value] ?? value)}
           </Tag>
         ),
       },
@@ -634,7 +650,7 @@ export default function AttendancePage() {
             columns={columns}
             dataSource={rows}
             loading={recordsQuery.isFetching}
-            scroll={{ x: 1240 }}
+            scroll={{ x: 1400 }}
             pagination={{
               pageSize: 20,
               showSizeChanger: true,

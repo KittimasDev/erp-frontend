@@ -213,7 +213,7 @@ export default function ProductionOutputStockRequestCreatePage({
     : purchaseTicket?.receiptId
       ? `/receiving/receipts/${purchaseTicket.receiptId}`
       : primaryTicketId
-        ? `/receiving/${primaryTicketId}/classification`
+        ? `/receiving/${primaryTicketId}`
         : "/receiving";
 
   const sourceQueries = useQueries({

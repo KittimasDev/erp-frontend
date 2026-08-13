@@ -44,6 +44,7 @@ export type WeighbridgeTicketListItem = {
   receiptPaymentStatus?: string;
   receiptStockPostingStatus?: string;
   hasPendingStockPosting?: boolean;
+  hasClassificationPlan?: boolean;
 };
 
 export type WeighbridgeDashboardData = {
@@ -128,6 +129,10 @@ export type WeighbridgeTicketDetail = {
   canEditWeighIn?: boolean;
   canWeighOut: boolean;
   canEditWeighOut?: boolean;
+  canSaveClassificationPlan?: boolean;
+  canCompleteWeighAndReceipt?: boolean;
+  hasClassificationPlan?: boolean;
+  classificationPlan?: ClassificationPlan;
   receiptId?: string;
   receiptNo?: string;
   receiptStatus?: string;
@@ -143,6 +148,46 @@ export type WeighbridgeTicketDetailApiResponse = {
   statusCode?: number;
   message: string;
   data: WeighbridgeTicketDetail;
+};
+
+export type ClassificationPlanItem = {
+  tireClassificationId: string;
+  description?: string;
+};
+
+export type ClassificationPlanDeduction = {
+  deductionType: string;
+  description?: string;
+};
+
+export type ClassificationPlan = {
+  items: ClassificationPlanItem[];
+  deductions?: ClassificationPlanDeduction[];
+  remark?: string;
+};
+
+export type SaveClassificationPlanRequest = ClassificationPlan;
+
+export type CompleteWeighAndReceiptRequest = {
+  grossWeightKg: number;
+  tareWeightKg: number;
+  isManual: boolean;
+  reason?: string;
+  weighInRemark?: string;
+  weighOutRemark?: string;
+  items: Array<{
+    tireClassificationId: string;
+    weightKg: number;
+    description?: string;
+  }>;
+  deductions?: Array<{
+    deductionType: string;
+    deductionWeightKg: number;
+    deductionPricePerKg?: number;
+    deductionAmount?: number;
+    description?: string;
+  }>;
+  remark?: string;
 };
 
 export type WeighTicketRequest = {

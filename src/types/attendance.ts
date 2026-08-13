@@ -1,3 +1,5 @@
+import type { MyShiftDay } from "./shifts";
+
 type ApiEnvelope<T> = {
   statusCode: number;
   message: string;
@@ -44,6 +46,11 @@ export type AttendanceRecord = {
   checkInIp?: string;
   checkOutIp?: string;
   workHours?: number;
+  /** กะที่ใช้ตัดสินว่าสายไหม — ว่าง = วันนั้นยังไม่ได้จัดกะ */
+  shiftName?: string;
+  shiftStartTime?: string;
+  /** สายกี่นาที (0 = ตรงเวลา) */
+  lateMinutes?: number;
   editedByName?: string;
   editedAt?: string;
 };
@@ -78,7 +85,10 @@ export type MyAttendanceStatus = {
   /** true = ระบบตั้งค่าจำกัด IP ไว้ (ตั้งที่ ATTENDANCE_ALLOWED_IPS) */
   ipRestricted: boolean;
   clientIp: string;
+  /** เวลาเข้างานที่ใช้จริงวันนี้ — กะที่จัดไว้ชนะค่ามาตรฐาน */
   workStartTime: string;
+  todayShift: MyShiftDay;
+  tomorrowShift: MyShiftDay;
   /** มีค่าเมื่อมีกะของวันก่อนหน้าที่ยังไม่กดออกงาน (กะข้ามเที่ยงคืน) */
   pendingCheckOutDate?: string;
   pendingCheckInAt?: string;

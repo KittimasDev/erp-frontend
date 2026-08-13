@@ -206,6 +206,75 @@
   text-align: center;
 }
 
+/* ---------- กะของฉัน ---------- */
+
+.shiftCard {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--tc-border);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.shiftRow {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f6f7f9;
+}
+
+.shiftRowToday {
+  background: #f3f8e8;
+  border: 1px solid rgba(138, 185, 51, 0.35);
+}
+
+.shiftRowLabel {
+  color: var(--tc-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shiftRowBody {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.shiftRowBody strong {
+  color: var(--tc-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.shiftRowBody span {
+  color: var(--tc-muted);
+  font-size: 12px;
+}
+
+.shiftRowTime {
+  color: var(--tc-green-dark);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.shiftRowOff {
+  color: #0958d9 !important;
+}
+
+.shiftHint {
+  margin: 0;
+  color: var(--tc-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
 /* ---------- สรุปวันนี้ ---------- */
 
 .todayCard {

@@ -1,7 +1,9 @@
 import { apiFetch } from "./client";
 import type {
+  CompleteWeighAndReceiptRequest,
   CreateWeighbridgeTicketRequest,
   ManualOverrideTicketRequest,
+  SaveClassificationPlanRequest,
   WeighbridgeAnalyticsApiResponse,
   WeighbridgeAnalyticsQuery,
   WeighbridgeDashboardApiResponse,
@@ -75,6 +77,28 @@ export function createWeighbridgeTicket(
     token,
     body,
   });
+}
+
+export function saveClassificationPlan(
+  token: string,
+  id: string,
+  body: SaveClassificationPlanRequest,
+) {
+  return apiFetch<WeighbridgeTicketDetailApiResponse>(
+    `/api/weighbridge/tickets/${id}/classification-plan`,
+    { method: "PUT", token, body },
+  );
+}
+
+export function completeWeighAndReceipt(
+  token: string,
+  id: string,
+  body: CompleteWeighAndReceiptRequest,
+) {
+  return apiFetch<WeighbridgeTicketDetailApiResponse>(
+    `/api/weighbridge/tickets/${id}/complete-weigh-and-receipt`,
+    { method: "POST", token, body },
+  );
 }
 
 export function weighInWeighbridgeTicket(

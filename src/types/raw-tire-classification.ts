@@ -97,6 +97,7 @@ export type ClassificationItemInput = {
 export type ClassificationDeductionInput = {
   deductionType: string;
   deductionWeightKg: number;
+  deductionPricePerKg?: number;
   deductionAmount?: number;
   description?: string;
 };

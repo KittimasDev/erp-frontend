@@ -144,6 +144,29 @@ const IconReport = () => (
   </svg>
 );
 
+const IconCalendar = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden>
+    <path
+      d="M5 6h14a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M4 10.5h16M8.5 4v3.5M15.5 4v3.5"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+    <path
+      d="M8 14h3M8 17h8"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
 const IconProcurementTracking = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" aria-hidden>
     <path
@@ -1081,6 +1104,22 @@ const hrmMenus: MenuItem[] = [
     screenCode: "USERS",
     label: "บุคคล / ผู้ใช้งาน",
     href: "/users",
+    icon: <IconUsers />,
+    roles: [...HRM_ROLES],
+  },
+  {
+    key: "hrm-shifts",
+    screenCode: "HRM_SHIFT",
+    label: "ตารางกะการทำงาน",
+    href: "/hrm/shifts",
+    icon: <IconCalendar />,
+    roles: [...HRM_ROLES],
+  },
+  {
+    key: "hrm-shift-assignments",
+    screenCode: "HRM_SHIFT_ASSIGNMENT",
+    label: "รายการเข้ากะ",
+    href: "/hrm/shift-assignments",
     icon: <IconUsers />,
     roles: [...HRM_ROLES],
   },

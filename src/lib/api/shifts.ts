@@ -1,0 +1,177 @@
+import { apiFetch } from "./client";
+import type {
+  BulkCreateShiftSchedulesRequest,
+  BulkShiftScheduleApiResponse,
+  CreateShiftRequest,
+  CreateShiftScheduleRequest,
+  CreateWorkCalendarDayRequest,
+  MyShiftScheduleApiResponse,
+  ShiftApiResponse,
+  ShiftAssignmentListApiResponse,
+  ShiftAssignmentParams,
+  ShiftCalendarApiResponse,
+  ShiftCalendarParams,
+  ShiftListApiResponse,
+  ShiftScheduleApiResponse,
+  UpdateShiftRequest,
+  UpdateShiftScheduleRequest,
+  WorkCalendarDayApiResponse,
+} from "@/types/shifts";
+
+type Envelope = { statusCode: number; message: string };
+
+/* ---------- กะมาตรฐาน ---------- */
+
+export function getShifts(token: string, includeInactive = false) {
+  return apiFetch<ShiftListApiResponse>(
+    `/api/hrm/shifts${includeInactive ? "?includeInactive=true" : ""}`,
+    { method: "GET", token },
+  );
+}
+
+export function createShift(token: string, body: CreateShiftRequest) {
+  return apiFetch<ShiftApiResponse>("/api/hrm/shifts", {
+    method: "POST",
+    token,
+    body,
+  });
+}
+
+export function updateShift(
+  token: string,
+  id: string,
+  body: UpdateShiftRequest,
+) {
+  return apiFetch<ShiftApiResponse>(`/api/hrm/shifts/${id}`, {
+    method: "PATCH",
+    token,
+    body,
+  });
+}
+
+/* ---------- ปฏิทินรอบกะ (ฝ่ายบุคคล) ---------- */
+
+export function getShiftCalendar(token: string, params: ShiftCalendarParams) {
+  const search = new URLSearchParams({
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
+  return apiFetch<ShiftCalendarApiResponse>(
+    `/api/hrm/shift-schedules/calendar?${search.toString()}`,
+    { method: "GET", token },
+  );
+}
+
+export function getShiftAssignments(
+  token: string,
+  params: ShiftAssignmentParams,
+) {
+  const search = new URLSearchParams({
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
+  if (params.shiftId) search.set("shiftId", params.shiftId);
+  if (params.userId) search.set("userId", params.userId);
+  if (params.q?.trim()) search.set("q", params.q.trim());
+
+  return apiFetch<ShiftAssignmentListApiResponse>(
+    `/api/hrm/shift-schedules/assignments?${search.toString()}`,
+    { method: "GET", token },
+  );
+}
+
+export function getShiftSchedule(token: string, id: string) {
+  return apiFetch<ShiftScheduleApiResponse>(`/api/hrm/shift-schedules/${id}`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function createShiftSchedule(
+  token: string,
+  body: CreateShiftScheduleRequest,
+) {
+  return apiFetch<ShiftScheduleApiResponse>("/api/hrm/shift-schedules", {
+    method: "POST",
+    token,
+    body,
+  });
+}
+
+export function updateShiftSchedule(
+  token: string,
+  id: string,
+  body: UpdateShiftScheduleRequest,
+) {
+  return apiFetch<ShiftScheduleApiResponse>(
+    `/api/hrm/shift-schedules/${id}`,
+    { method: "PATCH", token, body },
+  );
+}
+
+export function deleteShiftSchedule(token: string, id: string) {
+  return apiFetch<Envelope>(`/api/hrm/shift-schedules/${id}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function setShiftScheduleMembers(
+  token: string,
+  id: string,
+  userIds: string[],
+) {
+  return apiFetch<ShiftScheduleApiResponse>(
+    `/api/hrm/shift-schedules/${id}/members`,
+    { method: "PUT", token, body: { userIds } },
+  );
+}
+
+export function removeShiftScheduleMember(
+  token: string,
+  id: string,
+  userId: string,
+) {
+  return apiFetch<ShiftScheduleApiResponse>(
+    `/api/hrm/shift-schedules/${id}/members/${userId}`,
+    { method: "DELETE", token },
+  );
+}
+
+export function bulkCreateShiftSchedules(
+  token: string,
+  body: BulkCreateShiftSchedulesRequest,
+) {
+  return apiFetch<BulkShiftScheduleApiResponse>(
+    "/api/hrm/shift-schedules/bulk",
+    { method: "POST", token, body },
+  );
+}
+
+/* ---------- วันหยุด / วันซ่อมเครื่อง ---------- */
+
+export function markWorkCalendarHoliday(
+  token: string,
+  body: CreateWorkCalendarDayRequest,
+) {
+  return apiFetch<WorkCalendarDayApiResponse>(
+    "/api/hrm/work-calendar/holidays",
+    { method: "POST", token, body },
+  );
+}
+
+export function removeWorkCalendarHoliday(token: string, id: string) {
+  return apiFetch<Envelope>(`/api/hrm/work-calendar/holidays/${id}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+/* ---------- กะของตัวเอง (หน้า /attendance) ---------- */
+
+export function getMyShiftSchedule(token: string, days = 7) {
+  return apiFetch<MyShiftScheduleApiResponse>(
+    `/api/hrm/shifts/me/schedule?days=${days}`,
+    { method: "GET", token },
+  );
+}

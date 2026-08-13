@@ -1,21 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useMemo, useState } from "react";
 import {
   App,
   Button,
-  Form,
-  Input,
-  InputNumber,
-  Popconfirm,
   Steps,
-  Switch,
   Tag,
   Typography,
 } from "antd";
 import {
   ArrowLeftOutlined,
-  EditOutlined,
   PrinterOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
@@ -28,20 +22,17 @@ import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRaw
 import { useSellerQuery } from "@/hooks/sellers/useSellerQuery";
 import { useStockPostingRequestByReceiptQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
-import {
-  useWeighInMutation,
-  useWeighOutMutation,
-} from "@/hooks/weighbridge-tickets/useWeighTicketMutations";
 import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
 import { buildRawTireWarehouseReceiptSlipData } from "@/utils/buildRawTireWarehouseReceiptSlipData";
 
+import ReceivingTicketClassifyWeighPanel from "./ReceivingTicketClassifyWeighPanel";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
 const DISPLAY_LABELS: Record<string, string> = {
-  WAITING_WEIGH_IN: "รอชั่งเข้า",
-  WAITING_WEIGH_OUT: "รอชั่งออก",
-  WEIGHED_OUT: "ชั่งออกแล้ว",
+  WAITING_WEIGH_IN: "รอกรอกน้ำหนัก",
+  WAITING_WEIGH_OUT: "รอกรอกน้ำหนัก",
+  WEIGHED_OUT: "ชั่งครบแล้ว",
   CANCELLED: "ยกเลิก",
   CLOSED: "ปิดแล้ว",
 };
@@ -59,9 +50,9 @@ const PAYMENT_STATUS_LABELS: Record<string, string> = {
 };
 
 const FLOW_LABELS: Record<string, string> = {
-  WAITING_WEIGH_IN: "รอชั่งเข้า",
-  WAITING_SORT: "รอทำตั๋วชั่ง",
-  WAITING_WEIGH_OUT: "รอชั่งออก",
+  WAITING_WEIGH_IN: "รอกรอกน้ำหนัก",
+  WAITING_SORT: "รอคัดแยก",
+  WAITING_WEIGH_OUT: "รอกรอกน้ำหนัก",
   WAITING_APPROVAL: "รออนุมัติ",
   WAITING_PAYMENT: "รอจ่ายเงินหรือเข้าคลัง",
   PAYMENT_PAID: "จ่ายเงินแล้ว",
@@ -70,13 +61,6 @@ const FLOW_LABELS: Record<string, string> = {
   STOCK_POSTED: "เข้าคลังแล้ว",
   CANCELLED: "ยกเลิก",
   OTHER: "อื่นๆ",
-};
-
-type WeighFormValues = {
-  weightKg: number;
-  isManual: boolean;
-  reason?: string;
-  remark?: string;
 };
 
 type PaymentView = {
@@ -137,17 +121,16 @@ function hasActiveReceipt(view: PaymentView) {
 
 function resolveStepFromCurrentStep(currentStep?: string) {
   switch (currentStep) {
-    case "WEIGH_IN":
+    case "RECEIPT":
       return 0;
+    case "WEIGH_IN":
     case "WEIGH_OUT":
       return 1;
-    case "RECEIPT":
-      return 2;
     case "PAYMENT":
-      return 3;
+      return 2;
     case "STOCK_IN":
     case "COMPLETED":
-      return 4;
+      return 3;
     case "CANCELLED":
       return 0;
     default:
@@ -156,9 +139,8 @@ function resolveStepFromCurrentStep(currentStep?: string) {
 }
 
 function resolveStep(view: PaymentView) {
-  // เข้าคลังแล้วแต่ยังไม่จ่าย → โฟกัส Step จ่ายเงิน
   if (isPaymentReady(view)) {
-    return 3;
+    return 2;
   }
   if (
     view.flowState === "STOCK_POSTED" ||
@@ -166,7 +148,7 @@ function resolveStep(view: PaymentView) {
     view.flowState === "STOCK_REQUEST_PENDING" ||
     isPaymentPaid(view)
   ) {
-    return 4;
+    return 3;
   }
   if (view.receiptId || view.displayStatus === "WEIGHED_OUT") {
     return 2;
@@ -193,32 +175,6 @@ function resolvePaymentStatusLabel(view: PaymentView) {
   return "ยังไม่มีใบรับซื้อ";
 }
 
-/** อนุญาตเฉพาะตัวเลขและจุดทศนิยม (บล็อก e / + / - / ตัวอักษร) */
-function blockNonNumericWeightKey(event: KeyboardEvent<HTMLInputElement>) {
-  if (event.ctrlKey || event.metaKey || event.altKey) {
-    return;
-  }
-  const allowedKeys = new Set([
-    "Backspace",
-    "Delete",
-    "Tab",
-    "Escape",
-    "Enter",
-    "ArrowLeft",
-    "ArrowRight",
-    "ArrowUp",
-    "ArrowDown",
-    "Home",
-    "End",
-  ]);
-  if (allowedKeys.has(event.key)) {
-    return;
-  }
-  if (!/^[0-9.]$/.test(event.key)) {
-    event.preventDefault();
-  }
-}
-
 type Props = {
   ticketId: string;
 };
@@ -226,28 +182,10 @@ type Props = {
 export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const router = useRouter();
   const { message } = App.useApp();
-  const [weighInForm] = Form.useForm<WeighFormValues>();
-  const [weighOutForm] = Form.useForm<WeighFormValues>();
-  const weighInManual = Form.useWatch("isManual", weighInForm);
-  const weighOutManual = Form.useWatch("isManual", weighOutForm);
-  const [weighInEditMode, setWeighInEditMode] = useState(false);
-  const [weighOutEditMode, setWeighOutEditMode] = useState(false);
-  const [weighInFlash, setWeighInFlash] = useState(false);
-  const [weighOutFlash, setWeighOutFlash] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isPrintingWarehouseSlip, setIsPrintingWarehouseSlip] = useState(false);
-  const prevGrossWeightRef = useRef<string | null>(null);
-  const prevWeighOutKeyRef = useRef<string | null>(null);
-  const weighInFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const weighOutFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
 
   const ticketQuery = useWeighbridgeTicketQuery(ticketId);
-  const weighInMutation = useWeighInMutation(ticketId);
-  const weighOutMutation = useWeighOutMutation(ticketId);
   const ticket = ticketQuery.data?.data;
   const receiptQuery = useRawTirePurchaseReceiptQuery(ticket?.receiptId ?? "");
   const receipt = receiptQuery.data?.data ?? null;
@@ -255,65 +193,6 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const stockRequest = stockQuery.data?.data ?? null;
   const sellerQuery = useSellerQuery(receipt?.seller?.id);
   const seller = sellerQuery.data?.data;
-
-  useEffect(() => {
-    if (!ticket) {
-      return;
-    }
-
-    const triggerFlash = (
-      setFlash: (value: boolean) => void,
-      timerRef: { current: ReturnType<typeof setTimeout> | null },
-    ) => {
-      // รีสตาร์ท animation ทุกครั้งที่ค่าเปลี่ยน (รวมกรณีแก้ไขซ้ำ)
-      setFlash(false);
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      requestAnimationFrame(() => {
-        setFlash(true);
-        timerRef.current = setTimeout(() => {
-          setFlash(false);
-        }, 1600);
-      });
-    };
-
-    // รวม weighInAt — แก้/บันทึกใหม่จะอัปเดตเวลาเสมอ แม้ตัวเลขน้ำหนักเท่าเดิม
-    const grossKey = `${ticket.grossWeightKg ?? ""}:${ticket.weighInAt ?? ""}:${ticket.weighInRemark ?? ""}`;
-    const weighOutKey = `${ticket.tareWeightKg ?? ""}:${ticket.weighOutAt ?? ""}:${ticket.weighOutRemark ?? ""}`;
-
-    if (prevGrossWeightRef.current === null) {
-      prevGrossWeightRef.current = grossKey;
-    } else if (prevGrossWeightRef.current !== grossKey) {
-      prevGrossWeightRef.current = grossKey;
-      triggerFlash(setWeighInFlash, weighInFlashTimerRef);
-    }
-
-    if (prevWeighOutKeyRef.current === null) {
-      prevWeighOutKeyRef.current = weighOutKey;
-    } else if (prevWeighOutKeyRef.current !== weighOutKey) {
-      prevWeighOutKeyRef.current = weighOutKey;
-      triggerFlash(setWeighOutFlash, weighOutFlashTimerRef);
-    }
-  }, [ticket]);
-
-  useEffect(() => {
-    return () => {
-      if (weighInFlashTimerRef.current) {
-        clearTimeout(weighInFlashTimerRef.current);
-      }
-      if (weighOutFlashTimerRef.current) {
-        clearTimeout(weighOutFlashTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    prevGrossWeightRef.current = null;
-    prevWeighOutKeyRef.current = null;
-    setWeighInFlash(false);
-    setWeighOutFlash(false);
-  }, [ticketId]);
 
   const paymentQuery = useRawTirePaymentQuery(ticket?.receiptId ?? "");
   const paymentReceipt = paymentQuery.data?.data?.receipt;
@@ -346,7 +225,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const currentStep = useMemo(() => {
     // เข้าคลังก่อนจ่ายแล้วยังต้องโฟกัส Step จ่ายเงิน
     if (paymentView && isPaymentReady(paymentView)) {
-      return 3;
+      return 2;
     }
     const fromApi = resolveStepFromCurrentStep(ticket?.currentStep);
     if (fromApi !== undefined) {
@@ -415,22 +294,14 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
         lotsQuery.isLoading) ||
       (Boolean(receipt?.seller?.id) && sellerQuery.isLoading));
 
-  const maxStepIndex = 4;
+  const maxStepIndex = 3;
   const nextActionHref = ticket?.nextActionHref;
   const nextActionLabel = ticket?.nextAction;
-
-  const canCreateWeighIn = Boolean(ticket?.canWeighIn);
-  const canCreateWeighOut = Boolean(ticket?.canWeighOut);
-  const canUpdateWeighIn = Boolean(ticket?.canEditWeighIn);
-  const canUpdateWeighOut = Boolean(ticket?.canEditWeighOut);
-  const showWeighInForm = canCreateWeighIn || (canUpdateWeighIn && weighInEditMode);
-  const showWeighOutForm =
-    canCreateWeighOut || (canUpdateWeighOut && weighOutEditMode);
 
   const handlePrintTicket = async () => {
     if (!ticket) return;
     if (!ticket.weighOutAt) {
-      message.warning("พิมพ์ตั๋วชั่งได้หลังชั่งออกครบแล้ว");
+      message.warning("พิมพ์ตั๋วชั่งได้หลังบันทึกน้ำหนักครบแล้ว");
       return;
     }
     setIsPrinting(true);
@@ -451,77 +322,6 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
     } finally {
       setIsPrinting(false);
     }
-  };
-  const isUpdatingWeighIn = canUpdateWeighIn && weighInEditMode;
-  const isUpdatingWeighOut = canUpdateWeighOut && weighOutEditMode;
-  const weightEditWillResetReceipt = Boolean(ticket?.receiptId);
-
-  useEffect(() => {
-    if (!canUpdateWeighIn) {
-      setWeighInEditMode(false);
-    }
-  }, [canUpdateWeighIn]);
-
-  useEffect(() => {
-    if (!canUpdateWeighOut) {
-      setWeighOutEditMode(false);
-    }
-  }, [canUpdateWeighOut]);
-
-  useEffect(() => {
-    if (!ticket || !showWeighInForm) {
-      return;
-    }
-    weighInForm.setFieldsValue({
-      weightKg:
-        Number(ticket.grossWeightKg) > 0
-          ? Number(ticket.grossWeightKg)
-          : undefined,
-      isManual: true,
-      reason: isUpdatingWeighIn ? "แก้ไขน้ำหนักเข้า" : undefined,
-      remark: ticket.weighInRemark || undefined,
-    });
-  }, [ticket, showWeighInForm, isUpdatingWeighIn, weighInForm]);
-
-  useEffect(() => {
-    if (!ticket || !showWeighOutForm) {
-      return;
-    }
-    weighOutForm.setFieldsValue({
-      weightKg:
-        ticket.weighOutAt && Number(ticket.tareWeightKg) > 0
-          ? Number(ticket.tareWeightKg)
-          : undefined,
-      isManual: true,
-      reason: isUpdatingWeighOut ? "แก้ไขน้ำหนักออก" : undefined,
-      remark: ticket.weighOutRemark || undefined,
-    });
-  }, [ticket, showWeighOutForm, isUpdatingWeighOut, weighOutForm]);
-
-  const handleWeighIn = async (values: WeighFormValues) => {
-    await weighInMutation.mutateAsync({
-      weightKg: values.weightKg,
-      isManual: Boolean(values.isManual),
-      reason: values.isManual
-        ? values.reason?.trim() ||
-          (isUpdatingWeighIn ? "แก้ไขน้ำหนักเข้า" : undefined)
-        : undefined,
-      remark: values.remark?.trim() || undefined,
-    });
-    setWeighInEditMode(false);
-  };
-
-  const handleWeighOut = async (values: WeighFormValues) => {
-    await weighOutMutation.mutateAsync({
-      weightKg: values.weightKg,
-      isManual: Boolean(values.isManual),
-      reason: values.isManual
-        ? values.reason?.trim() ||
-          (isUpdatingWeighOut ? "แก้ไขน้ำหนักออก" : undefined)
-        : undefined,
-      remark: values.remark?.trim() || undefined,
-    });
-    setWeighOutEditMode(false);
   };
 
   return (
@@ -600,9 +400,8 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         : "process"
                   }
                   items={[
-                    { title: "ชั่งเข้า" },
-                    { title: "ชั่งออก" },
-                    { title: "ตั๋วชั่ง" },
+                    { title: "คัดแยก" },
+                    { title: "น้ำหนักเข้า-ออก" },
                     { title: "ออกใบจ่ายเงิน" },
                     { title: "เข้าคลัง" },
                   ]}
@@ -732,644 +531,15 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
             </div>
 
             <div className={styles.weighStepsStack}>
-              <div className={styles.weighGrid}>
-                <div
-                  className={[
-                    styles.stepCard,
-                    currentStep === 0 ? styles.stepCardActive : "",
-                    Number(ticket.grossWeightKg) > 0 ? styles.stepCardDone : "",
-                    weighInFlash ? styles.stepCardFlash : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {weighInFlash ? (
-                    <div className={styles.stepCardUpdateBanner} aria-live="polite">
-                      <span>มีการอัปเดต</span>
-                    </div>
-                  ) : null}
-                  <div className={styles.stepCardHeader}>
-                    <div className={styles.stepCardHeaderMain}>
-                      <div
-                        className={[
-                          styles.stepBadge,
-                          currentStep === 0 ? styles.stepBadgeActive : "",
-                          Number(ticket.grossWeightKg) > 0
-                            ? styles.stepBadgeDone
-                            : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                      >
-                        1
-                      </div>
-                      <div className={styles.stepCardTitle}>
-                        <h3>Step 1 · น้ำหนักเข้า</h3>
-                        <p>บันทึกน้ำหนักเมื่อรถเข้าชั่ง (Gross)</p>
-                      </div>
-                    </div>
-                    <div className={styles.stepHeaderActions}>
-                      {canUpdateWeighIn && !weighInEditMode ? (
-                        <Button
-                          size="small"
-                          icon={<EditOutlined />}
-                          onClick={() => setWeighInEditMode(true)}
-                        >
-                          แก้ไข
-                        </Button>
-                      ) : null}
-                      <Tag
-                        className={styles.stepStatusTag}
-                        color={
-                          Number(ticket.grossWeightKg) > 0
-                            ? "success"
-                            : currentStep === 0
-                              ? "processing"
-                              : "default"
-                        }
-                      >
-                        {Number(ticket.grossWeightKg) > 0
-                          ? "เสร็จแล้ว"
-                          : currentStep === 0
-                            ? "กำลังทำ"
-                            : "รอทำ"}
-                      </Tag>
-                    </div>
-                  </div>
-                  <div className={styles.stepCardBody}>
-                    {showWeighInForm ? (
-                      <Form
-                        form={weighInForm}
-                        layout="vertical"
-                        className={styles.weighFormInline}
-                        initialValues={{ isManual: true }}
-                        onFinish={handleWeighIn}
-                        requiredMark="optional"
-                      >
-                        <div className={styles.stepMetaGrid}>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
-                          >
-                            <span>น้ำหนักเข้า (กก.)</span>
-                            <Form.Item
-                              name="weightKg"
-                              rules={[
-                                {
-                                  required: true,
-                                  message: "กรุณากรอกน้ำหนักเข้า",
-                                },
-                                {
-                                  type: "number",
-                                  min: 0.001,
-                                  message: "น้ำหนักเข้าต้องมากกว่า 0",
-                                },
-                              ]}
-                            >
-                              <InputNumber
-                                min={0.001}
-                                step={0.001}
-                                precision={3}
-                                size="large"
-                                className={styles.stepMetaInput}
-                                placeholder="เช่น 18500.500"
-                                inputMode="decimal"
-                                controls
-                                onKeyDown={blockNonNumericWeightKey}
-                              />
-                            </Form.Item>
-                          </div>
-                          <div className={styles.stepMetaItem}>
-                            <span>เวลาชั่งเข้า</span>
-                            <strong>{formatDateTime(ticket.weighInAt)}</strong>
-                          </div>
-                          <div className={styles.stepMetaItem}>
-                            <span>แหล่งน้ำหนัก</span>
-                            <strong>
-                              {isUpdatingWeighIn
-                                ? ticket.weighInReadSource || "กรอกเอง"
-                                : "กรอกเอง"}
-                            </strong>
-                          </div>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaFull}`}
-                          >
-                            <span>หมายเหตุ</span>
-                            <Form.Item name="remark">
-                              <Input.TextArea
-                                className={styles.stepMetaTextArea}
-                                rows={2}
-                                placeholder="หมายเหตุเพิ่มเติม"
-                              />
-                            </Form.Item>
-                          </div>
-                        </div>
-
-                        <div className={styles.stepMetaControls}>
-                          <div className={styles.stepMetaControlItem}>
-                            <span>กรอกน้ำหนักเอง</span>
-                            <Form.Item name="isManual" valuePropName="checked">
-                              <Switch
-                                checkedChildren="ใช่"
-                                unCheckedChildren="ไม่"
-                              />
-                            </Form.Item>
-                          </div>
-                          {weighInManual ? (
-                            <div
-                              className={`${styles.stepMetaControlItem} ${styles.stepMetaControlFull}`}
-                            >
-                              <span>เหตุผลการกรอกเอง</span>
-                              <Form.Item name="reason">
-                                <Input.TextArea
-                                  rows={2}
-                                  placeholder="เช่น เครื่องชั่งยังไม่เชื่อมต่อ (ไม่บังคับ)"
-                                />
-                              </Form.Item>
-                            </div>
-                          ) : null}
-                        </div>
-
-                        {isUpdatingWeighIn && weightEditWillResetReceipt ? (
-                          <div className={styles.stepEmptyHint}>
-                            แก้ไขน้ำหนักแล้ว ระบบจะยกเลิกใบรับซื้อปัจจุบัน
-                            และต้องทำตั๋วชั่งใหม่ที่ Step 3
-                          </div>
-                        ) : null}
-
-                        <div className={styles.weighActions}>
-                          <Button disabled>อ่านน้ำหนักจากเครื่องชั่ง</Button>
-                          {isUpdatingWeighIn ? (
-                            <Button onClick={() => setWeighInEditMode(false)}>
-                              ยกเลิก
-                            </Button>
-                          ) : null}
-                          {isUpdatingWeighIn && weightEditWillResetReceipt ? (
-                            <Popconfirm
-                              title="ยืนยันแก้ไขน้ำหนักเข้า"
-                              description="ใบรับซื้อที่มีอยู่จะถูกยกเลิก และต้องทำตั๋วชั่งใหม่ที่ Step 3"
-                              okText="ยืนยัน"
-                              cancelText="ยกเลิก"
-                              onConfirm={() => void weighInForm.submit()}
-                            >
-                              <Button
-                                type="primary"
-                                className={styles.submitButton}
-                                loading={weighInMutation.isPending}
-                              >
-                                บันทึกการแก้ไขชั่งเข้า
-                              </Button>
-                            </Popconfirm>
-                          ) : (
-                            <Button
-                              type="primary"
-                              htmlType="submit"
-                              className={styles.submitButton}
-                              loading={weighInMutation.isPending}
-                            >
-                              {isUpdatingWeighIn
-                                ? "บันทึกการแก้ไขชั่งเข้า"
-                                : "บันทึกชั่งเข้า"}
-                            </Button>
-                          )}
-                        </div>
-                      </Form>
-                    ) : (
-                      <>
-                        <div className={styles.stepMetaGrid}>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
-                          >
-                            <span>น้ำหนักเข้า</span>
-                            <strong>
-                              {formatWeight(ticket.grossWeightKg)} กก.
-                            </strong>
-                          </div>
-                          <div className={styles.stepMetaItem}>
-                            <span>เวลาชั่งเข้า</span>
-                            <strong>{formatDateTime(ticket.weighInAt)}</strong>
-                          </div>
-                          <div className={styles.stepMetaItem}>
-                            <span>แหล่งน้ำหนัก</span>
-                            <strong>{ticket.weighInReadSource || "-"}</strong>
-                          </div>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaFull}`}
-                          >
-                            <span>หมายเหตุ</span>
-                            <strong>{ticket.weighInRemark || "-"}</strong>
-                          </div>
-                        </div>
-                        {paid ? (
-                          <div className={styles.stepEmptyHint}>
-                            จ่ายเงินแล้ว ไม่สามารถแก้ไขน้ำหนักเข้าได้
-                          </div>
-                        ) : Number(ticket.grossWeightKg) <= 0 ? (
-                          <div className={styles.stepEmptyHint}>
-                            ไม่สามารถบันทึกชั่งเข้าได้ในสถานะนี้
-                          </div>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div
-                  className={[
-                    styles.stepCard,
-                    currentStep === 1 ? styles.stepCardActive : "",
-                    ticket.weighOutAt ? styles.stepCardDone : "",
-                    !ticket.canWeighOut && !ticket.weighOutAt
-                      ? styles.stepCardLocked
-                      : "",
-                    weighOutFlash ? styles.stepCardFlash : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                >
-                  {weighOutFlash ? (
-                    <div className={styles.stepCardUpdateBanner} aria-live="polite">
-                      <span>มีการอัปเดต</span>
-                    </div>
-                  ) : null}
-                  <div className={styles.stepCardHeader}>
-                    <div className={styles.stepCardHeaderMain}>
-                      <div
-                        className={[
-                          styles.stepBadge,
-                          currentStep === 1 ? styles.stepBadgeActive : "",
-                          ticket.weighOutAt ? styles.stepBadgeDone : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                      >
-                        2
-                      </div>
-                      <div className={styles.stepCardTitle}>
-                        <h3>Step 2 · น้ำหนักออก</h3>
-                        <p>บันทึกน้ำหนักหลังถ่ายยาง (Tare) แล้วคำนวณสุทธิ</p>
-                      </div>
-                    </div>
-                    <div className={styles.stepHeaderActions}>
-                      {canUpdateWeighOut && !weighOutEditMode ? (
-                        <Button
-                          size="small"
-                          icon={<EditOutlined />}
-                          onClick={() => setWeighOutEditMode(true)}
-                        >
-                          แก้ไข
-                        </Button>
-                      ) : null}
-                      <Tag
-                        className={styles.stepStatusTag}
-                        color={
-                          ticket.weighOutAt
-                            ? "success"
-                            : currentStep === 1
-                              ? "processing"
-                              : "default"
-                        }
-                      >
-                        {ticket.weighOutAt
-                          ? "เสร็จแล้ว"
-                          : currentStep === 1
-                            ? "กำลังทำ"
-                            : "รอทำ"}
-                      </Tag>
-                    </div>
-                  </div>
-                  <div className={styles.stepCardBody}>
-                    {showWeighOutForm ? (
-                      <Form
-                        form={weighOutForm}
-                        layout="vertical"
-                        className={styles.weighFormInline}
-                        initialValues={{ isManual: true }}
-                        onFinish={handleWeighOut}
-                        requiredMark="optional"
-                      >
-                        <div className={styles.stepMetaGrid}>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
-                          >
-                            <span>น้ำหนักออก (กก.)</span>
-                            <Form.Item
-                              name="weightKg"
-                              rules={[
-                                {
-                                  required: true,
-                                  message: "กรุณากรอกน้ำหนักออก",
-                                },
-                                {
-                                  type: "number",
-                                  min: 0.001,
-                                  message: "น้ำหนักออกต้องมากกว่า 0",
-                                },
-                              ]}
-                            >
-                              <InputNumber
-                                min={0.001}
-                                step={0.001}
-                                precision={3}
-                                size="large"
-                                className={styles.stepMetaInput}
-                                placeholder="เช่น 8500.250"
-                                inputMode="decimal"
-                                controls
-                                onKeyDown={blockNonNumericWeightKey}
-                              />
-                            </Form.Item>
-                          </div>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
-                          >
-                            <span>น้ำหนักสุทธิ</span>
-                            <strong>
-                              {isUpdatingWeighOut
-                                ? `จะคำนวณใหม่หลังบันทึก (เข้า ${formatWeight(ticket.grossWeightKg)} กก.)`
-                                : `จะคำนวณหลังบันทึก (เข้า ${formatWeight(ticket.grossWeightKg)} กก.)`}
-                            </strong>
-                          </div>
-                          <div className={styles.stepMetaItem}>
-                            <span>เวลาชั่งออก</span>
-                            <strong>{formatDateTime(ticket.weighOutAt)}</strong>
-                          </div>
-                          <div className={styles.stepMetaItem}>
-                            <span>แหล่งน้ำหนัก</span>
-                            <strong>
-                              {isUpdatingWeighOut
-                                ? ticket.weighOutReadSource || "กรอกเอง"
-                                : "กรอกเอง"}
-                            </strong>
-                          </div>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaFull}`}
-                          >
-                            <span>หมายเหตุ</span>
-                            <Form.Item name="remark">
-                              <Input.TextArea
-                                className={styles.stepMetaTextArea}
-                                rows={2}
-                                placeholder="หมายเหตุเพิ่มเติม"
-                              />
-                            </Form.Item>
-                          </div>
-                        </div>
-
-                        <div className={styles.stepMetaControls}>
-                          <div className={styles.stepMetaControlItem}>
-                            <span>กรอกน้ำหนักเอง</span>
-                            <Form.Item name="isManual" valuePropName="checked">
-                              <Switch
-                                checkedChildren="ใช่"
-                                unCheckedChildren="ไม่"
-                              />
-                            </Form.Item>
-                          </div>
-                          {weighOutManual ? (
-                            <div
-                              className={`${styles.stepMetaControlItem} ${styles.stepMetaControlFull}`}
-                            >
-                              <span>เหตุผลการกรอกเอง</span>
-                              <Form.Item name="reason">
-                                <Input.TextArea
-                                  rows={2}
-                                  placeholder="เช่น อ่านจากหน้าจอเครื่องชั่ง (ไม่บังคับ)"
-                                />
-                              </Form.Item>
-                            </div>
-                          ) : null}
-                        </div>
-
-                        {isUpdatingWeighOut && weightEditWillResetReceipt ? (
-                          <div className={styles.stepEmptyHint}>
-                            แก้ไขน้ำหนักแล้ว ระบบจะยกเลิกใบรับซื้อปัจจุบัน
-                            และต้องทำตั๋วชั่งใหม่ที่ Step 3
-                          </div>
-                        ) : null}
-
-                        <div className={styles.weighActions}>
-                          <Button disabled>อ่านน้ำหนักจากเครื่องชั่ง</Button>
-                          {isUpdatingWeighOut ? (
-                            <Button onClick={() => setWeighOutEditMode(false)}>
-                              ยกเลิก
-                            </Button>
-                          ) : null}
-                          {isUpdatingWeighOut && weightEditWillResetReceipt ? (
-                            <Popconfirm
-                              title="ยืนยันแก้ไขน้ำหนักออก"
-                              description="ใบรับซื้อที่มีอยู่จะถูกยกเลิก และต้องทำตั๋วชั่งใหม่ที่ Step 3"
-                              okText="ยืนยัน"
-                              cancelText="ยกเลิก"
-                              onConfirm={() => void weighOutForm.submit()}
-                            >
-                              <Button
-                                type="primary"
-                                className={styles.submitButton}
-                                loading={weighOutMutation.isPending}
-                              >
-                                บันทึกการแก้ไขชั่งออก
-                              </Button>
-                            </Popconfirm>
-                          ) : (
-                            <Button
-                              type="primary"
-                              htmlType="submit"
-                              className={styles.submitButton}
-                              loading={weighOutMutation.isPending}
-                            >
-                              {isUpdatingWeighOut
-                                ? "บันทึกการแก้ไขชั่งออก"
-                                : "บันทึกชั่งออก"}
-                            </Button>
-                          )}
-                        </div>
-                      </Form>
-                    ) : (
-                      <>
-                        <div className={styles.stepMetaGrid}>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
-                          >
-                            <span>น้ำหนักออก</span>
-                            <strong>
-                              {ticket.weighOutAt
-                                ? `${formatWeight(ticket.tareWeightKg)} กก.`
-                                : "-"}
-                            </strong>
-                          </div>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
-                          >
-                            <span>น้ำหนักสุทธิ</span>
-                            <strong>
-                              {ticket.weighOutAt
-                                ? `${formatWeight(ticket.netWeightKg)} กก.`
-                                : "-"}
-                            </strong>
-                          </div>
-                          <div className={styles.stepMetaItem}>
-                            <span>เวลาชั่งออก</span>
-                            <strong>{formatDateTime(ticket.weighOutAt)}</strong>
-                          </div>
-                          <div className={styles.stepMetaItem}>
-                            <span>แหล่งน้ำหนัก</span>
-                            <strong>{ticket.weighOutReadSource || "-"}</strong>
-                          </div>
-                          <div
-                            className={`${styles.stepMetaItem} ${styles.stepMetaFull}`}
-                          >
-                            <span>หมายเหตุ</span>
-                            <strong>{ticket.weighOutRemark || "-"}</strong>
-                          </div>
-                        </div>
-                        {paid ? (
-                          <div className={styles.stepEmptyHint}>
-                            จ่ายเงินแล้ว ไม่สามารถแก้ไขน้ำหนักออกได้
-                          </div>
-                        ) : !ticket.weighOutAt ? (
-                          <div className={styles.stepEmptyHint}>
-                            ต้องบันทึกชั่งเข้าก่อน จึงจะชั่งออกได้
-                          </div>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <ReceivingTicketClassifyWeighPanel
+                ticket={ticket}
+                currentStep={currentStep}
+              />
 
               <div
                 className={[
                   styles.stepCard,
-                  currentStep === 2 ? styles.stepCardActive : "",
-                  ticket.receiptId ? styles.stepCardDone : "",
-                  !(
-                    ticket.displayStatus === "WEIGHED_OUT" || ticket.receiptId
-                  )
-                    ? styles.stepCardLocked
-                    : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                <div className={styles.stepCardHeader}>
-                  <div className={styles.stepCardHeaderMain}>
-                    <div
-                      className={[
-                        styles.stepBadge,
-                        currentStep === 2 ? styles.stepBadgeActive : "",
-                        ticket.receiptId ? styles.stepBadgeDone : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
-                    >
-                      3
-                    </div>
-                    <div className={styles.stepCardTitle}>
-                      <h3>Step 3 · ตั๋วชั่ง</h3>
-                      <p>
-                        คัดแยกรายการยาง บันทึกน้ำหนัก/การหัก
-                        แล้วยืนยันยอดก่อนออกใบจ่ายเงิน
-                      </p>
-                    </div>
-                  </div>
-                  <Tag
-                    className={styles.stepStatusTag}
-                    color={
-                      ticket.receiptId
-                        ? "success"
-                        : currentStep === 2
-                          ? "processing"
-                          : "default"
-                    }
-                  >
-                    {ticket.receiptId
-                      ? "มีตั๋วชั่งแล้ว"
-                      : currentStep === 2
-                        ? "พร้อมทำตั๋วชั่ง"
-                        : "รอชั่งออก"}
-                  </Tag>
-                </div>
-                <div className={styles.stepCardBody}>
-                  <div className={styles.stepMetaGrid}>
-                    <div
-                      className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
-                    >
-                      <span>น้ำหนักสุทธิ</span>
-                      <strong>
-                        {ticket.weighOutAt
-                          ? `${formatWeight(ticket.netWeightKg)} กก.`
-                          : "-"}
-                      </strong>
-                    </div>
-                    <div className={styles.stepMetaItem}>
-                      <span>ตั๋วชั่ง / ใบรับซื้อ</span>
-                      <strong>
-                        {ticket.receiptNo
-                          ? `${ticket.receiptNo} (${RECEIPT_STATUS_LABELS[ticket.receiptStatus ?? ""] ?? ticket.receiptStatus ?? "-"})`
-                          : "ยังไม่มี — ต้องทำตั๋วชั่งก่อน"}
-                      </strong>
-                    </div>
-                  </div>
-
-                  {ticket.displayStatus === "WEIGHED_OUT" ||
-                  ticket.receiptId ? (
-                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
-                      {!ticket.receiptId ? (
-                        <Button
-                          type="primary"
-                          className={styles.submitButton}
-                          onClick={() =>
-                            router.push(
-                              `/receiving/${ticketId}/classification`,
-                            )
-                          }
-                        >
-                          ทำตั๋วชั่ง
-                        </Button>
-                      ) : (
-                        <>
-                          <Button
-                            type="primary"
-                            className={styles.submitButton}
-                            onClick={() =>
-                              router.push(
-                                `/receiving/receipts/${ticket.receiptId}`,
-                              )
-                            }
-                          >
-                            เปิดตั๋วชั่ง {ticket.receiptNo}
-                          </Button>
-                          <Button
-                            onClick={() =>
-                              router.push(
-                                `/receiving/${ticketId}/classification`,
-                              )
-                            }
-                          >
-                            แก้ไขตั๋วชั่ง
-                          </Button>
-                          <Button
-                            icon={<PrinterOutlined />}
-                            loading={isPrinting}
-                            onClick={() => void handlePrintTicket()}
-                          >
-                            พิมพ์ตั๋วชั่ง
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    <div className={styles.stepEmptyHint}>
-                      บันทึกชั่งเข้าและชั่งออกให้ครบก่อน แล้วค่อยทำตั๋วชั่ง
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div
-                className={[
-                  styles.stepCard,
-                  currentStep === 3 || (hasReceipt && !paid)
+                  currentStep === 2 || (hasReceipt && !paid)
                     ? styles.stepCardActive
                     : "",
                   paid ? styles.stepCardDone : "",
@@ -1383,7 +553,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div
                       className={[
                         styles.stepBadge,
-                        currentStep === 3 || readyToPay
+                        currentStep === 2 || readyToPay
                           ? styles.stepBadgeActive
                           : "",
                         paid ? styles.stepBadgeDone : "",
@@ -1391,10 +561,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      4
+                      3
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 4 · ออกใบจ่ายเงิน</h3>
+                      <h3>Step 3 · ออกใบจ่ายเงิน</h3>
                       <p>
                         บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — ทำคู่ขนานกับเข้าคลังได้ (ลำดับใดก่อนก็ได้)
                       </p>
@@ -1486,8 +656,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                   ) : hasReceipt ? (
                     <>
                       <div className={styles.stepEmptyHint}>
-                        ตั๋วชั่งยังเป็นร่าง — กด “ยืนยันยอด” ในหน้ารายละเอียดก่อน
-                        (ล็อกยอดน้ำหนัก/เงิน) แล้วค่อยกลับมาออกใบจ่ายเงินที่ Step นี้
+                        ใบรับซื้อยังไม่พร้อมจ่าย — เปิดรายละเอียดเพื่อตรวจสอบยอด
                       </div>
                       <div className={styles.weighActions} style={{ marginTop: 16 }}>
                         <Button
@@ -1499,13 +668,13 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             )
                           }
                         >
-                          เปิดตั๋วชั่งเพื่อยืนยันยอด
+                          เปิดใบรับซื้อ
                         </Button>
                       </div>
                     </>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      ทำตั๋วชั่งจาก Step 3 ก่อน แล้วค่อยยืนยันยอดและออกใบจ่ายเงิน
+                      บันทึกน้ำหนักใน Step 2 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน
                     </div>
                   )}
                 </div>
@@ -1514,7 +683,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               <div
                 className={[
                   styles.stepCard,
-                  currentStep === 4 ||
+                  currentStep === 3 ||
                   readyForStockIn ||
                   stockRequestPending
                     ? styles.stepCardActive
@@ -1532,7 +701,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div
                       className={[
                         styles.stepBadge,
-                        currentStep === 4 ||
+                        currentStep === 3 ||
                         readyForStockIn ||
                         stockRequestPending
                           ? styles.stepBadgeActive
@@ -1542,10 +711,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      5
+                      4
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 5 · เข้าคลัง</h3>
+                      <h3>Step 4 · เข้าคลัง</h3>
                       <p>
                         ส่งคำขอรับยางดิบเข้าคลังได้หลังยืนยันยอด — จ่ายเงินก่อนหรือหลังก็ได้
                       </p>
@@ -1684,7 +853,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     </div>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      ยืนยันยอดใน Step 3 ให้เสร็จก่อน แล้วจะจ่ายเงินหรือเข้าคลังก่อนก็ได้
+                      บันทึกน้ำหนักใน Step 2 ให้เสร็จก่อน แล้วจะจ่ายเงินหรือเข้าคลังก่อนก็ได้
                     </div>
                   )}
                 </div>

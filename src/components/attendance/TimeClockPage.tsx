@@ -28,6 +28,11 @@ import {
   useMyAttendanceTodayQuery,
 } from "@/hooks/attendance/useMyAttendanceQuery";
 import { ATTENDANCE_STATUS_LABEL } from "@/types/attendance";
+import {
+  SHIFT_SOURCE_LABEL,
+  WORK_CALENDAR_DAY_TYPE_LABEL,
+  type MyShiftDay,
+} from "@/types/shifts";
 
 import styles from "./TimeClockPage.module.css";
 
@@ -84,6 +89,58 @@ function currentSecond() {
 
 function noopSubscribe() {
   return () => {};
+}
+
+/** กะของวันหนึ่งบนหน้าลงเวลา — วันหยุดโชว์เหตุผลแทนเวลาเข้ากะ */
+function ShiftRow({
+  label,
+  shift,
+  highlight,
+}: {
+  label: string;
+  shift: MyShiftDay;
+  highlight?: boolean;
+}) {
+  const isOff = shift.isHoliday || !shift.startTime;
+
+  return (
+    <div
+      className={
+        highlight
+          ? `${styles.shiftRow} ${styles.shiftRowToday}`
+          : styles.shiftRow
+      }
+    >
+      <span className={styles.shiftRowLabel}>{label}</span>
+      <span className={styles.shiftRowBody}>
+        <strong>
+          {shift.isHoliday
+            ? (WORK_CALENDAR_DAY_TYPE_LABEL[shift.holidayType ?? ""] ?? "วันหยุด")
+            : (shift.shiftName ?? "ยังไม่ได้จัดกะ")}
+        </strong>
+        <span>
+          {shift.isHoliday
+            ? shift.holidayName
+            : shift.isOvernight
+              ? "กะข้ามคืน — เลิกกะวันถัดไป"
+              : (SHIFT_SOURCE_LABEL[shift.source] ?? "")}
+        </span>
+      </span>
+      <span
+        className={
+          isOff
+            ? `${styles.shiftRowTime} ${styles.shiftRowOff}`
+            : styles.shiftRowTime
+        }
+      >
+        {shift.isHoliday
+          ? "หยุด"
+          : shift.startTime
+            ? `${shift.startTime}${shift.endTime ? ` - ${shift.endTime}` : ""}`
+            : "—"}
+      </span>
+    </div>
+  );
 }
 
 export default function TimeClockPage() {
@@ -148,10 +205,26 @@ export default function TimeClockPage() {
     }
   }, [clockDate, status?.today, todayQuery]);
 
+  /** สายกี่นาทีถ้ากดตอนนี้ — คิดจากเวลาเข้ากะของวันนี้ (ไม่คิดในวันหยุด) */
+  const lateNowMinutes = useMemo(() => {
+    const shift = status?.todayShift;
+    if (!clock || !shift || shift.isHoliday || !shift.startTime) {
+      return 0;
+    }
+    const [hour, minute] = shift.startTime.split(":").map(Number);
+    const diff = clock.diff(clock.hour(hour).minute(minute).second(0), "minute");
+    return Math.max(0, diff);
+  }, [clock, status?.todayShift]);
+
   const confirmCheckIn = () => {
+    // ไม่ตัดสินว่า "สาย" ตรงนี้ เพราะยังไม่หักเวลาผ่อนผัน — ฝั่ง server เป็นคนตัดสิน
+    const shiftLabel = status?.todayShift?.startTime
+      ? ` (เข้ากะ ${status.todayShift.startTime} น.${lateNowMinutes > 0 ? ` — ช้ากว่าเวลาเข้ากะ ${lateNowMinutes} นาที` : ""})`
+      : "";
+
     modal.confirm({
       title: "ยืนยันการเข้างาน",
-      content: `บันทึกเวลาเข้างาน ${clock ? clock.format("HH:mm") : ""} น.`,
+      content: `บันทึกเวลาเข้างาน ${clock ? clock.format("HH:mm") : ""} น.${shiftLabel}`,
       okText: "เข้างาน",
       cancelText: "ยกเลิก",
       centered: true,
@@ -279,6 +352,21 @@ export default function TimeClockPage() {
           </div>
         ) : null}
 
+        {/* กะที่ต้องเข้า — พนักงานต้องรู้ทั้งวันนี้และพรุ่งนี้ก่อนกดเข้างาน */}
+        {status.todayShift ? (
+          <section className={styles.shiftCard}>
+            <ShiftRow label="วันนี้" shift={status.todayShift} highlight />
+            {status.tomorrowShift ? (
+              <ShiftRow label="พรุ่งนี้" shift={status.tomorrowShift} />
+            ) : null}
+            {status.todayShift.source === "DEFAULT" ? (
+              <p className={styles.shiftHint}>
+                ฝ่ายบุคคลยังไม่ได้จัดกะของวันนี้ — ใช้เวลาเข้างานมาตรฐานไปก่อน
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
         {/* เข้า/ออกอยู่แถวบน (สั้นทั้งคู่) ส่วนรวมเวลาแยกแถวล่าง — ยัด 3 ช่องบนจอ 375px แล้วบีบ */}
         <section className={styles.todayCard}>
           {pendingDate ? (
@@ -306,10 +394,14 @@ export default function TimeClockPage() {
         {record ? (
           <div className={styles.statusRow}>
             <Tag color={record.status === "LATE" ? "warning" : "success"}>
-              {ATTENDANCE_STATUS_LABEL[record.status] ?? record.status}
+              {record.status === "LATE" && record.lateMinutes
+                ? `สาย ${record.lateMinutes} นาที`
+                : (ATTENDANCE_STATUS_LABEL[record.status] ?? record.status)}
             </Tag>
             <span className={styles.statusHint}>
-              เวลาเข้างานมาตรฐาน {status.workStartTime} น.
+              {record.shiftName
+                ? `${record.shiftName} เข้ากะ ${record.shiftStartTime ?? status.workStartTime} น.`
+                : `เวลาเข้างาน ${status.workStartTime} น.`}
             </span>
           </div>
         ) : null}

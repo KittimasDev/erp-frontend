@@ -4,13 +4,19 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
 import {
+  completeWeighAndReceipt,
   createPurchaseReceiptFromTicket,
+  saveClassificationPlan,
   weighInWeighbridgeTicket,
   weighOutWeighbridgeTicket,
 } from "@/lib/api/weighbridge-tickets";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
-import type { WeighTicketRequest } from "@/types/weighbridge-tickets";
+import type {
+  CompleteWeighAndReceiptRequest,
+  SaveClassificationPlanRequest,
+  WeighTicketRequest,
+} from "@/types/weighbridge-tickets";
 import { weighbridgeTicketQueryKey } from "./useWeighbridgeTicketQuery";
 import { weighbridgeDashboardQueryKey } from "./useWeighbridgeDashboardQuery";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
@@ -34,6 +40,57 @@ function invalidateAfterWeigh(
       queryKey: rawTirePurchaseReceiptQueryKey,
     }),
   ]);
+}
+
+export function useSaveClassificationPlanMutation(ticketId: string) {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: ["weighbridge", "tickets", ticketId, "classification-plan"],
+    mutationFn: (payload: SaveClassificationPlanRequest) =>
+      saveClassificationPlan(getAccessToken(), ticketId, payload),
+    onSuccess: async (response) => {
+      await invalidateAfterWeigh(queryClient, ticketId);
+      message.success(response.message || "บันทึกแผนคัดแยกสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "บันทึกแผนคัดแยกไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useCompleteWeighAndReceiptMutation(ticketId: string) {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [
+      "weighbridge",
+      "tickets",
+      ticketId,
+      "complete-weigh-and-receipt",
+    ],
+    mutationFn: (payload: CompleteWeighAndReceiptRequest) =>
+      completeWeighAndReceipt(getAccessToken(), ticketId, payload),
+    onSuccess: async (response) => {
+      await invalidateAfterWeigh(queryClient, ticketId);
+      message.success(
+        response.message || "บันทึกน้ำหนักและยืนยันใบรับซื้อสำเร็จแล้ว",
+      );
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "บันทึกน้ำหนักและยืนยันใบรับซื้อไม่สำเร็จ",
+      );
+    },
+  });
 }
 
 export function useWeighInMutation(ticketId: string) {

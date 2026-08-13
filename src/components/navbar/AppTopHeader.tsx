@@ -27,6 +27,8 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/production/rcb-processing", title: "กระบวนการผลิต rCB" },
   { href: "/inventory/tire-prep-issues", title: "เบิกยางเข้ากระบวนการเตรียมยาง" },
   { href: "/hrm/employees", title: "ข้อมูลพนักงาน" },
+  { href: "/hrm/shifts", title: "ตารางกะการทำงาน" },
+  { href: "/hrm/shift-assignments", title: "รายการเข้ากะ" },
   { href: "/hrm/attendance", title: "บันทึกเวลาเข้า-ออกงาน" },
   { href: "/hrm/overtime-requests", title: "คำขอทำงานล่วงเวลา (OT)" },
   { href: "/hrm/leave-requests", title: "คำขอลางาน" },

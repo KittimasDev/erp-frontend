@@ -253,7 +253,7 @@ export default function RawTirePurchaseReceiptDetailPage({
             onClick={() => {
               if (receipt?.weighbridgeTicketId) {
                 router.push(
-                  `/receiving/${receipt.weighbridgeTicketId}/classification`,
+                  `/receiving/${receipt.weighbridgeTicketId}`,
                 );
               } else {
                 router.push("/receiving");
@@ -428,7 +428,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                         disabled={isBusy}
                         onClick={() =>
                           router.push(
-                            `/receiving/${receipt.weighbridgeTicketId}/classification`,
+                            `/receiving/${receipt.weighbridgeTicketId}`,
                           )
                         }
                       >
@@ -513,7 +513,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                         onClick={() => {
                           if (receipt.weighbridgeTicketId) {
                             router.push(
-                              `/receiving/${receipt.weighbridgeTicketId}/classification`,
+                              `/receiving/${receipt.weighbridgeTicketId}`,
                             );
                           }
                         }}
@@ -565,7 +565,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                           disabled={isBusy}
                           onClick={() =>
                             router.push(
-                              `/receiving/${receipt.weighbridgeTicketId}/classification`,
+                              `/receiving/${receipt.weighbridgeTicketId}`,
                             )
                           }
                         >
