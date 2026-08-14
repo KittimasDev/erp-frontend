@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // ปิดเครื่องหมาย Next.js (dev indicator) มุมจอตอนพัฒนา
   devIndicators: false,
+  experimental: {
+    proxyClientMaxBodySize: "20mb",
+  },
 
   // forward browser console (warn/error) ไปที่ terminal ตอน next dev — ดู client error ได้โดยไม่ต้องเปิด devtools
   logging: {

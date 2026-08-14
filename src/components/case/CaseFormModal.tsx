@@ -27,6 +27,15 @@ import type {
 import styles from "@/components/masters/shared/master-page.module.css";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+
+function isAllowedImageFile(file: File) {
+  if (file.type.startsWith("image/")) {
+    return true;
+  }
+  const name = file.name.toLowerCase();
+  return IMAGE_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
 
 type CaseFormValues = {
   title: string;
@@ -147,28 +156,65 @@ export default function CaseFormModal({
     };
   }, [previewUrls]);
 
+  const addPendingFile = (file: File) => {
+    if (!isAllowedImageFile(file)) {
+      message.error("รองรับเฉพาะไฟล์รูปภาพ JPG PNG WEBP GIF");
+      return false;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      message.error("ขนาดรูปต้องไม่เกิน 10MB");
+      return false;
+    }
+    setPendingFiles((prev) => {
+      if (prev.some((f) => f.name === file.name && f.size === file.size)) {
+        return prev;
+      }
+      return [...prev, file];
+    });
+    return true;
+  };
+
   const uploadProps: UploadProps = {
     multiple: true,
     showUploadList: false,
-    accept: "image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif",
+    accept: "image/*,.jpg,.jpeg,.png,.webp,.gif",
     beforeUpload: (file) => {
-      if (!file.type.startsWith("image/")) {
-        message.error("รองรับเฉพาะไฟล์รูปภาพ");
-        return Upload.LIST_IGNORE;
-      }
-      if (file.size > MAX_IMAGE_BYTES) {
-        message.error("ขนาดรูปต้องไม่เกิน 10MB");
-        return Upload.LIST_IGNORE;
-      }
-      setPendingFiles((prev) => {
-        if (prev.some((f) => f.name === file.name && f.size === file.size)) {
-          return prev;
-        }
-        return [...prev, file];
-      });
-      return false;
+      addPendingFile(file);
+      return Upload.LIST_IGNORE;
+    },
+    customRequest: ({ onSuccess }) => {
+      onSuccess?.("ok");
     },
   };
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onPaste = (event: ClipboardEvent) => {
+      const items = event.clipboardData?.items;
+      if (!items) {
+        return;
+      }
+      const files: File[] = [];
+      for (const item of items) {
+        if (item.kind === "file") {
+          const file = item.getAsFile();
+          if (file) {
+            files.push(file);
+          }
+        }
+      }
+      if (files.length === 0) {
+        return;
+      }
+      event.preventDefault();
+      files.forEach((file) => addPendingFile(file));
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- paste while modal open
+  }, [open]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
@@ -276,7 +322,7 @@ export default function CaseFormModal({
             <Button>เลือกรูป</Button>
           </Upload>
           <div style={{ marginTop: 8, color: "#777", fontSize: 12 }}>
-            รองรับ JPG/PNG/WEBP/GIF ไม่เกิน 10MB ต่อไฟล์
+            รองรับ JPG/PNG/WEBP/GIF ไม่เกิน 10MB ต่อไฟล์ — หรือ Ctrl+V วางภาพจากคลิปบอร์ด
           </div>
 
           {pendingFiles.length > 0 ? (

@@ -11,6 +11,7 @@ export type WeighbridgeTicketPdfItem = {
   weightKg: string;
   pricePerKg: string;
   amount: string;
+  description?: string;
 };
 
 export type WeighbridgeTicketPdfDeduction = {
@@ -25,6 +26,7 @@ export type WeighbridgeTicketPdfData = {
   ticketType: string;
   tradeType: string;
   licensePlate: string;
+  driverName: string;
   sellerCode: string;
   sellerName: string;
   scaleName: string;
@@ -62,7 +64,7 @@ function formatWeight(value?: string | number) {
   const n = Number(value ?? 0);
   if (Number.isNaN(n)) return String(value ?? "-");
   return n.toLocaleString("th-TH", {
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 3,
     maximumFractionDigits: 3,
   });
 }
@@ -93,7 +95,11 @@ function splitDateTime(value?: string) {
   }
   return {
     date: date.toLocaleDateString("th-TH"),
-    time: date.toLocaleTimeString("th-TH", { hour12: false }),
+    time: date.toLocaleTimeString("th-TH", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
   };
 }
 
@@ -119,6 +125,7 @@ export function mapWeighbridgeTicketToPdfData(params: {
       weightKg: formatWeight(item.weightKg),
       pricePerKg: formatPrice(item.pricePerKg),
       amount: formatMoney(item.amount),
+      description: item.description || "",
     }),
   );
 
@@ -158,6 +165,7 @@ export function mapWeighbridgeTicketToPdfData(params: {
     ticketType: ticketTypeLabel(ticket.ticketType),
     tradeType: "ซื้อ",
     licensePlate: plate || "-",
+    driverName: ticket.driverName || receipt?.ticket?.driverName || "-",
     sellerCode: ticket.sellerCode || receipt?.seller.sellerCode || "-",
     sellerName: ticket.sellerName || receipt?.seller.sellerName || "-",
     scaleName:
@@ -186,160 +194,408 @@ export function mapWeighbridgeTicketToPdfData(params: {
 function createStyle() {
   return `
     <style>
+      * { box-sizing: border-box; }
+
       .pdf-page {
         width: 794px;
         min-height: 1123px;
-        box-sizing: border-box;
-        padding: 28px 32px 36px;
-        background: #fff;
-        color: #111;
-        font-family: "Sarabun", "Noto Sans Thai", Tahoma, sans-serif;
-        font-size: 13px;
-        line-height: 1.4;
+        padding: 28px 30px 32px;
+        background: #ffffff;
+        color: #1f2937;
+        font-family: Tahoma, "Noto Sans Thai", Arial, sans-serif;
+        font-size: 12px;
         position: relative;
       }
+
       .header {
-        display: flex;
-        align-items: flex-start;
+        display: grid;
+        grid-template-columns: 168px 1fr;
+        align-items: center;
         gap: 14px;
-        border-bottom: 2px solid #374151;
-        padding-bottom: 12px;
       }
-      .logo { width: 64px; height: auto; display: block; }
-      .company { flex: 1; }
-      .company-name { font-size: 18px; font-weight: 700; }
-      .company-sub { margin-top: 3px; font-size: 12px; color: #374151; }
-      .doc-title {
-        margin: 14px 0 4px;
+
+      .logo {
+        width: 168px;
+        height: auto;
+        object-fit: contain;
+      }
+
+      .company {
         text-align: center;
+        padding-right: 40px;
+      }
+
+      .company-name {
+        font-size: 19px;
+        font-weight: 700;
+        color: #111827;
+        margin-bottom: 6px;
+        letter-spacing: 0.2px;
+      }
+
+      .company-address {
+        font-size: 11px;
+        line-height: 1.5;
+        color: #4b5563;
+        font-weight: 500;
+      }
+
+      .header-rule {
+        margin-top: 14px;
+        display: flex;
+        height: 3px;
+      }
+
+      .header-rule span {
+        display: block;
+        height: 3px;
+      }
+
+      .header-rule .rule-green {
+        flex: 1;
+        background: #7cb82f;
+      }
+
+      .header-rule .rule-gold {
+        flex: 1.15;
+        background: #f0b429;
+      }
+
+      .title-block {
+        text-align: center;
+        margin-top: 16px;
+      }
+
+      .title {
         font-size: 24px;
         font-weight: 700;
-        letter-spacing: 0.08em;
+        color: #111827;
+        letter-spacing: 1px;
       }
-      .doc-sub {
-        text-align: center;
-        font-size: 12px;
-        color: #4b5563;
-        margin-bottom: 14px;
+
+      .title-sub {
+        margin-top: 3px;
+        font-size: 11px;
+        color: #6b7280;
+        letter-spacing: 0.6px;
       }
-      .meta-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px 18px;
-        border: 1.5px solid #374151;
-        padding: 12px 14px;
+
+      .meta-bar {
+        margin-top: 16px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: stretch;
+        gap: 10px;
       }
-      .row {
-        display: grid;
-        grid-template-columns: 118px 1fr;
-        gap: 8px;
+
+      .meta-item {
+        display: flex;
         align-items: baseline;
+        gap: 8px;
+        border: 1.2px solid #d1d5db;
+        background: #f9fafb;
+        padding: 7px 12px;
+        min-width: 188px;
       }
-      .label { font-weight: 700; color: #374151; white-space: nowrap; }
-      .value { font-weight: 600; word-break: break-word; }
-      .weights {
-        margin-top: 12px;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        border: 1.5px solid #374151;
+
+      .meta-label {
+        font-size: 11px;
+        color: #6b7280;
+        font-weight: 600;
       }
-      .weight-cell {
-        padding: 10px 8px;
-        text-align: center;
-        border-right: 1px solid #9ca3af;
-      }
-      .weight-cell:last-child { border-right: none; }
-      .weight-label { font-size: 11px; font-weight: 700; color: #4b5563; }
-      .weight-value { margin-top: 4px; font-size: 18px; font-weight: 700; }
-      .weight-unit { font-size: 11px; font-weight: 600; color: #6b7280; }
-      .section-title {
-        margin: 16px 0 6px;
+
+      .meta-value {
         font-size: 13px;
         font-weight: 700;
-        color: #14532d;
+        color: #111827;
       }
-      table {
+
+      .paid-badge,
+      .unpaid-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 92px;
+        padding: 7px 12px;
+        border: 1.2px solid #d1d5db;
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+      }
+
+      .paid-badge {
+        background: #ecfdf5;
+        color: #166534;
+      }
+
+      .unpaid-badge {
+        background: #fffbeb;
+        color: #92400e;
+      }
+
+      .panels {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .panel {
+        border: 1.2px solid #d1d5db;
+        padding: 10px 12px 12px;
+        background: #fff;
+      }
+
+      .panel-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #166534;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1.5px solid #bbf7d0;
+      }
+
+      .panel-row {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 8px;
+        min-height: 20px;
+        align-items: start;
+        margin-bottom: 4px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .label {
+        color: #6b7280;
+        font-weight: 600;
+      }
+
+      .weights {
+        margin-top: 14px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1.4px solid #374151;
+      }
+
+      .weight-cell {
+        padding: 10px 8px 12px;
+        text-align: center;
+        border-right: 1px solid #d1d5db;
+        background: #fff;
+      }
+
+      .weight-cell:last-child {
+        border-right: none;
+      }
+
+      .weight-cell.highlight {
+        background: #ecfdf5;
+      }
+
+      .weight-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #6b7280;
+      }
+
+      .weight-value {
+        margin-top: 6px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .weight-cell.highlight .weight-value {
+        color: #166534;
+      }
+
+      .weight-unit {
+        margin-top: 2px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #9ca3af;
+      }
+
+      .section-label {
+        margin-top: 16px;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #166534;
+      }
+
+      .items-table {
         width: 100%;
         border-collapse: collapse;
         table-layout: fixed;
-        border: 1.4px solid #374151;
         font-size: 12px;
+        border: 1.4px solid #374151;
       }
-      th, td {
-        border: 1px solid #d1d5db;
-        padding: 7px 8px;
-        vertical-align: middle;
-      }
-      th {
+
+      .items-table th {
+        border: none;
+        border-right: 1px solid #d1d5db;
+        border-bottom: 1.4px solid #374151;
+        padding: 9px 8px;
+        text-align: center;
+        font-weight: 700;
         background: #ecfdf5;
         color: #14532d;
+        vertical-align: middle;
+      }
+
+      .items-table th:last-child { border-right: none; }
+
+      .items-table td {
+        border: none;
+        border-right: 1px solid #e5e7eb;
+        padding: 9px 8px;
+        vertical-align: middle;
+        word-break: break-word;
+      }
+
+      .items-table td:last-child { border-right: none; }
+
+      .items-table tbody tr.data-row td {
+        border-bottom: 1px solid #f3f4f6;
+      }
+
+      .items-table tbody tr.data-row:nth-child(even) td {
+        background: #fafafa;
+      }
+
+      .items-table tbody tr.deduction-row td {
+        background: #fffbeb;
+        border-bottom: 1px solid #fde68a;
+      }
+
+      .col-no { color: #6b7280; font-weight: 600; }
+      .col-code { font-size: 11px; font-weight: 600; color: #374151; }
+      .col-name .name { font-weight: 600; color: #111827; }
+      .col-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+      .deduction-badge {
+        display: inline-block;
+        padding: 1px 8px;
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        color: #92400e;
+        font-size: 10px;
         font-weight: 700;
+      }
+
+      .sub-note {
+        margin-top: 2px;
+        font-size: 10px;
+        font-weight: 500;
+        color: #6b7280;
+      }
+
+      .empty-hint {
         text-align: center;
+        color: #9ca3af;
+        font-weight: 600;
       }
-      .text-right { text-align: right; }
-      .text-center { text-align: center; }
-      .totals {
-        margin-top: 12px;
-        display: grid;
-        grid-template-columns: 1fr 280px;
-        gap: 12px;
+
+      .items-table tbody tr.spacer-row td {
+        height: 88px;
+        padding: 0;
+        border-bottom: none;
+        border-right: 1px solid #e5e7eb;
+        background: #fff;
       }
-      .remark-box {
-        border: 1.4px solid #374151;
-        padding: 10px 12px;
-        min-height: 88px;
-      }
-      .remark-label { font-weight: 700; margin-bottom: 6px; }
-      .summary {
-        border: 1.4px solid #374151;
-        border-collapse: collapse;
-        width: 100%;
-      }
-      .summary td {
-        border: 1px solid #d1d5db;
+
+      .items-table tbody tr.spacer-row td:last-child { border-right: none; }
+
+      .items-table tbody tr.totals-row td {
         padding: 8px 10px;
-      }
-      .summary td:first-child {
+        font-weight: 600;
+        vertical-align: middle;
         background: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb;
+        border-bottom: none;
+      }
+
+      .items-table tbody tr.totals-row td:last-child { border-right: none; }
+
+      .items-table tbody tr.totals-final td {
+        background: #ecfdf5;
+        border-top: 1.4px solid #374151;
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+
+      .totals-label { font-weight: 700; color: #374151; }
+      .deduction-amount { color: #b45309; }
+      .total-amount { font-size: 15px; font-weight: 700; color: #166534; }
+
+      .text-center { text-align: center; }
+      .text-right { text-align: right; }
+
+      .remark-box {
+        border-left: 1.4px solid #374151;
+        border-right: 1.4px solid #374151;
+        border-bottom: 1.4px solid #374151;
+        padding: 10px 12px;
+        background: #f9fafb;
+      }
+
+      .remark-label {
+        font-size: 11px;
         font-weight: 700;
-        width: 55%;
+        color: #6b7280;
+        margin-bottom: 4px;
       }
-      .summary tr.net td {
-        font-weight: 700;
-        font-size: 14px;
-        background: #f0fdf4;
+
+      .remark-text {
+        font-size: 12px;
+        font-weight: 600;
+        color: #111827;
       }
-      .paid-stamp {
-        position: absolute;
-        right: 48px;
-        top: 120px;
-        border: 3px solid #dc2626;
-        color: #dc2626;
-        font-size: 28px;
-        font-weight: 800;
-        padding: 8px 18px;
-        transform: rotate(-18deg);
-        opacity: 0.85;
-        letter-spacing: 0.12em;
-      }
-      .footer {
-        margin-top: 28px;
+
+      .signature-box {
+        border-left: 1.4px solid #374151;
+        border-right: 1.4px solid #374151;
+        border-bottom: 1.4px solid #374151;
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        border: 1.4px solid #374151;
-        min-height: 100px;
+        grid-template-columns: repeat(3, 1fr);
+        min-height: 96px;
       }
-      .sig {
+
+      .signature {
+        padding: 14px 16px 12px;
         text-align: center;
-        padding: 14px 10px;
-        border-right: 1px solid #374151;
+        border-right: 1.4px solid #374151;
       }
-      .sig:last-child { border-right: none; }
+
+      .signature:last-child { border-right: none; }
+
+      .sig-title {
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 34px;
+      }
+
       .sig-line {
-        margin: 36px 16px 8px;
         border-bottom: 1px dashed #6b7280;
+        margin: 0 8px 8px;
       }
-      .sig-role { font-size: 12px; font-weight: 700; }
+
+      .date {
+        font-size: 11px;
+        color: #4b5563;
+        font-weight: 600;
+      }
+
+      .footer-note {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 10px;
+        color: #9ca3af;
+      }
     </style>
   `;
 }
@@ -350,72 +606,140 @@ function createPdfHtml(data: WeighbridgeTicketPdfData) {
       ? data.items
           .map(
             (item, index) => `
-        <tr>
-          <td class="text-center">${index + 1}</td>
-          <td>${escapeHtml(item.code)}</td>
-          <td>${escapeHtml(item.name)}</td>
+        <tr class="data-row">
+          <td class="text-center col-no">${index + 1}</td>
+          <td class="text-center col-code">${escapeHtml(item.code)}</td>
+          <td class="col-name">
+            <div class="name">${escapeHtml(item.name)}</div>
+            ${
+              item.description
+                ? `<div class="sub-note">${escapeHtml(item.description)}</div>`
+                : ""
+            }
+          </td>
           <td class="text-right">${item.weightKg}</td>
           <td class="text-right">${item.pricePerKg}</td>
-          <td class="text-right">${item.amount}</td>
+          <td class="text-right col-amount">${item.amount}</td>
         </tr>`,
           )
           .join("")
-      : `<tr><td colspan="6" class="text-center">ยังไม่มีรายการคัดแยก</td></tr>`;
+      : `<tr class="data-row"><td colspan="6" class="empty-hint">ยังไม่มีรายการคัดแยก</td></tr>`;
 
-  const deductionRows =
-    data.deductions.length > 0
-      ? data.deductions
-          .map(
-            (row, index) => `
-        <tr>
-          <td class="text-center">${index + 1}</td>
-          <td>${escapeHtml(row.typeLabel)}</td>
-          <td>${escapeHtml(row.description || "-")}</td>
+  const deductionRows = data.deductions
+    .map(
+      (row, index) => `
+        <tr class="data-row deduction-row">
+          <td class="text-center col-no">${data.items.length + index + 1}</td>
+          <td class="text-center col-code">
+            <span class="deduction-badge">หัก</span>
+          </td>
+          <td class="col-name">
+            <div class="name">${escapeHtml(row.typeLabel)}</div>
+            ${
+              row.description
+                ? `<div class="sub-note">${escapeHtml(row.description)}</div>`
+                : ""
+            }
+          </td>
           <td class="text-right">${row.weightKg}</td>
-          <td class="text-right">${row.amount}</td>
+          <td class="text-center">-</td>
+          <td class="text-right col-amount deduction-amount">-${row.amount}</td>
         </tr>`,
-          )
-          .join("")
-      : "";
+    )
+    .join("");
 
   return `
     <div id="weighbridge-ticket-pdf" class="pdf-page">
-      ${data.isPaid ? `<div class="paid-stamp">จ่ายแล้ว</div>` : ""}
       <div class="header">
-        <img src="${LOGO_URL}" class="logo" />
+        <div class="logo-box">
+          <img src="${LOGO_URL}" class="logo" />
+        </div>
         <div class="company">
           <div class="company-name">บริษัท เอสเอ็มที เอนเนอร์ยี่ จำกัด</div>
-          <div class="company-sub">
+          <div class="company-address">
             85 ถนนโยธา แขวงตลาดน้อย เขตสัมพันธวงศ์ กรุงเทพมหานคร 10100
           </div>
-          <div class="company-sub">เบอร์ติดต่อ : 02-2359565-8</div>
+          <div class="company-address">
+            เบอร์ออฟฟิศ : 02-2359565-8 · เลขประจำตัวผู้เสียภาษี 0 1055 63023 12 4
+          </div>
         </div>
       </div>
 
-      <div class="doc-title">ตั๋วชั่ง</div>
-      <div class="doc-sub">ใบชั่งน้ำหนักรับซื้อ · ${escapeHtml(data.receiptNo !== "-" ? `อ้างอิง ${data.receiptNo}` : "ยังไม่ผูกใบรับซื้อ")}</div>
+      <div class="header-rule">
+        <span class="rule-green"></span>
+        <span class="rule-gold"></span>
+        <span class="rule-green"></span>
+      </div>
 
-      <div class="meta-grid">
-        <div class="row"><span class="label">หมายเลขบัตร</span><span class="value">${escapeHtml(data.ticketNo)}</span></div>
-        <div class="row"><span class="label">บัตรชั่งแบบ</span><span class="value">${escapeHtml(data.ticketType)}</span></div>
-        <div class="row"><span class="label">การค้า</span><span class="value">${escapeHtml(data.tradeType)}</span></div>
-        <div class="row"><span class="label">เครื่องชั่ง</span><span class="value">${escapeHtml(data.scaleName)}</span></div>
-        <div class="row"><span class="label">ทะเบียนรถ</span><span class="value">${escapeHtml(data.licensePlate)}</span></div>
-        <div class="row"><span class="label">รหัสลูกค้า</span><span class="value">${escapeHtml(data.sellerCode)}</span></div>
-        <div class="row"><span class="label">ชื่อลูกค้า</span><span class="value">${escapeHtml(data.sellerName)}</span></div>
-        <div class="row"><span class="label">วันที่เข้า</span><span class="value">${escapeHtml(data.weighInDate)} ${escapeHtml(data.weighInTime)}</span></div>
-        <div class="row"><span class="label">วันที่ออก</span><span class="value">${escapeHtml(data.weighOutDate)} ${escapeHtml(data.weighOutTime)}</span></div>
-        <div class="row"><span class="label">ราคา/หน่วย</span><span class="value">${data.avgPricePerKg} บ./กก.</span></div>
+      <div class="title-block">
+        <div class="title">ตั๋วชั่ง</div>
+        <div class="title-sub">Weighbridge Ticket · ${escapeHtml(data.ticketType)}</div>
+      </div>
+
+      <div class="meta-bar">
+        <div class="meta-item">
+          <span class="meta-label">เลขที่ตั๋ว</span>
+          <span class="meta-value">${escapeHtml(data.ticketNo)}</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">ใบรับซื้อ</span>
+          <span class="meta-value">${escapeHtml(data.receiptNo)}</span>
+        </div>
+        <div class="${data.isPaid ? "paid-badge" : "unpaid-badge"}">
+          ${data.isPaid ? "จ่ายแล้ว" : "รอจ่าย"}
+        </div>
+      </div>
+
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-title">ผู้ขาย / รถ</div>
+          <div class="panel-row">
+            <span class="label">ชื่อผู้ขาย</span>
+            <span>${escapeHtml(data.sellerName)}</span>
+          </div>
+          <div class="panel-row">
+            <span class="label">รหัสผู้ขาย</span>
+            <span>${escapeHtml(data.sellerCode)}</span>
+          </div>
+          <div class="panel-row">
+            <span class="label">ทะเบียนรถ</span>
+            <span>${escapeHtml(data.licensePlate)}</span>
+          </div>
+          <div class="panel-row">
+            <span class="label">คนขับ</span>
+            <span>${escapeHtml(data.driverName)}</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">เวลาชั่ง / เครื่องชั่ง</div>
+          <div class="panel-row">
+            <span class="label">เครื่องชั่ง</span>
+            <span>${escapeHtml(data.scaleName)}</span>
+          </div>
+          <div class="panel-row">
+            <span class="label">วันที่เข้า</span>
+            <span>${escapeHtml(data.weighInDate)} ${escapeHtml(data.weighInTime)}</span>
+          </div>
+          <div class="panel-row">
+            <span class="label">วันที่ออก</span>
+            <span>${escapeHtml(data.weighOutDate)} ${escapeHtml(data.weighOutTime)}</span>
+          </div>
+          <div class="panel-row">
+            <span class="label">ราคาเฉลี่ย</span>
+            <span>${data.avgPricePerKg} บ./กก.</span>
+          </div>
+        </div>
       </div>
 
       <div class="weights">
         <div class="weight-cell">
-          <div class="weight-label">น้ำหนักรวม</div>
+          <div class="weight-label">น้ำหนักเข้า</div>
           <div class="weight-value">${data.grossWeightKg}</div>
           <div class="weight-unit">กก.</div>
         </div>
         <div class="weight-cell">
-          <div class="weight-label">น้ำหนักรถ</div>
+          <div class="weight-label">น้ำหนักออก</div>
           <div class="weight-value">${data.tareWeightKg}</div>
           <div class="weight-unit">กก.</div>
         </div>
@@ -424,76 +748,74 @@ function createPdfHtml(data: WeighbridgeTicketPdfData) {
           <div class="weight-value">${data.deductionWeightKg}</div>
           <div class="weight-unit">กก.</div>
         </div>
-        <div class="weight-cell">
-          <div class="weight-label">น้ำหนักสุทธิ</div>
+        <div class="weight-cell highlight">
+          <div class="weight-label">น้ำหนักจ่ายจริง</div>
           <div class="weight-value">${data.payableWeightKg}</div>
-          <div class="weight-unit">กก. จ่ายจริง</div>
+          <div class="weight-unit">สุทธิชั่ง ${data.netWeightKg} กก.</div>
         </div>
       </div>
 
-      <div class="section-title">รายการสินค้า / ประเภทที่รับซื้อ</div>
-      <table>
+      <div class="section-label">รายการสินค้า / ประเภทที่รับซื้อ</div>
+      <table class="items-table">
         <thead>
           <tr>
-            <th style="width:44px">ลำดับ</th>
-            <th style="width:88px">รหัส</th>
-            <th>ชื่อสินค้า</th>
-            <th style="width:88px">น้ำหนัก</th>
-            <th style="width:88px">ราคา/กก.</th>
-            <th style="width:100px">จำนวนเงิน</th>
+            <th style="width:52px">ลำดับ</th>
+            <th style="width:110px">รหัส</th>
+            <th>รายการ</th>
+            <th style="width:92px">น้ำหนัก (กก.)</th>
+            <th style="width:92px">ราคา/กก.</th>
+            <th style="width:110px">จำนวนเงิน</th>
           </tr>
         </thead>
-        <tbody>${itemRows}</tbody>
+        <tbody>
+          ${itemRows}
+          ${deductionRows}
+          <tr class="spacer-row">
+            <td></td><td></td><td></td><td></td><td></td><td></td>
+          </tr>
+          <tr class="totals-row">
+            <td colspan="5" class="text-right totals-label">ยอดก่อนหัก</td>
+            <td class="text-right">${data.subtotalAmount}</td>
+          </tr>
+          <tr class="totals-row">
+            <td colspan="5" class="text-right totals-label">ยอดหัก</td>
+            <td class="text-right deduction-amount">${data.deductionAmount}</td>
+          </tr>
+          <tr class="totals-row totals-final">
+            <td colspan="5" class="text-right totals-label">ยอดสุทธิที่ต้องจ่าย</td>
+            <td class="text-right total-amount">${data.totalAmount}</td>
+          </tr>
+        </tbody>
       </table>
 
       ${
-        deductionRows
-          ? `
-      <div class="section-title">รายการหัก</div>
-      <table>
-        <thead>
-          <tr>
-            <th style="width:44px">ลำดับ</th>
-            <th style="width:140px">ประเภทหัก</th>
-            <th>รายละเอียด</th>
-            <th style="width:88px">น้ำหนักหัก</th>
-            <th style="width:100px">จำนวนเงินหัก</th>
-          </tr>
-        </thead>
-        <tbody>${deductionRows}</tbody>
-      </table>`
+        data.remark
+          ? `<div class="remark-box">
+              <div class="remark-label">หมายเหตุ</div>
+              <div class="remark-text">${escapeHtml(data.remark)}</div>
+            </div>`
           : ""
       }
 
-      <div class="totals">
-        <div class="remark-box">
-          <div class="remark-label">หมายเหตุ</div>
-          <div>${escapeHtml(data.remark || " ")}</div>
-          <div style="margin-top:10px;font-size:12px;color:#4b5563">
-            น้ำหนักชั่งสุทธิ ${data.netWeightKg} กก. · น้ำหนักหลังหัก ${data.payableWeightKg} กก.
-          </div>
+      <div class="signature-box">
+        <div class="signature">
+          <div class="sig-title">ผู้ชั่ง</div>
+          <div class="sig-line"></div>
+          <div class="date">วันที่ _____/_____/_____</div>
         </div>
-        <table class="summary">
-          <tr><td>รวมเป็นเงิน</td><td class="text-right">${data.subtotalAmount}</td></tr>
-          <tr><td>หัก</td><td class="text-right">${data.deductionAmount}</td></tr>
-          <tr class="net"><td>รวมเป็นเงิน</td><td class="text-right">${data.totalAmount} บ.</td></tr>
-        </table>
+        <div class="signature">
+          <div class="sig-title">ผู้ตรวจ</div>
+          <div class="sig-line"></div>
+          <div class="date">วันที่ _____/_____/_____</div>
+        </div>
+        <div class="signature">
+          <div class="sig-title">ผู้ขาย</div>
+          <div class="sig-line"></div>
+          <div class="date">วันที่ _____/_____/_____</div>
+        </div>
       </div>
 
-      <div class="footer">
-        <div class="sig">
-          <div class="sig-line"></div>
-          <div class="sig-role">ผู้ชั่ง</div>
-        </div>
-        <div class="sig">
-          <div class="sig-line"></div>
-          <div class="sig-role">ผู้ตรวจ</div>
-        </div>
-        <div class="sig">
-          <div class="sig-line"></div>
-          <div class="sig-role">ผู้ขาย</div>
-        </div>
-      </div>
+      <div class="footer-note">เอกสารนี้ออกโดยระบบ ERP · SMT Energy</div>
     </div>
   `;
 }
@@ -510,7 +832,9 @@ export async function generateWeighbridgeTicketPdf(
   wrapper.innerHTML = `${createStyle()}${createPdfHtml(data)}`;
   document.body.appendChild(wrapper);
 
-  const target = wrapper.querySelector("#weighbridge-ticket-pdf") as HTMLElement;
+  const target = wrapper.querySelector(
+    "#weighbridge-ticket-pdf",
+  ) as HTMLElement;
   const logo = wrapper.querySelector(".logo") as HTMLImageElement | null;
   if (logo && !logo.complete) {
     await new Promise<void>((resolve) => {

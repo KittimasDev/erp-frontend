@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Button,
   Popconfirm,
@@ -17,8 +18,10 @@ import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateTempCaseMutation } from "@/hooks/temp-cases/useCreateTempCaseMutation";
 import { useDeleteTempCaseMutation } from "@/hooks/temp-cases/useDeleteTempCaseMutation";
 import { useTempCaseCategoriesQuery } from "@/hooks/temp-cases/useTempCaseCategoriesQuery";
+import { tempCaseImagesQueryKey } from "@/hooks/temp-cases/useTempCaseImagesQuery";
 import { useTempCasesQuery } from "@/hooks/temp-cases/useTempCasesQuery";
 import { useUpdateTempCaseMutation } from "@/hooks/temp-cases/useUpdateTempCaseMutation";
+import { ApiError } from "@/lib/api/client";
 import { uploadTempCaseImage } from "@/lib/api/temp-cases";
 import { getAccessToken } from "@/lib/auth/token";
 import type { TempCase, TempCaseStatus } from "@/types/temp-cases";
@@ -32,6 +35,7 @@ type StatusFilter = "ALL" | TempCaseStatus;
 
 export default function CasesPage() {
   const { message } = App.useApp();
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [dashboardOpen, setDashboardOpen] = useState(false);
@@ -79,22 +83,34 @@ export default function CasesPage() {
     }
     setUploadingImages(true);
     let failed = 0;
+    let lastError = "";
     try {
       for (const file of files) {
         try {
           await uploadTempCaseImage(getAccessToken(), caseId, file);
-        } catch {
+        } catch (error) {
           failed += 1;
+          lastError =
+            error instanceof ApiError
+              ? error.message
+              : error instanceof Error
+                ? error.message
+                : "อัปโหลดไม่สำเร็จ";
         }
       }
+      await Promise.all([
+        casesQuery.refetch(),
+        queryClient.invalidateQueries({
+          queryKey: tempCaseImagesQueryKey(caseId),
+        }),
+      ]);
       if (failed > 0) {
         message.warning(
-          `บันทึกเคสแล้ว แต่แนบรูปไม่สำเร็จ ${failed} ไฟล์ — แก้ไขเคสแล้วแนบใหม่ได้`,
+          `บันทึกเคสแล้ว แต่แนบรูปไม่สำเร็จ ${failed} ไฟล์${lastError ? ` — ${lastError}` : ""}`,
         );
       } else {
         message.success(`แนบรูป ${files.length} ไฟล์แล้ว`);
       }
-      await casesQuery.refetch();
     } finally {
       setUploadingImages(false);
     }
