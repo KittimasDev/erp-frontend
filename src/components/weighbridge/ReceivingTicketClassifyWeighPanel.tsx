@@ -203,7 +203,9 @@ export default function ReceivingTicketClassifyWeighPanel({
   const receiptConfirmed =
     ticket.receiptStatus === "CONFIRMED" || ticket.receiptStatus === "APPROVED";
   const canComplete = Boolean(ticket.canCompleteWeighAndReceipt);
-  const formEditable = canComplete && !receiptConfirmed;
+  const formEditable =
+    (Boolean(ticket.canSaveClassificationPlan) || canComplete) &&
+    !receiptConfirmed;
 
   useEffect(() => {
     const plan = ticket.classificationPlan;
