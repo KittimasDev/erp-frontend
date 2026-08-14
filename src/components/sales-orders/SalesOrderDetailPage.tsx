@@ -155,6 +155,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const progress = resolveSalesOrderProgress(data.status);
   const pickingStep = findStep(timeline, "Picking");
   const packingStep = findStep(timeline, "Packing");
+  const stockReady = stockVerification?.isAllAvailable === true;
+  const stockShortLines =
+    stockVerification?.lines?.filter((line) => !line.isAvailable) ?? [];
 
   let flowHint: string | null = null;
   if (data.status === "STOCK_CHECKED" && pickingStep?.status === "DRAFT") {
@@ -223,7 +226,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
   let nextStepButton: ReactNode = null;
   if (canFulfill) {
     if (data.status === "CONFIRMED") {
-      const stockReady = stockVerification?.isAllAvailable === true;
       if (stockReady && canApproveStock) {
         nextStepButton = (
           <>
@@ -748,15 +750,34 @@ export default function SalesOrderDetailPage({ id }: Props) {
             {data.status === "DRAFT" ? (
               <>
                 {canConfirm ? (
-                  <Button
-                    className={styles.primaryBtn}
-                    type="primary"
-                    icon={<CheckOutlined />}
-                    loading={busy}
-                    onClick={() => confirmMutation.mutate(data.id)}
-                  >
-                    ยืนยันใบสั่งขาย
-                  </Button>
+                  <>
+                    {!stockReady ? (
+                      <p className={styles.sectionHint}>
+                        สต๊อกไม่พอ
+                        {stockShortLines.length
+                          ? ` (${stockShortLines
+                              .map(
+                                (line) =>
+                                  `${line.itemCode ?? "สินค้า"} ขาด ${Number(line.shortageQty).toLocaleString("th-TH")}`,
+                              )
+                              .join(", ")})`
+                          : ""}{" "}
+                        — เติมสต๊อกหรือลดจำนวนก่อนยืนยัน
+                      </p>
+                    ) : null}
+                    <Button
+                      className={styles.primaryBtn}
+                      type="primary"
+                      icon={<CheckOutlined />}
+                      loading={busy}
+                      disabled={
+                        !stockReady || stockVerificationQuery.isLoading
+                      }
+                      onClick={() => confirmMutation.mutate(data.id)}
+                    >
+                      ยืนยันใบสั่งขาย
+                    </Button>
+                  </>
                 ) : null}
                 {cancelButton}
               </>

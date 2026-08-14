@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Badge } from "antd";
 import { LogoutOutlined } from "@ant-design/icons";
@@ -1673,6 +1673,52 @@ export default function AppHeader({
   // Re-read matrix on navigation so menu matches latest /permissions/me
   const [permissionsTick, setPermissionsTick] = useState(0);
   const [portalTick, setPortalTick] = useState(0);
+  /** กดลูกศรค้างเปิด — ถ้าแค่ hover จะย่อกลับเมื่อเมาส์ออก */
+  const [pinnedOpen, setPinnedOpen] = useState(false);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCollapseTimer = () => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => () => clearCollapseTimer(), []);
+
+  useEffect(() => {
+    if (collapsed) {
+      setPinnedOpen(false);
+    }
+  }, [collapsed]);
+
+  const expandSidebar = (pin: boolean) => {
+    clearCollapseTimer();
+    if (pin) {
+      setPinnedOpen(true);
+    }
+    if (collapsed) {
+      onCollapsedChange(false);
+    }
+  };
+
+  const collapseSidebar = () => {
+    clearCollapseTimer();
+    setPinnedOpen(false);
+    if (!collapsed) {
+      onCollapsedChange(true);
+    }
+  };
+
+  const scheduleHoverCollapse = () => {
+    if (pinnedOpen) {
+      return;
+    }
+    clearCollapseTimer();
+    collapseTimerRef.current = setTimeout(() => {
+      onCollapsedChange(true);
+    }, 180);
+  };
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -1766,7 +1812,7 @@ export default function AppHeader({
 
   const handleToggleMaster = () => {
     if (collapsed) {
-      onCollapsedChange(false);
+      expandSidebar(true);
       setMasterOpen(true);
       return;
     }
@@ -1778,12 +1824,30 @@ export default function AppHeader({
     <aside
       className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : styles.sidebarExpanded
         }`}
+      onMouseEnter={() => expandSidebar(false)}
+      onMouseLeave={scheduleHoverCollapse}
     >
       <button
         type="button"
         className={styles.edgeToggle}
-        onClick={() => onCollapsedChange(!collapsed)}
+        onMouseEnter={() => expandSidebar(false)}
+        onClick={() => {
+          if (collapsed) {
+            expandSidebar(true);
+          } else if (pinnedOpen) {
+            collapseSidebar();
+          } else {
+            setPinnedOpen(true);
+          }
+        }}
         aria-label={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
+        title={
+          collapsed
+            ? "ชี้เมนูเพื่อขยาย · กดลูกศรเพื่อปักหมุดเปิดค้าง"
+            : pinnedOpen
+              ? "กดลูกศรเพื่อย่อเมนู"
+              : "กดลูกศรเพื่อปักหมุดเปิดค้าง · ย่อเมื่อเมาส์ออก"
+        }
       >
         <span
           className={`${styles.edgeToggleIcon} ${collapsed ? styles.edgeToggleIconCollapsed : ""

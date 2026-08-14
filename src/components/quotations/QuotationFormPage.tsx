@@ -113,17 +113,32 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const availableByItemId = useMemo(() => {
     const map = new Map<string, number>();
     for (const row of availabilityQuery.data?.data ?? []) {
-      const qty = Number(row.quantityAvailable || 0);
-      if (!(qty > 1e-9)) continue;
-      map.set(row.itemId, qty);
+      map.set(row.itemId, Number(row.quantityAvailable || 0));
     }
     return map;
   }, [availabilityQuery.data?.data]);
 
-  const selectableItems = useMemo(() => {
-    // ใบเสนอราคายังไม่ตัดสต๊อก — แสดงสินค้า FG ที่ใช้งานได้ทั้งหมด
-    return items;
-  }, [items]);
+  const itemSelectOptions = useMemo(() => {
+    const options = items.map((item) => {
+      const available = availableByItemId.get(item.id) ?? 0;
+      const hasStock = available > 1e-9;
+      return {
+        value: item.id,
+        disabled: !hasStock,
+        available,
+        label: hasStock
+          ? `${item.itemCode} — ${item.itemNameTh} (คงเหลือ ${formatQty(available)})`
+          : `${item.itemCode} — ${item.itemNameTh} (ไม่มีสต๊อก)`,
+      };
+    });
+    // มีสต๊อกขึ้นก่อน ของหมดโชว์ท้ายแต่เลือกไม่ได้
+    return options.sort((a, b) => {
+      if (a.disabled !== b.disabled) {
+        return a.disabled ? 1 : -1;
+      }
+      return a.label.localeCompare(b.label, "th");
+    });
+  }, [availableByItemId, items]);
 
   useEffect(() => {
     if (mode === "create") {
@@ -195,6 +210,15 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const saving = createMutation.isPending || updateMutation.isPending;
 
   const handleItemChange = (index: number, itemId?: string) => {
+    if (!itemId) {
+      return;
+    }
+    const available = availableByItemId.get(itemId) ?? 0;
+    if (!(available > 1e-9)) {
+      form.setFieldValue(["items", index, "itemId"], undefined);
+      form.setFieldValue(["items", index, "unitId"], undefined);
+      return;
+    }
     const item = items.find((row) => row.id === itemId);
     if (item?.unitId) {
       form.setFieldValue(["items", index, "unitId"], item.unitId);
@@ -422,7 +446,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                 ]}
                                 extra={
                                   lineItemId
-                                    ? `สต๊อกพร้อมใช้ (อ้างอิง): ${formatQty(availableTotal)}`
+                                    ? Number(watchedItems[index]?.quantity) >
+                                      availableTotal + 1e-9
+                                      ? `สต๊อกไม่พอ — พร้อมใช้ ${formatQty(availableTotal)}`
+                                      : `สต๊อกพร้อมใช้: ${formatQty(availableTotal)}`
                                     : "สินค้าสำเร็จรูปที่เปิดใช้งาน"
                                 }
                               >
@@ -436,14 +463,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                       ? "กำลังโหลด..."
                                       : "ไม่พบสินค้าสำเร็จรูป"
                                   }
-                                  options={selectableItems.map((item) => {
-                                    const available =
-                                      availableByItemId.get(item.id) ?? 0;
-                                    return {
-                                      value: item.id,
-                                      label: `${item.itemCode} — ${item.itemNameTh} (คงเหลือ ${formatQty(available)})`,
-                                    };
-                                  })}
+                                  options={itemSelectOptions}
                                   onChange={(value) =>
                                     handleItemChange(index, value)
                                   }
@@ -459,6 +479,32 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                       if (!(Number(value) > 0)) {
                                         return Promise.reject(
                                           new Error("จำนวนต้องมากกว่า 0"),
+                                        );
+                                      }
+                                      if (!lineItemId) {
+                                        return;
+                                      }
+                                      const available =
+                                        availableByItemId.get(lineItemId) ?? 0;
+                                      // รวมจำนวนทุกรายการที่เป็นสินค้าเดียวกัน
+                                      const orderedSameItem = watchedItems.reduce(
+                                        (sum, line, lineIndex) => {
+                                          if (line?.itemId !== lineItemId) {
+                                            return sum;
+                                          }
+                                          const qty =
+                                            lineIndex === index
+                                              ? Number(value) || 0
+                                              : Number(line?.quantity) || 0;
+                                          return sum + qty;
+                                        },
+                                        0,
+                                      );
+                                      if (orderedSameItem > available + 1e-9) {
+                                        return Promise.reject(
+                                          new Error(
+                                            `สต๊อกไม่พอ (พร้อมใช้ ${formatQty(available)})`,
+                                          ),
                                         );
                                       }
                                     },
@@ -518,7 +564,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                         type="dashed"
                         block
                         icon={<PlusOutlined />}
-                        disabled={selectableItems.length === 0}
+                        disabled={items.length === 0}
                         onClick={() => add({ discountAmount: 0 })}
                       >
                         เพิ่มรายการ
@@ -584,7 +630,11 @@ export default function QuotationFormPage({ mode, id }: Props) {
             </div>
           </div>
           <p className={styles.masterHint}>
-            สินค้าสำเร็จรูป {selectableItems.length} รายการ ·{" "}
+            สินค้าสำเร็จรูป {items.length} รายการ
+            {itemSelectOptions.length
+              ? ` · พร้อมขาย ${itemSelectOptions.filter((row) => !row.disabled).length} · ไม่มีสต๊อก ${itemSelectOptions.filter((row) => row.disabled).length}`
+              : ""}{" "}
+            ·{" "}
             <Link href="/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS">
               ดูยอดคงเหลือ
             </Link>
