@@ -408,7 +408,36 @@ export default function QuotationDetailPage({ id }: Props) {
               </p>
             ) : null}
 
-            {data.status === "ACCEPTED" && canCreateSalesOrder ? (
+            {data.status === "ACCEPTED" && data.salesOrderId ? (
+              <>
+                <p className={styles.actionHint}>
+                  สร้าง Sales Order แล้ว
+                  {data.salesOrderNo ? ` (${data.salesOrderNo})` : ""}
+                </p>
+                <Button
+                  className={styles.primaryBtn}
+                  type="primary"
+                  icon={<ShoppingCartOutlined />}
+                  onClick={() =>
+                    router.push(`/sales-orders/${data.salesOrderId}`)
+                  }
+                >
+                  เปิด Sales Order
+                </Button>
+                {canCreateSalesOrder ? (
+                  <Button
+                    disabled
+                    icon={<ShoppingCartOutlined />}
+                  >
+                    สร้าง Sales Order
+                  </Button>
+                ) : null}
+              </>
+            ) : null}
+
+            {data.status === "ACCEPTED" &&
+            !data.salesOrderId &&
+            canCreateSalesOrder ? (
               <Button
                 className={styles.primaryBtn}
                 type="primary"
