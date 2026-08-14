@@ -1609,7 +1609,17 @@ function canSeeMenu(item: MenuItem) {
 }
 
 function filterMenus(items: MenuItem[]) {
+  const HIDDEN_MENU_KEYS = new Set([
+    "sales-invoices",
+    "sales-invoices-pending",
+    "reports-sales-invoices",
+    "reports-sales-payments",
+    "reports-ar-aging",
+  ]);
   return items.filter((item) => {
+    if (HIDDEN_MENU_KEYS.has(item.key)) {
+      return false;
+    }
     if (
       !PRODUCTION_OUTPUT_ENABLED &&
       (item.key === "production-output-stock-requests" ||

@@ -217,8 +217,8 @@ export default function SalesOrdersListPage() {
           <p className={styles.eyebrow}>Sales · Sales Order</p>
           <h1 className={styles.pageTitle}>ใบสั่งขาย</h1>
           <p className={styles.pageSubtitle}>
-            ติดตาม 7 ขั้นตอน: ร่าง → ยืนยัน → ตรวจสต๊อก → จ่ายสินค้า → บรรจุ →
-            ส่งสินค้า → เสร็จสิ้น
+            ติดตาม 6 ขั้นตอน: ร่าง → ยืนยัน → ตรวจสต๊อก → จ่ายสินค้า → บรรจุ →
+            ส่งสินค้าสำเร็จ
           </p>
         </div>
       </header>

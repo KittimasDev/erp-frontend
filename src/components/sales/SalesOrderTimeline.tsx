@@ -266,7 +266,9 @@ export default function SalesOrderTimeline({
           </p>
         ) : (
           <div className={styles.flowStrip} role="list">
-            {timeline.map((step, index) => {
+            {timeline
+              .filter((step) => step.step !== "Invoice")
+              .map((step, index, visible) => {
               const tone = resolveSalesTimelineStepTone(step);
               const href = resolveTimelineStepHref(
                 step,
@@ -289,7 +291,7 @@ export default function SalesOrderTimeline({
                     isHere={isHere}
                     isFocus={isFocus}
                   />
-                  {index < timeline.length - 1 ? (
+                  {index < visible.length - 1 ? (
                     <RightOutlined
                       className={styles.flowArrow}
                       aria-hidden

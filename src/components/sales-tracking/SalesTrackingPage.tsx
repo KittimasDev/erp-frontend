@@ -243,7 +243,7 @@ export default function SalesTrackingPage() {
           <h1 className={styles.pageTitle}>ติดตามการขายและจัดส่ง</h1>
           <p className={styles.pageSubtitle}>
             ดูภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery
-            → Invoice / Payment
+            (จบที่ส่งสินค้า)
           </p>
         </div>
       </header>
@@ -387,7 +387,9 @@ export default function SalesTrackingPage() {
             </div>
 
             <div className={styles.timeline}>
-              {detail.timeline.map((step, index) => {
+              {detail.timeline
+                .filter((step) => step.step !== "Invoice")
+                .map((step, index, visible) => {
                 const tone = resolveStepTone(step);
                 return (
                   <div
@@ -398,7 +400,7 @@ export default function SalesTrackingPage() {
                       <div className={styles.timelineDot}>
                         {toneIcon(tone) ?? stepIcon(step.step)}
                       </div>
-                      {index < detail.timeline.length - 1 ? (
+                      {index < visible.length - 1 ? (
                         <div className={styles.timelineLine} />
                       ) : null}
                     </div>

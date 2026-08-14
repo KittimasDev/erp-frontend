@@ -37,7 +37,6 @@ import {
   useUpdateDeliveryOrderMutation,
 } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
-import { useSalesInvoiceByDeliveryQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { DeliveryOrderItem } from "@/types/delivery-orders";
 import { DELIVERY_ORDER_STATUS_LABEL } from "@/types/delivery-orders";
@@ -55,16 +54,10 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const cancelMutation = useCancelDeliveryOrderMutation();
 
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
-  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
   const canWrite = deliveryActions.canEdit;
   const canConfirm = deliveryActions.canApprove;
-  const canCreateInvoice = invoiceActions.canAdd;
 
   const data = query.data?.data;
-  const invoiceByDeliveryQuery = useSalesInvoiceByDeliveryQuery(
-    data?.status === "DELIVERED" ? id : undefined,
-  );
-  const existingInvoice = invoiceByDeliveryQuery.data?.data;
   const editable =
     mode === "edit" &&
     canWrite &&
@@ -340,33 +333,6 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               onClick={() => router.push(`/delivery-orders/${id}/edit`)}
             >
               แก้ไข
-            </Button>
-          ) : null}
-          {data.status === "DELIVERED" && existingInvoice?.id ? (
-            <Button
-              type="primary"
-              className={styles.primaryBtn}
-              icon={<FileTextOutlined />}
-              onClick={() =>
-                router.push(`/sales-invoices/${existingInvoice.id}`)
-              }
-            >
-              ดูใบแจ้งหนี้
-            </Button>
-          ) : null}
-          {data.status === "DELIVERED" &&
-          !existingInvoice?.id &&
-          canCreateInvoice &&
-          !invoiceByDeliveryQuery.isLoading ? (
-            <Button
-              type="primary"
-              className={styles.primaryBtn}
-              icon={<FileTextOutlined />}
-              onClick={() =>
-                router.push(`/sales-invoices/create-from-delivery/${id}`)
-              }
-            >
-              สร้างใบแจ้งหนี้
             </Button>
           ) : null}
         </div>

@@ -99,7 +99,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const pickingActions = useScreenActionPermissions("PICKINGS");
   const packingActions = useScreenActionPermissions("PACKINGS");
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
-  const invoiceActions = useScreenActionPermissions("SALES_INVOICES");
 
   const data = query.data?.data;
   const stockVerification = stockVerificationQuery.data?.data;
@@ -121,9 +120,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     packingActions.canAdd ||
     packingActions.canEdit ||
     deliveryActions.canAdd ||
-    deliveryActions.canEdit ||
-    invoiceActions.canAdd ||
-    invoiceActions.canEdit;
+    deliveryActions.canEdit;
 
   if (query.isLoading) {
     return (
@@ -424,36 +421,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
             onClick={() => router.push("/delivery-orders/create-from-packing")}
           >
             สร้างใบส่งสินค้า
-          </Button>
-        );
-      }
-    } else if (data.status === "DELIVERED" || data.status === "COMPLETED") {
-      const invoice = findStep(timeline, "Invoice");
-      const delivery = findStep(timeline, "Delivery");
-      if (invoice?.href) {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<FileTextOutlined />}
-            onClick={() => router.push(invoice.href as string)}
-          >
-            ดูใบแจ้งหนี้
-          </Button>
-        );
-      } else if (data.status === "DELIVERED" && delivery?.documentId) {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<FileTextOutlined />}
-            onClick={() =>
-              router.push(
-                `/sales-invoices/create-from-delivery/${delivery.documentId}`,
-              )
-            }
-          >
-            สร้างใบแจ้งหนี้
           </Button>
         );
       }

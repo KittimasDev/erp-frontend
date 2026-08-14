@@ -413,7 +413,7 @@ export function resolvePortalHref(mod: PortalModuleDef): string {
       userHasRole(RoleCode.SALES_OFFICER) ||
       userHasRole(RoleCode.SALES_MANAGER)
     ) {
-      return "/reports/ar-aging";
+      return "/sales-tracking";
     }
     if (
       userHasRole(RoleCode.WAREHOUSE_OFFICER) ||

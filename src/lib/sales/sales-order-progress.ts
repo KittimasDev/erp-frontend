@@ -3,7 +3,7 @@ import {
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 
-/** 7 ขั้นของใบสั่งขาย: ร่าง → ยืนยัน → ตรวจสต๊อก → จ่าย → บรรจุ → ส่ง → เสร็จสิ้น */
+/** 6 ขั้นของใบสั่งขาย: ร่าง → ยืนยัน → ตรวจสต๊อก → จ่าย → บรรจุ → ส่ง (จบที่ DELIVERED) */
 export const SALES_ORDER_FLOW_STEPS = [
   { key: "DRAFT", label: "ร่าง", shortLabel: "ร่าง" },
   { key: "CONFIRMED", label: "ยืนยัน", shortLabel: "ยืนยัน" },
@@ -11,7 +11,6 @@ export const SALES_ORDER_FLOW_STEPS = [
   { key: "PICKING", label: "จ่ายสินค้า", shortLabel: "จ่าย" },
   { key: "PACKED", label: "บรรจุ", shortLabel: "บรรจุ" },
   { key: "DELIVERED", label: "ส่งสินค้า", shortLabel: "ส่ง" },
-  { key: "COMPLETED", label: "เสร็จสิ้น", shortLabel: "เสร็จ" },
 ] as const;
 
 export type SalesOrderProgress = {
@@ -42,7 +41,7 @@ export function resolveActiveTimelineStepName(status: string): string | null {
       return "Delivery";
     case "DELIVERED":
     case "COMPLETED":
-      return "Invoice";
+      return "Delivery";
     default:
       return null;
   }
@@ -112,15 +111,16 @@ export function resolveSalesOrderProgress(
     },
     DELIVERED: {
       current: 6,
-      inProgress: 7,
-      label: "รอแจ้งหนี้/ชำระ",
-      currentStepLabel: "แจ้งหนี้",
+      inProgress: 6,
+      label: "ส่งสินค้าสำเร็จ",
+      currentStepLabel: "ส่งสินค้า",
     },
+    /** legacy — แสดงเป็นจบที่ส่งสินค้า */
     COMPLETED: {
-      current: 7,
-      inProgress: 7,
-      label: "เสร็จสิ้น",
-      currentStepLabel: "เสร็จสิ้น",
+      current: 6,
+      inProgress: 6,
+      label: "ส่งสินค้าสำเร็จ",
+      currentStepLabel: "ส่งสินค้า",
     },
   };
 

@@ -109,7 +109,6 @@ export function resolveTimelineStepHref(
 
   const picking = timeline.find((entry) => entry.step === "Picking");
   const packing = timeline.find((entry) => entry.step === "Packing");
-  const delivery = timeline.find((entry) => entry.step === "Delivery");
 
   switch (step.step) {
     case "Stock Verification":
@@ -134,9 +133,7 @@ export function resolveTimelineStepHref(
       }
       return undefined;
     case "Invoice":
-      if (delivery?.documentId) {
-        return `/sales-invoices/create-from-delivery/${delivery.documentId}`;
-      }
+      // Sales flow จบที่ Delivery — ไม่สร้างลิงก์ใบแจ้งหนี้จาก timeline
       return undefined;
     default:
       return undefined;
