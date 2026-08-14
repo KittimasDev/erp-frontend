@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,23 +17,28 @@ import {
   DeleteOutlined,
   FileTextOutlined,
   PlusOutlined,
+  UserAddOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
+import QuickCreateCustomerModal from "@/components/masters/customers/QuickCreateCustomerModal";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
-import { useQuotationItemAvailabilityQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
-import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
-import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import {
   useCreateQuotationMutation,
   useUpdateQuotationMutation,
 } from "@/hooks/quotations/useQuotationMutations";
-import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
-import AccessDenied from "@/components/auth/AccessDenied";
-import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import {
+  useQuotationItemAvailabilityQuery,
+  useQuotationQuery,
+} from "@/hooks/quotations/useQuotationsQuery";
+import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
+import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import type { CreateQuotationBody } from "@/types/quotations";
+
 import styles from "./QuotationFormPage.module.css";
 
 type LineValues = {
@@ -83,9 +88,13 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const updateMutation = useUpdateQuotationMutation();
 
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
+  const customerActions = useScreenActionPermissions("MASTERS_CUSTOMERS");
   const canCreate = quotationActions.canAdd;
   const canEdit = quotationActions.canEdit;
+  const canCreateCustomer = customerActions.canAdd;
   const allowed = mode === "create" ? canCreate : canEdit;
+
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
 
   const customersQuery = useCustomersQuery();
   const itemsQuery = useItemsQuery({
@@ -317,31 +326,63 @@ export default function QuotationFormPage({ mode, id }: Props) {
               <div className={styles.sectionBlock}>
                 <Typography.Title level={5}>ข้อมูลหัวเอกสาร</Typography.Title>
                 <div className={styles.formGrid}>
-                  <Form.Item
-                    name="customerId"
-                    label="ลูกค้า"
-                    rules={[{ required: true, message: "เลือกลูกค้า" }]}
-                  >
-                    <Select
-                      showSearch
-                      optionFilterProp="label"
-                      placeholder="เลือกจาก Master ลูกค้า"
-                      loading={customersQuery.isLoading}
-                      notFoundContent={
-                        customersQuery.isLoading
-                          ? "กำลังโหลด..."
-                          : customersQuery.isError
-                            ? "โหลดลูกค้าไม่สำเร็จ — ตรวจสิทธิ์หรือลองรีเฟรช"
-                            : "ไม่พบลูกค้า — ไปเพิ่มที่ Master ลูกค้า"
-                      }
-                      options={customers.map((c) => ({
-                        value: c.id,
-                        label: `${c.customerCode} — ${c.nameTh}${
-                          c.isActive ? "" : " (ปิดใช้งาน)"
-                        }`,
-                        disabled: !c.isActive,
-                      }))}
-                    />
+                  <Form.Item label="ลูกค้า" required>
+                    <div className={styles.customerField}>
+                      <Form.Item
+                        name="customerId"
+                        noStyle
+                        rules={[{ required: true, message: "เลือกลูกค้า" }]}
+                      >
+                        <Select
+                          showSearch
+                          optionFilterProp="label"
+                          placeholder="เลือกจาก Master ลูกค้า"
+                          loading={customersQuery.isLoading}
+                          notFoundContent={
+                            customersQuery.isLoading
+                              ? "กำลังโหลด..."
+                              : customersQuery.isError
+                                ? "โหลดลูกค้าไม่สำเร็จ — ตรวจสิทธิ์หรือลองรีเฟรช"
+                                : "ไม่พบลูกค้า — กดเพิ่มลูกค้าใหม่ได้เลย"
+                          }
+                          options={customers.map((c) => ({
+                            value: c.id,
+                            label: `${c.customerCode} — ${c.nameTh}${
+                              c.isActive ? "" : " (ปิดใช้งาน)"
+                            }`,
+                            disabled: !c.isActive,
+                          }))}
+                          popupRender={(menu) => (
+                            <>
+                              {menu}
+                              {canCreateCustomer ? (
+                                <div className={styles.customerDropdownFooter}>
+                                  <Button
+                                    type="link"
+                                    icon={<UserAddOutlined />}
+                                    onMouseDown={(event) =>
+                                      event.preventDefault()
+                                    }
+                                    onClick={() => setCustomerModalOpen(true)}
+                                  >
+                                    เพิ่มลูกค้าใหม่
+                                  </Button>
+                                </div>
+                              ) : null}
+                            </>
+                          )}
+                        />
+                      </Form.Item>
+                      {canCreateCustomer ? (
+                        <Button
+                          icon={<UserAddOutlined />}
+                          onClick={() => setCustomerModalOpen(true)}
+                          aria-label="เพิ่มลูกค้าใหม่"
+                        >
+                          เพิ่ม
+                        </Button>
+                      ) : null}
+                    </div>
                   </Form.Item>
                   <Form.Item
                     name="quotationDate"
@@ -643,6 +684,15 @@ export default function QuotationFormPage({ mode, id }: Props) {
           </p>
         </aside>
       </div>
+
+      <QuickCreateCustomerModal
+        open={customerModalOpen}
+        onClose={() => setCustomerModalOpen(false)}
+        onCreated={(customer) => {
+          form.setFieldValue("customerId", customer.id);
+          void customersQuery.refetch();
+        }}
+      />
     </div>
   );
 }

@@ -172,6 +172,18 @@
   grid-column: 1 / -1;
 }
 
+.customerField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.customerDropdownFooter {
+  border-top: 1px solid var(--pr-border);
+  padding: 4px 8px;
+}
+
 .lineList {
   display: grid;
   gap: 12px;
