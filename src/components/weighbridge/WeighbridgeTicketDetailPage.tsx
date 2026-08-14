@@ -122,15 +122,14 @@ function hasActiveReceipt(view: PaymentView) {
 function resolveStepFromCurrentStep(currentStep?: string) {
   switch (currentStep) {
     case "RECEIPT":
-      return 0;
     case "WEIGH_IN":
     case "WEIGH_OUT":
-      return 1;
+      return 0;
     case "PAYMENT":
-      return 2;
+      return 1;
     case "STOCK_IN":
     case "COMPLETED":
-      return 3;
+      return 2;
     case "CANCELLED":
       return 0;
     default:
@@ -140,7 +139,7 @@ function resolveStepFromCurrentStep(currentStep?: string) {
 
 function resolveStep(view: PaymentView) {
   if (isPaymentReady(view)) {
-    return 2;
+    return 1;
   }
   if (
     view.flowState === "STOCK_POSTED" ||
@@ -148,15 +147,9 @@ function resolveStep(view: PaymentView) {
     view.flowState === "STOCK_REQUEST_PENDING" ||
     isPaymentPaid(view)
   ) {
-    return 3;
-  }
-  if (view.receiptId || view.displayStatus === "WEIGHED_OUT") {
     return 2;
   }
-  if (
-    view.displayStatus === "WAITING_WEIGH_OUT" ||
-    Number(view.grossWeightKg) > 0
-  ) {
+  if (view.receiptId || view.displayStatus === "WEIGHED_OUT") {
     return 1;
   }
   return 0;
@@ -294,7 +287,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
         lotsQuery.isLoading) ||
       (Boolean(receipt?.seller?.id) && sellerQuery.isLoading));
 
-  const maxStepIndex = 3;
+  const maxStepIndex = 2;
   const nextActionHref = ticket?.nextActionHref;
   const nextActionLabel = ticket?.nextAction;
 
@@ -400,8 +393,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         : "process"
                   }
                   items={[
-                    { title: "คัดแยก" },
-                    { title: "น้ำหนักเข้า-ออก" },
+                    { title: "คัดแยกและชั่ง" },
                     { title: "ออกใบจ่ายเงิน" },
                     { title: "เข้าคลัง" },
                   ]}
@@ -539,7 +531,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               <div
                 className={[
                   styles.stepCard,
-                  currentStep === 2 || (hasReceipt && !paid)
+                  currentStep === 1 || (hasReceipt && !paid)
                     ? styles.stepCardActive
                     : "",
                   paid ? styles.stepCardDone : "",
@@ -553,7 +545,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div
                       className={[
                         styles.stepBadge,
-                        currentStep === 2 || readyToPay
+                        currentStep === 1 || readyToPay
                           ? styles.stepBadgeActive
                           : "",
                         paid ? styles.stepBadgeDone : "",
@@ -561,10 +553,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      3
+                      2
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 3 · ออกใบจ่ายเงิน</h3>
+                      <h3>Step 2 · ออกใบจ่ายเงิน</h3>
                       <p>
                         บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — ทำคู่ขนานกับเข้าคลังได้ (ลำดับใดก่อนก็ได้)
                       </p>
@@ -674,7 +666,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     </>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      บันทึกน้ำหนักใน Step 2 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน
+                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน
                     </div>
                   )}
                 </div>
@@ -683,7 +675,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               <div
                 className={[
                   styles.stepCard,
-                  currentStep === 3 ||
+                  currentStep === 2 ||
                   readyForStockIn ||
                   stockRequestPending
                     ? styles.stepCardActive
@@ -701,7 +693,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div
                       className={[
                         styles.stepBadge,
-                        currentStep === 3 ||
+                        currentStep === 2 ||
                         readyForStockIn ||
                         stockRequestPending
                           ? styles.stepBadgeActive
@@ -711,10 +703,10 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         .filter(Boolean)
                         .join(" ")}
                     >
-                      4
+                      3
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 4 · เข้าคลัง</h3>
+                      <h3>Step 3 · เข้าคลัง</h3>
                       <p>
                         ส่งคำขอรับยางดิบเข้าคลังได้หลังยืนยันยอด — จ่ายเงินก่อนหรือหลังก็ได้
                       </p>
@@ -853,7 +845,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     </div>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      บันทึกน้ำหนักใน Step 2 ให้เสร็จก่อน แล้วจะจ่ายเงินหรือเข้าคลังก่อนก็ได้
+                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะจ่ายเงินหรือเข้าคลังก่อนก็ได้
                     </div>
                   )}
                 </div>
