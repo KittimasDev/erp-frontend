@@ -157,7 +157,12 @@ export function inferPortalModuleFromPathname(
   ) {
     return "purchase";
   }
-  if (pathname.startsWith("/goods-receipts")) {
+  if (
+    pathname.startsWith("/goods-receipts") ||
+    pathname.startsWith("/delivery-orders") ||
+    pathname === "/sales-orders/stock-verification" ||
+    /^\/sales-orders\/[^/]+\/stock-verification/.test(pathname)
+  ) {
     return "rm-warehouse";
   }
   if (
@@ -193,7 +198,6 @@ export function inferPortalModuleFromPathname(
   if (
     pathname.startsWith("/quotations") ||
     pathname.startsWith("/sales-orders") ||
-    pathname.startsWith("/delivery-orders") ||
     pathname.startsWith("/sales-invoices") ||
     pathname.startsWith("/sales-tracking")
   ) {
@@ -246,7 +250,20 @@ export function resolveActivePortalModule(
   if (pathname === "/") {
     return null;
   }
-  return getActivePortalModule() ?? inferPortalModuleFromPathname(pathname);
+  return inferPortalModuleFromPathname(pathname) ?? getActivePortalModule();
+}
+
+/** Keep sessionStorage aligned when the user navigates across portal modules. */
+export function syncActivePortalModuleFromPathname(pathname: string) {
+  if (pathname === "/") {
+    clearActivePortalModule();
+    return;
+  }
+  const inferred = inferPortalModuleFromPathname(pathname);
+  if (!inferred || inferred === getActivePortalModule()) {
+    return;
+  }
+  setActivePortalModule(inferred);
 }
 
 export function portalModuleAllowsMenuGroup(

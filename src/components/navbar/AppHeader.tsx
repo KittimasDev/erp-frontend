@@ -25,6 +25,7 @@ import {
   PORTAL_MODULE_UPDATED_EVENT,
   portalModuleAllowsMenuGroup,
   resolveActivePortalModule,
+  syncActivePortalModuleFromPathname,
   type PortalMenuGroupId,
   type PortalModuleKey,
 } from "@/lib/auth/portal-module";
@@ -682,6 +683,35 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
       ROLE.EXECUTIVE,
     ],
   },
+  {
+    key: "delivery-orders",
+    screenCode: "DELIVERY_ORDERS",
+    label: "ใบส่งสินค้า",
+    href: "/delivery-orders",
+    icon: <IconStockTransfer />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
+  {
+    key: "sd-stock-verification",
+    screenCode: "SALES_STOCK_VERIFICATION",
+    label: "ตรวจสอบสต๊อกขาย",
+    href: "/sales-orders/stock-verification",
+    icon: <IconStockCount />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
 ];
 
 const productionMenus: MenuItem[] = [
@@ -927,35 +957,6 @@ const salesMenus: MenuItem[] = [
     roles: [
       ROLE.SALES_OFFICER,
       ROLE.SALES_MANAGER,
-      ROLE.EXECUTIVE,
-      ROLE.ACCOUNTING_OFFICER,
-    ],
-  },
-  {
-    key: "sd-stock-verification",
-    screenCode: "SALES_STOCK_VERIFICATION",
-    label: "ตรวจสอบสต๊อกขาย",
-    href: "/sales-orders/stock-verification",
-    icon: <IconStockCount />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "delivery-orders",
-    screenCode: "DELIVERY_ORDERS",
-    label: "ใบส่งสินค้า",
-    href: "/delivery-orders",
-    icon: <IconStockTransfer />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
       ROLE.EXECUTIVE,
       ROLE.ACCOUNTING_OFFICER,
     ],
@@ -1733,9 +1734,7 @@ export default function AppHeader({
   useEffect(() => {
     setUser(getStoredUser());
     setPermissionsTick((n) => n + 1);
-    if (pathname === "/") {
-      clearActivePortalModule();
-    }
+    syncActivePortalModuleFromPathname(pathname);
   }, [pathname]);
 
   useEffect(() => {

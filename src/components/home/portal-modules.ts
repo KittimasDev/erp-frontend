@@ -119,6 +119,8 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "STOCK_CONTROL",
       "STOCK_MOVEMENTS",
       "GOODS_RECEIPTS",
+      "DELIVERY_ORDERS",
+      "SALES_STOCK_VERIFICATION",
     ],
     roles: [
       RoleCode.WAREHOUSE_OFFICER,
@@ -184,8 +186,6 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "MASTERS_CUSTOMERS",
       "QUOTATIONS",
       "SALES_ORDERS",
-      "SALES_STOCK_VERIFICATION",
-      "DELIVERY_ORDERS",
       "SALES_INVOICES_PENDING",
       "SALES_INVOICES",
       "SALES_TRACKING",
