@@ -117,10 +117,12 @@ body {
 
   width: 100%;
   max-width: 1480px;
+  min-width: 0;
   margin: 0 auto;
   padding: 34px 32px 34px;
   box-sizing: border-box;
   flex: 1;
+  overflow-x: clip;
   background: var(--brand-background);
   color: var(--brand-text);
 }

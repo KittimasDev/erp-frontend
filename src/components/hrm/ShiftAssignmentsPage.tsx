@@ -6,6 +6,7 @@ import {
   DatePicker,
   Empty,
   Input,
+  message,
   Segmented,
   Select,
   Table,
@@ -14,6 +15,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import {
   CalendarOutlined,
+  FilePdfOutlined,
   ReloadOutlined,
   SearchOutlined,
   TeamOutlined,
@@ -99,6 +101,7 @@ export default function ShiftAssignmentsPage() {
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [person, setPerson] = useState<ShiftAssignmentUser | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const range = useMemo<{ dateFrom: string; dateTo: string }>(() => {
     if (mode === "day") {
@@ -293,6 +296,8 @@ export default function ShiftAssignmentsPage() {
       {
         title: "หมายเหตุ",
         key: "note",
+        width: 180,
+        ellipsis: true,
         render: (_v, row) => (
           <span className={styles.noteCell}>
             {row.isHoliday ? (
@@ -562,6 +567,240 @@ export default function ShiftAssignmentsPage() {
     [openPerson, todayKey],
   );
 
+  /** ออกรายงานตามมุมมองที่กำลังดูอยู่ พร้อมตัวกรองที่เปิดไว้ */
+  const handleExportPdf = useCallback(async () => {
+    const { generateShiftAssignmentsPdf } = await import(
+      "@/utils/generateShiftAssignmentsPdf"
+    );
+
+    const shiftName = shiftId
+      ? shiftOptions.find((option) => option.value === shiftId)?.label
+      : undefined;
+    const departmentName = departmentId
+      ? departmentOptions.find((option) => option.value === departmentId)?.label
+      : undefined;
+
+    const filters = [
+      { label: "กะ", value: shiftName ?? "ทุกกะ" },
+      { label: "แผนก", value: departmentName ?? "ทุกแผนก" },
+      ...(appliedKeyword ? [{ label: "ค้นหา", value: appliedKeyword }] : []),
+    ];
+
+    const stats = [
+      {
+        label: "พนักงานที่ถูกจัดกะ",
+        value: `${data?.totalEmployees ?? 0} คน`,
+        hint: `รวม ${data?.totalAssignments ?? 0} คน-วัน`,
+      },
+      {
+        label: "ชั่วโมงกะรวม",
+        value: formatWorkHours(data?.totalWorkMinutes),
+        hint: "ยังไม่หักเวลาพัก",
+      },
+      {
+        label: "กะที่คนลา",
+        value: `${data?.shiftsOnLeave ?? 0} กะ`,
+        hint: `ลา ${data?.employeesOnLeave ?? 0} คน${
+          data?.shiftsPendingLeave ? ` · รออนุมัติ ${data.shiftsPendingLeave}` : ""
+        }`,
+      },
+      {
+        label: "OT อนุมัติแล้ว",
+        value: `${data?.totalOvertimeHours ?? 0} ชม.`,
+        hint: `มีคนเข้ากะ ${data?.workingDays ?? 0}/${data?.rangeDays ?? 0} วัน`,
+      },
+    ];
+
+    const leaveOtCell = (row: ShiftAssignment) => {
+      if (row.leave) {
+        return {
+          text: LEAVE_TYPE_LABEL[row.leave.leaveType] ?? row.leave.leaveType,
+          badge: row.isOnLeave
+            ? { text: "กะขาดคน", tone: "leave" as const }
+            : { text: "รออนุมัติ", tone: "pending" as const },
+          hint: row.overtime ? `OT ${row.overtime.hours} ชม.` : undefined,
+        };
+      }
+      if (row.overtime) {
+        return {
+          text: `OT ${row.overtime.hours} ชม.`,
+          badge:
+            row.overtime.status === "APPROVED"
+              ? undefined
+              : { text: "รออนุมัติ", tone: "pending" as const },
+        };
+      }
+      return { text: "—" };
+    };
+
+    const views = {
+      day: {
+        title: "รายงานการเข้ากะ (เรียงตามวัน)",
+        titleEn: "Shift Assignments by Date",
+        footnote:
+          "ชั่วโมงกะคำนวณจากเวลาเข้า-เลิกกะ (รองรับกะข้ามคืน) ยังไม่หักเวลาพัก · แถวที่ระบุว่ากะขาดคน คือคนถูกจัดกะไว้แต่มีใบลาที่อนุมัติแล้ว",
+        columns: [
+          { label: "วันที่", width: 76 },
+          { label: "พนักงาน", width: 138 },
+          { label: "แผนก", width: 84 },
+          { label: "กะ", width: 78 },
+          { label: "เวลาเข้า-เลิกกะ", width: 92 },
+          { label: "ชม.", width: 44, align: "right" as const },
+          { label: "ลา / OT", width: 96 },
+          { label: "หมายเหตุ", width: 122 },
+        ],
+        rows: rows.map((row) => [
+          {
+            text: dayjs(row.date).format("DD/MM/YY"),
+            hint: `วัน${THAI_WEEKDAYS[row.weekday]}`,
+          },
+          {
+            text: row.displayName ?? "—",
+            hint: row.employeeCode ?? undefined,
+          },
+          { text: row.departmentName ?? "—" },
+          { text: row.shiftName, dot: row.color || "#8ab933" },
+          {
+            text: `${row.startTime} - ${row.endTime}`,
+            hint: row.isOvernight ? "ข้ามคืน" : undefined,
+          },
+          { text: formatWorkMinutes(row.workMinutes) },
+          leaveOtCell(row),
+          {
+            // ชื่อวันหยุดยาวกว่าป้ายจะรับไหว จึงลงบรรทัดรองแทน
+            text: row.note || (row.isHoliday ? "" : "—"),
+            badge: row.isHoliday
+              ? { text: "วันหยุด", tone: "holiday" as const }
+              : undefined,
+            hint: row.isHoliday ? row.holidayName : undefined,
+          },
+        ]),
+      },
+      person: {
+        title: "รายงานการเข้ากะ (สรุปรายคน)",
+        titleEn: "Shift Assignments by Employee",
+        footnote:
+          "คอลัมน์ลา นับเฉพาะวันที่ถูกจัดกะไว้แล้วมีใบลาที่อนุมัติแล้วทับ · ชม. OT นับเฉพาะใบที่อนุมัติแล้ว",
+        columns: [
+          { label: "พนักงาน", width: 140 },
+          { label: "ตำแหน่ง", width: 86 },
+          { label: "แผนก", width: 82 },
+          { label: "เข้ากะ", width: 48, align: "right" as const },
+          { label: "ชม.รวม", width: 58, align: "right" as const },
+          { label: "ลา", width: 44, align: "right" as const },
+          { label: "OT", width: 44, align: "right" as const },
+          { label: "แยกตามกะ", width: 154 },
+          { label: "ช่วงวันที่", width: 74 },
+        ],
+        rows: byUser.map((user) => [
+          { text: user.displayName ?? "—", hint: user.employeeCode ?? undefined },
+          { text: user.position ?? "—" },
+          { text: user.departmentName ?? "—" },
+          { text: `${user.totalDays} วัน` },
+          { text: formatWorkMinutes(user.workMinutes) },
+          {
+            text: user.leaveDays ? `${user.leaveDays} วัน` : "—",
+            hint: user.pendingLeaveDays
+              ? `รอ ${user.pendingLeaveDays}`
+              : undefined,
+          },
+          { text: user.overtimeHours ? `${user.overtimeHours} ชม.` : "—" },
+          {
+            text: user.shifts
+              .map((shift) => `${shift.shiftName} ${shift.days} วัน`)
+              .join(" · "),
+            hint: user.overnightDays
+              ? `ข้ามคืน ${user.overnightDays} วัน`
+              : undefined,
+          },
+          {
+            text:
+              user.firstDate && user.lastDate
+                ? `${dayjs(user.firstDate).format("D/M")} - ${dayjs(user.lastDate).format("D/M")}`
+                : "—",
+          },
+        ]),
+      },
+      events: {
+        title: "รายงานการลาและ OT",
+        titleEn: "Leave & Overtime Report",
+        footnote:
+          "รวมวันที่พนักงานไม่ได้ถูกจัดกะไว้ด้วย · รายการที่ทับกะและอนุมัติแล้ว หมายถึงกะนั้นขาดคน",
+        columns: [
+          { label: "วันที่", width: 76 },
+          { label: "ประเภท", width: 82 },
+          { label: "พนักงาน", width: 136 },
+          { label: "แผนก", width: 84 },
+          { label: "สถานะ", width: 66 },
+          { label: "กะวันนั้น", width: 112 },
+          { label: "เหตุผล", width: 174 },
+        ],
+        rows: events.map((event) => [
+          {
+            text: dayjs(event.date).format("DD/MM/YY"),
+            hint: `วัน${THAI_WEEKDAYS[event.weekday]}`,
+          },
+          {
+            text:
+              event.kind === "LEAVE"
+                ? (LEAVE_TYPE_LABEL[event.leaveType ?? ""] ?? "ลา")
+                : `OT ${event.hours} ชม.`,
+          },
+          {
+            text: event.displayName ?? "—",
+            hint: event.employeeCode ?? undefined,
+          },
+          { text: event.departmentName ?? "—" },
+          { text: LEAVE_STATUS_LABEL[event.status] ?? event.status },
+          event.hasShift
+            ? {
+                text: event.shiftName ?? "—",
+                dot: event.color || "#8ab933",
+                hint: `${event.shiftStartTime} - ${event.shiftEndTime}`,
+                badge:
+                  event.kind === "LEAVE" && event.status === "APPROVED"
+                    ? { text: "กะขาดคน", tone: "leave" as const }
+                    : undefined,
+              }
+            : { text: "ไม่ได้ถูกจัดกะ" },
+          { text: event.reason || "—" },
+        ]),
+      },
+    } as const;
+
+    const config = views[view];
+
+    await generateShiftAssignmentsPdf({
+      title: config.title,
+      titleEn: config.titleEn,
+      periodLabel: `${dayjs(range.dateFrom).format("DD/MM/YYYY")} - ${dayjs(range.dateTo).format("DD/MM/YYYY")}`,
+      filters,
+      stats,
+      shiftBreakdown: byShift.map((shift) => ({
+        name: shift.shiftName,
+        color: shift.color,
+        detail: `${shift.employees} คน · ${shift.assignments} คน-วัน`,
+      })),
+      columns: [...config.columns],
+      rows: config.rows.map((row) => [...row]),
+      footnote: config.footnote,
+      printedAt: dayjs().format("DD/MM/YYYY HH:mm"),
+    });
+  }, [
+    appliedKeyword,
+    byShift,
+    byUser,
+    data,
+    departmentId,
+    departmentOptions,
+    events,
+    range,
+    rows,
+    shiftId,
+    shiftOptions,
+    view,
+  ]);
+
   return (
     <MasterPageGate isLoading={assignmentsQuery.isLoading}>
       <div className={styles.page}>
@@ -641,7 +880,7 @@ export default function ShiftAssignmentsPage() {
               onChange={setShiftId}
               options={shiftOptions}
               loading={shiftsQuery.isLoading}
-              style={{ width: 200 }}
+              style={{ width: 200, maxWidth: "100%" }}
             />
           </label>
 
@@ -656,7 +895,7 @@ export default function ShiftAssignmentsPage() {
               onChange={setDepartmentId}
               options={departmentOptions}
               loading={departmentsQuery.isLoading}
-              style={{ width: 180 }}
+              style={{ width: 180, maxWidth: "100%" }}
             />
           </label>
 
@@ -670,7 +909,7 @@ export default function ShiftAssignmentsPage() {
               onChange={(event) => setKeyword(event.target.value)}
               onPressEnter={() => setAppliedKeyword(keyword)}
               onBlur={() => setAppliedKeyword(keyword)}
-              style={{ width: 220 }}
+              style={{ width: 220, maxWidth: "100%" }}
             />
           </label>
 
@@ -679,6 +918,20 @@ export default function ShiftAssignmentsPage() {
             onClick={() => void assignmentsQuery.refetch()}
           >
             รีเฟรช
+          </Button>
+
+          <Button
+            icon={<FilePdfOutlined />}
+            loading={exporting}
+            disabled={assignmentsQuery.isFetching}
+            onClick={() => {
+              setExporting(true);
+              handleExportPdf()
+                .catch(() => message.error("สร้างไฟล์ PDF ไม่สำเร็จ"))
+                .finally(() => setExporting(false));
+            }}
+          >
+            PDF
           </Button>
 
           <Link href="/hrm/shifts">
@@ -779,78 +1032,80 @@ export default function ShiftAssignmentsPage() {
             />
           </div>
 
-          {view === "day" ? (
-            <Table<ShiftAssignment>
-              rowKey={(row) => `${row.scheduleId}-${row.userId}`}
-              size="middle"
-              columns={dayColumns}
-              dataSource={rows}
-              loading={assignmentsQuery.isFetching}
-              rowClassName={(row) =>
-                [
-                  row.date === todayKey ? styles.todayRow : "",
-                  row.isOnLeave ? styles.leaveRow : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")
-              }
-              scroll={{ x: 1620 }}
-              pagination={{
-                pageSize: 20,
-                showSizeChanger: true,
-                pageSizeOptions: [10, 20, 50, 100],
-                showTotal: (total) => `ทั้งหมด ${total} รายการ`,
-              }}
-              locale={{
-                emptyText: (
-                  <Empty description="ยังไม่มีการจัดกะในช่วงนี้ — จัดได้ที่หน้าปฏิทินตารางกะ" />
-                ),
-              }}
-            />
-          ) : view === "person" ? (
-            <Table<ShiftAssignmentUser>
-              rowKey="userId"
-              size="middle"
-              columns={personColumns}
-              dataSource={byUser}
-              loading={assignmentsQuery.isFetching}
-              scroll={{ x: 1590 }}
-              pagination={{
-                pageSize: 20,
-                showSizeChanger: true,
-                pageSizeOptions: [10, 20, 50, 100],
-                showTotal: (total) => `ทั้งหมด ${total} คน`,
-              }}
-              locale={{
-                emptyText: (
-                  <Empty description="ยังไม่มีพนักงานถูกจัดกะในช่วงนี้" />
-                ),
-              }}
-            />
-          ) : (
-            <Table<ShiftAssignmentEvent>
-              rowKey={(row) => `${row.kind}-${row.id}-${row.date}`}
-              size="middle"
-              columns={eventColumns}
-              dataSource={events}
-              loading={assignmentsQuery.isFetching}
-              rowClassName={(row) =>
-                row.date === todayKey ? styles.todayRow : ""
-              }
-              scroll={{ x: 1280 }}
-              pagination={{
-                pageSize: 20,
-                showSizeChanger: true,
-                pageSizeOptions: [10, 20, 50, 100],
-                showTotal: (total) => `ทั้งหมด ${total} รายการ`,
-              }}
-              locale={{
-                emptyText: (
-                  <Empty description="ไม่มีใบลาหรือ OT ในช่วงนี้" />
-                ),
-              }}
-            />
-          )}
+          <div className={styles.tableWrap}>
+            {view === "day" ? (
+              <Table<ShiftAssignment>
+                rowKey={(row) => `${row.scheduleId}-${row.userId}`}
+                size="middle"
+                columns={dayColumns}
+                dataSource={rows}
+                loading={assignmentsQuery.isFetching}
+                rowClassName={(row) =>
+                  [
+                    row.date === todayKey ? styles.todayRow : "",
+                    row.isOnLeave ? styles.leaveRow : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                }
+                scroll={{ x: "max-content" }}
+                pagination={{
+                  pageSize: 20,
+                  showSizeChanger: true,
+                  pageSizeOptions: [10, 20, 50, 100],
+                  showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+                }}
+                locale={{
+                  emptyText: (
+                    <Empty description="ยังไม่มีการจัดกะในช่วงนี้ — จัดได้ที่หน้าปฏิทินตารางกะ" />
+                  ),
+                }}
+              />
+            ) : view === "person" ? (
+              <Table<ShiftAssignmentUser>
+                rowKey="userId"
+                size="middle"
+                columns={personColumns}
+                dataSource={byUser}
+                loading={assignmentsQuery.isFetching}
+                scroll={{ x: "max-content" }}
+                pagination={{
+                  pageSize: 20,
+                  showSizeChanger: true,
+                  pageSizeOptions: [10, 20, 50, 100],
+                  showTotal: (total) => `ทั้งหมด ${total} คน`,
+                }}
+                locale={{
+                  emptyText: (
+                    <Empty description="ยังไม่มีพนักงานถูกจัดกะในช่วงนี้" />
+                  ),
+                }}
+              />
+            ) : (
+              <Table<ShiftAssignmentEvent>
+                rowKey={(row) => `${row.kind}-${row.id}-${row.date}`}
+                size="middle"
+                columns={eventColumns}
+                dataSource={events}
+                loading={assignmentsQuery.isFetching}
+                rowClassName={(row) =>
+                  row.date === todayKey ? styles.todayRow : ""
+                }
+                scroll={{ x: "max-content" }}
+                pagination={{
+                  pageSize: 20,
+                  showSizeChanger: true,
+                  pageSizeOptions: [10, 20, 50, 100],
+                  showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+                }}
+                locale={{
+                  emptyText: (
+                    <Empty description="ไม่มีใบลาหรือ OT ในช่วงนี้" />
+                  ),
+                }}
+              />
+            )}
+          </div>
         </div>
 
         {person ? (

@@ -334,6 +334,70 @@ export async function openPdfFromHtml(pageId: string, pageHtml: string) {
   document.body.removeChild(wrapper);
 }
 
+/** ความสูง A4 แนวตั้งที่ 794px กว้าง — ใช้ตรึงความสูงหน้ารายงานให้ตัดหน้าพอดี */
+export const PDF_PAGE_HEIGHT_PX = 1123;
+
+/**
+ * รายงานหลายหน้า — แคปทีละหน้าแล้วต่อเป็น PDF
+ *
+ * ต่างจาก `openPdfFromHtml` ที่แคปยาวรวดเดียวแล้วหั่นตามความสูง A4
+ * ซึ่งจะตัดกลางแถวตาราง วิธีนี้ผู้เรียกแบ่งแถวเป็นหน้าเองแล้วได้หัวตารางซ้ำทุกหน้า
+ */
+export async function openMultiPagePdfFromHtml(
+  pageId: string,
+  pagesHtml: string[],
+) {
+  if (pagesHtml.length === 0) {
+    throw new Error("PDF has no pages to render");
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.style.position = "fixed";
+  wrapper.style.left = "-99999px";
+  wrapper.style.top = "0";
+  wrapper.style.width = "794px";
+  wrapper.style.background = "#fff";
+  wrapper.innerHTML = `${basePdfStyles()}${pagesHtml.join("")}`;
+  document.body.appendChild(wrapper);
+
+  try {
+    await waitForImages(wrapper);
+
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    for (let index = 0; index < pagesHtml.length; index += 1) {
+      const target = wrapper.querySelector(
+        `#${pageId}-${index}`,
+      ) as HTMLElement | null;
+      if (!target) {
+        throw new Error(`PDF page ${index} not found`);
+      }
+
+      const canvas = await html2canvas(target, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      if (index > 0) {
+        pdf.addPage();
+      }
+      // แต่ละหน้าถูกตรึงความสูงไว้แล้ว จึงวางเต็มหน้า A4 ได้ตรงๆ
+      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
+    }
+
+    window.open(pdf.output("bloburl"), "_blank");
+  } finally {
+    document.body.removeChild(wrapper);
+  }
+}
+
 export type SalesLinePdfItem = {
   no: number;
   itemCode: string;
