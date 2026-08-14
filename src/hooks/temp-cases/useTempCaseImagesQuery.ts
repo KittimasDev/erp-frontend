@@ -13,5 +13,6 @@ export function useTempCaseImagesQuery(caseId: string | null, enabled = true) {
     queryKey: tempCaseImagesQueryKey(caseId ?? ""),
     queryFn: () => getTempCaseImages(getAccessToken(), caseId!),
     enabled: Boolean(caseId) && enabled,
+    refetchOnMount: "always",
   });
 }

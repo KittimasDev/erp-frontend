@@ -102,9 +102,14 @@ export function uploadTempCaseImage(
   );
 }
 
-/** Reuse shared attachment download endpoint */
-export function downloadTempCaseImage(token: string, attachmentId: string) {
-  return apiDownloadBlob(`/api/documents/attachments/${attachmentId}/download`, {
-    token,
-  });
+/** Authenticated image blob for preview in edit modal */
+export function downloadTempCaseImage(
+  token: string,
+  caseId: string,
+  attachmentId: string,
+) {
+  return apiDownloadBlob(
+    `/api/temp-cases/${caseId}/images/${attachmentId}/file`,
+    { token },
+  );
 }

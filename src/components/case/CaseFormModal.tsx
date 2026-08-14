@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Form,
@@ -73,11 +73,23 @@ export default function CaseFormModal({
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [pendingPreviewUrls, setPendingPreviewUrls] = useState<string[]>([]);
   const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
+  const previewUrlsRef = useRef<Record<string, string>>({});
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   const imagesQuery = useTempCaseImagesQuery(
     mode === "edit" ? (initialCase?.id ?? null) : null,
     open && mode === "edit",
   );
+
+  const revokePreviewUrls = () => {
+    Object.values(previewUrlsRef.current).forEach((url) => {
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    });
+    previewUrlsRef.current = {};
+    setPreviewUrls({});
+  };
 
   useEffect(() => {
     const urls = pendingFiles.map((file) => URL.createObjectURL(file));
@@ -114,47 +126,71 @@ export default function CaseFormModal({
   }, [open, mode, initialCase, categories, form]);
 
   useEffect(() => {
+    if (!open || mode !== "edit" || !initialCase?.id) {
+      revokePreviewUrls();
+      setPreviewFailed(false);
+      return;
+    }
+
     const attachments = imagesQuery.data?.data ?? [];
-    if (!open || mode !== "edit" || attachments.length === 0) {
+    if (!imagesQuery.data && (imagesQuery.isLoading || imagesQuery.isFetching)) {
+      return;
+    }
+    if (attachments.length === 0) {
+      revokePreviewUrls();
+      setPreviewFailed(false);
       return;
     }
 
     let cancelled = false;
-    const urls: Record<string, string> = {};
+    const created: string[] = [];
 
     void (async () => {
+      const next: Record<string, string> = {};
+      let failed = 0;
       for (const attachment of attachments) {
         try {
           const { blob } = await downloadTempCaseImage(
             getAccessToken(),
+            initialCase.id,
             attachment.id,
           );
           if (cancelled) {
             return;
           }
-          urls[attachment.id] = URL.createObjectURL(blob);
+          const url = URL.createObjectURL(blob);
+          created.push(url);
+          next[attachment.id] = url;
         } catch {
-          // skip broken preview
+          failed += 1;
         }
       }
-      if (!cancelled) {
-        setPreviewUrls((prev) => {
-          Object.values(prev).forEach((url) => URL.revokeObjectURL(url));
-          return urls;
-        });
+      if (cancelled) {
+        created.forEach((url) => URL.revokeObjectURL(url));
+        return;
       }
+      Object.values(previewUrlsRef.current).forEach((url) => {
+        if (url) {
+          URL.revokeObjectURL(url);
+        }
+      });
+      previewUrlsRef.current = next;
+      setPreviewUrls(next);
+      setPreviewFailed(failed > 0 && Object.keys(next).length === 0);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [open, mode, imagesQuery.data]);
-
-  useEffect(() => {
-    return () => {
-      Object.values(previewUrls).forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [previewUrls]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load blobs when modal/case/list changes
+  }, [
+    open,
+    mode,
+    initialCase?.id,
+    imagesQuery.dataUpdatedAt,
+    imagesQuery.isLoading,
+    imagesQuery.isFetching,
+  ]);
 
   const addPendingFile = (file: File) => {
     if (!isAllowedImageFile(file)) {
@@ -369,26 +405,43 @@ export default function CaseFormModal({
 
           {!isCreateMode ? (
             <div style={{ marginTop: 12 }}>
-              {imagesQuery.isLoading ? (
+              {imagesQuery.isLoading || imagesQuery.isFetching ? (
                 <Spin size="small" />
               ) : existingImages.length > 0 ? (
                 <Image.PreviewGroup>
                   <Space wrap>
-                    {existingImages.map((image) => (
-                      <Image
-                        key={image.id}
-                        src={previewUrls[image.id]}
-                        alt={image.originalFileName || "case image"}
-                        width={72}
-                        height={72}
-                        style={{
-                          objectFit: "cover",
-                          borderRadius: 8,
-                          border: "1px solid #e1e2dd",
-                        }}
-                        fallback="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzIiIGhlaWdodD0iNzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjcyIiBoZWlnaHQ9IjcyIiBmaWxsPSIjZWVlIi8+PC9zdmc+"
-                      />
-                    ))}
+                    {existingImages.map((image) =>
+                      previewUrls[image.id] ? (
+                        <Image
+                          key={image.id}
+                          src={previewUrls[image.id]}
+                          alt={image.originalFileName || "case image"}
+                          width={72}
+                          height={72}
+                          style={{
+                            objectFit: "cover",
+                            borderRadius: 8,
+                            border: "1px solid #e1e2dd",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          key={image.id}
+                          style={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 8,
+                            border: "1px solid #e1e2dd",
+                            display: "grid",
+                            placeItems: "center",
+                            color: "#999",
+                            fontSize: 11,
+                          }}
+                        >
+                          {previewFailed ? "โหลดไม่ได้" : <Spin size="small" />}
+                        </div>
+                      ),
+                    )}
                   </Space>
                 </Image.PreviewGroup>
               ) : (
