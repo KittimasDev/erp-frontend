@@ -13,6 +13,7 @@ import {
 import {
   CheckOutlined,
   DeleteOutlined,
+  EditOutlined,
   PlusOutlined,
   PrinterOutlined,
 } from "@ant-design/icons";
@@ -45,8 +46,6 @@ type PlanDeductionRow = {
   key: string;
   deductionType: string;
   description?: string;
-  deductionWeightKg?: number;
-  deductionPricePerKg?: number;
   deductionAmount?: number;
 };
 
@@ -91,15 +90,8 @@ function latestPriceByClassification(rules: RawTirePriceRule[]) {
   return map;
 }
 
-function formatMoney(value?: string | number) {
-  if (value === undefined || value === null || value === "") {
-    return "-";
-  }
-  const n = Number(value);
-  if (Number.isNaN(n)) {
-    return String(value);
-  }
-  return n.toLocaleString("th-TH", {
+function formatBaht(value?: number) {
+  return Number(value ?? 0).toLocaleString("th-TH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -153,28 +145,6 @@ function createItemRow(partial?: Partial<PlanItemRow>): PlanItemRow {
   };
 }
 
-function roundMoney(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
-}
-
-function withDeductionAmount(
-  row: PlanDeductionRow,
-  patch: Partial<PlanDeductionRow>,
-): PlanDeductionRow {
-  const next = { ...row, ...patch };
-  const weight = Number(next.deductionWeightKg);
-  const price = Number(next.deductionPricePerKg);
-  if (
-    weight > 0 &&
-    next.deductionPricePerKg !== undefined &&
-    Number.isFinite(price) &&
-    price >= 0
-  ) {
-    next.deductionAmount = roundMoney(weight * price);
-  }
-  return next;
-}
-
 function createDeductionRow(
   partial?: Partial<PlanDeductionRow>,
 ): PlanDeductionRow {
@@ -182,8 +152,6 @@ function createDeductionRow(
     key: partial?.key ?? createClientId(),
     deductionType: partial?.deductionType ?? "WATER",
     description: partial?.description,
-    deductionWeightKg: partial?.deductionWeightKg,
-    deductionPricePerKg: partial?.deductionPricePerKg,
     deductionAmount: partial?.deductionAmount,
   };
 }
@@ -217,14 +185,17 @@ export default function ReceivingTicketClassifyWeighPanel({
   const [tareWeightKg, setTareWeightKg] = useState<number | null>(null);
   const [isManual, setIsManual] = useState(true);
   const [reason, setReason] = useState("");
+  const [isEditingPlan, setIsEditingPlan] = useState(false);
 
   const receiptConfirmed =
     ticket.receiptStatus === "CONFIRMED" || ticket.receiptStatus === "APPROVED";
   const canSavePlan = Boolean(ticket.canSaveClassificationPlan);
   const canComplete = Boolean(ticket.canCompleteWeighAndReceipt);
   const hasPlan = Boolean(ticket.hasClassificationPlan);
+  const planEditable = canSavePlan && (!hasPlan || isEditingPlan);
+  const planLockedView = hasPlan && !planEditable;
 
-  useEffect(() => {
+  const applyPlanFromTicket = () => {
     const plan = ticket.classificationPlan;
     if (plan?.items?.length) {
       setItems(
@@ -243,12 +214,22 @@ export default function ReceivingTicketClassifyWeighPanel({
         createDeductionRow({
           deductionType: item.deductionType,
           description: item.description,
-          deductionPricePerKg: item.deductionPricePerKg,
+          deductionAmount:
+            item.deductionAmount ?? item.deductionPricePerKg,
         }),
       ),
     );
     setPlanRemark(plan?.remark ?? "");
+  };
+
+  useEffect(() => {
+    applyPlanFromTicket();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate local form from ticket plan
   }, [ticket.id, ticket.classificationPlan]);
+
+  useEffect(() => {
+    setIsEditingPlan(!hasPlan && canSavePlan);
+  }, [ticket.id, hasPlan, canSavePlan]);
 
   useEffect(() => {
     setGrossWeightKg(
@@ -266,19 +247,6 @@ export default function ReceivingTicketClassifyWeighPanel({
     return Math.round((grossWeightKg - tareWeightKg + Number.EPSILON) * 1000) / 1000;
   }, [grossWeightKg, tareWeightKg]);
 
-  useEffect(() => {
-    if (items.length !== 1 || netWeightKg <= 0) {
-      return;
-    }
-    setItems((prev) => {
-      const [first] = prev;
-      if (!first || (first.weightKg ?? 0) > 0) {
-        return prev;
-      }
-      return [{ ...first, weightKg: netWeightKg }];
-    });
-  }, [items.length, netWeightKg]);
-
   const classifications = classificationsQuery.data?.data ?? [];
   const priceByClassificationId = useMemo(
     () => latestPriceByClassification(priceRulesQuery.data?.data ?? []),
@@ -291,6 +259,40 @@ export default function ReceivingTicketClassifyWeighPanel({
     () => new Set(deductions.map((item) => item.deductionType)),
     [deductions],
   );
+  const totalDeductionAmount = useMemo(
+    () =>
+      deductions.reduce(
+        (sum, item) => sum + Number(item.deductionAmount ?? 0),
+        0,
+      ),
+    [deductions],
+  );
+  const allocatedTireWeightKg = useMemo(
+    () =>
+      Math.round(
+        (items
+          .filter((item) => item.tireClassificationId)
+          .reduce((sum, item) => sum + Number(item.weightKg ?? 0), 0) +
+          Number.EPSILON) *
+          1000,
+      ) / 1000,
+    [items],
+  );
+  const remainingTireWeightKg = useMemo(() => {
+    if (netWeightKg <= 0) {
+      return 0;
+    }
+    return (
+      Math.round((netWeightKg - allocatedTireWeightKg + Number.EPSILON) * 1000) /
+      1000
+    );
+  }, [allocatedTireWeightKg, netWeightKg]);
+  const isTireWeightOver =
+    netWeightKg > 0 && allocatedTireWeightKg - netWeightKg > 0.0005;
+  const tireWeightFillPercent =
+    netWeightKg > 0
+      ? Math.min(100, Math.round((allocatedTireWeightKg / netWeightKg) * 100))
+      : 0;
   const classificationLabelById = useMemo(() => {
     return new Map(
       classifications.map((row) => [
@@ -313,28 +315,9 @@ export default function ReceivingTicketClassifyWeighPanel({
       label: `${row.classificationCode} · ${row.classificationName} · ${priceText}`,
     };
   });
-  const estimatedAvgPricePerKg = useMemo(() => {
-    let weight = 0;
-    let amount = 0;
-    for (const item of items) {
-      const kg = Number(item.weightKg);
-      if (!item.tireClassificationId || !(kg > 0)) {
-        continue;
-      }
-      const price = Number(
-        priceByClassificationId.get(item.tireClassificationId)?.pricePerKg,
-      );
-      if (!(price >= 0) || Number.isNaN(price)) {
-        continue;
-      }
-      weight += kg;
-      amount += kg * price;
-    }
-    return weight > 0 ? amount / weight : 0;
-  }, [items, priceByClassificationId]);
 
   const toggleDeduction = (type: string) => {
-    if (!canSavePlan) {
+    if (!planEditable) {
       return;
     }
     setDeductions((prev) => {
@@ -346,12 +329,12 @@ export default function ReceivingTicketClassifyWeighPanel({
     });
   };
 
-  const handleSavePlan = () => {
+  const handleSavePlan = async () => {
     const nextItems = items.filter((item) => item.tireClassificationId);
     if (!nextItems.length) {
       return;
     }
-    void savePlanMutation.mutateAsync({
+    await savePlanMutation.mutateAsync({
       items: nextItems.map((item) => ({
         tireClassificationId: item.tireClassificationId,
         description: item.description?.trim() || undefined,
@@ -361,13 +344,35 @@ export default function ReceivingTicketClassifyWeighPanel({
         .map((item) => ({
           deductionType: item.deductionType,
           description: item.description?.trim() || undefined,
-          deductionPricePerKg:
-            item.deductionPricePerKg === undefined
+          deductionAmount:
+            item.deductionAmount === undefined
               ? undefined
-              : Number(item.deductionPricePerKg),
+              : Number(item.deductionAmount),
         })),
       remark: planRemark.trim() || undefined,
     });
+    setIsEditingPlan(false);
+  };
+
+  const handleCancelEditPlan = () => {
+    applyPlanFromTicket();
+    setIsEditingPlan(false);
+  };
+
+  const maxWeightForItem = (currentWeight?: number) => {
+    if (netWeightKg <= 0) {
+      return undefined;
+    }
+    const others =
+      Math.round(
+        (allocatedTireWeightKg -
+          Number(currentWeight ?? 0) +
+          Number.EPSILON) *
+          1000,
+      ) / 1000;
+    const max =
+      Math.round((netWeightKg - others + Number.EPSILON) * 1000) / 1000;
+    return Math.max(0.001, max);
   };
 
   const handleComplete = () => {
@@ -384,6 +389,18 @@ export default function ReceivingTicketClassifyWeighPanel({
     if (!nextItems.length) {
       return;
     }
+    const itemsTotal =
+      Math.round(
+        (nextItems.reduce((sum, item) => sum + item.weightKg, 0) +
+          Number.EPSILON) *
+          1000,
+      ) / 1000;
+    if (itemsTotal > netWeightKg + 0.0005) {
+      message.error(
+        `น้ำหนักรายการยางรวม ${formatWeight(itemsTotal)} กก. เกินน้ำหนักสุทธิของรถ ${formatWeight(netWeightKg)} กก.`,
+      );
+      return;
+    }
     void completeMutation.mutateAsync({
       grossWeightKg,
       tareWeightKg,
@@ -391,23 +408,13 @@ export default function ReceivingTicketClassifyWeighPanel({
       reason: reason.trim() || undefined,
       items: nextItems,
       deductions: deductions
-        .filter(
-          (item) =>
-            item.deductionType &&
-            (Number(item.deductionWeightKg) > 0 ||
-              item.deductionPricePerKg !== undefined ||
-              item.deductionAmount !== undefined),
-        )
+        .filter((item) => item.deductionType)
         .map((item) => ({
           deductionType: item.deductionType,
-          deductionWeightKg: Number(item.deductionWeightKg) || 0,
-          deductionPricePerKg:
-            item.deductionPricePerKg === undefined
-              ? undefined
-              : Number(item.deductionPricePerKg),
+          deductionWeightKg: 0,
           deductionAmount:
             item.deductionAmount === undefined
-              ? undefined
+              ? 0
               : Number(item.deductionAmount),
           description: item.description?.trim() || undefined,
         })),
@@ -489,6 +496,7 @@ export default function ReceivingTicketClassifyWeighPanel({
           styles.stepCard,
           currentStep === 0 ? styles.stepCardActive : "",
           hasPlan ? styles.stepCardDone : "",
+          planLockedView ? styles.stepCardReadonly : "",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -511,17 +519,47 @@ export default function ReceivingTicketClassifyWeighPanel({
               <p>เลือกประเภทยางด้านซ้าย (มีราคา/กก.) แล้วเลือกสารปนเปื้อนด้านขวาแยกต่างหาก</p>
             </div>
           </div>
-          <Tag
-            className={styles.stepStatusTag}
-            color={hasPlan ? "success" : currentStep === 0 ? "processing" : "default"}
-          >
-            {hasPlan
-              ? `เลือกแล้ว ${selectedTypeCount} ประเภท`
-              : "รอเลือกประเภทยาง"}
-          </Tag>
+          <div className={styles.stepHeaderActions}>
+            <Tag
+              className={styles.stepStatusTag}
+              color={
+                hasPlan
+                  ? planEditable
+                    ? "processing"
+                    : "success"
+                  : currentStep === 0
+                    ? "processing"
+                    : "default"
+              }
+            >
+              {hasPlan
+                ? planEditable
+                  ? "กำลังแก้ไข"
+                  : `เลือกแล้ว ${selectedTypeCount} ประเภท`
+                : "รอเลือกประเภทยาง"}
+            </Tag>
+            {hasPlan && canSavePlan && !isEditingPlan ? (
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => setIsEditingPlan(true)}
+              >
+                แก้ไข
+              </Button>
+            ) : null}
+            {hasPlan && canSavePlan && isEditingPlan ? (
+              <Button onClick={handleCancelEditPlan}>ยกเลิก</Button>
+            ) : null}
+          </div>
         </div>
         <div className={styles.stepCardBody}>
-          <div className={styles.classifyLayout}>
+          <div
+            className={[
+              styles.classifyLayout,
+              planLockedView ? styles.classifyLayoutLocked : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          >
             <div className={styles.classifySplit}>
               <section className={`${styles.classifyPanel} ${styles.classifyPanelTire}`}>
                 <div className={styles.classifyPanelHead}>
@@ -558,7 +596,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                             value={item.tireClassificationId || undefined}
                             options={classificationOptions}
                             placeholder="เลือกประเภทยาง"
-                            disabled={!canSavePlan}
+                            disabled={!planEditable}
                             showSearch
                             optionFilterProp="label"
                             popupMatchSelectWidth
@@ -572,7 +610,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                               )
                             }
                           />
-                          {canSavePlan && items.length > 1 ? (
+                          {planEditable && items.length > 1 ? (
                             <Button
                               type="text"
                               danger
@@ -618,7 +656,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                           aria-label={`หมายเหตุรายการยาง ${index + 1}`}
                           placeholder="หมายเหตุรายการ (ไม่บังคับ)"
                           value={item.description ?? ""}
-                          disabled={!canSavePlan}
+                          disabled={!planEditable}
                           onChange={(event) =>
                             setItems((prev) =>
                               prev.map((row) =>
@@ -634,7 +672,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                   })}
                 </div>
 
-                {canSavePlan ? (
+                {planEditable ? (
                   <Button
                     icon={<PlusOutlined />}
                     onClick={() =>
@@ -651,9 +689,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                   <div>
                     <p className={styles.classifyEyebrow}>รายการหัก</p>
                     <h4>สารปนเปื้อน</h4>
-                    <p>
-                      เลือกประเภทที่มีบนรถ แล้วใส่ราคาหัก (บาท/กก.) ได้เลย — น้ำหนักกรอกในขั้นถัดไป
-                    </p>
+                    <p>เลือกที่มีบนรถ แล้วใส่ยอดหักเป็นบาท — ไม่ตัดน้ำหนัก</p>
                   </div>
                   <span
                     className={`${styles.classifyCount} ${
@@ -661,7 +697,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                     }`}
                   >
                     {selectedDeductions.size
-                      ? `${selectedDeductions.size} รายการ`
+                      ? `${formatBaht(totalDeductionAmount)} บาท`
                       : "ไม่มี"}
                   </span>
                 </div>
@@ -676,7 +712,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                         className={`${styles.classifyChip} ${
                           active ? styles.classifyChipActive : ""
                         }`}
-                        disabled={!canSavePlan}
+                        disabled={!planEditable}
                         aria-pressed={active}
                         onClick={() => toggleDeduction(option.value)}
                       >
@@ -695,41 +731,45 @@ export default function ReceivingTicketClassifyWeighPanel({
                         )?.label ?? item.deductionType;
                       return (
                         <div key={item.key} className={styles.classifyDeductionPlanRow}>
-                          <div className={styles.classifyNoteLabel}>
-                            {label}
-                            <span>ราคาหักต่อกิโลกรัม</span>
+                          <div className={styles.classifyDeductionPlanTop}>
+                            <strong>{label}</strong>
+                            <span>หักเป็นเงิน</span>
                           </div>
-                          <InputNumber
-                            aria-label={`ราคาหัก ${label}`}
-                            min={0}
-                            step={0.01}
-                            className={styles.stepMetaInput}
-                            value={item.deductionPricePerKg}
-                            placeholder="บาท/กก."
-                            disabled={!canSavePlan}
-                            onKeyDown={blockNonNumericWeightKey}
-                            onChange={(value) =>
-                              setDeductions((prev) =>
-                                prev.map((row) =>
-                                  row.key === item.key
-                                    ? withDeductionAmount(row, {
-                                        deductionPricePerKg:
-                                          typeof value === "number"
-                                            ? value
-                                            : undefined,
-                                      })
-                                    : row,
-                                ),
-                              )
-                            }
-                          />
+                          <div className={styles.classifyDeductionAmount}>
+                            <InputNumber
+                              aria-label={`ยอดหัก ${label}`}
+                              min={0}
+                              step={0.01}
+                              precision={2}
+                              className={styles.classifyDeductionInput}
+                              value={item.deductionAmount}
+                              placeholder="0.00"
+                              disabled={!planEditable}
+                              onKeyDown={blockNonNumericWeightKey}
+                              onChange={(value) =>
+                                setDeductions((prev) =>
+                                  prev.map((row) =>
+                                    row.key === item.key
+                                      ? {
+                                          ...row,
+                                          deductionAmount:
+                                            typeof value === "number"
+                                              ? value
+                                              : undefined,
+                                        }
+                                      : row,
+                                  ),
+                                )
+                              }
+                            />
+                            <em>บาท</em>
+                          </div>
                           {item.deductionType === "OTHER" ? (
                             <Input
-                              className={styles.classifyDeductionPlanNote}
                               aria-label="รายละเอียดรายการหักอื่นๆ"
-                              placeholder="ระบุรายการหักอื่นๆ (จำเป็น)"
+                              placeholder="ระบุว่าหักอะไร"
                               value={item.description ?? ""}
-                              disabled={!canSavePlan}
+                              disabled={!planEditable}
                               onChange={(event) =>
                                 setDeductions((prev) =>
                                   prev.map((row) =>
@@ -760,12 +800,12 @@ export default function ReceivingTicketClassifyWeighPanel({
               aria-label="หมายเหตุแผนคัดแยก"
               rows={2}
               value={planRemark}
-              disabled={!canSavePlan}
+              disabled={!planEditable}
               placeholder="หมายเหตุตั๋ว (ไม่บังคับ)"
               onChange={(event) => setPlanRemark(event.target.value)}
             />
 
-            {canSavePlan ? (
+            {planEditable ? (
               <div className={styles.classifyFooter}>
                 <Button
                   type="primary"
@@ -779,14 +819,18 @@ export default function ReceivingTicketClassifyWeighPanel({
                         !item.description?.trim(),
                     )
                   }
-                  onClick={handleSavePlan}
+                  onClick={() => void handleSavePlan()}
                 >
                   บันทึกการคัดแยก
                 </Button>
               </div>
-            ) : (
+            ) : !canSavePlan ? (
               <div className={styles.stepEmptyHint}>
                 ยืนยันใบรับซื้อแล้ว ไม่สามารถแก้รายการคัดแยกได้
+              </div>
+            ) : (
+              <div className={styles.stepEmptyHint}>
+                บันทึกแล้ว — กดแก้ไขมุมขวาบนถ้าต้องการเปลี่ยนรายการ
               </div>
             )}
           </div>
@@ -818,7 +862,10 @@ export default function ReceivingTicketClassifyWeighPanel({
             </div>
             <div className={styles.stepCardTitle}>
               <h3>Step 2 · น้ำหนักเข้า-ออก</h3>
-              <p>กรอกน้ำหนักตามใบชั่ง และใส่น้ำหนักกก. ของรายการที่เลือกไว้</p>
+              <p>
+                กรอกน้ำหนักเข้า-ออก แล้วจัดสรรกก. ให้รายการยางไม่เกินสุทธิของรถ —
+                สารปนเปื้อนหักเป็นเงิน
+              </p>
             </div>
           </div>
           <Tag
@@ -939,210 +986,309 @@ export default function ReceivingTicketClassifyWeighPanel({
               </div>
             </>
           ) : (
-            <>
-              <div className={styles.stepMetaGrid}>
-                <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                  <span>น้ำหนักเข้า (กก.)</span>
-                  <InputNumber
-                    aria-label="น้ำหนักเข้า"
-                    min={0.001}
-                    step={0.001}
-                    className={styles.stepMetaInput}
-                    value={grossWeightKg ?? undefined}
-                    onKeyDown={blockNonNumericWeightKey}
-                    onChange={(value) =>
-                      setGrossWeightKg(typeof value === "number" ? value : null)
-                    }
-                  />
-                </div>
-                <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                  <span>น้ำหนักออก (กก.)</span>
-                  <InputNumber
-                    aria-label="น้ำหนักออก"
-                    min={0.001}
-                    step={0.001}
-                    className={styles.stepMetaInput}
-                    value={tareWeightKg ?? undefined}
-                    onKeyDown={blockNonNumericWeightKey}
-                    onChange={(value) =>
-                      setTareWeightKg(typeof value === "number" ? value : null)
-                    }
-                  />
-                </div>
-                <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                  <span>น้ำหนักสุทธิ</span>
-                  <strong>
-                    {netWeightKg > 0 ? `${formatWeight(netWeightKg)} กก.` : "-"}
-                  </strong>
-                </div>
-                <div className={styles.stepMetaItem}>
-                  <span>กรอกน้ำหนักเอง</span>
-                  <Switch
-                    checked={isManual}
-                    checkedChildren="ใช่"
-                    unCheckedChildren="ไม่"
-                    onChange={setIsManual}
-                  />
-                </div>
-                {isManual ? (
-                  <div className={`${styles.stepMetaItem} ${styles.stepMetaFull}`}>
-                    <span>เหตุผลการกรอกเอง</span>
-                    <Input.TextArea
-                      aria-label="เหตุผลการกรอกน้ำหนักเอง"
-                      rows={2}
-                      value={reason}
-                      placeholder="เช่น อ่านจากใบชั่ง (ไม่บังคับ)"
-                      onChange={(event) => setReason(event.target.value)}
-                    />
+            <div className={styles.weighStepLayout}>
+              <section className={styles.weighBridgeCard}>
+                <div className={styles.weighBridgeHead}>
+                  <div>
+                    <p className={styles.classifyEyebrow}>ชั่งรถ</p>
+                    <h4>น้ำหนักเข้า − ออก = สุทธิ</h4>
                   </div>
-                ) : null}
-              </div>
+                  <label className={styles.weighManualToggle}>
+                    <span>กรอกเอง</span>
+                    <Switch
+                      checked={isManual}
+                      checkedChildren="ใช่"
+                      unCheckedChildren="ไม่"
+                      onChange={setIsManual}
+                    />
+                  </label>
+                </div>
 
-              {items
-                .filter((item) => item.tireClassificationId)
-                .map((item, index) => {
-                  const meta = classificationLabelById.get(
-                    item.tireClassificationId,
-                  );
-                  return (
-                  <div key={item.key} className={styles.stepMetaGrid}>
-                    <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                      <span>
-                        น้ำหนัก {meta?.name ?? `รายการ ${index + 1}`} (กก.)
-                      </span>
+                <div className={styles.weighBridgeMath}>
+                  <div className={styles.weighBridgeField}>
+                    <span>น้ำหนักเข้า</span>
+                    <div className={styles.weighBridgeInputRow}>
                       <InputNumber
-                        aria-label={`น้ำหนักรายการยาง ${index + 1}`}
+                        aria-label="น้ำหนักเข้า"
                         min={0.001}
                         step={0.001}
-                        className={styles.stepMetaInput}
-                        value={item.weightKg}
+                        className={styles.weighBridgeInput}
+                        value={grossWeightKg ?? undefined}
+                        placeholder="0.000"
                         onKeyDown={blockNonNumericWeightKey}
                         onChange={(value) =>
-                          setItems((prev) =>
-                            prev.map((row) =>
-                              row.key === item.key
-                                ? {
-                                    ...row,
-                                    weightKg:
-                                      typeof value === "number"
-                                        ? value
-                                        : undefined,
-                                  }
-                                : row,
-                            ),
+                          setGrossWeightKg(
+                            typeof value === "number" ? value : null,
                           )
                         }
                       />
+                      <em>กก.</em>
                     </div>
                   </div>
-                  );
-                })}
-
-              {deductions.map((item, index) => {
-                const deductionLabel =
-                  DEDUCTION_TYPE_OPTIONS.find(
-                    (option) => option.value === item.deductionType,
-                  )?.label ?? `รายการหัก ${index + 1}`;
-                const estimatedFromAvg =
-                  item.deductionAmount === undefined &&
-                  item.deductionPricePerKg === undefined &&
-                  Number(item.deductionWeightKg) > 0 &&
-                  estimatedAvgPricePerKg > 0
-                    ? Number(item.deductionWeightKg) * estimatedAvgPricePerKg
-                    : undefined;
-                return (
-                <div key={item.key} className={styles.classifyDeductionGrid}>
-                  <div className={styles.stepMetaItem}>
-                    <span>น้ำหนักหัก {deductionLabel} (กก.)</span>
-                    <InputNumber
-                      aria-label={`น้ำหนักหัก ${deductionLabel}`}
-                      min={0}
-                      step={0.001}
-                      className={styles.stepMetaInput}
-                      value={item.deductionWeightKg}
-                      onKeyDown={blockNonNumericWeightKey}
-                      onChange={(value) =>
-                        setDeductions((prev) =>
-                          prev.map((row) =>
-                            row.key === item.key
-                              ? withDeductionAmount(row, {
-                                  deductionWeightKg:
-                                    typeof value === "number"
-                                      ? value
-                                      : undefined,
-                                })
-                              : row,
-                          ),
-                        )
-                      }
-                    />
+                  <span className={styles.weighBridgeOp} aria-hidden>
+                    −
+                  </span>
+                  <div className={styles.weighBridgeField}>
+                    <span>น้ำหนักออก</span>
+                    <div className={styles.weighBridgeInputRow}>
+                      <InputNumber
+                        aria-label="น้ำหนักออก"
+                        min={0.001}
+                        step={0.001}
+                        className={styles.weighBridgeInput}
+                        value={tareWeightKg ?? undefined}
+                        placeholder="0.000"
+                        onKeyDown={blockNonNumericWeightKey}
+                        onChange={(value) =>
+                          setTareWeightKg(
+                            typeof value === "number" ? value : null,
+                          )
+                        }
+                      />
+                      <em>กก.</em>
+                    </div>
                   </div>
-                  <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                    <span>ราคาหัก {deductionLabel} (บาท/กก.)</span>
-                    <InputNumber
-                      aria-label={`ราคาหัก ${deductionLabel}`}
-                      min={0}
-                      step={0.01}
-                      className={styles.stepMetaInput}
-                      value={item.deductionPricePerKg}
-                      placeholder="เช่น 2.50"
-                      onKeyDown={blockNonNumericWeightKey}
-                      onChange={(value) =>
-                        setDeductions((prev) =>
-                          prev.map((row) =>
-                            row.key === item.key
-                              ? withDeductionAmount(row, {
-                                  deductionPricePerKg:
-                                    typeof value === "number"
-                                      ? value
-                                      : undefined,
-                                })
-                              : row,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-                  <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                    <span>ยอดหัก {deductionLabel} (บาท)</span>
-                    <InputNumber
-                      aria-label={`ยอดหักเงิน ${deductionLabel}`}
-                      min={0}
-                      step={0.01}
-                      className={styles.stepMetaInput}
-                      value={item.deductionAmount}
-                      placeholder="คำนวณจากน้ำหนัก × ราคา"
-                      onKeyDown={blockNonNumericWeightKey}
-                      onChange={(value) =>
-                        setDeductions((prev) =>
-                          prev.map((row) =>
-                            row.key === item.key
-                              ? {
-                                  ...row,
-                                  deductionAmount:
-                                    typeof value === "number"
-                                      ? value
-                                      : undefined,
-                                }
-                              : row,
-                          ),
-                        )
-                      }
-                    />
-                    <span>
-                      {item.deductionPricePerKg !== undefined &&
-                      Number(item.deductionWeightKg) > 0
-                        ? `${formatWeight(item.deductionWeightKg)} กก. × ${formatPrice(item.deductionPricePerKg)} บาท = ${formatMoney(item.deductionAmount)} บาท`
-                        : estimatedFromAvg !== undefined
-                          ? `ยังไม่มีราคาหัก — เว้นว่างจะใช้ราคาเฉลี่ย ≈ ${formatMoney(estimatedFromAvg)} บาท`
-                          : "กรอกน้ำหนักกับราคาหัก แล้วระบบจะคิดยอดให้"}
-                    </span>
+                  <span className={styles.weighBridgeOp} aria-hidden>
+                    =
+                  </span>
+                  <div
+                    className={`${styles.weighBridgeField} ${styles.weighBridgeNet}`}
+                  >
+                    <span>น้ำหนักสุทธิของรถ</span>
+                    <strong>
+                      {netWeightKg > 0 ? formatWeight(netWeightKg) : "—"}
+                      <em>กก.</em>
+                    </strong>
                   </div>
                 </div>
-                );
-              })}
 
-              <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                {isManual ? (
+                  <Input.TextArea
+                    aria-label="เหตุผลการกรอกน้ำหนักเอง"
+                    rows={2}
+                    value={reason}
+                    placeholder="เหตุผลการกรอกเอง เช่น อ่านจากใบชั่ง (ไม่บังคับ)"
+                    onChange={(event) => setReason(event.target.value)}
+                  />
+                ) : null}
+              </section>
+
+              <section
+                className={`${styles.weighAllocCard} ${
+                  isTireWeightOver ? styles.weighAllocCardOver : ""
+                }`}
+              >
+                <div className={styles.weighAllocHead}>
+                  <div>
+                    <p className={styles.classifyEyebrow}>จัดสรรน้ำหนักยาง</p>
+                    <h4>
+                      รวมรายการยางต้องไม่เกิน{" "}
+                      {netWeightKg > 0
+                        ? `${formatWeight(netWeightKg)} กก.`
+                        : "น้ำหนักสุทธิของรถ"}
+                    </h4>
+                  </div>
+                  <strong
+                    className={
+                      isTireWeightOver
+                        ? styles.weighAllocValueOver
+                        : styles.weighAllocValue
+                    }
+                  >
+                    {formatWeight(allocatedTireWeightKg)}
+                    <span>
+                      {" "}
+                      / {netWeightKg > 0 ? formatWeight(netWeightKg) : "—"} กก.
+                    </span>
+                  </strong>
+                </div>
+
+                <div
+                  className={styles.weighAllocTrack}
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={tireWeightFillPercent}
+                  aria-label="สัดส่วนน้ำหนักยางต่อสุทธิ"
+                >
+                  <div
+                    className={`${styles.weighAllocFill} ${
+                      isTireWeightOver ? styles.weighAllocFillOver : ""
+                    }`}
+                    style={{ width: `${tireWeightFillPercent}%` }}
+                  />
+                </div>
+
+                <div className={styles.weighAllocMeta}>
+                  <span>
+                    จัดสรรแล้ว {formatWeight(allocatedTireWeightKg)} กก.
+                  </span>
+                  <span>
+                    {isTireWeightOver
+                      ? `เกิน ${formatWeight(Math.abs(remainingTireWeightKg))} กก.`
+                      : `เหลือจัดสรร ${formatWeight(Math.max(0, remainingTireWeightKg))} กก.`}
+                  </span>
+                </div>
+              </section>
+
+              <div className={styles.weighSplitGrid}>
+                <section
+                  className={`${styles.classifyPanel} ${styles.classifyPanelTire}`}
+                >
+                  <div className={styles.classifyPanelHead}>
+                    <div>
+                      <p className={styles.classifyEyebrow}>สินค้าที่รับซื้อ</p>
+                      <h4>น้ำหนักรายการยาง</h4>
+                      <p>
+                        ใส่กก. ของแต่ละประเภท — รวมแล้วต้องไม่เกินสุทธิของรถ
+                      </p>
+                    </div>
+                    <span
+                      className={`${styles.classifyCount} ${
+                        selectedTypeCount ? "" : styles.classifyCountMuted
+                      }`}
+                    >
+                      {selectedTypeCount} รายการ
+                    </span>
+                  </div>
+                  <div className={styles.classifyTypeList}>
+                    {items
+                      .filter((item) => item.tireClassificationId)
+                      .map((item, index) => {
+                        const meta = classificationLabelById.get(
+                          item.tireClassificationId,
+                        );
+                        const maxKg = maxWeightForItem(item.weightKg);
+                        return (
+                          <div
+                            key={item.key}
+                            className={styles.weighItemRow}
+                          >
+                            <div className={styles.weighItemMeta}>
+                              <strong>
+                                {meta?.name ?? `รายการ ${index + 1}`}
+                              </strong>
+                              <span>{meta?.code ?? "—"}</span>
+                            </div>
+                            <div className={styles.weighItemInput}>
+                              <InputNumber
+                                aria-label={`น้ำหนัก ${meta?.name ?? `รายการ ${index + 1}`}`}
+                                min={0.001}
+                                max={maxKg}
+                                step={0.001}
+                                className={styles.classifyDeductionInput}
+                                value={item.weightKg}
+                                placeholder="0.000"
+                                status={
+                                  isTireWeightOver ? "error" : undefined
+                                }
+                                onKeyDown={blockNonNumericWeightKey}
+                                onChange={(value) => {
+                                  const next =
+                                    typeof value === "number"
+                                      ? value
+                                      : undefined;
+                                  const capped =
+                                    next !== undefined &&
+                                    maxKg !== undefined &&
+                                    next > maxKg
+                                      ? maxKg
+                                      : next;
+                                  setItems((prev) =>
+                                    prev.map((row) =>
+                                      row.key === item.key
+                                        ? { ...row, weightKg: capped }
+                                        : row,
+                                    ),
+                                  );
+                                }}
+                              />
+                              <em>กก.</em>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </section>
+
+                <section
+                  className={`${styles.classifyPanel} ${styles.classifyPanelContam}`}
+                >
+                  <div className={styles.classifyPanelHead}>
+                    <div>
+                      <p className={styles.classifyEyebrow}>รายการหัก</p>
+                      <h4>สารปนเปื้อน</h4>
+                      <p>หักเป็นเงินก้อน ไม่ตัดน้ำหนักออกจากตั๋ว</p>
+                    </div>
+                    <span
+                      className={`${styles.classifyCount} ${
+                        deductions.length ? "" : styles.classifyCountMuted
+                      }`}
+                    >
+                      {deductions.length
+                        ? `${formatBaht(totalDeductionAmount)} บาท`
+                        : "ไม่มี"}
+                    </span>
+                  </div>
+                  {deductions.length ? (
+                    <div className={styles.classifyDeductionPlanList}>
+                      {deductions.map((item) => {
+                        const label =
+                          DEDUCTION_TYPE_OPTIONS.find(
+                            (option) => option.value === item.deductionType,
+                          )?.label ?? item.deductionType;
+                        return (
+                          <div
+                            key={item.key}
+                            className={styles.weighItemRow}
+                          >
+                            <div className={styles.weighItemMeta}>
+                              <strong>{label}</strong>
+                              <span>หักเป็นเงิน</span>
+                            </div>
+                            <div
+                              className={`${styles.weighItemInput} ${styles.weighItemInputMoney}`}
+                            >
+                              <InputNumber
+                                aria-label={`ยอดหัก ${label}`}
+                                min={0}
+                                step={0.01}
+                                precision={2}
+                                className={styles.classifyDeductionInput}
+                                value={item.deductionAmount}
+                                placeholder="0.00"
+                                onKeyDown={blockNonNumericWeightKey}
+                                onChange={(value) =>
+                                  setDeductions((prev) =>
+                                    prev.map((row) =>
+                                      row.key === item.key
+                                        ? {
+                                            ...row,
+                                            deductionAmount:
+                                              typeof value === "number"
+                                                ? value
+                                                : undefined,
+                                          }
+                                        : row,
+                                    ),
+                                  )
+                                }
+                              />
+                              <em>บาท</em>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className={styles.classifyEmpty}>
+                      ไม่มีสารปนเปื้อน — ไม่หักเงินจากใบรับซื้อ
+                    </div>
+                  )}
+                </section>
+              </div>
+
+              <div className={styles.weighActions}>
                 <Button
                   type="primary"
                   className={styles.submitButton}
@@ -1152,6 +1298,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                     !grossWeightKg ||
                     !tareWeightKg ||
                     tareWeightKg >= grossWeightKg ||
+                    isTireWeightOver ||
                     !items.some(
                       (item) =>
                         item.tireClassificationId && Number(item.weightKg) > 0,
@@ -1162,7 +1309,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                   บันทึกน้ำหนักและยืนยันใบรับซื้อ
                 </Button>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

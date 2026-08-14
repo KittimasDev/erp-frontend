@@ -22,17 +22,33 @@ import dayjs, { type Dayjs } from "dayjs";
 import Link from "next/link";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useDepartmentsQuery } from "@/hooks/departments/useDepartmentsQuery";
 import {
   useShiftAssignmentsQuery,
   useShiftsQuery,
 } from "@/hooks/shifts/useShiftQueries";
-import type { ShiftAssignment, ShiftAssignmentUser } from "@/types/shifts";
+import {
+  LEAVE_STATUS_COLOR,
+  LEAVE_STATUS_LABEL,
+  LEAVE_TYPE_COLOR,
+  LEAVE_TYPE_LABEL,
+} from "@/types/leave";
+import type {
+  ShiftAssignment,
+  ShiftAssignmentEvent,
+  ShiftAssignmentUser,
+} from "@/types/shifts";
 
 import ShiftPersonDrawer from "./ShiftPersonDrawer";
 import styles from "./ShiftAssignmentsPage.module.css";
+import {
+  formatWorkHours,
+  formatWorkMinutes,
+  lateCutoffTime,
+} from "./shiftDisplay";
 
 type RangeMode = "day" | "month" | "custom";
-type ViewMode = "day" | "person";
+type ViewMode = "day" | "person" | "events";
 
 const MODE_OPTIONS = [
   { label: "รายวัน", value: "day" as const },
@@ -43,9 +59,28 @@ const MODE_OPTIONS = [
 const VIEW_OPTIONS = [
   { label: "เรียงตามวัน", value: "day" as const },
   { label: "สรุปรายคน", value: "person" as const },
+  { label: "ลา / OT", value: "events" as const },
 ];
 
 const THAI_WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+
+/** ป้ายลาสำหรับแถวกะ — ลาที่อนุมัติแล้วขึ้นสีตามประเภทลา ที่ยังรออนุมัติขึ้นสีจาง */
+function LeaveTag({
+  leaveType,
+  status,
+}: {
+  leaveType: string;
+  status: string;
+}) {
+  const label = LEAVE_TYPE_LABEL[leaveType] ?? leaveType;
+  return status === "APPROVED" ? (
+    <Tag color={LEAVE_TYPE_COLOR[leaveType] ?? "default"}>{label}</Tag>
+  ) : (
+    <Tag color="default">
+      {label} ({LEAVE_STATUS_LABEL[status] ?? status})
+    </Tag>
+  );
+}
 
 export default function ShiftAssignmentsPage() {
   const today = dayjs();
@@ -60,6 +95,7 @@ export default function ShiftAssignmentsPage() {
 
   const [view, setView] = useState<ViewMode>("day");
   const [shiftId, setShiftId] = useState<string | undefined>();
+  const [departmentId, setDepartmentId] = useState<string | undefined>();
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [person, setPerson] = useState<ShiftAssignmentUser | null>(null);
@@ -84,13 +120,17 @@ export default function ShiftAssignmentsPage() {
   const assignmentsQuery = useShiftAssignmentsQuery({
     ...range,
     shiftId,
+    departmentId,
     q: appliedKeyword || undefined,
   });
   const shiftsQuery = useShiftsQuery();
+  const departmentsQuery = useDepartmentsQuery();
 
   const data = assignmentsQuery.data?.data;
   const rows = useMemo(() => data?.rows ?? [], [data]);
   const byUser = useMemo(() => data?.byUser ?? [], [data]);
+  const byShift = useMemo(() => data?.byShift ?? [], [data]);
+  const events = useMemo(() => data?.events ?? [], [data]);
 
   /** กดชื่อในตารางรายวัน — หาสรุปของคนนั้นจากผลลัพธ์ที่โหลดมาแล้ว */
   const openPerson = useCallback(
@@ -108,11 +148,12 @@ export default function ShiftAssignmentsPage() {
     label: `${shift.name} · ${shift.startTime}-${shift.endTime}`,
   }));
 
-  /** จำนวนวันที่มีคนเข้ากะจริงในช่วงนี้ */
-  const workingDays = useMemo(
-    () => new Set(rows.map((row) => row.date)).size,
-    [rows],
-  );
+  const departmentOptions = (departmentsQuery.data?.data ?? [])
+    .filter((department) => department.isActive)
+    .map((department) => ({ value: department.id, label: department.nameTh }));
+
+  /** วันนี้อยู่ในช่วงที่เลือกไหม — ใช้ไฮไลต์แถวของวันนี้ */
+  const todayKey = today.format("YYYY-MM-DD");
 
   const dayColumns: ColumnsType<ShiftAssignment> = useMemo(
     () => [
@@ -120,16 +161,20 @@ export default function ShiftAssignmentsPage() {
         title: "วันที่",
         dataIndex: "date",
         key: "date",
-        width: 130,
-        render: (value: string) => {
-          const date = dayjs(value);
-          return (
-            <div className={styles.dateCell}>
-              <strong>{date.format("DD/MM/YYYY")}</strong>
-              <span>วัน{THAI_WEEKDAYS[date.day()]}</span>
-            </div>
-          );
-        },
+        width: 140,
+        render: (value: string, row) => (
+          <div className={styles.dateCell}>
+            <strong>{dayjs(value).format("DD/MM/YYYY")}</strong>
+            <span>
+              วัน{THAI_WEEKDAYS[row.weekday]}
+              {value === todayKey ? (
+                <Tag color="green" className={styles.todayTag}>
+                  วันนี้
+                </Tag>
+              ) : null}
+            </span>
+          </div>
+        ),
       },
       {
         title: "พนักงาน",
@@ -145,6 +190,14 @@ export default function ShiftAssignmentsPage() {
             <span>{row.employeeCode ?? "ไม่มีรหัสพนักงาน"}</span>
           </button>
         ),
+      },
+      {
+        title: "ตำแหน่ง",
+        dataIndex: "position",
+        key: "position",
+        width: 150,
+        ellipsis: true,
+        render: (value?: string) => value ?? "—",
       },
       {
         title: "แผนก",
@@ -172,11 +225,68 @@ export default function ShiftAssignmentsPage() {
       {
         title: "เวลาเข้า-เลิกกะ",
         key: "time",
-        width: 160,
+        width: 190,
+        render: (_v, row) => {
+          const cutoff = lateCutoffTime(row.startTime, row.lateGraceMinutes);
+          return (
+            <div className={styles.timeCell}>
+              <span className={styles.timeValue}>
+                {row.startTime} - {row.endTime} น.
+                {row.isOvernight ? <Tag color="purple">ข้ามคืน</Tag> : null}
+              </span>
+              <span className={styles.timeHint}>
+                {cutoff
+                  ? `สายได้ถึง ${cutoff} น.`
+                  : "ไม่มีเวลาผ่อนผัน"}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        title: "ชั่วโมงกะ",
+        dataIndex: "workMinutes",
+        key: "workMinutes",
+        width: 110,
+        align: "right",
+        sorter: (a, b) => a.workMinutes - b.workMinutes,
+        render: (value: number) => formatWorkMinutes(value),
+      },
+      {
+        title: "ลา / OT",
+        key: "leaveOt",
+        width: 210,
+        filters: [
+          { text: "ลา (อนุมัติแล้ว)", value: "leave" },
+          { text: "ลารออนุมัติ", value: "pendingLeave" },
+          { text: "มี OT", value: "overtime" },
+          { text: "มาปกติ", value: "none" },
+        ],
+        onFilter: (value, row) => {
+          if (value === "leave") return row.isOnLeave;
+          if (value === "pendingLeave") return Boolean(row.leave) && !row.isOnLeave;
+          if (value === "overtime") return Boolean(row.overtime);
+          return !row.leave && !row.overtime;
+        },
         render: (_v, row) => (
-          <span className={styles.timeCell}>
-            {row.startTime} - {row.endTime}
-            {row.isOvernight ? <Tag color="purple">ข้ามคืน</Tag> : null}
+          <span className={styles.shiftTags}>
+            {row.leave ? (
+              <LeaveTag
+                leaveType={row.leave.leaveType}
+                status={row.leave.status}
+              />
+            ) : null}
+            {row.overtime ? (
+              <Tag color={row.overtime.status === "APPROVED" ? "gold" : "default"}>
+                OT {row.overtime.hours} ชม.
+                {row.overtime.status === "APPROVED"
+                  ? ""
+                  : ` (${LEAVE_STATUS_LABEL[row.overtime.status] ?? row.overtime.status})`}
+              </Tag>
+            ) : null}
+            {!row.leave && !row.overtime ? (
+              <span className={styles.noteCell}>—</span>
+            ) : null}
           </span>
         ),
       },
@@ -193,7 +303,7 @@ export default function ShiftAssignmentsPage() {
         ),
       },
     ],
-    [openPerson],
+    [openPerson, todayKey],
   );
 
   const personColumns: ColumnsType<ShiftAssignmentUser> = useMemo(
@@ -214,6 +324,14 @@ export default function ShiftAssignmentsPage() {
         ),
       },
       {
+        title: "ตำแหน่ง",
+        dataIndex: "position",
+        key: "position",
+        width: 150,
+        ellipsis: true,
+        render: (value?: string) => value ?? "—",
+      },
+      {
         title: "แผนก",
         dataIndex: "departmentName",
         key: "departmentName",
@@ -231,6 +349,15 @@ export default function ShiftAssignmentsPage() {
         render: (value: number) => `${value} วัน`,
       },
       {
+        title: "ชั่วโมงรวม",
+        dataIndex: "workMinutes",
+        key: "workMinutes",
+        width: 120,
+        align: "right",
+        sorter: (a, b) => a.workMinutes - b.workMinutes,
+        render: (value: number) => formatWorkMinutes(value),
+      },
+      {
         title: "แยกตามกะ",
         key: "shifts",
         render: (_v, row) => (
@@ -240,6 +367,53 @@ export default function ShiftAssignmentsPage() {
                 {shift.shiftName} {shift.days} วัน
               </Tag>
             ))}
+          </span>
+        ),
+      },
+      {
+        title: "ลา (กะขาดคน)",
+        dataIndex: "leaveDays",
+        key: "leaveDays",
+        width: 130,
+        align: "right",
+        sorter: (a, b) => a.leaveDays - b.leaveDays,
+        render: (value: number, row) =>
+          value || row.pendingLeaveDays ? (
+            <span className={styles.shiftTags}>
+              {value ? <Tag color="volcano">{value} วัน</Tag> : null}
+              {row.pendingLeaveDays ? (
+                <Tag color="default">รอ {row.pendingLeaveDays}</Tag>
+              ) : null}
+            </span>
+          ) : (
+            <span className={styles.noteCell}>—</span>
+          ),
+      },
+      {
+        title: "OT",
+        dataIndex: "overtimeHours",
+        key: "overtimeHours",
+        width: 100,
+        align: "right",
+        sorter: (a, b) => a.overtimeHours - b.overtimeHours,
+        render: (value: number) =>
+          value ? `${value} ชม.` : <span className={styles.noteCell}>—</span>,
+      },
+      {
+        title: "ที่ต้องดู",
+        key: "flags",
+        width: 170,
+        render: (_v, row) => (
+          <span className={styles.shiftTags}>
+            {row.overnightDays ? (
+              <Tag color="purple">ข้ามคืน {row.overnightDays} วัน</Tag>
+            ) : null}
+            {row.holidayDays ? (
+              <Tag color="warning">ตรงวันหยุด {row.holidayDays} วัน</Tag>
+            ) : null}
+            {!row.overnightDays && !row.holidayDays ? (
+              <span className={styles.noteCell}>—</span>
+            ) : null}
           </span>
         ),
       },
@@ -267,6 +441,127 @@ export default function ShiftAssignmentsPage() {
     [],
   );
 
+  const eventColumns: ColumnsType<ShiftAssignmentEvent> = useMemo(
+    () => [
+      {
+        title: "วันที่",
+        dataIndex: "date",
+        key: "date",
+        width: 140,
+        render: (value: string, row) => (
+          <div className={styles.dateCell}>
+            <strong>{dayjs(value).format("DD/MM/YYYY")}</strong>
+            <span>
+              วัน{THAI_WEEKDAYS[row.weekday]}
+              {value === todayKey ? (
+                <Tag color="green" className={styles.todayTag}>
+                  วันนี้
+                </Tag>
+              ) : null}
+            </span>
+          </div>
+        ),
+      },
+      {
+        title: "ประเภท",
+        dataIndex: "kind",
+        key: "kind",
+        width: 160,
+        filters: [
+          { text: "ลา", value: "LEAVE" },
+          { text: "OT", value: "OVERTIME" },
+        ],
+        onFilter: (value, row) => row.kind === value,
+        render: (_v, row) =>
+          row.kind === "LEAVE" ? (
+            <Tag color={LEAVE_TYPE_COLOR[row.leaveType ?? ""] ?? "default"}>
+              {LEAVE_TYPE_LABEL[row.leaveType ?? ""] ?? "ลา"}
+            </Tag>
+          ) : (
+            <Tag color="gold">OT {row.hours} ชม.</Tag>
+          ),
+      },
+      {
+        title: "พนักงาน",
+        key: "employee",
+        width: 210,
+        render: (_v, row) => (
+          <button
+            type="button"
+            className={styles.linkCell}
+            onClick={() => openPerson(row.userId)}
+          >
+            <strong>{row.displayName ?? "—"}</strong>
+            <span>{row.employeeCode ?? "ไม่มีรหัสพนักงาน"}</span>
+          </button>
+        ),
+      },
+      {
+        title: "แผนก",
+        dataIndex: "departmentName",
+        key: "departmentName",
+        width: 150,
+        ellipsis: true,
+        render: (value?: string) => value ?? "—",
+      },
+      {
+        title: "สถานะ",
+        dataIndex: "status",
+        key: "status",
+        width: 120,
+        filters: [
+          { text: "อนุมัติแล้ว", value: "APPROVED" },
+          { text: "รออนุมัติ", value: "DRAFT" },
+        ],
+        onFilter: (value, row) => row.status === value,
+        render: (value: string) => (
+          <Tag color={LEAVE_STATUS_COLOR[value] ?? "default"}>
+            {LEAVE_STATUS_LABEL[value] ?? value}
+          </Tag>
+        ),
+      },
+      {
+        title: "กะวันนั้น",
+        key: "shift",
+        width: 210,
+        filters: [
+          { text: "ทับกะที่จัดไว้", value: "yes" },
+          { text: "ไม่ได้ถูกจัดกะ", value: "no" },
+        ],
+        onFilter: (value, row) => (value === "yes" ? row.hasShift : !row.hasShift),
+        render: (_v, row) =>
+          row.hasShift ? (
+            <div className={styles.timeCell}>
+              <span className={styles.shiftCell}>
+                <span
+                  className={styles.shiftDot}
+                  style={{ background: row.color || "#8ab933" }}
+                  aria-hidden
+                />
+                {row.shiftName}
+              </span>
+              <span className={styles.timeHint}>
+                {row.shiftStartTime} - {row.shiftEndTime} น.
+                {row.kind === "LEAVE" && row.status === "APPROVED"
+                  ? " · กะขาดคน"
+                  : ""}
+              </span>
+            </div>
+          ) : (
+            <span className={styles.noteCell}>ไม่ได้ถูกจัดกะวันนี้</span>
+          ),
+      },
+      {
+        title: "เหตุผล",
+        dataIndex: "reason",
+        key: "reason",
+        ellipsis: true,
+        render: (value?: string) => value ?? "—",
+      },
+    ],
+    [openPerson, todayKey],
+  );
+
   return (
     <MasterPageGate isLoading={assignmentsQuery.isLoading}>
       <div className={styles.page}>
@@ -278,8 +573,8 @@ export default function ShiftAssignmentsPage() {
             <p className={styles.eyebrow}>HRM</p>
             <h1 className={styles.pageTitle}>รายการเข้ากะ</h1>
             <p className={styles.pageSubtitle}>
-              ดูว่าใครเข้ากะวันไหน เวลาไหน กดที่ชื่อพนักงานเพื่อดูตารางกะรายคน —
-              จัดรอบกะได้ที่{" "}
+              ดูว่าใครเข้ากะวันไหน เวลาไหน ใครลาหรือมี OT ทับกะบ้าง
+              กดที่ชื่อพนักงานเพื่อดูตารางกะรายคน — จัดรอบกะได้ที่{" "}
               <Link href="/hrm/shifts" className={styles.headerLink}>
                 ปฏิทินตารางกะ
               </Link>
@@ -351,6 +646,21 @@ export default function ShiftAssignmentsPage() {
           </label>
 
           <label className={styles.filterField}>
+            <span>แผนก</span>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทุกแผนก"
+              value={departmentId}
+              onChange={setDepartmentId}
+              options={departmentOptions}
+              loading={departmentsQuery.isLoading}
+              style={{ width: 180 }}
+            />
+          </label>
+
+          <label className={styles.filterField}>
             <span>ค้นหาพนักงาน</span>
             <Input
               allowClear
@@ -382,14 +692,25 @@ export default function ShiftAssignmentsPage() {
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
             <span>พนักงานที่ถูกจัดกะ</span>
             <strong>{data?.totalEmployees ?? 0}</strong>
+            <em>คน</em>
           </div>
           <div className={styles.summaryCard}>
             <span>รวมคน-วัน</span>
             <strong>{data?.totalAssignments ?? 0}</strong>
+            <em>แถวในตารางรายวัน</em>
+          </div>
+          <div className={styles.summaryCard}>
+            <span>ชั่วโมงกะรวม</span>
+            <strong>{formatWorkHours(data?.totalWorkMinutes)}</strong>
+            <em>ตามเวลากะ ยังไม่หักเวลาพัก</em>
           </div>
           <div className={styles.summaryCard}>
             <span>วันที่มีคนเข้ากะ</span>
-            <strong>{workingDays}</strong>
+            <strong>{data?.workingDays ?? 0}</strong>
+            <em>
+              จาก {data?.rangeDays ?? 0} วันในช่วงนี้
+              {data?.holidayDays ? ` · หยุด ${data.holidayDays} วัน` : ""}
+            </em>
           </div>
           <div className={styles.summaryCard}>
             <span>เฉลี่ยต่อคน</span>
@@ -399,8 +720,55 @@ export default function ShiftAssignmentsPage() {
                 : "0"}{" "}
               วัน
             </strong>
+            <em>
+              {data?.totalEmployees
+                ? formatWorkMinutes(
+                    Math.round(data.totalWorkMinutes / data.totalEmployees),
+                  )
+                : "—"}{" "}
+              ต่อคน
+            </em>
+          </div>
+          <div
+            className={`${styles.summaryCard} ${
+              data?.shiftsOnLeave ? styles.summaryCardAlert : ""
+            }`}
+          >
+            <span>กะที่คนลา</span>
+            <strong>{data?.shiftsOnLeave ?? 0}</strong>
+            <em>
+              กะขาดคน · ลาทั้งหมด {data?.employeesOnLeave ?? 0} คน
+              {data?.shiftsPendingLeave
+                ? ` · รออนุมัติอีก ${data.shiftsPendingLeave}`
+                : ""}
+            </em>
+          </div>
+          <div className={styles.summaryCard}>
+            <span>OT อนุมัติแล้ว</span>
+            <strong>{data?.totalOvertimeHours ?? 0} ชม.</strong>
+            <em>ทั้งช่วงที่เลือก</em>
           </div>
         </div>
+
+        {byShift.length > 0 ? (
+          <div className={styles.shiftStrip}>
+            {byShift.map((shift) => (
+              <div key={shift.shiftId} className={styles.shiftStripItem}>
+                <span
+                  className={styles.shiftDot}
+                  style={{ background: shift.color || "#8ab933" }}
+                  aria-hidden
+                />
+                <div className={styles.shiftStripBody}>
+                  <strong>{shift.shiftName}</strong>
+                  <span>
+                    {shift.employees} คน · {shift.assignments} คน-วัน
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className={styles.tableCard}>
           <div className={styles.tableHead}>
@@ -418,7 +786,15 @@ export default function ShiftAssignmentsPage() {
               columns={dayColumns}
               dataSource={rows}
               loading={assignmentsQuery.isFetching}
-              scroll={{ x: 1080 }}
+              rowClassName={(row) =>
+                [
+                  row.date === todayKey ? styles.todayRow : "",
+                  row.isOnLeave ? styles.leaveRow : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+              }
+              scroll={{ x: 1620 }}
               pagination={{
                 pageSize: 20,
                 showSizeChanger: true,
@@ -431,14 +807,14 @@ export default function ShiftAssignmentsPage() {
                 ),
               }}
             />
-          ) : (
+          ) : view === "person" ? (
             <Table<ShiftAssignmentUser>
               rowKey="userId"
               size="middle"
               columns={personColumns}
               dataSource={byUser}
               loading={assignmentsQuery.isFetching}
-              scroll={{ x: 980 }}
+              scroll={{ x: 1590 }}
               pagination={{
                 pageSize: 20,
                 showSizeChanger: true,
@@ -448,6 +824,29 @@ export default function ShiftAssignmentsPage() {
               locale={{
                 emptyText: (
                   <Empty description="ยังไม่มีพนักงานถูกจัดกะในช่วงนี้" />
+                ),
+              }}
+            />
+          ) : (
+            <Table<ShiftAssignmentEvent>
+              rowKey={(row) => `${row.kind}-${row.id}-${row.date}`}
+              size="middle"
+              columns={eventColumns}
+              dataSource={events}
+              loading={assignmentsQuery.isFetching}
+              rowClassName={(row) =>
+                row.date === todayKey ? styles.todayRow : ""
+              }
+              scroll={{ x: 1280 }}
+              pagination={{
+                pageSize: 20,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50, 100],
+                showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              }}
+              locale={{
+                emptyText: (
+                  <Empty description="ไม่มีใบลาหรือ OT ในช่วงนี้" />
                 ),
               }}
             />

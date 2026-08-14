@@ -72,6 +72,7 @@ export function getShiftAssignments(
   });
   if (params.shiftId) search.set("shiftId", params.shiftId);
   if (params.userId) search.set("userId", params.userId);
+  if (params.departmentId) search.set("departmentId", params.departmentId);
   if (params.q?.trim()) search.set("q", params.q.trim());
 
   return apiFetch<ShiftAssignmentListApiResponse>(

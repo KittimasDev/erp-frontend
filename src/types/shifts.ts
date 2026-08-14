@@ -149,6 +149,25 @@ export type ShiftCalendarParams = {
 
 /* ---------- รายการเข้ากะ (ใครเข้ากะวันไหน) ---------- */
 
+/** ใบลาที่คร่อมวันของแถวกะ */
+export type ShiftAssignmentLeave = {
+  id: string;
+  leaveType: string;
+  /** DRAFT = รออนุมัติ */
+  status: string;
+  startDate: string;
+  endDate: string;
+  reason?: string;
+};
+
+/** ใบ OT ของวันนั้น */
+export type ShiftAssignmentOvertime = {
+  id: string;
+  hours: number;
+  status: string;
+  reason?: string;
+};
+
 /** 1 แถว = พนักงาน 1 คน เข้ากะ 1 รอบ ของ 1 วัน */
 export type ShiftAssignment = {
   date: string;
@@ -156,6 +175,8 @@ export type ShiftAssignment = {
   userId: string;
   employeeCode?: string;
   displayName?: string;
+  position?: string;
+  departmentId?: string;
   departmentName?: string;
   shiftId: string;
   shiftName: string;
@@ -163,10 +184,50 @@ export type ShiftAssignment = {
   startTime: string;
   endTime: string;
   isOvernight: boolean;
+  /** ความยาวกะเป็นนาที (ยังไม่หักเวลาพัก) */
+  workMinutes: number;
+  /** สายได้ไม่เกินกี่นาทีตามกะมาตรฐาน */
+  lateGraceMinutes?: number;
+  /** 0 = อาทิตย์ */
+  weekday: number;
   /** true = วันนั้นถูกกดหยุดไว้ (ยังขึ้นในตารางกะแต่ไม่คิดสาย) */
   isHoliday: boolean;
   holidayName?: string;
   note?: string;
+  /** มีค่าเมื่อคนนี้ยื่นลาคร่อมวันนี้ (รออนุมัติหรืออนุมัติแล้ว) */
+  leave?: ShiftAssignmentLeave;
+  /** มีค่าเมื่อคนนี้ขอ OT ในวันนี้ */
+  overtime?: ShiftAssignmentOvertime;
+  /** true = ลาที่อนุมัติแล้วทับวันนี้ — กะยังอยู่แต่คนไม่มา */
+  isOnLeave: boolean;
+};
+
+/** ใบลา/OT รายวันในช่วงที่เลือก — รวมวันที่ไม่ได้ถูกจัดกะ */
+export type ShiftAssignmentEvent = {
+  kind: "LEAVE" | "OVERTIME";
+  id: string;
+  date: string;
+  /** 0 = อาทิตย์ */
+  weekday: number;
+  userId: string;
+  employeeCode?: string;
+  displayName?: string;
+  position?: string;
+  departmentId?: string;
+  departmentName?: string;
+  /** DRAFT = รออนุมัติ */
+  status: string;
+  /** เฉพาะ kind = LEAVE */
+  leaveType?: string;
+  /** เฉพาะ kind = OVERTIME */
+  hours?: number;
+  reason?: string;
+  /** true = วันนั้นถูกจัดกะไว้ด้วย — ลา/OT ทับกะจริง */
+  hasShift: boolean;
+  shiftName?: string;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
+  color?: string;
 };
 
 export type ShiftAssignmentUserShift = {
@@ -180,12 +241,34 @@ export type ShiftAssignmentUser = {
   userId: string;
   employeeCode?: string;
   displayName?: string;
+  position?: string;
+  departmentId?: string;
   departmentName?: string;
   totalDays: number;
   holidayDays: number;
+  overnightDays: number;
+  /** วันที่ถูกจัดกะแต่ลาที่อนุมัติแล้วทับ — กะขาดคนจริง */
+  leaveDays: number;
+  /** วันที่ถูกจัดกะแล้วมีใบลารออนุมัติทับอยู่ */
+  pendingLeaveDays: number;
+  /** ชั่วโมง OT ที่อนุมัติแล้วในวันที่ถูกจัดกะ */
+  overtimeHours: number;
+  /** ชั่วโมงกะรวมของคนนี้ (นาที) */
+  workMinutes: number;
   firstDate?: string;
   lastDate?: string;
   shifts: ShiftAssignmentUserShift[];
+};
+
+/** ยอดรวมรายกะของทั้งช่วง */
+export type ShiftAssignmentShiftSummary = {
+  shiftId: string;
+  shiftName: string;
+  color?: string;
+  startTime: string;
+  endTime: string;
+  assignments: number;
+  employees: number;
 };
 
 export type ShiftAssignmentList = {
@@ -193,8 +276,26 @@ export type ShiftAssignmentList = {
   dateTo: string;
   totalAssignments: number;
   totalEmployees: number;
+  /** ชั่วโมงกะรวมทั้งช่วง (นาที) */
+  totalWorkMinutes: number;
+  /** จำนวนวันที่มีคนเข้ากะจริง */
+  workingDays: number;
+  /** จำนวนวันทั้งหมดในช่วงที่เลือก */
+  rangeDays: number;
+  /** วันหยุด/หยุดซ่อมเครื่องที่ทับกับช่วงนี้ */
+  holidayDays: number;
+  /** จำนวนกะที่คนลา (อนุมัติแล้ว) — กะขาดคนเท่านี้ */
+  shiftsOnLeave: number;
+  /** จำนวนกะที่มีใบลารออนุมัติทับอยู่ */
+  shiftsPendingLeave: number;
+  /** ชั่วโมง OT ที่อนุมัติแล้วทั้งช่วง */
+  totalOvertimeHours: number;
+  /** จำนวนคนที่ลาในช่วงนี้ (อนุมัติแล้ว) ไม่ว่าจะถูกจัดกะหรือไม่ */
+  employeesOnLeave: number;
   rows: ShiftAssignment[];
   byUser: ShiftAssignmentUser[];
+  byShift: ShiftAssignmentShiftSummary[];
+  events: ShiftAssignmentEvent[];
 };
 
 export type ShiftAssignmentParams = {
@@ -202,6 +303,7 @@ export type ShiftAssignmentParams = {
   dateTo: string;
   shiftId?: string;
   userId?: string;
+  departmentId?: string;
   q?: string;
 };
 

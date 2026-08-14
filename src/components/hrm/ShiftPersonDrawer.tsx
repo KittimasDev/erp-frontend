@@ -5,9 +5,15 @@ import { UserOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { useShiftAssignmentsQuery } from "@/hooks/shifts/useShiftQueries";
+import {
+  LEAVE_STATUS_LABEL,
+  LEAVE_TYPE_COLOR,
+  LEAVE_TYPE_LABEL,
+} from "@/types/leave";
 import type { ShiftAssignmentUser } from "@/types/shifts";
 
 import styles from "./ShiftAssignmentsPage.module.css";
+import { formatWorkMinutes, lateCutoffTime } from "./shiftDisplay";
 
 type Props = {
   open: boolean;
@@ -56,6 +62,7 @@ export default function ShiftPersonDrawer({
       <div className={styles.personHead}>
         <div className={styles.personMeta}>
           <span>{user.employeeCode ?? "ไม่มีรหัสพนักงาน"}</span>
+          {user.position ? <span>{user.position}</span> : null}
           {user.departmentName ? <span>{user.departmentName}</span> : null}
         </div>
         <p className={styles.personRange}>
@@ -66,6 +73,30 @@ export default function ShiftPersonDrawer({
             <span>เข้ากะ</span>
             <strong>{summary?.totalDays ?? 0} วัน</strong>
           </div>
+          <div className={styles.personStat}>
+            <span>ชั่วโมงรวม</span>
+            <strong>{formatWorkMinutes(summary?.workMinutes)}</strong>
+          </div>
+          {summary?.overnightDays ? (
+            <div className={styles.personStat}>
+              <span>กะข้ามคืน</span>
+              <strong>{summary.overnightDays} วัน</strong>
+            </div>
+          ) : null}
+          {summary?.leaveDays ? (
+            <div className={styles.personStat}>
+              <span>ลา (กะขาดคน)</span>
+              <strong className={styles.leaveValue}>
+                {summary.leaveDays} วัน
+              </strong>
+            </div>
+          ) : null}
+          {summary?.overtimeHours ? (
+            <div className={styles.personStat}>
+              <span>OT</span>
+              <strong>{summary.overtimeHours} ชม.</strong>
+            </div>
+          ) : null}
           {summary?.holidayDays ? (
             <div className={styles.personStat}>
               <span>ตรงวันหยุด</span>
@@ -97,11 +128,17 @@ export default function ShiftPersonDrawer({
         <ul className={styles.dayList}>
           {rows.map((row) => {
             const date = dayjs(row.date);
+            const cutoff = lateCutoffTime(row.startTime, row.lateGraceMinutes);
             return (
-              <li key={`${row.scheduleId}-${row.date}`} className={styles.dayItem}>
+              <li
+                key={`${row.scheduleId}-${row.date}`}
+                className={`${styles.dayItem} ${
+                  row.isOnLeave ? styles.dayItemLeave : ""
+                }`}
+              >
                 <div className={styles.dayDate}>
                   <strong>{date.format("D/M")}</strong>
-                  <span>{THAI_WEEKDAYS[date.day()]}</span>
+                  <span>{THAI_WEEKDAYS[row.weekday]}</span>
                 </div>
                 <div className={styles.dayBody}>
                   <strong>
@@ -113,13 +150,48 @@ export default function ShiftPersonDrawer({
                     {row.shiftName}
                   </strong>
                   <span>
-                    {row.startTime} - {row.endTime} น.
+                    {row.startTime} - {row.endTime} น. ·{" "}
+                    {formatWorkMinutes(row.workMinutes)}
                     {row.isOvernight ? " (ข้ามคืน)" : ""}
                   </span>
+                  {cutoff ? (
+                    <span className={styles.dayNote}>สายได้ถึง {cutoff} น.</span>
+                  ) : null}
                   {row.isHoliday ? (
                     <Tag color="warning" className={styles.dayTag}>
                       {row.holidayName ?? "วันหยุด"}
                     </Tag>
+                  ) : null}
+                  {row.leave || row.overtime ? (
+                    <span className={styles.dayTag}>
+                      {row.leave ? (
+                        <Tag
+                          color={
+                            row.leave.status === "APPROVED"
+                              ? LEAVE_TYPE_COLOR[row.leave.leaveType] ??
+                                "default"
+                              : "default"
+                          }
+                        >
+                          {LEAVE_TYPE_LABEL[row.leave.leaveType] ??
+                            row.leave.leaveType}
+                          {row.leave.status === "APPROVED"
+                            ? ""
+                            : ` (${LEAVE_STATUS_LABEL[row.leave.status] ?? row.leave.status})`}
+                        </Tag>
+                      ) : null}
+                      {row.overtime ? (
+                        <Tag
+                          color={
+                            row.overtime.status === "APPROVED"
+                              ? "gold"
+                              : "default"
+                          }
+                        >
+                          OT {row.overtime.hours} ชม.
+                        </Tag>
+                      ) : null}
+                    </span>
                   ) : null}
                   {row.note ? (
                     <span className={styles.dayNote}>{row.note}</span>

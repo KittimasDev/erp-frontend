@@ -1064,6 +1064,21 @@
   border-color: rgba(115, 152, 22, 0.28);
 }
 
+.stepCardReadonly {
+  border-color: #d9dde3;
+  background: #f4f5f7;
+}
+
+.stepCardReadonly .stepCardHeader {
+  background: linear-gradient(180deg, #f0f2f5 0%, #f4f5f7 100%);
+  border-bottom-color: #e2e5ea;
+}
+
+.stepCardReadonly .stepCardTitle h3,
+.stepCardReadonly .stepCardTitle p {
+  color: #6b7280;
+}
+
 .stepCardLocked {
   opacity: 0.78;
 }
@@ -1273,6 +1288,21 @@
   gap: 16px;
 }
 
+.classifyLayoutLocked {
+  opacity: 0.72;
+  filter: grayscale(0.35);
+  pointer-events: none;
+  user-select: none;
+}
+
+.classifyLayoutLocked :global(.ant-select-disabled .ant-select-selector),
+.classifyLayoutLocked :global(.ant-input-disabled),
+.classifyLayoutLocked :global(.ant-input-number-disabled),
+.classifyLayoutLocked :global(textarea:disabled) {
+  color: #6b7280 !important;
+  background: #eceff3 !important;
+}
+
 .classifySplit {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.9fr);
@@ -1480,17 +1510,326 @@
 
 .classifyDeductionPlanRow {
   display: grid;
-  grid-template-columns: minmax(88px, 0.7fr) minmax(0, 1fr);
   gap: 8px;
-  align-items: center;
-  padding: 10px;
+  padding: 12px 14px;
   border: 1px solid #eadcc8;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #ffffff;
 }
 
-.classifyDeductionPlanNote {
-  grid-column: 1 / -1;
+.classifyDeductionPlanTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.classifyDeductionPlanTop strong {
+  color: var(--erp-text, #2f343a);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.classifyDeductionPlanTop span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.classifyDeductionAmount {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.classifyDeductionInput {
+  width: 100%;
+}
+
+.classifyDeductionInput :global(.ant-input-number-input) {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.classifyDeductionAmount em {
+  font-style: normal;
+  color: #8a5a12;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.weighStepLayout {
+  display: grid;
+  gap: 14px;
+}
+
+.weighBridgeCard,
+.weighAllocCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.weighBridgeCard {
+  border: 1px solid rgba(115, 152, 22, 0.28);
+  background:
+    linear-gradient(180deg, rgba(247, 250, 239, 0.95) 0%, #ffffff 70%);
+}
+
+.weighBridgeHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.weighBridgeHead .classifyEyebrow {
+  color: var(--erp-green-dark, #6f9720);
+}
+
+.weighBridgeHead h4 {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.weighManualToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.weighBridgeMath {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.1fr);
+  gap: 10px;
+  align-items: end;
+}
+
+.weighBridgeField {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.weighBridgeField > span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.weighBridgeInputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #e6eadb;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.weighBridgeInput {
+  width: 100%;
+}
+
+.weighBridgeInput :global(.ant-input-number-input) {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--erp-text, #2f343a);
+}
+
+.weighBridgeInputRow em,
+.weighBridgeNet strong em {
+  font-style: normal;
+  color: var(--erp-muted, #8a9199);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.weighBridgeOp {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 44px;
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.weighBridgeNet {
+  padding: 8px 12px;
+  border: 1px solid rgba(115, 152, 22, 0.45);
+  border-radius: 14px;
+  background: rgba(115, 152, 22, 0.12);
+}
+
+.weighBridgeNet strong {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.weighAllocCard {
+  border: 1px solid #e6eadb;
+  background: #fbfcfa;
+}
+
+.weighAllocCardOver {
+  border-color: rgba(217, 48, 37, 0.35);
+  background: rgba(217, 48, 37, 0.04);
+}
+
+.weighAllocHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.weighAllocHead .classifyEyebrow {
+  color: var(--erp-green-dark, #6f9720);
+}
+
+.weighAllocHead h4 {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.weighAllocValue,
+.weighAllocValueOver {
+  flex: none;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.weighAllocValue {
+  color: var(--erp-green-dark, #6f9720);
+}
+
+.weighAllocValueOver {
+  color: #c62828;
+}
+
+.weighAllocValue span,
+.weighAllocValueOver span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.weighAllocTrack {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8ece0;
+}
+
+.weighAllocFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--erp-green, #8fbe2a) 0%,
+    var(--erp-green-dark, #6f9720) 100%
+  );
+  transition: width 160ms ease;
+}
+
+.weighAllocFillOver {
+  background: linear-gradient(90deg, #ef5350 0%, #c62828 100%);
+}
+
+.weighAllocMeta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.weighAllocCardOver .weighAllocMeta {
+  color: #c62828;
+}
+
+.weighSplitGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(260px, 0.9fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.weighItemRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(140px, 0.7fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e6eadb;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.weighItemMeta {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.weighItemMeta strong {
+  color: var(--erp-text, #2f343a);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.weighItemMeta span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.weighItemInput {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.weighItemInput em {
+  font-style: normal;
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.weighItemInputMoney em {
+  color: #8a5a12;
+}
+
+.classifyPanelContam .weighItemRow {
+  border-color: #eadcc8;
+}
+
+.weighStepLayout .weighActions {
+  margin-top: 2px;
 }
 
 .classifyFooter {
@@ -1887,11 +2226,19 @@
   .stepMetaControls,
   .classificationLayout,
   .classifySplit,
+  .weighSplitGrid,
+  .weighBridgeMath,
   .classifyTypeRowTop,
   .classifyDeductionGrid,
   .classifyDocGrid,
+  .weighItemRow,
   .classifyDeductionPlanRow {
     grid-template-columns: 1fr;
+  }
+
+  .weighBridgeOp {
+    width: 100%;
+    height: 24px;
   }
 
   .classificationSummarySticky {
