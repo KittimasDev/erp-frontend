@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getMyShiftSchedule,
   getShiftAssignments,
+  getShiftAutoPlanPositions,
   getShiftRoster,
   getShiftCalendar,
   getShiftSchedule,
@@ -77,6 +78,18 @@ export function useShiftScheduleQuery(id: string, enabled = true) {
     queryKey: shiftScheduleQueryKey(id),
     queryFn: () => getShiftSchedule(getAccessToken(), id),
     enabled: enabled && Boolean(id),
+  });
+}
+
+export const shiftAutoPlanPositionsQueryKey = () =>
+  ["shifts", "auto-plan", "positions"] as const;
+
+/** ตำแหน่งที่มีพนักงานอยู่จริง — ใช้เป็นตัวเลือกในฟอร์มจัดตารางอัตโนมัติ */
+export function useShiftAutoPlanPositionsQuery(enabled = true) {
+  return useQuery({
+    queryKey: shiftAutoPlanPositionsQueryKey(),
+    queryFn: () => getShiftAutoPlanPositions(getAccessToken()),
+    enabled,
   });
 }
 

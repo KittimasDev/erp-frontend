@@ -6,6 +6,7 @@ import type { Dayjs } from "dayjs";
 import {
   CalendarOutlined,
   ReloadOutlined,
+  RobotOutlined,
   SettingOutlined,
   ThunderboltOutlined,
   ToolOutlined,
@@ -19,6 +20,7 @@ import {
 } from "@/hooks/shifts/useShiftQueries";
 import type { ShiftCalendarDay } from "@/types/shifts";
 
+import ShiftAutoPlanModal from "./ShiftAutoPlanModal";
 import ShiftBulkModal from "./ShiftBulkModal";
 import ShiftDayDrawer from "./ShiftDayDrawer";
 import ShiftMasterModal from "./ShiftMasterModal";
@@ -37,6 +39,7 @@ export default function ShiftCalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [masterOpen, setMasterOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [autoPlanOpen, setAutoPlanOpen] = useState(false);
 
   const range = useMemo(() => monthRange(month), [month]);
   const calendarQuery = useShiftCalendarQuery(range);
@@ -181,12 +184,17 @@ export default function ShiftCalendarPage() {
             จัดการกะ
           </Button>
 
+          <Button icon={<ThunderboltOutlined />} onClick={() => setBulkOpen(true)}>
+            ลงกะเป็นช่วง
+          </Button>
+
           <Button
             type="primary"
-            icon={<ThunderboltOutlined />}
-            onClick={() => setBulkOpen(true)}
+            icon={<RobotOutlined />}
+            disabled={shifts.length === 0}
+            onClick={() => setAutoPlanOpen(true)}
           >
-            ลงกะเป็นช่วง
+            จัดตารางอัตโนมัติ
           </Button>
         </div>
 
@@ -267,6 +275,15 @@ export default function ShiftCalendarPage() {
             shifts={shifts}
             month={month}
             onClose={() => setBulkOpen(false)}
+          />
+        ) : null}
+
+        {autoPlanOpen ? (
+          <ShiftAutoPlanModal
+            open
+            shifts={shifts}
+            month={month}
+            onClose={() => setAutoPlanOpen(false)}
           />
         ) : null}
       </div>

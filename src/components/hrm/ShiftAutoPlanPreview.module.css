@@ -1,0 +1,322 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.summaryCard {
+  border: 1px solid var(--ant-color-border-secondary, #e2e8f0);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.summaryCard span {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary, #94a3b8);
+}
+
+.summaryCard strong {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.shortValue {
+  color: #b91c1c;
+}
+
+.okValue {
+  color: #15803d;
+}
+
+.positionCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.positionCard {
+  border: 1px solid var(--ant-color-border-secondary, #e2e8f0);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.positionCardShort {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.positionName {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.positionRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.positionRow span:last-child {
+  font-weight: 600;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary, #94a3b8);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.swatchShort {
+  background: #fecaca;
+  border: 1px solid #f87171;
+}
+
+.swatchHoliday {
+  background: repeating-linear-gradient(
+    45deg,
+    #f8fafc,
+    #f8fafc 3px,
+    #e2e8f0 3px,
+    #e2e8f0 6px
+  );
+}
+
+.swatchOff {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.swatchLeave {
+  background: #fde68a;
+}
+
+/* ---------- ตารางกริด ---------- */
+
+.scroller {
+  overflow-x: auto;
+  border: 1px solid var(--ant-color-border-secondary, #e2e8f0);
+  border-radius: 10px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-size: 12px;
+}
+
+.grid th,
+.grid td {
+  border-bottom: 1px solid var(--ant-color-border-secondary, #eef2f7);
+  border-right: 1px solid var(--ant-color-border-secondary, #eef2f7);
+}
+
+/* คอลัมน์แรกตรึงไว้ ไม่งั้นเลื่อนไปกลางเดือนแล้วไม่รู้ว่าแถวไหนของใคร */
+.rowHead {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--ant-color-bg-container, #fff);
+  text-align: left;
+  padding: 5px 10px;
+  min-width: 200px;
+  max-width: 200px;
+  font-weight: 500;
+  box-shadow: 1px 0 0 var(--ant-color-border-secondary, #e2e8f0);
+}
+
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ant-color-fill-quaternary, #f8fafc);
+  padding: 4px 0;
+}
+
+.grid thead th.rowHead {
+  z-index: 3;
+}
+
+.rowLabel {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowMeta {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ant-color-text-tertiary, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.groupRow td {
+  background: var(--ant-color-fill-quaternary, #f8fafc);
+  font-weight: 600;
+  padding: 5px 10px;
+  position: sticky;
+  left: 0;
+}
+
+.dayHead {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.dayHeadInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.dayNum {
+  font-size: 12px;
+}
+
+.dayDow {
+  font-size: 10px;
+  color: var(--ant-color-text-tertiary, #94a3b8);
+}
+
+.dayHeadHoliday {
+  background: #fee2e2;
+}
+
+.cell {
+  height: 28px;
+  min-width: 30px;
+  text-align: center;
+  padding: 0;
+}
+
+.cellInner {
+  display: block;
+  width: 100%;
+  height: 100%;
+  line-height: 28px;
+  font-size: 11px;
+}
+
+.cellFilled {
+  background: #8ab933;
+  color: #fff;
+  font-weight: 600;
+}
+
+.cellRefill {
+  /* คนเสริมทำเส้นทแยงจางๆ ให้เห็นว่าไม่ใช่คนหลัก โดยไม่ต้องพึ่งสีอย่างเดียว */
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.45) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0.45) 75%,
+    transparent 75%
+  );
+  background-size: 6px 6px;
+}
+
+.cellShort {
+  background: #fecaca;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.cellOff {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.cellHoliday {
+  background: repeating-linear-gradient(
+    45deg,
+    #f8fafc,
+    #f8fafc 3px,
+    #e2e8f0 3px,
+    #e2e8f0 6px
+  );
+}
+
+.cellLeave {
+  outline: 2px solid #f59e0b;
+  outline-offset: -2px;
+}
+
+.totalHead,
+.totalCell {
+  min-width: 46px;
+  text-align: center;
+  background: var(--ant-color-fill-quaternary, #f8fafc);
+  padding: 4px 6px;
+}
+
+.shortTotal {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.footnote {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary, #94a3b8);
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .positionCardShort {
+    background: rgba(185, 28, 28, 0.16);
+  }
+
+  .cellOff {
+    background: rgba(148, 163, 184, 0.18);
+  }
+
+  .swatchOff {
+    background: rgba(148, 163, 184, 0.18);
+  }
+}

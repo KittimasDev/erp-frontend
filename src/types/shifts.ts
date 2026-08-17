@@ -410,6 +410,148 @@ export type MyShiftSchedule = {
   days: MyShiftDay[];
 };
 
+/* ---------- จัดตารางกะรายเดือนอัตโนมัติ ---------- */
+
+export type ShiftAutoPlanDemand = {
+  shiftId: string;
+  headcount: number;
+};
+
+export type ShiftAutoPlanPositionInput = {
+  position: string;
+  /** ลำดับในอาร์เรย์ = ลำดับกะในหนึ่งวัน (เช้า → บ่าย → ดึก) */
+  demands: ShiftAutoPlanDemand[];
+  /** กำหนดลำดับพนักงานเอง (R1..Rn) — ไม่ส่ง = เรียงตามรหัสพนักงาน */
+  userIds?: string[];
+};
+
+export type ShiftAutoPlanRequest = {
+  /** `YYYY-MM` */
+  month: string;
+  positions: ShiftAutoPlanPositionInput[];
+  skipHolidays?: boolean;
+  note?: string;
+};
+
+export type ShiftAutoPlanApplyRequest = ShiftAutoPlanRequest & {
+  overwriteExisting?: boolean;
+};
+
+export type ShiftAutoPlanPositionOption = {
+  position: string;
+  employeeCount: number;
+};
+
+export type ShiftAutoPlanRole = "MAIN" | "REFILL";
+
+export type ShiftAutoPlanEmployee = {
+  userId: string;
+  employeeCode?: string;
+  displayName: string;
+  /** 0 = R1 */
+  index: number;
+  role: ShiftAutoPlanRole;
+  /** มีเฉพาะคนหลัก = กะประจำทั้งเดือน */
+  primaryShiftId?: string;
+  primaryShiftName?: string;
+  /** 0 = อาทิตย์ ... 6 = เสาร์ */
+  dayOffWeekday: number;
+  dayOffLabel: string;
+  assignedDays: number;
+  /** มากกว่า 1 = คนนี้สลับกะ */
+  shiftIdsUsed: string[];
+};
+
+export type ShiftAutoPlanPositionPlan = {
+  position: string;
+  dailyHeadcount: number;
+  /** วันในเดือน × คนต่อวัน */
+  totalSlots: number;
+  /** วันที่จัดจริง (หักวันหยุด) × คนต่อวัน */
+  scheduledSlots: number;
+  /** ปัดขึ้นจาก คนต่อวัน × 7 ÷ 6 */
+  minimumEmployees: number;
+  availableEmployees: number;
+  understaffedSlots: number;
+  slots: Array<{ shiftId: string; shiftName: string }>;
+  employees: ShiftAutoPlanEmployee[];
+};
+
+export type ShiftAutoPlanDaySlot = {
+  shiftId: string;
+  shiftName: string;
+  position: string;
+  slotIndex: number;
+  /** ไม่มีค่า = ช่องนี้ขาดคน */
+  userId?: string;
+  employeeCode?: string;
+  displayName?: string;
+  source?: ShiftAutoPlanRole;
+  unfilledReason?: "NO_ELIGIBLE_EMPLOYEE";
+  onApprovedLeave?: boolean;
+};
+
+export type ShiftAutoPlanDay = {
+  date: string;
+  weekday: number;
+  isHoliday: boolean;
+  holidayName?: string;
+  holidayType?: string;
+  /** true = วันหยุด ไม่สร้างรอบกะ */
+  skipped: boolean;
+  slots: ShiftAutoPlanDaySlot[];
+  filledCount: number;
+  understaffedCount: number;
+};
+
+export type ShiftAutoPlanWarningCode =
+  | "BELOW_MINIMUM"
+  | "NO_EMPLOYEES"
+  | "REFILL_MULTI_SHIFT"
+  | "SHIFT_INACTIVE"
+  | "EXISTING_ROUNDS"
+  | "LEAVE_CONFLICT"
+  | "CROSS_POSITION_CONFLICT"
+  | "USER_POSITION_MISMATCH";
+
+export type ShiftAutoPlanWarning = {
+  code: ShiftAutoPlanWarningCode;
+  message: string;
+  date?: string;
+  userId?: string;
+  position?: string;
+};
+
+export type ShiftAutoPlanWriteResult = {
+  createdRounds: number;
+  updatedRounds: number;
+  addedMembers: number;
+  removedMembers: number;
+  skippedRounds: Array<{
+    date: string;
+    shiftId: string;
+    shiftName: string;
+    reason: string;
+  }>;
+};
+
+export type ShiftAutoPlan = {
+  month: string;
+  dateFrom: string;
+  dateTo: string;
+  daysInMonth: number;
+  workingDays: number;
+  totalSlots: number;
+  scheduledSlots: number;
+  filledSlots: number;
+  understaffedSlots: number;
+  positions: ShiftAutoPlanPositionPlan[];
+  days: ShiftAutoPlanDay[];
+  warnings: ShiftAutoPlanWarning[];
+  applied: boolean;
+  writeResult?: ShiftAutoPlanWriteResult;
+};
+
 /* ---------- envelopes ---------- */
 
 export type ShiftListApiResponse = ApiEnvelope<Shift[]>;
@@ -422,3 +564,7 @@ export type BulkShiftScheduleApiResponse = ApiEnvelope<BulkShiftScheduleResult>;
 export type WorkCalendarDayApiResponse = ApiEnvelope<WorkCalendarDay>;
 export type WorkCalendarDayListApiResponse = ApiEnvelope<WorkCalendarDay[]>;
 export type MyShiftScheduleApiResponse = ApiEnvelope<MyShiftSchedule>;
+export type ShiftAutoPlanApiResponse = ApiEnvelope<ShiftAutoPlan>;
+export type ShiftAutoPlanPositionOptionsApiResponse = ApiEnvelope<
+  ShiftAutoPlanPositionOption[]
+>;

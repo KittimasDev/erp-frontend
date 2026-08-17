@@ -5,11 +5,13 @@ import { App } from "antd";
 
 import { ApiError } from "@/lib/api/client";
 import {
+  applyShiftAutoPlan,
   bulkCreateShiftSchedules,
   createShift,
   createShiftSchedule,
   deleteShiftSchedule,
   markWorkCalendarHoliday,
+  previewShiftAutoPlan,
   removeShiftScheduleMember,
   removeWorkCalendarHoliday,
   setShiftScheduleMembers,
@@ -22,6 +24,8 @@ import type {
   CreateShiftRequest,
   CreateShiftScheduleRequest,
   CreateWorkCalendarDayRequest,
+  ShiftAutoPlanApplyRequest,
+  ShiftAutoPlanRequest,
   UpdateShiftRequest,
   UpdateShiftScheduleRequest,
 } from "@/types/shifts";
@@ -180,6 +184,41 @@ export function useBulkCreateShiftSchedulesMutation() {
     },
     onError: (error: Error) => {
       message.error(errorMessage(error, "ลงกะเป็นช่วงไม่สำเร็จ"));
+    },
+  });
+}
+
+/* ---------- จัดตารางกะรายเดือนอัตโนมัติ ---------- */
+
+/**
+ * ดูตัวอย่างตารางที่จัดให้ — เป็น mutation ไม่ใช่ query เพราะ body ใหญ่และผู้ใช้กดเอง
+ * ไม่ล้าง cache เพราะยังไม่ได้เขียนอะไรลงระบบ
+ */
+export function useShiftAutoPlanPreviewMutation() {
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationFn: (body: ShiftAutoPlanRequest) =>
+      previewShiftAutoPlan(getAccessToken(), body),
+    onError: (error: Error) => {
+      message.error(errorMessage(error, "คำนวณตารางกะไม่สำเร็จ"));
+    },
+  });
+}
+
+export function useApplyShiftAutoPlanMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateShifts();
+
+  return useMutation({
+    mutationFn: (body: ShiftAutoPlanApplyRequest) =>
+      applyShiftAutoPlan(getAccessToken(), body),
+    onSuccess: (res) => {
+      message.success(res.message || "บันทึกตารางกะแล้ว");
+      invalidate();
+    },
+    onError: (error: Error) => {
+      message.error(errorMessage(error, "บันทึกตารางกะไม่สำเร็จ"));
     },
   });
 }

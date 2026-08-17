@@ -1,0 +1,92 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 68vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.label {
+  min-width: 170px;
+  font-size: 13px;
+  color: var(--ant-color-text-secondary, #64748b);
+}
+
+.field :global(.ant-input) {
+  flex: 1;
+  min-width: 240px;
+}
+
+.positionCard {
+  border: 1px solid var(--ant-color-border-secondary, #e2e8f0);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.positionHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.positionSelect {
+  flex: 1;
+  min-width: 200px;
+}
+
+.demandList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demandRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.shiftSelect {
+  flex: 1;
+  min-width: 180px;
+}
+
+.headcountInput {
+  width: 130px;
+}
+
+.positionSummary {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ant-color-text-secondary, #64748b);
+}
+
+.shortValue {
+  color: #b91c1c;
+}
+
+.ruleList {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

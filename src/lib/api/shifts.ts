@@ -12,6 +12,10 @@ import type {
   ShiftCalendarApiResponse,
   ShiftCalendarParams,
   ShiftListApiResponse,
+  ShiftAutoPlanApiResponse,
+  ShiftAutoPlanApplyRequest,
+  ShiftAutoPlanPositionOptionsApiResponse,
+  ShiftAutoPlanRequest,
   ShiftRosterApiResponse,
   ShiftScheduleApiResponse,
   UpdateShiftRequest,
@@ -163,6 +167,37 @@ export function bulkCreateShiftSchedules(
 ) {
   return apiFetch<BulkShiftScheduleApiResponse>(
     "/api/hrm/shift-schedules/bulk",
+    { method: "POST", token, body },
+  );
+}
+
+/* ---------- จัดตารางกะรายเดือนอัตโนมัติ ---------- */
+
+/** ตำแหน่งที่มีพนักงานอยู่จริง + จำนวนคน (users.position เป็น free-text) */
+export function getShiftAutoPlanPositions(token: string) {
+  return apiFetch<ShiftAutoPlanPositionOptionsApiResponse>(
+    "/api/hrm/shift-schedules/auto-plan/positions",
+    { method: "GET", token },
+  );
+}
+
+/** คำนวณตารางให้ดูก่อน ไม่เขียนอะไรลงระบบ */
+export function previewShiftAutoPlan(
+  token: string,
+  body: ShiftAutoPlanRequest,
+) {
+  return apiFetch<ShiftAutoPlanApiResponse>(
+    "/api/hrm/shift-schedules/auto-plan/preview",
+    { method: "POST", token, body },
+  );
+}
+
+export function applyShiftAutoPlan(
+  token: string,
+  body: ShiftAutoPlanApplyRequest,
+) {
+  return apiFetch<ShiftAutoPlanApiResponse>(
+    "/api/hrm/shift-schedules/auto-plan/apply",
     { method: "POST", token, body },
   );
 }
