@@ -134,10 +134,11 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     key: "production",
     code: "PRD",
     label: "การผลิต",
-    description: "ใบสั่งผลิต · รับผลผลิต",
+    description: "ใบขอผลิต · ใบสั่งผลิต · รับผลผลิต",
     href: "/production/production-orders",
     tone: "teal",
     screenCodes: [
+      "PRODUCTION_REQUESTS",
       "PRODUCTION_ORDERS",
       "PRODUCTION_OUTPUT_STOCK_REQUESTS",
       "PENDING_PRODUCTION_OUTPUT",
@@ -145,6 +146,8 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "RCB_PROCESSING",
     ],
     roles: [
+      RoleCode.SALES_OFFICER,
+      RoleCode.SALES_MANAGER,
       RoleCode.PRODUCTION_OFFICER,
       RoleCode.WAREHOUSE_OFFICER,
       RoleCode.WAREHOUSE_MANAGER,

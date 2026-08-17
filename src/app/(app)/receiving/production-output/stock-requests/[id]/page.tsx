@@ -1,25 +1,13 @@
-"use client";
-
-import { use } from "react";
-
-import ProductionOutputApprovalDetailPage from "@/components/production-output/ProductionOutputApprovalDetailPage";
-import ProductionOutputFeatureGate from "@/components/production-output/ProductionOutputFeatureGate";
+import { permanentRedirect } from "next/navigation";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-export default function ReceivingProductionOutputStockRequestDetailPage({
+/** ย้ายไปโมดูลการผลิตแล้ว — คงเส้นทางเดิมไว้กัน bookmark / ลิงก์เก่าพัง */
+export default async function LegacyReceivingProductionOutputDetailPage({
   params,
 }: Props) {
-  const { id } = use(params);
-  return (
-    <ProductionOutputFeatureGate>
-      <ProductionOutputApprovalDetailPage
-        requestId={id}
-        backHref="/receiving/production-output/stock-requests"
-        backLabel="กลับรายการคำขอ"
-      />
-    </ProductionOutputFeatureGate>
-  );
+  const { id } = await params;
+  permanentRedirect(`/production/output-stock-requests/${id}`);
 }

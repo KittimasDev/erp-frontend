@@ -307,6 +307,76 @@ export type ShiftAssignmentParams = {
   q?: string;
 };
 
+/* ---------- ตารางกริด คน × วัน (ใครหยุดวันไหน) ---------- */
+
+/**
+ * OFF = วันนั้นจัดกะแล้วแต่ไม่มีชื่อเขา (หยุดจริง)
+ * UNPLANNED = วันนั้นยังไม่มีรอบกะเลย (HR ยังจัดไม่เสร็จ ไม่ใช่หยุด)
+ */
+export type ShiftRosterStatus =
+  | "SHIFT"
+  | "LEAVE"
+  | "HOLIDAY"
+  | "OFF"
+  | "UNPLANNED";
+
+export const SHIFT_ROSTER_STATUS_LABEL: Record<ShiftRosterStatus, string> = {
+  SHIFT: "เข้ากะ",
+  LEAVE: "ลา",
+  HOLIDAY: "วันหยุดบริษัท",
+  OFF: "หยุด",
+  UNPLANNED: "ยังไม่จัดกะ",
+};
+
+export type ShiftRosterDay = {
+  date: string;
+  weekday: number;
+  isHoliday: boolean;
+  holidayName?: string;
+  holidayType?: string;
+  hasRounds: boolean;
+  workingCount: number;
+  leaveCount: number;
+  offCount: number;
+};
+
+export type ShiftRosterCell = {
+  date: string;
+  status: ShiftRosterStatus;
+  shiftId?: string;
+  shiftName?: string;
+  color?: string;
+  startTime?: string;
+  endTime?: string;
+  leaveType?: string;
+  leaveStatus?: string;
+  holidayName?: string;
+};
+
+export type ShiftRosterRow = {
+  userId: string;
+  employeeCode?: string;
+  displayName: string;
+  position?: string;
+  departmentId?: string;
+  departmentName?: string;
+  cells: ShiftRosterCell[];
+  workingDays: number;
+  offDays: number;
+  leaveDays: number;
+  holidayDays: number;
+  unplannedDays: number;
+};
+
+export type ShiftRoster = {
+  dateFrom: string;
+  dateTo: string;
+  days: ShiftRosterDay[];
+  rows: ShiftRosterRow[];
+  totalEmployees: number;
+  unplannedDays: number;
+};
+
 /* ---------- กะของพนักงาน ---------- */
 
 /** ที่มาของกะที่พนักงานเห็นในวันนั้น */
@@ -347,6 +417,7 @@ export type ShiftApiResponse = ApiEnvelope<Shift>;
 export type ShiftScheduleApiResponse = ApiEnvelope<ShiftSchedule>;
 export type ShiftCalendarApiResponse = ApiEnvelope<ShiftCalendar>;
 export type ShiftAssignmentListApiResponse = ApiEnvelope<ShiftAssignmentList>;
+export type ShiftRosterApiResponse = ApiEnvelope<ShiftRoster>;
 export type BulkShiftScheduleApiResponse = ApiEnvelope<BulkShiftScheduleResult>;
 export type WorkCalendarDayApiResponse = ApiEnvelope<WorkCalendarDay>;
 export type WorkCalendarDayListApiResponse = ApiEnvelope<WorkCalendarDay[]>;

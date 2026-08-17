@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { App, Button, Input } from "antd";
 
 import { useLoginMutation } from "@/hooks/auth/useLoginMutation";
@@ -84,8 +85,11 @@ export default function LoginPage() {
 
             <form onSubmit={handleLogin}>
               <div className={styles.formRow}>
-                <label className={styles.formLabel}>ชื่อผู้ใช้งาน</label>
+                <label className={styles.formLabel} htmlFor="login-username">
+                  ชื่อผู้ใช้งาน
+                </label>
                 <Input
+                  id="login-username"
                   size="large"
                   prefix="👤"
                   placeholder="กรอกชื่อผู้ใช้งาน"
@@ -97,8 +101,11 @@ export default function LoginPage() {
               </div>
 
               <div className={styles.formRow}>
-                <label className={styles.formLabel}>รหัสผ่าน</label>
+                <label className={styles.formLabel} htmlFor="login-password">
+                  รหัสผ่าน
+                </label>
                 <Input.Password
+                  id="login-password"
                   size="large"
                   prefix="🔒"
                   placeholder="กรอกรหัสผ่าน"
@@ -142,10 +149,19 @@ const COMPANY_LOGO_URL = "/smt-energy-logo.png";
 function Brand({ isMobile = false }: { isMobile?: boolean }) {
   return (
     <div className={`${styles.brand} ${isMobile ? styles.brandMobile : ""}`}>
-      <img
+      {/*
+        width/height = ขนาดจริงของไฟล์ (174×91) ใส่ไว้ให้เบราว์เซอร์จองพื้นที่ตามอัตราส่วน
+        ตั้งแต่ก่อนรูปโหลดเสร็จ — กัน layout ขยับ (CLS) ส่วนขนาดที่แสดงจริงคุมด้วย CSS
+        (height 64px / width auto) เหมือนเดิม
+        next/image แปลงเป็น WebP/AVIF ให้อัตโนมัติ · priority เพราะโลโก้อยู่ครึ่งบนของจอ
+      */}
+      <Image
         src={COMPANY_LOGO_URL}
         alt="SMT Energy Co., Ltd."
         className={styles.logoImage}
+        width={174}
+        height={91}
+        priority
       />
     </div>
   );

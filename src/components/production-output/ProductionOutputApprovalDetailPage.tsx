@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button, Input, Modal, Popconfirm, Typography } from "antd";
 import {
   ArrowLeftOutlined,
+  AuditOutlined,
   CheckOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
@@ -32,6 +33,12 @@ type Props = {
   requestId: string;
   backHref?: string;
   backLabel?: string;
+  /**
+   * ซ่อนปุ่มอนุมัติ/ไม่อนุมัติ — ใช้ตอนเปิดจากฝั่งการผลิต (ขอรับผลผลิตเข้าคลัง)
+   * ให้เห็นสถานะคำขอของตัวเองได้ แต่การอนุมัติทำที่เมนูคลัง FG ที่เดียว
+   * (สิทธิ์จริงบังคับที่ backend อยู่แล้ว อันนี้คือความชัดเจนของ flow)
+   */
+  readOnly?: boolean;
 };
 
 function formatQty(value?: string) {
@@ -60,13 +67,17 @@ export default function ProductionOutputApprovalDetailPage({
   requestId,
   backHref = "/warehouse/production-output-approvals",
   backLabel = "กลับรายการอนุมัติ",
+  readOnly = false,
 }: Props) {
   const router = useRouter();
-  const canApprove =
+  /** มีสิทธิ์อนุมัติจริงไหม — ใช้ตัดสินว่าจะโชว์ทางลัดไปหน้าอนุมัติด้วย */
+  const hasApproveRight =
     hasPermission("PRODUCTION_OUTPUT_APPROVALS.APPROVE") ||
     (!isMatrixPermissionMode() &&
       (userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
         userHasRole(RoleCode.ADMINISTRATOR)));
+  /** ปุ่มอนุมัติจริงมีเฉพาะหน้าฝั่งคลัง FG — ฝั่งผลิตดูอย่างเดียว */
+  const canApprove = !readOnly && hasApproveRight;
   const detailQuery = useProductionOutputApprovalQuery(requestId);
   const approveMutation = useApproveProductionOutputStockRequestMutation();
   const rejectMutation = useRejectProductionOutputStockRequestMutation();
@@ -350,7 +361,32 @@ export default function ProductionOutputApprovalDetailPage({
                   </div>
                 ) : null}
 
-                {!canApprove && isPending ? (
+                {readOnly && isPending ? (
+                  <div className={styles.actionCard}>
+                    <p className={styles.actionHint}>
+                      คำขอนี้รอหัวหน้าคลังอนุมัติ — สต๊อกจะเพิ่มหลังอนุมัติ
+                      เท่านั้น การอนุมัติทำที่เมนู คลัง FG →
+                      อนุมัติรับผลผลิตเข้าคลัง
+                    </p>
+                    {hasApproveRight ? (
+                      <div className={styles.actionButtons}>
+                        <Button
+                          icon={<AuditOutlined />}
+                          block
+                          onClick={() =>
+                            router.push(
+                              `/warehouse/production-output-approvals/${requestId}`,
+                            )
+                          }
+                        >
+                          ไปหน้าอนุมัติ
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {!readOnly && !canApprove && isPending ? (
                   <div className={styles.actionCard}>
                     <p className={styles.actionHint}>
                       ดูรายละเอียดได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์{" "}

@@ -11,6 +11,7 @@ import {
   Select,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -42,6 +43,7 @@ import type {
 } from "@/types/shifts";
 
 import ShiftPersonDrawer from "./ShiftPersonDrawer";
+import ShiftRosterGrid from "./ShiftRosterGrid";
 import styles from "./ShiftAssignmentsPage.module.css";
 import {
   formatWorkHours,
@@ -50,7 +52,7 @@ import {
 } from "./shiftDisplay";
 
 type RangeMode = "day" | "month" | "custom";
-type ViewMode = "day" | "person" | "events";
+type ViewMode = "day" | "person" | "events" | "roster";
 
 const MODE_OPTIONS = [
   { label: "รายวัน", value: "day" as const },
@@ -60,6 +62,7 @@ const MODE_OPTIONS = [
 
 const VIEW_OPTIONS = [
   { label: "เรียงตามวัน", value: "day" as const },
+  { label: "ตารางหยุด (คน × วัน)", value: "roster" as const },
   { label: "สรุปรายคน", value: "person" as const },
   { label: "ลา / OT", value: "events" as const },
 ];
@@ -569,6 +572,11 @@ export default function ShiftAssignmentsPage() {
 
   /** ออกรายงานตามมุมมองที่กำลังดูอยู่ พร้อมตัวกรองที่เปิดไว้ */
   const handleExportPdf = useCallback(async () => {
+    // ตารางหยุดเป็นกริดกว้างตามจำนวนวัน ลงกระดาษแบบคอลัมน์คงที่ไม่ได้ — ปุ่มถูกปิดไว้อยู่แล้ว
+    if (view === "roster") {
+      return;
+    }
+
     const { generateShiftAssignmentsPdf } = await import(
       "@/utils/generateShiftAssignmentsPdf"
     );
@@ -920,19 +928,27 @@ export default function ShiftAssignmentsPage() {
             รีเฟรช
           </Button>
 
-          <Button
-            icon={<FilePdfOutlined />}
-            loading={exporting}
-            disabled={assignmentsQuery.isFetching}
-            onClick={() => {
-              setExporting(true);
-              handleExportPdf()
-                .catch(() => message.error("สร้างไฟล์ PDF ไม่สำเร็จ"))
-                .finally(() => setExporting(false));
-            }}
+          <Tooltip
+            title={
+              view === "roster"
+                ? "ตารางหยุดกว้างตามจำนวนวัน ยังพิมพ์ลง PDF ไม่ได้ — ใช้มุมมองสรุปรายคนแทน"
+                : undefined
+            }
           >
-            PDF
-          </Button>
+            <Button
+              icon={<FilePdfOutlined />}
+              loading={exporting}
+              disabled={assignmentsQuery.isFetching || view === "roster"}
+              onClick={() => {
+                setExporting(true);
+                handleExportPdf()
+                  .catch(() => message.error("สร้างไฟล์ PDF ไม่สำเร็จ"))
+                  .finally(() => setExporting(false));
+              }}
+            >
+              PDF
+            </Button>
+          </Tooltip>
 
           <Link href="/hrm/shifts">
             <Button type="primary" icon={<CalendarOutlined />}>
@@ -1033,7 +1049,16 @@ export default function ShiftAssignmentsPage() {
           </div>
 
           <div className={styles.tableWrap}>
-            {view === "day" ? (
+            {view === "roster" ? (
+              <ShiftRosterGrid
+                params={{
+                  ...range,
+                  shiftId,
+                  departmentId,
+                  q: appliedKeyword || undefined,
+                }}
+              />
+            ) : view === "day" ? (
               <Table<ShiftAssignment>
                 rowKey={(row) => `${row.scheduleId}-${row.userId}`}
                 size="middle"

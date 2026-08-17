@@ -546,7 +546,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         size="small"
                         onClick={() =>
                           router.push(
-                            `/receiving/production-output/stock-requests/${row.id}`,
+                            `/production/output-stock-requests/${row.id}`,
                           )
                         }
                       >

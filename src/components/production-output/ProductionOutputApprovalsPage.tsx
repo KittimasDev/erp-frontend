@@ -2,10 +2,12 @@
 
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Table, Tag, Typography } from "antd";
+import { Button, Popconfirm, Table, Tag, Typography } from "antd";
+import { CheckOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useApproveProductionOutputStockRequestMutation } from "@/hooks/production-output/useProductionOutputMutations";
 import { useProductionOutputApprovalsQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import {
   hasPermission,
@@ -25,6 +27,7 @@ export default function ProductionOutputApprovalsPage() {
       (userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
         userHasRole(RoleCode.ADMINISTRATOR)));
   const approvalsQuery = useProductionOutputApprovalsQuery();
+  const approveMutation = useApproveProductionOutputStockRequestMutation();
   const rows = approvalsQuery.data?.data ?? [];
 
   const columns: ColumnsType<ProductionOutputStockRequest> = useMemo(
@@ -80,21 +83,55 @@ export default function ProductionOutputApprovalsPage() {
       {
         title: "จัดการ",
         key: "actions",
-        width: 130,
+        width: 210,
         align: "center",
         render: (_, row) => (
-          <Button
-            className={styles.editButton}
-            onClick={() =>
-              router.push(`/warehouse/production-output-approvals/${row.id}`)
-            }
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              justifyContent: "center",
+              flexWrap: "wrap",
+            }}
           >
-            ตรวจสอบ
-          </Button>
+            <Button
+              className={styles.editButton}
+              onClick={() =>
+                router.push(`/warehouse/production-output-approvals/${row.id}`)
+              }
+            >
+              ตรวจสอบ
+            </Button>
+            {/* อนุมัติได้จากแถวเลย — หัวหน้าคลังไม่ต้องเปิดเข้าไปทีละใบ */}
+            {canApprove && row.status === "PENDING_APPROVAL" ? (
+              <Popconfirm
+                title={`อนุมัติ ${row.requestNo}`}
+                description="ยืนยัน POST สต๊อกสำหรับคำขอนี้"
+                okText="อนุมัติ"
+                cancelText="ยกเลิก"
+                onConfirm={() =>
+                  approveMutation.mutate(row.id, {
+                    onSuccess: () => void approvalsQuery.refetch(),
+                  })
+                }
+              >
+                <Button
+                  type="primary"
+                  icon={<CheckOutlined />}
+                  loading={
+                    approveMutation.isPending &&
+                    approveMutation.variables === row.id
+                  }
+                >
+                  อนุมัติ
+                </Button>
+              </Popconfirm>
+            ) : null}
+          </div>
         ),
       },
     ],
-    [router],
+    [router, canApprove, approveMutation, approvalsQuery],
   );
 
   return (

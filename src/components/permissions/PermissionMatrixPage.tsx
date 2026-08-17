@@ -142,12 +142,25 @@ export default function PermissionMatrixPage({
 
   const [allowed, setAllowed] = useState<Record<string, boolean>>({});
   const serverAssignments = rolePermissionsQuery.data?.data.assignments;
-  const [syncedAssignments, setSyncedAssignments] = useState(
-    serverAssignments,
-  );
 
-  if (serverAssignments !== syncedAssignments) {
-    setSyncedAssignments(serverAssignments);
+  /**
+   * sync ค่าที่ติ๊กจาก server → state ตอน render
+   *
+   * ต้องเก็บ roleId คู่กับ assignments แล้วเริ่มจาก `{}` เสมอ — ห้าม init ด้วย
+   * `serverAssignments` เพราะถ้า mount ใหม่ตอน TanStack Query ยัง cache อยู่
+   * (staleTime 30s) render แรกจะได้ array ก้อนเดิมมาทันที ทำให้ค่าเริ่มต้น
+   * เท่ากับค่าที่จะเทียบ → เงื่อนไขไม่เข้า → ตารางขึ้นครบแต่ไม่มีติ๊กเลย
+   */
+  const [syncedFrom, setSyncedFrom] = useState<{
+    roleId?: string;
+    assignments?: typeof serverAssignments;
+  }>({});
+
+  if (
+    syncedFrom.roleId !== selectedRoleId ||
+    syncedFrom.assignments !== serverAssignments
+  ) {
+    setSyncedFrom({ roleId: selectedRoleId, assignments: serverAssignments });
     const next: Record<string, boolean> = {};
     for (const item of serverAssignments ?? []) {
       next[item.permissionId] = item.isAllowed;
@@ -315,7 +328,15 @@ export default function PermissionMatrixPage({
         className={masterStyles.createButton}
         icon={<SaveOutlined />}
         loading={updateMutation.isPending}
-        disabled={!selectedRoleId || screens.length === 0}
+        /**
+         * กันเคสร้ายแรง — บันทึกคือ "เขียนทับทั้งชุด" ถ้ากดตอนสิทธิ์เดิมยังโหลดไม่เสร็จ
+         * หรือโหลดพลาด จะส่ง isAllowed=false ทั้งหมด = ล้างสิทธิ์ของบทบาทนั้นทิ้ง
+         */
+        disabled={
+          !selectedRoleId ||
+          screens.length === 0 ||
+          !rolePermissionsQuery.isSuccess
+        }
         onClick={handleSave}
       >
         บันทึกสิทธิ์
@@ -470,6 +491,20 @@ export default function PermissionMatrixPage({
             <div className={styles.loadingBox}>
               <Spin />
             </div>
+          ) : rolePermissionsQuery.isError ? (
+            <Empty
+              className={styles.emptyBox}
+              description="โหลดสิทธิ์ของบทบาทนี้ไม่สำเร็จ — ยังไม่ต้องกดบันทึก เพราะจะเขียนทับสิทธิ์เดิมทั้งชุด"
+            >
+              <Button
+                onClick={() => {
+                  void rolePermissionsQuery.refetch();
+                }}
+                loading={rolePermissionsQuery.isFetching}
+              >
+                ลองโหลดอีกครั้ง
+              </Button>
+            </Empty>
           ) : screens.length === 0 ? (
             <Empty
               className={styles.emptyBox}

@@ -127,11 +127,29 @@ export function clearActivePortalModule() {
  * Infer module from current path when session has no active module
  * (e.g. deep link / refresh on an inner page).
  */
+/**
+ * หน้าคลังที่ RM กับ FG ใช้ร่วมกัน — แยกกันด้วย `itemCategoryCode` บน query เท่านั้น
+ * ดูแต่ path จะตกเป็นคลังวัตถุดิบเสมอ (tile "คลังสำเร็จรูป" เคยพาไปผิดโมดูลเพราะเหตุนี้)
+ */
+const SHARED_INVENTORY_PATHS = [
+  "/inventory/stock-balances",
+  "/inventory/lots",
+  "/inventory/stock-movements",
+];
+
 export function inferPortalModuleFromPathname(
   pathname: string,
+  itemCategoryCode?: string | null,
 ): PortalModuleKey | null {
   if (!pathname || pathname === "/") {
     return null;
+  }
+
+  if (
+    itemCategoryCode?.trim() === "FINISHED_GOODS" &&
+    SHARED_INVENTORY_PATHS.some((path) => pathname.startsWith(path))
+  ) {
+    return "fg-warehouse";
   }
 
   if (
@@ -140,6 +158,13 @@ export function inferPortalModuleFromPathname(
     pathname === "/receiving/dashboard"
   ) {
     return "dashboard";
+  }
+  // ต้องเช็คก่อน `/receiving` ด้านล่าง ไม่งั้นถูกกลืนเป็นรับซื้อยางทั้งหมด
+  if (
+    pathname.startsWith("/receiving/production-output") ||  // legacy redirect
+    pathname.startsWith("/receiving/pending-production-output")
+  ) {
+    return "production";
   }
   if (
     pathname.startsWith("/receiving") ||
@@ -165,10 +190,16 @@ export function inferPortalModuleFromPathname(
   ) {
     return "rm-warehouse";
   }
+  // เมนู "อนุมัติงานคลัง" และ "อนุมัติรับผลผลิตเข้าคลัง" อยู่กลุ่ม «คลัง FG»
+  // ต้องคืน fg-warehouse ให้ตรงกับที่เมนูอยู่จริง ไม่งั้นเปิดหน้าแล้ว sidebar
+  // สลับไปกลุ่มอื่นจนมองไม่เห็นเมนูที่ตัวเองยืนอยู่
   if (
-    pathname.startsWith("/inventory") ||
-    pathname.startsWith("/warehouse/approvals")
+    pathname.startsWith("/warehouse/approvals") ||
+    pathname.startsWith("/warehouse/production-output")
   ) {
+    return "fg-warehouse";
+  }
+  if (pathname.startsWith("/inventory")) {
     // /inventory/dashboard already handled above
     if (pathname === "/inventory/dashboard") {
       return "dashboard";
@@ -177,10 +208,7 @@ export function inferPortalModuleFromPathname(
   }
   if (
     pathname.startsWith("/production") ||
-    pathname.startsWith("/production-output") ||
-    pathname.startsWith("/receiving/production-output") ||
-    pathname.startsWith("/receiving/pending-production-output") ||
-    pathname.startsWith("/warehouse/production-output")
+    pathname.startsWith("/production-output")
   ) {
     return "production";
   }
@@ -246,20 +274,27 @@ export function inferPortalModuleFromPathname(
 
 export function resolveActivePortalModule(
   pathname: string,
+  itemCategoryCode?: string | null,
 ): PortalModuleKey | null {
   if (pathname === "/") {
     return null;
   }
-  return inferPortalModuleFromPathname(pathname) ?? getActivePortalModule();
+  return (
+    inferPortalModuleFromPathname(pathname, itemCategoryCode) ??
+    getActivePortalModule()
+  );
 }
 
 /** Keep sessionStorage aligned when the user navigates across portal modules. */
-export function syncActivePortalModuleFromPathname(pathname: string) {
+export function syncActivePortalModuleFromPathname(
+  pathname: string,
+  itemCategoryCode?: string | null,
+) {
   if (pathname === "/") {
     clearActivePortalModule();
     return;
   }
-  const inferred = inferPortalModuleFromPathname(pathname);
+  const inferred = inferPortalModuleFromPathname(pathname, itemCategoryCode);
   if (!inferred || inferred === getActivePortalModule()) {
     return;
   }

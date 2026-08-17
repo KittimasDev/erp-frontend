@@ -446,7 +446,7 @@ export default function ProductionOutputStockRequestCreatePage({
     ? "/receiving/pending-production-output"
     : ticketId
       ? `/receiving/${ticketId}`
-      : "/receiving/production-output/stock-requests";
+      : "/production/output-stock-requests";
 
   useEffect(() => {
     form.setFieldsValue({

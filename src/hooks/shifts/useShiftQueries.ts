@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getMyShiftSchedule,
   getShiftAssignments,
+  getShiftRoster,
   getShiftCalendar,
   getShiftSchedule,
   getShifts,
@@ -48,6 +49,21 @@ export function useShiftAssignmentsQuery(
   return useQuery({
     queryKey: shiftAssignmentsQueryKey(params),
     queryFn: () => getShiftAssignments(getAccessToken(), params),
+    enabled,
+  });
+}
+
+export const shiftRosterQueryKey = (params: ShiftAssignmentParams) =>
+  ["shifts", "roster", params] as const;
+
+/** ตารางกริด คน × วัน — ตั้งต้นจากพนักงานทุกคน จึงเห็นคนที่หยุดด้วย */
+export function useShiftRosterQuery(
+  params: ShiftAssignmentParams,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: shiftRosterQueryKey(params),
+    queryFn: () => getShiftRoster(getAccessToken(), params),
     enabled,
   });
 }

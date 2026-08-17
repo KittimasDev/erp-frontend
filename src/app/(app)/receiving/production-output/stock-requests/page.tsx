@@ -1,12 +1,6 @@
-"use client";
+import { permanentRedirect } from "next/navigation";
 
-import ProductionOutputFeatureGate from "@/components/production-output/ProductionOutputFeatureGate";
-import ProductionOutputStockRequestsPage from "@/components/production-output/ProductionOutputStockRequestsPage";
-
-export default function ReceivingProductionOutputStockRequestsPage() {
-  return (
-    <ProductionOutputFeatureGate>
-      <ProductionOutputStockRequestsPage />
-    </ProductionOutputFeatureGate>
-  );
+/** ย้ายไปโมดูลการผลิตแล้ว — คงเส้นทางเดิมไว้กัน bookmark / ลิงก์เก่าพัง */
+export default function LegacyReceivingProductionOutputStockRequestsPage() {
+  permanentRedirect("/production/output-stock-requests");
 }

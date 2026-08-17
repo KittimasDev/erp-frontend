@@ -39,6 +39,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/oil-tank-farm/receivings", title: "รับน้ำมันเข้าถัง" },
   { href: "/oil-tank-farm/transfers", title: "โอนย้ายน้ำมันระหว่างถัง" },
   { href: "/oil-tank-farm/dispatches", title: "จ่ายน้ำมันออกจากถัง" },
+  { href: "/production/production-requests", title: "ใบขอผลิต (จากใบสั่งขาย)" },
   { href: "/production/production-orders", title: "ใบสั่งผลิต (Pyrolysis)" },
   { href: "/reports/ar-aging", title: "รายงานลูกหนี้คงค้าง" },
   { href: "/reports/sales-invoices", title: "รายงานใบแจ้งหนี้" },
@@ -80,7 +81,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับยางเข้าคลัง" },
   { href: "/warehouse/production-output-approvals", title: "อนุมัติรับผลผลิตเข้าคลัง" },
   { href: "/receiving/pending-production-output", title: "รับผลผลิตเข้าคลัง" },
-  { href: "/receiving/production-output/stock-requests", title: "ขอรับผลผลิตเข้าคลัง" },
+  { href: "/production/output-stock-requests", title: "ขอรับผลผลิตเข้าคลัง" },
   { href: "/users", title: "ผู้ใช้งาน" },
   { href: "/settings/roles", title: "Roles" },
   { href: "/settings/audit-logs", title: "Audit Log" },
@@ -186,13 +187,13 @@ function resolvePageTitle(
     return "ส่งคำขอรับเข้าคลัง";
   }
 
-  if (pathname.includes("/receiving/production-output/stock-requests/create")) {
+  if (pathname.includes("/production/output-stock-requests/create")) {
     return "ขอรับผลผลิตเข้าคลัง";
   }
 
   if (
-    pathname.startsWith("/receiving/production-output/stock-requests/") &&
-    pathname !== "/receiving/production-output/stock-requests"
+    pathname.startsWith("/production/output-stock-requests/") &&
+    pathname !== "/production/output-stock-requests"
   ) {
     return "รายละเอียดคำขอรับผลผลิต";
   }

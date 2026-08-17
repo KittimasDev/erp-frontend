@@ -1,38 +1,24 @@
-"use client";
+import { permanentRedirect } from "next/navigation";
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-import PageLoading from "@/components/common/PageLoading";
-import ProductionOutputFeatureGate from "@/components/production-output/ProductionOutputFeatureGate";
-import ProductionOutputStockRequestCreatePage from "@/components/production-output/ProductionOutputStockRequestCreatePage";
-
-function CreatePageWithParams() {
-  const searchParams = useSearchParams();
-  const ticketId = searchParams.get("ticketId") ?? undefined;
-  const ticketNo = searchParams.get("ticketNo") ?? undefined;
-  const fromBatch =
-    searchParams.get("fromBatch") === "1" ||
-    searchParams.get("fromQueue") === "1";
-  const productionOrderId =
-    searchParams.get("productionOrderId") ?? undefined;
-
-  return (
-    <ProductionOutputStockRequestCreatePage
-      ticketId={ticketId}
-      ticketNo={ticketNo}
-      fromBatch={fromBatch}
-      productionOrderId={productionOrderId}
-    />
-  );
-}
-
-export default function ReceivingProductionOutputStockRequestCreatePage() {
-  return (
-    <ProductionOutputFeatureGate>
-      <Suspense fallback={<PageLoading />}>
-        <CreatePageWithParams />
-      </Suspense>
-    </ProductionOutputFeatureGate>
+/** ย้ายไปโมดูลการผลิตแล้ว — ส่ง query เดิมไปด้วย (ticketId / productionOrderId ฯลฯ) */
+export default async function LegacyReceivingProductionOutputCreatePage({
+  searchParams,
+}: Props) {
+  const params = await searchParams;
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") {
+      search.set(key, value);
+    } else if (Array.isArray(value) && value[0]) {
+      search.set(key, value[0]);
+    }
+  }
+  const query = search.toString();
+  permanentRedirect(
+    `/production/output-stock-requests/create${query ? `?${query}` : ""}`,
   );
 }

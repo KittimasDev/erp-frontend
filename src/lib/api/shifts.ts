@@ -12,6 +12,7 @@ import type {
   ShiftCalendarApiResponse,
   ShiftCalendarParams,
   ShiftListApiResponse,
+  ShiftRosterApiResponse,
   ShiftScheduleApiResponse,
   UpdateShiftRequest,
   UpdateShiftScheduleRequest,
@@ -77,6 +78,23 @@ export function getShiftAssignments(
 
   return apiFetch<ShiftAssignmentListApiResponse>(
     `/api/hrm/shift-schedules/assignments?${search.toString()}`,
+    { method: "GET", token },
+  );
+}
+
+/** ตารางกริด คน × วัน — ใช้ query เดียวกับ assignments */
+export function getShiftRoster(token: string, params: ShiftAssignmentParams) {
+  const search = new URLSearchParams({
+    dateFrom: params.dateFrom,
+    dateTo: params.dateTo,
+  });
+  if (params.shiftId) search.set("shiftId", params.shiftId);
+  if (params.userId) search.set("userId", params.userId);
+  if (params.departmentId) search.set("departmentId", params.departmentId);
+  if (params.q?.trim()) search.set("q", params.q.trim());
+
+  return apiFetch<ShiftRosterApiResponse>(
+    `/api/hrm/shift-schedules/roster?${search.toString()}`,
     { method: "GET", token },
   );
 }

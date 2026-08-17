@@ -716,6 +716,25 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
 
 const productionMenus: MenuItem[] = [
   {
+    key: "production-requests",
+    screenCode: "PRODUCTION_REQUESTS",
+    label: "ใบขอผลิต (จากใบสั่งขาย)",
+    href: "/production/production-requests",
+    icon: <IconWarehouse />,
+    matchHrefs: [
+      "/production/production-requests",
+      "/production/production-requests/create",
+    ],
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "production-orders",
     screenCode: "PRODUCTION_ORDERS",
     label: "ใบสั่งผลิต (Pyrolysis)",
@@ -732,11 +751,11 @@ const productionMenus: MenuItem[] = [
     key: "production-output-stock-requests",
     screenCode: "PRODUCTION_OUTPUT_STOCK_REQUESTS",
     label: "ขอรับผลผลิตเข้าคลัง",
-    href: "/receiving/production-output/stock-requests",
+    href: "/production/output-stock-requests",
     icon: <IconReceiving />,
     matchHrefs: [
-      "/receiving/production-output/stock-requests",
-      "/receiving/production-output/stock-requests/create",
+      "/production/output-stock-requests",
+      "/production/output-stock-requests/create",
     ],
     roles: [
       ROLE.PRODUCTION_OFFICER,
@@ -1560,7 +1579,7 @@ function isActive(
     // ticket / classification / receipt detail under receiving — but not production-output
     if (
       pathname.startsWith("/receiving/") &&
-      !pathname.startsWith("/receiving/production-output") &&
+      !pathname.startsWith("/production/output-stock-requests") &&
       !pathname.startsWith("/receiving/pending-production-output")
     ) {
       return resolveActiveMenuHref(pathname) === item.href;
@@ -1734,8 +1753,11 @@ export default function AppHeader({
   useEffect(() => {
     setUser(getStoredUser());
     setPermissionsTick((n) => n + 1);
-    syncActivePortalModuleFromPathname(pathname);
-  }, [pathname]);
+    syncActivePortalModuleFromPathname(
+      pathname,
+      searchParams?.get("itemCategoryCode"),
+    );
+  }, [pathname, searchParams]);
 
   useEffect(() => {
     const onPermissionsUpdated = () => {
@@ -1773,7 +1795,7 @@ export default function AppHeader({
   void permissionsTick;
   void portalTick;
   const activePortalModule: PortalModuleKey | null =
-    resolveActivePortalModule(pathname);
+    resolveActivePortalModule(pathname, searchParams?.get("itemCategoryCode"));
   const showMenuGroup = (groupId: PortalMenuGroupId) =>
     portalModuleAllowsMenuGroup(activePortalModule, groupId);
 

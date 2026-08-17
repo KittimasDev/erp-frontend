@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
+  Alert,
   Button,
   DatePicker,
   Input,
   InputNumber,
   Select,
+  Table,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -22,6 +24,7 @@ import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useProductionRequestQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import type { CreateProductionOrderInputItemBody } from "@/types/production-order";
 import styles from "./ProductionOrderCreatePage.module.css";
 
@@ -216,7 +219,13 @@ function MaterialRow({
 
 export default function ProductionOrderCreatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const productionRequestId =
+    searchParams.get("productionRequestId") ?? undefined;
   const createMutation = useCreateProductionOrderMutation();
+
+  const requestQuery = useProductionRequestQuery(productionRequestId);
+  const productionRequest = requestQuery.data?.data;
 
   const [productionDate, setProductionDate] = useState<Dayjs>(dayjs());
   const [batchNo, setBatchNo] = useState("");
@@ -249,6 +258,7 @@ export default function ProductionOrderCreatePage() {
     createMutation.mutate(
       {
         productionDate: productionDate.format("YYYY-MM-DD"),
+        productionRequestId,
         batchNo: batchNo.trim() || undefined,
         cycleTargetHours: cycleTargetHours ?? undefined,
         remark: remark.trim() || undefined,
@@ -283,6 +293,58 @@ export default function ProductionOrderCreatePage() {
             </p>
           </div>
         </header>
+
+        {productionRequestId ? (
+          <section className={styles.formCard}>
+            <h2 className={styles.sectionTitle}>ใบขอผลิตต้นทาง</h2>
+            {productionRequest ? (
+              <>
+                <Alert
+                  type={productionRequest.sourceSoCancelled ? "warning" : "info"}
+                  showIcon
+                  title={`${productionRequest.requestNo} · อ้างอิงใบสั่งขาย ${
+                    productionRequest.soNo ?? "-"
+                  }`}
+                  description={
+                    productionRequest.sourceSoCancelled
+                      ? "ใบสั่งขายต้นทางถูกยกเลิกแล้ว — โปรดพิจารณาก่อนเปิดใบสั่งผลิต ผลผลิตที่ได้จะรับเข้าสต๊อกกลาง ไม่ผูกกับ SO เดิม"
+                      : "เมื่อสร้างใบสั่งผลิตแล้ว ใบขอผลิตจะเปลี่ยนสถานะเป็น “อยู่ในระหว่างการผลิต”"
+                  }
+                  style={{ marginBottom: 12 }}
+                />
+                <Table
+                  size="small"
+                  rowKey="id"
+                  pagination={false}
+                  dataSource={productionRequest.items}
+                  columns={[
+                    {
+                      title: "สินค้าที่ขอผลิต",
+                      key: "item",
+                      render: (_, row) =>
+                        `${row.itemCode ?? "-"} — ${row.itemNameTh ?? ""}`,
+                    },
+                    {
+                      title: "จำนวนที่ขอ",
+                      key: "qty",
+                      align: "right",
+                      render: (_, row) =>
+                        `${Number(row.requestedQty).toLocaleString("th-TH", {
+                          maximumFractionDigits: 3,
+                        })} ${row.unitCode ?? ""}`,
+                    },
+                  ]}
+                />
+              </>
+            ) : (
+              <Alert
+                type="info"
+                showIcon
+                title="กำลังโหลดข้อมูลใบขอผลิต..."
+              />
+            )}
+          </section>
+        ) : null}
 
         <section className={styles.formCard}>
           <h2 className={styles.sectionTitle}>ข้อมูลทั่วไป</h2>

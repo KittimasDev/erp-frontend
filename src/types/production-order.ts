@@ -60,6 +60,9 @@ export type ProductionOrderLog = {
 export type ProductionOrder = {
   id: string;
   orderNo: string;
+  productionRequestId?: string;
+  productionRequestNo?: string;
+  salesOrderNo?: string;
   batchNo?: string;
   cycleTargetHours: string;
   productionDate: string;
@@ -112,6 +115,7 @@ export type CreateProductionOrderInputItemBody = {
 
 export type CreateProductionOrderBody = {
   productionDate: string;
+  productionRequestId?: string;
   remark?: string;
   batchNo?: string;
   cycleTargetHours?: number;

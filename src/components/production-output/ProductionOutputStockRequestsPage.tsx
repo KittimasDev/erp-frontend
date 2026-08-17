@@ -293,7 +293,7 @@ export default function ProductionOutputStockRequestsPage() {
                 onClick={(event) => {
                   event.stopPropagation();
                   router.push(
-                    `/receiving/production-output/stock-requests/${row.id}`,
+                    `/production/output-stock-requests/${row.id}`,
                   );
                 }}
               >
@@ -334,18 +334,18 @@ export default function ProductionOutputStockRequestsPage() {
           <Button
             icon={<ArrowLeftOutlined />}
             className={styles.backBtn}
-            onClick={() => router.push("/receiving")}
+            onClick={() => router.push("/production/production-orders")}
           >
-            กลับรับซื้อยาง
+            กลับใบสั่งผลิต
           </Button>
           <div className={styles.heroMain}>
-            <p className={styles.eyebrow}>RECEIVING · PRODUCTION OUTPUT</p>
+            <p className={styles.eyebrow}>PRODUCTION · OUTPUT</p>
             <Typography.Title level={2} className={styles.pageTitle}>
               คำขอรับผลผลิตเข้าคลัง
             </Typography.Title>
             <Typography.Text className={styles.pageSubtitle}>
-              ส่งคำขอจากฝั่งรับซื้อยาง — รายการที่รออนุมัติจะถูกเน้นไว้
-              สต๊อกยังไม่เพิ่มจนกว่าหัวหน้าคลังจะอนุมัติที่เมนูคลัง
+              ส่งคำขอจากใบสั่งผลิตที่เสร็จสิ้นแล้ว — รายการที่รออนุมัติจะถูกเน้นไว้
+              สต๊อกยังไม่เพิ่มจนกว่าหัวหน้าคลังจะอนุมัติที่เมนู คลัง FG
             </Typography.Text>
           </div>
           <div>
@@ -356,7 +356,7 @@ export default function ProductionOutputStockRequestsPage() {
                 className={styles.createBtn}
                 onClick={() =>
                   router.push(
-                    "/receiving/production-output/stock-requests/create",
+                    "/production/output-stock-requests/create",
                   )
                 }
               >
@@ -483,7 +483,7 @@ export default function ProductionOutputStockRequestsPage() {
             onRow={(record) => ({
               onClick: () =>
                 router.push(
-                  `/receiving/production-output/stock-requests/${record.id}`,
+                  `/production/output-stock-requests/${record.id}`,
                 ),
             })}
           />
