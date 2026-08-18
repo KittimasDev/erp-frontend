@@ -85,6 +85,8 @@ export type EligibleSalesOrderItem = {
   unitCode?: string;
   salesOrderQty: string;
   deliveredQty: string;
+  reservedQty?: string;
+  availableQty?: string;
   alreadyRequestedQty: string;
   remainingQty: string;
   sortOrder: number;

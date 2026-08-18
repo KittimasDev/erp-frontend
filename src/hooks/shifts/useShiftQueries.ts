@@ -1,11 +1,12 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import {
   getMyShiftSchedule,
   getShiftAssignments,
   getShiftAutoPlanPositions,
+  getShiftAutoPlanRoles,
   getShiftRoster,
   getShiftCalendar,
   getShiftSchedule,
@@ -14,6 +15,7 @@ import {
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   ShiftAssignmentParams,
+  ShiftAutoPlanPositionsParams,
   ShiftCalendarParams,
 } from "@/types/shifts";
 
@@ -81,15 +83,37 @@ export function useShiftScheduleQuery(id: string, enabled = true) {
   });
 }
 
-export const shiftAutoPlanPositionsQueryKey = () =>
-  ["shifts", "auto-plan", "positions"] as const;
+export const shiftAutoPlanRolesQueryKey = () =>
+  ["shifts", "auto-plan", "roles"] as const;
 
-/** ตำแหน่งที่มีพนักงานอยู่จริง — ใช้เป็นตัวเลือกในฟอร์มจัดตารางอัตโนมัติ */
-export function useShiftAutoPlanPositionsQuery(enabled = true) {
+/** บทบาททั้งหมด + จำนวนคน — ใช้เป็นตัวกรองก่อนจัดตารางอัตโนมัติ */
+export function useShiftAutoPlanRolesQuery(enabled = true) {
   return useQuery({
-    queryKey: shiftAutoPlanPositionsQueryKey(),
-    queryFn: () => getShiftAutoPlanPositions(getAccessToken()),
+    queryKey: shiftAutoPlanRolesQueryKey(),
+    queryFn: () => getShiftAutoPlanRoles(getAccessToken()),
     enabled,
+  });
+}
+
+export const shiftAutoPlanPositionsQueryKey = (
+  params: ShiftAutoPlanPositionsParams,
+) => ["shifts", "auto-plan", "positions", params] as const;
+
+/**
+ * ตำแหน่งที่มีพนักงานอยู่จริง — ใช้เป็นตัวเลือกในฟอร์มจัดตารางอัตโนมัติ
+ *
+ * params ต้องอยู่ใน query key ด้วย ไม่งั้นเปลี่ยนตัวกรองบทบาทแล้วจำนวนคนยังค้างค่าเดิม
+ */
+export function useShiftAutoPlanPositionsQuery(
+  params: ShiftAutoPlanPositionsParams = {},
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: shiftAutoPlanPositionsQueryKey(params),
+    queryFn: () => getShiftAutoPlanPositions(getAccessToken(), params),
+    enabled,
+    // กันดรอปดาวน์กระพริบเป็น "ไม่มีข้อมูล" ระหว่างโหลดชุดใหม่
+    placeholderData: keepPreviousData,
   });
 }
 

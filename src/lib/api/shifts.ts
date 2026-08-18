@@ -15,7 +15,9 @@ import type {
   ShiftAutoPlanApiResponse,
   ShiftAutoPlanApplyRequest,
   ShiftAutoPlanPositionOptionsApiResponse,
+  ShiftAutoPlanPositionsParams,
   ShiftAutoPlanRequest,
+  ShiftAutoPlanRoleOptionsApiResponse,
   ShiftRosterApiResponse,
   ShiftScheduleApiResponse,
   UpdateShiftRequest,
@@ -173,10 +175,34 @@ export function bulkCreateShiftSchedules(
 
 /* ---------- จัดตารางกะรายเดือนอัตโนมัติ ---------- */
 
-/** ตำแหน่งที่มีพนักงานอยู่จริง + จำนวนคน (users.position เป็น free-text) */
-export function getShiftAutoPlanPositions(token: string) {
+/** บทบาททั้งหมด + จำนวนคน — ใช้เป็นตัวกรองก่อนจัดตาราง */
+export function getShiftAutoPlanRoles(token: string) {
+  return apiFetch<ShiftAutoPlanRoleOptionsApiResponse>(
+    "/api/hrm/shift-schedules/auto-plan/roles",
+    { method: "GET", token },
+  );
+}
+
+/**
+ * ตำแหน่งที่มีพนักงานอยู่จริง + จำนวนคน (users.position เป็น free-text)
+ *
+ * ส่ง roleIds ไปด้วยเมื่อกรองบทบาท ไม่งั้นจำนวนคนที่โชว์จะไม่ตรงกับที่จัดได้จริง
+ */
+export function getShiftAutoPlanPositions(
+  token: string,
+  params: ShiftAutoPlanPositionsParams = {},
+) {
+  const search = new URLSearchParams();
+  if (params.roleIds?.length) {
+    search.set("roleIds", params.roleIds.join(","));
+  }
+  if (params.includeEmployeesWithoutRole) {
+    search.set("includeEmployeesWithoutRole", "true");
+  }
+  const query = search.toString();
+
   return apiFetch<ShiftAutoPlanPositionOptionsApiResponse>(
-    "/api/hrm/shift-schedules/auto-plan/positions",
+    `/api/hrm/shift-schedules/auto-plan/positions${query ? `?${query}` : ""}`,
     { method: "GET", token },
   );
 }

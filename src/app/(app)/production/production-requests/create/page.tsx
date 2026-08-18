@@ -1,7 +1,13 @@
 "use client";
 
-import ProductionRequestCreatePage from "@/components/production/ProductionRequestCreatePage";
+import { Suspense } from "react";
+
+import { ProductionRequestCreatePageWithSearchParams } from "@/components/production/ProductionRequestCreatePage";
 
 export default function ProductionRequestCreateRoutePage() {
-  return <ProductionRequestCreatePage />;
+  return (
+    <Suspense fallback={null}>
+      <ProductionRequestCreatePageWithSearchParams />
+    </Suspense>
+  );
 }

@@ -8,6 +8,9 @@ import {
   confirmSalesOrder,
   confirmStockVerification,
   createSalesOrderFromQuotation,
+  releaseSalesOrderLineReservation,
+  reserveAllEligibleSalesOrderLines,
+  reserveSalesOrderLine,
 } from "@/lib/api/sales-orders";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -106,4 +109,62 @@ export function useConfirmStockVerificationMutation() {
       );
     },
   });
+}
+
+function useReservationMutation(
+  mutationKey: string,
+  mutationFn: (args: { salesOrderId: string; itemId?: string }) => Promise<{
+    message: string;
+  }>,
+  successFallback: string,
+  errorFallback: string,
+) {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, mutationKey],
+    mutationFn,
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || successFallback);
+    },
+    onError: (error: Error) => {
+      message.error(error instanceof ApiError ? error.message : errorFallback);
+    },
+  });
+}
+
+export function useReserveSalesOrderLineMutation() {
+  return useReservationMutation(
+    "reserve-line",
+    ({ salesOrderId, itemId }) =>
+      reserveSalesOrderLine(getAccessToken(), salesOrderId, itemId as string),
+    "จองสต๊อกสำเร็จ",
+    "จองสต๊อกไม่สำเร็จ",
+  );
+}
+
+export function useReleaseSalesOrderLineMutation() {
+  return useReservationMutation(
+    "release-line",
+    ({ salesOrderId, itemId }) =>
+      releaseSalesOrderLineReservation(
+        getAccessToken(),
+        salesOrderId,
+        itemId as string,
+      ),
+    "ยกเลิกการจองสำเร็จ",
+    "ยกเลิกการจองไม่สำเร็จ",
+  );
+}
+
+export function useReserveAllEligibleSalesOrderLinesMutation() {
+  return useReservationMutation(
+    "reserve-all-eligible",
+    ({ salesOrderId }) =>
+      reserveAllEligibleSalesOrderLines(getAccessToken(), salesOrderId),
+    "จองสต๊อกที่พร้อมใช้สำเร็จ",
+    "จองสต๊อกไม่สำเร็จ",
+  );
 }

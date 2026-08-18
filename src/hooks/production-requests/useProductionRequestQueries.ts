@@ -15,10 +15,12 @@ export const productionRequestsQueryKey = ["production-requests"] as const;
 
 export function useProductionRequestsQuery(
   params?: QueryProductionRequestsParams,
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: [...productionRequestsQueryKey, "list", params ?? {}],
     queryFn: () => getProductionRequests(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }
 

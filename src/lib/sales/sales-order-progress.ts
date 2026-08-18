@@ -76,7 +76,7 @@ export function resolveSalesOrderProgress(
     DRAFT: {
       current: 1,
       inProgress: 1,
-      label: "รอยืนยันใบสั่งขาย",
+      label: "รอจองสต๊อก/ยืนยัน",
       currentStepLabel: "ร่าง",
     },
     CONFIRMED: {

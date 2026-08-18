@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   Button,
@@ -46,13 +46,18 @@ function fmt(value: string | number) {
 type Props = {
   /** ระบุเมื่อใช้หน้านี้แก้ไขใบขอผลิตเดิม — ใบสั่งขายที่อ้างอิงจะถูกล็อกไว้ */
   requestId?: string;
+  /** จาก deep-link ?salesOrderId= บนหน้าสร้างใหม่ */
+  initialSalesOrderId?: string;
 };
 
 /**
  * โหมดแก้ไขต้องรอโหลดใบเดิมให้เสร็จก่อน แล้วค่อย mount ฟอร์ม
  * เพื่อให้ฟอร์มตั้งค่าเริ่มต้นจากข้อมูลจริงได้ตั้งแต่ render แรก (ไม่ต้อง setState ใน effect)
  */
-export default function ProductionRequestCreatePage({ requestId }: Props) {
+export default function ProductionRequestCreatePage({
+  requestId,
+  initialSalesOrderId,
+}: Props) {
   const existingQuery = useProductionRequestQuery(requestId);
   const existing = existingQuery.data?.data;
 
@@ -62,28 +67,38 @@ export default function ProductionRequestCreatePage({ requestId }: Props) {
 
   return (
     <ProductionRequestForm
-      key={existing?.id ?? "new"}
+      key={existing?.id ?? initialSalesOrderId ?? "new"}
       requestId={requestId}
       existing={existing}
+      initialSalesOrderId={initialSalesOrderId}
     />
   );
+}
+
+export function ProductionRequestCreatePageWithSearchParams() {
+  const searchParams = useSearchParams();
+  const salesOrderId = searchParams.get("salesOrderId") ?? undefined;
+  return <ProductionRequestCreatePage initialSalesOrderId={salesOrderId} />;
 }
 
 function ProductionRequestForm({
   requestId,
   existing,
+  initialSalesOrderId,
 }: {
   requestId?: string;
   existing?: ProductionRequest;
+  initialSalesOrderId?: string;
 }) {
   const router = useRouter();
   const isEdit = Boolean(requestId);
+  const lockedSalesOrder = Boolean(initialSalesOrderId) && !isEdit;
   const createMutation = useCreateProductionRequestMutation();
   const updateMutation = useUpdateProductionRequestMutation();
 
   const [soSearch, setSoSearch] = useState("");
   const [salesOrderId, setSalesOrderId] = useState<string | undefined>(
-    existing?.salesOrderId,
+    existing?.salesOrderId ?? initialSalesOrderId,
   );
   const [requestDate, setRequestDate] = useState<Dayjs>(
     existing ? dayjs(existing.requestDate) : dayjs(),
@@ -121,6 +136,26 @@ function ProductionRequestForm({
   const detailQuery = useEligibleSalesOrderQuery(salesOrderId);
   const selectedSo = detailQuery.data?.data;
   const soItems = useMemo(() => selectedSo?.items ?? [], [selectedSo]);
+
+  useEffect(() => {
+    if (!lockedSalesOrder || !selectedSo || isEdit) {
+      return;
+    }
+    const nextQty: Record<string, number> = {};
+    for (const item of selectedSo.items) {
+      const ordered = toNumber(item.salesOrderQty);
+      const delivered = toNumber(item.deliveredQty);
+      const reserved = toNumber(item.reservedQty);
+      const available = toNumber(item.availableQty);
+      const shortage = Math.max(ordered - delivered - reserved - available, 0);
+      if (shortage > 0) {
+        nextQty[item.salesOrderItemId] = toNumber(item.remainingQty);
+      }
+    }
+    if (Object.keys(nextQty).length > 0) {
+      setQtyByItemId(nextQty);
+    }
+  }, [isEdit, lockedSalesOrder, selectedSo]);
 
   const maxQtyFor = useMemo(
     () => (item: EligibleSalesOrderItem) =>
@@ -299,13 +334,19 @@ function ProductionRequestForm({
               <span className={styles.fieldLabel}>
                 ใบสั่งขาย (เฉพาะที่ยังไม่อนุมัติ)
               </span>
-              {isEdit ? (
+              {isEdit || lockedSalesOrder ? (
                 <Input
                   readOnly
                   aria-label="ใบสั่งขายที่อ้างอิง"
-                  value={`${existing?.soNo ?? ""} — ${
-                    existing?.customerName ?? "ไม่ระบุลูกค้า"
-                  }`}
+                  value={
+                    detailQuery.isLoading
+                      ? "กำลังโหลด..."
+                      : `${selectedSo?.soNo ?? existing?.soNo ?? ""} — ${
+                          selectedSo?.customerName ??
+                          existing?.customerName ??
+                          "ไม่ระบุลูกค้า"
+                        }`
+                  }
                 />
               ) : (
                 <Select

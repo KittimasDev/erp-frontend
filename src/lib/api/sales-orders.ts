@@ -5,6 +5,7 @@ import type {
   SalesOrderAvailableWarehouseListApiResponse,
   SalesOrderListApiResponse,
   SalesOrderQueryParams,
+  SalesOrderReservationStatusApiResponse,
   SalesOrderStockVerificationApiResponse,
   StockVerificationPendingListApiResponse,
 } from "@/types/sales-orders";
@@ -104,4 +105,40 @@ export function cancelSalesOrder(token: string, id: string) {
     method: "POST",
     token,
   });
+}
+
+export function getSalesOrderReservationStatus(token: string, id: string) {
+  return apiFetch<SalesOrderReservationStatusApiResponse>(
+    `/api/sales-orders/${id}/reservation-status`,
+    { method: "GET", token },
+  );
+}
+
+export function reserveSalesOrderLine(
+  token: string,
+  salesOrderId: string,
+  itemId: string,
+) {
+  return apiFetch<SalesOrderReservationStatusApiResponse>(
+    `/api/sales-orders/${salesOrderId}/items/${itemId}/reserve`,
+    { method: "POST", token },
+  );
+}
+
+export function releaseSalesOrderLineReservation(
+  token: string,
+  salesOrderId: string,
+  itemId: string,
+) {
+  return apiFetch<SalesOrderReservationStatusApiResponse>(
+    `/api/sales-orders/${salesOrderId}/items/${itemId}/release-reservation`,
+    { method: "POST", token },
+  );
+}
+
+export function reserveAllEligibleSalesOrderLines(token: string, id: string) {
+  return apiFetch<SalesOrderReservationStatusApiResponse>(
+    `/api/sales-orders/${id}/reserve-all-eligible`,
+    { method: "POST", token },
+  );
 }

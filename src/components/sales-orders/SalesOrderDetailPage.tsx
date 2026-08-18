@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Spin, Tag } from "antd";
@@ -12,6 +12,7 @@ import {
   FilePdfOutlined,
   FileTextOutlined,
   InboxOutlined,
+  ProfileOutlined,
   SearchOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
@@ -25,11 +26,16 @@ import {
   useCancelSalesOrderMutation,
   useConfirmSalesOrderMutation,
   useConfirmStockVerificationMutation,
+  useReleaseSalesOrderLineMutation,
+  useReserveAllEligibleSalesOrderLinesMutation,
+  useReserveSalesOrderLineMutation,
 } from "@/hooks/sales-orders/useSalesOrderMutations";
 import {
   useSalesOrderQuery,
+  useSalesOrderReservationStatusQuery,
   useSalesOrderStockVerificationQuery,
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { useProductionRequestsQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
@@ -37,8 +43,10 @@ import {
 } from "@/lib/sales/sales-order-progress";
 import {
   SALES_ORDER_STATUS_LABEL,
+  type SalesOrderReservationLine,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
+import { PRODUCTION_REQUEST_STATUS_LABEL } from "@/types/production-request";
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./SalesOrderDetailPage.module.css";
 
@@ -83,16 +91,44 @@ function findStep(
   return timeline.find((s) => s.step === step);
 }
 
+function reservationLineTag(line: SalesOrderReservationLine) {
+  if (line.isFullyReserved) {
+    return <Tag color="success">จองครบ</Tag>;
+  }
+  if (Number(line.shortageQty) > 0) {
+    return <Tag color="error">สต๊อกไม่พอ</Tag>;
+  }
+  return <Tag color="warning">รอจอง</Tag>;
+}
+
 export default function SalesOrderDetailPage({ id }: Props) {
   const router = useRouter();
   const { modal } = App.useApp();
   const query = useSalesOrderQuery(id);
-  const stockVerificationQuery = useSalesOrderStockVerificationQuery(id);
+  const data = query.data?.data;
+  const isDraft = data?.status === "DRAFT";
+
+  const stockVerificationQuery = useSalesOrderStockVerificationQuery(
+    data && !isDraft ? id : undefined,
+  );
+  const reservationQuery = useSalesOrderReservationStatusQuery(
+    isDraft ? id : undefined,
+  );
+  const productionRequestsQuery = useProductionRequestsQuery(
+    isDraft ? { salesOrderId: id, limit: 20 } : undefined,
+    { enabled: isDraft },
+  );
   const trackingQuery = useSalesTrackingDetailQuery(id);
   const confirmMutation = useConfirmSalesOrderMutation();
   const confirmStockMutation = useConfirmStockVerificationMutation();
   const cancelMutation = useCancelSalesOrderMutation();
+  const reserveLineMutation = useReserveSalesOrderLineMutation();
+  const releaseLineMutation = useReleaseSalesOrderLineMutation();
+  const reserveAllMutation = useReserveAllEligibleSalesOrderLinesMutation();
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
+  const productionRequestActions = useScreenActionPermissions(
+    "PRODUCTION_REQUESTS",
+  );
   const stockVerificationActions = useScreenActionPermissions(
     "SALES_STOCK_VERIFICATION",
   );
@@ -100,8 +136,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const packingActions = useScreenActionPermissions("PACKINGS");
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
 
-  const data = query.data?.data;
   const stockVerification = stockVerificationQuery.data?.data;
+  const reservationStatus = reservationQuery.data?.data;
+  const linkedProductionRequests =
+    productionRequestsQuery.data?.data?.items ?? [];
   const tracking = trackingQuery.data?.data;
   const timeline = tracking?.timeline ?? [];
 
@@ -121,6 +159,17 @@ export default function SalesOrderDetailPage({ id }: Props) {
     packingActions.canEdit ||
     deliveryActions.canAdd ||
     deliveryActions.canEdit;
+
+  const reservationByItemId = useMemo(
+    () =>
+      new Map(
+        (reservationStatus?.lines ?? []).map((line) => [
+          line.salesOrderItemId,
+          line,
+        ]),
+      ),
+    [reservationStatus?.lines],
+  );
 
   if (query.isLoading) {
     return (
@@ -148,13 +197,21 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const busy =
     confirmMutation.isPending ||
     cancelMutation.isPending ||
-    confirmStockMutation.isPending;
+    confirmStockMutation.isPending ||
+    reserveLineMutation.isPending ||
+    releaseLineMutation.isPending ||
+    reserveAllMutation.isPending;
   const progress = resolveSalesOrderProgress(data.status);
   const pickingStep = findStep(timeline, "Picking");
   const packingStep = findStep(timeline, "Packing");
+  const allLinesReserved = reservationStatus?.isAllFullyReserved === true;
+  const hasStockShortage = reservationStatus?.hasShortage === true;
+  const unreservedLines =
+    reservationStatus?.lines?.filter((line) => !line.isFullyReserved) ?? [];
   const stockReady = stockVerification?.isAllAvailable === true;
   const stockShortLines =
     stockVerification?.lines?.filter((line) => !line.isAvailable) ?? [];
+  const canCreateProductionRequest = productionRequestActions.canAdd;
 
   let flowHint: string | null = null;
   if (data.status === "STOCK_CHECKED" && pickingStep?.status === "DRAFT") {
@@ -560,97 +617,241 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ผลตรวจสอบสต๊อก</h2>
+              <h2 className={styles.sectionTitle}>
+                {isDraft ? "การจองสต๊อก" : "ผลตรวจสอบสต๊อก"}
+              </h2>
               <span className={styles.sectionHint}>
-                เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย
+                {isDraft
+                  ? "จองสต๊อกต่อรายการแบบ FIFO รวมทุกคลัง — ยืนยันใบสั่งขายได้เมื่อจองครบทุกรายการ"
+                  : "เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย"}
               </span>
             </div>
-            {data.status === "CONFIRMED" &&
-            stockVerification?.isAllAvailable &&
-            canApproveStock ? (
-              <p className={styles.stockReadyNote}>
-                สต๊อกพอทุกรายการแล้ว — กด{" "}
-                <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นจ่ายสินค้า
-                (การเปิดหน้านี้เพื่อดูผลอย่างเดียวยังไม่เปลี่ยนสถานะ)
-              </p>
-            ) : null}
-            {stockVerificationQuery.isLoading ? (
-              <Spin size="small" />
-            ) : stockVerification ? (
+            {isDraft ? (
+              reservationQuery.isLoading ? (
+                <Spin size="small" />
+              ) : reservationStatus ? (
+                <>
+                  {canWrite ? (
+                    <div style={{ marginBottom: 12 }}>
+                      <Button
+                        type="default"
+                        loading={reserveAllMutation.isPending}
+                        disabled={busy}
+                        onClick={() =>
+                          reserveAllMutation.mutate({ salesOrderId: data.id })
+                        }
+                      >
+                        จองทั้งหมดที่พอ
+                      </Button>
+                    </div>
+                  ) : null}
+                  {allLinesReserved ? (
+                    <p className={styles.stockReadyNote}>
+                      จองครบทุกรายการแล้ว — กด <strong>ยืนยันใบสั่งขาย</strong>{" "}
+                      เพื่อไปขั้นจ่ายสินค้า
+                    </p>
+                  ) : null}
+                </>
+              ) : (
+                <p className={styles.textBlock}>ไม่สามารถโหลดสถานะการจองได้</p>
+              )
+            ) : (
+              <>
+                {data.status === "CONFIRMED" &&
+                stockVerification?.isAllAvailable &&
+                canApproveStock ? (
+                  <p className={styles.stockReadyNote}>
+                    สต๊อกพอทุกรายการแล้ว — กด{" "}
+                    <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นจ่ายสินค้า
+                    (การเปิดหน้านี้เพื่อดูผลอย่างเดียวยังไม่เปลี่ยนสถานะ)
+                  </p>
+                ) : null}
+                {stockVerificationQuery.isLoading ? (
+                  <Spin size="small" />
+                ) : stockVerification ? (
+                  <div className={styles.itemList}>
+                    {stockVerification.lines.map((line) => (
+                      <div key={line.salesOrderItemId} className={styles.itemCard}>
+                        <div className={styles.itemIndex}>
+                          {line.isAvailable ? "✓" : "!"}
+                        </div>
+                        <div className={styles.itemBody}>
+                          <p className={styles.itemName}>
+                            {line.itemCode
+                              ? `${line.itemCode} — ${line.itemName ?? ""}`
+                              : (line.itemName ?? "—")}
+                          </p>
+                          <p className={styles.itemCode}>
+                            ต้องการ{" "}
+                            {Number(line.orderedQty).toLocaleString("th-TH")}
+                            {" · "}
+                            คงเหลือ{" "}
+                            {Number(line.availableQty).toLocaleString("th-TH")}
+                            {Number(line.shortageQty) > 0
+                              ? ` · ขาด ${Number(line.shortageQty).toLocaleString("th-TH")}`
+                              : ""}
+                          </p>
+                        </div>
+                        <div className={styles.itemQty}>
+                          <Tag color={line.isAvailable ? "success" : "error"}>
+                            {line.isAvailable ? "พอ" : "ไม่พอ"}
+                          </Tag>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className={styles.textBlock}>
+                    ไม่สามารถตรวจสอบยอดคงเหลือได้
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
+          {isDraft && linkedProductionRequests.length > 0 ? (
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h2 className={styles.sectionTitle}>ใบขอผลิตที่อ้างอิง</h2>
+              </div>
               <div className={styles.itemList}>
-                {stockVerification.lines.map((line) => (
-                  <div key={line.salesOrderItemId} className={styles.itemCard}>
-                    <div className={styles.itemIndex}>
-                      {line.isAvailable ? "✓" : "!"}
-                    </div>
+                {linkedProductionRequests.map((pr) => (
+                  <div key={pr.id} className={styles.itemCard}>
                     <div className={styles.itemBody}>
-                      <p className={styles.itemName}>
-                        {line.itemCode
-                          ? `${line.itemCode} — ${line.itemName ?? ""}`
-                          : (line.itemName ?? "—")}
-                      </p>
+                      <Link href={`/production/production-requests/${pr.id}`}>
+                        {pr.requestNo}
+                      </Link>
                       <p className={styles.itemCode}>
-                        ต้องการ {Number(line.orderedQty).toLocaleString("th-TH")}
-                        {" · "}
-                        คงเหลือ {Number(line.availableQty).toLocaleString("th-TH")}
-                        {Number(line.shortageQty) > 0
-                          ? ` · ขาด ${Number(line.shortageQty).toLocaleString("th-TH")}`
-                          : ""}
+                        {PRODUCTION_REQUEST_STATUS_LABEL[pr.status] ?? pr.status}
                       </p>
-                    </div>
-                    <div className={styles.itemQty}>
-                      <Tag color={line.isAvailable ? "success" : "error"}>
-                        {line.isAvailable ? "พอ" : "ไม่พอ"}
-                      </Tag>
                     </div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p className={styles.textBlock}>ไม่สามารถตรวจสอบยอดคงเหลือได้</p>
-            )}
-          </div>
+            </div>
+          ) : null}
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
             </div>
+            {isDraft && canWrite ? (
+              <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
+                จองสต๊อกต่อรายการ — รายการที่สต๊อกไม่พอสามารถออกใบขอผลิตได้
+              </p>
+            ) : null}
             <div className={styles.itemList}>
-              {data.items.map((item, index) => (
-                <div key={item.id} className={styles.itemCard}>
-                  <div className={styles.itemIndex}>{index + 1}</div>
-                  <div className={styles.itemBody}>
-                    <p className={styles.itemName}>
-                      {item.itemCode
-                        ? `${item.itemCode} — ${item.itemNameTh ?? ""}`
-                        : (item.itemNameTh ?? "—")}
-                    </p>
-                    <p className={styles.itemCode}>
-                      {Number(item.quantity).toLocaleString("th-TH")}{" "}
-                      {item.unitCode ?? ""} · ราคา {formatMoney(item.unitPrice)}
-                      {Number(item.discountAmount) > 0
-                        ? ` · ส่วนลด ${formatMoney(item.discountAmount)}`
-                        : ""}
-                    </p>
-                    <div className={styles.itemMeta}>
-                      <span>
-                        จอง {Number(item.reservedQuantity).toLocaleString("th-TH")}
-                      </span>
-                      <span>
-                        จ่ายแล้ว{" "}
-                        {Number(item.issuedQuantity).toLocaleString("th-TH")}
-                      </span>
-                      <span>
-                        ส่งแล้ว{" "}
-                        {Number(item.deliveredQuantity).toLocaleString("th-TH")}
-                      </span>
+              {data.items.map((item, index) => {
+                const reservationLine = reservationByItemId.get(item.id);
+                return (
+                  <div key={item.id} className={styles.itemCard}>
+                    <div className={styles.itemIndex}>{index + 1}</div>
+                    <div className={styles.itemBody}>
+                      <p className={styles.itemName}>
+                        {item.itemCode
+                          ? `${item.itemCode} — ${item.itemNameTh ?? ""}`
+                          : (item.itemNameTh ?? "—")}
+                      </p>
+                      <p className={styles.itemCode}>
+                        {Number(item.quantity).toLocaleString("th-TH")}{" "}
+                        {item.unitCode ?? ""} · ราคา {formatMoney(item.unitPrice)}
+                        {Number(item.discountAmount) > 0
+                          ? ` · ส่วนลด ${formatMoney(item.discountAmount)}`
+                          : ""}
+                      </p>
+                      {isDraft && reservationLine ? (
+                        <p className={styles.itemCode}>
+                          ต้องการ{" "}
+                          {Number(reservationLine.orderedQty).toLocaleString(
+                            "th-TH",
+                          )}{" "}
+                          · จองแล้ว{" "}
+                          {Number(reservationLine.reservedQty).toLocaleString(
+                            "th-TH",
+                          )}{" "}
+                          · พร้อมใช้{" "}
+                          {Number(reservationLine.availableQty).toLocaleString(
+                            "th-TH",
+                          )}
+                          {Number(reservationLine.shortageQty) > 0
+                            ? ` · ขาด ${Number(reservationLine.shortageQty).toLocaleString("th-TH")}`
+                            : ""}
+                        </p>
+                      ) : null}
+                      {!isDraft ? (
+                        <div className={styles.itemMeta}>
+                          <span>
+                            จอง{" "}
+                            {Number(item.reservedQuantity).toLocaleString("th-TH")}
+                          </span>
+                          <span>
+                            จ่ายแล้ว{" "}
+                            {Number(item.issuedQuantity).toLocaleString("th-TH")}
+                          </span>
+                          <span>
+                            ส่งแล้ว{" "}
+                            {Number(item.deliveredQuantity).toLocaleString(
+                              "th-TH",
+                            )}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className={styles.itemQty}>
+                      {isDraft && reservationLine ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "flex-end",
+                            gap: 8,
+                          }}
+                        >
+                          {reservationLineTag(reservationLine)}
+                          {canWrite ? (
+                            <div style={{ display: "flex", gap: 6 }}>
+                              {reservationLine.canReserve ? (
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  loading={reserveLineMutation.isPending}
+                                  disabled={busy}
+                                  onClick={() =>
+                                    reserveLineMutation.mutate({
+                                      salesOrderId: data.id,
+                                      itemId: item.id,
+                                    })
+                                  }
+                                >
+                                  จอง
+                                </Button>
+                              ) : null}
+                              {reservationLine.canRelease ? (
+                                <Button
+                                  size="small"
+                                  loading={releaseLineMutation.isPending}
+                                  disabled={busy}
+                                  onClick={() =>
+                                    releaseLineMutation.mutate({
+                                      salesOrderId: data.id,
+                                      itemId: item.id,
+                                    })
+                                  }
+                                >
+                                  ยกเลิกจอง
+                                </Button>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <strong>{formatMoney(item.amount)}</strong>
+                        </div>
+                      ) : (
+                        <strong>{formatMoney(item.amount)}</strong>
+                      )}
                     </div>
                   </div>
-                  <div className={styles.itemQty}>
-                    <strong>{formatMoney(item.amount)}</strong>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -716,20 +917,33 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={styles.actionStack}>
             {data.status === "DRAFT" ? (
               <>
+                {canCreateProductionRequest && hasStockShortage ? (
+                  <Button
+                    className={styles.primaryBtn}
+                    type="default"
+                    icon={<ProfileOutlined />}
+                    onClick={() =>
+                      router.push(
+                        `/production/production-requests/create?salesOrderId=${data.id}`,
+                      )
+                    }
+                  >
+                    ออกใบขอผลิต
+                  </Button>
+                ) : null}
                 {canConfirm ? (
                   <>
-                    {!stockReady ? (
+                    {!allLinesReserved ? (
                       <p className={styles.sectionHint}>
-                        สต๊อกไม่พอ
-                        {stockShortLines.length
-                          ? ` (${stockShortLines
+                        ต้องจองครบทุกรายการก่อนยืนยัน
+                        {unreservedLines.length
+                          ? ` (${unreservedLines
                               .map(
                                 (line) =>
-                                  `${line.itemCode ?? "สินค้า"} ขาด ${Number(line.shortageQty).toLocaleString("th-TH")}`,
+                                  `${line.itemCode ?? "สินค้า"} จอง ${Number(line.reservedQty).toLocaleString("th-TH")}/${Number(line.orderedQty).toLocaleString("th-TH")}`,
                               )
                               .join(", ")})`
-                          : ""}{" "}
-                        — เติมสต๊อกหรือลดจำนวนก่อนยืนยัน
+                          : ""}
                       </p>
                     ) : null}
                     <Button
@@ -738,7 +952,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       icon={<CheckOutlined />}
                       loading={busy}
                       disabled={
-                        !stockReady || stockVerificationQuery.isLoading
+                        !allLinesReserved || reservationQuery.isLoading
                       }
                       onClick={() => confirmMutation.mutate(data.id)}
                     >

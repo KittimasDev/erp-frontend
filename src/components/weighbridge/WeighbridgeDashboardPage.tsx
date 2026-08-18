@@ -88,11 +88,8 @@ const TRUCK_TYPE_OPTIONS = [
 
 type ReceivingStage =
   | "all"
-  | "weigh-in"
-  | "weigh-out"
-  | "classify"
+  | "classify-weigh"
   | "payment"
-  | "paid"
   | "warehouse";
 
 const FLOW_LABELS: Record<string, string> = {
@@ -115,14 +112,16 @@ const STAGE_OPTIONS: {
   description: string;
 }[] = [
   { key: "all", label: "ทั้งหมด", description: "ทุกรายการในช่วงที่เลือก" },
-  { key: "classify", label: "คัดแยก", description: "เลือกรายการยาง / สารปนเปื้อน" },
-  { key: "weigh-in", label: "กรอกน้ำหนัก", description: "รอกรอกน้ำหนักเข้า-ออก" },
+  {
+    key: "classify-weigh",
+    label: "คัดแยกและชั่ง",
+    description: "คัดแยกประเภทยางและบันทึกน้ำหนักเข้า-ออก",
+  },
   {
     key: "payment",
     label: "ออกใบจ่ายเงิน",
     description: "จ่ายก่อนหรือหลังเข้าคลังก็ได้",
   },
-  { key: "paid", label: "จ่ายแล้ว", description: "จ่ายเงินครบแล้ว" },
   {
     key: "warehouse",
     label: "เข้าคลัง",
@@ -131,10 +130,8 @@ const STAGE_OPTIONS: {
 ];
 
 const ACTION_STAGE_KEYS: Array<Exclude<ReceivingStage, "all">> = [
-  "classify",
-  "weigh-in",
+  "classify-weigh",
   "payment",
-  "paid",
   "warehouse",
 ];
 
@@ -147,14 +144,18 @@ const SELECT_POPUP_STYLE = { root: { zIndex: 1400 } };
 
 function parseStage(value: string | null): ReceivingStage {
   if (
-    value === "weigh-in" ||
-    value === "weigh-out" ||
+    value === "classify-weigh" ||
     value === "classify" ||
-    value === "payment" ||
-    value === "paid" ||
-    value === "warehouse"
+    value === "weigh-in" ||
+    value === "weigh-out"
   ) {
-    return value;
+    return "classify-weigh";
+  }
+  if (value === "payment" || value === "paid") {
+    return "payment";
+  }
+  if (value === "warehouse") {
+    return "warehouse";
   }
   return "all";
 }
@@ -173,17 +174,8 @@ function getTicketActionFlags(ticket: WeighbridgeTicketListItem) {
     ticket.receiptStatus === "CONFIRMED" ||
     ticket.receiptStatus === "APPROVED";
   const weightsLocked = locked || isPaid || stockPosted || receiptConfirmed;
-  const receiptLocked =
-    isPaid ||
-    stockPosted ||
-    ticket.flowState === "WAITING_PAYMENT" ||
-    receiptConfirmed;
 
-  const canClassify = !locked && !receiptLocked;
-  const canWeighIn =
-    !weightsLocked && Boolean(ticket.hasClassificationPlan);
-  const canWeighOut = canWeighIn && !ticket.weighOutAt;
-  // จ่ายได้หลังยืนยันยอด — เข้าคลังไปแล้วก็ยังจ่ายได้
+  const canClassifyWeigh = !weightsLocked;
   const canPay =
     !locked &&
     !isPaid &&
@@ -203,9 +195,7 @@ function getTicketActionFlags(ticket: WeighbridgeTicketListItem) {
   return {
     locked,
     isPaid,
-    canWeighIn,
-    canWeighOut,
-    canClassify,
+    canClassifyWeigh,
     canPay,
     canStockIn,
     canStockInRaw,
@@ -224,16 +214,10 @@ function matchesStage(
   const flags = getTicketActionFlags(ticket);
 
   switch (stage) {
-    case "weigh-in":
-      return flags.canWeighIn;
-    case "weigh-out":
-      return flags.canWeighIn;
-    case "classify":
-      return flags.canClassify && !ticket.hasClassificationPlan;
+    case "classify-weigh":
+      return flags.canClassifyWeigh;
     case "payment":
-      return flags.canPay;
-    case "paid":
-      return flags.isPaid;
+      return flags.canPay || flags.isPaid;
     case "warehouse":
       return flags.canStockIn;
     default:
@@ -523,11 +507,8 @@ export default function WeighbridgeDashboardPage() {
   const stageCounts = useMemo(() => {
     const counts: Record<ReceivingStage, number> = {
       all: tickets.length,
-      "weigh-in": 0,
-      "weigh-out": 0,
-      classify: 0,
+      "classify-weigh": 0,
       payment: 0,
-      paid: 0,
       warehouse: 0,
     };
     for (const ticket of tickets) {
@@ -641,28 +622,18 @@ export default function WeighbridgeDashboardPage() {
       value: summary?.trucksInToday ?? tickets.length,
     },
     {
-      key: "classify" as ReceivingStage,
-      label: "รอคัดแยก",
-      value: stageCounts.classify,
-    },
-    {
-      key: "weigh-in" as ReceivingStage,
-      label: "รอกรอกน้ำหนัก",
-      value: stageCounts["weigh-in"],
+      key: "classify-weigh" as ReceivingStage,
+      label: "คัดแยกและชั่ง",
+      value: stageCounts["classify-weigh"],
     },
     {
       key: "payment" as ReceivingStage,
-      label: "รอจ่ายเงิน / เข้าคลัง",
+      label: "ออกใบจ่ายเงิน",
       value: stageCounts.payment,
     },
     {
-      key: "paid" as ReceivingStage,
-      label: "จ่ายแล้ว",
-      value: stageCounts.paid,
-    },
-    {
       key: "warehouse" as ReceivingStage,
-      label: "รอเข้าคลัง",
+      label: "เข้าคลัง",
       value: stageCounts.warehouse,
     },
   ];
@@ -865,13 +836,12 @@ export default function WeighbridgeDashboardPage() {
     {
       title: "ดำเนินการ",
       key: "weighActions",
-      width: 380,
+      width: 300,
       fixed: "right",
       render: (_value, record) => {
         const {
           isPaid,
-          canWeighIn,
-          canClassify,
+          canClassifyWeigh,
           canPay,
           canStockIn,
           canStockInRaw,
@@ -885,19 +855,11 @@ export default function WeighbridgeDashboardPage() {
           >
             <Button
               size="small"
-              type={canClassify && !record.hasClassificationPlan ? "primary" : "default"}
-              disabled={!canClassify}
+              type={canClassifyWeigh ? "primary" : "default"}
+              disabled={!canClassifyWeigh}
               onClick={() => router.push(`/receiving/${record.id}`)}
             >
-              คัดแยก
-            </Button>
-            <Button
-              size="small"
-              type={canWeighIn ? "primary" : "default"}
-              disabled={!canWeighIn}
-              onClick={() => router.push(`/receiving/${record.id}`)}
-            >
-              กรอกน้ำหนัก
+              คัดแยกและชั่ง
             </Button>
             <Button
               size="small"

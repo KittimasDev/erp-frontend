@@ -22,7 +22,10 @@ import {
 } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 
-import { useShiftAutoPlanPositionsQuery } from "@/hooks/shifts/useShiftQueries";
+import {
+  useShiftAutoPlanPositionsQuery,
+  useShiftAutoPlanRolesQuery,
+} from "@/hooks/shifts/useShiftQueries";
 import {
   useApplyShiftAutoPlanMutation,
   useShiftAutoPlanPreviewMutation,
@@ -89,9 +92,31 @@ export default function ShiftAutoPlanModal({
   const [note, setNote] = useState("");
   const [plan, setPlan] = useState<ShiftAutoPlan | null>(null);
 
-  const positionsQuery = useShiftAutoPlanPositionsQuery(open);
+  // ขั้นเลือกบทบาทมาก่อนขั้นกรอกจำนวนคน — ข้ามได้ถ้าจะเอาพนักงานทุกคน
+  const [step, setStep] = useState<"roles" | "setup">("roles");
+  const [roleIds, setRoleIds] = useState<string[]>([]);
+  const [includeEmployeesWithoutRole, setIncludeEmployeesWithoutRole] =
+    useState(false);
+
+  const rolesQuery = useShiftAutoPlanRolesQuery(open);
   const previewMutation = useShiftAutoPlanPreviewMutation();
   const applyMutation = useApplyShiftAutoPlanMutation();
+
+  const roleOptions = rolesQuery.data?.data;
+
+  /** sort ให้ key คงที่ ไม่ว่าจะกดเลือกบทบาทเรียงลำดับไหน */
+  const positionsParams = useMemo(
+    () => ({
+      roleIds: roleIds.length > 0 ? [...roleIds].sort() : undefined,
+      includeEmployeesWithoutRole: includeEmployeesWithoutRole || undefined,
+    }),
+    [roleIds, includeEmployeesWithoutRole],
+  );
+
+  const positionsQuery = useShiftAutoPlanPositionsQuery(
+    positionsParams,
+    open && step === "setup",
+  );
 
   const positionOptions = useMemo(
     () => positionsQuery.data?.data ?? [],
@@ -164,15 +189,34 @@ export default function ShiftAutoPlanModal({
   const requestPositions = buildRequestPositions();
   const canPreview = requestPositions.length > 0;
 
+  /**
+   * ตัวกรองต้องส่งเหมือนกันทั้ง preview และ apply
+   * ถ้าลืมใส่ที่ apply จะบันทึกตารางที่ต่างจากที่ HR เพิ่งดูไป
+   */
+  const filterPayload = {
+    roleIds: roleIds.length > 0 ? roleIds : undefined,
+    includeEmployeesWithoutRole: includeEmployeesWithoutRole || undefined,
+  };
+
   const handlePreview = async () => {
     try {
       const response = await previewMutation.mutateAsync({
         month: targetMonth.format("YYYY-MM"),
         positions: requestPositions,
+        ...filterPayload,
         skipHolidays,
         note: note.trim() || undefined,
       });
       setPlan(response.data);
+
+      /**
+       * เดือนที่มีรอบกะอยู่แล้ว = ติ๊ก "ทับ" ให้เลย
+       * ค่าเริ่มต้นไม่ทับทำให้กดบันทึกแล้วไม่มีอะไรเกิดขึ้น ซึ่งเข้าใจผิดง่ายมาก
+       * (ยังเอาติ๊กออกได้ถ้าไม่ต้องการทับ)
+       */
+      if (response.data.existingRoundCount > 0) {
+        setOverwriteExisting(true);
+      }
     } catch {
       // mutation แจ้ง error ผ่าน message ให้แล้ว
     }
@@ -183,6 +227,7 @@ export default function ShiftAutoPlanModal({
       const response = await applyMutation.mutateAsync({
         month: targetMonth.format("YYYY-MM"),
         positions: requestPositions,
+        ...filterPayload,
         skipHolidays,
         overwriteExisting,
         note: note.trim() || undefined,
@@ -198,6 +243,16 @@ export default function ShiftAutoPlanModal({
     plan?.warnings.some((warning) => warning.code === "EXISTING_ROUNDS"),
   );
 
+  /** บันทึกไปแล้วแต่ไม่มีอะไรถูกเขียน — ต้องให้ติ๊กทับแล้วกดซ้ำได้จากหน้านี้เลย */
+  const nothingWritten = Boolean(
+    plan?.applied &&
+      plan.writeResult &&
+      plan.writeResult.createdRounds === 0 &&
+      plan.writeResult.updatedRounds === 0 &&
+      plan.writeResult.addedMembers === 0,
+  );
+  const canSave = Boolean(plan) && (!plan?.applied || nothingWritten);
+
   return (
     <Modal
       open={open}
@@ -208,22 +263,37 @@ export default function ShiftAutoPlanModal({
       centered
       footer={
         <div className={styles.footer}>
-          <Button onClick={onClose}>ปิด</Button>
-          {plan ? (
+          <Button onClick={onClose}>
+            {plan?.applied && !nothingWritten ? "เสร็จสิ้น" : "ปิด"}
+          </Button>
+          {canSave && plan ? (
             <>
               <Button onClick={() => setPlan(null)}>กลับไปแก้ค่า</Button>
               <Popconfirm
-                title="บันทึกตารางกะลงระบบ"
+                title={`บันทึกตารางกะเดือน ${targetMonth.format("MM/YYYY")}`}
                 description={
-                  <span>
-                    จะสร้างรอบกะของเดือน {targetMonth.format("MM/YYYY")} ทั้งเดือน
-                    {plan.understaffedSlots > 0
-                      ? ` — มีช่องขาดคน ${plan.understaffedSlots} ช่อง ที่ต้องหาคนเติมภายหลัง`
-                      : ""}
-                    {overwriteExisting
-                      ? " · จะเขียนทับรายชื่อในรอบกะที่มีอยู่แล้ว"
-                      : ""}
-                  </span>
+                  <div className={styles.ruleList}>
+                    <p>
+                      รอบกะที่จะเขียน <strong>{plan.plannedRoundCount}</strong> รอบ ·
+                      ลงคน <strong>{plan.filledSlots}</strong> ช่อง
+                    </p>
+                    {plan.existingRoundCount > 0 ? (
+                      <p>
+                        มีรอบกะเดิมทับอยู่ <strong>{plan.existingRoundCount}</strong> รอบ —{" "}
+                        {overwriteExisting ? (
+                          <strong>จะเขียนทับรายชื่อเดิมทั้งหมด</strong>
+                        ) : (
+                          <strong>จะถูกข้ามไป ไม่มีคนถูกลงกะในรอบเหล่านั้น</strong>
+                        )}
+                      </p>
+                    ) : null}
+                    {plan.understaffedSlots > 0 ? (
+                      <p>
+                        ขาดคน <strong>{plan.understaffedSlots}</strong> ช่อง
+                        ที่ต้องหาคนเติมภายหลัง
+                      </p>
+                    ) : null}
+                  </div>
                 }
                 okText="บันทึก"
                 cancelText="ยกเลิก"
@@ -234,41 +304,204 @@ export default function ShiftAutoPlanModal({
                 </Button>
               </Popconfirm>
             </>
-          ) : (
-            <Tooltip
-              title={canPreview ? undefined : "เลือกตำแหน่งและจำนวนคนต่อกะก่อน"}
-            >
+          ) : step === "roles" ? (
+            <>
               <Button
-                type="primary"
-                icon={<ThunderboltOutlined />}
-                disabled={!canPreview}
-                loading={previewMutation.isPending}
-                onClick={() => void handlePreview()}
+                onClick={() => {
+                  setRoleIds([]);
+                  setIncludeEmployeesWithoutRole(false);
+                  setStep("setup");
+                }}
               >
-                ดูตัวอย่าง
+                ข้ามขั้นนี้ (ใช้พนักงานทุกคน)
               </Button>
-            </Tooltip>
+              <Button type="primary" onClick={() => setStep("setup")}>
+                ถัดไป
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={() => setStep("roles")}>กลับไปเลือกบทบาท</Button>
+              <Tooltip
+                title={canPreview ? undefined : "เลือกตำแหน่งและจำนวนคนต่อกะก่อน"}
+              >
+                <Button
+                  type="primary"
+                  icon={<ThunderboltOutlined />}
+                  disabled={!canPreview}
+                  loading={previewMutation.isPending}
+                  onClick={() => void handlePreview()}
+                >
+                  ดูตัวอย่าง
+                </Button>
+              </Tooltip>
+            </>
           )}
         </div>
       }
     >
       {plan ? (
         <div className={styles.body}>
-          {hasExistingRounds ? (
+          {plan.applied && plan.writeResult ? (
+            <Alert
+              // ไม่ได้เขียนอะไรเลย = ไม่ใช่ success ต้องขึ้นเหลืองให้เห็นว่าต้องทำอะไรต่อ
+              type={
+                plan.writeResult.createdRounds === 0 &&
+                plan.writeResult.updatedRounds === 0 &&
+                plan.writeResult.addedMembers === 0
+                  ? "warning"
+                  : "success"
+              }
+              showIcon
+              title={
+                plan.writeResult.createdRounds === 0 &&
+                plan.writeResult.updatedRounds === 0 &&
+                plan.writeResult.addedMembers === 0
+                  ? `ยังไม่ได้บันทึกอะไร — รอบกะ ${plan.writeResult.skippedRounds.length} รอบมีอยู่แล้ว`
+                  : `บันทึกแล้ว — สร้าง ${plan.writeResult.createdRounds} รอบ · ทับ ${plan.writeResult.updatedRounds} รอบ · ลงคน ${plan.writeResult.addedMembers} ช่อง`
+              }
+              description={
+                <div className={styles.ruleList}>
+                  {plan.writeResult.skippedRounds.length > 0 ? (
+                    <p>
+                      ข้ามไป {plan.writeResult.skippedRounds.length} รอบ
+                      เพราะมีรอบกะอยู่แล้ว — ติ๊ก
+                      &quot;ทับรอบกะที่มีอยู่แล้ว&quot; แล้วบันทึกใหม่ถ้าต้องการเขียนทับ
+                      {": "}
+                      {plan.writeResult.skippedRounds
+                        .slice(0, 12)
+                        .map(
+                          (round) =>
+                            `${round.date.slice(8)}/${round.date.slice(5, 7)} ${round.shiftName}`,
+                        )
+                        .join(", ")}
+                      {plan.writeResult.skippedRounds.length > 12 ? " …" : ""}
+                    </p>
+                  ) : null}
+                  {plan.writeResult.removedMembers > 0 ? (
+                    <p>
+                      เขียนทับรายชื่อเดิมไป {plan.writeResult.removedMembers} รายการ
+                    </p>
+                  ) : null}
+                  <p>เปิดปฏิทินหรือหน้า &quot;รายการเข้ากะ&quot; เพื่อตรวจผลได้เลย</p>
+                </div>
+              }
+            />
+          ) : null}
+
+          {hasExistingRounds && canSave ? (
             <Checkbox
               checked={overwriteExisting}
               onChange={(event) => setOverwriteExisting(event.target.checked)}
             >
-              ทับรายชื่อในรอบกะที่มีอยู่แล้ว (ไม่ติ๊ก = ข้ามรอบนั้นไว้ ไม่แตะของเดิม)
+              ทับรายชื่อในรอบกะที่มีอยู่แล้ว {plan.existingRoundCount} รอบ
+              {overwriteExisting
+                ? ""
+                : " — ไม่ติ๊ก = ข้ามรอบเหล่านั้น จะไม่มีคนถูกลงกะ"}
             </Checkbox>
           ) : null}
           <ShiftAutoPlanPreview plan={plan} shifts={shifts} />
+        </div>
+      ) : step === "roles" ? (
+        <div className={styles.body}>
+          <div className={styles.field}>
+            <span className={styles.label}>บทบาทที่จะเอามาจัด</span>
+            <Select
+              className={styles.roleSelect}
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              maxTagCount="responsive"
+              placeholder="ไม่เลือก = เอาพนักงานทุกคน"
+              loading={rolesQuery.isLoading}
+              value={roleIds}
+              onChange={(value) => {
+                setRoleIds(value);
+                invalidatePlan();
+              }}
+              options={(roleOptions?.roles ?? []).map((role) => ({
+                value: role.roleId,
+                label: `${role.roleName} (${role.roleCode}) · ${role.employeeCount} คน`,
+              }))}
+              notFoundContent="ยังไม่มีบทบาทในระบบ"
+            />
+          </div>
+
+          {roleOptions && roleOptions.employeesWithoutRoleCount > 0 ? (
+            <Checkbox
+              checked={includeEmployeesWithoutRole}
+              onChange={(event) => {
+                setIncludeEmployeesWithoutRole(event.target.checked);
+                invalidatePlan();
+              }}
+            >
+              รวมพนักงานที่ยังไม่มีบทบาทเลย ({roleOptions.employeesWithoutRoleCount}{" "}
+              คน)
+            </Checkbox>
+          ) : null}
+
+          {roleOptions &&
+          roleIds.length > 0 &&
+          !includeEmployeesWithoutRole &&
+          roleOptions.employeesWithoutRoleCount > 0 ? (
+            <Alert
+              type="warning"
+              showIcon
+              title={`มีพนักงาน ${roleOptions.employeesWithoutRoleCount} คนที่ไม่มีบทบาทในระบบ — จะไม่ถูกจัดกะ`}
+              description="พนักงานที่ไม่ได้เปิด login ให้ใช้ระบบ จะไม่มีบทบาทติดตัวเลย ซึ่งมักเป็นคนหน้างานที่ต้องเข้ากะ — ติ๊กช่องด้านบนถ้าต้องการดึงกลับมาด้วย"
+            />
+          ) : null}
+
+          <Alert
+            type="info"
+            showIcon
+            title="บทบาทใช้เป็นตัวกรองคน ไม่ใช่ตัวแบ่งกลุ่ม"
+            description={
+              <ul className={styles.ruleList}>
+                <li>
+                  เลือกบทบาท = เอาเฉพาะคนกลุ่มนั้นมาจัด · ไม่เลือก = เอาพนักงานทุกคน
+                </li>
+                <li>
+                  การแบ่งกลุ่มและการนับจำนวนคนต่อกะ ยังใช้ <strong>ตำแหน่ง</strong>{" "}
+                  ในขั้นถัดไป
+                </li>
+                <li>
+                  คนหนึ่งมีได้หลายบทบาท — เลือกหลายบทบาทที่มีคนซ้อนกัน
+                  ระบบนับให้ครั้งเดียว
+                </li>
+                {roleOptions ? (
+                  <li>
+                    พนักงาน active ทั้งหมด {roleOptions.activeEmployeeCount} คน
+                    (ผลรวมของทุกบทบาทจะมากกว่านี้ เพราะคนหนึ่งมีได้หลายบทบาท)
+                  </li>
+                ) : null}
+              </ul>
+            }
+          />
         </div>
       ) : (
         <div className={styles.body}>
           {shifts.length === 0 ? (
             <Empty description="ยังไม่มีกะในระบบ — กด จัดการกะ เพื่อสร้างกะเช้า/บ่าย/ดึกก่อน" />
           ) : null}
+
+          <Alert
+            type="info"
+            showIcon
+            title={
+              roleIds.length > 0
+                ? `กรองบทบาทไว้ ${roleIds.length} บทบาท${includeEmployeesWithoutRole ? " + คนที่ไม่มีบทบาท" : ""} — จำนวนคนด้านล่างนับหลังกรองแล้ว`
+                : includeEmployeesWithoutRole
+                  ? "เอาเฉพาะพนักงานที่ไม่มีบทบาท"
+                  : "ไม่กรองบทบาท — ใช้พนักงานทุกคน"
+            }
+            action={
+              <Button size="small" onClick={() => setStep("roles")}>
+                แก้ไขบทบาท
+              </Button>
+            }
+          />
 
           <div className={styles.field}>
             <span className={styles.label}>เดือนที่จะจัด</span>

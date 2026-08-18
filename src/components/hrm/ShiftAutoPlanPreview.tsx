@@ -26,8 +26,10 @@ const WARNING_TONE: Record<
   LEAVE_CONFLICT: "warning",
   CROSS_POSITION_CONFLICT: "warning",
   USER_POSITION_MISMATCH: "warning",
+  USER_ROLE_MISMATCH: "warning",
   REFILL_MULTI_SHIFT: "info",
   EXISTING_ROUNDS: "info",
+  ROLE_FILTER_EXCLUDED: "info",
 };
 
 const WARNING_LABEL: Record<ShiftAutoPlanWarning["code"], string> = {
@@ -37,8 +39,10 @@ const WARNING_LABEL: Record<ShiftAutoPlanWarning["code"], string> = {
   LEAVE_CONFLICT: "จัดคนที่ลาไว้",
   CROSS_POSITION_CONFLICT: "ติดกะอื่นอยู่แล้ว",
   USER_POSITION_MISMATCH: "ตำแหน่งไม่ตรง",
+  USER_ROLE_MISMATCH: "ไม่อยู่ในบทบาทที่เลือก",
   REFILL_MULTI_SHIFT: "คนเสริมสลับกะ",
   EXISTING_ROUNDS: "มีรอบกะอยู่แล้ว",
+  ROLE_FILTER_EXCLUDED: "ตัวกรองบทบาทตัดคนออก",
 };
 
 type ViewMode = "slots" | "people";

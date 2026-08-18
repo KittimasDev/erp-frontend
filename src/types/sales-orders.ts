@@ -119,6 +119,35 @@ export type SalesOrderStockVerificationLine = {
   availableLocations?: StockVerificationAvailableLocation[];
 };
 
+export type SalesOrderReservationLine = {
+  salesOrderItemId: string;
+  itemId: string;
+  itemCode?: string;
+  itemName?: string;
+  orderedQty: string;
+  reservedQty: string;
+  availableQty: string;
+  shortageQty: string;
+  canReserve: boolean;
+  canRelease: boolean;
+  isFullyReserved: boolean;
+};
+
+export type SalesOrderReservationStatus = {
+  salesOrderId: string;
+  soNo?: string;
+  status: string;
+  isAllFullyReserved: boolean;
+  hasShortage: boolean;
+  lines: SalesOrderReservationLine[];
+};
+
+export type SalesOrderReservationStatusApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: SalesOrderReservationStatus;
+};
+
 export type SalesOrderStockVerification = {
   salesOrderId: string;
   soNo?: string;

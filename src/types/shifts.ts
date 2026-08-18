@@ -429,8 +429,34 @@ export type ShiftAutoPlanRequest = {
   /** `YYYY-MM` */
   month: string;
   positions: ShiftAutoPlanPositionInput[];
+  /** กรองเอาเฉพาะคนที่มีบทบาทเหล่านี้ — ไม่ส่ง = เอาทุกคน */
+  roleIds?: string[];
+  /** พนักงานที่ไม่ได้เปิด login จะไม่มีบทบาทติดตัว ติ๊กนี้เพื่อดึงกลับมา */
+  includeEmployeesWithoutRole?: boolean;
   skipHolidays?: boolean;
   note?: string;
+};
+
+export type ShiftAutoPlanPositionsParams = {
+  roleIds?: string[];
+  includeEmployeesWithoutRole?: boolean;
+};
+
+export type ShiftAutoPlanRoleOption = {
+  roleId: string;
+  roleCode: string;
+  roleName: string;
+  isSystemRole: boolean;
+  /** นับไม่ซ้ำคน (คนหนึ่งมีได้หลายบทบาท) */
+  employeeCount: number;
+};
+
+export type ShiftAutoPlanRoleOptions = {
+  roles: ShiftAutoPlanRoleOption[];
+  /** พนักงาน active ที่ไม่มีบทบาทเลย — ปกติคือคนที่ไม่ได้เปิด login */
+  employeesWithoutRoleCount: number;
+  /** ไม่เท่ากับผลรวม employeeCount ของทุกบทบาท เพราะคนหนึ่งมีได้หลายบทบาท */
+  activeEmployeeCount: number;
 };
 
 export type ShiftAutoPlanApplyRequest = ShiftAutoPlanRequest & {
@@ -512,7 +538,9 @@ export type ShiftAutoPlanWarningCode =
   | "EXISTING_ROUNDS"
   | "LEAVE_CONFLICT"
   | "CROSS_POSITION_CONFLICT"
-  | "USER_POSITION_MISMATCH";
+  | "USER_POSITION_MISMATCH"
+  | "ROLE_FILTER_EXCLUDED"
+  | "USER_ROLE_MISMATCH";
 
 export type ShiftAutoPlanWarning = {
   code: ShiftAutoPlanWarningCode;
@@ -545,6 +573,10 @@ export type ShiftAutoPlan = {
   scheduledSlots: number;
   filledSlots: number;
   understaffedSlots: number;
+  /** รอบกะที่แผนนี้จะเขียน (วัน × กะ ที่ไม่ซ้ำ) */
+  plannedRoundCount: number;
+  /** รอบกะที่มีอยู่แล้วและทับกับแผนนี้ — >0 ต้องติ๊กทับ ไม่งั้นไม่มีอะไรถูกบันทึก */
+  existingRoundCount: number;
   positions: ShiftAutoPlanPositionPlan[];
   days: ShiftAutoPlanDay[];
   warnings: ShiftAutoPlanWarning[];
@@ -568,3 +600,5 @@ export type ShiftAutoPlanApiResponse = ApiEnvelope<ShiftAutoPlan>;
 export type ShiftAutoPlanPositionOptionsApiResponse = ApiEnvelope<
   ShiftAutoPlanPositionOption[]
 >;
+export type ShiftAutoPlanRoleOptionsApiResponse =
+  ApiEnvelope<ShiftAutoPlanRoleOptions>;

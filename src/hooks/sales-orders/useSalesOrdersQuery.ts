@@ -6,6 +6,7 @@ import {
   getPendingStockVerification,
   getSalesOrder,
   getSalesOrderAvailableWarehouses,
+  getSalesOrderReservationStatus,
   getSalesOrders,
   getSalesOrderStockVerification,
 } from "@/lib/api/sales-orders";
@@ -44,6 +45,16 @@ export function useSalesOrderStockVerificationQuery(id?: string) {
     queryKey: [...salesOrdersQueryKey, "stock-verification", id],
     queryFn: () =>
       getSalesOrderStockVerification(getAccessToken(), id as string),
+    enabled: Boolean(id),
+    ...SALES_ORDER_LIVE_QUERY_OPTIONS,
+  });
+}
+
+export function useSalesOrderReservationStatusQuery(id?: string) {
+  return useQuery({
+    queryKey: [...salesOrdersQueryKey, "reservation-status", id],
+    queryFn: () =>
+      getSalesOrderReservationStatus(getAccessToken(), id as string),
     enabled: Boolean(id),
     ...SALES_ORDER_LIVE_QUERY_OPTIONS,
   });

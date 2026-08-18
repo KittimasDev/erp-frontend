@@ -51,6 +51,11 @@
   min-width: 200px;
 }
 
+.roleSelect {
+  flex: 1;
+  min-width: 260px;
+}
+
 .demandList {
   display: flex;
   flex-direction: column;
