@@ -209,6 +209,9 @@ export default function ReceivingTicketClassifyWeighPanel({
   const [items, setItems] = useState<PlanItemRow[]>([createItemRow()]);
   const [deductions, setDeductions] = useState<PlanDeductionRow[]>([]);
   const [planRemark, setPlanRemark] = useState("");
+  const [priceSourceLineNo, setPriceSourceLineNo] = useState<
+    number | undefined
+  >(undefined);
   const [grossWeightKg, setGrossWeightKg] = useState<number | null>(null);
   const [tareWeightKg, setTareWeightKg] = useState<number | null>(null);
   const [isManual, setIsManual] = useState(true);
@@ -244,6 +247,7 @@ export default function ReceivingTicketClassifyWeighPanel({
       ),
     );
     setPlanRemark(plan?.remark ?? "");
+    setPriceSourceLineNo(plan?.priceSourceLineNo);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate local form from ticket plan
   }, [ticket.id, ticket.classificationPlan]);
 
@@ -268,6 +272,33 @@ export default function ReceivingTicketClassifyWeighPanel({
     () => latestPriceByClassification(priceRulesQuery.data?.data ?? []),
     [priceRulesQuery.data?.data],
   );
+
+  useEffect(() => {
+    if (items.length <= 1) {
+      setPriceSourceLineNo(undefined);
+      return;
+    }
+    if (
+      priceSourceLineNo !== undefined &&
+      (priceSourceLineNo < 1 || priceSourceLineNo > items.length)
+    ) {
+      setPriceSourceLineNo(undefined);
+    }
+  }, [items.length, priceSourceLineNo]);
+
+  useEffect(() => {
+    if (priceSourceLineNo === undefined) {
+      return;
+    }
+    const sourceItem = items[priceSourceLineNo - 1];
+    if (
+      !sourceItem?.tireClassificationId ||
+      !priceByClassificationId.has(sourceItem.tireClassificationId)
+    ) {
+      setPriceSourceLineNo(undefined);
+    }
+  }, [items, priceByClassificationId, priceSourceLineNo]);
+
   const selectedTypeCount = items.filter(
     (item) => item.tireClassificationId,
   ).length;
@@ -334,6 +365,83 @@ export default function ReceivingTicketClassifyWeighPanel({
       label: `${row.classificationCode} · ${row.classificationName} · ${priceText}`,
     };
   });
+  const selectedClassificationIds = useMemo(
+    () =>
+      new Set(
+        items
+          .map((item) => item.tireClassificationId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [items],
+  );
+  const classificationOptionsForRow = (currentId: string) =>
+    classificationOptions.map((option) => ({
+      ...option,
+      disabled:
+        option.value !== currentId &&
+        selectedClassificationIds.has(option.value),
+    }));
+
+  const priceSourceOptions = useMemo(() => {
+    const options: Array<{ value: number | "OWN"; label: string; disabled?: boolean }> =
+      [
+        {
+          value: "OWN",
+          label: "ราคาของใครของมัน (แยกตามประเภท)",
+        },
+      ];
+    items.forEach((item, index) => {
+      const lineNo = index + 1;
+      const hasClass = Boolean(item.tireClassificationId);
+      const hasPrice =
+        hasClass &&
+        priceByClassificationId.has(item.tireClassificationId);
+      options.push({
+        value: lineNo,
+        label: `ราคาของรายการที่ ${lineNo} ทั้งชุด`,
+        disabled: !hasClass || !hasPrice,
+      });
+    });
+    return options;
+  }, [items, priceByClassificationId]);
+
+  const sharedPriceRule = useMemo(() => {
+    if (priceSourceLineNo === undefined) {
+      return undefined;
+    }
+    const sourceItem = items[priceSourceLineNo - 1];
+    if (!sourceItem?.tireClassificationId) {
+      return undefined;
+    }
+    return priceByClassificationId.get(sourceItem.tireClassificationId);
+  }, [items, priceByClassificationId, priceSourceLineNo]);
+
+  const resolveEffectivePriceRule = (lineIndex: number) => {
+    if (priceSourceLineNo !== undefined) {
+      return sharedPriceRule;
+    }
+    const item = items[lineIndex];
+    if (!item?.tireClassificationId) {
+      return undefined;
+    }
+    return priceByClassificationId.get(item.tireClassificationId);
+  };
+
+  const tireLineAmount = (lineIndex: number, weightKg?: number) => {
+    const priceRule = resolveEffectivePriceRule(lineIndex);
+    const weight = Number(weightKg ?? 0);
+    if (!priceRule || weight <= 0) {
+      return 0;
+    }
+    return roundMoney(weight * Number(priceRule.pricePerKg));
+  };
+
+  const totalTireAmount = roundMoney(
+    items.reduce(
+      (sum, item, index) => sum + tireLineAmount(index, item.weightKg),
+      0,
+    ),
+  );
 
   const maxWeightForItem = (currentWeight?: number) => {
     if (netWeightKg <= 0) {
@@ -341,22 +449,45 @@ export default function ReceivingTicketClassifyWeighPanel({
     }
     const others = round3(allocatedTireWeightKg - Number(currentWeight ?? 0));
     const max = round3(netWeightKg - others);
-    return Math.max(0.001, max);
+    return Math.max(0, max);
   };
 
   const handleComplete = () => {
     if (!grossWeightKg || !tareWeightKg) {
       return;
     }
-    const nextItems = items
-      .filter((item) => item.tireClassificationId && Number(item.weightKg) > 0)
-      .map((item) => ({
-        tireClassificationId: item.tireClassificationId,
-        weightKg: Number(item.weightKg),
-        description: item.description?.trim() || undefined,
-      }));
+    const includedUiIndexes: number[] = [];
+    const nextItems = items.flatMap((item, index) => {
+      if (!item.tireClassificationId || Number(item.weightKg) <= 0) {
+        return [];
+      }
+      includedUiIndexes.push(index);
+      return [
+        {
+          tireClassificationId: item.tireClassificationId,
+          weightKg: Number(item.weightKg),
+          description: item.description?.trim() || undefined,
+        },
+      ];
+    });
     if (!nextItems.length) {
       return;
+    }
+
+    const uniqueClassificationIds = new Set(
+      nextItems.map((item) => item.tireClassificationId),
+    );
+    if (uniqueClassificationIds.size !== nextItems.length) {
+      message.error("ประเภทยางแต่ละรายการต้องไม่ซ้ำกัน");
+      return;
+    }
+
+    let submittedPriceSourceLineNo: number | undefined;
+    if (priceSourceLineNo !== undefined && nextItems.length > 1) {
+      const mappedIndex = includedUiIndexes.indexOf(priceSourceLineNo - 1);
+      if (mappedIndex >= 0) {
+        submittedPriceSourceLineNo = mappedIndex + 1;
+      }
     }
     const itemsTotal = round3(
       nextItems.reduce((sum, item) => sum + item.weightKg, 0),
@@ -398,6 +529,35 @@ export default function ReceivingTicketClassifyWeighPanel({
       }
     }
 
+    if (submittedPriceSourceLineNo !== undefined) {
+      const sourceItem = nextItems[submittedPriceSourceLineNo - 1];
+      if (!sourceItem?.tireClassificationId) {
+        message.error(
+          `รายการที่ ${submittedPriceSourceLineNo} ยังไม่ได้เลือกประเภทยาง`,
+        );
+        return;
+      }
+      if (!priceByClassificationId.has(sourceItem.tireClassificationId)) {
+        message.error(
+          `รายการที่ ${submittedPriceSourceLineNo} ยังไม่มีราคาที่มีผลวันนี้`,
+        );
+        return;
+      }
+    } else {
+      for (let index = 0; index < nextItems.length; index += 1) {
+        const item = nextItems[index];
+        if (!priceByClassificationId.has(item.tireClassificationId)) {
+          const meta = classificationLabelById.get(item.tireClassificationId);
+          message.error(
+            meta
+              ? `${meta.name} ยังไม่มีราคาที่มีผลวันนี้`
+              : "มีรายการที่ยังไม่มีราคาที่มีผลวันนี้",
+          );
+          return;
+        }
+      }
+    }
+
     const deductionWeightTotal = round3(
       nextDeductions.reduce((sum, item) => sum + item.deductionWeightKg, 0),
     );
@@ -416,6 +576,7 @@ export default function ReceivingTicketClassifyWeighPanel({
       items: nextItems,
       deductions: nextDeductions,
       remark: planRemark.trim() || undefined,
+      priceSourceLineNo: submittedPriceSourceLineNo,
     });
   };
 
@@ -794,19 +955,44 @@ export default function ReceivingTicketClassifyWeighPanel({
                       selectedTypeCount ? "" : styles.classifyCountMuted
                     }`}
                   >
-                    {selectedTypeCount} รายการ
+                    {selectedTypeCount
+                      ? `${selectedTypeCount} รายการ · ${formatBaht(totalTireAmount)} บาท`
+                      : "0 รายการ"}
                   </span>
                 </div>
+
+                {items.length > 1 ? (
+                  <div className={styles.classifyPriceSource}>
+                    <label htmlFor="price-source-select">การใช้ราคา</label>
+                    <Select
+                      id="price-source-select"
+                      aria-label="เลือกแหล่งราคาทั้งชุด"
+                      value={priceSourceLineNo ?? "OWN"}
+                      options={priceSourceOptions}
+                      disabled={!formEditable}
+                      popupMatchSelectWidth
+                      onChange={(value) =>
+                        setPriceSourceLineNo(
+                          value === "OWN" ? undefined : Number(value),
+                        )
+                      }
+                    />
+                  </div>
+                ) : null}
 
                 <div className={styles.classifyTypeList}>
                   {items.map((item, index) => {
                     const meta = classificationLabelById.get(
                       item.tireClassificationId,
                     );
-                    const priceRule = item.tireClassificationId
-                      ? priceByClassificationId.get(item.tireClassificationId)
-                      : undefined;
+                    const priceRule = resolveEffectivePriceRule(index);
+                    const usingSharedPrice =
+                      priceSourceLineNo !== undefined &&
+                      priceSourceLineNo !== index + 1;
+                    const isPriceSourceLine =
+                      priceSourceLineNo === index + 1;
                     const maxKg = maxWeightForItem(item.weightKg);
+                    const lineAmount = tireLineAmount(index, item.weightKg);
                     return (
                       <div key={item.key} className={styles.classifyTypeRow}>
                         <div className={styles.classifyTypeRowTop}>
@@ -816,20 +1002,30 @@ export default function ReceivingTicketClassifyWeighPanel({
                           <Select
                             aria-label={`ประเภทยาง ${index + 1}`}
                             value={item.tireClassificationId || undefined}
-                            options={classificationOptions}
+                            options={classificationOptionsForRow(
+                              item.tireClassificationId,
+                            )}
                             placeholder="เลือกประเภทยาง"
                             disabled={!formEditable}
                             showSearch
                             optionFilterProp="label"
                             popupMatchSelectWidth
                             onChange={(value) =>
-                              setItems((prev) =>
-                                prev.map((row) =>
+                              setItems((prev) => {
+                                const taken = prev.some(
+                                  (row) =>
+                                    row.key !== item.key &&
+                                    row.tireClassificationId === value,
+                                );
+                                if (taken) {
+                                  return prev;
+                                }
+                                return prev.map((row) =>
                                   row.key === item.key
                                     ? { ...row, tireClassificationId: value }
                                     : row,
-                                ),
-                              )
+                                );
+                              })
                             }
                           />
                           {formEditable && items.length > 1 ? (
@@ -839,9 +1035,21 @@ export default function ReceivingTicketClassifyWeighPanel({
                               aria-label={`ลบประเภทยาง ${index + 1}`}
                               icon={<DeleteOutlined />}
                               onClick={() =>
-                                setItems((prev) =>
-                                  prev.filter((row) => row.key !== item.key),
-                                )
+                                setItems((prev) => {
+                                  const next = prev.filter(
+                                    (row) => row.key !== item.key,
+                                  );
+                                  const deletedLineNo = index + 1;
+                                  if (priceSourceLineNo === deletedLineNo) {
+                                    setPriceSourceLineNo(undefined);
+                                  } else if (
+                                    priceSourceLineNo !== undefined &&
+                                    priceSourceLineNo > deletedLineNo
+                                  ) {
+                                    setPriceSourceLineNo(priceSourceLineNo - 1);
+                                  }
+                                  return next;
+                                })
                               }
                             />
                           ) : null}
@@ -855,10 +1063,22 @@ export default function ReceivingTicketClassifyWeighPanel({
                           >
                             {priceRule ? (
                               <>
-                                <span>ราคาซื้อวันนี้</span>
+                                <span>
+                                  {usingSharedPrice
+                                    ? `ใช้ราคาจากรายการที่ ${priceSourceLineNo}`
+                                    : isPriceSourceLine &&
+                                        priceSourceLineNo !== undefined
+                                      ? "ใช้เป็นแหล่งราคาทั้งชุด"
+                                      : "ราคาซื้อวันนี้"}
+                                </span>
                                 <strong>
                                   {formatPrice(priceRule.pricePerKg)} บาท/กก.
                                 </strong>
+                                <p className={styles.classifyTypeAmount}>
+                                  {lineAmount > 0
+                                    ? `${formatWeight(item.weightKg)} กก. × ${formatPrice(priceRule.pricePerKg)} = ${formatBaht(lineAmount)} บาท`
+                                    : "ใส่น้ำหนักเพื่อดูยอดเงิน"}
+                                </p>
                               </>
                             ) : (
                               <strong>ยังไม่มีราคาที่มีผลวันนี้</strong>
@@ -877,7 +1097,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                         <div className={styles.weighItemInput}>
                           <InputNumber
                             aria-label={`น้ำหนักยาง ${index + 1}`}
-                            min={0.001}
+                            min={0}
                             max={maxKg}
                             step={0.001}
                             className={styles.classifyDeductionInput}
@@ -904,6 +1124,32 @@ export default function ReceivingTicketClassifyWeighPanel({
                               );
                             }}
                           />
+                          <Button
+                            type="default"
+                            size="small"
+                            className={styles.weighItemMaxButton}
+                            aria-label={`ใส่น้ำหนักสูงสุดของรายการยาง ${index + 1}`}
+                            disabled={
+                              !formEditable ||
+                              !item.tireClassificationId ||
+                              maxKg === undefined ||
+                              maxKg <= 0
+                            }
+                            onClick={() => {
+                              if (maxKg === undefined || maxKg <= 0) {
+                                return;
+                              }
+                              setItems((prev) =>
+                                prev.map((row) =>
+                                  row.key === item.key
+                                    ? { ...row, weightKg: maxKg }
+                                    : row,
+                                ),
+                              );
+                            }}
+                          >
+                            Max
+                          </Button>
                           <em>กก.</em>
                         </div>
 

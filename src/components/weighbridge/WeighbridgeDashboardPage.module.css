@@ -1387,6 +1387,18 @@
   color: #8a5a12;
 }
 
+.classifyPriceSource {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.classifyPriceSource label {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .classifyTypeList {
   display: grid;
   gap: 10px;
@@ -1441,6 +1453,12 @@
   font-size: 12px;
   font-weight: 600;
   line-height: 1.45;
+}
+
+.classifyTypeDetail p.classifyTypeAmount {
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .classifyTypeMissing {
@@ -1808,9 +1826,14 @@
 
 .weighItemInput {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
   align-items: center;
+}
+
+.weighItemMaxButton {
+  min-width: 52px;
+  font-weight: 700;
 }
 
 .weighItemInput em {

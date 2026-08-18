@@ -166,6 +166,8 @@ export type ClassificationPlan = {
   items: ClassificationPlanItem[];
   deductions?: ClassificationPlanDeduction[];
   remark?: string;
+  /** 1-based line number; omit = each row uses its own price */
+  priceSourceLineNo?: number;
 };
 
 export type SaveClassificationPlanRequest = ClassificationPlan;
@@ -190,6 +192,7 @@ export type CompleteWeighAndReceiptRequest = {
     description?: string;
   }>;
   remark?: string;
+  priceSourceLineNo?: number;
 };
 
 export type WeighTicketRequest = {
