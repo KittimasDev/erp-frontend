@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type {
+  ApproveStockPostingRequestBody,
   CreateStockPostingRequestBody,
   RejectStockPostingRequestBody,
   StockPostingRequestApiResponse,
@@ -46,10 +47,14 @@ export function getStockPostingApproval(token: string, id: string) {
   );
 }
 
-export function approveStockPostingRequest(token: string, id: string) {
+export function approveStockPostingRequest(
+  token: string,
+  id: string,
+  body: ApproveStockPostingRequestBody = {},
+) {
   return apiFetch<StockPostingRequestApiResponse>(
     `/api/warehouse/stock-posting-approvals/${id}/approve`,
-    { method: "POST", token },
+    { method: "POST", token, body },
   );
 }
 

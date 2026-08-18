@@ -54,10 +54,10 @@ export type StockPostingRequest = {
   id: string;
   requestNo: string;
   receiptId: string;
-  warehouseId: string;
+  warehouseId?: string;
   warehouseCode?: string;
   warehouseName?: string;
-  warehouseLocationId: string;
+  warehouseLocationId?: string;
   locationCode?: string;
   locationName?: string;
   postingDate: string;
@@ -92,6 +92,11 @@ export type CreateStockPostingRequestBody = {
   postingDate: string;
   remark?: string;
   items?: CreateStockPostingRequestItemBody[];
+};
+
+export type ApproveStockPostingRequestBody = {
+  warehouseId?: string;
+  warehouseLocationId?: string;
 };
 
 export type RejectStockPostingRequestBody = {

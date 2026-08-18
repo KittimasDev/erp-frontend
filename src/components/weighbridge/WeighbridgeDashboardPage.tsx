@@ -97,10 +97,10 @@ const FLOW_LABELS: Record<string, string> = {
   WAITING_SORT: "รอคัดแยก",
   WAITING_WEIGH_OUT: "รอกรอกน้ำหนัก",
   WAITING_APPROVAL: "รออนุมัติ",
-  WAITING_PAYMENT: "รอจ่ายเงินหรือเข้าคลัง",
+  WAITING_PAYMENT: "รอจ่ายเงิน",
   PAYMENT_PAID: "จ่ายเงินแล้ว",
   WAITING_STOCK_IN: "รอเข้าคลัง",
-  STOCK_REQUEST_PENDING: "รออนุมัติเข้าคลัง",
+  STOCK_REQUEST_PENDING: "รอคลังเลือกคลังและอนุมัติ",
   STOCK_POSTED: "เข้าคลังแล้ว",
   CANCELLED: "ยกเลิก",
   OTHER: "อื่นๆ",
@@ -120,12 +120,12 @@ const STAGE_OPTIONS: {
   {
     key: "payment",
     label: "ออกใบจ่ายเงิน",
-    description: "จ่ายก่อนหรือหลังเข้าคลังก็ได้",
+    description: "จ่ายเงินให้ผู้ขาย แล้วระบบจะแจ้งคลัง",
   },
   {
     key: "warehouse",
     label: "เข้าคลัง",
-    description: "ส่งคำขอรับเข้าคลัง (จ่ายก่อนก็ได้)",
+    description: "คนคลังเลือกคลังแล้วอนุมัติหลังจ่ายเงิน",
   },
 ];
 

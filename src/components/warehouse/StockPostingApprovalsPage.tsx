@@ -14,12 +14,7 @@ import MasterPageGate from "@/components/common/MasterPageGate";
 import { useStockPostingApprovalsQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import { getStockPostingApprovals } from "@/lib/api/stock-posting-requests";
 import { getAccessToken } from "@/lib/auth/token";
-import {
-  hasPermission,
-  isMatrixPermissionMode,
-} from "@/lib/auth/permissions-access";
-import { RoleCode } from "@/lib/auth/role-codes";
-import { userHasRole } from "@/lib/auth/session";
+import { useCanApproveStockPostingApprovals } from "@/lib/auth/stock-posting-access";
 import type { StockPostingRequest } from "@/types/stock-posting-request";
 import {
   STOCK_POSTING_REQUEST_STATUS_LABEL,
@@ -81,11 +76,7 @@ export default function StockPostingApprovalsPage() {
   const [status, setStatus] = useState<string>(
     StockPostingRequestStatus.PENDING_APPROVAL,
   );
-  const canApprove =
-    hasPermission("STOCK_POSTING_APPROVALS.APPROVE") ||
-    (!isMatrixPermissionMode() &&
-      (userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-        userHasRole(RoleCode.ADMINISTRATOR)));
+  const canApprove = useCanApproveStockPostingApprovals();
   const approvalsQuery = useStockPostingApprovalsQuery(status);
   const rows = approvalsQuery.data?.data ?? [];
 

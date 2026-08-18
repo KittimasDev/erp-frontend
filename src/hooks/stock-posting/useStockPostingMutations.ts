@@ -11,6 +11,7 @@ import {
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
+  ApproveStockPostingRequestBody,
   CreateStockPostingRequestBody,
   RejectStockPostingRequestBody,
 } from "@/types/stock-posting-request";
@@ -46,8 +47,13 @@ export function useApproveStockPostingRequestMutation() {
 
   return useMutation({
     mutationKey: ["stock-posting-requests", "approve"],
-    mutationFn: (id: string) =>
-      approveStockPostingRequest(getAccessToken(), id),
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body?: ApproveStockPostingRequestBody;
+    }) => approveStockPostingRequest(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({
         queryKey: stockPostingRequestsQueryKey,

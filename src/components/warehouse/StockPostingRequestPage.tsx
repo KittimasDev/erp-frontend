@@ -149,12 +149,20 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
   const existing = existingQuery.data?.data;
   const pendingExists =
     existing?.status === StockPostingRequestStatus.PENDING_APPROVAL;
+  const unpaid = Boolean(receipt) && receipt?.paymentStatus !== "PAID";
   const fullyPosted = receipt?.stockPostingStatus === "POSTED";
   const canSubmit =
     canRequest &&
     receipt?.status === "CONFIRMED" &&
+    receipt?.paymentStatus === "PAID" &&
     !pendingExists &&
     !fullyPosted;
+
+  useEffect(() => {
+    if (pendingExists && existing?.id) {
+      router.replace(`/warehouse/stock-posting-approvals/${existing.id}`);
+    }
+  }, [existing?.id, pendingExists, router]);
 
   const warehouses = warehousesQuery.data?.data ?? [];
   const locations = locationsQuery.data?.data ?? [];
@@ -351,7 +359,10 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
       return { color: "success" as const, label: "รับเข้าคลังแล้ว" };
     }
     if (pendingExists) {
-      return { color: "processing" as const, label: "รออนุมัติเข้าคลัง" };
+      return { color: "processing" as const, label: "รอคลังเลือกคลังและอนุมัติ" };
+    }
+    if (unpaid && receipt?.status === "CONFIRMED") {
+      return { color: "warning" as const, label: "รอจ่ายเงินก่อนเข้าคลัง" };
     }
     if (receipt?.stockPostingStatus === "PARTIALLY_POSTED") {
       return { color: "warning" as const, label: "รับเข้าบางส่วน — ส่งต่อได้" };
@@ -845,8 +856,10 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                             {fullyPosted
                               ? "รับเข้าคลังครบแล้ว — ไม่ต้องส่งคำขออีก"
                               : pendingExists
-                                ? "มีคำขอรออนุมัติอยู่ — รอหัวหน้าคลังดำเนินการ"
-                                : receipt.status !== "CONFIRMED"
+                                ? "มีคำขอรออนุมัติอยู่ — รอคลังเลือกคลังและอนุมัติ"
+                                : unpaid
+                                  ? "ต้องจ่ายเงินใบรับซื้อให้เสร็จก่อน จึงจะเข้าคลังได้"
+                                  : receipt.status !== "CONFIRMED"
                                   ? "ยืนยันใบรับซื้อก่อน จึงจะส่งคำขอเข้าคลังได้"
                                   : !canRequest
                                     ? "ไม่มีสิทธิ์ส่งคำขอรับเข้าคลัง"

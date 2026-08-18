@@ -54,10 +54,10 @@ const FLOW_LABELS: Record<string, string> = {
   WAITING_SORT: "รอคัดแยก",
   WAITING_WEIGH_OUT: "รอกรอกน้ำหนัก",
   WAITING_APPROVAL: "รออนุมัติ",
-  WAITING_PAYMENT: "รอจ่ายเงินหรือเข้าคลัง",
+  WAITING_PAYMENT: "รอจ่ายเงิน",
   PAYMENT_PAID: "จ่ายเงินแล้ว",
   WAITING_STOCK_IN: "รอเข้าคลัง",
-  STOCK_REQUEST_PENDING: "รออนุมัติเข้าคลัง",
+  STOCK_REQUEST_PENDING: "รอคลังเลือกคลังและอนุมัติ",
   STOCK_POSTED: "เข้าคลังแล้ว",
   CANCELLED: "ยกเลิก",
   OTHER: "อื่นๆ",
@@ -234,14 +234,15 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
     paymentView?.flowState === "STOCK_POSTED" ||
     ticket?.currentStep === "COMPLETED";
   const stockRequestPending =
-    paymentView?.flowState === "STOCK_REQUEST_PENDING";
-  // เข้าคลังได้หลังยืนยันยอดแล้ว — จ่ายเงินก่อนหรือหลังก็ได้
+    paymentView?.flowState === "STOCK_REQUEST_PENDING" ||
+    stockRequest?.status === StockPostingRequestStatus.PENDING_APPROVAL;
   const receiptConfirmed =
     paymentView?.receiptStatus === "CONFIRMED" ||
     paymentView?.receiptStatus === "APPROVED" ||
     ticket?.receiptStatus === "CONFIRMED" ||
     ticket?.receiptStatus === "APPROVED";
   const readyForStockIn =
+    paid &&
     receiptConfirmed &&
     Boolean(ticket?.receiptId) &&
     !stockPosted &&
@@ -558,7 +559,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div className={styles.stepCardTitle}>
                       <h3>Step 2 · ออกใบจ่ายเงิน</h3>
                       <p>
-                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — ทำคู่ขนานกับเข้าคลังได้ (ลำดับใดก่อนก็ได้)
+                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — เมื่อจ่ายสำเร็จระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
                       </p>
                     </div>
                   </div>
@@ -681,7 +682,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     ? styles.stepCardActive
                     : "",
                   stockPosted ? styles.stepCardDone : "",
-                  !receiptConfirmed && !stockPosted
+                  !paid && !stockPosted
                     ? styles.stepCardLocked
                     : "",
                 ]
@@ -708,7 +709,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div className={styles.stepCardTitle}>
                       <h3>Step 3 · เข้าคลัง</h3>
                       <p>
-                        ส่งคำขอรับยางดิบเข้าคลังได้หลังยืนยันยอด — จ่ายเงินก่อนหรือหลังก็ได้
+                        คนคลังเลือกคลัง/ตำแหน่งแล้วกดอนุมัติ — ทำได้หลังจ่ายเงิน Step 2 เสร็จ
                       </p>
                     </div>
                   </div>
@@ -726,13 +727,15 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                   >
                     {stockPosted
                       ? STOCK_POSTING_STATUS_LABELS.POSTED
-                      : stockRequestPending
-                        ? "รออนุมัติเข้าคลัง"
+                        : stockRequestPending
+                        ? "รอคลังเลือกคลังและอนุมัติ"
                         : readyForStockIn
-                          ? "รอส่งคำขอเข้าคลัง"
-                          : receiptConfirmed
+                          ? "รอคลังรับเข้า"
+                          : paid
                             ? "พร้อมเข้าคลัง"
-                            : "รอยืนยันยอดก่อน"}
+                            : receiptConfirmed
+                              ? "รอจ่ายเงินก่อน"
+                              : "รอยืนยันยอดก่อน"}
                   </Tag>
                 </div>
                 <div className={styles.stepCardBody}>
@@ -753,9 +756,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         {stockPosted
                           ? STOCK_POSTING_STATUS_LABELS.POSTED
                           : stockRequestPending
-                            ? "มีคำขอรออนุมัติ"
+                            ? "รอคลังเลือกคลังและอนุมัติ"
                             : readyForStockIn
-                              ? "ยังไม่ส่งคำขอ"
+                              ? "รอคลังรับเข้า"
                               : "-"}
                       </strong>
                     </div>
@@ -806,33 +809,21 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         เปิดใบรับซื้อ
                       </Button>
                     </div>
-                  ) : (readyForStockIn || stockRequestPending) &&
-                    ticket.receiptId ? (
+                  ) : stockRequestPending && ticket.receiptId ? (
                     <div className={styles.weighActions} style={{ marginTop: 16 }}>
                       <Button
                         type="primary"
                         className={styles.submitButton}
                         onClick={() =>
                           router.push(
-                            `/raw-tire-purchase/receipts/${ticket.receiptId}/stock-posting-request`,
+                            stockRequest?.id
+                              ? `/warehouse/stock-posting-approvals/${stockRequest.id}`
+                              : "/warehouse/stock-posting-approvals",
                           )
                         }
                       >
-                        {stockRequestPending
-                          ? "ดู / ติดตามคำขอเข้าคลัง"
-                          : "ส่งคำขอรับเข้าคลัง"}
+                        คลังเลือกคลังและอนุมัติ
                       </Button>
-                      {!paid ? (
-                        <Button
-                          onClick={() =>
-                            router.push(
-                              `/receiving/receipts/${ticket.receiptId}/payment`,
-                            )
-                          }
-                        >
-                          ออกใบจ่ายเงิน
-                        </Button>
-                      ) : null}
                       <Button
                         onClick={() =>
                           router.push(
@@ -843,9 +834,25 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         เปิดใบรับซื้อ
                       </Button>
                     </div>
+                  ) : paid && receiptConfirmed && ticket.receiptId && !stockPosted ? (
+                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                      <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        onClick={() =>
+                          router.push("/warehouse/stock-posting-approvals")
+                        }
+                      >
+                        เปิดรายการรอคลังอนุมัติ
+                      </Button>
+                    </div>
+                  ) : receiptConfirmed && !paid ? (
+                    <div className={styles.stepEmptyHint}>
+                      จ่ายเงินใน Step 2 ให้เสร็จก่อน ระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
+                    </div>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะจ่ายเงินหรือเข้าคลังก่อนก็ได้
+                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จ แล้วจ่ายเงิน Step 2 ก่อนเข้าคลัง
                     </div>
                   )}
                 </div>

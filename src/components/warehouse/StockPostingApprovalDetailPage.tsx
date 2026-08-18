@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  App,
   Button,
   Input,
   Modal,
-  Popconfirm,
+  Select,
   Table,
   Tag,
   Typography,
@@ -25,12 +26,11 @@ import {
   useRejectStockPostingRequestMutation,
 } from "@/hooks/stock-posting/useStockPostingMutations";
 import { useStockPostingApprovalQuery } from "@/hooks/stock-posting/useStockPostingQueries";
+import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
+import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import {
-  hasPermission,
-  isMatrixPermissionMode,
-} from "@/lib/auth/permissions-access";
-import { RoleCode } from "@/lib/auth/role-codes";
-import { userHasRole } from "@/lib/auth/session";
+  useCanApproveStockPostingApprovals,
+} from "@/lib/auth/stock-posting-access";
 import type { StockPostingReceiptItem } from "@/types/stock-posting-request";
 import {
   STOCK_POSTING_REQUEST_STATUS_LABEL,
@@ -97,18 +97,28 @@ function statusTagColor(status: string) {
   }
 }
 
+/** คลังเริ่มต้นสำหรับรับยางดิบ — ลดขั้นตอนเลือกคลัง */
+const DEFAULT_RAW_TIRE_WAREHOUSE_CODE = "RAW_WH";
+
 export default function StockPostingApprovalDetailPage({ requestId }: Props) {
   const router = useRouter();
-  const canApprove =
-    hasPermission("STOCK_POSTING_APPROVALS.APPROVE") ||
-    (!isMatrixPermissionMode() &&
-      (userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-        userHasRole(RoleCode.ADMINISTRATOR)));
+  const { message, modal } = App.useApp();
+  const canApprove = useCanApproveStockPostingApprovals();
   const detailQuery = useStockPostingApprovalQuery(requestId);
   const approveMutation = useApproveStockPostingRequestMutation();
   const rejectMutation = useRejectStockPostingRequestMutation();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [warehouseId, setWarehouseId] = useState<string | undefined>();
+  const [warehouseLocationId, setWarehouseLocationId] = useState<
+    string | undefined
+  >();
+
+  const warehousesQuery = useWarehousesQuery({ isActive: true });
+  const locationsQuery = useWarehouseLocationsQuery(
+    { warehouseId, isActive: true },
+    { enabled: Boolean(warehouseId) },
+  );
 
   const request = detailQuery.data?.data;
   const isPending =
@@ -120,12 +130,64 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
     const weight = items.reduce((sum, row) => sum + Number(row.weightKg || 0), 0);
     const amount = items.reduce((sum, row) => sum + Number(row.amount || 0), 0);
     // ผูกแล้ว = มี itemId หรือจับคู่ได้ผ่าน itemCode (= classification_code)
-    const unlinked = items.filter((row) => !row.itemId && !row.itemCode);
+    const unlinked = items.filter(
+      (row) => !row.itemId && !row.itemCode && !row.classificationCode,
+    );
     return { weight, amount, count: items.length, unlinked };
   }, [request?.items]);
 
   const hasUnlinkedItems = totals.unlinked.length > 0;
-  const canApproveNow = isPending && canApprove && !hasUnlinkedItems;
+  const needsWarehousePick = isPending && !request?.warehouseId;
+  const selectedWarehouseId = warehouseId ?? request?.warehouseId;
+  const selectedLocationId =
+    warehouseLocationId ?? request?.warehouseLocationId;
+  const warehouseReady = Boolean(selectedWarehouseId && selectedLocationId);
+  const approveBlockedByItems = hasUnlinkedItems;
+  const approveBlockedByWarehouse = needsWarehousePick && !warehouseReady;
+
+  useEffect(() => {
+    if (!needsWarehousePick || warehouseId) {
+      return;
+    }
+    const rawWarehouse = (warehousesQuery.data?.data ?? []).find(
+      (row) => row.warehouseCode === DEFAULT_RAW_TIRE_WAREHOUSE_CODE,
+    );
+    if (rawWarehouse) {
+      setWarehouseId(rawWarehouse.id);
+    }
+  }, [needsWarehousePick, warehouseId, warehousesQuery.data?.data]);
+
+  useEffect(() => {
+    if (!needsWarehousePick || warehouseLocationId || !warehouseId) {
+      return;
+    }
+    const locations = locationsQuery.data?.data ?? [];
+    if (locations.length === 1) {
+      setWarehouseLocationId(locations[0].id);
+    }
+  }, [
+    needsWarehousePick,
+    warehouseLocationId,
+    warehouseId,
+    locationsQuery.data?.data,
+  ]);
+
+  const warehouseOptions = useMemo(
+    () =>
+      (warehousesQuery.data?.data ?? []).map((row) => ({
+        value: row.id,
+        label: `${row.warehouseCode} — ${row.warehouseName}`,
+      })),
+    [warehousesQuery.data?.data],
+  );
+  const locationOptions = useMemo(
+    () =>
+      (locationsQuery.data?.data ?? []).map((row) => ({
+        value: row.id,
+        label: `${row.locationCode} — ${row.locationName}`,
+      })),
+    [locationsQuery.data?.data],
+  );
 
   const itemColumns: ColumnsType<StockPostingReceiptItem> = [
     {
@@ -220,9 +282,35 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
   ];
 
   const handleApprove = () => {
-    approveMutation.mutate(requestId, {
-      onSuccess: () => {
-        void detailQuery.refetch();
+    if (!selectedWarehouseId || !selectedLocationId) {
+      return Promise.reject(new Error("warehouse-required"));
+    }
+    return approveMutation.mutateAsync({
+      id: requestId,
+      body: {
+        warehouseId: selectedWarehouseId,
+        warehouseLocationId: selectedLocationId,
+      },
+    });
+  };
+
+  const handleApproveClick = () => {
+    if (approveBlockedByItems) {
+      message.warning("ผูก Master Items ให้ครบก่อนอนุมัติ");
+      return;
+    }
+    if (approveBlockedByWarehouse) {
+      message.warning("เลือกคลังและตำแหน่งจัดเก็บก่อนอนุมัติ");
+      return;
+    }
+    modal.confirm({
+      title: "อนุมัติรับเข้าคลัง",
+      content: "ระบบจะ POST สต๊อกจริงทันทีหลังอนุมัติ",
+      okText: "อนุมัติ",
+      cancelText: "ยกเลิก",
+      onOk: async () => {
+        await handleApprove();
+        await detailQuery.refetch();
       },
     });
   };
@@ -264,6 +352,36 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
             </Button>
             {isPending && canApprove ? (
               <>
+                {needsWarehousePick ? (
+                  <>
+                    <Select
+                      showSearch
+                      optionFilterProp="label"
+                      style={{ minWidth: 220 }}
+                      placeholder="เลือกคลัง"
+                      options={warehouseOptions}
+                      loading={warehousesQuery.isLoading}
+                      value={warehouseId}
+                      onChange={(value) => {
+                        setWarehouseId(value);
+                        setWarehouseLocationId(undefined);
+                      }}
+                    />
+                    <Select
+                      showSearch
+                      optionFilterProp="label"
+                      style={{ minWidth: 220 }}
+                      placeholder={
+                        warehouseId ? "เลือกตำแหน่ง" : "เลือกคลังก่อน"
+                      }
+                      options={locationOptions}
+                      loading={locationsQuery.isLoading}
+                      disabled={!warehouseId}
+                      value={warehouseLocationId}
+                      onChange={setWarehouseLocationId}
+                    />
+                  </>
+                ) : null}
                 <Button
                   danger
                   icon={<CloseOutlined />}
@@ -272,29 +390,23 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                 >
                   ไม่อนุมัติ
                 </Button>
-                <Popconfirm
-                  title="อนุมัติรับเข้าคลัง"
-                  description="ระบบจะ POST สต๊อกจริงทันทีหลังอนุมัติ"
-                  okText="อนุมัติ"
-                  cancelText="ยกเลิก"
-                  disabled={!canApproveNow}
-                  onConfirm={handleApprove}
-                >
-                  <Button
-                    type="primary"
-                    icon={<CheckOutlined />}
-                    className={styles.submitButton}
-                    loading={approveMutation.isPending}
-                    disabled={isBusy || hasUnlinkedItems}
-                    title={
-                      hasUnlinkedItems
-                        ? "ผูก Master Items ให้ครบก่อนอนุมัติ"
+                <Button
+                  type="primary"
+                  icon={<CheckOutlined />}
+                  className={styles.submitButton}
+                  loading={approveMutation.isPending}
+                  disabled={isBusy || approveBlockedByItems}
+                  onClick={handleApproveClick}
+                  title={
+                    approveBlockedByItems
+                      ? "ผูก Master Items ให้ครบก่อนอนุมัติ"
+                      : approveBlockedByWarehouse
+                        ? "เลือกคลังและตำแหน่งก่อนอนุมัติ"
                         : undefined
-                    }
-                  >
-                    อนุมัติและรับเข้าคลัง
-                  </Button>
-                </Popconfirm>
+                  }
+                >
+                  อนุมัติและรับเข้าคลัง
+                </Button>
               </>
             ) : null}
           </div>
@@ -333,22 +445,37 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
               </div>
               <div className={styles.cardBody}>
                 <div className={styles.detailGrid}>
-                  <DetailItem
-                    label="คลังสินค้า"
-                    value={
-                      request.warehouseName
-                        ? `${request.warehouseCode ?? ""} · ${request.warehouseName}`
-                        : "-"
-                    }
-                  />
-                  <DetailItem
-                    label="ตำแหน่งจัดเก็บ"
-                    value={
-                      request.locationName
-                        ? `${request.locationCode ?? ""} · ${request.locationName}`
-                        : "-"
-                    }
-                  />
+                  {needsWarehousePick ? (
+                    <>
+                      <div style={{ gridColumn: "1 / -1" }}>
+                        <Typography.Text type="secondary">
+                          เลือกคลังและตำแหน่งจากแถบด้านบน (ข้างปุ่มอนุมัติ)
+                          {warehouseId && !warehouseLocationId
+                            ? " — เหลือเลือกตำแหน่งจัดเก็บ"
+                            : ""}
+                        </Typography.Text>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <DetailItem
+                        label="คลังสินค้า"
+                        value={
+                          request.warehouseName
+                            ? `${request.warehouseCode ?? ""} · ${request.warehouseName}`
+                            : "-"
+                        }
+                      />
+                      <DetailItem
+                        label="ตำแหน่งจัดเก็บ"
+                        value={
+                          request.locationName
+                            ? `${request.locationCode ?? ""} · ${request.locationName}`
+                            : "-"
+                        }
+                      />
+                    </>
+                  )}
                   <DetailItem
                     label="วันที่รับเข้า"
                     value={formatDate(request.postingDate)}
@@ -439,6 +566,19 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
               />
             </div>
 
+            {isPending && canApprove && approveBlockedByWarehouse ? (
+              <div className={styles.card}>
+                <div className={styles.cardBody}>
+                  <Typography.Text type="warning">
+                    เลือก <strong>คลังสินค้า</strong> และ{" "}
+                    <strong>ตำแหน่งจัดเก็บ</strong> ที่แถบด้านบน
+                    {warehouseId ? " แล้วเลือกตำแหน่งให้ครบ" : ""}{" "}
+                    จากนั้นกด <strong>อนุมัติและรับเข้าคลัง</strong>
+                  </Typography.Text>
+                </div>
+              </div>
+            ) : null}
+
             {isPending && !canApprove ? (
               <div className={styles.card}>
                 <div className={styles.cardBody}>
@@ -450,42 +590,6 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                 </div>
               </div>
             ) : null}
-
-            {/* {isPending && canApprove ? (
-              <div className={styles.card}>
-                <div
-                  className={styles.classificationActions}
-                  style={{ justifyContent: "flex-end", marginTop: 0 }}
-                >
-                  <Button
-                    danger
-                    icon={<CloseOutlined />}
-                    disabled={isBusy}
-                    onClick={() => setRejectOpen(true)}
-                  >
-                    ไม่อนุมัติ
-                  </Button>
-                  <Popconfirm
-                    title="อนุมัติรับเข้าคลัง"
-                    description="ระบบจะ POST สต๊อกจริงทันทีหลังอนุมัติ"
-                    okText="อนุมัติ"
-                    cancelText="ยกเลิก"
-                    disabled={!canApproveNow}
-                    onConfirm={handleApprove}
-                  >
-                    <Button
-                      type="primary"
-                      icon={<CheckOutlined />}
-                      className={styles.submitButton}
-                      loading={approveMutation.isPending}
-                      disabled={isBusy || hasUnlinkedItems}
-                    >
-                      อนุมัติและรับเข้าคลัง
-                    </Button>
-                  </Popconfirm>
-                </div>
-              </div>
-            ) : null} */}
           </>
         ) : null}
 

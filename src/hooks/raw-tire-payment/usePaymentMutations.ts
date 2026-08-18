@@ -33,6 +33,9 @@ function invalidatePayment(
     queryClient.invalidateQueries({
       queryKey: weighbridgeTicketQueryKey,
     }),
+    queryClient.invalidateQueries({
+      queryKey: ["warehouse", "stock-posting-requests"],
+    }),
   ]);
 }
 
@@ -46,7 +49,10 @@ export function usePayReceiptMutation(receiptId: string) {
       payRawTirePurchaseReceipt(getAccessToken(), receiptId, payload),
     onSuccess: async (response) => {
       await invalidatePayment(queryClient, receiptId);
-      message.success(response.message || "บันทึกจ่ายเงินสำเร็จแล้ว");
+      message.success(
+        response.message ||
+          "บันทึกจ่ายเงินสำเร็จแล้ว — แจ้งคลังให้เลือกคลังและอนุมัติ",
+      );
     },
     onError: (error: Error) => {
       message.error(
