@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Spin, Tag } from "antd";
@@ -35,7 +35,9 @@ import {
   useSalesOrderReservationStatusQuery,
   useSalesOrderStockVerificationQuery,
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
-import { useProductionRequestsQuery } from "@/hooks/production-requests/useProductionRequestQueries";
+import { useProductionRequestsQuery, useEligibleSalesOrderQuery } from "@/hooks/production-requests/useProductionRequestQueries";
+import { useCreateProductionRequestMutation } from "@/hooks/production-requests/useProductionRequestMutations";
+import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
@@ -103,10 +105,12 @@ function reservationLineTag(line: SalesOrderReservationLine) {
 
 export default function SalesOrderDetailPage({ id }: Props) {
   const router = useRouter();
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
   const query = useSalesOrderQuery(id);
   const data = query.data?.data;
   const isDraft = data?.status === "DRAFT";
+  const skipAutoReserveRef = useRef(false);
+  const autoReservedForIdRef = useRef<string | null>(null);
 
   const stockVerificationQuery = useSalesOrderStockVerificationQuery(
     data && !isDraft ? id : undefined,
@@ -118,6 +122,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     isDraft ? { salesOrderId: id, limit: 20 } : undefined,
     { enabled: isDraft },
   );
+  const eligibleSoQuery = useEligibleSalesOrderQuery(isDraft ? id : undefined);
   const trackingQuery = useSalesTrackingDetailQuery(id);
   const confirmMutation = useConfirmSalesOrderMutation();
   const confirmStockMutation = useConfirmStockVerificationMutation();
@@ -125,6 +130,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const reserveLineMutation = useReserveSalesOrderLineMutation();
   const releaseLineMutation = useReleaseSalesOrderLineMutation();
   const reserveAllMutation = useReserveAllEligibleSalesOrderLinesMutation();
+  const createProductionRequestMutation = useCreateProductionRequestMutation();
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const productionRequestActions = useScreenActionPermissions(
     "PRODUCTION_REQUESTS",
@@ -171,6 +177,54 @@ export default function SalesOrderDetailPage({ id }: Props) {
     [reservationStatus?.lines],
   );
 
+  const productionRequestItems = useMemo(() => {
+    const shortageByItemId = new Map(
+      (reservationStatus?.lines ?? [])
+        .filter((line) => Number(line.shortageQty) > 0)
+        .map((line) => [line.salesOrderItemId, Number(line.shortageQty)]),
+    );
+    return (eligibleSoQuery.data?.data?.items ?? [])
+      .map((item) => {
+        const remaining = Number(item.remainingQty);
+        const shortage = shortageByItemId.get(item.salesOrderItemId) ?? 0;
+        if (remaining <= 0.0005 || shortage <= 0.0005) {
+          return null;
+        }
+        return {
+          salesOrderItemId: item.salesOrderItemId,
+          requestedQty: Math.min(remaining, shortage),
+        };
+      })
+      .filter(
+        (item): item is { salesOrderItemId: string; requestedQty: number } =>
+          Boolean(item && item.requestedQty > 0.0005),
+      )
+      .map((item, index) => ({ ...item, sortOrder: index }));
+  }, [eligibleSoQuery.data?.data?.items, reservationStatus?.lines]);
+
+  useEffect(() => {
+    skipAutoReserveRef.current = false;
+    autoReservedForIdRef.current = null;
+  }, [id]);
+
+  useEffect(() => {
+    if (!isDraft || !canWrite || !data || !reservationStatus) {
+      return;
+    }
+    if (skipAutoReserveRef.current) {
+      return;
+    }
+    if (autoReservedForIdRef.current === data.id) {
+      return;
+    }
+    autoReservedForIdRef.current = data.id;
+    const canReserveAny = reservationStatus.lines.some((line) => line.canReserve);
+    if (!canReserveAny) {
+      return;
+    }
+    reserveAllMutation.mutate({ salesOrderId: data.id, silent: true });
+  }, [canWrite, data, isDraft, reservationStatus, reserveAllMutation]);
+
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
@@ -200,12 +254,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
     confirmStockMutation.isPending ||
     reserveLineMutation.isPending ||
     releaseLineMutation.isPending ||
-    reserveAllMutation.isPending;
+    reserveAllMutation.isPending ||
+    createProductionRequestMutation.isPending;
   const progress = resolveSalesOrderProgress(data.status);
   const pickingStep = findStep(timeline, "Picking");
   const packingStep = findStep(timeline, "Packing");
   const allLinesReserved = reservationStatus?.isAllFullyReserved === true;
-  const hasStockShortage = reservationStatus?.hasShortage === true;
+  const hasStockShortage = productionRequestItems.length > 0;
   const unreservedLines =
     reservationStatus?.lines?.filter((line) => !line.isFullyReserved) ?? [];
   const stockReady = stockVerification?.isAllAvailable === true;
@@ -257,6 +312,36 @@ export default function SalesOrderDetailPage({ id }: Props) {
         amount: Number(item.amount) || 0,
       })),
     });
+  };
+
+  const handleCreateProductionRequest = () => {
+    if (!productionRequestItems.length) {
+      message.warning("ไม่มีรายการที่สต๊อกไม่พอให้ขอผลิต");
+      return;
+    }
+    createProductionRequestMutation.mutate(
+      {
+        salesOrderId: data.id,
+        requestDate: new Intl.DateTimeFormat("en-CA", {
+          timeZone: ERP_TIMEZONE,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date()),
+        requiredDate: data.requestedDeliveryDate || undefined,
+        remark: `ขอผลิตอัตโนมัติจาก ${data.soNo} สำหรับรายการที่สต๊อกไม่พอ`,
+        items: productionRequestItems,
+      },
+      {
+        onSuccess: (response) => {
+          void eligibleSoQuery.refetch();
+          void productionRequestsQuery.refetch();
+          if (response.data?.id) {
+            router.push(`/production/production-requests/${response.data.id}`);
+          }
+        },
+      },
+    );
   };
 
   const cancelButton =
@@ -622,7 +707,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               </h2>
               <span className={styles.sectionHint}>
                 {isDraft
-                  ? "จองสต๊อกต่อรายการแบบ FIFO รวมทุกคลัง — ยืนยันใบสั่งขายได้เมื่อจองครบทุกรายการ"
+                  ? "จองให้อัตโนมัติเมื่อสต๊อกพอ — ยืนยันใบสั่งขายได้เมื่อจองครบทุกรายการ แถวที่ไม่พอออกใบขอผลิตได้ปุ่มเดียว"
                   : "เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย"}
               </span>
             </div>
@@ -737,7 +822,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             </div>
             {isDraft && canWrite ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                จองสต๊อกต่อรายการ — รายการที่สต๊อกไม่พอสามารถออกใบขอผลิตได้
+                จองสต๊อกต่อรายการ — รายการที่สต๊อกไม่พอออกใบขอผลิตได้ปุ่มเดียว
               </p>
             ) : null}
             <div className={styles.itemList}>
@@ -831,12 +916,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                   size="small"
                                   loading={releaseLineMutation.isPending}
                                   disabled={busy}
-                                  onClick={() =>
+                                  onClick={() => {
+                                    skipAutoReserveRef.current = true;
                                     releaseLineMutation.mutate({
                                       salesOrderId: data.id,
                                       itemId: item.id,
-                                    })
-                                  }
+                                    });
+                                  }}
                                 >
                                   ยกเลิกจอง
                                 </Button>
@@ -922,11 +1008,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     className={styles.primaryBtn}
                     type="default"
                     icon={<ProfileOutlined />}
-                    onClick={() =>
-                      router.push(
-                        `/production/production-requests/create?salesOrderId=${data.id}`,
-                      )
-                    }
+                    loading={createProductionRequestMutation.isPending}
+                    disabled={busy || eligibleSoQuery.isLoading}
+                    onClick={handleCreateProductionRequest}
                   >
                     ออกใบขอผลิต
                   </Button>

@@ -622,15 +622,6 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       >
                         ดูใบสำคัญจ่าย
                       </Button>
-                      <Button
-                        onClick={() =>
-                          router.push(
-                            `/receiving/receipts/${ticket.receiptId}`,
-                          )
-                        }
-                      >
-                        เปิดใบรับซื้อ
-                      </Button>
                     </div>
                   ) : readyToPay ? (
                     <div className={styles.weighActions} style={{ marginTop: 16 }}>
@@ -647,24 +638,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       </Button>
                     </div>
                   ) : hasReceipt ? (
-                    <>
-                      <div className={styles.stepEmptyHint}>
-                        ใบรับซื้อยังไม่พร้อมจ่าย — เปิดรายละเอียดเพื่อตรวจสอบยอด
-                      </div>
-                      <div className={styles.weighActions} style={{ marginTop: 16 }}>
-                        <Button
-                          type="primary"
-                          className={styles.submitButton}
-                          onClick={() =>
-                            router.push(
-                              `/receiving/receipts/${ticket.receiptId}`,
-                            )
-                          }
-                        >
-                          เปิดใบรับซื้อ
-                        </Button>
-                      </div>
-                    </>
+                    <div className={styles.stepEmptyHint}>
+                      ใบรับซื้อยังไม่พร้อมจ่าย — ตรวจยอดและยืนยันจาก Step 1
+                    </div>
                   ) : (
                     <div className={styles.stepEmptyHint}>
                       บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน
@@ -799,15 +775,6 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       >
                         ดูเต็มจอ
                       </Button>
-                      <Button
-                        onClick={() =>
-                          router.push(
-                            `/receiving/receipts/${ticket.receiptId}`,
-                          )
-                        }
-                      >
-                        เปิดใบรับซื้อ
-                      </Button>
                     </div>
                   ) : stockRequestPending && ticket.receiptId ? (
                     <div className={styles.weighActions} style={{ marginTop: 16 }}>
@@ -823,15 +790,6 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         }
                       >
                         คลังเลือกคลังและอนุมัติ
-                      </Button>
-                      <Button
-                        onClick={() =>
-                          router.push(
-                            `/receiving/receipts/${ticket.receiptId}`,
-                          )
-                        }
-                      >
-                        เปิดใบรับซื้อ
                       </Button>
                     </div>
                   ) : paid && receiptConfirmed && ticket.receiptId && !stockPosted ? (

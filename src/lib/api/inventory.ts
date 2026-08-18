@@ -7,6 +7,7 @@ import type {
   StockBalanceByItemListApiResponse,
   StockBalanceListApiResponse,
   StockBalanceQueryParams,
+  StockBalanceReservationListApiResponse,
   StockBalanceSummaryApiResponse,
   StockMovementApiResponse,
   StockMovementListApiResponse,
@@ -54,6 +55,16 @@ export function getStockBalanceSummary(
 ) {
   return apiFetch<StockBalanceSummaryApiResponse>(
     `/api/inventory/stock-balances/summary${toQuery(params)}`,
+    { method: "GET", token },
+  );
+}
+
+export function getStockBalanceReservations(
+  token: string,
+  params: { itemId: string; warehouseId?: string; locationId?: string },
+) {
+  return apiFetch<StockBalanceReservationListApiResponse>(
+    `/api/inventory/stock-balances/reservations${toQuery(params)}`,
     { method: "GET", token },
   );
 }

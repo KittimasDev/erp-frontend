@@ -160,11 +160,30 @@ export function useReleaseSalesOrderLineMutation() {
 }
 
 export function useReserveAllEligibleSalesOrderLinesMutation() {
-  return useReservationMutation(
-    "reserve-all-eligible",
-    ({ salesOrderId }) =>
-      reserveAllEligibleSalesOrderLines(getAccessToken(), salesOrderId),
-    "จองสต๊อกที่พร้อมใช้สำเร็จ",
-    "จองสต๊อกไม่สำเร็จ",
-  );
+  const { message } = App.useApp();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "reserve-all-eligible"],
+    mutationFn: ({
+      salesOrderId,
+    }: {
+      salesOrderId: string;
+      silent?: boolean;
+    }) => reserveAllEligibleSalesOrderLines(getAccessToken(), salesOrderId),
+    onSuccess: async (res, vars) => {
+      await invalidate();
+      if (!vars.silent) {
+        message.success(res.message || "จองสต๊อกที่พร้อมใช้สำเร็จ");
+      }
+    },
+    onError: (error: Error, vars) => {
+      if (vars.silent) {
+        return;
+      }
+      message.error(
+        error instanceof ApiError ? error.message : "จองสต๊อกไม่สำเร็จ",
+      );
+    },
+  });
 }

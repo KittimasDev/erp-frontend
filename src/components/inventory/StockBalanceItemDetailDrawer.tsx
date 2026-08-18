@@ -4,10 +4,15 @@ import Link from "next/link";
 import { Drawer, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
-import { useStockBalancesQuery } from "@/hooks/inventory/useInventoryQueries";
+import {
+  useStockBalanceReservationsQuery,
+  useStockBalancesQuery,
+} from "@/hooks/inventory/useInventoryQueries";
+import { formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import type {
   StockBalanceByItemRow,
   StockBalanceQueryParams,
+  StockBalanceReservationRow,
   StockBalanceRow,
 } from "@/types/inventory";
 import styles from "./StockBalancesPage.module.css";
@@ -45,8 +50,19 @@ export default function StockBalanceItemDetailDrawer({
       : undefined,
     { enabled: open && Boolean(item) },
   );
+  const reservationsQuery = useStockBalanceReservationsQuery(
+    item
+      ? {
+          itemId: item.itemId,
+          warehouseId: filters.warehouseId,
+          locationId: filters.locationId,
+        }
+      : undefined,
+    { enabled: open && Boolean(item) },
+  );
 
   const rows = detailQuery.data?.data ?? [];
+  const reservations = reservationsQuery.data?.data ?? [];
 
   const columns: ColumnsType<StockBalanceRow> = [
     {
@@ -96,6 +112,66 @@ export default function StockBalanceItemDetailDrawer({
     },
   ];
 
+  const reservationColumns: ColumnsType<StockBalanceReservationRow> = [
+    {
+      title: "ลูกค้า",
+      key: "customer",
+      render: (_, row) => (
+        <div className={styles.itemCell}>
+          <span className={styles.itemName}>
+            {row.customerName || "ไม่ระบุลูกค้า"}
+          </span>
+          {row.customerCode ? (
+            <span className={styles.metaMuted}>{row.customerCode}</span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      title: "ใบสั่งขาย",
+      key: "soNo",
+      width: 140,
+      render: (_, row) => (
+        <Link href={`/sales-orders/${row.salesOrderId}`} className={styles.drawerLink}>
+          {row.soNo || "—"}
+        </Link>
+      ),
+    },
+    {
+      title: "จำนวน",
+      dataIndex: "quantity",
+      key: "quantity",
+      align: "right",
+      width: 100,
+      render: (value: string) => (
+        <span className={styles.qtyCell}>{formatQty(value)}</span>
+      ),
+    },
+    {
+      title: "คลัง / ตำแหน่ง",
+      key: "place",
+      width: 140,
+      render: (_, row) => (
+        <div className={styles.itemCell}>
+          <span className={styles.itemName}>{row.warehouseCode}</span>
+          <span className={styles.metaMuted}>
+            {row.locationCode}
+            {row.locationName ? ` — ${row.locationName}` : ""}
+          </span>
+        </div>
+      ),
+    },
+    {
+      title: "วันเวลาที่จอง",
+      dataIndex: "reservedAt",
+      key: "reservedAt",
+      width: 150,
+      render: (value: string) => (
+        <span className={styles.metaMuted}>{formatErpDateTime(value)}</span>
+      ),
+    },
+  ];
+
   return (
     <Drawer
       title={
@@ -111,7 +187,7 @@ export default function StockBalanceItemDetailDrawer({
       open={open}
       onClose={onClose}
       destroyOnHidden
-      size={560}
+      size={720}
       className={styles.detailDrawer}
     >
       {item ? (
@@ -129,6 +205,10 @@ export default function StockBalanceItemDetailDrawer({
               <strong className={styles.qtyAvailable}>
                 {formatQty(item.totalQuantityAvailable)}
               </strong>
+            </div>
+            <div>
+              <span>จองรวม</span>
+              <strong>{formatQty(item.totalQuantityReserved)}</strong>
             </div>
             <div>
               <span>คลัง / ตำแหน่ง</span>
@@ -153,6 +233,27 @@ export default function StockBalanceItemDetailDrawer({
               emptyText: "ไม่มียอดคงเหลือตามเงื่อนไข",
             }}
           />
+
+          <div className={styles.reservationSection}>
+            <h4>รายการจอง</h4>
+            <p>แยกตามลูกค้าและใบสั่งขาย — ของยังอยู่ในคลัง แต่พร้อมใช้ลดแล้ว</p>
+            <Table
+              rowKey="id"
+              className={styles.dataTable}
+              columns={reservationColumns}
+              dataSource={reservations}
+              loading={reservationsQuery.isFetching}
+              scroll={{ x: 680 }}
+              pagination={{
+                pageSize: 10,
+                hideOnSinglePage: true,
+                showTotal: (total) => `${total} รายการจอง`,
+              }}
+              locale={{
+                emptyText: "ยังไม่มีการจองสินค้านี้",
+              }}
+            />
+          </div>
 
           <div className={styles.drawerFooter}>
             <Link

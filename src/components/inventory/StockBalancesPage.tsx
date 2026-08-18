@@ -95,9 +95,7 @@ export default function StockBalancesPage() {
 
   const queryParams = { ...filters, itemCategoryCode };
 
-  const balancesByItemQuery = useStockBalancesByItemQuery(queryParams, {
-    enabled: activeView === "by-item",
-  });
+  const balancesByItemQuery = useStockBalancesByItemQuery(queryParams);
   const balancesQuery = useStockBalancesQuery(queryParams, {
     enabled: activeView === "detail",
   });
@@ -570,8 +568,23 @@ export default function StockBalancesPage() {
                       dataSource={detailRows}
                       loading={isFetching}
                       rowClassName={(row) =>
-                        row.isLowStock ? styles.lowStockRow : ""
+                        [
+                          row.isLowStock ? styles.lowStockRow : "",
+                          styles.clickableRow,
+                        ]
+                          .filter(Boolean)
+                          .join(" ")
                       }
+                      onRow={(row) => ({
+                        onClick: () => {
+                          const item = byItemRows.find(
+                            (entry) => entry.itemId === row.itemId,
+                          );
+                          if (item) {
+                            openItemDrawer(item);
+                          }
+                        },
+                      })}
                       pagination={{
                         pageSize: 15,
                         showTotal: (total) => `ทั้งหมด ${total} รายการ`,

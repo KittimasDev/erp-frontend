@@ -73,6 +73,26 @@ export type StockBalanceByItemListApiResponse = {
   data: StockBalanceByItemRow[];
 };
 
+export type StockBalanceReservationRow = {
+  id: string;
+  salesOrderId: string;
+  soNo: string;
+  customerCode?: string;
+  customerName?: string;
+  quantity: string;
+  warehouseCode: string;
+  locationCode: string;
+  locationName?: string;
+  reservedAt: string;
+  createdByName?: string;
+};
+
+export type StockBalanceReservationListApiResponse = {
+  statusCode: number;
+  message: string;
+  data: StockBalanceReservationRow[];
+};
+
 export type StockMovementRow = {
   id: string;
   movementDate: string;
