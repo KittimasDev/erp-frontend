@@ -9,8 +9,6 @@ import dayjs from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useProductionOrdersQuery } from "@/hooks/production-orders/useProductionOrderQueries";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { ProductionOrder } from "@/types/production-order";
 import { PRODUCTION_ORDER_STATUS_LABEL } from "@/types/production-order";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
@@ -24,10 +22,6 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function ProductionOrdersListPage() {
   const router = useRouter();
-  const canCreate =
-    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    isAdministrator();
 
   const [orderNo, setOrderNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -119,16 +113,14 @@ export default function ProductionOrdersListPage() {
               สร้าง / เริ่มผลิต / บันทึกผล / ขอรับผลผลิตเข้าคลัง
             </span>
           </div>
-          {canCreate ? (
-            <Button
-              type="primary"
-              className={masterStyles.createButton}
-              icon={<PlusOutlined className={masterStyles.plusIcon} />}
-              onClick={() => router.push("/production/production-orders/create")}
-            >
-              สร้างใบสั่งผลิต
-            </Button>
-          ) : null}
+          <Button
+            type="primary"
+            className={masterStyles.createButton}
+            icon={<PlusOutlined className={masterStyles.plusIcon} />}
+            onClick={() => router.push("/production/production-orders/create")}
+          >
+            สร้างใบสั่งผลิต
+          </Button>
         </div>
 
         <div className={masterStyles.filterCard}>

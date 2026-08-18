@@ -45,8 +45,7 @@ import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   PRODUCTION_ORDER_STATUS_LABEL,
   ProductionOrderStatus,
@@ -73,14 +72,13 @@ function fmtDate(value?: string) {
 
 export default function ProductionOrderDetailPage({ orderId }: Props) {
   const router = useRouter();
+  const orderActions = useScreenActionPermissions("PRODUCTION_ORDERS");
+  const outputActions = useScreenActionPermissions(
+    "PRODUCTION_OUTPUT_STOCK_REQUESTS",
+  );
   const canOperate =
-    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
-  const canRequestOutput =
-    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    isAdministrator();
+    orderActions.canEdit || orderActions.canAdd || orderActions.canApprove;
+  const canRequestOutput = outputActions.canAdd || canOperate;
 
   const detailQuery = useProductionOrderQuery(orderId);
   const summaryQuery = useProductionOrderSummaryQuery(orderId);
