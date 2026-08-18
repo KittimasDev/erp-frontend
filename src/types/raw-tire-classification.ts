@@ -25,6 +25,7 @@ export type ClassificationDeduction = {
   deductionType: string;
   description?: string;
   deductionWeightKg: string;
+  deductionPricePerKg?: string;
   deductionAmount: string;
 };
 

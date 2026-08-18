@@ -30,7 +30,7 @@ import type {
   ReceiptItem,
 } from "@/types/raw-tire-purchase-receipt";
 import {
-  DEDUCTION_TYPE_LABELS,
+  formatDeductionDisplayName,
   PAYMENT_STATUS_LABELS,
   RAW_TIRE_FLOW_STEP_LABELS,
   RECEIPT_STATUS_LABELS,
@@ -204,11 +204,9 @@ export default function RawTirePurchaseReceiptDetailPage({
       render: (_value, _record, index) => index + 1,
     },
     {
-      title: "ประเภทการหัก",
-      dataIndex: "deductionType",
-      key: "deductionType",
-      width: 140,
-      render: (value: string) => DEDUCTION_TYPE_LABELS[value] ?? value,
+      title: "รายการหัก",
+      key: "name",
+      render: (_, row) => formatDeductionDisplayName(row),
     },
     {
       title: "น้ำหนักหัก (กก.)",
@@ -219,18 +217,20 @@ export default function RawTirePurchaseReceiptDetailPage({
       render: (value: string) => formatWeight(value),
     },
     {
+      title: "ราคา/กก.",
+      dataIndex: "deductionPricePerKg",
+      key: "deductionPricePerKg",
+      width: 120,
+      align: "right",
+      render: (value?: string) => (value ? formatPrice(value) : "-"),
+    },
+    {
       title: "จำนวนเงินหัก",
       dataIndex: "deductionAmount",
       key: "deductionAmount",
       width: 130,
       align: "right",
       render: (value: string) => formatMoney(value),
-    },
-    {
-      title: "รายละเอียด / เหตุผล",
-      dataIndex: "description",
-      key: "description",
-      render: (value?: string) => value || "-",
     },
   ];
 

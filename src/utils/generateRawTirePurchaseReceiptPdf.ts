@@ -2,7 +2,7 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 import type { ReceiptDetail } from "@/types/raw-tire-purchase-receipt";
-import { DEDUCTION_TYPE_LABELS } from "@/types/raw-tire-purchase-receipt";
+import { formatDeductionDisplayName } from "@/types/raw-tire-purchase-receipt";
 
 type ReceiptPdfItem = {
   no: number;
@@ -16,10 +16,10 @@ type ReceiptPdfItem = {
 
 type ReceiptPdfDeduction = {
   no: number;
-  deductionType: string;
+  deductionName: string;
   deductionWeightKg: string;
+  deductionPricePerKg: string;
   deductionAmount: string;
-  description: string;
 };
 
 export type RawTirePurchaseReceiptPdfData = {
@@ -125,11 +125,12 @@ export function mapReceiptDetailToPdfData(
     })),
     deductions: receipt.deductions.map((row, index) => ({
       no: index + 1,
-      deductionType:
-        DEDUCTION_TYPE_LABELS[row.deductionType] ?? row.deductionType,
+      deductionName: formatDeductionDisplayName(row),
       deductionWeightKg: formatWeight(row.deductionWeightKg),
+      deductionPricePerKg: row.deductionPricePerKg
+        ? formatPrice(row.deductionPricePerKg)
+        : "-",
       deductionAmount: formatMoney(row.deductionAmount),
-      description: row.description || "",
     })),
     subtotalAmount: formatMoney(receipt.subtotalAmount),
     deductionAmount: formatMoney(receipt.deductionAmount),
@@ -169,15 +170,10 @@ function createPdfHtml(data: RawTirePurchaseReceiptPdfData) {
             <span class="deduction-badge">หัก</span>
           </td>
           <td class="col-name">
-            <div class="name">${escapeHtml(row.deductionType)}</div>
-            ${
-              row.description
-                ? `<div class="sub-note">${escapeHtml(row.description)}</div>`
-                : ""
-            }
+            <div class="name">${escapeHtml(row.deductionName)}</div>
           </td>
           <td class="text-right">${row.deductionWeightKg}</td>
-          <td class="text-center">-</td>
+          <td class="text-right">${row.deductionPricePerKg}</td>
           <td class="text-right col-amount deduction-amount">-${row.deductionAmount}</td>
         </tr>
       `,

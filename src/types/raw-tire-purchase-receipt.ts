@@ -49,6 +49,7 @@ export type ReceiptDeduction = {
   deductionType: string;
   description?: string;
   deductionWeightKg: string;
+  deductionPricePerKg?: string;
   deductionAmount: string;
 };
 
@@ -157,6 +158,17 @@ export const DEDUCTION_TYPE_LABELS: Record<string, string> = {
   METAL: "โลหะ",
   OTHER: "อื่นๆ",
 };
+
+export function formatDeductionDisplayName(row: {
+  deductionType: string;
+  description?: string;
+}) {
+  const name = row.description?.trim();
+  if (name) {
+    return name;
+  }
+  return DEDUCTION_TYPE_LABELS[row.deductionType] ?? row.deductionType;
+}
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CASH: "เงินสด",

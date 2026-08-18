@@ -24,7 +24,7 @@ import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRaw
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
 import { useCompleteWeighAndReceiptMutation } from "@/hooks/weighbridge-tickets/useWeighTicketMutations";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
-import { DEDUCTION_TYPE_OPTIONS } from "@/types/raw-tire-classification";
+import { DEDUCTION_TYPE_LABELS } from "@/types/raw-tire-purchase-receipt";
 import type { RawTirePriceRule } from "@/types/raw-tire-price-rules";
 import type { WeighbridgeTicketDetail } from "@/types/weighbridge-tickets";
 import { createClientId } from "@/utils/createClientId";
@@ -164,11 +164,25 @@ function createDeductionRow(
 ): PlanDeductionRow {
   return {
     key: partial?.key ?? createClientId(),
-    deductionType: partial?.deductionType ?? "WATER",
+    deductionType: "OTHER",
     description: partial?.description,
     deductionWeightKg: partial?.deductionWeightKg,
     deductionPricePerKg: partial?.deductionPricePerKg,
   };
+}
+
+function resolveDeductionName(item: {
+  deductionType: string;
+  description?: string;
+}) {
+  const customName = item.description?.trim();
+  if (customName) {
+    return customName;
+  }
+  if (item.deductionType && item.deductionType !== "OTHER") {
+    return DEDUCTION_TYPE_LABELS[item.deductionType] ?? item.deductionType;
+  }
+  return "";
 }
 
 export default function ReceivingTicketClassifyWeighPanel({
@@ -224,8 +238,7 @@ export default function ReceivingTicketClassifyWeighPanel({
     setDeductions(
       (plan?.deductions ?? []).map((item) =>
         createDeductionRow({
-          deductionType: item.deductionType,
-          description: item.description,
+          description: resolveDeductionName(item),
           deductionPricePerKg: item.deductionPricePerKg,
         }),
       ),
@@ -258,10 +271,6 @@ export default function ReceivingTicketClassifyWeighPanel({
   const selectedTypeCount = items.filter(
     (item) => item.tireClassificationId,
   ).length;
-  const selectedDeductions = useMemo(
-    () => new Set(deductions.map((item) => item.deductionType)),
-    [deductions],
-  );
   const totalDeductionWeightKg = useMemo(
     () =>
       round3(
@@ -326,19 +335,6 @@ export default function ReceivingTicketClassifyWeighPanel({
     };
   });
 
-  const toggleDeduction = (type: string) => {
-    if (!formEditable) {
-      return;
-    }
-    setDeductions((prev) => {
-      const existing = prev.find((row) => row.deductionType === type);
-      if (existing) {
-        return prev.filter((row) => row.key !== existing.key);
-      }
-      return [...prev, createDeductionRow({ deductionType: type })];
-    });
-  };
-
   const maxWeightForItem = (currentWeight?: number) => {
     if (netWeightKg <= 0) {
       return undefined;
@@ -373,15 +369,14 @@ export default function ReceivingTicketClassifyWeighPanel({
     }
 
     const nextDeductions = deductions
-      .filter((item) => item.deductionType)
       .map((item) => ({
-        deductionType: item.deductionType,
+        deductionType: "OTHER" as const,
+        description: item.description?.trim() || "",
         deductionWeightKg: Number(item.deductionWeightKg ?? 0),
         deductionPricePerKg:
           item.deductionPricePerKg === undefined
             ? undefined
             : Number(item.deductionPricePerKg),
-        description: item.description?.trim() || undefined,
       }))
       .filter(
         (item) =>
@@ -389,16 +384,16 @@ export default function ReceivingTicketClassifyWeighPanel({
       );
 
     for (const item of nextDeductions) {
+      if (!item.description) {
+        message.error("รายการหักสารปนเปื้อนต้องระบุชื่อ");
+        return;
+      }
       if (item.deductionWeightKg <= 0) {
-        message.error("สารปนเปื้อนต้องใส่น้ำหนักหัก (กก.)");
+        message.error(`"${item.description}" ต้องใส่น้ำหนักหัก (กก.)`);
         return;
       }
       if (Number(item.deductionPricePerKg ?? 0) <= 0) {
-        message.error("สารปนเปื้อนต้องใส่ราคาต่อกก.");
-        return;
-      }
-      if (item.deductionType === "OTHER" && !item.description) {
-        message.error("ประเภทหัก «อื่นๆ» ต้องระบุรายละเอียด");
+        message.error(`"${item.description}" ต้องใส่ราคา/กก.`);
         return;
       }
     }
@@ -951,51 +946,22 @@ export default function ReceivingTicketClassifyWeighPanel({
                   <div>
                     <p className={styles.classifyEyebrow}>รายการหัก</p>
                     <h4>สารปนเปื้อน</h4>
-                    <p>ใส่น้ำหนัก (กก.) × ราคา/กก. — หักทั้งน้ำหนักจ่ายและเงิน</p>
+                    <p>กรอกชื่อรายการ น้ำหนัก (กก.) และราคา/กก. — หักทั้งน้ำหนักจ่ายและเงิน</p>
                   </div>
                   <span
                     className={`${styles.classifyCount} ${
-                      selectedDeductions.size ? "" : styles.classifyCountMuted
+                      deductions.length ? "" : styles.classifyCountMuted
                     }`}
                   >
-                    {selectedDeductions.size
+                    {deductions.length
                       ? `${formatWeight(totalDeductionWeightKg)} กก. · ${formatBaht(totalDeductionAmount)} บาท`
                       : "ไม่มี"}
                   </span>
                 </div>
 
-                <div
-                  className={styles.classifyChips}
-                  role="group"
-                  aria-label="สารปนเปื้อน"
-                >
-                  {DEDUCTION_TYPE_OPTIONS.map((option) => {
-                    const active = selectedDeductions.has(option.value);
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        className={`${styles.classifyChip} ${
-                          active ? styles.classifyChipActive : ""
-                        }`}
-                        disabled={!formEditable}
-                        aria-pressed={active}
-                        onClick={() => toggleDeduction(option.value)}
-                      >
-                        {active ? <CheckOutlined /> : null}
-                        {option.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
                 {deductions.length ? (
                   <div className={styles.classifyDeductionPlanList}>
                     {deductions.map((item) => {
-                      const label =
-                        DEDUCTION_TYPE_OPTIONS.find(
-                          (option) => option.value === item.deductionType,
-                        )?.label ?? item.deductionType;
                       const lineAmount = deductionLineAmount(item);
                       return (
                         <div
@@ -1003,16 +969,46 @@ export default function ReceivingTicketClassifyWeighPanel({
                           className={styles.classifyDeductionPlanRow}
                         >
                           <div className={styles.classifyDeductionPlanTop}>
-                            <strong>{label}</strong>
+                            <Input
+                              aria-label="ชื่อรายการหัก"
+                              placeholder="ชื่อรายการ เช่น ดิน, น้ำ, โลหะ"
+                              value={item.description ?? ""}
+                              disabled={!formEditable}
+                              onChange={(event) =>
+                                setDeductions((prev) =>
+                                  prev.map((row) =>
+                                    row.key === item.key
+                                      ? {
+                                          ...row,
+                                          description: event.target.value,
+                                        }
+                                      : row,
+                                  ),
+                                )
+                              }
+                            />
                             <span>
                               {lineAmount > 0
                                 ? `= ${formatBaht(lineAmount)} บาท`
                                 : "กก. × บาท/กก."}
                             </span>
+                            {formEditable ? (
+                              <Button
+                                type="text"
+                                danger
+                                icon={<DeleteOutlined />}
+                                aria-label="ลบรายการหัก"
+                                onClick={() =>
+                                  setDeductions((prev) =>
+                                    prev.filter((row) => row.key !== item.key),
+                                  )
+                                }
+                              />
+                            ) : null}
                           </div>
                           <div className={styles.classifyDeductionAmount}>
                             <InputNumber
-                              aria-label={`น้ำหนักหัก ${label}`}
+                              aria-label="น้ำหนักหัก"
                               min={0.001}
                               step={0.001}
                               className={styles.classifyDeductionInput}
@@ -1043,7 +1039,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                           </div>
                           <div className={styles.classifyDeductionAmount}>
                             <InputNumber
-                              aria-label={`ราคาต่อกก. ${label}`}
+                              aria-label="ราคาต่อกก."
                               min={0.01}
                               step={0.01}
                               precision={4}
@@ -1070,26 +1066,6 @@ export default function ReceivingTicketClassifyWeighPanel({
                             />
                             <em>บาท/กก.</em>
                           </div>
-                          {item.deductionType === "OTHER" ? (
-                            <Input
-                              aria-label="รายละเอียดรายการหักอื่นๆ"
-                              placeholder="ระบุว่าหักอะไร"
-                              value={item.description ?? ""}
-                              disabled={!formEditable}
-                              onChange={(event) =>
-                                setDeductions((prev) =>
-                                  prev.map((row) =>
-                                    row.key === item.key
-                                      ? {
-                                          ...row,
-                                          description: event.target.value,
-                                        }
-                                      : row,
-                                  ),
-                                )
-                              }
-                            />
-                          ) : null}
                         </div>
                       );
                     })}
@@ -1099,6 +1075,17 @@ export default function ReceivingTicketClassifyWeighPanel({
                     ไม่มีสารปนเปื้อนก็ข้ามได้
                   </div>
                 )}
+
+                {formEditable ? (
+                  <Button
+                    icon={<PlusOutlined />}
+                    onClick={() =>
+                      setDeductions((prev) => [...prev, createDeductionRow()])
+                    }
+                  >
+                    เพิ่มรายการหัก
+                  </Button>
+                ) : null}
                 {isDeductionWeightOver ? (
                   <div className={styles.stepEmptyHint}>
                     น้ำหนักหักรวมเกินน้ำหนักคัดแยกยาง — ปรับกก. หักลง
@@ -1132,11 +1119,13 @@ export default function ReceivingTicketClassifyWeighPanel({
                     (item) =>
                       item.tireClassificationId && Number(item.weightKg) > 0,
                   ) ||
-                  deductions.some(
-                    (item) =>
-                      item.deductionType === "OTHER" &&
-                      !item.description?.trim(),
-                  )
+                  deductions.some((item) => {
+                    const hasData =
+                      Number(item.deductionWeightKg ?? 0) > 0 ||
+                      Number(item.deductionPricePerKg ?? 0) > 0 ||
+                      Boolean(item.description?.trim());
+                    return hasData && !item.description?.trim();
+                  })
                 }
                 onClick={handleComplete}
               >
