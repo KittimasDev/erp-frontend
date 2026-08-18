@@ -1325,6 +1325,15 @@ const settingMenus: MenuItem[] = [
 
 const masterMenus: MenuItem[] = [
   {
+    // ข้อมูลบริษัทขึ้นหัวเอกสารทุกใบ วางไว้ตัวแรกของกลุ่ม master
+    key: "company-profile",
+    screenCode: "MASTERS_COMPANY_PROFILE",
+    label: "ข้อมูลบริษัท",
+    href: "/masters/company-profile",
+    icon: <IconMaster />,
+    roles: [ROLE.ACCOUNTING_OFFICER, ROLE.EXECUTIVE],
+  },
+  {
     key: "customers",
     screenCode: "MASTERS_CUSTOMERS",
     label: "ลูกค้า",

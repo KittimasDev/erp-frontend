@@ -15,6 +15,17 @@ export const PRODUCTION_ORDER_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "ยกเลิก",
 };
 
+export const ProductionOrderPlanLineType = {
+  OUTPUT: "OUTPUT",
+  WASTE: "WASTE",
+} as const;
+
+export const PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL: Record<string, string> =
+  {
+    PENDING_DISPOSAL: "รอทำลาย",
+    DISPOSED: "ทำลายแล้ว",
+  };
+
 export type ProductionOrderUserSummary = {
   id: string;
   username: string;
@@ -36,6 +47,21 @@ export type ProductionOrderInputItem = {
   unitCode?: string;
   plannedQty: string;
   actualQty: string;
+  remark?: string;
+  sortOrder: number;
+};
+
+export type ProductionOrderPlanLine = {
+  id: string;
+  lineType: string;
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitId: string;
+  unitCode?: string;
+  plannedQty: string;
+  actualQty?: string;
+  disposalStatus?: string;
   remark?: string;
   sortOrder: number;
 };
@@ -65,6 +91,7 @@ export type ProductionOrder = {
   salesOrderNo?: string;
   batchNo?: string;
   cycleTargetHours: string;
+  plannedLaborHours?: string;
   productionDate: string;
   status: string;
   remark?: string;
@@ -77,10 +104,61 @@ export type ProductionOrder = {
   completedBy?: ProductionOrderUserSummary;
   completedAt?: string;
   inputItems: ProductionOrderInputItem[];
+  planLines: ProductionOrderPlanLine[];
   downtimes: ProductionOrderDowntime[];
   logs: ProductionOrderLog[];
+  sourceLines?: ProductionOrderSourceLine[];
+  allocationSummary?: ProductionOrderAllocationSummary;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ProductionOrderSourceLine = {
+  id: string;
+  productionRequestId: string;
+  productionRequestNo?: string;
+  productionRequestItemId: string;
+  salesOrderId: string;
+  salesOrderNo?: string;
+  salesOrderItemId: string;
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitId: string;
+  unitCode?: string;
+  allocatedQty: string;
+  fulfilledQty: string;
+  remainingQty: string;
+  sortOrder: number;
+  remark?: string;
+  isFulfilled: boolean;
+};
+
+export type ProductionOrderAllocationSummary = {
+  totalApprovedOutputQty: string;
+  totalAllocatedQty: string;
+  unallocatedQty: string;
+};
+
+export type AllocateProductionOrderOutputLineBody = {
+  sourceLineId: string;
+  qtyToAllocate: number;
+};
+
+export type AllocateProductionOrderOutputBody = {
+  lines: AllocateProductionOrderOutputLineBody[];
+  reserveSalesOrders?: boolean;
+};
+
+export type AllocateProductionOrderOutputResult = {
+  sourceLines: ProductionOrderSourceLine[];
+  allocationSummary: ProductionOrderAllocationSummary;
+  reserveResults: {
+    salesOrderId: string;
+    salesOrderNo?: string;
+    reserved: boolean;
+    message?: string;
+  }[];
 };
 
 export type ProductionOrderOutputBreakdown = {
@@ -90,12 +168,31 @@ export type ProductionOrderOutputBreakdown = {
   quantity: string;
 };
 
+export type ProductionOrderYieldCompareLine = {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitCode?: string;
+  plannedQty: string;
+  actualQty: string;
+  plannedYieldPercent: number;
+  actualYieldPercent: number;
+};
+
 export type ProductionOrderSummary = {
   productionOrderId: string;
+  totalPlannedInputQty: string;
   totalInputQty: string;
+  totalPlannedOutputQty: string;
   totalOutputQty: string;
+  totalPlannedWasteQty: string;
+  totalActualWasteQty: string;
+  plannedLaborHours?: string;
+  yieldCompareByItem: ProductionOrderYieldCompareLine[];
+  wasteLines: ProductionOrderPlanLine[];
   outputByItem: ProductionOrderOutputBreakdown[];
   yieldPercent: number;
+  plannedYieldPercent: number;
   massBalanceDiff: string;
   actualCycleHours?: number;
   cycleTargetHours: string;
@@ -113,17 +210,58 @@ export type CreateProductionOrderInputItemBody = {
   sortOrder?: number;
 };
 
+export type CreateProductionOrderPlanLineBody = {
+  lineType: string;
+  itemId: string;
+  unitId: string;
+  plannedQty: number;
+  remark?: string;
+  sortOrder?: number;
+};
+
 export type CreateProductionOrderBody = {
   productionDate: string;
   productionRequestId?: string;
   remark?: string;
   batchNo?: string;
   cycleTargetHours?: number;
+  plannedLaborHours?: number;
+  planLines: CreateProductionOrderPlanLineBody[];
   inputItems: CreateProductionOrderInputItemBody[];
+};
+
+export type BulkCreateProductionOrderSelectionBody = {
+  productionRequestId: string;
+  productionRequestItemId: string;
+  itemId: string;
+  unitId: string;
+  plannedQty: number;
+  sortOrder?: number;
+  remark?: string;
+};
+
+export type BulkCreateProductionOrdersBody = {
+  productionDate: string;
+  batchNo?: string;
+  remark?: string;
+  cycleTargetHours?: number;
+  plannedLaborHours?: number;
+  sharedPlanLines: CreateProductionOrderPlanLineBody[];
+  inputItems: CreateProductionOrderInputItemBody[];
+  selections: BulkCreateProductionOrderSelectionBody[];
+};
+
+export type CompleteProductionOrderWasteLineBody = {
+  planLineId?: string;
+  itemId: string;
+  unitId: string;
+  actualQty: number;
+  remark?: string;
 };
 
 export type CompleteProductionOrderBody = {
   signature: { typedName: string };
+  wasteActualLines?: CompleteProductionOrderWasteLineBody[];
 };
 
 export type RecordDowntimeBody = {
@@ -172,4 +310,24 @@ export type ProductionOrderSummaryApiResponse = {
   statusCode?: number;
   message: string;
   data: ProductionOrderSummary;
+};
+
+export type ProductionOrderBulkCreateApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: {
+    items: ProductionOrder[];
+  };
+};
+
+export type ProductionOrderConsolidatedCreateApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: ProductionOrder;
+};
+
+export type AllocateProductionOrderOutputApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: AllocateProductionOrderOutputResult;
 };

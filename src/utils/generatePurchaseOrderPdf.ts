@@ -1,3 +1,7 @@
+import {
+  companyIdentityLinesHtml,
+  companyLogoUrl,
+} from "./pdf-common";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -29,7 +33,6 @@ export type PurchaseOrderPdfData = {
   items: PurchaseOrderPdfItem[];
 };
 
-const LOGO_URL = "/9315db73-509d-48a7-a8a8-deccea44bb93.png";
 
 function escapeHtml(value: string) {
   return value
@@ -103,16 +106,9 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
     <div id="purchase-order-pdf" class="pdf-page">
       <div class="header">
         <div class="logo-box">
-          <img src="${LOGO_URL}" class="logo" crossorigin="anonymous" />
+          <img src="${companyLogoUrl()}" class="logo" crossorigin="anonymous" />
         </div>
-        <div class="company">
-          <div class="company-name">บริษัท เอสเอ็มที เอนเนอร์ยี่ จำกัด</div>
-          <div class="company-address">
-            85 ถนนโยธา แขวงตลาดน้อย เขตสัมพันธวงศ์ กรุงเทพมหานคร 10100
-          </div>
-          <div class="company-address">
-            เบอร์ออฟฟิศ : 02-2359565-8 · เลขประจำตัวผู้เสียภาษี 0105563023124
-          </div>
+        <div class="company">${companyIdentityLinesHtml()}
         </div>
       </div>
 

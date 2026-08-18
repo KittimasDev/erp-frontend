@@ -50,6 +50,12 @@
   font-size: 16px;
 }
 
+.sectionHint {
+  margin: 4px 0 0;
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
 .yieldGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

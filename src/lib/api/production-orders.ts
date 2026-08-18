@@ -1,10 +1,15 @@
 import { apiFetch } from "./client";
 import type {
+  AllocateProductionOrderOutputBody,
+  AllocateProductionOrderOutputApiResponse,
+  BulkCreateProductionOrdersBody,
   CompleteProductionOrderBody,
   CreateProductionOrderBody,
   CreateProductionOrderLogBody,
   EndDowntimeBody,
   ProductionOrderApiResponse,
+  ProductionOrderBulkCreateApiResponse,
+  ProductionOrderConsolidatedCreateApiResponse,
   ProductionOrderListApiResponse,
   ProductionOrderSummaryApiResponse,
   QueryProductionOrdersParams,
@@ -61,6 +66,37 @@ export function createProductionOrder(
 ) {
   return apiFetch<ProductionOrderApiResponse>(
     "/api/production/production-orders",
+    { method: "POST", token, body },
+  );
+}
+
+export function bulkCreateProductionOrders(
+  token: string,
+  body: BulkCreateProductionOrdersBody,
+) {
+  return apiFetch<ProductionOrderBulkCreateApiResponse>(
+    "/api/production/production-orders/bulk",
+    { method: "POST", token, body },
+  );
+}
+
+export function consolidatedCreateProductionOrder(
+  token: string,
+  body: BulkCreateProductionOrdersBody,
+) {
+  return apiFetch<ProductionOrderConsolidatedCreateApiResponse>(
+    "/api/production/production-orders/consolidated",
+    { method: "POST", token, body },
+  );
+}
+
+export function allocateProductionOrderOutput(
+  token: string,
+  id: string,
+  body: AllocateProductionOrderOutputBody,
+) {
+  return apiFetch<AllocateProductionOrderOutputApiResponse>(
+    `/api/production/production-orders/${id}/allocate-output`,
     { method: "POST", token, body },
   );
 }

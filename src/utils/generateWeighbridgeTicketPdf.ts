@@ -1,3 +1,7 @@
+import {
+  companyIdentityLinesHtml,
+  companyLogoUrl,
+} from "./pdf-common";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -50,7 +54,6 @@ export type WeighbridgeTicketPdfData = {
   remark: string;
 };
 
-const LOGO_URL = "/9315db73-509d-48a7-a8a8-deccea44bb93.png";
 
 function escapeHtml(value: string) {
   return value
@@ -652,16 +655,11 @@ function createPdfHtml(data: WeighbridgeTicketPdfData) {
     <div id="weighbridge-ticket-pdf" class="pdf-page">
       <div class="header">
         <div class="logo-box">
-          <img src="${LOGO_URL}" class="logo" />
+          <img src="${companyLogoUrl()}" class="logo" />
         </div>
-        <div class="company">
-          <div class="company-name">บริษัท เอสเอ็มที เอนเนอร์ยี่ จำกัด</div>
-          <div class="company-address">
-            85 ถนนโยธา แขวงตลาดน้อย เขตสัมพันธวงศ์ กรุงเทพมหานคร 10100
-          </div>
-          <div class="company-address">
-            เบอร์ออฟฟิศ : 02-2359565-8 · เลขประจำตัวผู้เสียภาษี 0 1055 63023 12 4
-          </div>
+        <div class="company">${companyIdentityLinesHtml({
+          taxIdStyle: "grouped",
+        })}
         </div>
       </div>
 

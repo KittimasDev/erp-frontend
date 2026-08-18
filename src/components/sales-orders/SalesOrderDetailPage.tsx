@@ -48,7 +48,10 @@ import {
   type SalesOrderReservationLine,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
-import { PRODUCTION_REQUEST_STATUS_LABEL } from "@/types/production-request";
+import {
+  PRODUCTION_REQUEST_STATUS_LABEL,
+  type EligibleSalesOrderItem,
+} from "@/types/production-request";
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./SalesOrderDetailPage.module.css";
 
@@ -101,6 +104,32 @@ function reservationLineTag(line: SalesOrderReservationLine) {
     return <Tag color="error">สต๊อกไม่พอ</Tag>;
   }
   return <Tag color="warning">รอจอง</Tag>;
+}
+
+function buildProductionRequestLine(
+  salesOrderItemId: string,
+  reservationLines: SalesOrderReservationLine[],
+  eligibleItems: EligibleSalesOrderItem[],
+): { salesOrderItemId: string; requestedQty: number } | null {
+  const reservationLine = reservationLines.find(
+    (line) => line.salesOrderItemId === salesOrderItemId,
+  );
+  const shortage = Number(reservationLine?.shortageQty ?? 0);
+  const eligibleItem = eligibleItems.find(
+    (item) => item.salesOrderItemId === salesOrderItemId,
+  );
+  if (!eligibleItem) {
+    return null;
+  }
+  const remaining = Number(eligibleItem.remainingQty);
+  if (remaining <= 0.0005 || shortage <= 0.0005) {
+    return null;
+  }
+  const requestedQty = Math.min(remaining, shortage);
+  if (requestedQty <= 0.0005) {
+    return null;
+  }
+  return { salesOrderItemId, requestedQty };
 }
 
 export default function SalesOrderDetailPage({ id }: Props) {
@@ -177,30 +206,34 @@ export default function SalesOrderDetailPage({ id }: Props) {
     [reservationStatus?.lines],
   );
 
-  const productionRequestItems = useMemo(() => {
-    const shortageByItemId = new Map(
-      (reservationStatus?.lines ?? [])
-        .filter((line) => Number(line.shortageQty) > 0)
-        .map((line) => [line.salesOrderItemId, Number(line.shortageQty)]),
-    );
-    return (eligibleSoQuery.data?.data?.items ?? [])
-      .map((item) => {
-        const remaining = Number(item.remainingQty);
-        const shortage = shortageByItemId.get(item.salesOrderItemId) ?? 0;
-        if (remaining <= 0.0005 || shortage <= 0.0005) {
-          return null;
-        }
-        return {
-          salesOrderItemId: item.salesOrderItemId,
-          requestedQty: Math.min(remaining, shortage),
-        };
-      })
-      .filter(
-        (item): item is { salesOrderItemId: string; requestedQty: number } =>
-          Boolean(item && item.requestedQty > 0.0005),
-      )
-      .map((item, index) => ({ ...item, sortOrder: index }));
+  const productionRequestLineByItemId = useMemo(() => {
+    const map = new Map<
+      string,
+      { salesOrderItemId: string; requestedQty: number }
+    >();
+    const eligibleItems = eligibleSoQuery.data?.data?.items ?? [];
+    const reservationLines = reservationStatus?.lines ?? [];
+    for (const item of eligibleItems) {
+      const line = buildProductionRequestLine(
+        item.salesOrderItemId,
+        reservationLines,
+        eligibleItems,
+      );
+      if (line) {
+        map.set(item.salesOrderItemId, line);
+      }
+    }
+    return map;
   }, [eligibleSoQuery.data?.data?.items, reservationStatus?.lines]);
+
+  const productionRequestItems = useMemo(
+    () =>
+      Array.from(productionRequestLineByItemId.values()).map((item, index) => ({
+        ...item,
+        sortOrder: index,
+      })),
+    [productionRequestLineByItemId],
+  );
 
   useEffect(() => {
     skipAutoReserveRef.current = false;
@@ -336,6 +369,42 @@ export default function SalesOrderDetailPage({ id }: Props) {
         onSuccess: (response) => {
           void eligibleSoQuery.refetch();
           void productionRequestsQuery.refetch();
+          void reservationQuery.refetch();
+          if (response.data?.id) {
+            router.push(`/production/production-requests/${response.data.id}`);
+          }
+        },
+      },
+    );
+  };
+
+  const handleCreateProductionRequestForLine = (
+    salesOrderItemId: string,
+    itemCode?: string,
+  ) => {
+    const line = productionRequestLineByItemId.get(salesOrderItemId);
+    if (!line) {
+      message.warning("ไม่สามารถขอผลิตรายการนี้ได้");
+      return;
+    }
+    createProductionRequestMutation.mutate(
+      {
+        salesOrderId: data.id,
+        requestDate: new Intl.DateTimeFormat("en-CA", {
+          timeZone: ERP_TIMEZONE,
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date()),
+        requiredDate: data.requestedDeliveryDate || undefined,
+        remark: `ขอผลิตจาก ${data.soNo} — ${itemCode ?? "สินค้า"} ขาด ${line.requestedQty.toLocaleString("th-TH")}`,
+        items: [{ ...line, sortOrder: 0 }],
+      },
+      {
+        onSuccess: (response) => {
+          void eligibleSoQuery.refetch();
+          void productionRequestsQuery.refetch();
+          void reservationQuery.refetch();
           if (response.data?.id) {
             router.push(`/production/production-requests/${response.data.id}`);
           }
@@ -707,7 +776,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               </h2>
               <span className={styles.sectionHint}>
                 {isDraft
-                  ? "จองให้อัตโนมัติเมื่อสต๊อกพอ — ยืนยันใบสั่งขายได้เมื่อจองครบทุกรายการ แถวที่ไม่พอออกใบขอผลิตได้ปุ่มเดียว"
+                  ? "จองให้อัตโนมัติเมื่อสต๊อกพอ — ยืนยันใบสั่งขายได้เมื่อจองครบทุกรายการ แถวที่ไม่พอขอผลิตได้ทีละรายการ"
                   : "เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย"}
               </span>
             </div>
@@ -794,21 +863,98 @@ export default function SalesOrderDetailPage({ id }: Props) {
             )}
           </div>
 
+          {isDraft && canCreateProductionRequest && hasStockShortage ? (
+            <div className={`${styles.section} ${styles.productionSpotlight}`}>
+              <div className={styles.sectionHead}>
+                <div>
+                  <h2 className={styles.sectionTitle}>รายการที่ต้องขอผลิตเพิ่ม</h2>
+                  <p className={styles.sectionHint}>
+                    สต๊อกที่พร้อมจองยังไม่พอสำหรับบางรายการ สามารถกดขอผลิตทีละรายการ
+                    หรือขอรวมทั้งใบได้ทันที
+                  </p>
+                </div>
+                <Tag color="error">
+                  ขาด {productionRequestItems.length} รายการ
+                </Tag>
+              </div>
+              <div className={styles.productionSpotlightList}>
+                {data.items.map((item) => {
+                  const reservationLine = reservationByItemId.get(item.id);
+                  const productionRequestLine = productionRequestLineByItemId.get(
+                    item.id,
+                  );
+                  if (!reservationLine || !productionRequestLine) {
+                    return null;
+                  }
+                  return (
+                    <div key={item.id} className={styles.productionSpotlightCard}>
+                      <div className={styles.productionSpotlightBody}>
+                        <p className={styles.itemName}>
+                          {item.itemCode
+                            ? `${item.itemCode} — ${item.itemNameTh ?? ""}`
+                            : (item.itemNameTh ?? "—")}
+                        </p>
+                        <p className={styles.itemCode}>
+                          ขาด {Number(reservationLine.shortageQty).toLocaleString("th-TH")}{" "}
+                          {item.unitCode ?? ""} · ขอผลิต {productionRequestLine.requestedQty.toLocaleString("th-TH")}{" "}
+                          {item.unitCode ?? ""}
+                        </p>
+                      </div>
+                      <Button
+                        type="primary"
+                        icon={<ProfileOutlined />}
+                        loading={createProductionRequestMutation.isPending}
+                        disabled={busy || eligibleSoQuery.isLoading}
+                        onClick={() =>
+                          handleCreateProductionRequestForLine(item.id, item.itemCode)
+                        }
+                      >
+                        ขอผลิตรายการนี้
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
           {isDraft && linkedProductionRequests.length > 0 ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>ใบขอผลิตที่อ้างอิง</h2>
+                <div>
+                  <h2 className={styles.sectionTitle}>ใบขอผลิตที่อ้างอิง</h2>
+                  <p className={styles.sectionHint}>
+                    เอกสารขอผลิตที่ผูกกับใบสั่งขายใบนี้ เพื่อติดตามสถานะการผลิตและรับเข้าคลัง
+                  </p>
+                </div>
+                <Tag color="processing">{linkedProductionRequests.length} ใบ</Tag>
               </div>
-              <div className={styles.itemList}>
+              <div className={styles.productionRequestGrid}>
                 {linkedProductionRequests.map((pr) => (
-                  <div key={pr.id} className={styles.itemCard}>
+                  <div key={pr.id} className={styles.productionRequestCard}>
+                    <div className={styles.productionRequestCardTop}>
+                      <span className={styles.productionRequestIcon}>
+                        <ProfileOutlined />
+                      </span>
+                      <Tag color="blue">
+                        {PRODUCTION_REQUEST_STATUS_LABEL[pr.status] ?? pr.status}
+                      </Tag>
+                    </div>
                     <div className={styles.itemBody}>
-                      <Link href={`/production/production-requests/${pr.id}`}>
+                      <Link
+                        href={`/production/production-requests/${pr.id}`}
+                        className={styles.productionRequestLink}
+                      >
                         {pr.requestNo}
                       </Link>
                       <p className={styles.itemCode}>
-                        {PRODUCTION_REQUEST_STATUS_LABEL[pr.status] ?? pr.status}
+                        เปิดดูรายละเอียดใบขอผลิตและความคืบหน้าที่เกี่ยวข้อง
                       </p>
+                    </div>
+                    <div className={styles.productionRequestCardFooter}>
+                      <Link href={`/production/production-requests/${pr.id}`}>
+                        เปิดเอกสาร
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -822,12 +968,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
             </div>
             {isDraft && canWrite ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                จองสต๊อกต่อรายการ — รายการที่สต๊อกไม่พอออกใบขอผลิตได้ปุ่มเดียว
+                จองสต๊อกต่อรายการ — รายการที่สต๊อกไม่พอกด「ขอผลิต」ได้ทีละรายการ
+                หรือใช้ปุ่มรวมด้านขวา
               </p>
             ) : null}
             <div className={styles.itemList}>
               {data.items.map((item, index) => {
                 const reservationLine = reservationByItemId.get(item.id);
+                const productionRequestLine = productionRequestLineByItemId.get(
+                  item.id,
+                );
                 return (
                   <div key={item.id} className={styles.itemCard}>
                     <div className={styles.itemIndex}>{index + 1}</div>
@@ -927,6 +1077,25 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                   ยกเลิกจอง
                                 </Button>
                               ) : null}
+                              {canCreateProductionRequest &&
+                              productionRequestLine ? (
+                                <Button
+                                  size="small"
+                                  icon={<ProfileOutlined />}
+                                  loading={
+                                    createProductionRequestMutation.isPending
+                                  }
+                                  disabled={busy || eligibleSoQuery.isLoading}
+                                  onClick={() =>
+                                    handleCreateProductionRequestForLine(
+                                      item.id,
+                                      item.itemCode,
+                                    )
+                                  }
+                                >
+                                  ขอผลิต
+                                </Button>
+                              ) : null}
                             </div>
                           ) : null}
                           <strong>{formatMoney(item.amount)}</strong>
@@ -1012,7 +1181,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     disabled={busy || eligibleSoQuery.isLoading}
                     onClick={handleCreateProductionRequest}
                   >
-                    ออกใบขอผลิต
+                    ขอผลิตทุกรายการที่ขาด
                   </Button>
                 ) : null}
                 {canConfirm ? (

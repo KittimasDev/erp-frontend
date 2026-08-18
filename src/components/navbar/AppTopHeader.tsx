@@ -106,6 +106,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters/payment-terms", title: "เงื่อนไขชำระเงิน" },
   { href: "/masters/tax-rates", title: "อัตราภาษี" },
   { href: "/masters/purchase-request-types", title: "ประเภทใบขอซื้อ" },
+  { href: "/masters/company-profile", title: "ข้อมูลบริษัท" },
   { href: "/masters", title: "Master Data" },
 ];
 

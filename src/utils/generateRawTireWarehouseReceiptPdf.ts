@@ -1,3 +1,7 @@
+import {
+  companyIdentityLinesHtml,
+  companyLogoUrl,
+} from "./pdf-common";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
@@ -39,7 +43,6 @@ export type WarehouseReceiptSlipData = {
   approvedBy: string;
 };
 
-const LOGO_URL = "/9315db73-509d-48a7-a8a8-deccea44bb93.png";
 
 function escapeHtml(value: string) {
   return value
@@ -264,15 +267,12 @@ function createPdfHtml(data: WarehouseReceiptSlipData) {
   return `
     <div id="raw-tire-warehouse-receipt-pdf" class="pdf-page">
       <div class="header">
-        <img src="${LOGO_URL}" class="logo" />
-        <div class="company">
-          <div class="company-name">บริษัท เอสเอ็มที เอนเนอร์ยี่ จำกัด</div>
-          <div class="company-address">
-            85 ถนนโยธา แขวงตลาดน้อย เขตสัมพันธวงศ์ กรุงเทพมหานคร 10100
-          </div>
-          <div class="company-address">
-            เบอร์ติดต่อ : 02-2359565-8 เลขประจำตัวผู้เสียภาษี 0 1055 63023 12 4
-          </div>
+        <img src="${companyLogoUrl()}" class="logo" />
+        <div class="company">${companyIdentityLinesHtml({
+          phoneLabel: "เบอร์ติดต่อ",
+          taxIdStyle: "grouped",
+          separator: " ",
+        })}
         </div>
       </div>
 
@@ -319,8 +319,8 @@ function createPdfHtml(data: WarehouseReceiptSlipData) {
         </div>
         <table class="summary-table">
           <tr><td>รวมเป็นเงิน</td><td class="text-right">${data.subtotalAmount}</td></tr>
-          <tr><td>ส่วนลด</td><td class="text-right">${data.discountAmount}</td></tr>
-          <tr><td>มูลค่าหลังหักส่วนลด</td><td class="text-right">${data.afterDiscountAmount}</td></tr>
+          <tr><td>ยอดหัก</td><td class="text-right">${data.discountAmount}</td></tr>
+          <tr><td>หลังหัก</td><td class="text-right">${data.afterDiscountAmount}</td></tr>
           <tr><td>ภาษีมูลค่าเพิ่ม 7%</td><td class="text-right">${data.vatAmount}</td></tr>
           <tr class="net"><td>ยอดเงินสุทธิ</td><td class="text-right">${data.netAmount}</td></tr>
         </table>

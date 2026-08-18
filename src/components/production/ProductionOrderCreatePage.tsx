@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -23,12 +23,17 @@ import dayjs, { type Dayjs } from "dayjs";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useProductionRequestQuery } from "@/hooks/production-requests/useProductionRequestQueries";
-import type { CreateProductionOrderInputItemBody } from "@/types/production-order";
+import type {
+  CreateProductionOrderInputItemBody,
+  CreateProductionOrderPlanLineBody,
+} from "@/types/production-order";
+import { ProductionOrderPlanLineType } from "@/types/production-order";
 import styles from "./ProductionOrderCreatePage.module.css";
 
-type Row = {
+export type Row = {
   key: number;
   itemId?: string;
   unitId?: string;
@@ -38,12 +43,23 @@ type Row = {
   plannedQty?: number;
 };
 
+export type PlanRow = {
+  key: number;
+  itemId?: string;
+  unitId?: string;
+  plannedQty?: number;
+};
+
 let rowKeySeq = 1;
-function emptyRow(): Row {
+export function emptyRow(): Row {
   return { key: rowKeySeq++ };
 }
 
-function MaterialRow({
+export function emptyPlanRow(): PlanRow {
+  return { key: rowKeySeq++ };
+}
+
+export function MaterialRow({
   row,
   index,
   onChange,
@@ -217,6 +233,96 @@ function MaterialRow({
   );
 }
 
+export function PlanLineRow({
+  row,
+  index,
+  onChange,
+  onRemove,
+  removable,
+  stockItemsOnly = false,
+}: {
+  row: PlanRow;
+  index: number;
+  onChange: (row: PlanRow) => void;
+  onRemove: () => void;
+  removable: boolean;
+  stockItemsOnly?: boolean;
+}) {
+  const itemsQuery = useItemsQuery({
+    isActive: true,
+    ...(stockItemsOnly ? { isStockItem: true } : {}),
+  });
+  const unitsQuery = useUnitsQuery();
+
+  return (
+    <div className={styles.materialCard}>
+      <span className={styles.materialCardNo}>{index + 1}</span>
+      <div className={styles.materialGrid}>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>สินค้า</span>
+          <Select
+            showSearch
+            placeholder="เลือกสินค้า"
+            optionFilterProp="label"
+            loading={itemsQuery.isLoading}
+            value={row.itemId}
+            style={{ width: "100%" }}
+            options={(itemsQuery.data?.data ?? []).map((item) => ({
+              value: item.id,
+              label: `${item.itemCode} — ${item.itemNameTh}`,
+              unitId: item.unitId,
+            }))}
+            onChange={(value, option) => {
+              const opt = option as { unitId?: string } | undefined;
+              onChange({
+                ...row,
+                itemId: value,
+                unitId: opt?.unitId ?? row.unitId,
+              });
+            }}
+          />
+        </div>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>หน่วยนับ</span>
+          <Select
+            showSearch
+            placeholder="เลือกหน่วย"
+            optionFilterProp="label"
+            loading={unitsQuery.isLoading}
+            value={row.unitId}
+            style={{ width: "100%" }}
+            options={(unitsQuery.data?.data ?? []).map((unit) => ({
+              value: unit.id,
+              label: `${unit.code} — ${unit.nameTh}`,
+            }))}
+            onChange={(value) => onChange({ ...row, unitId: value })}
+          />
+        </div>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>จำนวนที่วางแผน</span>
+          <InputNumber
+            min={0.001}
+            style={{ width: "100%" }}
+            value={row.plannedQty}
+            onChange={(value) =>
+              onChange({ ...row, plannedQty: value ?? undefined })
+            }
+          />
+        </div>
+      </div>
+      {removable ? (
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={onRemove}
+          aria-label="ลบรายการ"
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export default function ProductionOrderCreatePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -230,8 +336,30 @@ export default function ProductionOrderCreatePage() {
   const [productionDate, setProductionDate] = useState<Dayjs>(dayjs());
   const [batchNo, setBatchNo] = useState("");
   const [cycleTargetHours, setCycleTargetHours] = useState<number | null>(48);
+  const [plannedLaborHours, setPlannedLaborHours] = useState<number | null>(null);
   const [remark, setRemark] = useState("");
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
+  const [outputRows, setOutputRows] = useState<PlanRow[]>([emptyPlanRow()]);
+  const [wasteRows, setWasteRows] = useState<PlanRow[]>([]);
+  const [outputPrefilled, setOutputPrefilled] = useState(false);
+
+  useEffect(() => {
+    if (!productionRequest?.items?.length || outputPrefilled) {
+      return;
+    }
+    setOutputRows(
+      productionRequest.items.map((item) => ({
+        key: rowKeySeq++,
+        itemId: item.itemId,
+        unitId: item.unitId,
+        plannedQty: Number(item.requestedQty),
+      })),
+    );
+    setOutputPrefilled(true);
+  }, [productionRequest, outputPrefilled]);
+
+  const isPlanRowComplete = (row: PlanRow) =>
+    Boolean(row.itemId && row.unitId && row.plannedQty);
 
   const canSubmit =
     rows.length > 0 &&
@@ -243,7 +371,10 @@ export default function ProductionOrderCreatePage() {
         r.locationId &&
         r.lotId &&
         r.plannedQty,
-    );
+    ) &&
+    outputRows.length > 0 &&
+    outputRows.every(isPlanRowComplete) &&
+    wasteRows.every(isPlanRowComplete);
 
   const handleSubmit = () => {
     const inputItems: CreateProductionOrderInputItemBody[] = rows.map((r) => ({
@@ -255,13 +386,32 @@ export default function ProductionOrderCreatePage() {
       plannedQty: r.plannedQty as number,
     }));
 
+    const planLines: CreateProductionOrderPlanLineBody[] = [
+      ...outputRows.map((r, index) => ({
+        lineType: ProductionOrderPlanLineType.OUTPUT,
+        itemId: r.itemId as string,
+        unitId: r.unitId as string,
+        plannedQty: r.plannedQty as number,
+        sortOrder: index,
+      })),
+      ...wasteRows.map((r, index) => ({
+        lineType: ProductionOrderPlanLineType.WASTE,
+        itemId: r.itemId as string,
+        unitId: r.unitId as string,
+        plannedQty: r.plannedQty as number,
+        sortOrder: outputRows.length + index,
+      })),
+    ];
+
     createMutation.mutate(
       {
         productionDate: productionDate.format("YYYY-MM-DD"),
         productionRequestId,
         batchNo: batchNo.trim() || undefined,
         cycleTargetHours: cycleTargetHours ?? undefined,
+        plannedLaborHours: plannedLaborHours ?? undefined,
         remark: remark.trim() || undefined,
+        planLines,
         inputItems,
       },
       {
@@ -378,6 +528,18 @@ export default function ProductionOrderCreatePage() {
                 placeholder="48"
               />
             </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>
+                ชั่วโมงแรงงานที่วางแผน
+              </span>
+              <InputNumber
+                style={{ width: "100%" }}
+                min={0.01}
+                value={plannedLaborHours}
+                onChange={setPlannedLaborHours}
+                placeholder="เช่น 24"
+              />
+            </div>
           </div>
           <div className={styles.field}>
             <span className={styles.fieldLabel}>หมายเหตุ</span>
@@ -393,7 +555,7 @@ export default function ProductionOrderCreatePage() {
         <section className={styles.formCard}>
           <div className={styles.materialsHeader}>
             <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
-              วัตถุดิบที่ใช้ผลิต ({rows.length} รายการ)
+              วัตถุดิบที่ต้องใช้ ({rows.length} รายการ)
             </h2>
             <Button
               icon={<PlusOutlined />}
@@ -422,6 +584,86 @@ export default function ProductionOrderCreatePage() {
                 }
               />
             ))}
+          </div>
+        </section>
+
+        <section className={styles.formCard}>
+          <div className={styles.materialsHeader}>
+            <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
+              ผลผลิตที่คาดว่าจะได้ ({outputRows.length} รายการ)
+            </h2>
+            <Button
+              icon={<PlusOutlined />}
+              className={styles.secondaryBtn}
+              onClick={() => setOutputRows((prev) => [...prev, emptyPlanRow()])}
+            >
+              เพิ่มผลผลิต
+            </Button>
+          </div>
+          <p className={styles.sectionHint}>
+            ประมาณการผลผลิต — ใช้เทียบ yield กับของจริงที่รับเข้าคลังภายหลัง
+          </p>
+          <div className={styles.materialsList}>
+            {outputRows.map((row, index) => (
+              <PlanLineRow
+                key={row.key}
+                row={row}
+                index={index}
+                removable={outputRows.length > 1}
+                onChange={(next) =>
+                  setOutputRows((prev) =>
+                    prev.map((r) => (r.key === row.key ? next : r)),
+                  )
+                }
+                onRemove={() =>
+                  setOutputRows((prev) => prev.filter((r) => r.key !== row.key))
+                }
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className={styles.formCard}>
+          <div className={styles.materialsHeader}>
+            <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
+              ของเสีย (ถ้ามี) ({wasteRows.length} รายการ)
+            </h2>
+            <Button
+              icon={<PlusOutlined />}
+              className={styles.secondaryBtn}
+              onClick={() => setWasteRows((prev) => [...prev, emptyPlanRow()])}
+            >
+              เพิ่มของเสีย
+            </Button>
+          </div>
+          <p className={styles.sectionHint}>
+            ของเสียไม่เข้าสต๊อก — บันทึกจำนวนจริงตอนยืนยันเสร็จสิ้นการผลิต
+          </p>
+          <div className={styles.materialsList}>
+            {wasteRows.length === 0 ? (
+              <Alert
+                type="info"
+                showIcon
+                title="ไม่มีของเสียในรอบนี้ — กดปุ่ม “เพิ่มของเสีย” ถ้าต้องการวางแผน"
+              />
+            ) : (
+              wasteRows.map((row, index) => (
+                <PlanLineRow
+                  key={row.key}
+                  row={row}
+                  index={index}
+                  removable
+                  onChange={(next) =>
+                    setWasteRows((prev) =>
+                      prev.map((r) => (r.key === row.key ? next : r)),
+                    )
+                  }
+                  onRemove={() =>
+                    setWasteRows((prev) => prev.filter((r) => r.key !== row.key))
+                  }
+                />
+              ))
+            )}
           </div>
           <div className={styles.footerActions}>
             <Button

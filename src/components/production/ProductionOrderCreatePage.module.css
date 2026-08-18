@@ -234,6 +234,12 @@
   border-radius: 10px !important;
 }
 
+.sectionHint {
+  margin: 0 0 12px;
+  color: var(--po-muted);
+  font-size: 13px;
+}
+
 @media (max-width: 900px) {
   .fieldGrid,
   .materialGrid {

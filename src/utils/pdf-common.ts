@@ -1,7 +1,64 @@
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
+import {
+  formatTaxId,
+  getCompanyInfoSnapshot,
+} from "@/lib/company/company-info";
+
+/** โลโก้สำรอง ใช้เมื่อยังไม่ได้ตั้งค่าโลโก้ใน master ข้อมูลบริษัท */
 export const PDF_LOGO_URL = "/9315db73-509d-48a7-a8a8-deccea44bb93.png";
+
+/** โลโก้ที่ตั้งไว้ใน master ข้อมูลบริษัท (ตกมาที่ค่าสำรองถ้าไม่ได้ตั้ง) */
+export function companyLogoUrl() {
+  return getCompanyInfoSnapshot().logoUrl;
+}
+
+/**
+ * สามบรรทัดข้อมูลบริษัทบนหัวเอกสาร — ดึงจาก master `ข้อมูลบริษัท`
+ *
+ * คืนแค่เนื้อข้อความ ไม่รวมกล่องครอบหรือโลโก้ เพราะเอกสารแต่ละใบมี CSS และ
+ * โครง HTML ของตัวเอง (บางใบมี `.logo-box` บางใบใช้ `<img>` เปล่า) ถ้าคืนทั้งก้อน
+ * หัวเอกสารบางใบจะเพี้ยน
+ *
+ * `phoneLabel` กับ `taxIdStyle` ตั้งได้ต่อเอกสาร เพื่อคงหน้าตาที่แต่ละใบเคยพิมพ์ออกมา
+ */
+export function companyIdentityLinesHtml(options?: {
+  phoneLabel?: string;
+  taxIdStyle?: "plain" | "grouped";
+  /** ตัวคั่นระหว่างเบอร์โทรกับเลขผู้เสียภาษี — ใบรับยางเข้าคลังใช้เว้นวรรคเปล่า */
+  separator?: string;
+}) {
+  const {
+    phoneLabel = "เบอร์ออฟฟิศ",
+    taxIdStyle = "plain",
+    separator = " · ",
+  } = options ?? {};
+  const company = getCompanyInfoSnapshot();
+
+  const contactParts: string[] = [];
+  if (company.phone) {
+    contactParts.push(`${phoneLabel} : ${escapeHtml(company.phone)}`);
+  }
+  if (company.taxId) {
+    contactParts.push(
+      `เลขประจำตัวผู้เสียภาษี ${escapeHtml(formatTaxId(company.taxId, taxIdStyle))}`,
+    );
+  }
+
+  return `
+        <div class="company-name">${escapeHtml(company.nameTh)}</div>
+        <div class="company-address">
+          ${escapeHtml(company.addressText)}
+        </div>${
+          contactParts.length > 0
+            ? `
+        <div class="company-address">
+          ${contactParts.join(separator)}
+        </div>`
+            : ""
+        }`;
+}
 
 export function escapeHtml(value: string) {
   return value
@@ -29,16 +86,9 @@ export function companyHeaderHtml() {
   return `
     <div class="header">
       <div class="logo-box">
-        <img src="${PDF_LOGO_URL}" class="logo" crossorigin="anonymous" />
+        <img src="${companyLogoUrl()}" class="logo" crossorigin="anonymous" />
       </div>
-      <div class="company">
-        <div class="company-name">บริษัท เอสเอ็มที เอนเนอร์ยี่ จำกัด</div>
-        <div class="company-address">
-          85 ถนนโยธา แขวงตลาดน้อย เขตสัมพันธวงศ์ กรุงเทพมหานคร 10100
-        </div>
-        <div class="company-address">
-          เบอร์ออฟฟิศ : 02-2359565-8 · เลขประจำตัวผู้เสียภาษี 0105563023124
-        </div>
+      <div class="company">${companyIdentityLinesHtml()}
       </div>
     </div>
     <div class="header-rule"></div>

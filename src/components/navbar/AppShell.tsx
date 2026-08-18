@@ -6,6 +6,7 @@ import { Suspense, useState } from "react";
 
 import AppHeader from "./AppHeader";
 import AppTopHeader from "./AppTopHeader";
+import CompanyProfileSync from "@/components/common/CompanyProfileSync";
 
 // SMT Energy brand theme — scoped to the Main Content subtree only via a nested
 // ConfigProvider. Sidebar/Header render outside this subtree and keep the
@@ -52,6 +53,9 @@ export default function AppShell({
       className="appShell"
       data-sidebar={collapsed ? "collapsed" : "expanded"}
     >
+      {/* เก็บข้อมูลบริษัทไว้ให้ฟังก์ชันสร้าง PDF ใช้ — ไม่เรนเดอร์อะไร */}
+      <CompanyProfileSync />
+
       <Suspense fallback={null}>
         <AppHeader
           collapsed={collapsed}

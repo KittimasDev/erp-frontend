@@ -48,6 +48,41 @@ export type ProductionRequestProductionOrderRef = {
   productionDate: string;
 };
 
+export type ProductionRequestPlanningTag = {
+  productionRequestId: string;
+  requestNo: string;
+  salesOrderId: string;
+  soNo?: string;
+  customerName?: string;
+  requiredDate?: string;
+  productionRequestStatus: string;
+  outstandingQty: string;
+  productionRequestItemId?: string;
+  createdAt?: string;
+  isCompleted: boolean;
+  hasActiveProductionOrder: boolean;
+};
+
+export type ProductionRequestPlanningSummaryItem = {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitId: string;
+  unitCode?: string;
+  totalOutstandingQty: string;
+  totalRequestedQty: string;
+  totalProducedQty: string;
+  requestCount: number;
+  tags: ProductionRequestPlanningTag[];
+};
+
+export type ProductionRequestPlanningSummary = {
+  itemCount: number;
+  requestCount: number;
+  customerCount: number;
+  items: ProductionRequestPlanningSummaryItem[];
+};
+
 export type ProductionRequest = {
   id: string;
   requestNo: string;
@@ -156,6 +191,12 @@ export type ProductionRequestListApiResponse = {
   statusCode?: number;
   message: string;
   data: ProductionRequestListData;
+};
+
+export type ProductionRequestPlanningSummaryApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: ProductionRequestPlanningSummary;
 };
 
 export type EligibleSalesOrderApiResponse = {

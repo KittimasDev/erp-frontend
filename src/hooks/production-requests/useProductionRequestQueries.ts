@@ -6,6 +6,7 @@ import {
   getEligibleSalesOrder,
   getEligibleSalesOrders,
   getProductionRequest,
+  getProductionRequestPlanningSummary,
   getProductionRequests,
 } from "@/lib/api/production-requests";
 import { getAccessToken } from "@/lib/auth/token";
@@ -29,6 +30,17 @@ export function useProductionRequestQuery(id?: string) {
     queryKey: [...productionRequestsQueryKey, "detail", id],
     queryFn: () => getProductionRequest(getAccessToken(), id as string),
     enabled: Boolean(id),
+  });
+}
+
+export function useProductionRequestPlanningSummaryQuery(
+  params?: QueryProductionRequestsParams,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: [...productionRequestsQueryKey, "planning-summary", params ?? {}],
+    queryFn: () => getProductionRequestPlanningSummary(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }
 

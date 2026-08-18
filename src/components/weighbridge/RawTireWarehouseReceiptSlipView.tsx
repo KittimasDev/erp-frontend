@@ -1,11 +1,11 @@
 "use client";
 
+import { useCompanyProfileQuery } from "@/hooks/company-profile/useCompanyProfileQuery";
+import { getCompanyInfoSnapshot } from "@/lib/company/company-info";
 import { numberToThaiBahtText } from "@/utils/numberToThaiBahtText";
 import type { WarehouseReceiptSlipData } from "@/utils/generateRawTireWarehouseReceiptPdf";
 
 import styles from "./RawTireWarehouseReceiptSlipPage.module.css";
-
-const LOGO_URL = "/9315db73-509d-48a7-a8a8-deccea44bb93.png";
 
 type Props = {
   data: WarehouseReceiptSlipData;
@@ -22,21 +22,31 @@ export default function RawTireWarehouseReceiptSlipView({
     : Math.max(8, data.items.length);
   const bahtText = numberToThaiBahtText(data.netAmountRaw);
 
+  // ระหว่างที่ query ยังไม่ตอบ ใช้ค่าสำรองซึ่งตรงกับข้อความเดิม สลิปจึงไม่วูบเป็นค่าว่าง
+  const companyProfile = useCompanyProfileQuery().data?.data;
+  const company = companyProfile ?? getCompanyInfoSnapshot();
+  const contactLine = [
+    company.phone ? `เบอร์ติดต่อ : ${company.phone}` : null,
+    company.taxId ? `เลขประจำตัวผู้เสียภาษี ${company.taxId}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <article className={`${styles.slipPaper} ${compact ? styles.slipCompact : ""}`}>
       <div className={styles.header}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={LOGO_URL} alt="SMT Energy" className={styles.logo} />
+        <img
+          src={company.logoUrl ?? getCompanyInfoSnapshot().logoUrl}
+          alt={company.nameTh}
+          className={styles.logo}
+        />
         <div className={styles.company}>
-          <p className={styles.companyName}>
-            บริษัท เอสเอ็มที เอนเนอร์ยี่ จำกัด
-          </p>
-          <p className={styles.companyAddress}>
-            85 ถนนโยธา แขวงตลาดน้อย เขตสัมพันธวงศ์ กรุงเทพมหานคร 10100
-          </p>
-          <p className={styles.companyAddress}>
-            เบอร์ติดต่อ : 02-2359565-8 · เลขประจำตัวผู้เสียภาษี 0105563023124
-          </p>
+          <p className={styles.companyName}>{company.nameTh}</p>
+          <p className={styles.companyAddress}>{company.addressText}</p>
+          {contactLine ? (
+            <p className={styles.companyAddress}>{contactLine}</p>
+          ) : null}
         </div>
       </div>
 
@@ -162,11 +172,11 @@ export default function RawTireWarehouseReceiptSlipView({
             <strong>{data.subtotalAmount}</strong>
           </div>
           <div className={styles.summaryRow}>
-            <span>ส่วนลด</span>
+            <span>ยอดหัก</span>
             <strong>{data.discountAmount}</strong>
           </div>
           <div className={styles.summaryRow}>
-            <span>หลังหักส่วนลด</span>
+            <span>หลังหัก</span>
             <strong>{data.afterDiscountAmount}</strong>
           </div>
           <div className={styles.summaryRow}>

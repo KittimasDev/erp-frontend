@@ -6,6 +6,7 @@ import type {
   EligibleSalesOrderListApiResponse,
   ProductionRequestApiResponse,
   ProductionRequestListApiResponse,
+  ProductionRequestPlanningSummaryApiResponse,
   QueryProductionRequestsParams,
   UpdateProductionRequestBody,
 } from "@/types/production-request";
@@ -60,6 +61,19 @@ export function getProductionRequest(token: string, id: string) {
     method: "GET",
     token,
   });
+}
+
+export function getProductionRequestPlanningSummary(
+  token: string,
+  params?: QueryProductionRequestsParams,
+) {
+  return apiFetch<ProductionRequestPlanningSummaryApiResponse>(
+    `${BASE}/planning-summary${buildQuery(params)}`,
+    {
+      method: "GET",
+      token,
+    },
+  );
 }
 
 /** ใบสั่งขายที่ยังไม่อนุมัติและยังมีจำนวนคงค้างให้ขอผลิต */

@@ -190,6 +190,98 @@
   line-height: 1.5;
 }
 
+.productionSpotlight {
+  background:
+    linear-gradient(135deg, rgba(255, 244, 230, 0.9), rgba(255, 255, 255, 0.96)),
+    #fff;
+}
+
+.productionSpotlightList {
+  display: grid;
+  gap: 12px;
+}
+
+.productionSpotlightCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid rgba(250, 140, 22, 0.22);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(250, 140, 22, 0.08);
+}
+
+.productionSpotlightBody {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.productionRequestGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.productionRequestCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(24, 144, 255, 0.16);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(24, 144, 255, 0.08), transparent 40%),
+    #fafcff;
+  box-shadow: 0 10px 24px rgba(24, 144, 255, 0.08);
+}
+
+.productionRequestCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.productionRequestIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(24, 144, 255, 0.12);
+  color: #1677ff;
+  font-size: 16px;
+}
+
+.productionRequestLink {
+  color: var(--pr-text);
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.productionRequestLink:hover {
+  color: #1677ff;
+}
+
+.productionRequestCardFooter {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.productionRequestCardFooter a {
+  color: #1677ff;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.productionRequestCardFooter a:hover {
+  text-decoration: underline;
+}
+
 .flowHint {
   margin: 8px 0 0;
   padding: 8px 10px;
@@ -553,5 +645,9 @@
   .itemQty {
     grid-column: 2;
     text-align: left;
+  }
+
+  .productionSpotlightCard {
+    grid-template-columns: 1fr;
   }
 }

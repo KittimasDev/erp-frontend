@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
+  Checkbox,
   Form,
   Input,
   InputNumber,
@@ -29,6 +30,7 @@ import {
 } from "@/hooks/production-orders/useProductionOrderQueries";
 import {
   useAddProductionOrderLogMutation,
+  useAllocateProductionOrderOutputMutation,
   useCancelProductionOrderMutation,
   useCompleteProductionOrderMutation,
   useEndProductionOrderDowntimeMutation,
@@ -48,6 +50,8 @@ import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWareh
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   PRODUCTION_ORDER_STATUS_LABEL,
+  PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL,
+  ProductionOrderPlanLineType,
   ProductionOrderStatus,
 } from "@/types/production-order";
 import { PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL } from "@/types/production-output-stock-request";
@@ -99,9 +103,26 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const downtimeStartMutation = useRecordProductionOrderDowntimeMutation();
   const downtimeEndMutation = useEndProductionOrderDowntimeMutation();
   const logMutation = useAddProductionOrderLogMutation();
+  const allocateMutation = useAllocateProductionOrderOutputMutation();
+
+  const [selectedSourceLineIds, setSelectedSourceLineIds] = useState<string[]>([]);
+  const [allocationQtyByLineId, setAllocationQtyByLineId] = useState<
+    Record<string, number>
+  >({});
 
   const [completeOpen, setCompleteOpen] = useState(false);
   const [signatureName, setSignatureName] = useState("");
+  const [wasteActualRows, setWasteActualRows] = useState<
+    {
+      key: string;
+      planLineId?: string;
+      itemId: string;
+      unitId: string;
+      itemLabel: string;
+      unitCode?: string;
+      actualQty: number;
+    }[]
+  >([]);
   const [downtimeOpen, setDowntimeOpen] = useState(false);
   const [downtimeReason, setDowntimeReason] = useState("");
   const [logOpen, setLogOpen] = useState(false);
@@ -142,6 +163,81 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const openDowntime = order?.downtimes.find((d) => !d.endAt);
 
   const summary = summaryQuery.data?.data;
+
+  const outputPlanLines = useMemo(
+    () =>
+      (order?.planLines ?? []).filter(
+        (line) => line.lineType === ProductionOrderPlanLineType.OUTPUT,
+      ),
+    [order?.planLines],
+  );
+
+  const wastePlanLines = useMemo(
+    () =>
+      (order?.planLines ?? []).filter(
+        (line) => line.lineType === ProductionOrderPlanLineType.WASTE,
+      ),
+    [order?.planLines],
+  );
+
+  const sourceLines = order?.sourceLines ?? [];
+  const allocationSummary = order?.allocationSummary;
+  const hasSourceLines = sourceLines.length > 0;
+  const unallocatedQty = Number(allocationSummary?.unallocatedQty ?? 0);
+
+  const handleToggleSourceLine = (lineId: string, remainingQty: number, checked: boolean) => {
+    setSelectedSourceLineIds((prev) =>
+      checked ? [...prev, lineId] : prev.filter((id) => id !== lineId),
+    );
+    if (checked) {
+      setAllocationQtyByLineId((prev) => ({
+        ...prev,
+        [lineId]: prev[lineId] ?? remainingQty,
+      }));
+    }
+  };
+
+  const handleAllocateOutput = () => {
+    const lines = selectedSourceLineIds
+      .map((sourceLineId) => ({
+        sourceLineId,
+        qtyToAllocate: allocationQtyByLineId[sourceLineId],
+      }))
+      .filter((line) => line.qtyToAllocate > 0);
+    if (!lines.length) {
+      return;
+    }
+    allocateMutation.mutate(
+      {
+        id: orderId,
+        body: { lines, reserveSalesOrders: true },
+      },
+      {
+        onSuccess: () => {
+          setSelectedSourceLineIds([]);
+          setAllocationQtyByLineId({});
+          void detailQuery.refetch();
+        },
+      },
+    );
+  };
+
+  const openCompleteModal = () => {
+    setWasteActualRows(
+      wastePlanLines.map((line) => ({
+        key: line.id,
+        planLineId: line.id,
+        itemId: line.itemId,
+        unitId: line.unitId,
+        itemLabel: line.itemCode
+          ? `${line.itemCode} — ${line.itemNameTh ?? ""}`
+          : line.itemId,
+        unitCode: line.unitCode,
+        actualQty: Number(line.plannedQty),
+      })),
+    );
+    setCompleteOpen(true);
+  };
 
   const handleSubmitOutputRequest = async () => {
     const values = await requestForm.validateFields();
@@ -227,7 +323,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 <Button
                   type="primary"
                   icon={<CheckOutlined />}
-                  onClick={() => setCompleteOpen(true)}
+                  onClick={openCompleteModal}
                 >
                   ยืนยันเสร็จสิ้นการผลิต
                 </Button>
@@ -296,6 +392,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 </span>
               </div>
               <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>ชั่วโมงแรงงาน (แผน)</span>
+                <span className={styles.infoValue}>
+                  {order.plannedLaborHours
+                    ? `${order.plannedLaborHours} ชม.`
+                    : "-"}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>สถานะ</span>
                 <span className={styles.infoValue}>
                   <Tag>{PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status}</Tag>
@@ -318,20 +422,56 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             {summary ? (
               <div className={styles.section}>
                 <div className={styles.sectionHead}>
-                  <h3>สรุป Yield / Mass Balance</h3>
+                  <h3>เปรียบเทียบ Yield / Mass Balance</h3>
                 </div>
                 <div className={styles.yieldGrid}>
                   <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>วัตถุดิบเข้าจริง</span>
+                    <span className={styles.infoLabel}>วัตถุดิบ (แผน)</span>
+                    <span className={styles.infoValue}>
+                      {fmt(summary.totalPlannedInputQty)}
+                    </span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>วัตถุดิบ (ตัดจริง)</span>
                     <span className={styles.infoValue}>{fmt(summary.totalInputQty)}</span>
                   </div>
                   <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>ผลผลิตเข้าคลังแล้ว</span>
+                    <span className={styles.infoLabel}>ผลผลิต (แผน)</span>
+                    <span className={styles.infoValue}>
+                      {fmt(summary.totalPlannedOutputQty)}
+                    </span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>ผลผลิต (เข้าคลังแล้ว)</span>
                     <span className={styles.infoValue}>{fmt(summary.totalOutputQty)}</span>
                   </div>
                   <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Yield %</span>
+                    <span className={styles.infoLabel}>Yield แผน</span>
+                    <span className={styles.infoValue}>
+                      {summary.plannedYieldPercent}%
+                    </span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>Yield จริง</span>
                     <span className={styles.infoValue}>{summary.yieldPercent}%</span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>ของเสีย (แผน)</span>
+                    <span className={styles.infoValue}>
+                      {fmt(summary.totalPlannedWasteQty)}
+                    </span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>ของเสีย (จริง · ไม่เข้าคลัง)</span>
+                    <span className={styles.infoValue}>
+                      {fmt(summary.totalActualWasteQty)}
+                    </span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.infoLabel}>Mass balance</span>
+                    <span className={styles.infoValue}>
+                      {fmt(summary.massBalanceDiff)}
+                    </span>
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.infoLabel}>Downtime รวม</span>
@@ -340,12 +480,153 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     </span>
                   </div>
                 </div>
+                {summary.yieldCompareByItem.length > 0 ? (
+                  <Table
+                    className={masterStyles.dataTable}
+                    rowKey="itemId"
+                    size="small"
+                    pagination={false}
+                    style={{ marginTop: 16 }}
+                    dataSource={summary.yieldCompareByItem}
+                    columns={[
+                      {
+                        title: "ผลผลิต",
+                        key: "item",
+                        render: (_, row) =>
+                          row.itemCode
+                            ? `${row.itemCode} — ${row.itemNameTh ?? ""}`
+                            : row.itemId,
+                      },
+                      {
+                        title: "แผน",
+                        key: "planned",
+                        align: "right",
+                        render: (_, row) =>
+                          `${fmt(row.plannedQty)} ${row.unitCode ?? ""}`,
+                      },
+                      {
+                        title: "จริง (เข้าคลัง)",
+                        key: "actual",
+                        align: "right",
+                        render: (_, row) =>
+                          `${fmt(row.actualQty)} ${row.unitCode ?? ""}`,
+                      },
+                      {
+                        title: "Yield แผน",
+                        dataIndex: "plannedYieldPercent",
+                        key: "plannedYieldPercent",
+                        align: "right",
+                        render: (v: number) => `${v}%`,
+                      },
+                      {
+                        title: "Yield จริง",
+                        dataIndex: "actualYieldPercent",
+                        key: "actualYieldPercent",
+                        align: "right",
+                        render: (v: number) => `${v}%`,
+                      },
+                    ]}
+                  />
+                ) : null}
               </div>
             ) : null}
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>รายการวัตถุดิบ</h3>
+                <h3>แผนผลผลิต</h3>
+              </div>
+              <Table
+                className={masterStyles.dataTable}
+                rowKey="id"
+                size="small"
+                pagination={false}
+                dataSource={outputPlanLines}
+                locale={{ emptyText: "ไม่มีแผนผลผลิต" }}
+                columns={[
+                  {
+                    title: "สินค้า",
+                    key: "item",
+                    render: (_, row) =>
+                      row.itemCode
+                        ? `${row.itemCode} — ${row.itemNameTh ?? ""}`
+                        : row.itemId,
+                  },
+                  {
+                    title: "แผน",
+                    dataIndex: "plannedQty",
+                    key: "plannedQty",
+                    align: "right",
+                    render: (v: string, row) => `${fmt(v)} ${row.unitCode ?? ""}`,
+                  },
+                  {
+                    title: "เข้าคลังแล้ว",
+                    dataIndex: "actualQty",
+                    key: "actualQty",
+                    align: "right",
+                    render: (_, row) =>
+                      `${fmt(row.actualQty ?? "0")} ${row.unitCode ?? ""}`,
+                  },
+                ]}
+              />
+            </div>
+
+            {wastePlanLines.length > 0 || isCompleted ? (
+              <div className={styles.section}>
+                <div className={styles.sectionHead}>
+                  <h3>ของเสีย (ไม่เข้าคลัง)</h3>
+                </div>
+                <Table
+                  className={masterStyles.dataTable}
+                  rowKey="id"
+                  size="small"
+                  pagination={false}
+                  dataSource={wastePlanLines}
+                  locale={{ emptyText: "ไม่มีของเสีย" }}
+                  columns={[
+                    {
+                      title: "สินค้า",
+                      key: "item",
+                      render: (_, row) =>
+                        row.itemCode
+                          ? `${row.itemCode} — ${row.itemNameTh ?? ""}`
+                          : row.itemId,
+                    },
+                    {
+                      title: "แผน",
+                      dataIndex: "plannedQty",
+                      key: "plannedQty",
+                      align: "right",
+                      render: (v: string, row) => `${fmt(v)} ${row.unitCode ?? ""}`,
+                    },
+                    {
+                      title: "เสียจริง",
+                      dataIndex: "actualQty",
+                      key: "actualQty",
+                      align: "right",
+                      render: (_, row) =>
+                        `${fmt(row.actualQty ?? "-")} ${row.unitCode ?? ""}`,
+                    },
+                    {
+                      title: "สถานะ",
+                      dataIndex: "disposalStatus",
+                      key: "disposalStatus",
+                      render: (v?: string) =>
+                        v ? (
+                          <Tag>
+                            {PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL[v] ?? v}
+                          </Tag>
+                        ) : (
+                          "-"
+                        ),
+                    },
+                  ]}
+                />
+              </div>
+            ) : null}
+
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h3>วัตถุดิบที่ต้องใช้</h3>
               </div>
               <Table
                 className={masterStyles.dataTable}
@@ -555,6 +836,155 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 ]}
               />
             </div>
+
+            {hasSourceLines ? (
+              <div className={styles.section}>
+                <div className={styles.sectionHead}>
+                  <div>
+                    <h3>จัดสรรผลผลิตให้ใบสั่งขาย</h3>
+                    <p className={styles.sectionHint}>
+                      หลังรับผลผลิตเข้าคลังแล้ว เลือก SO ที่ต้องการจัดสรรและกดจองสต๊อก
+                      (ไม่เปลี่ยนสถานะ SO อัตโนมัติทั้งใบ)
+                    </p>
+                  </div>
+                  <Button
+                    type="primary"
+                    disabled={!selectedSourceLineIds.length || !canOperate}
+                    loading={allocateMutation.isPending}
+                    onClick={handleAllocateOutput}
+                  >
+                    จองสต๊อกให้ SO ที่เลือก
+                  </Button>
+                </div>
+
+                {allocationSummary ? (
+                  <div className={styles.infoGrid}>
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>รับเข้าคลังแล้ว</span>
+                      <span className={styles.infoValue}>
+                        {fmt(allocationSummary.totalApprovedOutputQty)}
+                      </span>
+                    </div>
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>จัดสรรแล้ว</span>
+                      <span className={styles.infoValue}>
+                        {fmt(allocationSummary.totalAllocatedQty)}
+                      </span>
+                    </div>
+                    <div className={styles.infoItem}>
+                      <span className={styles.infoLabel}>คงเหลือจัดสรร</span>
+                      <span className={styles.infoValue}>
+                        {fmt(allocationSummary.unallocatedQty)}
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+
+                <Table
+                  className={masterStyles.dataTable}
+                  rowKey="id"
+                  size="small"
+                  pagination={false}
+                  dataSource={sourceLines}
+                  locale={{ emptyText: "ไม่มีรายการอ้างอิง" }}
+                  columns={[
+                    {
+                      title: "",
+                      key: "select",
+                      width: 48,
+                      render: (_, row) => {
+                        const remaining = Number(row.remainingQty);
+                        const disabled = row.isFulfilled || remaining <= 0 || unallocatedQty <= 0;
+                        return (
+                          <Checkbox
+                            checked={selectedSourceLineIds.includes(row.id)}
+                            disabled={disabled}
+                            onChange={(event) =>
+                              handleToggleSourceLine(
+                                row.id,
+                                remaining,
+                                event.target.checked,
+                              )
+                            }
+                          />
+                        );
+                      },
+                    },
+                    {
+                      title: "ใบขอผลิต",
+                      key: "pr",
+                      render: (_, row) => row.productionRequestNo ?? row.productionRequestId,
+                    },
+                    {
+                      title: "ใบสั่งขาย",
+                      key: "so",
+                      render: (_, row) => row.salesOrderNo ?? row.salesOrderId,
+                    },
+                    {
+                      title: "ต้องการ",
+                      key: "allocated",
+                      align: "right",
+                      render: (_, row) =>
+                        `${fmt(row.allocatedQty)} ${row.unitCode ?? ""}`,
+                    },
+                    {
+                      title: "จัดสรรแล้ว",
+                      key: "fulfilled",
+                      align: "right",
+                      render: (_, row) =>
+                        `${fmt(row.fulfilledQty)} ${row.unitCode ?? ""}`,
+                    },
+                    {
+                      title: "คงเหลือ",
+                      key: "remaining",
+                      align: "right",
+                      render: (_, row) =>
+                        `${fmt(row.remainingQty)} ${row.unitCode ?? ""}`,
+                    },
+                    {
+                      title: "จัดสรรครั้งนี้",
+                      key: "allocateQty",
+                      align: "right",
+                      width: 140,
+                      render: (_, row) => {
+                        const remaining = Number(row.remainingQty);
+                        const selected = selectedSourceLineIds.includes(row.id);
+                        if (!selected) {
+                          return "-";
+                        }
+                        return (
+                          <InputNumber
+                            min={0.001}
+                            max={Math.min(remaining, unallocatedQty)}
+                            step={0.001}
+                            style={{ width: "100%" }}
+                            value={allocationQtyByLineId[row.id] ?? remaining}
+                            onChange={(value) =>
+                              setAllocationQtyByLineId((prev) => ({
+                                ...prev,
+                                [row.id]: Number(value ?? 0),
+                              }))
+                            }
+                          />
+                        );
+                      },
+                    },
+                    {
+                      title: "สถานะ",
+                      key: "status",
+                      render: (_, row) =>
+                        row.isFulfilled ? (
+                          <Tag color="success" icon={<CheckOutlined />}>
+                            ครบแล้ว
+                          </Tag>
+                        ) : (
+                          <Tag color="processing">รอจัดสรร</Tag>
+                        ),
+                    },
+                  ]}
+                />
+              </div>
+            ) : null}
           </>
         ) : (
           <div className={masterStyles.errorBox}>ไม่พบใบสั่งผลิตที่ต้องการ</div>
@@ -566,19 +996,37 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
           onCancel={() => {
             setCompleteOpen(false);
             setSignatureName("");
+            setWasteActualRows([]);
           }}
           okText="ยืนยัน"
           okButtonProps={{
             disabled: signatureName.trim().toLowerCase() !== "done",
           }}
           confirmLoading={completeMutation.isPending}
+          width={720}
           onOk={() =>
             completeMutation.mutate(
-              { id: orderId, body: { signature: { typedName: signatureName.trim() } } },
+              {
+                id: orderId,
+                body: {
+                  signature: { typedName: signatureName.trim() },
+                  wasteActualLines:
+                    wasteActualRows.length > 0
+                      ? wasteActualRows.map((row) => ({
+                          planLineId: row.planLineId,
+                          itemId: row.itemId,
+                          unitId: row.unitId,
+                          actualQty: row.actualQty,
+                        }))
+                      : undefined,
+                },
+              },
               {
                 onSuccess: () => {
                   setCompleteOpen(false);
                   setSignatureName("");
+                  setWasteActualRows([]);
+                  void summaryQuery.refetch();
                 },
               },
             )
@@ -593,6 +1041,47 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             placeholder="done"
             autoFocus
           />
+          {wasteActualRows.length > 0 ? (
+            <>
+              <Typography.Paragraph type="secondary" style={{ marginTop: 16 }}>
+                ของเสียจริง (ไม่เข้าคลัง) — ปรับจำนวนได้ก่อนยืนยัน
+              </Typography.Paragraph>
+              <Table
+                rowKey="key"
+                size="small"
+                pagination={false}
+                dataSource={wasteActualRows}
+                columns={[
+                  {
+                    title: "สินค้า",
+                    dataIndex: "itemLabel",
+                    key: "itemLabel",
+                  },
+                  {
+                    title: "จำนวนเสียจริง",
+                    key: "actualQty",
+                    render: (_, row) => (
+                      <InputNumber
+                        min={0}
+                        style={{ width: "100%" }}
+                        value={row.actualQty}
+                        addonAfter={row.unitCode}
+                        onChange={(value) =>
+                          setWasteActualRows((prev) =>
+                            prev.map((entry) =>
+                              entry.key === row.key
+                                ? { ...entry, actualQty: value ?? 0 }
+                                : entry,
+                            ),
+                          )
+                        }
+                      />
+                    ),
+                  },
+                ]}
+              />
+            </>
+          ) : null}
         </Modal>
 
         <Modal

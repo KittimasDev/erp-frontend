@@ -6,8 +6,11 @@ import { App } from "antd";
 import { ApiError } from "@/lib/api/client";
 import {
   addProductionOrderLog,
+  allocateProductionOrderOutput,
+  bulkCreateProductionOrders,
   cancelProductionOrder,
   completeProductionOrder,
+  consolidatedCreateProductionOrder,
   createProductionOrder,
   endProductionOrderDowntime,
   recordProductionOrderDowntime,
@@ -15,18 +18,24 @@ import {
 } from "@/lib/api/production-orders";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
+  AllocateProductionOrderOutputBody,
+  BulkCreateProductionOrdersBody,
   CompleteProductionOrderBody,
   CreateProductionOrderBody,
   CreateProductionOrderLogBody,
   EndDowntimeBody,
   RecordDowntimeBody,
 } from "@/types/production-order";
+import { productionRequestsQueryKey } from "../production-requests/useProductionRequestQueries";
 import { productionOrdersQueryKey } from "./useProductionOrderQueries";
 
 function useInvalidateProductionOrders() {
   const queryClient = useQueryClient();
   return () =>
-    queryClient.invalidateQueries({ queryKey: productionOrdersQueryKey });
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: productionOrdersQueryKey }),
+      queryClient.invalidateQueries({ queryKey: productionRequestsQueryKey }),
+    ]);
 }
 
 export function useCreateProductionOrderMutation() {
@@ -44,6 +53,84 @@ export function useCreateProductionOrderMutation() {
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError ? error.message : "สร้างใบสั่งผลิตไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useConsolidatedCreateProductionOrderMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "consolidated-create"],
+    mutationFn: (body: BulkCreateProductionOrdersBody) =>
+      consolidatedCreateProductionOrder(getAccessToken(), body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "สร้างใบสั่งผลิตรวมสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "สร้างใบสั่งผลิตรวมไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useAllocateProductionOrderOutputMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message, notification } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "allocate-output"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: AllocateProductionOrderOutputBody;
+    }) => allocateProductionOrderOutput(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "จัดสรรผลผลิตสำเร็จแล้ว");
+      const failed = response.data.reserveResults.filter((row) => !row.reserved);
+      if (failed.length) {
+        notification.warning({
+          title: "จองสต๊อกบางใบสั่งขายไม่สำเร็จ",
+          description: failed
+            .map((row) => `${row.salesOrderNo ?? row.salesOrderId}: ${row.message ?? "ไม่สำเร็จ"}`)
+            .join(" · "),
+        });
+      }
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "จัดสรรผลผลิตไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useBulkCreateProductionOrdersMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "bulk-create"],
+    mutationFn: (body: BulkCreateProductionOrdersBody) =>
+      bulkCreateProductionOrders(getAccessToken(), body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "สร้างใบสั่งผลิตหลายใบสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "สร้างใบสั่งผลิตหลายใบไม่สำเร็จ",
       );
     },
   });

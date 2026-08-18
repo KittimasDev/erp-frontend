@@ -128,25 +128,26 @@ export default function QuotationFormPage({ mode, id }: Props) {
   }, [availabilityQuery.data?.data]);
 
   const itemSelectOptions = useMemo(() => {
-    const options = items.map((item) => {
-      const available = availableByItemId.get(item.id) ?? 0;
-      const hasStock = available > 1e-9;
-      return {
-        value: item.id,
-        disabled: !hasStock,
-        available,
-        label: hasStock
-          ? `${item.itemCode} — ${item.itemNameTh} (คงเหลือ ${formatQty(available)})`
-          : `${item.itemCode} — ${item.itemNameTh} (ไม่มีสต๊อก)`,
-      };
-    });
-    // มีสต๊อกขึ้นก่อน ของหมดโชว์ท้ายแต่เลือกไม่ได้
-    return options.sort((a, b) => {
-      if (a.disabled !== b.disabled) {
-        return a.disabled ? 1 : -1;
-      }
-      return a.label.localeCompare(b.label, "th");
-    });
+    return items
+      .map((item) => {
+        const available = availableByItemId.get(item.id) ?? 0;
+        const hasStock = available > 1e-9;
+        return {
+          value: item.id,
+          available,
+          label: hasStock
+            ? `${item.itemCode} — ${item.itemNameTh} (คงเหลือ ${formatQty(available)})`
+            : `${item.itemCode} — ${item.itemNameTh} (ไม่มีสต๊อก)`,
+        };
+      })
+      .sort((a, b) => {
+        const aHasStock = a.available > 1e-9;
+        const bHasStock = b.available > 1e-9;
+        if (aHasStock !== bHasStock) {
+          return aHasStock ? -1 : 1;
+        }
+        return a.label.localeCompare(b.label, "th");
+      });
   }, [availableByItemId, items]);
 
   useEffect(() => {
@@ -220,12 +221,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
   const handleItemChange = (index: number, itemId?: string) => {
     if (!itemId) {
-      return;
-    }
-    const available = availableByItemId.get(itemId) ?? 0;
-    if (!(available > 1e-9)) {
-      form.setFieldValue(["items", index, "itemId"], undefined);
-      form.setFieldValue(["items", index, "unitId"], undefined);
       return;
     }
     const item = items.find((row) => row.id === itemId);
@@ -487,10 +482,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                 ]}
                                 extra={
                                   lineItemId
-                                    ? Number(watchedItems[index]?.quantity) >
-                                      availableTotal + 1e-9
-                                      ? `สต๊อกไม่พอ — พร้อมใช้ ${formatQty(availableTotal)}`
-                                      : `สต๊อกพร้อมใช้: ${formatQty(availableTotal)}`
+                                    ? `สต๊อกพร้อมใช้: ${formatQty(availableTotal)} (อ้างอิง — ใบเสนอราคาไม่ตัดสต๊อก)`
                                     : "สินค้าสำเร็จรูปที่เปิดใช้งาน"
                                 }
                               >
@@ -520,32 +512,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                       if (!(Number(value) > 0)) {
                                         return Promise.reject(
                                           new Error("จำนวนต้องมากกว่า 0"),
-                                        );
-                                      }
-                                      if (!lineItemId) {
-                                        return;
-                                      }
-                                      const available =
-                                        availableByItemId.get(lineItemId) ?? 0;
-                                      // รวมจำนวนทุกรายการที่เป็นสินค้าเดียวกัน
-                                      const orderedSameItem = watchedItems.reduce(
-                                        (sum, line, lineIndex) => {
-                                          if (line?.itemId !== lineItemId) {
-                                            return sum;
-                                          }
-                                          const qty =
-                                            lineIndex === index
-                                              ? Number(value) || 0
-                                              : Number(line?.quantity) || 0;
-                                          return sum + qty;
-                                        },
-                                        0,
-                                      );
-                                      if (orderedSameItem > available + 1e-9) {
-                                        return Promise.reject(
-                                          new Error(
-                                            `สต๊อกไม่พอ (พร้อมใช้ ${formatQty(available)})`,
-                                          ),
                                         );
                                       }
                                     },
@@ -673,7 +639,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
           <p className={styles.masterHint}>
             สินค้าสำเร็จรูป {items.length} รายการ
             {itemSelectOptions.length
-              ? ` · พร้อมขาย ${itemSelectOptions.filter((row) => !row.disabled).length} · ไม่มีสต๊อก ${itemSelectOptions.filter((row) => row.disabled).length}`
+              ? ` · มีสต๊อก ${itemSelectOptions.filter((row) => row.available > 1e-9).length} · ไม่มีสต๊อก ${itemSelectOptions.filter((row) => row.available <= 1e-9).length}`
               : ""}{" "}
             ·{" "}
             <Link href="/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS">

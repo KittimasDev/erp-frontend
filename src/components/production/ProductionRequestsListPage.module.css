@@ -1,0 +1,355 @@
+.viewToggle {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.planningWrap {
+  display: grid;
+  gap: 18px;
+  padding: 20px 22px 24px;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid #e1e2dd;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff, #f8faf4);
+}
+
+.summaryIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(115, 152, 22, 0.12);
+  color: #627f13;
+  font-size: 18px;
+}
+
+.summaryLabel {
+  margin: 0 0 4px;
+  color: #77777c;
+  font-size: 12px;
+}
+
+.summaryCard strong {
+  color: #3f3f43;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.planningGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.planningCard {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e1e2dd;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(47, 50, 57, 0.05);
+}
+
+.planningCardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardHeadActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.planningItemCode {
+  margin: 0 0 4px;
+  color: #627f13;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.planningItemName {
+  margin: 0;
+  color: #3f3f43;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.planningMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metricCard {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #f7f8f5;
+}
+
+.metricCard span {
+  color: #77777c;
+  font-size: 12px;
+}
+
+.metricCard strong {
+  color: #3f3f43;
+  font-size: 15px;
+}
+
+.tagList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.tagCard {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(22, 119, 255, 0.16);
+  border-radius: 14px;
+  background: radial-gradient(circle at top right, rgba(22, 119, 255, 0.08), transparent 42%), #fafcff;
+  text-align: left;
+}
+
+.tagCard:hover {
+  border-color: rgba(22, 119, 255, 0.34);
+}
+
+.tagCardSelected {
+  border-color: rgba(115, 152, 22, 0.45);
+  background: radial-gradient(circle at top right, rgba(115, 152, 22, 0.1), transparent 42%), #fbfdf7;
+}
+
+.tagCardCompleted {
+  border-color: rgba(82, 196, 26, 0.24);
+  background: #f6ffed;
+}
+
+.tagCardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tagRequestNo {
+  display: block;
+  color: #3f3f43;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tagTitleWrap {
+  display: grid;
+  gap: 4px;
+}
+
+.tagSelectBtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #3f3f43;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tagSelectBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.tagDoneIcon {
+  color: #52c41a;
+}
+
+.tagActiveIcon {
+  color: #1677ff;
+}
+
+.tagMeta {
+  display: grid;
+  gap: 4px;
+  color: #5f6368;
+  font-size: 12px;
+}
+
+.tagCardActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.queuePanel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e1e2dd;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff, #fafcf6);
+}
+
+.queueHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.queueEyebrow {
+  margin: 0 0 4px;
+  color: #627f13;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.queueTitle {
+  margin: 0;
+  color: #3f3f43;
+  font-size: 18px;
+}
+
+.queueHint {
+  margin: 4px 0 0;
+  color: #77777c;
+  font-size: 12px;
+}
+
+.queueActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.queueList {
+  display: grid;
+  gap: 10px;
+}
+
+.queueItem {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid #e6e8e0;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.queueIndex {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(115, 152, 22, 0.12);
+  color: #627f13;
+  font-weight: 700;
+}
+
+.queueBody {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.queueBody strong {
+  color: #3f3f43;
+  font-size: 14px;
+}
+
+.queueBody span,
+.queueDate {
+  color: #77777c;
+  font-size: 12px;
+}
+
+.modalContent {
+  display: grid;
+  gap: 18px;
+}
+
+.modalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.modalLabel {
+  display: block;
+  margin-bottom: 6px;
+  color: #5f6368;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.modalSection {
+  display: grid;
+  gap: 12px;
+}
+
+.modalSectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modalSectionHead h4 {
+  margin: 0;
+  color: #3f3f43;
+  font-size: 15px;
+}
+
+.sharedRows {
+  display: grid;
+  gap: 12px;
+}
+
+.emptyState {
+  padding: 32px 16px;
+  border: 1px dashed #d0d2cb;
+  border-radius: 16px;
+  color: #77777c;
+  text-align: center;
+  background: #fafbf8;
+}
+
+@media (max-width: 960px) {
+  .summaryGrid,
+  .planningMetrics,
+  .modalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .queueHead,
+  .queueItem {
+    grid-template-columns: 1fr;
+  }
+}
