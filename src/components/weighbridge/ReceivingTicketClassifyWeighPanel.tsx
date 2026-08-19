@@ -191,9 +191,9 @@ export default function ReceivingTicketClassifyWeighPanel({
 }: Props) {
   const router = useRouter();
   const { message } = App.useApp();
-  const [printingDoc, setPrintingDoc] = useState<
-    "ticket" | "receipt" | "payment" | null
-  >(null);
+  const [printingDoc, setPrintingDoc] = useState<"receipt" | "payment" | null>(
+    null,
+  );
   const classificationsQuery = useTireClassificationsQuery({ isActive: true });
   const receiptQuery = useRawTirePurchaseReceiptQuery(ticket.receiptId ?? "");
   const paymentQuery = useRawTirePaymentQuery(ticket.receiptId ?? "");
@@ -580,31 +580,6 @@ export default function ReceivingTicketClassifyWeighPanel({
     });
   };
 
-  const handlePrintTicket = async () => {
-    if (!ticket.weighOutAt) {
-      message.warning("พิมพ์ตั๋วชั่งได้หลังบันทึกน้ำหนักครบแล้ว");
-      return;
-    }
-    setPrintingDoc("ticket");
-    try {
-      const { generateWeighbridgeTicketPdf, mapWeighbridgeTicketToPdfData } =
-        await import("@/utils/generateWeighbridgeTicketPdf");
-      await generateWeighbridgeTicketPdf(
-        mapWeighbridgeTicketToPdfData({
-          ticket,
-          receipt,
-          isPaid: paymentContext?.receipt.paymentStatus === "PAID",
-        }),
-      );
-    } catch (error) {
-      message.error(
-        error instanceof Error ? error.message : "พิมพ์ตั๋วชั่งไม่สำเร็จ",
-      );
-    } finally {
-      setPrintingDoc(null);
-    }
-  };
-
   const handlePrintReceipt = async () => {
     if (!receipt) {
       message.warning("ยังไม่มีใบรับซื้อให้พิมพ์");
@@ -717,22 +692,6 @@ export default function ReceivingTicketClassifyWeighPanel({
             <div className={styles.classifyDocGrid}>
               <div className={styles.classifyDocCard}>
                 <p className={styles.classifyEyebrow}>เอกสาร 1</p>
-                <h4>ตั๋วชั่ง</h4>
-                <p>{ticket.ticketNo}</p>
-                <div className={styles.classifyDocActions}>
-                  <Button
-                    type="primary"
-                    icon={<PrinterOutlined />}
-                    loading={printingDoc === "ticket"}
-                    disabled={!ticket.weighOutAt}
-                    onClick={() => void handlePrintTicket()}
-                  >
-                    พิมพ์
-                  </Button>
-                </div>
-              </div>
-              <div className={styles.classifyDocCard}>
-                <p className={styles.classifyEyebrow}>เอกสาร 2</p>
                 <h4>ใบรับซื้อ</h4>
                 <p>{ticket.receiptNo || receipt?.receiptNo || "รอโหลดเลขที่"}</p>
                 <div className={styles.classifyDocActions}>
@@ -757,7 +716,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                 </div>
               </div>
               <div className={styles.classifyDocCard}>
-                <p className={styles.classifyEyebrow}>เอกสาร 3</p>
+                <p className={styles.classifyEyebrow}>เอกสาร 2</p>
                 <h4>ใบสำคัญจ่าย</h4>
                 <p>
                   {paymentContext?.voucher?.voucherNo ||

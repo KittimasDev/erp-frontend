@@ -960,6 +960,19 @@ const salesMenus: MenuItem[] = [
     ],
   },
   {
+    key: "sales-orders-in-production",
+    screenCode: "SALES_ORDERS_IN_PRODUCTION",
+    label: "ใบสั่งขายที่ส่งผลิต",
+    href: "/customers/sales-orders-in-production",
+    icon: <IconPurchaseOrder />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
+  {
     key: "quotations",
     screenCode: "QUOTATIONS",
     label: "ใบเสนอราคา",

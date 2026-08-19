@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Alert,
   App,
   Button,
   DatePicker,
@@ -17,15 +16,9 @@ import {
   Tooltip,
 } from "antd";
 import {
-  CheckCircleFilled,
-  ClusterOutlined,
   ExclamationCircleOutlined,
-  InboxOutlined,
   PlusOutlined,
   SearchOutlined,
-  TagsOutlined,
-  ClockCircleOutlined,
-  ProfileOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
@@ -40,28 +33,21 @@ import {
   type Row,
 } from "@/components/production/ProductionOrderCreatePage";
 import { useConsolidatedCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
-import {
-  useProductionRequestPlanningSummaryQuery,
-  useProductionRequestsQuery,
-} from "@/hooks/production-requests/useProductionRequestQueries";
+import { useProductionRequestsQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
-import { ProductionOrderPlanLineType } from "@/types/production-order";
-import type {
-  ProductionRequest,
-  ProductionRequestPlanningSummaryItem,
-  ProductionRequestPlanningTag,
+import {
+  PRODUCTION_ORDER_STATUS_LABEL,
+  ProductionOrderPlanLineType,
+} from "@/types/production-order";
+import type { ProductionRequest } from "@/types/production-request";
+import {
+  PRODUCTION_REQUEST_STATUS_FILTER_LABEL,
+  getProductionRequestStatusDisplay,
+  ProductionRequestStatus,
 } from "@/types/production-request";
-import { PRODUCTION_REQUEST_STATUS_LABEL } from "@/types/production-request";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionRequestsListPage.module.css";
-
-const STATUS_COLOR: Record<string, string> = {
-  PENDING: "default",
-  IN_PRODUCTION: "processing",
-  COMPLETED: "success",
-  CANCELLED: "error",
-};
 
 export default function ProductionRequestsListPage() {
   const router = useRouter();
@@ -76,16 +62,16 @@ export default function ProductionRequestsListPage() {
   const [soNo, setSoNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState<"documents" | "planning">(
-    "documents",
-  );
-  const [activeGroupKey, setActiveGroupKey] = useState<string>();
-  const [selectedTagKeys, setSelectedTagKeys] = useState<string[]>([]);
+  const [selectedById, setSelectedById] = useState<
+    Record<string, ProductionRequest>
+  >({});
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [productionDate, setProductionDate] = useState<Dayjs>(dayjs());
   const [batchNo, setBatchNo] = useState("");
   const [cycleTargetHours, setCycleTargetHours] = useState<number | null>(48);
-  const [plannedLaborHours, setPlannedLaborHours] = useState<number | null>(null);
+  const [plannedLaborHours, setPlannedLaborHours] = useState<number | null>(
+    null,
+  );
   const [remark, setRemark] = useState("");
   const [inputRows, setInputRows] = useState<Row[]>([emptyRow()]);
   const [wasteRows, setWasteRows] = useState<PlanRow[]>([]);
@@ -102,62 +88,31 @@ export default function ProductionRequestsListPage() {
   );
 
   const listQuery = useProductionRequestsQuery(queryParams);
-  const planningSummaryQuery = useProductionRequestPlanningSummaryQuery(
-    queryParams,
-    { enabled: viewMode === "planning" },
-  );
   const rows = listQuery.data?.data.items ?? [];
   const total = listQuery.data?.data.total ?? 0;
-  const planning = planningSummaryQuery.data?.data;
-  const consolidatedCreateMutation = useConsolidatedCreateProductionOrderMutation();
+  const consolidatedCreateMutation =
+    useConsolidatedCreateProductionOrderMutation();
 
-  const summaryCards = [
-    {
-      key: "items",
-      label: "สินค้าที่ต้องวางแผนผลิต",
-      value: planning?.itemCount ?? 0,
-      icon: <InboxOutlined />,
-    },
-    {
-      key: "requests",
-      label: "ใบขอผลิตที่ยังค้าง",
-      value: planning?.requestCount ?? 0,
-      icon: <ClusterOutlined />,
-    },
-    {
-      key: "customers",
-      label: "ลูกค้าที่ได้รับผลกระทบ",
-      value: planning?.customerCount ?? 0,
-      icon: <TagsOutlined />,
-    },
-  ];
-
-  const planningItems = planning?.items ?? [];
-  const selectedPlanningItem = useMemo(
-    () =>
-      planningItems.find(
-        (item) => `${item.itemId}-${item.unitId}` === activeGroupKey,
-      ),
-    [activeGroupKey, planningItems],
+  const selectedRequests = useMemo(
+    () => Object.values(selectedById),
+    [selectedById],
+  );
+  const selectedRowKeys = useMemo(
+    () => Object.keys(selectedById),
+    [selectedById],
   );
 
-  const selectedPlanningTags = useMemo(() => {
-    if (!selectedPlanningItem) {
-      return [];
-    }
-    const selected = new Set(selectedTagKeys);
-    return selectedPlanningItem.tags.filter((tag) =>
-      selected.has(getPlanningTagKey(tag)),
-    );
-  }, [selectedPlanningItem, selectedTagKeys]);
-
-  const sortedSelectedTags = useMemo(
-    () => [...selectedPlanningTags].sort(comparePlanningTags),
-    [selectedPlanningTags],
+  const outstandingSelections = useMemo(
+    () => buildOutstandingSelections(selectedRequests),
+    [selectedRequests],
+  );
+  const sharedShortage = useMemo(
+    () => buildSharedWarehouseShortage(selectedRequests),
+    [selectedRequests],
   );
 
   const canSubmitBulkCreate =
-    sortedSelectedTags.length > 0 &&
+    outstandingSelections.length > 0 &&
     inputRows.length > 0 &&
     inputRows.every(
       (row) =>
@@ -249,19 +204,45 @@ export default function ProductionRequestsListPage() {
       title: "ใบสั่งผลิต",
       key: "productionOrders",
       render: (_, row) =>
-        row.productionOrders.length
-          ? row.productionOrders.map((order) => order.orderNo).join(", ")
-          : "-",
+        row.productionOrders.length ? (
+          <span
+            style={{
+              display: "inline-flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            {row.productionOrders.map((order) => (
+              <button
+                key={order.id}
+                type="button"
+                className={masterStyles.codeBadge}
+                style={{ border: 0, cursor: "pointer" }}
+                onClick={() =>
+                  router.push(`/production/production-orders/${order.id}`)
+                }
+              >
+                {order.orderNo} (
+                {PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status})
+              </button>
+            ))}
+          </span>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "สถานะ",
       dataIndex: "status",
       key: "status",
-      render: (value: string) => (
-        <Tag color={STATUS_COLOR[value] ?? "default"}>
-          {PRODUCTION_REQUEST_STATUS_LABEL[value] ?? value}
-        </Tag>
-      ),
+      render: (_, row) => {
+        const display = getProductionRequestStatusDisplay(
+          row.status,
+          row.productionOrders,
+        );
+        return <Tag color={display.color}>{display.label}</Tag>;
+      },
     },
   ];
 
@@ -275,55 +256,24 @@ export default function ProductionRequestsListPage() {
     setWasteRows([]);
   };
 
-  const handleToggleTag = (
-    planningItem: ProductionRequestPlanningSummaryItem,
-    tag: ProductionRequestPlanningTag,
-  ) => {
-    if (tag.isCompleted) {
-      return;
-    }
-    const groupKey = `${planningItem.itemId}-${planningItem.unitId}`;
-    const tagKey = getPlanningTagKey(tag);
-    if (
-      activeGroupKey &&
-      activeGroupKey !== groupKey &&
-      selectedTagKeys.length > 0
-    ) {
-      message.warning("รอบนี้เลือกได้ทีละกลุ่มสินค้า เพื่อใช้ output และวัตถุดิบร่วมกัน");
-      return;
-    }
-    setActiveGroupKey(groupKey);
-    setSelectedTagKeys((prev) =>
-      prev.includes(tagKey)
-        ? prev.filter((key) => key !== tagKey)
-        : [...prev, tagKey],
-    );
-  };
-
-  const handleSelectAllForItem = (planningItem: ProductionRequestPlanningSummaryItem) => {
-    const groupKey = `${planningItem.itemId}-${planningItem.unitId}`;
-    const selectable = planningItem.tags
-      .filter((tag) => !tag.isCompleted)
-      .map(getPlanningTagKey);
-    setActiveGroupKey(groupKey);
-    setSelectedTagKeys(selectable);
-  };
-
   const handleClearSelection = () => {
-    setActiveGroupKey(undefined);
-    setSelectedTagKeys([]);
+    setSelectedById({});
   };
 
   const handleOpenCreateModal = () => {
-    if (!selectedPlanningItem || !sortedSelectedTags.length) {
-      message.warning("ยังไม่ได้เลือกรายการที่จะเปิดใบสั่งผลิต");
+    if (!selectedRequests.length) {
+      message.warning("ยังไม่ได้เลือกใบขอผลิต");
+      return;
+    }
+    if (!outstandingSelections.length) {
+      message.warning("ใบที่เลือกไม่มีรายการคงค้างที่ต้องผลิต");
       return;
     }
     setCreateModalOpen(true);
   };
 
   const handleConsolidatedCreate = () => {
-    if (!selectedPlanningItem || !sortedSelectedTags.length) {
+    if (!outstandingSelections.length) {
       return;
     }
     consolidatedCreateMutation.mutate(
@@ -349,15 +299,7 @@ export default function ProductionRequestsListPage() {
           plannedQty: row.plannedQty as number,
           sortOrder: index,
         })),
-        selections: sortedSelectedTags.map((tag, index) => ({
-          productionRequestId: tag.productionRequestId,
-          productionRequestItemId: tag.productionRequestItemId as string,
-          itemId: selectedPlanningItem.itemId,
-          unitId: selectedPlanningItem.unitId,
-          plannedQty: Number(tag.outstandingQty),
-          sortOrder: index,
-          remark: `สร้างจากมุมมองรวมเพื่อผลิต — ${tag.requestNo} / ${tag.soNo ?? "-"}`,
-        })),
+        selections: outstandingSelections,
       },
       {
         onSuccess: (response) => {
@@ -370,131 +312,6 @@ export default function ProductionRequestsListPage() {
     );
   };
 
-  const renderPlanningCard = (item: ProductionRequestPlanningSummaryItem) => (
-    <div key={`${item.itemId}-${item.unitId}`} className={styles.planningCard}>
-      <div className={styles.planningCardHead}>
-        <div>
-          <p className={styles.planningItemCode}>{item.itemCode ?? "-"}</p>
-          <h4 className={styles.planningItemName}>{item.itemNameTh ?? "-"}</h4>
-        </div>
-        <div className={styles.cardHeadActions}>
-          <Tag color="orange">
-            ขาด {Number(item.totalOutstandingQty).toLocaleString("th-TH")}{" "}
-            {item.unitCode ?? ""}
-          </Tag>
-          <Button size="small" onClick={() => handleSelectAllForItem(item)}>
-            เลือกทั้งหมดที่ยังไม่ครบ
-          </Button>
-        </div>
-      </div>
-
-      <div className={styles.planningMetrics}>
-        <div className={styles.metricCard}>
-          <span>ขอผลิตรวม</span>
-          <strong>
-            {Number(item.totalRequestedQty).toLocaleString("th-TH")}{" "}
-            {item.unitCode ?? ""}
-          </strong>
-        </div>
-        <div className={styles.metricCard}>
-          <span>ผลิตได้แล้ว</span>
-          <strong>
-            {Number(item.totalProducedQty).toLocaleString("th-TH")}{" "}
-            {item.unitCode ?? ""}
-          </strong>
-        </div>
-        <div className={styles.metricCard}>
-          <span>อ้างอิง</span>
-          <strong>{item.requestCount} ใบขอผลิต</strong>
-        </div>
-      </div>
-
-      <div className={styles.tagList}>
-        {item.tags.map((tag) => (
-          <div
-            key={`${tag.productionRequestId}-${tag.soNo}-${tag.outstandingQty}`}
-            className={`${styles.tagCard} ${
-              selectedTagKeys.includes(getPlanningTagKey(tag))
-                ? styles.tagCardSelected
-                : ""
-            } ${tag.isCompleted ? styles.tagCardCompleted : ""}`}
-          >
-            <div className={styles.tagCardTop}>
-              <div className={styles.tagTitleWrap}>
-                <button
-                  type="button"
-                  className={styles.tagSelectBtn}
-                  disabled={tag.isCompleted}
-                  onClick={() => handleToggleTag(item, tag)}
-                >
-                  {tag.isCompleted ? (
-                    <CheckCircleFilled className={styles.tagDoneIcon} />
-                  ) : tag.hasActiveProductionOrder ? (
-                    <ClockCircleOutlined className={styles.tagActiveIcon} />
-                  ) : (
-                    <ProfileOutlined />
-                  )}{" "}
-                  {tag.requestNo}
-                </button>
-                <span className={styles.tagRequestNo}>{tag.soNo ?? "-"}</span>
-              </div>
-              <Tag color={tag.isCompleted ? "success" : tag.hasActiveProductionOrder ? "processing" : "blue"}>
-                {tag.isCompleted
-                  ? "ครบแล้ว"
-                  : tag.hasActiveProductionOrder
-                    ? "กำลังผลิต"
-                    : (PRODUCTION_REQUEST_STATUS_LABEL[
-                        tag.productionRequestStatus as keyof typeof PRODUCTION_REQUEST_STATUS_LABEL
-                      ] ?? tag.productionRequestStatus)}
-              </Tag>
-            </div>
-            <div className={styles.tagMeta}>
-              <span>{tag.customerName ?? "-"}</span>
-              <span>
-                ขาด {Number(tag.outstandingQty).toLocaleString("th-TH")}{" "}
-                {item.unitCode ?? ""}
-              </span>
-              <span>
-                ต้องการภายใน{" "}
-                {tag.requiredDate
-                  ? dayjs(tag.requiredDate).format("DD/MM/YYYY")
-                  : "-"}
-              </span>
-              <span>
-                เปิดคำขอ{" "}
-                {tag.createdAt ? dayjs(tag.createdAt).format("DD/MM/YYYY HH:mm") : "-"}
-              </span>
-            </div>
-            <div className={styles.tagCardActions}>
-              <Button
-                size="small"
-                type={
-                  selectedTagKeys.includes(getPlanningTagKey(tag))
-                    ? "primary"
-                    : "default"
-                }
-                disabled={tag.isCompleted}
-                onClick={() => handleToggleTag(item, tag)}
-              >
-                {selectedTagKeys.includes(getPlanningTagKey(tag))
-                  ? "เลือกแล้ว"
-                  : "เลือกเข้าคิว"}
-              </Button>
-              <Button
-                size="small"
-                onClick={() =>
-                  router.push(`/production/production-requests/${tag.productionRequestId}`)
-                }
-              >
-                เปิดเอกสาร
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
     <MasterPageGate>
       <section className={masterStyles.page}>
@@ -504,8 +321,8 @@ export default function ProductionRequestsListPage() {
             <div className={masterStyles.eyebrow}>PRODUCTION · จากใบสั่งขาย</div>
             <h2 className={masterStyles.pageTitle}>ใบขอผลิต</h2>
             <span className={masterStyles.pageSubtitle}>
-              อ้างอิงใบสั่งขายที่ยังไม่อนุมัติ 1 ใบขอผลิตต่อ 1 SO —
-              ผลผลิตที่เสร็จรับเข้าสต๊อกกลาง ไม่ผูกกับ SO เดิม
+              เลือกหลายใบสถานะรอเปิดใบสั่งผลิต เพื่อสร้างใบสั่งผลิตใบเดียว
+              ที่ผูกทุกรายการไว้ด้วยกัน
             </span>
           </div>
           {canCreate ? (
@@ -563,24 +380,10 @@ export default function ProductionRequestsListPage() {
                   setStatus(value);
                   setPage(1);
                 }}
-                options={Object.entries(PRODUCTION_REQUEST_STATUS_LABEL).map(
+                options={Object.entries(PRODUCTION_REQUEST_STATUS_FILTER_LABEL).map(
                   ([value, label]) => ({ value, label }),
                 )}
               />
-            </div>
-            <div className={styles.viewToggle}>
-              <Button
-                type={viewMode === "documents" ? "primary" : "default"}
-                onClick={() => setViewMode("documents")}
-              >
-                มุมมองเอกสาร
-              </Button>
-              <Button
-                type={viewMode === "planning" ? "primary" : "default"}
-                onClick={() => setViewMode("planning")}
-              >
-                มุมมองรวมเพื่อผลิต
-              </Button>
             </div>
           </div>
         </div>
@@ -589,131 +392,70 @@ export default function ProductionRequestsListPage() {
           <div className={masterStyles.tableHeader}>
             <div>
               <div className={masterStyles.tableEyebrow}>รายการ</div>
-              <h3>
-                {viewMode === "documents" ? "ใบขอผลิต" : "สรุปยอดคงค้างเพื่อผลิต"}
-              </h3>
+              <h3>ใบขอผลิต</h3>
             </div>
-            <span className={masterStyles.tableCount}>
-              {viewMode === "documents"
-                ? `${total} ใบ`
-                : `${planning?.itemCount ?? 0} สินค้า`}
-            </span>
-          </div>
-          {viewMode === "documents" ? (
-            <Table
-              className={masterStyles.dataTable}
-              rowKey="id"
-              columns={columns}
-              dataSource={rows}
-              loading={listQuery.isFetching}
-              pagination={{
-                current: page,
-                pageSize: 20,
-                total,
-                onChange: setPage,
-                showTotal: (t) => `ทั้งหมด ${t} รายการ`,
-              }}
-            />
-          ) : (
-            <div className={styles.planningWrap}>
-              <Alert
-                type="info"
-                showIcon
-                title="เลือกได้ทีละกลุ่มสินค้า"
-                description="ระบบจะสร้างหลายใบสั่งผลิตแยกตาม PR/SO เดิม แต่ใช้ batch เดียวกันได้ และเรียงคิวจาก required date เร็วสุดก่อน"
-              />
-              <div className={styles.summaryGrid}>
-                {summaryCards.map((card) => (
-                  <div key={card.key} className={styles.summaryCard}>
-                    <span className={styles.summaryIcon}>{card.icon}</span>
-                    <div>
-                      <p className={styles.summaryLabel}>{card.label}</p>
-                      <strong>{card.value.toLocaleString("th-TH")}</strong>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {selectedPlanningItem ? (
-                <div className={styles.queuePanel}>
-                  <div className={styles.queueHead}>
-                    <div>
-                      <p className={styles.queueEyebrow}>Queue Preview</p>
-                      <h4 className={styles.queueTitle}>
-                        {selectedPlanningItem.itemCode ?? "-"} —{" "}
-                        {selectedPlanningItem.itemNameTh ?? "-"}
-                      </h4>
-                      <p className={styles.queueHint}>
-                        เรียงตามวันที่ต้องการก่อน แล้วค่อยวันที่สร้างใบขอผลิต
-                      </p>
-                    </div>
-                    <div className={styles.queueActions}>
-                      <Button onClick={handleClearSelection}>ล้างที่เลือก</Button>
-                      <Button
-                        type="primary"
-                        disabled={!sortedSelectedTags.length}
-                        onClick={handleOpenCreateModal}
-                      >
-                        สร้างใบสั่งผลิตรวมจากที่เลือก ({sortedSelectedTags.length})
-                      </Button>
-                    </div>
-                  </div>
-                  {sortedSelectedTags.length ? (
-                    <div className={styles.queueList}>
-                      {sortedSelectedTags.map((tag, index) => (
-                        <div
-                          key={getPlanningTagKey(tag)}
-                          className={styles.queueItem}
-                        >
-                          <span className={styles.queueIndex}>{index + 1}</span>
-                          <div className={styles.queueBody}>
-                            <strong>
-                              {tag.requestNo} · {tag.soNo ?? "-"}
-                            </strong>
-                            <span>
-                              {tag.customerName ?? "-"} · ขาด{" "}
-                              {Number(tag.outstandingQty).toLocaleString("th-TH")}{" "}
-                              {selectedPlanningItem.unitCode ?? ""}
-                            </span>
-                          </div>
-                          <span className={styles.queueDate}>
-                            {tag.requiredDate
-                              ? dayjs(tag.requiredDate).format("DD/MM/YYYY")
-                              : "-"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={styles.emptyState}>
-                      เลือก PR/SO จาก card ด้านล่างเพื่อเข้าคิวสร้างใบสั่งผลิต
-                    </div>
-                  )}
-                </div>
+            <div className={styles.queueActions}>
+              {selectedRowKeys.length ? (
+                <>
+                  <Button onClick={handleClearSelection}>ล้างที่เลือก</Button>
+                  {canCreate ? (
+                    <Button type="primary" onClick={handleOpenCreateModal}>
+                      สร้างใบสั่งผลิตจากที่เลือก ({selectedRowKeys.length})
+                    </Button>
+                  ) : null}
+                </>
               ) : null}
-
-              {planningSummaryQuery.isFetching ? (
-                <div className={styles.emptyState}>กำลังโหลดสรุปเพื่อวางแผนผลิต...</div>
-              ) : planning?.items.length ? (
-                <div className={styles.planningGrid}>
-                  {planning.items.map(renderPlanningCard)}
-                </div>
-              ) : (
-                <div className={styles.emptyState}>
-                  ไม่พบรายการที่ยังผลิตขาดตามเงื่อนไขค้นหาปัจจุบัน
-                </div>
-              )}
+              <span className={masterStyles.tableCount}>{total} ใบ</span>
             </div>
-          )}
+          </div>
+          <Table
+            className={masterStyles.dataTable}
+            rowKey="id"
+            columns={columns}
+            dataSource={rows}
+            loading={listQuery.isFetching}
+            rowSelection={
+              canCreate
+                ? {
+                    selectedRowKeys,
+                    preserveSelectedRowKeys: true,
+                    onChange: (keys) => {
+                      const keySet = new Set(keys.map(String));
+                      setSelectedById((prev) => {
+                        const next: Record<string, ProductionRequest> = {};
+                        for (const id of keySet) {
+                          const row =
+                            rows.find((item) => item.id === id) ?? prev[id];
+                          if (row && canOpenProductionOrder(row)) {
+                            next[id] = row;
+                          }
+                        }
+                        return next;
+                      });
+                    },
+                    getCheckboxProps: (record) => ({
+                      disabled: !canOpenProductionOrder(record),
+                    }),
+                  }
+                : undefined
+            }
+            pagination={{
+              current: page,
+              pageSize: 20,
+              total,
+              onChange: setPage,
+              showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            }}
+          />
         </div>
       </section>
 
       <Modal
-        title="สร้างใบสั่งผลิตรวมจากมุมมองรวมเพื่อผลิต"
+        title="สร้างใบสั่งผลิตจากใบขอผลิตที่เลือก"
         open={createModalOpen}
         onCancel={() => setCreateModalOpen(false)}
         onOk={handleConsolidatedCreate}
-        okText="สร้างใบสั่งผลิตรวม 1 ใบ"
+        okText="สร้างใบสั่งผลิต 1 ใบ"
         width={1000}
         destroyOnHidden
         confirmLoading={consolidatedCreateMutation.isPending}
@@ -731,7 +473,7 @@ export default function ProductionRequestsListPage() {
               />
             </div>
             <div>
-              <span className={styles.modalLabel}>Batch เดียวกัน</span>
+              <span className={styles.modalLabel}>Batch</span>
               <Input
                 value={batchNo}
                 placeholder="BATCH-..."
@@ -769,28 +511,56 @@ export default function ProductionRequestsListPage() {
 
           <div className={styles.modalSection}>
             <div className={styles.modalSectionHead}>
-              <h4>คิวที่จะเปิดใบสั่งผลิต</h4>
+              <h4>ใบขอผลิตที่จะผูกกับใบสั่งผลิต</h4>
             </div>
-            <div className={styles.queueList}>
-              {sortedSelectedTags.map((tag, index) => (
-                <div key={getPlanningTagKey(tag)} className={styles.queueItem}>
-                  <span className={styles.queueIndex}>{index + 1}</span>
-                  <div className={styles.queueBody}>
+            {sharedShortage.summaries.length ? (
+              <div className={styles.shortageSummary}>
+                {sharedShortage.summaries.map((row) => (
+                  <div key={row.itemId} className={styles.shortageSummaryCard}>
                     <strong>
-                      {tag.requestNo} · {tag.soNo ?? "-"}
+                      {row.itemCode ?? row.itemId}
+                      {row.itemNameTh ? ` — ${row.itemNameTh}` : ""}
                     </strong>
                     <span>
-                      ขาด {Number(tag.outstandingQty).toLocaleString("th-TH")}{" "}
-                      {selectedPlanningItem?.unitCode ?? ""}
+                      ต้องการรวม {formatQty(row.need)} {row.unitCode ?? ""} ·
+                      พร้อมใช้ในคลัง {formatQty(row.warehouseAvailable)}{" "}
+                      {row.unitCode ?? ""} · ขาดรวม{" "}
+                      <b>{formatQty(row.shortage)}</b> {row.unitCode ?? ""}
                     </span>
                   </div>
-                  <span className={styles.queueDate}>
-                    {tag.requiredDate
-                      ? dayjs(tag.requiredDate).format("DD/MM/YYYY")
-                      : "-"}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
+            ) : null}
+            <div className={styles.queueList}>
+              {selectedRequests.map((request, index) => {
+                const lines = sharedShortage.linesByRequestId.get(request.id) ?? [];
+                return (
+                  <div key={request.id} className={styles.queueItem}>
+                    <span className={styles.queueIndex}>{index + 1}</span>
+                    <div className={styles.queueBody}>
+                      <strong>
+                        {request.requestNo} · {request.soNo ?? "-"}
+                      </strong>
+                      <span>
+                        {request.customerName ?? "-"}
+                        {lines.length
+                          ? ` · ${lines
+                              .map(
+                                (line) =>
+                                  `${line.itemCode ?? line.itemId} ต้องการ ${formatQty(line.need)} · ใช้จากคลัง ${formatQty(line.covered)} · ขาด ${formatQty(line.shortage)} ${line.unitCode ?? ""}`,
+                              )
+                              .join(" · ")}`
+                          : " · ไม่มีรายการคงค้าง"}
+                      </span>
+                    </div>
+                    <span className={styles.queueDate}>
+                      {request.requiredDate
+                        ? dayjs(request.requiredDate).format("DD/MM/YYYY")
+                        : "-"}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -810,7 +580,9 @@ export default function ProductionRequestsListPage() {
                   removable={inputRows.length > 1}
                   onChange={(next) =>
                     setInputRows((prev) =>
-                      prev.map((current) => (current.key === row.key ? next : current)),
+                      prev.map((current) =>
+                        current.key === row.key ? next : current,
+                      ),
                     )
                   }
                   onRemove={() =>
@@ -825,8 +597,10 @@ export default function ProductionRequestsListPage() {
 
           <div className={styles.modalSection}>
             <div className={styles.modalSectionHead}>
-              <h4>ของเสีย/แผนเสริมที่ copy ให้ทุกใบ</h4>
-              <Button onClick={() => setWasteRows((prev) => [...prev, emptyPlanRow()])}>
+              <h4>ของเสีย/แผนเสริม</h4>
+              <Button
+                onClick={() => setWasteRows((prev) => [...prev, emptyPlanRow()])}
+              >
                 เพิ่มของเสีย
               </Button>
             </div>
@@ -841,7 +615,9 @@ export default function ProductionRequestsListPage() {
                     stockItemsOnly
                     onChange={(next) =>
                       setWasteRows((prev) =>
-                        prev.map((current) => (current.key === row.key ? next : current)),
+                        prev.map((current) =>
+                          current.key === row.key ? next : current,
+                        ),
                       )
                     }
                     onRemove={() =>
@@ -864,19 +640,124 @@ export default function ProductionRequestsListPage() {
   );
 }
 
-function getPlanningTagKey(tag: ProductionRequestPlanningTag) {
-  return tag.productionRequestItemId ?? tag.productionRequestId;
+function canOpenProductionOrder(request: ProductionRequest) {
+  if (request.status !== ProductionRequestStatus.PENDING) {
+    return false;
+  }
+  return !request.productionOrders.some(
+    (order) => order.status !== "CANCELLED",
+  );
 }
 
-function comparePlanningTags(
-  a: ProductionRequestPlanningTag,
-  b: ProductionRequestPlanningTag,
-) {
-  const requiredCompare = (a.requiredDate ?? "").localeCompare(
-    b.requiredDate ?? "",
-  );
-  if (requiredCompare !== 0) {
-    return requiredCompare;
+function formatQty(value: number) {
+  return value.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+}
+
+type SharedShortageLine = {
+  itemId: string;
+  itemCode?: string;
+  unitCode?: string;
+  need: number;
+  covered: number;
+  shortage: number;
+};
+
+type SharedShortageSummary = {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitCode?: string;
+  need: number;
+  warehouseAvailable: number;
+  shortage: number;
+};
+
+function buildSharedWarehouseShortage(requests: ProductionRequest[]) {
+  const poolByItemId = new Map<string, number>();
+  const metaByItemId = new Map<
+    string,
+    {
+      itemCode?: string;
+      itemNameTh?: string;
+      unitCode?: string;
+      warehouseAvailable: number;
+    }
+  >();
+
+  for (const request of requests) {
+    for (const item of request.items) {
+      if (metaByItemId.has(item.itemId)) {
+        continue;
+      }
+      const warehouseAvailable = Number(item.warehouseAvailableQty ?? 0);
+      poolByItemId.set(item.itemId, warehouseAvailable);
+      metaByItemId.set(item.itemId, {
+        itemCode: item.itemCode,
+        itemNameTh: item.itemNameTh,
+        unitCode: item.unitCode,
+        warehouseAvailable,
+      });
+    }
   }
-  return (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
+
+  const linesByRequestId = new Map<string, SharedShortageLine[]>();
+  const needByItemId = new Map<string, number>();
+
+  for (const request of requests) {
+    const lines: SharedShortageLine[] = [];
+    const items = [...request.items].sort((a, b) => a.sortOrder - b.sortOrder);
+    for (const item of items) {
+      const need = Number(item.outstandingQty);
+      if (!(need > 0)) {
+        continue;
+      }
+      const pool = poolByItemId.get(item.itemId) ?? 0;
+      const covered = Math.min(need, Math.max(pool, 0));
+      poolByItemId.set(item.itemId, pool - covered);
+      needByItemId.set(item.itemId, (needByItemId.get(item.itemId) ?? 0) + need);
+      lines.push({
+        itemId: item.itemId,
+        itemCode: item.itemCode,
+        unitCode: item.unitCode,
+        need,
+        covered,
+        shortage: need - covered,
+      });
+    }
+    linesByRequestId.set(request.id, lines);
+  }
+
+  const summaries: SharedShortageSummary[] = [...metaByItemId.entries()]
+    .map(([itemId, meta]) => {
+      const need = needByItemId.get(itemId) ?? 0;
+      return {
+        itemId,
+        itemCode: meta.itemCode,
+        itemNameTh: meta.itemNameTh,
+        unitCode: meta.unitCode,
+        need,
+        warehouseAvailable: meta.warehouseAvailable,
+        shortage: Math.max(need - meta.warehouseAvailable, 0),
+      };
+    })
+    .filter((row) => row.need > 0);
+
+  return { linesByRequestId, summaries };
+}
+
+function buildOutstandingSelections(requests: ProductionRequest[]) {
+  let sortOrder = 0;
+  return requests.flatMap((request) =>
+    request.items
+      .filter((item) => Number(item.outstandingQty) > 0)
+      .map((item) => ({
+        productionRequestId: request.id,
+        productionRequestItemId: item.id,
+        itemId: item.itemId,
+        unitId: item.unitId,
+        plannedQty: Number(item.outstandingQty),
+        sortOrder: sortOrder++,
+        remark: `สร้างจากใบขอผลิต ${request.requestNo} / ${request.soNo ?? "-"}`,
+      })),
+  );
 }

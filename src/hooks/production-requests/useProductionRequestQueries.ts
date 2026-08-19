@@ -5,12 +5,16 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getEligibleSalesOrder,
   getEligibleSalesOrders,
+  getLinkedSalesOrders,
   getProductionRequest,
   getProductionRequestPlanningSummary,
   getProductionRequests,
 } from "@/lib/api/production-requests";
 import { getAccessToken } from "@/lib/auth/token";
-import type { QueryProductionRequestsParams } from "@/types/production-request";
+import type {
+  QueryLinkedSalesOrdersParams,
+  QueryProductionRequestsParams,
+} from "@/types/production-request";
 
 export const productionRequestsQueryKey = ["production-requests"] as const;
 
@@ -40,6 +44,17 @@ export function useProductionRequestPlanningSummaryQuery(
   return useQuery({
     queryKey: [...productionRequestsQueryKey, "planning-summary", params ?? {}],
     queryFn: () => getProductionRequestPlanningSummary(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useLinkedSalesOrdersQuery(
+  params?: QueryLinkedSalesOrdersParams,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: [...productionRequestsQueryKey, "linked-sales-orders", params ?? {}],
+    queryFn: () => getLinkedSalesOrders(getAccessToken(), params),
     enabled: options?.enabled ?? true,
   });
 }

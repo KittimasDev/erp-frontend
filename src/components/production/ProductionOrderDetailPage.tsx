@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  App,
   Button,
   Checkbox,
   Form,
@@ -43,8 +44,6 @@ import {
 } from "@/hooks/production-output/useProductionOutputQueries";
 import { useCreateProductionOutputStockRequestFromOrderMutation } from "@/hooks/production-output/useProductionOutputMutations";
 import { useStockIssuesQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
-import { useItemsQuery } from "@/hooks/items/useItemsQuery";
-import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -76,6 +75,7 @@ function fmtDate(value?: string) {
 
 export default function ProductionOrderDetailPage({ orderId }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
   const orderActions = useScreenActionPermissions("PRODUCTION_ORDERS");
   const outputActions = useScreenActionPermissions(
     "PRODUCTION_OUTPUT_STOCK_REQUESTS",
@@ -128,11 +128,17 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const [logOpen, setLogOpen] = useState(false);
   const [logNote, setLogNote] = useState("");
   const [requestOpen, setRequestOpen] = useState(false);
+  const [selectedReceiveItemIds, setSelectedReceiveItemIds] = useState<
+    string[]
+  >([]);
+  const [receiveQtyByItemId, setReceiveQtyByItemId] = useState<
+    Record<string, number>
+  >({});
   const [requestForm] = Form.useForm();
 
   const readyOrdersQuery = useProductionOutputReadyOrdersQuery(
     { all: true },
-    { enabled: requestOpen },
+    { enabled: Boolean(orderId) },
   );
   const blockedItemIds = useMemo(
     () =>
@@ -141,8 +147,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     [readyOrdersQuery.data, orderId],
   );
 
-  const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
-  const unitsQuery = useUnitsQuery();
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const selectedWarehouseId = Form.useWatch("warehouseId", requestForm);
   const locationsQuery = useWarehouseLocationsQuery(
@@ -172,6 +176,24 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     [order?.planLines],
   );
 
+  const receiveLines = useMemo(() => {
+    const byItemId = new Map<string, (typeof outputPlanLines)[number]>();
+    for (const line of outputPlanLines) {
+      const existing = byItemId.get(line.itemId);
+      if (existing) {
+        byItemId.set(line.itemId, {
+          ...existing,
+          plannedQty: String(
+            Number(existing.plannedQty) + Number(line.plannedQty),
+          ),
+        });
+      } else {
+        byItemId.set(line.itemId, { ...line });
+      }
+    }
+    return [...byItemId.values()];
+  }, [outputPlanLines]);
+
   const wastePlanLines = useMemo(
     () =>
       (order?.planLines ?? []).filter(
@@ -181,6 +203,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   );
 
   const sourceLines = order?.sourceLines ?? [];
+  const linkedRequestNos = useMemo(() => {
+    const nos = (order?.sourceLines ?? [])
+      .map((line) => line.productionRequestNo)
+      .filter((value): value is string => Boolean(value));
+    if (nos.length) {
+      return [...new Set(nos)];
+    }
+    return order?.productionRequestNo ? [order.productionRequestNo] : [];
+  }, [order?.productionRequestNo, order?.sourceLines]);
   const allocationSummary = order?.allocationSummary;
   const hasSourceLines = sourceLines.length > 0;
   const unallocatedQty = Number(allocationSummary?.unallocatedQty ?? 0);
@@ -241,10 +272,27 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
   const handleSubmitOutputRequest = async () => {
     const values = await requestForm.validateFields();
+    const selectedLines = receiveLines.filter((line) =>
+      selectedReceiveItemIds.includes(line.itemId),
+    );
+    if (!selectedLines.length) {
+      message.warning("กรุณาเลือกผลผลิตอย่างน้อย 1 รายการ");
+      return;
+    }
+    const items = selectedLines.map((line) => {
+      const qty = Number(receiveQtyByItemId[line.itemId] ?? line.plannedQty);
+      return {
+        itemId: line.itemId,
+        unitId: line.unitId,
+        quantity: Number(qty).toFixed(3),
+      };
+    });
+    if (items.some((item) => !(Number(item.quantity) > 0))) {
+      message.warning("จำนวนรับเข้าต้องมากกว่า 0");
+      return;
+    }
     const body: CreateProductionOutputStockRequestFromOrderBody = {
-      itemId: values.itemId,
-      unitId: values.unitId,
-      quantity: String(values.quantity),
+      items,
       warehouseId: values.warehouseId,
       warehouseLocationId: values.warehouseLocationId,
       remark: values.remark || undefined,
@@ -255,10 +303,27 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
         onSuccess: () => {
           setRequestOpen(false);
           requestForm.resetFields();
+          setSelectedReceiveItemIds([]);
+          setReceiveQtyByItemId({});
           void relatedRequestsQuery.refetch();
+          void readyOrdersQuery.refetch();
         },
       },
     );
+  };
+
+  const openReceiveModal = () => {
+    const qtyByItemId: Record<string, number> = {};
+    const selectable: string[] = [];
+    for (const line of receiveLines) {
+      qtyByItemId[line.itemId] = Number(line.plannedQty);
+      if (!blockedItemIds.includes(line.itemId)) {
+        selectable.push(line.itemId);
+      }
+    }
+    setReceiveQtyByItemId(qtyByItemId);
+    setSelectedReceiveItemIds(selectable);
+    setRequestOpen(true);
   };
 
   return (
@@ -274,7 +339,12 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               {order?.orderNo ?? "ใบสั่งผลิต"}
             </h2>
             <span className={masterStyles.pageSubtitle}>
-              {order ? PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status : ""}
+              {order
+                ? PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status
+                : ""}
+              {linkedRequestNos.length
+                ? ` · ใบขอผลิต ${linkedRequestNos.join(" · ")}`
+                : ""}
             </span>
           </div>
           <Button
@@ -367,7 +437,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 <Button
                   type="primary"
                   className={masterStyles.createButton}
-                  onClick={() => setRequestOpen(true)}
+                  onClick={openReceiveModal}
                 >
                   ขอรับผลผลิตเข้าคลัง
                 </Button>
@@ -1152,60 +1222,71 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
           confirmLoading={createFromOrderMutation.isPending}
           onOk={handleSubmitOutputRequest}
           destroyOnHidden
-          width={640}
+          width={760}
         >
           <Typography.Paragraph type="secondary">
-            อ้างอิงใบสั่งผลิต {order?.orderNo} — ยังไม่ POST สต๊อก รอ WAREHOUSE_MANAGER
-            อนุมัติ
+            อ้างอิงใบสั่งผลิต {order?.orderNo} — เลือกหลายรายการผลผลิตได้ในครั้งเดียว
+            ระบบจะสร้างคำขอแยกตามสินค้า ยังไม่ POST สต๊อก รอ WAREHOUSE_MANAGER อนุมัติ
           </Typography.Paragraph>
-          <Form form={requestForm} layout="vertical">
-            <Form.Item
-              name="itemId"
-              label="สินค้าที่ได้ (ผลผลิต)"
-              rules={[{ required: true, message: "กรุณาเลือกสินค้า" }]}
-            >
-              <Select
-                showSearch
-                placeholder="เลือกสินค้า"
-                optionFilterProp="label"
-                loading={itemsQuery.isLoading}
-                options={(itemsQuery.data?.data ?? []).map((item) => ({
-                  value: item.id,
-                  label: `${item.itemCode} — ${item.itemNameTh}`,
-                  disabled: blockedItemIds.includes(item.id),
-                  unitId: item.unitId,
-                }))}
-                onChange={(value, option) => {
-                  const opt = option as { unitId?: string } | undefined;
-                  if (opt?.unitId) {
-                    requestForm.setFieldValue("unitId", opt.unitId);
-                  }
-                }}
-              />
-            </Form.Item>
-            <Form.Item
-              name="unitId"
-              label="หน่วยนับ"
-              rules={[{ required: true, message: "กรุณาเลือกหน่วยนับ" }]}
-            >
-              <Select
-                showSearch
-                placeholder="เลือกหน่วยนับ"
-                optionFilterProp="label"
-                loading={unitsQuery.isLoading}
-                options={(unitsQuery.data?.data ?? []).map((u) => ({
-                  value: u.id,
-                  label: `${u.code} — ${u.nameTh}`,
-                }))}
-              />
-            </Form.Item>
-            <Form.Item
-              name="quantity"
-              label="จำนวน"
-              rules={[{ required: true, message: "กรุณากรอกจำนวน" }]}
-            >
-              <InputNumber min={0.001} style={{ width: "100%" }} />
-            </Form.Item>
+          <Table
+            rowKey="itemId"
+            size="small"
+            pagination={false}
+            dataSource={receiveLines}
+            locale={{ emptyText: "ไม่มีแผนผลผลิต" }}
+            rowSelection={{
+              selectedRowKeys: selectedReceiveItemIds,
+              onChange: (keys) => setSelectedReceiveItemIds(keys.map(String)),
+              getCheckboxProps: (record) => ({
+                disabled: blockedItemIds.includes(record.itemId),
+              }),
+            }}
+            columns={[
+              {
+                title: "สินค้า",
+                key: "item",
+                render: (_, row) =>
+                  row.itemCode
+                    ? `${row.itemCode} — ${row.itemNameTh ?? ""}`
+                    : row.itemId,
+              },
+              {
+                title: "แผน",
+                dataIndex: "plannedQty",
+                key: "plannedQty",
+                align: "right",
+                render: (v: string, row) => `${fmt(v)} ${row.unitCode ?? ""}`,
+              },
+              {
+                title: "เข้าคลังแล้ว",
+                dataIndex: "actualQty",
+                key: "actualQty",
+                align: "right",
+                render: (_, row) =>
+                  `${fmt(row.actualQty ?? "0")} ${row.unitCode ?? ""}`,
+              },
+              {
+                title: "จำนวนรับเข้า",
+                key: "receiveQty",
+                width: 160,
+                render: (_, row) => (
+                  <InputNumber
+                    min={0.001}
+                    style={{ width: "100%" }}
+                    disabled={blockedItemIds.includes(row.itemId)}
+                    value={receiveQtyByItemId[row.itemId]}
+                    onChange={(value) =>
+                      setReceiveQtyByItemId((prev) => ({
+                        ...prev,
+                        [row.itemId]: Number(value ?? 0),
+                      }))
+                    }
+                  />
+                ),
+              },
+            ]}
+          />
+          <Form form={requestForm} layout="vertical" style={{ marginTop: 16 }}>
             <Form.Item
               name="warehouseId"
               label="คลังปลายทาง"

@@ -108,7 +108,7 @@ export function createProductionOutputStockRequestFromOrder(
   productionOrderId: string,
   body: CreateProductionOutputStockRequestFromOrderBody,
 ) {
-  return apiFetch<ProductionOutputStockRequestApiResponse>(
+  return apiFetch<ProductionOutputStockRequestListApiResponse>(
     `/api/production-output/stock-requests/from-production-order/${productionOrderId}`,
     { method: "POST", token, body },
   );

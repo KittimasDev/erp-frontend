@@ -28,7 +28,7 @@ import { useProductionRequestQuery } from "@/hooks/production-requests/useProduc
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
-  PRODUCTION_REQUEST_STATUS_LABEL,
+  getProductionRequestStatusDisplay,
   ProductionRequestStatus,
 } from "@/types/production-request";
 import type {
@@ -41,13 +41,6 @@ import styles from "./ProductionOrderDetailPage.module.css";
 
 type Props = {
   requestId: string;
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  PENDING: "default",
-  IN_PRODUCTION: "processing",
-  COMPLETED: "success",
-  CANCELLED: "error",
 };
 
 function fmt(value?: string) {
@@ -72,6 +65,12 @@ export default function ProductionRequestDetailPage({ requestId }: Props) {
 
   const detailQuery = useProductionRequestQuery(requestId);
   const request = detailQuery.data?.data;
+  const statusDisplay = request
+    ? getProductionRequestStatusDisplay(
+        request.status,
+        request.productionOrders,
+      )
+    : null;
   const cancelMutation = useCancelProductionRequestMutation();
 
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -218,11 +217,8 @@ export default function ProductionRequestDetailPage({ requestId }: Props) {
               {request?.customerName ?? "-"}
             </span>
           </div>
-          {request ? (
-            <Tag color={STATUS_COLOR[request.status] ?? "default"}>
-              {PRODUCTION_REQUEST_STATUS_LABEL[request.status] ??
-                request.status}
-            </Tag>
+          {statusDisplay ? (
+            <Tag color={statusDisplay.color}>{statusDisplay.label}</Tag>
           ) : null}
         </div>
 

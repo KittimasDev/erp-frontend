@@ -168,14 +168,18 @@ export type AvailableMaterialIssueListApiResponse = {
   data: LinkedMaterialIssue[];
 };
 
-export type CreateProductionOutputStockRequestFromOrderBody = {
+export type CreateProductionOutputStockRequestFromOrderItem = {
   itemId: string;
   unitId: string;
   quantity: string;
+  lotNo?: string;
+};
+
+export type CreateProductionOutputStockRequestFromOrderBody = {
+  items: CreateProductionOutputStockRequestFromOrderItem[];
   warehouseId: string;
   warehouseLocationId: string;
   postingDate?: string;
-  lotNo?: string;
   remark?: string;
   materialIssueIds?: string[];
 };

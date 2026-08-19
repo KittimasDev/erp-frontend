@@ -327,6 +327,34 @@
   font-size: 15px;
 }
 
+.shortageSummary {
+  display: grid;
+  gap: 8px;
+}
+
+.shortageSummaryCard {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid rgba(207, 19, 34, 0.16);
+  border-radius: 12px;
+  background: #fff7f6;
+}
+
+.shortageSummaryCard strong {
+  color: #3f3f43;
+  font-size: 13px;
+}
+
+.shortageSummaryCard span {
+  color: #77777c;
+  font-size: 12px;
+}
+
+.shortageSummaryCard b {
+  color: #cf1322;
+}
+
 .sharedRows {
   display: grid;
   gap: 12px;

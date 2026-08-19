@@ -60,6 +60,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/sales-invoices/pending", title: "รอออกใบแจ้งหนี้" },
   { href: "/sales-invoices", title: "ใบแจ้งหนี้ขาย" },
   { href: "/sales-tracking", title: "ติดตามการขายและจัดส่ง" },
+  { href: "/customers/sales-orders-in-production", title: "ใบสั่งขายที่ส่งผลิต" },
   { href: "/customers", title: "ข้อมูลลูกค้า" },
   { href: "/laboratory/samples", title: "ตัวอย่างตรวจสอบ (LIMS)" },
   { href: "/goods-receipts", title: "รับสินค้าเข้าคลัง (PO)" },

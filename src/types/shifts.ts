@@ -461,6 +461,7 @@ export type ShiftAutoPlanRoleOptions = {
 
 export type ShiftAutoPlanApplyRequest = ShiftAutoPlanRequest & {
   overwriteExisting?: boolean;
+  forcePublish?: boolean;
 };
 
 export type ShiftAutoPlanPositionOption = {
@@ -563,6 +564,28 @@ export type ShiftAutoPlanWriteResult = {
   }>;
 };
 
+export type ShiftAutoPlanCoverage = {
+  pass: boolean;
+  requiredSlots: number;
+  assignedSlots: number;
+  shortageSlots: number;
+};
+
+export type ShiftAutoPlanWorkloadGroup = {
+  position: string;
+  shiftId: string;
+  shiftName: string;
+  minDays: number;
+  maxDays: number;
+  spread: number;
+};
+
+export type ShiftAutoPlanWorkload = {
+  pass: boolean;
+  maxSpread: number;
+  groups: ShiftAutoPlanWorkloadGroup[];
+};
+
 export type ShiftAutoPlan = {
   month: string;
   dateFrom: string;
@@ -573,6 +596,8 @@ export type ShiftAutoPlan = {
   scheduledSlots: number;
   filledSlots: number;
   understaffedSlots: number;
+  coverage: ShiftAutoPlanCoverage;
+  workload: ShiftAutoPlanWorkload;
   /** รอบกะที่แผนนี้จะเขียน (วัน × กะ ที่ไม่ซ้ำ) */
   plannedRoundCount: number;
   /** รอบกะที่มีอยู่แล้วและทับกับแผนนี้ — >0 ต้องติ๊กทับ ไม่งั้นไม่มีอะไรถูกบันทึก */

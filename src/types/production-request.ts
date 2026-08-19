@@ -15,6 +15,42 @@ export const PRODUCTION_REQUEST_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "ยกเลิก",
 };
 
+export const PRODUCTION_REQUEST_STATUS_FILTER_LABEL: Record<string, string> = {
+  PENDING: "รอเปิดใบสั่งผลิต",
+  IN_PRODUCTION: "มีใบสั่งผลิตที่ยังไม่เสร็จ",
+  COMPLETED: "ผลิตครบแล้ว",
+  CANCELLED: "ยกเลิก",
+};
+
+const PRODUCTION_REQUEST_STATUS_TAG_COLOR: Record<string, string> = {
+  PENDING: "default",
+  IN_PRODUCTION: "processing",
+  COMPLETED: "success",
+  CANCELLED: "error",
+};
+
+export function getProductionRequestStatusDisplay(
+  status: string,
+  productionOrders?: { status: string }[],
+): { label: string; color: string } {
+  if (status === ProductionRequestStatus.IN_PRODUCTION) {
+    const orders = productionOrders ?? [];
+    const hasInProgress = orders.some((order) => order.status === "IN_PROGRESS");
+    const hasDraft = orders.some((order) => order.status === "DRAFT");
+    if (hasInProgress) {
+      return { label: "อยู่ในระหว่างการผลิต", color: "processing" };
+    }
+    if (hasDraft || orders.length === 0) {
+      return { label: "ยังไม่เริ่มผลิต", color: "default" };
+    }
+  }
+
+  return {
+    label: PRODUCTION_REQUEST_STATUS_LABEL[status] ?? status,
+    color: PRODUCTION_REQUEST_STATUS_TAG_COLOR[status] ?? "default",
+  };
+}
+
 export type ProductionRequestUserSummary = {
   id: string;
   username: string;
@@ -37,6 +73,7 @@ export type ProductionRequestItem = {
   deliveredQty: string;
   alreadyRequestedQty: string;
   remainingQty: string;
+  warehouseAvailableQty: string;
   remark?: string;
   sortOrder: number;
 };
@@ -209,4 +246,43 @@ export type EligibleSalesOrderListApiResponse = {
   statusCode?: number;
   message: string;
   data: EligibleSalesOrder[];
+};
+
+export type QueryLinkedSalesOrdersParams = {
+  q?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type LinkedSalesOrderProductionRequest = {
+  id: string;
+  requestNo: string;
+  status: string;
+  producedPercent: number;
+  requiredDate?: string;
+};
+
+export type LinkedSalesOrder = {
+  salesOrderId: string;
+  soNo: string;
+  soStatus: string;
+  customerName?: string;
+  requestedDeliveryDate?: string;
+  requestCount: number;
+  latestRequestStatus: string;
+  productionRequests: LinkedSalesOrderProductionRequest[];
+};
+
+export type LinkedSalesOrderListData = {
+  items: LinkedSalesOrder[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type LinkedSalesOrderListApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: LinkedSalesOrderListData;
 };

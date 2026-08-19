@@ -188,6 +188,12 @@ export default function SalesTrackingPage() {
   const columns: ColumnsType<SalesTrackingRow> = useMemo(
     () => [
       {
+        title: "#",
+        width: 56,
+        align: "center",
+        render: (_v, _r, index) => (page - 1) * 20 + index + 1,
+      },
+      {
         title: "SO",
         dataIndex: "salesOrderNo",
         render: (v: string) => <span className={styles.prNo}>{v}</span>,
@@ -227,7 +233,7 @@ export default function SalesTrackingPage() {
         ),
       },
     ],
-    [],
+    [page],
   );
 
   const detail = detailQuery.data?.data;

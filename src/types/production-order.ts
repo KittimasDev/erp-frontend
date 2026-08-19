@@ -9,7 +9,7 @@ export type ProductionOrderStatusValue =
   (typeof ProductionOrderStatus)[keyof typeof ProductionOrderStatus];
 
 export const PRODUCTION_ORDER_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "ยังไม่เริ่มผลิต",
   IN_PROGRESS: "กำลังผลิต",
   COMPLETED: "เสร็จสิ้น",
   CANCELLED: "ยกเลิก",

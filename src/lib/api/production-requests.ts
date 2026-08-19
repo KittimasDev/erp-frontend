@@ -4,9 +4,11 @@ import type {
   CreateProductionRequestBody,
   EligibleSalesOrderApiResponse,
   EligibleSalesOrderListApiResponse,
+  LinkedSalesOrderListApiResponse,
   ProductionRequestApiResponse,
   ProductionRequestListApiResponse,
   ProductionRequestPlanningSummaryApiResponse,
+  QueryLinkedSalesOrdersParams,
   QueryProductionRequestsParams,
   UpdateProductionRequestBody,
 } from "@/types/production-request";
@@ -91,6 +93,30 @@ export function getEligibleSalesOrders(
   const query = search.toString();
   return apiFetch<EligibleSalesOrderListApiResponse>(
     `${BASE}/eligible-sales-orders${query ? `?${query}` : ""}`,
+    { method: "GET", token },
+  );
+}
+
+export function getLinkedSalesOrders(
+  token: string,
+  params?: QueryLinkedSalesOrdersParams,
+) {
+  const search = new URLSearchParams();
+  if (params?.q?.trim()) {
+    search.set("q", params.q.trim());
+  }
+  if (params?.status?.trim()) {
+    search.set("status", params.status.trim());
+  }
+  if (params?.page) {
+    search.set("page", String(params.page));
+  }
+  if (params?.limit) {
+    search.set("limit", String(params.limit));
+  }
+  const query = search.toString();
+  return apiFetch<LinkedSalesOrderListApiResponse>(
+    `${BASE}/linked-sales-orders${query ? `?${query}` : ""}`,
     { method: "GET", token },
   );
 }

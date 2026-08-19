@@ -173,7 +173,54 @@ export default function ShiftAutoPlanPreview({
             {plan.workingDays} / {plan.daysInMonth}
           </strong>
         </div>
+        <div className={styles.summaryCard}>
+          <span>Coverage</span>
+          <strong
+            className={
+              plan.coverage.pass ? styles.okValue : styles.shortValue
+            }
+          >
+            {plan.coverage.pass
+              ? "ผ่าน"
+              : `ขาด ${plan.coverage.shortageSlots}`}
+          </strong>
+        </div>
+        <div className={styles.summaryCard}>
+          <span>Workload (spread)</span>
+          <strong
+            className={
+              plan.workload.pass ? styles.okValue : styles.shortValue
+            }
+          >
+            {plan.workload.pass
+              ? "ใกล้เคียง"
+              : `ต่าง ${plan.workload.maxSpread} วัน`}
+          </strong>
+        </div>
       </div>
+
+      {!plan.coverage.pass ? (
+        <Alert
+          type="error"
+          showIcon
+          title="Coverage ยังไม่ผ่าน"
+          description={`จัดได้ ${plan.coverage.assignedSlots} จากที่ต้องใช้ ${plan.coverage.requiredSlots} ช่อง — ต้องยืนยันบังคับบันทึกถ้าต้องการลงตารางนี้`}
+        />
+      ) : null}
+      {!plan.workload.pass ? (
+        <Alert
+          type="warning"
+          showIcon
+          title="จำนวนวันทำงานยังไม่ใกล้เคียงกัน"
+          description={plan.workload.groups
+            .filter((group) => group.spread > 2)
+            .map(
+              (group) =>
+                `${group.position} · ${group.shiftName}: ${group.minDays}–${group.maxDays} วัน (ต่าง ${group.spread})`,
+            )
+            .join(" · ")}
+        />
+      ) : null}
 
       {/* ---------- รายตำแหน่ง ---------- */}
       <div className={styles.positionCards}>

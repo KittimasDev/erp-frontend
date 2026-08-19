@@ -74,7 +74,12 @@
 }
 
 .headcountInput {
-  width: 130px;
+  width: 140px;
+}
+
+.headcountInput :global(.ant-input-number) {
+  flex: 1;
+  width: auto;
 }
 
 .positionSummary {

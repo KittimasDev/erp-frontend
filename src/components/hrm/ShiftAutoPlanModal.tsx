@@ -12,6 +12,7 @@ import {
   Modal,
   Popconfirm,
   Select,
+  Space,
   Switch,
   Tooltip,
 } from "antd";
@@ -222,7 +223,7 @@ export default function ShiftAutoPlanModal({
     }
   };
 
-  const handleApply = async () => {
+  const handleApply = async (forcePublish = false) => {
     try {
       const response = await applyMutation.mutateAsync({
         month: targetMonth.format("YYYY-MM"),
@@ -230,6 +231,7 @@ export default function ShiftAutoPlanModal({
         ...filterPayload,
         skipHolidays,
         overwriteExisting,
+        forcePublish: forcePublish || undefined,
         note: note.trim() || undefined,
       });
       // ไม่ปิดโมดัลทันที — ต้องให้เห็นว่ารอบไหนถูกข้าม/ใครติดกะอื่นก่อน
@@ -269,40 +271,63 @@ export default function ShiftAutoPlanModal({
           {canSave && plan ? (
             <>
               <Button onClick={() => setPlan(null)}>กลับไปแก้ค่า</Button>
-              <Popconfirm
-                title={`บันทึกตารางกะเดือน ${targetMonth.format("MM/YYYY")}`}
-                description={
-                  <div className={styles.ruleList}>
-                    <p>
-                      รอบกะที่จะเขียน <strong>{plan.plannedRoundCount}</strong> รอบ ·
-                      ลงคน <strong>{plan.filledSlots}</strong> ช่อง
-                    </p>
-                    {plan.existingRoundCount > 0 ? (
+              {plan.coverage.pass ? (
+                <Popconfirm
+                  title={`บันทึกตารางกะเดือน ${targetMonth.format("MM/YYYY")}`}
+                  description={
+                    <div className={styles.ruleList}>
                       <p>
-                        มีรอบกะเดิมทับอยู่ <strong>{plan.existingRoundCount}</strong> รอบ —{" "}
-                        {overwriteExisting ? (
-                          <strong>จะเขียนทับรายชื่อเดิมทั้งหมด</strong>
-                        ) : (
-                          <strong>จะถูกข้ามไป ไม่มีคนถูกลงกะในรอบเหล่านั้น</strong>
-                        )}
+                        รอบกะที่จะเขียน <strong>{plan.plannedRoundCount}</strong> รอบ ·
+                        ลงคน <strong>{plan.filledSlots}</strong> ช่อง
                       </p>
-                    ) : null}
-                    {plan.understaffedSlots > 0 ? (
+                      {plan.existingRoundCount > 0 ? (
+                        <p>
+                          มีรอบกะเดิมทับอยู่ <strong>{plan.existingRoundCount}</strong> รอบ —{" "}
+                          {overwriteExisting ? (
+                            <strong>จะเขียนทับรายชื่อเดิมทั้งหมด</strong>
+                          ) : (
+                            <strong>จะถูกข้ามไป ไม่มีคนถูกลงกะในรอบเหล่านั้น</strong>
+                          )}
+                        </p>
+                      ) : null}
+                      {!plan.workload.pass ? (
+                        <p>
+                          จำนวนวันทำงานยังต่างกันสูงสุด {plan.workload.maxSpread} วัน —
+                          บันทึกได้แต่ควรตรวจในตัวอย่างก่อน
+                        </p>
+                      ) : null}
+                    </div>
+                  }
+                  okText="บันทึก"
+                  cancelText="ยกเลิก"
+                  onConfirm={() => void handleApply()}
+                >
+                  <Button type="primary" loading={applyMutation.isPending}>
+                    บันทึกตารางกะ
+                  </Button>
+                </Popconfirm>
+              ) : (
+                <Popconfirm
+                  title="บังคับบันทึกทั้งที่ยังขาดกำลังคน?"
+                  description={
+                    <div className={styles.ruleList}>
                       <p>
-                        ขาดคน <strong>{plan.understaffedSlots}</strong> ช่อง
-                        ที่ต้องหาคนเติมภายหลัง
+                        Coverage ยังไม่ผ่าน — ขาด{" "}
+                        <strong>{plan.coverage.shortageSlots}</strong> ช่อง จากที่ต้องใช้{" "}
+                        <strong>{plan.coverage.requiredSlots}</strong> ช่อง
                       </p>
-                    ) : null}
-                  </div>
-                }
-                okText="บันทึก"
-                cancelText="ยกเลิก"
-                onConfirm={() => void handleApply()}
-              >
-                <Button type="primary" loading={applyMutation.isPending}>
-                  บันทึกตารางกะ
-                </Button>
-              </Popconfirm>
+                      <p>ตารางจะถูกบันทึกตามที่จัดได้ และช่องที่ขาดคนจะว่างไว้</p>
+                    </div>
+                  }
+                  okText="บังคับบันทึก"
+                  cancelText="ยกเลิก"
+                  onConfirm={() => void handleApply(true)}
+                >
+                  <Button danger loading={applyMutation.isPending}>
+                    บังคับบันทึกทั้งที่ขาดคน
+                  </Button>
+                </Popconfirm>
+              )}
             </>
           ) : step === "roles" ? (
             <>
@@ -586,18 +611,19 @@ export default function ShiftAutoPlanModal({
                           })
                         }
                       />
-                      <InputNumber
-                        className={styles.headcountInput}
-                        min={0}
-                        max={100}
-                        value={demand.headcount}
-                        addonAfter="คน"
-                        onChange={(value) =>
-                          updateDemand(item.key, demand.key, {
-                            headcount: value ?? 0,
-                          })
-                        }
-                      />
+                      <Space.Compact className={styles.headcountInput}>
+                        <InputNumber
+                          min={0}
+                          max={100}
+                          value={demand.headcount}
+                          onChange={(value) =>
+                            updateDemand(item.key, demand.key, {
+                              headcount: value ?? 0,
+                            })
+                          }
+                        />
+                        <Button disabled>คน</Button>
+                      </Space.Compact>
                       {item.demands.length > 1 ? (
                         <Button
                           icon={<DeleteOutlined />}
@@ -704,22 +730,17 @@ export default function ShiftAutoPlanModal({
             description={
               <ul className={styles.ruleList}>
                 <li>
-                  เรียงพนักงานตามรหัสพนักงาน — คนที่ 1 ถึงคนที่เท่ากับจำนวนช่อง
-                  เป็น <strong>คนหลัก</strong> ได้กะเดียวทั้งเดือน ที่เหลือเป็น{" "}
-                  <strong>คนเสริม</strong>
+                  กำหนดจำนวนคนที่ต้องใช้ต่อ <strong>ตำแหน่ง + กะ</strong> แล้วแบ่งพนักงานไปคนละกะทั้งเดือน
                 </li>
                 <li>
-                  วันหยุดประจำสัปดาห์เวียนตามลำดับคน — คนที่ 1 หยุดจันทร์
-                  คนที่ 2 หยุดอังคาร ไปจนครบ 7 วันแล้ววนใหม่
+                  วันหยุดประจำสัปดาห์เวียนด้วย % 7 ในกลุ่มตำแหน่ง + กะนั้น (คนที่ 1 ของกะหยุดจันทร์)
                 </li>
                 <li>
-                  วันที่คนหลักหยุด ดึงคนเสริมมาแทน (ต้องไม่ใช่วันหยุดตัวเอง
-                  และยังไม่ถูกจัดกะอื่นวันนั้น) — หาไม่ได้จะขึ้นว่า{" "}
-                  <strong>ขาดคน</strong>
+                  คนที่ลาอนุมัติแล้วหรือติดกะอื่นวันนั้นจะไม่ถูกเลือก — เลือกคนที่ทำงานน้อยสุดก่อน
                 </li>
                 <li>
-                  คนเสริมอาจได้กะไม่เหมือนกันในแต่ละวัน ระบบยังไม่ได้กันเวลาพัก
-                  ระหว่างกะดึกต่อกะเช้า — ตรวจในหน้าตัวอย่างก่อนบันทึก
+                  ตรวจ Coverage (จัดครบหรือขาดคน) และ Workload (วันทำงานใกล้เคียงกัน)
+                  ในหน้าตัวอย่างก่อนบันทึก
                 </li>
               </ul>
             }

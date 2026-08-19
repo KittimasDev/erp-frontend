@@ -98,7 +98,13 @@ export function useCreateProductionOutputStockRequestFromOrderMutation() {
       await queryClient.invalidateQueries({
         queryKey: ["production-orders"],
       });
-      message.success(response.message || "สร้างคำขอรับผลผลิตเข้าคลังสำเร็จแล้ว");
+      const count = response.data.length;
+      message.success(
+        response.message ||
+          (count > 1
+            ? `สร้างคำขอรับผลผลิต ${count} รายการสำเร็จแล้ว`
+            : "สร้างคำขอรับผลผลิตเข้าคลังสำเร็จแล้ว"),
+      );
     },
     onError: (error: Error) => {
       message.error(
