@@ -211,93 +211,55 @@ function QuotationStatusCell({ row }: { row: Quotation }) {
 
 
 function QuotationPermissionStrip({
-
   canView,
-
+  canViewAll,
   canAdd,
-
   canEdit,
-
   canApprove,
-
 }: {
-
   canView: boolean;
-
+  canViewAll: boolean;
   canAdd: boolean;
-
   canEdit: boolean;
-
   canApprove: boolean;
-
 }) {
-
   const flags = {
-
     VIEW: canView,
-
+    VIEW_ALL: canViewAll,
     ADD: canAdd,
-
     EDIT: canEdit,
-
     APPROVE: canApprove,
-
   };
 
-
-
   return (
-
     <div className={styles.permissionStrip}>
-
       <span className={styles.permissionStripLabel}>สิทธิ์ตาม Matrix</span>
-
       <div className={styles.permissionChips}>
-
         {QUOTATION_MATRIX_ACTION_ORDER.map((key) => {
-
           const allowed = flags[key];
-
           return (
-
             <span
-
               key={key}
-
               className={[
-
                 styles.permissionChip,
-
                 allowed ? styles.permissionChipOn : styles.permissionChipOff,
-
               ].join(" ")}
-
             >
-
               {QUOTATION_MATRIX_ACTION_LABELS[key]}
-
             </span>
-
           );
-
         })}
-
       </div>
-
       <Typography.Text type="secondary" className={styles.permissionHint}>
-
         ปุ่มและการดำเนินการบนหน้านี้แสดงตามติ๊กที่หน้า Permission Matrix —
-
         &quot;{QUOTATION_MATRIX_ACTION_LABELS.APPROVE}&quot; ใช้กับใบสถานะ
-
         รอลูกค้าตอบรับ
-
+        {!canViewAll
+          ? " — รายการด้านล่างแสดงเฉพาะเอกสารที่คุณสร้าง"
+          : ""}
       </Typography.Text>
-
     </div>
-
   );
-
 }
 
 
@@ -333,6 +295,8 @@ export default function QuotationsListPage() {
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
 
   const canView = quotationActions.canView;
+
+  const canViewAll = quotationActions.canViewAll;
 
   const canCreate = quotationActions.canAdd;
 
@@ -614,6 +578,12 @@ export default function QuotationsListPage() {
 
             ยังไม่ตัดสต๊อก
 
+            {!canViewAll
+
+              ? " · แสดงเฉพาะเอกสารที่คุณสร้าง"
+
+              : ""}
+
           </p>
 
         </div>
@@ -651,6 +621,8 @@ export default function QuotationsListPage() {
       <QuotationPermissionStrip
 
         canView={canView}
+
+        canViewAll={canViewAll}
 
         canAdd={canCreate}
 

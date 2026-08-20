@@ -9,6 +9,7 @@ import dayjs from "dayjs";
 
 import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   resolveSalesOrderProgress,
   SALES_ORDER_FLOW_STEPS,
@@ -104,6 +105,8 @@ function SalesOrderProgressCell({ status }: { status: string }) {
 
 export default function SalesOrdersListPage() {
   const router = useRouter();
+  const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
+  const canViewAll = salesOrderActions.canViewAll;
   const [soNo, setSoNo] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [status, setStatus] = useState<string | undefined>();
@@ -219,6 +222,7 @@ export default function SalesOrdersListPage() {
           <p className={styles.pageSubtitle}>
             ติดตาม 6 ขั้นตอน: ร่าง → ยืนยัน → ตรวจสต๊อก → จ่ายสินค้า → บรรจุ →
             ส่งสินค้าสำเร็จ
+            {!canViewAll ? " · แสดงเฉพาะเอกสารที่คุณสร้าง" : ""}
           </p>
         </div>
       </header>

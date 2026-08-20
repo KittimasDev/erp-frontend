@@ -1,6 +1,7 @@
 /** ต้องตรงกับ SCREEN_FUNCTION_NAME_OVERRIDES.QUOTATIONS ใน backend permission-seed-data */
 export const QUOTATION_MATRIX_ACTION_LABELS = {
   VIEW: "ดูข้อมูล",
+  VIEW_ALL: "ดูทุกรายการ",
   ADD: "สร้างใบเสนอราคา",
   EDIT: "แก้ไข / ส่ง / ยกเลิก",
   DELETE: "ลบข้อมูล",
@@ -9,9 +10,10 @@ export const QUOTATION_MATRIX_ACTION_LABELS = {
 
 export type QuotationMatrixVisibleActionKey =
   | "VIEW"
+  | "VIEW_ALL"
   | "ADD"
   | "EDIT"
   | "APPROVE";
 
 export const QUOTATION_MATRIX_ACTION_ORDER: QuotationMatrixVisibleActionKey[] =
-  ["VIEW", "ADD", "EDIT", "APPROVE"];
+  ["VIEW", "VIEW_ALL", "ADD", "EDIT", "APPROVE"];

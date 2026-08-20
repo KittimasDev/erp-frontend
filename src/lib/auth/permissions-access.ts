@@ -1,4 +1,5 @@
 import type { MyPermissionsData } from "@/types/permissions";
+import { getStoredUser } from "@/lib/auth/session";
 
 const STORAGE_KEY = "erp_my_permissions";
 
@@ -95,22 +96,42 @@ export function hasPermission(...permissionCodes: string[]): boolean {
 
 export type ScreenActionPermissions = {
   canView: boolean;
+  canViewAll: boolean;
   canAdd: boolean;
   canEdit: boolean;
   canDelete: boolean;
   canApprove: boolean;
 };
 
+const SALES_OWN_SCOPE_SCREENS = new Set(["QUOTATIONS", "SALES_ORDERS"]);
+
+/** Legacy: Manager / Executive / Admin เห็น QT/SO ทุกใบ — ตรง backend */
+function legacyCanViewAllSalesDocuments(): boolean {
+  const user = getStoredUser();
+  const roleCodes = user?.roles?.map((role) => role.roleCode) ?? [];
+  return roleCodes.some(
+    (code) =>
+      code === "ADMINISTRATOR" ||
+      code === "SALES_MANAGER" ||
+      code === "EXECUTIVE",
+  );
+}
+
 /**
  * Matrix CRUD/action flags for a screen. Legacy mode → all true (RolesGuard/API gate).
  * Admin (*) → all true.
+ * QT/SO: canViewAll ตาม VIEW_ALL หรือ legacy role (Manager/Executive/Admin)
  */
 export function getScreenActionPermissions(
   screenCode: string,
 ): ScreenActionPermissions {
   if (!isMatrixPermissionMode()) {
+    const canViewAll = SALES_OWN_SCOPE_SCREENS.has(screenCode)
+      ? legacyCanViewAllSalesDocuments()
+      : true;
     return {
       canView: true,
+      canViewAll,
       canAdd: true,
       canEdit: true,
       canDelete: true,
@@ -122,6 +143,7 @@ export function getScreenActionPermissions(
   if (access?.permissionCodes.includes("*")) {
     return {
       canView: true,
+      canViewAll: true,
       canAdd: true,
       canEdit: true,
       canDelete: true,
@@ -133,6 +155,7 @@ export function getScreenActionPermissions(
     canAccessScreen(screenCode) ||
     hasPermission(
       `${screenCode}.VIEW`,
+      `${screenCode}.VIEW_ALL`,
       `${screenCode}.ADD`,
       `${screenCode}.EDIT`,
       `${screenCode}.DELETE`,
@@ -141,6 +164,7 @@ export function getScreenActionPermissions(
 
   return {
     canView,
+    canViewAll: hasPermission(`${screenCode}.VIEW_ALL`),
     canAdd: hasPermission(`${screenCode}.ADD`),
     canEdit: hasPermission(`${screenCode}.EDIT`),
     canDelete: hasPermission(`${screenCode}.DELETE`),

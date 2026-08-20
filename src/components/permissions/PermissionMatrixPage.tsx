@@ -37,6 +37,7 @@ import styles from "./PermissionMatrixPage.module.css";
 
 const FUNCTION_ORDER = [
   "VIEW",
+  "VIEW_ALL",
   "ADD",
   "EDIT",
   "DELETE",
