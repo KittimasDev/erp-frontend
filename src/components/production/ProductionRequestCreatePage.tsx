@@ -26,6 +26,7 @@ import {
   useEligibleSalesOrderQuery,
   useEligibleSalesOrdersQuery,
   useProductionRequestQuery,
+  useProductionRequestsQuery,
 } from "@/hooks/production-requests/useProductionRequestQueries";
 import type {
   CreateProductionRequestItemBody,
@@ -134,6 +135,13 @@ function ProductionRequestForm({
     limit: 30,
   });
   const detailQuery = useEligibleSalesOrderQuery(salesOrderId);
+  const existingForSoQuery = useProductionRequestsQuery(
+    { salesOrderId, limit: 50 },
+    { enabled: Boolean(salesOrderId) && !isEdit },
+  );
+  const blockingPr = (existingForSoQuery.data?.data.items ?? []).find(
+    (pr) => pr.status !== "CANCELLED",
+  );
   const selectedSo = detailQuery.data?.data;
   const soItems = useMemo(() => selectedSo?.items ?? [], [selectedSo]);
 
@@ -175,7 +183,7 @@ function ProductionRequestForm({
   const hasOverQty = selectedLines.some(
     (line) => line.qty > maxQtyFor(line.item),
   );
-  const canSubmit = selectedLines.length > 0 && !hasOverQty;
+  const canSubmit = selectedLines.length > 0 && !hasOverQty && !blockingPr;
 
   const handleSelectSo = (value?: string) => {
     setSalesOrderId(value);
@@ -184,6 +192,9 @@ function ProductionRequestForm({
 
   const handleSubmit = () => {
     if (!salesOrderId) {
+      return;
+    }
+    if (blockingPr) {
       return;
     }
     const items: CreateProductionRequestItemBody[] = selectedLines.map(
@@ -326,6 +337,22 @@ function ProductionRequestForm({
           description="ไม่ถือเป็นการจองผลผลิต — เมื่อผลิตเสร็จ สินค้าจะรับเข้าสต๊อกกลาง และนำไปจ่ายให้คำสั่งขายอื่นได้"
           style={{ marginBottom: 16 }}
         />
+        {blockingPr ? (
+          <Alert
+            type="warning"
+            showIcon
+            title="ใบสั่งขายนี้มีใบขอผลิตแล้ว"
+            description={
+              <span>
+                ไม่สามารถออกใบขอผลิตซ้ำได้ — เปิด{" "}
+                <Link href={`/production/production-requests/${blockingPr.id}`}>
+                  {blockingPr.requestNo}
+                </Link>
+              </span>
+            }
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
 
         <section className={styles.formCard}>
           <h2 className={styles.sectionTitle}>ใบสั่งขายที่อ้างอิง</h2>

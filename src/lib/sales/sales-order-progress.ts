@@ -29,6 +29,7 @@ export type SalesOrderProgress = {
 export function resolveActiveTimelineStepName(status: string): string | null {
   switch (status) {
     case "DRAFT":
+    case "AWAITING_CONFIRM":
       return "Sales Order";
     case "CONFIRMED":
       return "Stock Verification";
@@ -78,6 +79,12 @@ export function resolveSalesOrderProgress(
       inProgress: 1,
       label: "รอจองสต๊อก/ยืนยัน",
       currentStepLabel: "ร่าง",
+    },
+    AWAITING_CONFIRM: {
+      current: 1,
+      inProgress: 1,
+      label: "รอของครบแล้วยืนยันใบสั่งขาย",
+      currentStepLabel: "รอยืนยันใบสั่งขาย",
     },
     CONFIRMED: {
       current: 2,

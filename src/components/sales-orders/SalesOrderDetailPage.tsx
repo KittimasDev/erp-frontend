@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, DatePicker, Modal, Progress, Spin, Tag } from "antd";
@@ -46,6 +46,7 @@ import {
 } from "@/lib/sales/sales-order-progress";
 import {
   SALES_ORDER_STATUS_LABEL,
+  isPreConfirmSalesOrderStatus,
   type SalesOrderReservationLine,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
@@ -95,6 +96,7 @@ function statusClass(status: string) {
   switch (status) {
     case "COMPLETED":
       return styles.statusApproved;
+    case "AWAITING_CONFIRM":
     case "CONFIRMED":
     case "STOCK_CHECKED":
     case "PICKING":
@@ -157,21 +159,21 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const { modal, message } = App.useApp();
   const query = useSalesOrderQuery(id);
   const data = query.data?.data;
-  const isDraft = data?.status === "DRAFT";
-  const skipAutoReserveRef = useRef(false);
-  const autoReservedForIdRef = useRef<string | null>(null);
+  const isPreConfirm = isPreConfirmSalesOrderStatus(data?.status);
 
   const stockVerificationQuery = useSalesOrderStockVerificationQuery(
-    data && !isDraft ? id : undefined,
+    data && !isPreConfirm ? id : undefined,
   );
   const reservationQuery = useSalesOrderReservationStatusQuery(
-    isDraft ? id : undefined,
+    isPreConfirm ? id : undefined,
   );
   const productionRequestsQuery = useProductionRequestsQuery(
-    isDraft ? { salesOrderId: id, limit: 20 } : undefined,
-    { enabled: isDraft },
+    isPreConfirm ? { salesOrderId: id, limit: 20 } : undefined,
+    { enabled: isPreConfirm },
   );
-  const eligibleSoQuery = useEligibleSalesOrderQuery(isDraft ? id : undefined);
+  const eligibleSoQuery = useEligibleSalesOrderQuery(
+    isPreConfirm ? id : undefined,
+  );
   const trackingQuery = useSalesTrackingDetailQuery(id);
   const confirmMutation = useConfirmSalesOrderMutation();
   const confirmStockMutation = useConfirmStockVerificationMutation();
@@ -259,30 +261,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
     [productionRequestLineByItemId],
   );
 
-  useEffect(() => {
-    skipAutoReserveRef.current = false;
-    autoReservedForIdRef.current = null;
-  }, [id]);
-
-  useEffect(() => {
-    if (!isDraft || !canWrite || !data || !reservationStatus) {
-      return;
-    }
-    if (skipAutoReserveRef.current) {
-      return;
-    }
-    if (autoReservedForIdRef.current === data.id) {
-      return;
-    }
-    const hasShortage = reservationStatus.hasShortage === true;
-    const canReserveAny = reservationStatus.lines.some((line) => line.canReserve);
-    if (hasShortage || !canReserveAny) {
-      return;
-    }
-    autoReservedForIdRef.current = data.id;
-    reserveAllMutation.mutate({ salesOrderId: data.id, silent: true });
-  }, [canWrite, data, isDraft, reservationStatus, reserveAllMutation]);
-
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
@@ -320,12 +298,26 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const allLinesReserved = reservationStatus?.isAllFullyReserved === true;
   const hasShortage = reservationStatus?.hasShortage === true;
   const hasStockShortage = productionRequestItems.length > 0;
-  const unreservedLines =
-    reservationStatus?.lines?.filter((line) => !line.isFullyReserved) ?? [];
+  const reservationReady =
+    Boolean(reservationStatus) && !reservationQuery.isLoading;
+  const stockReadyForReserve =
+    isPreConfirm && reservationReady && !hasShortage && !allLinesReserved;
+  const showReserveCta = stockReadyForReserve && canWrite;
+  const showConfirmCta =
+    isPreConfirm &&
+    canConfirm &&
+    reservationReady &&
+    !hasShortage &&
+    allLinesReserved;
   const stockReady = stockVerification?.isAllAvailable === true;
   const stockShortLines =
     stockVerification?.lines?.filter((line) => !line.isAvailable) ?? [];
   const canCreateProductionRequest = productionRequestActions.canAdd;
+  const hasActiveProductionRequest = linkedProductionRequests.some(
+    (pr) => pr.status !== "CANCELLED",
+  );
+  const canIssueProductionRequest =
+    canCreateProductionRequest && !hasActiveProductionRequest;
 
   let flowHint: string | null = null;
   if (data.status === "STOCK_CHECKED" && pickingStep?.status === "DRAFT") {
@@ -376,6 +368,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const openProductionRequestModal = (
     pending: PendingProductionRequest,
   ) => {
+    if (hasActiveProductionRequest) {
+      message.warning("ใบสั่งขายนี้มีใบขอผลิตแล้ว — ออกใบขอผลิตซ้ำไม่ได้");
+      return;
+    }
     if (pending.kind === "all" && !productionRequestItems.length) {
       message.warning("ไม่มีรายการที่สต๊อกไม่พอให้ขอผลิต");
       return;
@@ -453,7 +449,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
   const cancelButton =
     canWrite &&
-    (data.status === "DRAFT" || data.status === "CONFIRMED") ? (
+    (data.status === "DRAFT" ||
+      data.status === "AWAITING_CONFIRM" ||
+      data.status === "CONFIRMED") ? (
       <Button
         danger
         icon={<CloseOutlined />}
@@ -683,6 +681,35 @@ export default function SalesOrderDetailPage({ id }: Props) {
         : "รายการที่เลือก"
       : "ทุกรายการที่สต๊อกไม่พอ";
 
+  let preConfirmHeaderButton: ReactNode = null;
+  if (showReserveCta) {
+    preConfirmHeaderButton = (
+      <Button
+        className={styles.primaryBtn}
+        type="primary"
+        icon={<InboxOutlined />}
+        loading={reserveAllMutation.isPending}
+        disabled={busy || reservationQuery.isLoading}
+        onClick={() => reserveAllMutation.mutate({ salesOrderId: data.id })}
+      >
+        จองสต๊อก
+      </Button>
+    );
+  } else if (showConfirmCta) {
+    preConfirmHeaderButton = (
+      <Button
+        className={styles.primaryBtn}
+        type="primary"
+        icon={<CheckOutlined />}
+        loading={busy}
+        disabled={reservationQuery.isLoading}
+        onClick={() => confirmMutation.mutate(data.id)}
+      >
+        ยืนยันใบสั่งขาย
+      </Button>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
@@ -709,7 +736,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <Button icon={<FilePdfOutlined />} onClick={printPdf}>
             พิมพ์ PDF
           </Button>
-          {nextStepButton}
+          {isPreConfirm ? preConfirmHeaderButton : nextStepButton}
         </div>
       </header>
 
@@ -727,6 +754,26 @@ export default function SalesOrderDetailPage({ id }: Props) {
         timeline={timeline}
         progress={progress}
       />
+
+      {stockReadyForReserve ? (
+        <div className={styles.reserveActionBanner}>
+          {canWrite ? (
+            <>
+              สต๊อกพอทุกรายการแล้ว — กด <strong>จองสต๊อก</strong>{" "}
+              เพื่อจองของลงใบสั่งขาย จากนั้นยืนยันใบสั่งขายเพื่อไปขั้นจ่ายสินค้า
+            </>
+          ) : (
+            <>
+              สต๊อกพอแล้ว แต่บัญชีนี้ไม่มีสิทธิ์จองสต๊อก — ติดต่อผู้ดูแลระบบ
+            </>
+          )}
+        </div>
+      ) : null}
+      {showConfirmCta ? (
+        <div className={`${styles.reserveActionBanner} ${styles.reserveActionBannerReady}`}>
+          จองครบแล้ว — กด <strong>ยืนยันใบสั่งขาย</strong> เพื่อดำเนินการต่อ
+        </div>
+      ) : null}
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>
@@ -817,38 +864,43 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>
-                {isDraft ? "การจองสต๊อก" : "ผลตรวจสอบสต๊อก"}
+                {isPreConfirm ? "การจองสต๊อก" : "ผลตรวจสอบสต๊อก"}
               </h2>
               <span className={styles.sectionHint}>
-                {isDraft
+                {isPreConfirm
                   ? hasShortage
-                    ? "สต๊อกไม่พอ — ทำต่อได้เฉพาะออกใบขอผลิต จองหรือยืนยันใบสั่งขายยังทำไม่ได้จนกว่าของจะพอ"
-                    : "จองให้อัตโนมัติเมื่อสต๊อกพอ — ยืนยันใบสั่งขายได้เมื่อจองครบทุกรายการ"
+                    ? hasActiveProductionRequest
+                      ? "สต๊อกไม่พอ — มีใบขอผลิตแล้ว ติดตามของเข้าคลังจากเอกสารที่มี จองหรือยืนยันใบสั่งขายยังทำไม่ได้จนกว่าของจะพอ"
+                      : "สต๊อกไม่พอ — ทำต่อได้เฉพาะออกใบขอผลิต จองหรือยืนยันใบสั่งขายยังทำไม่ได้จนกว่าของจะพอ"
+                    : "กดจองสต๊อกเมื่อของพอ — ยืนยันใบสั่งขายได้เมื่อจองครบทุกรายการ"
                   : "เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย"}
               </span>
             </div>
-            {isDraft ? (
+            {isPreConfirm ? (
               reservationQuery.isLoading ? (
                 <Spin size="small" />
               ) : reservationStatus ? (
                 <>
-                  {canWrite && !hasShortage ? (
+                  {showReserveCta ? (
                     <div style={{ marginBottom: 12 }}>
                       <Button
-                        type="default"
+                        type="primary"
+                        icon={<InboxOutlined />}
                         loading={reserveAllMutation.isPending}
                         disabled={busy}
                         onClick={() =>
                           reserveAllMutation.mutate({ salesOrderId: data.id })
                         }
                       >
-                        จองทั้งหมดที่พอ
+                        จองสต๊อก
                       </Button>
                     </div>
                   ) : null}
                   {hasShortage ? (
                     <p className={styles.stockReadyNote}>
-                      สต๊อกไม่พอ — ต้องออกใบขอผลิตเท่านั้น ไม่สามารถจองหรือยืนยันใบสั่งขายได้
+                      สต๊อกไม่พอ — {hasActiveProductionRequest
+                        ? "มีใบขอผลิตแล้ว ไม่สามารถออกใบขอผลิตซ้ำได้"
+                        : "ต้องออกใบขอผลิตเท่านั้น"} ไม่สามารถจองหรือยืนยันใบสั่งขายได้
                     </p>
                   ) : null}
                   {allLinesReserved ? (
@@ -891,7 +943,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             ต้องการ{" "}
                             {Number(line.orderedQty).toLocaleString("th-TH")}
                             {" · "}
-                            คงเหลือ{" "}
+                            จองแล้ว{" "}
+                            {Number(line.reservedQty ?? 0).toLocaleString(
+                              "th-TH",
+                            )}
+                            {" · "}
+                            พร้อมใช้ว่าง{" "}
                             {Number(line.availableQty).toLocaleString("th-TH")}
                             {Number(line.shortageQty) > 0
                               ? ` · ขาด ${Number(line.shortageQty).toLocaleString("th-TH")}`
@@ -900,7 +957,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
                         </div>
                         <div className={styles.itemQty}>
                           <Tag color={line.isAvailable ? "success" : "error"}>
-                            {line.isAvailable ? "พอ" : "ไม่พอ"}
+                            {line.isAvailable
+                              ? Number(line.reservedQty ?? 0) >=
+                                Number(line.orderedQty) - 0.0005
+                                ? "จองครบ"
+                                : "พอ"
+                              : "ไม่พอ"}
                           </Tag>
                         </div>
                       </div>
@@ -915,7 +977,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             )}
           </div>
 
-          {isDraft && canCreateProductionRequest && hasStockShortage ? (
+          {isPreConfirm && canIssueProductionRequest && hasStockShortage ? (
             <div className={`${styles.section} ${styles.productionSpotlight}`}>
               <div className={styles.sectionHead}>
                 <div>
@@ -974,7 +1036,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             </div>
           ) : null}
 
-          {isDraft && linkedProductionRequests.length > 0 ? (
+          {isPreConfirm && linkedProductionRequests.length > 0 ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <div>
@@ -984,11 +1046,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   </p>
                 </div>
                 <div className={styles.productionRequestHeadActions}>
-                  {hasShortage ? (
-                    <Tag color="error">ยังไม่พอจริง</Tag>
-                  ) : (
-                    <Tag color="success">พอจริงแล้ว</Tag>
-                  )}
+                  {reservationQuery.isLoading ? (
+                    <Spin size="small" />
+                  ) : reservationStatus ? (
+                    hasShortage ? (
+                      <Tag color="error">ยังไม่พอจริง</Tag>
+                    ) : (
+                      <Tag color="success">พอจริงแล้ว</Tag>
+                    )
+                  ) : null}
                   <Tag>{linkedProductionRequests.length} ใบ</Tag>
                 </div>
               </div>
@@ -1025,7 +1091,43 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               ) : null}
 
-              {hasShortage && canCreateProductionRequest ? (
+              {showReserveCta ? (
+                <div className={styles.productionContinueRow}>
+                  <Button
+                    type="primary"
+                    icon={<InboxOutlined />}
+                    loading={reserveAllMutation.isPending}
+                    disabled={busy}
+                    onClick={() =>
+                      reserveAllMutation.mutate({ salesOrderId: data.id })
+                    }
+                  >
+                    จองสต๊อก
+                  </Button>
+                  <span className={styles.sectionHint}>
+                    ของในคลังพอแล้ว — กดจองเพื่อล็อกของลงใบสั่งขาย
+                    แล้วยืนยันใบสั่งขายเพื่อไปขั้นถัดไป
+                  </span>
+                </div>
+              ) : null}
+              {showConfirmCta ? (
+                <div className={styles.productionContinueRow}>
+                  <Button
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    loading={busy}
+                    disabled={reservationQuery.isLoading}
+                    onClick={() => confirmMutation.mutate(data.id)}
+                  >
+                    ยืนยันใบสั่งขาย
+                  </Button>
+                  <span className={styles.sectionHint}>
+                    จองครบแล้ว — กดยืนยันเพื่อไปขั้นจ่ายสินค้า
+                  </span>
+                </div>
+              ) : null}
+
+              {hasShortage && canIssueProductionRequest ? (
                 <div className={styles.productionContinueRow}>
                   <Button
                     type="primary"
@@ -1120,14 +1222,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
             </div>
-            {isDraft && canWrite && !hasShortage ? (
+            {isPreConfirm && canWrite && !hasShortage ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
                 จองสต๊อกต่อรายการได้เมื่อของพอครบตามจำนวนที่สั่ง
               </p>
             ) : null}
-            {isDraft && hasShortage ? (
+            {isPreConfirm && hasShortage ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                รายการที่สต๊อกไม่พอทำต่อได้เฉพาะออกใบขอผลิต
+                {hasActiveProductionRequest
+                  ? "รายการที่สต๊อกไม่พอมีใบขอผลิตแล้ว — ออกใบขอผลิตซ้ำไม่ได้"
+                  : "รายการที่สต๊อกไม่พอทำต่อได้เฉพาะออกใบขอผลิต"}
               </p>
             ) : null}
             <div className={styles.itemList}>
@@ -1152,7 +1256,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           ? ` · ส่วนลด ${formatMoney(item.discountAmount)}`
                           : ""}
                       </p>
-                      {isDraft && reservationLine ? (
+                      {isPreConfirm && reservationLine ? (
                         <p className={styles.itemCode}>
                           ต้องการ{" "}
                           {Number(reservationLine.orderedQty).toLocaleString(
@@ -1171,7 +1275,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             : ""}
                         </p>
                       ) : null}
-                      {!isDraft ? (
+                      {!isPreConfirm ? (
                         <div className={styles.itemMeta}>
                           <span>
                             จอง{" "}
@@ -1191,7 +1295,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       ) : null}
                     </div>
                     <div className={styles.itemQty}>
-                      {isDraft && reservationLine ? (
+                      {isPreConfirm && reservationLine ? (
                         <div
                           style={{
                             display: "flex",
@@ -1224,13 +1328,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                   size="small"
                                   loading={releaseLineMutation.isPending}
                                   disabled={busy}
-                                  onClick={() => {
-                                    skipAutoReserveRef.current = true;
+                                  onClick={() =>
                                     releaseLineMutation.mutate({
                                       salesOrderId: data.id,
                                       itemId: item.id,
-                                    });
-                                  }}
+                                    })
+                                  }
                                 >
                                   ยกเลิกจอง
                                 </Button>
@@ -1238,7 +1341,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             </div>
                           ) : null}
                           {hasShortage &&
-                          canCreateProductionRequest &&
+                          canIssueProductionRequest &&
                           productionRequestLine ? (
                             <Button
                               size="small"
@@ -1331,9 +1434,23 @@ export default function SalesOrderDetailPage({ id }: Props) {
           </div>
 
           <div className={styles.actionStack}>
-            {data.status === "DRAFT" ? (
+            {isPreConfirm ? (
               <>
-                {canCreateProductionRequest && hasStockShortage ? (
+                {showReserveCta ? (
+                  <Button
+                    className={styles.primaryBtn}
+                    type="primary"
+                    icon={<InboxOutlined />}
+                    loading={reserveAllMutation.isPending}
+                    disabled={busy || reservationQuery.isLoading}
+                    onClick={() =>
+                      reserveAllMutation.mutate({ salesOrderId: data.id })
+                    }
+                  >
+                    จองสต๊อก
+                  </Button>
+                ) : null}
+                {canIssueProductionRequest && hasStockShortage ? (
                   <Button
                     className={styles.primaryBtn}
                     type="primary"
@@ -1350,45 +1467,29 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 {hasShortage && !hasStockShortage ? (
                   <p className={styles.sectionHint}>
                     สต๊อกยังไม่พอ — จองหรือยืนยันใบสั่งขายยังทำไม่ได้
-                    {linkedProductionRequests.length
+                    {hasActiveProductionRequest ||
+                    linkedProductionRequests.length
                       ? " เปิดใบขอผลิตที่มีอยู่เพื่อติดตามของเข้าคลัง"
                       : " ต้องออกใบขอผลิตเท่านั้น"}
                   </p>
                 ) : null}
-                {canConfirm && !hasShortage ? (
-                  <>
-                    {!allLinesReserved ? (
-                      <p className={styles.sectionHint}>
-                        ต้องจองครบทุกรายการก่อนยืนยัน
-                        {unreservedLines.length
-                          ? ` (${unreservedLines
-                              .map(
-                                (line) =>
-                                  `${line.itemCode ?? "สินค้า"} จอง ${Number(line.reservedQty).toLocaleString("th-TH")}/${Number(line.orderedQty).toLocaleString("th-TH")}`,
-                              )
-                              .join(", ")})`
-                          : ""}
-                      </p>
-                    ) : null}
-                    <Button
-                      className={styles.primaryBtn}
-                      type="primary"
-                      icon={<CheckOutlined />}
-                      loading={busy}
-                      disabled={
-                        !allLinesReserved || reservationQuery.isLoading
-                      }
-                      onClick={() => confirmMutation.mutate(data.id)}
-                    >
-                      ยืนยันใบสั่งขาย
-                    </Button>
-                  </>
+                {showConfirmCta ? (
+                  <Button
+                    className={styles.primaryBtn}
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    loading={busy}
+                    disabled={reservationQuery.isLoading}
+                    onClick={() => confirmMutation.mutate(data.id)}
+                  >
+                    ยืนยันใบสั่งขาย
+                  </Button>
                 ) : null}
                 {cancelButton}
               </>
             ) : null}
 
-            {data.status !== "DRAFT" ? (
+            {!isPreConfirm ? (
               <>
                 {nextStepButton}
                 {cancelButton}
@@ -1396,7 +1497,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             ) : null}
 
             {!canFulfill &&
-            !(data.status === "DRAFT" && canConfirm) &&
+            !(isPreConfirm && (canConfirm || canWrite)) &&
             !cancelButton ? (
               <p className={styles.sectionHint}>
                 บัญชีนี้มีสิทธิ์ดูอย่างเดียว — ติดต่อผู้ดูแลระบบหากต้องดำเนินการ

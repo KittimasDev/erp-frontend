@@ -262,6 +262,19 @@ export default function PickingFormPage({ id, mode }: Props) {
     PICKING_STATUS_LABEL[data.status as keyof typeof PICKING_STATUS_LABEL] ??
     data.status;
 
+  const reservationReady =
+    data.status === "DRAFT" &&
+    data.items.length > 0 &&
+    data.items.every((item) => {
+      const row = rows.find((r) => r.id === item.id);
+      const warehouseId = row?.warehouseId ?? item.warehouseId;
+      const locationId = row?.locationId ?? item.locationId;
+      const lotId = row?.lotId ?? item.lotId;
+      if (!warehouseId || !locationId) return false;
+      if (item.requiresLotControl && !lotId) return false;
+      return true;
+    });
+
   const packingStep = trackingQuery.data?.data?.timeline?.find(
     (step) => step.step === "Packing",
   );
@@ -567,8 +580,9 @@ export default function PickingFormPage({ id, mode }: Props) {
                   onClick={() =>
                     modal.confirm({
                       title: "ยืนยันตัดสต๊อกตามใบจ่ายนี้?",
-                      content:
-                        "ระบบจะตรวจสต๊อกอีกครั้งแล้วตัด quantity_available",
+                      content: reservationReady
+                        ? "ของจองครบแล้ว — ระบบจะตัดจากของที่จองไว้สำหรับใบจ่ายนี้และสร้าง stock movement ไม่ได้ตัด available ซ้ำจากคลังว่าง"
+                        : "ยืนยันตัดสต๊อกจริงจากของที่จองไว้สำหรับใบจ่ายนี้ และสร้าง stock movement",
                       onOk: async () => {
                         await handleSave();
                         await confirmMutation.mutateAsync(id);
@@ -649,9 +663,20 @@ export default function PickingFormPage({ id, mode }: Props) {
           title="ใบจ่ายอยู่สถานะร่าง"
           description={
             canWrite
-              ? "กด «แก้ไขและยืนยันตัดสต๊อก» เพื่อเลือกคลัง/ตำแหน่ง — ระบบจะแนะนำ Lot ให้อัตโนมัติ (FIFO) ไม่ต้องกรอก Lot เอง"
-              : "รอเจ้าหน้าที่คลังแก้ไขและยืนยันตัดสต๊อก"
+              ? reservationReady
+                ? "ของจองครบแล้ว — กด «แก้ไขและยืนยันตัดสต๊อก» แล้วกดยืนยันได้ทันที ไม่ต้องเลือกคลัง/Lot ใหม่"
+                : "กด «แก้ไขและยืนยันตัดสต๊อก» — ของถูกจองไว้แล้ว ระบบจะจัดคลัง/Lot ตามที่จองให้อัตโนมัติ"
+              : "รอเจ้าหน้าที่คลังยืนยันตัดสต๊อกจริงจากของที่จองไว้"
           }
+        />
+      ) : null}
+
+      {editable && reservationReady ? (
+        <Alert
+          type="success"
+          showIcon
+          title="ของจองครบแล้ว — กดยืนยันตัดสต๊อกได้ทันที"
+          description="แถวด้านล่างมาจากของที่จองไว้สำหรับใบสั่งขายนี้ ไม่ต้องกดแนะนำ FIFO อีกครั้ง"
         />
       ) : null}
 
@@ -668,7 +693,7 @@ export default function PickingFormPage({ id, mode }: Props) {
         />
       ) : null}
 
-      {editable ? (
+      {editable && !reservationReady ? (
         <aside className={styles.tipCard} aria-label="คำอธิบาย FIFO Lot">
           <div className={styles.tipIcon}>
             <InfoCircleOutlined />
@@ -729,8 +754,9 @@ export default function PickingFormPage({ id, mode }: Props) {
           <div className={styles.toolbarLeft}>
             <p className={styles.toolbarTitle}>รายการสินค้าที่จะหยิบ</p>
             <p className={styles.toolbarHint}>
-              คลังและตำแหน่งถูกเติมจากสต๊อกที่มีตอนตรวจสต๊อก —
-              เปลี่ยนได้เฉพาะคลังที่มีของของใบนี้
+              {reservationReady
+                ? "คลัง / ตำแหน่ง / Lot ถูกจัดตามของที่จองไว้แล้ว — กดยืนยันตัดสต๊อกได้ทันที"
+                : "คลังและตำแหน่งถูกเติมจากของที่จองไว้ — เปลี่ยนได้เฉพาะเมื่อจำเป็น"}
             </p>
           </div>
         </div>
@@ -751,7 +777,7 @@ export default function PickingFormPage({ id, mode }: Props) {
             {data.status === "CONFIRMED"
               ? "ดำเนินการต่อ — สร้างหรือเปิดใบบรรจุสินค้า"
               : data.status === "DRAFT" && canWrite
-                ? "แก้ไขใบจ่ายแล้วยืนยันตัดสต๊อกเพื่อไปขั้นบรรจุ"
+                ? "แก้ไขใบจ่ายแล้วยืนยันตัดสต๊อกจริงเพื่อไปขั้นบรรจุ"
                 : "กลับไปรายการหรือใบสั่งขาย"}
           </div>
           <div className={styles.actionFooterButtons}>

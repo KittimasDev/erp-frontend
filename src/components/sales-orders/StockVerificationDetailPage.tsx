@@ -462,7 +462,10 @@ export default function StockVerificationDetailPage({ id }: Props) {
                       </div>
                       {row.isAvailable ? (
                         <Tag color="success" icon={<CheckCircleOutlined />}>
-                          พอ
+                          {Number(row.reservedQty ?? 0) >=
+                          Number(row.orderedQty) - 0.0005
+                            ? "จองครบ"
+                            : "พอ"}
                         </Tag>
                       ) : (
                         <Tag color="error" icon={<ExclamationCircleOutlined />}>
@@ -477,7 +480,11 @@ export default function StockVerificationDetailPage({ id }: Props) {
                         <strong>{formatQty(row.orderedQty)}</strong>
                       </div>
                       <div className={styles.qtyItem}>
-                        <span>ยอดพร้อมขาย</span>
+                        <span>จองแล้ว</span>
+                        <strong>{formatQty(row.reservedQty ?? 0)}</strong>
+                      </div>
+                      <div className={styles.qtyItem}>
+                        <span>พร้อมใช้ว่าง</span>
                         <strong>{formatQty(row.availableQty)}</strong>
                       </div>
                       <div
@@ -507,7 +514,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
           <p className={styles.sideEyebrow}>SUMMARY</p>
           <h3 className={styles.sideTitle}>สรุปผลตรวจ</h3>
           <p className={styles.sideLead}>
-            ตรวจยอดพร้อมขายเทียบกับยอดสั่งขาย — ยังไม่ตัดสต๊อก
+            ตรวจยอดจองแล้ว + พร้อมใช้ว่าง เทียบกับยอดสั่งขาย — ยังไม่ตัดสต๊อก
           </p>
 
           <div className={styles.statGrid}>

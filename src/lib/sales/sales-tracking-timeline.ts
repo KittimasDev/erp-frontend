@@ -47,7 +47,7 @@ export function resolveSalesTimelineStepTone(
     return "done";
   }
 
-  if (["PENDING", "DRAFT", "SENT"].includes(status)) {
+  if (["PENDING", "DRAFT", "AWAITING_CONFIRM", "SENT"].includes(status)) {
     return "active";
   }
 
@@ -60,6 +60,7 @@ export function salesTimelineStatusLabel(status?: string) {
     DONE: "เสร็จแล้ว",
     PENDING: "รอดำเนินการ",
     DRAFT: "ร่าง",
+    AWAITING_CONFIRM: "รอยืนยันใบสั่งขาย",
     CONFIRMED: "ยืนยันแล้ว",
     DELIVERED: "ส่งแล้ว",
     ACCEPTED: "ลูกค้าตอบรับ",

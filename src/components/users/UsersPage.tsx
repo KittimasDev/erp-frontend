@@ -162,6 +162,13 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
 
   const columns: ColumnsType<AppUser> = [
     {
+      title: "#",
+      key: "index",
+      width: 56,
+      align: "center",
+      render: (_value, _record, index) => (page - 1) * pageSize + index + 1,
+    },
+    {
       title: "ผู้ใช้งาน",
       key: "user",
       render: (_, record) => (

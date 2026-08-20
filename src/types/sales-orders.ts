@@ -1,5 +1,6 @@
 export type SalesOrderStatus =
   | "DRAFT"
+  | "AWAITING_CONFIRM"
   | "CONFIRMED"
   | "STOCK_CHECKED"
   | "PICKING"
@@ -9,8 +10,13 @@ export type SalesOrderStatus =
   | "COMPLETED"
   | "CANCELLED";
 
+export function isPreConfirmSalesOrderStatus(status?: string): boolean {
+  return status === "DRAFT" || status === "AWAITING_CONFIRM";
+}
+
 export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {
   DRAFT: "ร่าง",
+  AWAITING_CONFIRM: "รอยืนยันใบสั่งขาย",
   CONFIRMED: "ยืนยันแล้ว",
   STOCK_CHECKED: "ตรวจสต๊อกแล้ว",
   PICKING: "จ่ายสินค้าแล้ว",
@@ -112,6 +118,7 @@ export type SalesOrderStockVerificationLine = {
   itemCode?: string;
   itemName?: string;
   orderedQty: string;
+  reservedQty?: string;
   availableQty: string;
   shortageQty: string;
   isAvailable: boolean;

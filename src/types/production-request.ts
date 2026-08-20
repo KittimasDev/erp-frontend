@@ -263,6 +263,20 @@ export type LinkedSalesOrderProductionRequest = {
   requiredDate?: string;
 };
 
+export type LinkedSalesOrderLine = {
+  salesOrderItemId: string;
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitCode?: string;
+  orderedQty: string;
+  reservedQty: string;
+  needQty: string;
+  warehouseAvailableQty: string;
+  isFullyReserved: boolean;
+  warehouseCoversNeed: boolean;
+};
+
 export type LinkedSalesOrder = {
   salesOrderId: string;
   soNo: string;
@@ -271,7 +285,10 @@ export type LinkedSalesOrder = {
   requestedDeliveryDate?: string;
   requestCount: number;
   latestRequestStatus: string;
+  hasShortage: boolean;
+  isFullyReserved: boolean;
   productionRequests: LinkedSalesOrderProductionRequest[];
+  lines: LinkedSalesOrderLine[];
 };
 
 export type LinkedSalesOrderListData = {

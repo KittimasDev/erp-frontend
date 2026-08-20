@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 /** ใช้ 127.0.0.1 แทน localhost — บน Windows ลดปัญหา proxy ไป ::1 แล้ว ECONNREFUSED */
 function resolveApiUrl(raw?: string): string {
-  const fallback = "http://127.0.0.1:8080";
+  const fallback = "http://127.0.0.1:8081";
   const value = raw?.trim() || fallback;
   try {
     const url = new URL(value);
