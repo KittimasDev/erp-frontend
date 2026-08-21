@@ -10,7 +10,9 @@ import {
   getSalesOrders,
   getSalesOrderStockVerification,
 } from "@/lib/api/sales-orders";
+import { getDocumentAttachments } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
+import { DOCUMENT_TYPE_SO } from "@/types/document-attachments";
 import type { SalesOrderQueryParams } from "@/types/sales-orders";
 
 import { SALES_ORDER_LIVE_QUERY_OPTIONS } from "./invalidate-sales-order-flow";
@@ -66,5 +68,17 @@ export function useSalesOrderAvailableWarehousesQuery(id?: string) {
     queryFn: () =>
       getSalesOrderAvailableWarehouses(getAccessToken(), id as string),
     enabled: Boolean(id),
+  });
+}
+
+export function useSalesOrderAttachmentsQuery(documentId?: string) {
+  return useQuery({
+    queryKey: [...salesOrdersQueryKey, "attachments", documentId],
+    queryFn: () =>
+      getDocumentAttachments(getAccessToken(), {
+        documentType: DOCUMENT_TYPE_SO,
+        documentId: documentId as string,
+      }),
+    enabled: Boolean(documentId),
   });
 }

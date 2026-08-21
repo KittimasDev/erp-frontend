@@ -39,6 +39,12 @@ export type SalesOrderCustomerSummary = {
   creditLimit?: string;
 };
 
+export type SalesOrderUserSummary = {
+  id: string;
+  username: string;
+  displayName: string;
+};
+
 export type SalesOrderItem = {
   id: string;
   itemId: string;
@@ -75,6 +81,9 @@ export type SalesOrder = {
   vatAmount: string;
   totalAmount: string;
   remark?: string;
+  customerPoNo?: string;
+  createdById?: string;
+  createdBy?: SalesOrderUserSummary;
   items: SalesOrderItem[];
   createdAt: string;
   updatedAt: string;
@@ -90,6 +99,10 @@ export type SalesOrderQueryParams = {
 
 export type CreateSalesOrderFromQuotationBody = {
   remark?: string;
+};
+
+export type UpdateSalesOrderCustomerPoBody = {
+  customerPoNo: string;
 };
 
 export type StockVerificationAvailableLot = {

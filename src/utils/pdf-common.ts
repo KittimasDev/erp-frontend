@@ -200,6 +200,22 @@ export function basePdfStyles() {
         color: #111827;
         font-weight: 600;
       }
+      .info-row-emphasis {
+        padding: 6px 8px;
+        margin: 0 -4px;
+        border-radius: 6px;
+        background: #f3f8e8;
+        border: 1px solid #d5e4b0;
+      }
+      .info-row-emphasis .label {
+        color: #6f9720;
+        font-weight: 700;
+      }
+      .info-row-emphasis .value {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
       .items-table {
         width: 100%;
         border-collapse: collapse;
@@ -466,7 +482,12 @@ export type SalesCommercialPdfData = {
   titleEn: string;
   docNo: string;
   docDate: string;
-  infoRows: Array<{ label: string; value: string; full?: boolean }>;
+  infoRows: Array<{
+    label: string;
+    value: string;
+    full?: boolean;
+    emphasis?: boolean;
+  }>;
   items: SalesLinePdfItem[];
   withPrices: boolean;
   subtotalAmount?: number;
@@ -517,13 +538,20 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
     .join("");
 
   const infoHtml = data.infoRows
-    .map(
-      (row) => `
-      <div class="info-row${row.full ? " info-row-full" : ""}">
+    .map((row) => {
+      const classes = [
+        "info-row",
+        row.full ? "info-row-full" : "",
+        row.emphasis ? "info-row-emphasis" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return `
+      <div class="${classes}">
         <span class="label">${escapeHtml(row.label)}</span>
         <span class="value">${escapeHtml(row.value)}</span>
-      </div>`,
-    )
+      </div>`;
+    })
     .join("");
 
   const headerCells = priceCols

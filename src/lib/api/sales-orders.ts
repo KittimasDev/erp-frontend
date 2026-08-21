@@ -8,6 +8,7 @@ import type {
   SalesOrderReservationStatusApiResponse,
   SalesOrderStockVerificationApiResponse,
   StockVerificationPendingListApiResponse,
+  UpdateSalesOrderCustomerPoBody,
 } from "@/types/sales-orders";
 
 function buildSalesOrdersQuery(params?: SalesOrderQueryParams) {
@@ -105,6 +106,17 @@ export function cancelSalesOrder(token: string, id: string) {
     method: "POST",
     token,
   });
+}
+
+export function updateSalesOrderCustomerPo(
+  token: string,
+  id: string,
+  body: UpdateSalesOrderCustomerPoBody,
+) {
+  return apiFetch<SalesOrderApiResponse>(
+    `/api/sales-orders/${id}/customer-po`,
+    { method: "PATCH", token, body },
+  );
 }
 
 export function getSalesOrderReservationStatus(token: string, id: string) {

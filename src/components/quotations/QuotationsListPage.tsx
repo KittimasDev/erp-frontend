@@ -422,6 +422,26 @@ export default function QuotationsListPage() {
 
       {
 
+        title: "ผู้สร้าง",
+
+        key: "createdBy",
+
+        width: 140,
+
+        ellipsis: true,
+
+        render: (_v, row) =>
+
+          row.createdBy?.displayName?.trim() ||
+
+          row.createdBy?.username ||
+
+          "—",
+
+      },
+
+      {
+
         title: "ยอดสุทธิ",
 
         dataIndex: "totalAmount",

@@ -3,20 +3,35 @@
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, DatePicker, Modal, Progress, Spin, Tag } from "antd";
+import {
+  App,
+  Button,
+  DatePicker,
+  Input,
+  Modal,
+  Progress,
+  Spin,
+  Tag,
+  Upload,
+} from "antd";
 import type { Dayjs } from "dayjs";
+import type { UploadProps } from "antd";
 import {
   ArrowLeftOutlined,
   CarOutlined,
   CheckOutlined,
   CloseOutlined,
+  DownloadOutlined,
+  EyeOutlined,
   FilePdfOutlined,
   FileTextOutlined,
   InboxOutlined,
+  PaperClipOutlined,
   ProfileOutlined,
   SearchOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -30,8 +45,11 @@ import {
   useReleaseSalesOrderLineMutation,
   useReserveAllEligibleSalesOrderLinesMutation,
   useReserveSalesOrderLineMutation,
+  useUpdateSalesOrderCustomerPoMutation,
+  useUploadSalesOrderAttachmentMutation,
 } from "@/hooks/sales-orders/useSalesOrderMutations";
 import {
+  useSalesOrderAttachmentsQuery,
   useSalesOrderQuery,
   useSalesOrderReservationStatusQuery,
   useSalesOrderStockVerificationQuery,
@@ -41,9 +59,13 @@ import { useCreateProductionRequestMutation } from "@/hooks/production-requests/
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
+import { ApiError } from "@/lib/api/client";
+import { getAccessToken } from "@/lib/auth/token";
 import {
   resolveSalesOrderProgress,
 } from "@/lib/sales/sales-order-progress";
+import type { DocumentAttachment } from "@/types/document-attachments";
 import {
   SALES_ORDER_STATUS_LABEL,
   isPreConfirmSalesOrderStatus,
@@ -58,6 +80,22 @@ import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./SalesOrderDetailPage.module.css";
 
 type Props = { id: string };
+
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+function attachmentDisplayName(file: DocumentAttachment) {
+  return file.originalFileName || "ไฟล์แนบ";
+}
+
+function isImageMime(mimeType?: string) {
+  return Boolean(mimeType?.startsWith("image/"));
+}
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -182,10 +220,20 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const releaseLineMutation = useReleaseSalesOrderLineMutation();
   const reserveAllMutation = useReserveAllEligibleSalesOrderLinesMutation();
   const createProductionRequestMutation = useCreateProductionRequestMutation();
+  const attachmentsQuery = useSalesOrderAttachmentsQuery(id);
+  const uploadAttachmentMutation = useUploadSalesOrderAttachmentMutation();
+  const updateCustomerPoMutation = useUpdateSalesOrderCustomerPoMutation();
   const [pendingProductionRequest, setPendingProductionRequest] =
     useState<PendingProductionRequest | null>(null);
   const [productionRequiredDate, setProductionRequiredDate] =
     useState<Dayjs | null>(null);
+  const [poModalOpen, setPoModalOpen] = useState(false);
+  const [poDraft, setPoDraft] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewIsImage, setPreviewIsImage] = useState(false);
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const productionRequestActions = useScreenActionPermissions(
     "PRODUCTION_REQUESTS",
@@ -208,6 +256,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const canWrite = salesOrderActions.canEdit;
   const canConfirm = salesOrderActions.canApprove;
   const canApproveStock = stockVerificationActions.canApprove;
+  const attachments = attachmentsQuery.data?.data ?? [];
+  const canUploadEvidence =
+    canWrite && data?.status !== "CANCELLED";
   const canFulfill =
     salesOrderActions.canEdit ||
     salesOrderActions.canApprove ||
@@ -291,8 +342,111 @@ export default function SalesOrderDetailPage({ id }: Props) {
     reserveLineMutation.isPending ||
     releaseLineMutation.isPending ||
     reserveAllMutation.isPending ||
-    createProductionRequestMutation.isPending;
+    createProductionRequestMutation.isPending ||
+    uploadAttachmentMutation.isPending ||
+    updateCustomerPoMutation.isPending;
   const progress = resolveSalesOrderProgress(data.status);
+
+  const openCustomerPoModal = (initial?: string) => {
+    setPoDraft((initial ?? data.customerPoNo ?? "").trim());
+    setPoModalOpen(true);
+  };
+
+  const closeAttachmentPreview = () => {
+    setPreviewOpen(false);
+    setPreviewLoading(false);
+    setPreviewTitle("");
+    setPreviewIsImage(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
+  const downloadAttachment = async (file: DocumentAttachment) => {
+    try {
+      const { blob, filename } = await downloadDocumentAttachment(
+        getAccessToken(),
+        file.id,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename || attachmentDisplayName(file);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "ดาวน์โหลดไฟล์ไม่สำเร็จ",
+      );
+    }
+  };
+
+  const openAttachmentPreview = async (file: DocumentAttachment) => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewTitle(attachmentDisplayName(file));
+    setPreviewIsImage(isImageMime(file.mimeType));
+    try {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      const { blob } = await downloadDocumentAttachment(
+        getAccessToken(),
+        file.id,
+      );
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "เปิดไฟล์ไม่สำเร็จ",
+      );
+      closeAttachmentPreview();
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const saveCustomerPo = () => {
+    const value = poDraft.trim();
+    if (!value) {
+      message.warning("กรุณากรอกเลข PO จากไฟล์หลักฐาน");
+      return;
+    }
+    updateCustomerPoMutation.mutate(
+      { id: data.id, body: { customerPoNo: value } },
+      {
+        onSuccess: () => {
+          setPoModalOpen(false);
+        },
+      },
+    );
+  };
+
+  const uploadProps: UploadProps = {
+    showUploadList: false,
+    multiple: true,
+    accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
+    beforeUpload: (file) => {
+      if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
+        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        return Upload.LIST_IGNORE;
+      }
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        return Upload.LIST_IGNORE;
+      }
+      void uploadAttachmentMutation
+        .mutateAsync({ documentId: data.id, file })
+        .then(() => {
+          openCustomerPoModal(data.customerPoNo);
+        });
+      return false;
+    },
+  };
+
   const pickingStep = findStep(timeline, "Picking");
   const packingStep = findStep(timeline, "Packing");
   const allLinesReserved = reservationStatus?.isAllFullyReserved === true;
@@ -345,6 +499,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       soDate: formatDate(data.soDate),
       customerName: data.customer?.nameTh ?? "—",
       customerCode: data.customer?.customerCode ?? "—",
+      customerPoNo: data.customerPoNo?.trim() || "—",
       quotationNo: data.salesQuotationNo ?? "—",
       requestedDeliveryDate: formatDate(data.requestedDeliveryDate),
       remark: data.remark?.trim() || "",
@@ -845,21 +1000,157 @@ export default function SalesOrderDetailPage({ id }: Props) {
             </div>
           </div>
 
-          {data.salesQuotationId ? (
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>อ้างอิงใบเสนอราคา</h2>
+          <div className={styles.section}>
+            <div className={styles.sectionHead}>
+              <div>
+                <h2 className={styles.sectionTitle}>
+                  <PaperClipOutlined /> หลักฐานยืนยันคำสั่งซื้อ
+                </h2>
+                <p className={styles.sectionHint}>
+                  อัปโหลดไฟล์ PO / เอกสารยืนยันจากลูกค้า แล้วระบุเลข PO
+                  เพื่ออ้างอิงบนใบสั่งขาย
+                </p>
               </div>
-              <Link
-                href={`/quotations/${data.salesQuotationId}`}
-                className={styles.metaValue}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-              >
-                <FileTextOutlined />{" "}
-                {data.salesQuotationNo ?? data.salesQuotationId}
-              </Link>
+              {canUploadEvidence ? (
+                <Upload {...uploadProps}>
+                  <Button
+                    type="primary"
+                    icon={<UploadOutlined />}
+                    loading={uploadAttachmentMutation.isPending}
+                    disabled={busy}
+                  >
+                    อัปโหลดหลักฐาน
+                  </Button>
+                </Upload>
+              ) : null}
             </div>
-          ) : null}
+
+            <div className={styles.evidenceGrid}>
+              <div className={styles.evidenceCard}>
+                <span className={styles.evidenceCardLabel}>ใบเสนอราคา</span>
+                {data.salesQuotationId ? (
+                  <Link
+                    href={`/quotations/${data.salesQuotationId}`}
+                    className={styles.evidenceLinkCard}
+                  >
+                    <span className={styles.evidenceLinkIcon}>
+                      <FileTextOutlined />
+                    </span>
+                    <span className={styles.evidenceLinkBody}>
+                      <strong>
+                        {data.salesQuotationNo ?? data.salesQuotationId}
+                      </strong>
+                      <span>เปิดดูใบเสนอราคาต้นทาง</span>
+                    </span>
+                  </Link>
+                ) : (
+                  <div className={styles.evidenceEmpty}>
+                    ไม่มีใบเสนอราคาอ้างอิง
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.evidenceCard}>
+                <div className={styles.evidenceCardTop}>
+                  <span className={styles.evidenceCardLabel}>เลข PO ลูกค้า</span>
+                  {canUploadEvidence ? (
+                    <Button
+                      type="link"
+                      size="small"
+                      onClick={() => openCustomerPoModal(data.customerPoNo)}
+                    >
+                      {data.customerPoNo?.trim() ? "แก้ไข" : "ระบุเลข"}
+                    </Button>
+                  ) : null}
+                </div>
+                {data.customerPoNo?.trim() ? (
+                  <div className={styles.poBadge}>
+                    <span className={styles.poBadgeEyebrow}>Customer PO</span>
+                    <strong>{data.customerPoNo.trim()}</strong>
+                  </div>
+                ) : (
+                  <div className={styles.evidenceEmptyWarn}>
+                    ยังไม่มีเลข PO — อัปโหลดไฟล์แล้วระบบจะให้กรอก
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.evidenceFilesBlock}>
+              <div className={styles.evidenceFilesTitle}>
+                <span>ไฟล์ที่แนบแล้ว</span>
+                <span className={styles.evidenceFilesCount}>
+                  {attachmentsQuery.isLoading
+                    ? "…"
+                    : `${attachments.length} ไฟล์`}
+                </span>
+              </div>
+
+              {attachmentsQuery.isLoading ? (
+                <div className={styles.evidenceLoading}>
+                  <Spin size="small" /> กำลังโหลดไฟล์แนบ...
+                </div>
+              ) : attachments.length === 0 ? (
+                <div className={styles.evidenceDropHint}>
+                  <UploadOutlined />
+                  <div>
+                    <strong>ยังไม่มีไฟล์หลักฐาน</strong>
+                    <span>
+                      รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB
+                      อัปโหลดได้หลายไฟล์
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <ul className={styles.attachmentList}>
+                  {attachments.map((file) => (
+                    <li key={file.id} className={styles.attachmentItem}>
+                      <div className={styles.attachmentIcon}>
+                        {isImageMime(file.mimeType) ? (
+                          <EyeOutlined />
+                        ) : (
+                          <FilePdfOutlined />
+                        )}
+                      </div>
+                      <div className={styles.attachmentMeta}>
+                        <span className={styles.attachmentName}>
+                          {attachmentDisplayName(file)}
+                        </span>
+                        {file.description ? (
+                          <span className={styles.attachmentDesc}>
+                            {file.description}
+                          </span>
+                        ) : (
+                          <span className={styles.attachmentDesc}>
+                            หลักฐานยืนยันคำสั่งซื้อ
+                          </span>
+                        )}
+                      </div>
+                      <div className={styles.attachmentActions}>
+                        {(isImageMime(file.mimeType) ||
+                          file.mimeType === "application/pdf") && (
+                          <Button
+                            size="small"
+                            icon={<EyeOutlined />}
+                            onClick={() => void openAttachmentPreview(file)}
+                          >
+                            ดู
+                          </Button>
+                        )}
+                        <Button
+                          size="small"
+                          icon={<DownloadOutlined />}
+                          onClick={() => void downloadAttachment(file)}
+                        >
+                          ดาวน์โหลด
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
@@ -1534,6 +1825,58 @@ export default function SalesOrderDetailPage({ id }: Props) {
           value={productionRequiredDate}
           onChange={(value) => setProductionRequiredDate(value)}
         />
+      </Modal>
+
+      <Modal
+        title="ระบุเลข PO ลูกค้า"
+        open={poModalOpen}
+        onCancel={() => setPoModalOpen(false)}
+        onOk={saveCustomerPo}
+        okText="บันทึกเลข PO"
+        confirmLoading={updateCustomerPoMutation.isPending}
+        destroyOnHidden
+      >
+        <p className={styles.sectionHint}>
+          คัดลอกเลข PO จากไฟล์หลักฐานที่ยืนยัน แล้วบันทึกไว้บนใบสั่งขายนี้
+        </p>
+        <Input
+          placeholder="เช่น PO-CUST-2026-001"
+          value={poDraft}
+          maxLength={100}
+          onChange={(e) => setPoDraft(e.target.value)}
+          onPressEnter={saveCustomerPo}
+          style={{ marginTop: 8 }}
+        />
+      </Modal>
+
+      <Modal
+        title={previewTitle || "ดูไฟล์แนบ"}
+        open={previewOpen}
+        onCancel={closeAttachmentPreview}
+        footer={null}
+        width={previewIsImage ? 720 : 900}
+        destroyOnHidden
+      >
+        {previewLoading ? (
+          <div className={styles.stateCard}>
+            <Spin /> กำลังเปิดไฟล์...
+          </div>
+        ) : previewUrl ? (
+          previewIsImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={previewUrl}
+              alt={previewTitle}
+              style={{ width: "100%", height: "auto" }}
+            />
+          ) : (
+            <iframe
+              title={previewTitle}
+              src={previewUrl}
+              style={{ width: "100%", height: "70vh", border: 0 }}
+            />
+          )
+        ) : null}
       </Modal>
     </div>
   );

@@ -170,6 +170,16 @@ export default function SalesOrdersListPage() {
             : "—",
       },
       {
+        title: "ผู้สร้าง",
+        key: "createdBy",
+        width: 140,
+        ellipsis: true,
+        render: (_v, row) =>
+          row.createdBy?.displayName?.trim() ||
+          row.createdBy?.username ||
+          "—",
+      },
+      {
         title: "ยอดสุทธิ",
         dataIndex: "totalAmount",
         align: "right",

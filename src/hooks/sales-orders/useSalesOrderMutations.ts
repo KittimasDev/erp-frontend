@@ -11,10 +11,19 @@ import {
   releaseSalesOrderLineReservation,
   reserveAllEligibleSalesOrderLines,
   reserveSalesOrderLine,
+  updateSalesOrderCustomerPo,
 } from "@/lib/api/sales-orders";
+import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
-import type { CreateSalesOrderFromQuotationBody } from "@/types/sales-orders";
+import {
+  ATTACHMENT_GROUP_CUSTOMER_PO,
+  DOCUMENT_TYPE_SO,
+} from "@/types/document-attachments";
+import type {
+  CreateSalesOrderFromQuotationBody,
+  UpdateSalesOrderCustomerPoBody,
+} from "@/types/sales-orders";
 
 import { salesOrdersQueryKey } from "./useSalesOrdersQuery";
 import { invalidateSalesOrderFlowQueries } from "./invalidate-sales-order-flow";
@@ -183,6 +192,69 @@ export function useReserveAllEligibleSalesOrderLinesMutation() {
       }
       message.error(
         error instanceof ApiError ? error.message : "จองสต๊อกไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useUploadSalesOrderAttachmentMutation() {
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "upload-attachment"],
+    mutationFn: ({
+      documentId,
+      file,
+      description,
+    }: {
+      documentId: string;
+      file: File;
+      description?: string;
+    }) =>
+      uploadDocumentAttachment(getAccessToken(), {
+        file,
+        documentType: DOCUMENT_TYPE_SO,
+        documentId,
+        attachmentGroup: ATTACHMENT_GROUP_CUSTOMER_PO,
+        description,
+      }),
+    onSuccess: (res, vars) => {
+      message.success(res.message || "อัปโหลดไฟล์หลักฐานสำเร็จ");
+      void queryClient.invalidateQueries({
+        queryKey: [...salesOrdersQueryKey, "attachments", vars.documentId],
+      });
+    },
+    onError: (err: Error) => {
+      message.error(
+        err instanceof ApiError ? err.message : "อัปโหลดไฟล์ไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useUpdateSalesOrderCustomerPoMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "customer-po"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: UpdateSalesOrderCustomerPoBody;
+    }) => updateSalesOrderCustomerPo(getAccessToken(), id, body),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || "บันทึกเลข PO ลูกค้าสำเร็จ");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "บันทึกเลข PO ลูกค้าไม่สำเร็จ",
       );
     },
   });

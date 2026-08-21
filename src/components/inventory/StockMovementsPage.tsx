@@ -209,7 +209,7 @@ export default function StockMovementsPage() {
       ),
     },
     {
-      title: "เข้า",
+      title: "จำนวนเข้า",
       dataIndex: "quantityIn",
       key: "quantityIn",
       align: "right",
@@ -217,11 +217,11 @@ export default function StockMovementsPage() {
       render: (v: string) => {
         const n = Number(v);
         if (!n) return <span className={styles.qtyMuted}>—</span>;
-        return <span className={styles.qtyIn}>+{formatQty(v)}</span>;
+        return <span className={styles.qtyIn}>{formatQty(v)}</span>;
       },
     },
     {
-      title: "ออก",
+      title: "จำนวนออก",
       dataIndex: "quantityOut",
       key: "quantityOut",
       align: "right",
@@ -229,7 +229,7 @@ export default function StockMovementsPage() {
       render: (v: string) => {
         const n = Number(v);
         if (!n) return <span className={styles.qtyMuted}>—</span>;
-        return <span className={styles.qtyOut}>−{formatQty(v)}</span>;
+        return <span className={styles.qtyOut}>{formatQty(v)}</span>;
       },
     },
     {
@@ -242,19 +242,19 @@ export default function StockMovementsPage() {
         const expense = Number(row.expenseAmount) || 0;
         if (revenue > 0) {
           return (
-            <span className={styles.moneyIn}>+{formatMoney(revenue)}</span>
+            <span className={styles.moneyIn}>{formatMoney(revenue)}</span>
           );
         }
         if (expense > 0) {
           return (
-            <span className={styles.moneyOut}>−{formatMoney(expense)}</span>
+            <span className={styles.moneyOut}>{formatMoney(expense)}</span>
           );
         }
         return <span className={styles.qtyMuted}>—</span>;
       },
     },
     {
-      title: "คงเหลือหลังทำ",
+      title: "ยอดคงเหลือ",
       dataIndex: "balanceQuantityAfter",
       key: "balanceQuantityAfter",
       align: "right",
@@ -339,19 +339,19 @@ export default function StockMovementsPage() {
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryIn}`}>
           <span>ยอดเข้า (ในผลลัพธ์)</span>
-          <strong>+{formatQtyTotal(summary.inQty)}</strong>
+          <strong>{formatQtyTotal(summary.inQty)}</strong>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryOut}`}>
           <span>ยอดออก (ในผลลัพธ์)</span>
-          <strong>−{formatQtyTotal(summary.outQty)}</strong>
+          <strong>{formatQtyTotal(summary.outQty)}</strong>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryIn}`}>
           <span>รายรับ (ในผลลัพธ์)</span>
-          <strong>+{formatMoney(summary.revenue)}</strong>
+          <strong>{formatMoney(summary.revenue)}</strong>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryOut}`}>
           <span>รายจ่าย (ในผลลัพธ์)</span>
-          <strong>−{formatMoney(summary.expense)}</strong>
+          <strong>{formatMoney(summary.expense)}</strong>
         </div>
         <div className={`${styles.summaryCard} ${styles.summarySales}`}>
           <span>รายการขายออก</span>

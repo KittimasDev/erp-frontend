@@ -8,6 +8,7 @@ export type SalesOrderPdfData = {
   soDate: string;
   customerName: string;
   customerCode: string;
+  customerPoNo: string;
   quotationNo: string;
   requestedDeliveryDate: string;
   remark: string;
@@ -28,6 +29,11 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
     infoRows: [
       { label: "ลูกค้า", value: data.customerName },
       { label: "รหัสลูกค้า", value: data.customerCode },
+      {
+        label: "เลข PO ลูกค้า",
+        value: data.customerPoNo,
+        emphasis: true,
+      },
       { label: "อ้างอิง QT", value: data.quotationNo },
       { label: "ต้องการรับ", value: data.requestedDeliveryDate },
     ],

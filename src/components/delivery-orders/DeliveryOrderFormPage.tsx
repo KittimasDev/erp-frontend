@@ -558,7 +558,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           <div className={styles.toolbarLeft}>
             <p className={styles.toolbarTitle}>รายการสินค้าที่ส่ง</p>
             <p className={styles.toolbarHint}>
-              จำนวนส่งต้องเท่ากับจำนวนที่บรรจุในใบบรรจุสินค้า
+              จำนวนส่งรวมต่อรายการสินค้าต้องเท่ากับจำนวนที่บรรจุ (รองรับแยกหลายแถว)
             </p>
           </div>
         </div>
