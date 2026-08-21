@@ -88,7 +88,10 @@ export function usePendingStockPostingApprovalsCountQuery(options?: {
         getAccessToken(),
         StockPostingRequestStatus.PENDING_APPROVAL,
       ),
-    enabled: (options?.enabled ?? true) && hasAccessToken(),
+    enabled:
+      (options?.enabled ?? true) &&
+      hasAccessToken() &&
+      canAccessStockPostingApprovals(),
     refetchInterval: countPollInterval,
     refetchOnMount: true,
     refetchOnWindowFocus: (query) => query.state.status !== "error",

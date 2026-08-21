@@ -30,6 +30,7 @@ import {
   type StoredUser,
 } from "@/lib/auth/session";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
+import { usePendingDraftPickingsCountQuery } from "@/hooks/pickings/usePickingsQuery";
 import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
@@ -140,6 +141,10 @@ export default function HomePortalPage() {
     });
   const pendingProductionOutputStockRequestsCount =
     pendingProductionOutputStockRequestsCountQuery.data ?? 0;
+  const pendingDraftPickingsCountQuery = usePendingDraftPickingsCountQuery({
+    enabled: mounted,
+  });
+  const pendingDraftPickingsCount = pendingDraftPickingsCountQuery.data ?? 0;
 
   const displayName = user?.displayName || user?.username || "ผู้ใช้งาน";
   const roleLabel =
@@ -194,8 +199,12 @@ export default function HomePortalPage() {
                   ? pendingStockPostingApprovalsCount
                   : mod.key === "production"
                     ? pendingProductionOutputStockRequestsCount
-                    : 0;
+                    : mod.key === "fg-warehouse"
+                      ? pendingDraftPickingsCount
+                      : 0;
             const showPendingBadge = pendingBadgeCount > 0;
+            const pendingBadgeLabel =
+              mod.key === "fg-warehouse" ? "รอหยิบ/ยืนยัน" : "รออนุมัติ";
 
             return (
               <Badge
@@ -211,7 +220,7 @@ export default function HomePortalPage() {
                   onClick={() => openModule(mod)}
                   aria-label={
                     showPendingBadge
-                      ? `${mod.label} — ${mod.description} — รออนุมัติ ${pendingBadgeCount} รายการ`
+                      ? `${mod.label} — ${mod.description} — ${pendingBadgeLabel} ${pendingBadgeCount} รายการ`
                       : `${mod.label} — ${mod.description}`
                   }
                 >

@@ -3,7 +3,10 @@
 import { Empty, Spin, Tag, Timeline } from "antd";
 import dayjs from "dayjs";
 
-import { useAuditLogsQuery } from "@/hooks/audit-logs/useAuditLogsQuery";
+import {
+  canAccessDocumentAuditTrail,
+  useAuditLogsQuery,
+} from "@/hooks/audit-logs/useAuditLogsQuery";
 
 type Props = {
   documentId: string;
@@ -27,8 +30,13 @@ export default function DocumentAuditTrail({
   documentId,
   title = "ประวัติการดำเนินการ",
 }: Props) {
+  const allowed = canAccessDocumentAuditTrail();
   const query = useAuditLogsQuery({ documentId, limit: 20 });
   const items = query.data?.data?.items ?? [];
+
+  if (!allowed) {
+    return null;
+  }
 
   return (
     <div>

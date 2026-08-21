@@ -127,6 +127,13 @@ export default function ProductionRequestsListPage() {
 
   const columns: ColumnsType<ProductionRequest> = [
     {
+      title: "#",
+      key: "index",
+      width: 56,
+      align: "center",
+      render: (_v, _r, index) => (page - 1) * 20 + index + 1,
+    },
+    {
       title: "เลขที่ใบขอผลิต",
       dataIndex: "requestNo",
       key: "requestNo",

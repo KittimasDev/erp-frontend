@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, memo, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
@@ -17,6 +17,7 @@ import {
   PlusOutlined,
   SafetyCertificateOutlined,
   SaveOutlined,
+  UndoOutlined,
 } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
@@ -29,12 +30,21 @@ import { usePermissionScreensQuery } from "@/hooks/permissions/usePermissionScre
 import { useRolePermissionsQuery } from "@/hooks/permissions/useRolePermissionsQuery";
 import { useUpdateRolePermissionsMutation } from "@/hooks/permissions/useUpdateRolePermissionsMutation";
 import { isAdministrator } from "@/lib/auth/session";
-import type { ScreenCatalog } from "@/types/permissions";
+import type {
+  RolePermissionAssignment,
+  ScreenCatalog,
+} from "@/types/permissions";
 
 import RoleFormModal from "./RoleFormModal";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./PermissionMatrixPage.module.css";
 
+/**
+ * ลำดับคอลัมน์ที่ต้องการ — ไม่ใช่ "รายการคอลัมน์ทั้งหมด"
+ * คอลัมน์จริงมาจาก catalog ที่ API ส่งมา (ดู functionCodes) เพราะถ้า hardcode ไว้
+ * function code ที่ backend seed เพิ่มแต่ไม่มีในลิสต์นี้จะไม่มีช่องให้ติ๊ก
+ * แล้วถูกส่ง isAllowed=false ทับทุกครั้งที่บันทึก = สิทธิ์หายเงียบ ๆ
+ */
 const FUNCTION_ORDER = [
   "VIEW",
   "VIEW_ALL",
@@ -45,6 +55,22 @@ const FUNCTION_ORDER = [
   "EXPORT",
   "PRINT",
 ];
+
+/** ติ๊ก action ใด ๆ ต้องได้ VIEW ด้วย — ตรงกับ implied-VIEW ใน PermissionsGuard */
+const VIEW_FUNCTION_CODE = "VIEW";
+
+const ADMINISTRATOR_ROLE_CODE = "ADMINISTRATOR";
+
+const FUNCTION_LABELS: Record<string, string> = {
+  VIEW: "ดู",
+  VIEW_ALL: "ดูทั้งหมด",
+  ADD: "เพิ่ม",
+  EDIT: "แก้ไข",
+  DELETE: "ลบ",
+  APPROVE: "อนุมัติ",
+  EXPORT: "ส่งออก",
+  PRINT: "พิมพ์",
+};
 
 /** ลำดับและชื่อแสดงกลุ่มโมดูลใน Permission Matrix — ตรงกลุ่ม sidebar */
 const MODULE_SECTIONS: Array<{ code: string; label: string }> = [
@@ -97,6 +123,113 @@ function groupScreensByModule(screens: ScreenCatalog[]) {
   }));
 }
 
+function buildAllowedMap(
+  assignments: RolePermissionAssignment[] | undefined,
+): Record<string, boolean> {
+  const next: Record<string, boolean> = {};
+  for (const item of assignments ?? []) {
+    next[item.permissionId] = item.isAllowed;
+  }
+  return next;
+}
+
+type CheckState = { checked: boolean; indeterminate: boolean };
+
+function checkStateOf(
+  ids: string[],
+  allowed: Record<string, boolean>,
+): CheckState {
+  if (ids.length === 0) {
+    return { checked: false, indeterminate: false };
+  }
+  const allowedCount = ids.filter((id) => allowed[id]).length;
+  return {
+    checked: allowedCount === ids.length,
+    indeterminate: allowedCount > 0 && allowedCount < ids.length,
+  };
+}
+
+type MatrixRowProps = {
+  screen: ScreenCatalog;
+  functionCodes: string[];
+  fnByCode: Map<string, ScreenCatalog["functions"][number]>;
+  rowState: CheckState;
+  allowed: Record<string, boolean>;
+  /**
+   * ลายเซ็นค่าติ๊กของ *แถวนี้* เท่านั้น — ตัวเทียบใน memo ใช้ค่านี้แทน
+   * identity ของ `allowed` เพื่อให้ติ๊กช่องเดียวแล้ว re-render แค่แถวเดียว
+   */
+  signature: string;
+  disabled: boolean;
+  onToggle: (permissionId: string) => void;
+  onToggleRow: (screen: ScreenCatalog, value: boolean) => void;
+};
+
+function matrixRowPropsEqual(prev: MatrixRowProps, next: MatrixRowProps) {
+  return (
+    prev.screen === next.screen &&
+    prev.functionCodes === next.functionCodes &&
+    prev.fnByCode === next.fnByCode &&
+    prev.rowState.checked === next.rowState.checked &&
+    prev.rowState.indeterminate === next.rowState.indeterminate &&
+    prev.signature === next.signature &&
+    prev.disabled === next.disabled &&
+    prev.onToggle === next.onToggle &&
+    prev.onToggleRow === next.onToggleRow
+  );
+}
+
+const MatrixRow = memo(function MatrixRow({
+  screen,
+  functionCodes,
+  fnByCode,
+  rowState,
+  allowed,
+  disabled,
+  onToggle,
+  onToggleRow,
+}: MatrixRowProps) {
+  return (
+    <tr>
+      <td className={styles.screenCell}>
+        <div className={styles.screenRow}>
+          <Checkbox
+            checked={rowState.checked}
+            indeterminate={rowState.indeterminate}
+            disabled={disabled}
+            title="ติ๊ก/ถอดสิทธิ์ทั้งแถวนี้"
+            onChange={(event) => onToggleRow(screen, event.target.checked)}
+          />
+          <div className={styles.screenMeta}>
+            <span className={styles.screenName}>{screen.screenName}</span>
+            <span className={styles.screenModule}>{screen.screenCode}</span>
+          </div>
+        </div>
+      </td>
+      {functionCodes.map((code) => {
+        const fn = fnByCode.get(code);
+        return (
+          <td key={code} className={styles.checkboxCell}>
+            {fn ? (
+              <Checkbox
+                checked={Boolean(allowed[fn.permissionId])}
+                disabled={disabled}
+                onChange={() => onToggle(fn.permissionId)}
+              />
+            ) : (
+              <span className={styles.notApplicable}>—</span>
+            )}
+          </td>
+        );
+      })}
+    </tr>
+  );
+},
+matrixRowPropsEqual);
+
+const EMPTY_FN_MAP: MatrixRowProps["fnByCode"] = new Map();
+const EMPTY_ROW_STATE: CheckState = { checked: false, indeterminate: false };
+
 type PermissionMatrixPageProps = {
   embedded?: boolean;
   fromRoles?: boolean;
@@ -110,13 +243,20 @@ export default function PermissionMatrixPage({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const lockedRoleId = searchParams.get("roleId");
-  const roleLocked = fromRoles || Boolean(lockedRoleId);
 
   useEffect(() => {
     if (!isAdministrator()) {
       router.replace("/");
     }
   }, [router, pathname]);
+
+  const selectRole = (roleId: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("tab", "permissions");
+    next.set("roleId", roleId);
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
 
   const rolesQuery = useRolesQuery();
   const screensQuery = usePermissionScreensQuery();
@@ -132,6 +272,11 @@ export default function PermissionMatrixPage({
   const selectedRoleId = lockedRoleId ?? roles[0]?.id;
   const rolePermissionsQuery = useRolePermissionsQuery(selectedRoleId);
   const selectedRole = roles.find((role) => role.id === selectedRoleId);
+  /** ADMINISTRATOR ผ่านทุก guard อยู่แล้ว — ตารางเป็น read-only, backend ก็ปฏิเสธ PUT */
+  const isAdminRole = selectedRole?.roleCode === ADMINISTRATOR_ROLE_CODE;
+  /** roleId ใน URL ชี้ไปบทบาทที่ไม่มี/ถูกลบ — ห้ามให้กดบันทึกยิง PUT ทิ้ง */
+  const roleNotFound =
+    rolesQuery.isSuccess && Boolean(selectedRoleId) && !selectedRole;
   const updateMutation = useUpdateRolePermissionsMutation(
     selectedRoleId ?? "",
     selectedRole
@@ -142,6 +287,8 @@ export default function PermissionMatrixPage({
   const deleteRoleMutation = useDeleteRoleMutation();
 
   const [allowed, setAllowed] = useState<Record<string, boolean>>({});
+  /** มีการติ๊กที่ยังไม่บันทึก — ใช้กันไม่ให้ response จาก server มาทับ */
+  const [isDirty, setIsDirty] = useState(false);
   const serverAssignments = rolePermissionsQuery.data?.data.assignments;
 
   /**
@@ -151,30 +298,92 @@ export default function PermissionMatrixPage({
    * `serverAssignments` เพราะถ้า mount ใหม่ตอน TanStack Query ยัง cache อยู่
    * (staleTime 30s) render แรกจะได้ array ก้อนเดิมมาทันที ทำให้ค่าเริ่มต้น
    * เท่ากับค่าที่จะเทียบ → เงื่อนไขไม่เข้า → ตารางขึ้นครบแต่ไม่มีติ๊กเลย
+   *
+   * และห้าม sync ทับตอน isDirty — ไม่งั้น refetch เบื้องหลังจะล้างสิ่งที่
+   * ผู้ใช้เพิ่งติ๊กไปเงียบ ๆ (เปลี่ยน role ถือเป็นการทิ้งของที่แก้ค้าง)
    */
   const [syncedFrom, setSyncedFrom] = useState<{
     roleId?: string;
     assignments?: typeof serverAssignments;
   }>({});
 
+  const roleChanged = syncedFrom.roleId !== selectedRoleId;
   if (
-    syncedFrom.roleId !== selectedRoleId ||
-    syncedFrom.assignments !== serverAssignments
+    roleChanged ||
+    (!isDirty && syncedFrom.assignments !== serverAssignments)
   ) {
     setSyncedFrom({ roleId: selectedRoleId, assignments: serverAssignments });
-    const next: Record<string, boolean> = {};
-    for (const item of serverAssignments ?? []) {
-      next[item.permissionId] = item.isAllowed;
+    setAllowed(buildAllowedMap(serverAssignments));
+    if (isDirty) {
+      setIsDirty(false);
     }
-    setAllowed(next);
   }
+
+  const resetChanges = () => {
+    setSyncedFrom({ roleId: selectedRoleId, assignments: serverAssignments });
+    setAllowed(buildAllowedMap(serverAssignments));
+    setIsDirty(false);
+  };
+
+  /** เตือนก่อนปิด/รีเฟรชแท็บถ้ายังมีสิทธิ์ที่ติ๊กค้างไว้ */
+  useEffect(() => {
+    if (!isDirty) {
+      return;
+    }
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  /** เปลี่ยนบทบาท = ทิ้งของที่ติ๊กค้าง ต้องถามก่อน */
+  const requestRoleChange = (roleId: string) => {
+    if (roleId === selectedRoleId) {
+      return;
+    }
+    if (
+      isDirty &&
+      !window.confirm(
+        "ยังมีสิทธิ์ที่ติ๊กไว้แต่ไม่ได้บันทึก — เปลี่ยนบทบาทแล้วจะหายไป ต้องการเปลี่ยนหรือไม่?",
+      )
+    ) {
+      return;
+    }
+    setIsDirty(false);
+    selectRole(roleId);
+  };
+
+  /** ระหว่างโหลด/บันทึก ห้ามแก้ — กันติ๊กแล้วถูก response ทับ */
+  const isBusy =
+    updateMutation.isPending || rolePermissionsQuery.isFetching;
+  const isReadOnly = isBusy || isAdminRole || roleNotFound;
 
   const goBackToRoles = () => {
     router.replace("/users?tab=roles");
   };
 
-  /** แสดงคอลัมน์ครบทุก action รวม APPROVE — หน้าจอที่ไม่มีสิทธิ์นี้จะเป็น — */
-  const functionCodes = FUNCTION_ORDER;
+  /**
+   * คอลัมน์ = function code ทุกตัวที่มีจริงใน catalog เรียงตาม FUNCTION_ORDER
+   * code ที่ไม่รู้จักไปต่อท้าย (ใช้ code ดิบเป็นหัวคอลัมน์) เพื่อให้ทุกสิทธิ์ที่
+   * backend seed มามีช่องให้ติ๊ก — ไม่ถูกส่ง false ทับเพราะมองไม่เห็น
+   */
+  const functionCodes = useMemo(() => {
+    const present = new Set<string>();
+    for (const screen of screens) {
+      for (const fn of screen.functions) {
+        if (fn.permissionId) {
+          present.add(fn.functionCode);
+        }
+      }
+    }
+    const known = FUNCTION_ORDER.filter((code) => present.has(code));
+    const unknown = [...present]
+      .filter((code) => !FUNCTION_ORDER.includes(code))
+      .sort((a, b) => a.localeCompare(b));
+    return [...known, ...unknown];
+  }, [screens]);
 
   const moduleGroups = useMemo(() => {
     const groups = groupScreensByModule(screens);
@@ -205,88 +414,220 @@ export default function PermissionMatrixPage({
     ];
   }, [screens]);
 
-  const toggle = (permissionId: string) => {
-    setAllowed((prev) => ({ ...prev, [permissionId]: !prev[permissionId] }));
-  };
-
-  const setPermissionsAllowed = (
-    permissionIds: string[],
-    value: boolean,
-  ) => {
-    if (permissionIds.length === 0) {
-      return;
-    }
-    setAllowed((prev) => {
-      const next = { ...prev };
-      for (const id of permissionIds) {
-        next[id] = value;
-      }
-      return next;
-    });
-  };
-
-  const permissionIdsForScreens = (groupScreens: ScreenCatalog[]) =>
-    groupScreens.flatMap((screen) =>
-      screen.functions
-        .map((fn) => fn.permissionId)
-        .filter((id): id is string => Boolean(id)),
-    );
-
-  const permissionIdsForFunction = (
-    groupScreens: ScreenCatalog[],
-    functionCode: string,
-  ) =>
-    groupScreens
-      .map(
-        (screen) =>
-          screen.functions.find((fn) => fn.functionCode === functionCode)
-            ?.permissionId,
-      )
-      .filter((id): id is string => Boolean(id));
-
   const visibleScreens = useMemo(
     () => moduleGroups.flatMap((group) => group.screens),
     [moduleGroups],
   );
 
-  const setScreenAllowed = (screen: ScreenCatalog, value: boolean) => {
-    setPermissionsAllowed(
-      screen.functions
-        .map((fn) => fn.permissionId)
+  /** screenId → (functionCode → function) สร้างครั้งเดียวต่อ catalog */
+  const fnByScreenId = useMemo(() => {
+    const map = new Map<
+      string,
+      Map<string, ScreenCatalog["functions"][number]>
+    >();
+    for (const screen of screens) {
+      map.set(
+        screen.id,
+        new Map(screen.functions.map((fn) => [fn.functionCode, fn])),
+      );
+    }
+    return map;
+  }, [screens]);
+
+  /** ตารางช่วย cascade: permissionId → screen, และ VIEW / non-VIEW ต่อหน้าจอ */
+  const cascadeIndex = useMemo(() => {
+    const screenByPermissionId = new Map<string, ScreenCatalog>();
+    const viewIdByScreenId = new Map<string, string>();
+    const otherIdsByScreenId = new Map<string, string[]>();
+
+    for (const screen of screens) {
+      const others: string[] = [];
+      for (const fn of screen.functions) {
+        if (!fn.permissionId) continue;
+        screenByPermissionId.set(fn.permissionId, screen);
+        if (fn.functionCode === VIEW_FUNCTION_CODE) {
+          viewIdByScreenId.set(screen.id, fn.permissionId);
+        } else {
+          others.push(fn.permissionId);
+        }
+      }
+      otherIdsByScreenId.set(screen.id, others);
+    }
+    return { screenByPermissionId, viewIdByScreenId, otherIdsByScreenId };
+  }, [screens]);
+
+  /**
+   * VIEW cascade — ให้ตารางตรงกับที่ PermissionsGuard บังคับจริง
+   * - ติ๊ก action ใด ๆ → เปิด VIEW ของแถวนั้นให้ด้วย
+   * - ถอด VIEW → ถอด action อื่นในแถวนั้นทั้งหมด
+   * ใช้ทั้ง toggle ทีละช่องและปุ่ม bulk ทุกปุ่ม เพื่อให้กฎเดียวกันทั้งหน้า
+   */
+  const applyCascade = useCallback(
+    (
+      draft: Record<string, boolean>,
+      changedIds: string[],
+      value: boolean,
+    ) => {
+      const changed = new Set(changedIds);
+      const touched = new Map<string, ScreenCatalog>();
+      for (const id of changedIds) {
+        const screen = cascadeIndex.screenByPermissionId.get(id);
+        if (screen) {
+          touched.set(screen.id, screen);
+        }
+      }
+
+      for (const screen of touched.values()) {
+        const viewId = cascadeIndex.viewIdByScreenId.get(screen.id);
+        if (!viewId) continue;
+        const otherIds = cascadeIndex.otherIdsByScreenId.get(screen.id) ?? [];
+
+        if (value) {
+          if (otherIds.some((id) => changed.has(id))) {
+            draft[viewId] = true;
+          }
+        } else if (changed.has(viewId)) {
+          for (const id of otherIds) {
+            draft[id] = false;
+          }
+        }
+      }
+    },
+    [cascadeIndex],
+  );
+
+  const setPermissionsAllowed = useCallback(
+    (permissionIds: string[], value: boolean) => {
+      if (permissionIds.length === 0) {
+        return;
+      }
+      setAllowed((prev) => {
+        const next = { ...prev };
+        for (const id of permissionIds) {
+          next[id] = value;
+        }
+        applyCascade(next, permissionIds, value);
+        return next;
+      });
+      setIsDirty(true);
+    },
+    [applyCascade],
+  );
+
+  const toggle = useCallback(
+    (permissionId: string) => {
+      setAllowed((prev) => {
+        const value = !prev[permissionId];
+        const next = { ...prev, [permissionId]: value };
+        applyCascade(next, [permissionId], value);
+        return next;
+      });
+      setIsDirty(true);
+    },
+    [applyCascade],
+  );
+
+  const permissionIdsForScreens = useCallback(
+    (groupScreens: ScreenCatalog[]) =>
+      groupScreens.flatMap((screen) =>
+        screen.functions
+          .map((fn) => fn.permissionId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    [],
+  );
+
+  const permissionIdsForFunction = useCallback(
+    (groupScreens: ScreenCatalog[], functionCode: string) =>
+      groupScreens
+        .map(
+          (screen) =>
+            screen.functions.find((fn) => fn.functionCode === functionCode)
+              ?.permissionId,
+        )
         .filter((id): id is string => Boolean(id)),
-      value,
-    );
-  };
+    [],
+  );
 
-  const screenAllState = (screen: ScreenCatalog) => {
-    const ids = screen.functions
-      .map((fn) => fn.permissionId)
-      .filter((id): id is string => Boolean(id));
-    if (ids.length === 0) {
-      return { checked: false, indeterminate: false };
-    }
-    const allowedCount = ids.filter((id) => allowed[id]).length;
-    return {
-      checked: allowedCount === ids.length,
-      indeterminate: allowedCount > 0 && allowedCount < ids.length,
-    };
-  };
+  const setScreenAllowed = useCallback(
+    (screen: ScreenCatalog, value: boolean) => {
+      setPermissionsAllowed(
+        screen.functions
+          .map((fn) => fn.permissionId)
+          .filter((id): id is string => Boolean(id)),
+        value,
+      );
+    },
+    [setPermissionsAllowed],
+  );
 
-  const columnAllState = (functionCode: string) => {
-    const ids = permissionIdsForFunction(visibleScreens, functionCode);
-    if (ids.length === 0) {
-      return { checked: false, indeterminate: false, disabled: true };
+  /**
+   * สถานะ checkbox หัวแถว / หัวคอลัมน์ — คำนวณรอบเดียวต่อการเปลี่ยน allowed
+   * (เดิมเป็น function ที่ scan ตารางใหม่ทุก render ต่อการคลิก 1 ครั้ง)
+   */
+  /**
+   * ADMINISTRATOR มีสิทธิ์ทุกอย่างโดย bypass ใน guard — แสดงเป็นติ๊กครบ
+   * ไม่ต้องแยกเคสในทุกจุดที่วาด checkbox
+   */
+  const effectiveAllowed = useMemo(() => {
+    if (!isAdminRole) {
+      return allowed;
     }
-    const allowedCount = ids.filter((id) => allowed[id]).length;
-    return {
-      checked: allowedCount === ids.length,
-      indeterminate: allowedCount > 0 && allowedCount < ids.length,
-      disabled: false,
-    };
-  };
+    const all: Record<string, boolean> = {};
+    for (const screen of screens) {
+      for (const fn of screen.functions) {
+        if (fn.permissionId) {
+          all[fn.permissionId] = true;
+        }
+      }
+    }
+    return all;
+  }, [isAdminRole, screens, allowed]);
+
+  const rowStateByScreenId = useMemo(() => {
+    const map = new Map<string, CheckState>();
+    for (const screen of visibleScreens) {
+      const ids = screen.functions
+        .map((fn) => fn.permissionId)
+        .filter((id): id is string => Boolean(id));
+      map.set(screen.id, checkStateOf(ids, effectiveAllowed));
+    }
+    return map;
+  }, [visibleScreens, effectiveAllowed]);
+
+  /** ลายเซ็นต่อแถว ใช้เป็นตัวเทียบของ MatrixRow (ดู matrixRowPropsEqual) */
+  const rowSignatureByScreenId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const screen of visibleScreens) {
+      map.set(
+        screen.id,
+        screen.functions
+          .map((fn) => (effectiveAllowed[fn.permissionId] ? "1" : "0"))
+          .join(""),
+      );
+    }
+    return map;
+  }, [visibleScreens, effectiveAllowed]);
+
+  const colStateByFunctionCode = useMemo(() => {
+    const map = new Map<string, CheckState & { disabled: boolean }>();
+    for (const code of functionCodes) {
+      const ids = permissionIdsForFunction(visibleScreens, code);
+      map.set(code, {
+        ...checkStateOf(ids, effectiveAllowed),
+        disabled: ids.length === 0,
+      });
+    }
+    return map;
+  }, [
+    functionCodes,
+    visibleScreens,
+    effectiveAllowed,
+    permissionIdsForFunction,
+  ]);
 
   const handleSave = () => {
-    if (!selectedRoleId) {
+    if (!selectedRoleId || isAdminRole) {
       return;
     }
     const assignments = screens.flatMap((screen) =>
@@ -295,7 +636,9 @@ export default function PermissionMatrixPage({
         isAllowed: Boolean(allowed[fn.permissionId]),
       })),
     );
-    updateMutation.mutate(assignments);
+    updateMutation.mutate(assignments, {
+      onSuccess: () => setIsDirty(false),
+    });
   };
 
   const handleDeleteRole = () => {
@@ -324,6 +667,14 @@ export default function PermissionMatrixPage({
         สร้างบทบาทใหม่
       </Button>
       <Button
+        size="large"
+        icon={<UndoOutlined />}
+        disabled={!isDirty || isBusy}
+        onClick={resetChanges}
+      >
+        ยกเลิกการแก้ไข
+      </Button>
+      <Button
         type="primary"
         size="large"
         className={masterStyles.createButton}
@@ -332,15 +683,20 @@ export default function PermissionMatrixPage({
         /**
          * กันเคสร้ายแรง — บันทึกคือ "เขียนทับทั้งชุด" ถ้ากดตอนสิทธิ์เดิมยังโหลดไม่เสร็จ
          * หรือโหลดพลาด จะส่ง isAllowed=false ทั้งหมด = ล้างสิทธิ์ของบทบาทนั้นทิ้ง
+         * ต้องเช็ค isFetching ด้วย — ตอน refetch เบื้องหลัง isSuccess ยังเป็น true
+         * แต่ค่าที่เห็นเป็นของเก่า กดบันทึกตอนนั้นคือเขียนทับด้วยของเก่า
          */
         disabled={
           !selectedRoleId ||
           screens.length === 0 ||
-          !rolePermissionsQuery.isSuccess
+          !rolePermissionsQuery.isSuccess ||
+          rolePermissionsQuery.isFetching ||
+          isAdminRole ||
+          roleNotFound
         }
         onClick={handleSave}
       >
-        บันทึกสิทธิ์
+        {isDirty ? "บันทึกสิทธิ์ *" : "บันทึกสิทธิ์"}
       </Button>
     </div>
   );
@@ -374,7 +730,7 @@ export default function PermissionMatrixPage({
               <h3>เลือกบทบาทและโมดูล</h3>
               <p>
                 {fromRoles
-                  ? "กำลังตั้งสิทธิ์สำหรับบทบาทที่เลือก — เปลี่ยนบทบาทได้ที่แท็บ บทบาท"
+                  ? "กำลังตั้งสิทธิ์สำหรับบทบาทใน URL — เปลี่ยนบทบาทได้จากช่องด้านล่าง หรือกลับไปแท็บ บทบาท"
                   : "เลือกบทบาทเพื่อแก้สิทธิ์ แล้วเลือกโมดูลได้หลายอันเพื่อกรองตาราง"}
                 {moduleFilter.length > 0
                   ? " — กำลังกรองโมดูล: ติ๊กสิทธิ์ในโมดูลอื่นด้วยก่อนบันทึก ถ้าต้องการให้ขึ้นเมนูครบ"
@@ -390,7 +746,6 @@ export default function PermissionMatrixPage({
                 <Select
                   className={styles.roleSelect}
                   value={selectedRoleId}
-                  disabled={roleLocked}
                   showSearch
                   optionFilterProp="label"
                   placeholder="เลือกบทบาท"
@@ -398,6 +753,11 @@ export default function PermissionMatrixPage({
                     value: role.id,
                     label: `${role.roleCode} — ${role.roleName}`,
                   }))}
+                  onChange={(value) => {
+                    if (typeof value === "string" && value) {
+                      requestRoleChange(value);
+                    }
+                  }}
                 />
                 <Popconfirm
                   title="ลบบทบาท"
@@ -452,8 +812,10 @@ export default function PermissionMatrixPage({
               <div className={masterStyles.tableEyebrow}>MATRIX</div>
               <h3>สิทธิ์ตามหน้าจอ</h3>
               <p>
-                ติ๊กทั้งแถว / ทั้งกลุ่ม / ทั้งคอลัมน์ได้ — หรือใช้ปุ่มเปิด/ปิด
-                ทั้งหมดที่กำลังแสดง แล้วกดบันทึกสิทธิ์
+                {isAdminRole
+                  ? "ADMINISTRATOR มีสิทธิ์ทุกหน้าจอโดยระบบ ไม่ต้องตั้งค่า — ตารางนี้ดูได้อย่างเดียว"
+                  : "ติ๊กทั้งแถว / ทั้งกลุ่ม / ทั้งคอลัมน์ได้ — หรือใช้ปุ่มเปิด/ปิดทั้งหมดที่กำลังแสดง แล้วกดบันทึกสิทธิ์ · ติ๊ก แก้ไข/ลบ/อนุมัติ จะเปิด ดู ให้อัตโนมัติ เพราะเข้าหน้านั้นไม่ได้ถ้าไม่มีสิทธิ์ดู"}
+                {isDirty ? " — มีการแก้ที่ยังไม่บันทึก" : ""}
               </p>
             </div>
             <div className={styles.matrixToolbar}>
@@ -463,7 +825,7 @@ export default function PermissionMatrixPage({
               </div>
               <Button
                 size="small"
-                disabled={visibleScreenCount === 0}
+                disabled={visibleScreenCount === 0 || isReadOnly}
                 onClick={() =>
                   setPermissionsAllowed(
                     permissionIdsForScreens(visibleScreens),
@@ -475,7 +837,7 @@ export default function PermissionMatrixPage({
               </Button>
               <Button
                 size="small"
-                disabled={visibleScreenCount === 0}
+                disabled={visibleScreenCount === 0 || isReadOnly}
                 onClick={() =>
                   setPermissionsAllowed(
                     permissionIdsForScreens(visibleScreens),
@@ -488,7 +850,14 @@ export default function PermissionMatrixPage({
             </div>
           </div>
 
-          {rolePermissionsQuery.isLoading ? (
+          {roleNotFound ? (
+            <Empty
+              className={styles.emptyBox}
+              description={`ไม่พบบทบาทรหัส ${selectedRoleId} — อาจถูกลบไปแล้ว`}
+            >
+              <Button onClick={goBackToRoles}>กลับไปแท็บบทบาท</Button>
+            </Empty>
+          ) : rolePermissionsQuery.isLoading ? (
             <div className={styles.loadingBox}>
               <Spin />
             </div>
@@ -523,16 +892,18 @@ export default function PermissionMatrixPage({
                   <tr>
                     <th className={styles.screenHeaderCell}>หน้าจอ</th>
                     {functionCodes.map((code) => {
-                      const colState = columnAllState(code);
+                      const colState = colStateByFunctionCode.get(code);
                       return (
                         <th key={code} className={styles.functionHeaderCell}>
                           <div className={styles.columnHeader}>
-                            <span>{code}</span>
+                            <span title={code}>
+                              {FUNCTION_LABELS[code] ?? code}
+                            </span>
                             <Checkbox
-                              checked={colState.checked}
-                              indeterminate={colState.indeterminate}
-                              disabled={colState.disabled}
-                              title={`ติ๊ก/ถอด ${code} ทั้งตารางที่เห็น`}
+                              checked={Boolean(colState?.checked)}
+                              indeterminate={Boolean(colState?.indeterminate)}
+                              disabled={isReadOnly || colState?.disabled}
+                              title={`ติ๊ก/ถอด ${FUNCTION_LABELS[code] ?? code} ทั้งตารางที่เห็น`}
                               onChange={(event) =>
                                 setPermissionsAllowed(
                                   permissionIdsForFunction(
@@ -563,15 +934,23 @@ export default function PermissionMatrixPage({
                           <span className={styles.sectionMeta}>
                             {group.code} · {group.screens.length} หน้าจอ
                           </span>
+                          {group.code === "WAREHOUSE" ? (
+                            <span className={styles.sectionHint}>
+                              ติ๊กดู ของตรวจสต๊อกขาย / จ่ายของ / บรรจุ / ส่งของ
+                              เปิดหน้ารายละเอียดใบสั่งขายได้
+                              โดยไม่ต้องติ๊กหน้าใบสั่งขาย
+                            </span>
+                          ) : null}
                           <span className={styles.sectionActions}>
                             <Button
                               type="link"
                               size="small"
+                              disabled={isReadOnly}
                               onClick={() =>
                                 setPermissionsAllowed(
                                   permissionIdsForFunction(
                                     group.screens,
-                                    "VIEW",
+                                    VIEW_FUNCTION_CODE,
                                   ),
                                   true,
                                 )
@@ -582,6 +961,23 @@ export default function PermissionMatrixPage({
                             <Button
                               type="link"
                               size="small"
+                              disabled={isReadOnly}
+                              onClick={() =>
+                                setPermissionsAllowed(
+                                  permissionIdsForFunction(
+                                    group.screens,
+                                    VIEW_FUNCTION_CODE,
+                                  ),
+                                  false,
+                                )
+                              }
+                            >
+                              ถอด VIEW ทั้งกลุ่ม
+                            </Button>
+                            <Button
+                              type="link"
+                              size="small"
+                              disabled={isReadOnly}
                               onClick={() =>
                                 setPermissionsAllowed(
                                   permissionIdsForScreens(group.screens),
@@ -594,6 +990,7 @@ export default function PermissionMatrixPage({
                             <Button
                               type="link"
                               size="small"
+                              disabled={isReadOnly}
                               onClick={() =>
                                 setPermissionsAllowed(
                                   permissionIdsForScreens(group.screens),
@@ -606,58 +1003,24 @@ export default function PermissionMatrixPage({
                           </span>
                         </td>
                       </tr>
-                      {group.screens.map((screen) => {
-                        const fnByCode = new Map(
-                          screen.functions.map((fn) => [fn.functionCode, fn]),
-                        );
-                        const rowState = screenAllState(screen);
-                        return (
-                          <tr key={screen.id}>
-                            <td className={styles.screenCell}>
-                              <div className={styles.screenRow}>
-                                <Checkbox
-                                  checked={rowState.checked}
-                                  indeterminate={rowState.indeterminate}
-                                  title="ติ๊ก/ถอดสิทธิ์ทั้งแถวนี้"
-                                  onChange={(event) =>
-                                    setScreenAllowed(
-                                      screen,
-                                      event.target.checked,
-                                    )
-                                  }
-                                />
-                                <div className={styles.screenMeta}>
-                                  <span className={styles.screenName}>
-                                    {screen.screenName}
-                                  </span>
-                                  <span className={styles.screenModule}>
-                                    {screen.screenCode}
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-                            {functionCodes.map((code) => {
-                              const fn = fnByCode.get(code);
-                              return (
-                                <td key={code} className={styles.checkboxCell}>
-                                  {fn ? (
-                                    <Checkbox
-                                      checked={Boolean(
-                                        allowed[fn.permissionId],
-                                      )}
-                                      onChange={() => toggle(fn.permissionId)}
-                                    />
-                                  ) : (
-                                    <span className={styles.notApplicable}>
-                                      —
-                                    </span>
-                                  )}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        );
-                      })}
+                      {group.screens.map((screen) => (
+                        <MatrixRow
+                          key={screen.id}
+                          screen={screen}
+                          functionCodes={functionCodes}
+                          fnByCode={fnByScreenId.get(screen.id) ?? EMPTY_FN_MAP}
+                          rowState={
+                            rowStateByScreenId.get(screen.id) ?? EMPTY_ROW_STATE
+                          }
+                          allowed={effectiveAllowed}
+                          signature={
+                            rowSignatureByScreenId.get(screen.id) ?? ""
+                          }
+                          disabled={isReadOnly}
+                          onToggle={toggle}
+                          onToggleRow={setScreenAllowed}
+                        />
+                      ))}
                     </Fragment>
                   ))}
                 </tbody>

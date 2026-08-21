@@ -111,6 +111,8 @@ export default function ProductionOutputStockRequestsPage() {
   const [status, setStatus] = useState<string | undefined>();
   const [searchInput, setSearchInput] = useState("");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const canRequest =
     userHasRole(RoleCode.WAREHOUSE_OFFICER) || isAdministrator();
 
@@ -174,6 +176,13 @@ export default function ProductionOutputStockRequestsPage() {
 
   const columns: ColumnsType<ProductionOutputStockRequest> = useMemo(
     () => [
+      {
+        title: "#",
+        key: "index",
+        width: 56,
+        align: "center",
+        render: (_v, _r, index) => (page - 1) * pageSize + index + 1,
+      },
       {
         title: "เลขที่คำขอ",
         dataIndex: "requestNo",
@@ -324,7 +333,7 @@ export default function ProductionOutputStockRequestsPage() {
         },
       },
     ],
-    [canRequest, cancelMutation, router],
+    [canRequest, cancelMutation, page, pageSize, router],
   );
 
   return (
@@ -401,7 +410,10 @@ export default function ProductionOutputStockRequestsPage() {
                 ]
                   .filter(Boolean)
                   .join(" ")}
-                onClick={() => setStatus(filter.key)}
+                onClick={() => {
+                  setStatus(filter.key);
+                  setPage(1);
+                }}
               >
                 <span className={styles.statLabel}>{filter.label}</span>
                 <strong
@@ -426,12 +438,18 @@ export default function ProductionOutputStockRequestsPage() {
               style={{ width: 300 }}
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              onPressEnter={() => setQ(searchInput.trim())}
+              onPressEnter={() => {
+                setQ(searchInput.trim());
+                setPage(1);
+              }}
             />
             <Button
               type="primary"
               icon={<SearchOutlined />}
-              onClick={() => setQ(searchInput.trim())}
+              onClick={() => {
+                setQ(searchInput.trim());
+                setPage(1);
+              }}
             >
               ค้นหา
             </Button>
@@ -465,7 +483,9 @@ export default function ProductionOutputStockRequestsPage() {
             dataSource={rows}
             loading={listQuery.isFetching}
             pagination={{
-              pageSize: 10,
+              current: page,
+              pageSize,
+              onChange: setPage,
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
             }}
             scroll={{ x: 1100 }}

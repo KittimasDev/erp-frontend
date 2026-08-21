@@ -9,6 +9,7 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreateDeliveryOrderFromPackingMutation } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { ApiError } from "@/lib/api/client";
+import { canCreateDeliveryFromPacking } from "@/lib/sales/sales-fulfillment-nav";
 
 export default function Page({
   params,
@@ -19,12 +20,16 @@ export default function Page({
   const router = useRouter();
   const createMutation = useCreateDeliveryOrderFromPackingMutation();
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
-  const canAdd = deliveryActions.canAdd;
+  const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
+  const canCreate = canCreateDeliveryFromPacking({
+    delivery: deliveryActions,
+    salesOrder: salesOrderActions,
+  });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
-    if (!canAdd) return;
+    if (!canCreate) return;
 
     let cancelled = false;
     (async () => {
@@ -55,10 +60,12 @@ export default function Page({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [packingId, canAdd]);
+  }, [packingId, canCreate]);
 
-  if (!canAdd || forbidden) {
-    return <AccessDenied screenCodes={["DELIVERY_ORDERS"]} />;
+  if (!canCreate || forbidden) {
+    return (
+      <AccessDenied screenCodes={["DELIVERY_ORDERS", "SALES_ORDERS"]} />
+    );
   }
 
   if (errorMessage) {

@@ -42,6 +42,8 @@ type Props = {
   nextAction?: string;
   timeline?: SalesTrackingTimelineStep[];
   progress?: SalesOrderProgress;
+  /** ถ้าเปิด URL ของขั้นนั้นไม่ได้ — ไม่ใส่ลิงก์ และโชว์ รอกระบวนการ */
+  canNavigateHref?: (href: string) => boolean;
 };
 
 function stepIcon(stepName: string) {
@@ -69,14 +71,18 @@ function FlowStepCard({
   tone,
   isHere,
   isFocus,
+  waitForPermission,
 }: {
   step: SalesTrackingTimelineStep;
   href?: string;
   tone: SalesTimelineStepTone;
   isHere?: boolean;
   isFocus?: boolean;
+  waitForPermission?: boolean;
 }) {
-  const actionLabel = timelineStepActionLabel(step, href);
+  const actionLabel = waitForPermission
+    ? "รอกระบวนการ"
+    : timelineStepActionLabel(step, href);
   const content = (
     <>
       <div className={styles.flowStepTop}>
@@ -136,6 +142,7 @@ export default function SalesOrderTimeline({
   nextAction,
   timeline = [],
   progress,
+  canNavigateHref,
 }: Props) {
   const activeTimelineStep = salesOrderStatus
     ? resolveActiveTimelineStepName(salesOrderStatus)
@@ -270,11 +277,15 @@ export default function SalesOrderTimeline({
               .filter((step) => step.step !== "Invoice")
               .map((step, index, visible) => {
               const tone = resolveSalesTimelineStepTone(step);
-              const href = resolveTimelineStepHref(
+              const rawHref = resolveTimelineStepHref(
                 step,
                 salesOrderId,
                 timeline,
               );
+              const waitForPermission = Boolean(
+                rawHref && canNavigateHref && !canNavigateHref(rawHref),
+              );
+              const href = waitForPermission ? undefined : rawHref;
               const isHere = step.step === "Sales Order";
               const isFocus =
                 activeTimelineStep === step.step || tone === "active";
@@ -290,6 +301,7 @@ export default function SalesOrderTimeline({
                     tone={isFocus && tone === "pending" ? "active" : tone}
                     isHere={isHere}
                     isFocus={isFocus}
+                    waitForPermission={waitForPermission}
                   />
                   {index < visible.length - 1 ? (
                     <RightOutlined

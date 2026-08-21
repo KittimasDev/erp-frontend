@@ -31,6 +31,7 @@ import {
 } from "@/lib/auth/portal-module";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
+import { usePendingDraftPickingsCountQuery } from "@/hooks/pickings/usePickingsQuery";
 import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
@@ -683,35 +684,6 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
       ROLE.EXECUTIVE,
     ],
   },
-  {
-    key: "delivery-orders",
-    screenCode: "DELIVERY_ORDERS",
-    label: "ใบส่งสินค้า",
-    href: "/delivery-orders",
-    icon: <IconStockTransfer />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-      ROLE.ACCOUNTING_OFFICER,
-    ],
-  },
-  {
-    key: "sd-stock-verification",
-    screenCode: "SALES_STOCK_VERIFICATION",
-    label: "ตรวจสอบสต๊อกขาย",
-    href: "/sales-orders/stock-verification",
-    icon: <IconStockCount />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
 ];
 
 const productionMenus: MenuItem[] = [
@@ -839,6 +811,20 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     ],
   },
   {
+    key: "sd-stock-verification",
+    screenCode: "SALES_STOCK_VERIFICATION",
+    label: "ตรวจสอบสต๊อกขาย",
+    href: "/sales-orders/stock-verification",
+    icon: <IconStockCount />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "pickings",
     screenCode: "PICKINGS",
     label: "ใบจ่ายสินค้า / Picking",
@@ -862,6 +848,25 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
       ROLE.WAREHOUSE_OFFICER,
       ROLE.WAREHOUSE_MANAGER,
       ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "delivery-orders",
+    screenCode: "DELIVERY_ORDERS",
+    label: "ใบส่งสินค้า",
+    href: "/delivery-orders",
+    icon: <IconStockTransfer />,
+    matchHrefs: [
+      "/delivery-orders",
+      "/delivery-orders/create-from-packing",
+    ],
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
     ],
   },
   {
@@ -1844,6 +1849,8 @@ export default function AppHeader({
     });
   const pendingProductionOutputStockRequestsCount =
     pendingProductionOutputStockRequestsCountQuery.data ?? 0;
+  const pendingDraftPickingsCountQuery = usePendingDraftPickingsCountQuery();
+  const pendingDraftPickingsCount = pendingDraftPickingsCountQuery.data ?? 0;
   const visibleSalesMenus = filterMenus(salesMenus);
   const visibleLaboratoryMenus = filterMenus(laboratoryMenus);
   const visibleOilTankFarmMenus = filterMenus(oilTankFarmMenus);
@@ -2050,6 +2057,9 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    item.key === "pickings"
+                      ? pendingDraftPickingsCount
+                      : undefined,
                   ),
                 )}
               </div>

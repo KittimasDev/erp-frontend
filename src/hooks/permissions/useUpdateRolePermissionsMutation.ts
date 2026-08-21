@@ -33,9 +33,10 @@ export function useUpdateRolePermissionsMutation(
       updateRolePermissions(getAccessToken(), roleId, { assignments }),
     onSuccess: async (res) => {
       message.success(res.message || "บันทึกสิทธิ์สำเร็จ");
-      queryClient.invalidateQueries({
-        queryKey: rolePermissionsQueryKey(roleId),
-      });
+      // endpoint คืนสิทธิ์ชุดล่าสุดมาแล้ว (shape เดียวกับ GET) — เขียนลง cache ตรง ๆ
+      // ดีกว่า invalidate เพราะไม่ต้องยิงซ้ำ และไม่มีช่วงที่ response เก่ามาทับ
+      // ค่าที่ผู้ใช้ติ๊กต่อระหว่างรอ refetch
+      queryClient.setQueryData(rolePermissionsQueryKey(roleId), res);
 
       try {
         const token = getAccessToken();

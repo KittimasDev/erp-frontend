@@ -11,5 +11,7 @@ export function usePermissionScreensQuery() {
   return useQuery({
     queryKey: permissionScreensQueryKey,
     queryFn: () => getPermissionScreens(getAccessToken()),
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }

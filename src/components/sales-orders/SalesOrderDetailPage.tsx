@@ -63,6 +63,13 @@ import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
 import {
+  canAccessSalesOrderDetail,
+  canApproveStockVerification,
+  canCreateDeliveryFromPacking,
+  canNavigateSalesFulfillmentHref,
+  canOpenStockVerification,
+} from "@/lib/sales/sales-fulfillment-nav";
+import {
   resolveSalesOrderProgress,
 } from "@/lib/sales/sales-order-progress";
 import type { DocumentAttachment } from "@/types/document-attachments";
@@ -252,10 +259,23 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const tracking = trackingQuery.data?.data;
   const timeline = tracking?.timeline ?? [];
 
-  const canView = salesOrderActions.canView;
   const canWrite = salesOrderActions.canEdit;
   const canConfirm = salesOrderActions.canApprove;
-  const canApproveStock = stockVerificationActions.canApprove;
+  const canOpenDetail = canAccessSalesOrderDetail({
+    salesOrder: salesOrderActions,
+    stockVerification: stockVerificationActions,
+    picking: pickingActions,
+    packing: packingActions,
+    delivery: deliveryActions,
+  });
+  const canApproveStock = canApproveStockVerification({
+    stockVerification: stockVerificationActions,
+    picking: pickingActions,
+  });
+  const canOpenStockCheck = canOpenStockVerification({
+    stockVerification: stockVerificationActions,
+    picking: pickingActions,
+  });
   const attachments = attachmentsQuery.data?.data ?? [];
   const canUploadEvidence =
     canWrite && data?.status !== "CANCELLED";
@@ -331,8 +351,18 @@ export default function SalesOrderDetailPage({ id }: Props) {
     );
   }
 
-  if (!canView) {
-    return <AccessDenied screenCodes={["SALES_ORDERS"]} />;
+  if (!canOpenDetail) {
+    return (
+      <AccessDenied
+        screenCodes={[
+          "SALES_ORDERS",
+          "SALES_STOCK_VERIFICATION",
+          "PICKINGS",
+          "PACKINGS",
+          "DELIVERY_ORDERS",
+        ]}
+      />
+    );
   }
 
   const busy =
@@ -622,21 +652,27 @@ export default function SalesOrderDetailPage({ id }: Props) {
       </Button>
     ) : null;
 
+  const waitProcessHint = (
+    <span className={styles.waitProcessHint}>รอกระบวนการ</span>
+  );
+  const navOrWait = (allowed: boolean, button: ReactNode): ReactNode =>
+    allowed ? button : waitProcessHint;
+
   let nextStepButton: ReactNode = null;
-  if (canFulfill) {
-    if (data.status === "CONFIRMED") {
-      if (stockReady && canApproveStock) {
-        nextStepButton = (
-          <>
-            <Button
-              className={styles.primaryBtn}
-              type="primary"
-              icon={<CheckOutlined />}
-              loading={confirmStockMutation.isPending}
-              onClick={() => confirmStockMutation.mutate(data.id)}
-            >
-              ยืนยันผลตรวจสอบสต๊อก
-            </Button>
+  if (data.status === "CONFIRMED") {
+    if (stockReady && canApproveStock) {
+      nextStepButton = (
+        <>
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<CheckOutlined />}
+            loading={confirmStockMutation.isPending}
+            onClick={() => confirmStockMutation.mutate(data.id)}
+          >
+            ยืนยันผลตรวจสอบสต๊อก
+          </Button>
+          {canOpenStockCheck ? (
             <Button
               icon={<SearchOutlined />}
               onClick={() =>
@@ -645,165 +681,79 @@ export default function SalesOrderDetailPage({ id }: Props) {
             >
               ดูรายละเอียด
             </Button>
-          </>
+          ) : null}
+        </>
+      );
+    } else {
+      nextStepButton = navOrWait(
+        canOpenStockCheck,
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<SearchOutlined />}
+          onClick={() =>
+            router.push(`/sales-orders/${data.id}/stock-verification`)
+          }
+        >
+          {stockReady ? "ดูผลตรวจสต๊อก" : "ตรวจสอบสต๊อก"}
+        </Button>,
+      );
+    }
+  } else if (data.status === "STOCK_CHECKED") {
+    const picking = findStep(timeline, "Picking");
+    const canCreatePicking = pickingActions.canAdd;
+    const canEditPicking = pickingActions.canEdit;
+    if (picking?.href) {
+      const pickingDraft = picking.status === "DRAFT";
+      if (pickingDraft && canEditPicking) {
+        nextStepButton = (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<ShoppingOutlined />}
+            onClick={() => router.push(`${picking.href}/edit`)}
+          >
+            ยืนยันใบจ่ายสินค้า (ตัดสต๊อก)
+          </Button>
         );
       } else {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<SearchOutlined />}
-            onClick={() =>
-              router.push(`/sales-orders/${data.id}/stock-verification`)
-            }
-          >
-            {stockReady ? "ดูผลตรวจสต๊อก" : "ตรวจสอบสต๊อก"}
-          </Button>
-        );
-      }
-    } else if (data.status === "STOCK_CHECKED") {
-      const picking = findStep(timeline, "Picking");
-      const canCreatePicking = pickingActions.canAdd;
-      const canEditPicking = pickingActions.canEdit;
-      if (picking?.href) {
-        const pickingDraft = picking.status === "DRAFT";
-        nextStepButton = (
+        nextStepButton = navOrWait(
+          pickingActions.canView,
           <Button
             className={styles.primaryBtn}
             type="primary"
             icon={<ShoppingOutlined />}
-            onClick={() =>
-              router.push(
-                pickingDraft && canEditPicking
-                  ? `${picking.href}/edit`
-                  : (picking.href as string),
-              )
-            }
+            onClick={() => router.push(picking.href as string)}
           >
-            {pickingDraft && canEditPicking
-              ? "ยืนยันใบจ่ายสินค้า (ตัดสต๊อก)"
-              : "เปิดใบจ่ายสินค้า"}
-          </Button>
-        );
-      } else if (canCreatePicking) {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<ShoppingOutlined />}
-            onClick={() =>
-              router.push(`/pickings/create-from-sales-order/${data.id}`)
-            }
-          >
-            สร้างใบจ่ายสินค้า
-          </Button>
+            เปิดใบจ่ายสินค้า
+          </Button>,
         );
       }
-    } else if (
-      data.status === "PICKING" ||
-      data.status === "PARTIALLY_ISSUED"
-    ) {
-      const picking = findStep(timeline, "Picking");
-      const packing = findStep(timeline, "Packing");
+    } else {
+      nextStepButton = navOrWait(
+        canCreatePicking,
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<ShoppingOutlined />}
+          onClick={() =>
+            router.push(`/pickings/create-from-sales-order/${data.id}`)
+          }
+        >
+          สร้างใบจ่ายสินค้า
+        </Button>,
+      );
+    }
+  } else if (
+    data.status === "PICKING" ||
+    data.status === "PARTIALLY_ISSUED"
+  ) {
+    const picking = findStep(timeline, "Picking");
+    const packing = findStep(timeline, "Packing");
 
-      if (packing?.href) {
-        const packingDraft = packing.status === "DRAFT";
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<InboxOutlined />}
-            onClick={() =>
-              router.push(
-                packingDraft
-                  ? `${packing.href}/edit`
-                  : (packing.href as string),
-              )
-            }
-          >
-            {packingDraft ? "แก้ไข/ยืนยันใบบรรจุ" : "เปิดใบบรรจุสินค้า"}
-          </Button>
-        );
-      } else if (
-        picking?.documentId &&
-        picking.status === "CONFIRMED"
-      ) {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<InboxOutlined />}
-            onClick={() =>
-              router.push(
-                `/packings/create-from-picking/${picking.documentId}`,
-              )
-            }
-          >
-            สร้างใบบรรจุสินค้า
-          </Button>
-        );
-      } else if (picking?.href) {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<ShoppingOutlined />}
-            onClick={() =>
-              router.push(
-                picking.status === "DRAFT"
-                  ? `${picking.href}/edit`
-                  : (picking.href as string),
-              )
-            }
-          >
-            ยืนยันใบจ่ายสินค้าก่อนบรรจุ
-          </Button>
-        );
-      } else {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<InboxOutlined />}
-            onClick={() => router.push("/packings/create-from-picking")}
-          >
-            สร้างใบบรรจุสินค้า
-          </Button>
-        );
-      }
-    } else if (data.status === "PACKED") {
-      const packing = findStep(timeline, "Packing");
-      const delivery = findStep(timeline, "Delivery");
-      if (delivery?.href) {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<CarOutlined />}
-            onClick={() => router.push(delivery.href as string)}
-          >
-            ดูใบส่งสินค้า
-          </Button>
-        );
-      } else if (
-        packing?.documentId &&
-        packing.status === "CONFIRMED"
-      ) {
-        nextStepButton = (
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<CarOutlined />}
-            onClick={() =>
-              router.push(
-                `/delivery-orders/create-from-packing/${packing.documentId}`,
-              )
-            }
-          >
-            สร้างใบส่งสินค้า
-          </Button>
-        );
-      } else if (packing?.href && packing.status === "DRAFT") {
+    if (packing?.href) {
+      const packingDraft = packing.status === "DRAFT";
+      if (packingDraft && packingActions.canEdit) {
         nextStepButton = (
           <Button
             className={styles.primaryBtn}
@@ -811,23 +761,139 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<InboxOutlined />}
             onClick={() => router.push(`${packing.href}/edit`)}
           >
-            ยืนยันใบบรรจุก่อนส่งสินค้า
+            แก้ไข/ยืนยันใบบรรจุ
           </Button>
         );
       } else {
+        nextStepButton = navOrWait(
+          packingActions.canView,
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<InboxOutlined />}
+            onClick={() => router.push(packing.href as string)}
+          >
+            เปิดใบบรรจุสินค้า
+          </Button>,
+        );
+      }
+    } else if (picking?.documentId && picking.status === "CONFIRMED") {
+      nextStepButton = navOrWait(
+        packingActions.canAdd,
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<InboxOutlined />}
+          onClick={() =>
+            router.push(`/packings/create-from-picking/${picking.documentId}`)
+          }
+        >
+          สร้างใบบรรจุสินค้า
+        </Button>,
+      );
+    } else if (picking?.href) {
+      if (picking.status === "DRAFT" && pickingActions.canEdit) {
         nextStepButton = (
           <Button
             className={styles.primaryBtn}
             type="primary"
-            icon={<CarOutlined />}
-            onClick={() => router.push("/delivery-orders/create-from-packing")}
+            icon={<ShoppingOutlined />}
+            onClick={() => router.push(`${picking.href}/edit`)}
           >
-            สร้างใบส่งสินค้า
+            ยืนยันใบจ่ายสินค้าก่อนบรรจุ
           </Button>
         );
+      } else {
+        nextStepButton = navOrWait(
+          pickingActions.canView,
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<ShoppingOutlined />}
+            onClick={() => router.push(picking.href as string)}
+          >
+            ยืนยันใบจ่ายสินค้าก่อนบรรจุ
+          </Button>,
+        );
       }
+    } else {
+      nextStepButton = navOrWait(
+        packingActions.canAdd,
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<InboxOutlined />}
+          onClick={() => router.push("/packings/create-from-picking")}
+        >
+          สร้างใบบรรจุสินค้า
+        </Button>,
+      );
+    }
+  } else if (data.status === "PACKED") {
+    const packing = findStep(timeline, "Packing");
+    const delivery = findStep(timeline, "Delivery");
+    if (delivery?.href) {
+      nextStepButton = navOrWait(
+        deliveryActions.canView,
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<CarOutlined />}
+          onClick={() => router.push(delivery.href as string)}
+        >
+          ดูใบส่งสินค้า
+        </Button>,
+      );
+    } else if (packing?.documentId && packing.status === "CONFIRMED") {
+      nextStepButton = navOrWait(
+        canCreateDeliveryFromPacking({
+          delivery: deliveryActions,
+          salesOrder: salesOrderActions,
+        }),
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<CarOutlined />}
+          onClick={() =>
+            router.push(
+              `/delivery-orders/create-from-packing/${packing.documentId}`,
+            )
+          }
+        >
+          สร้างใบส่งสินค้า
+        </Button>,
+      );
+    } else if (packing?.href && packing.status === "DRAFT") {
+      nextStepButton = navOrWait(
+        packingActions.canEdit,
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<InboxOutlined />}
+          onClick={() => router.push(`${packing.href}/edit`)}
+        >
+          ยืนยันใบบรรจุก่อนส่งสินค้า
+        </Button>,
+      );
+    } else {
+      nextStepButton = navOrWait(
+        canCreateDeliveryFromPacking({
+          delivery: deliveryActions,
+          salesOrder: salesOrderActions,
+        }),
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<CarOutlined />}
+          onClick={() => router.push("/delivery-orders/create-from-packing")}
+        >
+          สร้างใบส่งสินค้า
+        </Button>,
+      );
     }
   }
+
+  const showingWaitProcess = nextStepButton === waitProcessHint;
 
   const pendingProductionRequestLabel =
     pendingProductionRequest?.kind === "line"
@@ -908,6 +974,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
         nextAction={tracking?.nextAction}
         timeline={timeline}
         progress={progress}
+        canNavigateHref={(href) =>
+          canNavigateSalesFulfillmentHref(href, {
+            stockVerification: stockVerificationActions,
+            picking: pickingActions,
+            packing: packingActions,
+            delivery: deliveryActions,
+            salesOrder: salesOrderActions,
+          })
+        }
       />
 
       {stockReadyForReserve ? (
@@ -1788,6 +1863,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             ) : null}
 
             {!canFulfill &&
+            !showingWaitProcess &&
             !(isPreConfirm && (canConfirm || canWrite)) &&
             !cancelButton ? (
               <p className={styles.sectionHint}>

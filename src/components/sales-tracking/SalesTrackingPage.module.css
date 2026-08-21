@@ -137,7 +137,7 @@
 
 .filterGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px 14px;
 }
 
@@ -160,19 +160,83 @@
   flex-wrap: wrap;
 }
 
+.summaryCard {
+  height: 100%;
+}
+
+.summaryCardClickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.summaryCardClickable:hover {
+  border-color: var(--pr-green);
+}
+
+.summaryCardActive {
+  border-color: var(--pr-green-dark) !important;
+  box-shadow: 0 0 0 1px var(--pr-green);
+}
+
+.summaryLabel {
+  font-size: 12px;
+  color: var(--pr-muted);
+}
+
+.summaryValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--pr-text);
+}
+
+.docStack {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--pr-muted);
+  line-height: 1.35;
+}
+
+.openSoBtn {
+  margin-top: 8px !important;
+  padding-inline: 0 !important;
+  font-weight: 700 !important;
+}
+
 .tableCard {
   overflow: hidden;
+  padding: 0;
 }
 
 .tableToolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
   padding: 14px 18px;
   border-bottom: 1px solid var(--pr-border);
   background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
+}
+
+.toolbarTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pr-text);
+}
+
+.toolbarHint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--pr-muted);
+}
+
+.tableCount {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pr-muted);
 }
 
 .toolbarLeft {
@@ -205,6 +269,7 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  text-decoration: none;
 }
 
 .table :global(.ant-table) {

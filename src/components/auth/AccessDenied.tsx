@@ -15,11 +15,11 @@ export default function AccessDenied({ screenCodes }: AccessDeniedProps) {
   return (
     <Result
       status="403"
-      title="ไม่มีสิทธิ์เข้าหน้านี้"
+      title="ไม่สามารถเข้าถึงหน้านี้ได้"
       subTitle={
         screenCodes?.length
-          ? `ต้องการสิทธิ์หน้าจอ: ${screenCodes.join(" หรือ ")} — ตั้งค่าได้ที่ Permission Matrix`
-          : "บัญชีของคุณไม่มีสิทธิ์เปิดหน้านี้อ้างอิง Permission Matrix"
+          ? `บัญชีของคุณยังไม่ได้รับสิทธิ์สำหรับหน้าจอ: ${screenCodes.join(" หรือ ")} — ตั้งค่าได้ที่ Permission Matrix`
+          : "บัญชีของคุณยังไม่ได้รับสิทธิ์เปิดหน้านี้ — ตั้งค่าได้ที่ Permission Matrix"
       }
       extra={
         <Button
@@ -29,7 +29,7 @@ export default function AccessDenied({ screenCodes }: AccessDeniedProps) {
             router.replace("/");
           }}
         >
-          กลับหน้าแรก
+          ย้อนกลับ
         </Button>
       }
     />

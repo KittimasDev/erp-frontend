@@ -22,6 +22,7 @@ import {
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { canApproveStockVerification } from "@/lib/sales/sales-fulfillment-nav";
 import { resolveTimelineStepHref } from "@/lib/sales/sales-tracking-timeline";
 import {
   SALES_ORDER_STATUS_LABEL,
@@ -130,7 +131,11 @@ export default function StockVerificationDetailPage({ id }: Props) {
     "SALES_STOCK_VERIFICATION",
   );
   const pickingActions = useScreenActionPermissions("PICKINGS");
-  const canApproveStock = stockVerificationActions.canApprove;
+  const canApproveStock = canApproveStockVerification({
+    stockVerification: stockVerificationActions,
+    picking: pickingActions,
+  });
+  const canViewSalesOrder = salesOrderActions.canView;
   const canFulfill =
     salesOrderActions.canEdit ||
     stockVerificationActions.canEdit ||
@@ -144,8 +149,10 @@ export default function StockVerificationDetailPage({ id }: Props) {
   const lines = verification?.lines ?? [];
   const allOk = verification?.isAllAvailable === true;
   const busy = confirmMutation.isPending || verifyQuery.isFetching;
-  const isConfirmed = order?.status === "CONFIRMED";
-  const isStockChecked = order?.status === "STOCK_CHECKED";
+  const soStatus = order?.status ?? verification?.status ?? "";
+  const soNo = order?.soNo ?? verification?.soNo ?? "—";
+  const isConfirmed = soStatus === "CONFIRMED";
+  const isStockChecked = soStatus === "STOCK_CHECKED";
   /** ผ่านขั้นตรวจสต๊อกไปแล้ว (กำลังจ่าย/บรรจุ/ส่ง หรือเสร็จ) — หน้านี้ดูอย่างเดียว */
   const isPastStockVerification = [
     "PICKING",
@@ -153,7 +160,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
     "PACKED",
     "DELIVERED",
     "COMPLETED",
-  ].includes(order?.status ?? "");
+  ].includes(soStatus);
   const pickingStep = findTimelineStep(timeline, "Picking");
   const pickingHref = pickingStep
     ? resolveTimelineStepHref(pickingStep, id, timeline)
@@ -167,7 +174,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
     0,
   );
 
-  if (orderQuery.isLoading || verifyQuery.isLoading) {
+  if (verifyQuery.isLoading) {
     return (
       <div className={styles.stateCard}>
         <Spin /> กำลังโหลด...
@@ -175,7 +182,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
     );
   }
 
-  if (!order || !verification) {
+  if (!verification) {
     return (
       <div className={styles.emptyCard}>
         ไม่พบข้อมูลใบสั่งขายหรือผลการตรวจสต๊อก
@@ -232,7 +239,13 @@ export default function StockVerificationDetailPage({ id }: Props) {
             loading={confirmMutation.isPending}
             onClick={async () => {
               await confirmMutation.mutateAsync(id);
-              router.push(`/sales-orders/${id}`);
+              if (pickingActions.canAdd) {
+                router.push(`/pickings/create-from-sales-order/${id}`);
+              } else if (canViewSalesOrder) {
+                router.push(`/sales-orders/${id}`);
+              } else {
+                router.push("/sales-orders/stock-verification");
+              }
             }}
           >
             ยืนยันผลตรวจสอบสต๊อก
@@ -254,7 +267,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
             className={styles.primaryBtn}
             icon={<ShoppingOutlined />}
             onClick={() =>
-              router.push(`/pickings/create-from-sales-order/${order.id}`)
+              router.push(`/pickings/create-from-sales-order/${id}`)
             }
           >
             สร้างใบจ่ายสินค้า
@@ -319,7 +332,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
       พร้อมกด <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นถัดไป
     </>
   ) : allOk && !canApproveStock ? (
-    <>สต๊อกพอแล้ว — รอเจ้าหน้าที่ขายยืนยันผลตรวจสอบสต๊อก</>
+    <>สต๊อกพอแล้ว — รอคลังหรือเจ้าหน้าที่ขายยืนยันผลตรวจสอบสต๊อก</>
   ) : (
     <>ต้องเติมสต๊อกหรือปรับยอดสั่งขายก่อน จึงจะยืนยันผลตรวจได้</>
   );
@@ -332,14 +345,14 @@ export default function StockVerificationDetailPage({ id }: Props) {
         </div>
         <div className={styles.headerContent}>
           <p className={styles.eyebrow}>Sales · Stock Verification</p>
-          <h1 className={styles.pageTitle}>{order.soNo}</h1>
+          <h1 className={styles.pageTitle}>{soNo}</h1>
           <p className={styles.pageSubtitle}>
-            {order.customer
+            {order?.customer
               ? `${order.customer.customerCode} — ${order.customer.nameTh}`
               : "—"}{" "}
-            · วันที่ SO {formatDate(order.soDate)} ·{" "}
-            {SALES_ORDER_STATUS_LABEL[order.status as SalesOrderStatus] ??
-              order.status}
+            · วันที่ SO {formatDate(order?.soDate)} ·{" "}
+            {SALES_ORDER_STATUS_LABEL[soStatus as SalesOrderStatus] ??
+              soStatus}
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -397,35 +410,39 @@ export default function StockVerificationDetailPage({ id }: Props) {
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>ข้อมูลใบสั่งขาย</h2>
               <span
-                className={`${styles.statusPill} ${statusClass(order.status)}`}
+                className={`${styles.statusPill} ${statusClass(soStatus)}`}
               >
-                {SALES_ORDER_STATUS_LABEL[order.status as SalesOrderStatus] ??
-              order.status}
+                {SALES_ORDER_STATUS_LABEL[soStatus as SalesOrderStatus] ??
+              soStatus}
               </span>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>เลขที่ SO</span>
                 <div className={styles.metaValue}>
-                  <Link href={`/sales-orders/${order.id}`}>{order.soNo}</Link>
+                  {canViewSalesOrder ? (
+                    <Link href={`/sales-orders/${id}`}>{soNo}</Link>
+                  ) : (
+                    soNo
+                  )}
                 </div>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>วันที่</span>
                 <div className={styles.metaValue}>
-                  {formatDate(order.soDate)}
+                  {formatDate(order?.soDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>วันส่งที่ขอ</span>
                 <div className={styles.metaValue}>
-                  {formatDate(order.requestedDeliveryDate)}
+                  {formatDate(order?.requestedDeliveryDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>ลูกค้า</span>
                 <div className={styles.metaValue}>
-                  {order.customer
+                  {order?.customer
                     ? `${order.customer.customerCode} — ${order.customer.nameTh}`
                     : "—"}
                 </div>
@@ -540,12 +557,14 @@ export default function StockVerificationDetailPage({ id }: Props) {
 
           {renderPrimaryAction(true)}
 
-          <Button
-            block
-            onClick={() => router.push(`/sales-orders/${order.id}`)}
-          >
-            เปิดใบสั่งขาย
-          </Button>
+          {canViewSalesOrder ? (
+            <Button
+              block
+              onClick={() => router.push(`/sales-orders/${id}`)}
+            >
+              เปิดใบสั่งขาย
+            </Button>
+          ) : null}
         </aside>
       </div>
     </div>

@@ -79,7 +79,10 @@ export function usePendingPurchaseRequestApprovalsCountQuery(options?: {
         page: 1,
         limit: 1,
       }),
-    enabled: (options?.enabled ?? true) && hasAccessToken(),
+    enabled:
+      (options?.enabled ?? true) &&
+      hasAccessToken() &&
+      canAccessPurchaseRequestApprovals(),
     refetchInterval: countPollInterval,
     refetchOnMount: true,
     refetchOnWindowFocus: (query) => query.state.status !== "error",

@@ -141,6 +141,9 @@ export default function NotificationSettingsPage({
             {row.code.includes("STOCK_POSTING") ? (
               <Tag color="blue">รับยาง</Tag>
             ) : null}
+            {row.code.includes("PICKING") ? (
+              <Tag color="cyan">Picking</Tag>
+            ) : null}
           </Space>
           <div>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>

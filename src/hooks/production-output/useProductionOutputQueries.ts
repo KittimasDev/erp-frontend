@@ -12,6 +12,13 @@ import {
   getProductionOutputStockRequests,
 } from "@/lib/api/production-output-stock-requests";
 import { getProductionOutputPendingTickets } from "@/lib/api/production-output-pending-tickets";
+import {
+  canAccessScreen,
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
+import { RoleCode } from "@/lib/auth/role-codes";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
 import type { ProductionOutputPendingTicketQueryParams } from "@/types/production-output-pending-tickets";
 import {
@@ -37,6 +44,29 @@ function countPollInterval(query: { state: { status: string } }): number | false
     return false;
   }
   return COUNT_POLL_MS;
+}
+
+/** สิทธิ์เข้าหน้าขอรับผลผลิตเข้าคลัง (เมนู / badge) — ตรงกับ canSeeMenu */
+export function canAccessProductionOutputStockRequests(): boolean {
+  if (isAdministrator()) {
+    return true;
+  }
+  if (isMatrixPermissionMode()) {
+    return (
+      canAccessScreen("PRODUCTION_OUTPUT_STOCK_REQUESTS") ||
+      hasPermission(
+        "PRODUCTION_OUTPUT_STOCK_REQUESTS.VIEW",
+        "PRODUCTION_OUTPUT_STOCK_REQUESTS.ADD",
+        "PRODUCTION_OUTPUT_STOCK_REQUESTS.APPROVE",
+      )
+    );
+  }
+  return (
+    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+    userHasRole(RoleCode.EXECUTIVE)
+  );
 }
 
 export const productionOutputPendingTicketsQueryKey = [
@@ -81,7 +111,8 @@ export function usePendingProductionOutputStockRequestsCountQuery(options?: {
     enabled:
       (options?.enabled ?? true) &&
       hasAccessToken() &&
-      PRODUCTION_OUTPUT_ENABLED,
+      PRODUCTION_OUTPUT_ENABLED &&
+      canAccessProductionOutputStockRequests(),
     refetchInterval: countPollInterval,
     refetchOnMount: true,
     refetchOnWindowFocus: (query) => query.state.status !== "error",

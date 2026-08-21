@@ -162,7 +162,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/quotations", screenCodes: ["QUOTATIONS"] },
   {
     prefix: "/sales-orders/stock-verification",
-    screenCodes: ["SALES_STOCK_VERIFICATION"],
+    screenCodes: ["SALES_STOCK_VERIFICATION", "PICKINGS"],
   },
   { prefix: "/sales-orders", screenCodes: ["SALES_ORDERS"] },
   { prefix: "/delivery-orders", screenCodes: ["DELIVERY_ORDERS"] },
@@ -289,6 +289,22 @@ export function resolveScreenCodesForPath(
   pathname: string,
   search?: string | URLSearchParams | null,
 ): string[] | null {
+  if (pathname === "/sales-orders/stock-verification") {
+    return ["SALES_STOCK_VERIFICATION", "PICKINGS"];
+  }
+  if (/^\/sales-orders\/[^/]+\/stock-verification$/.test(pathname)) {
+    return ["SALES_STOCK_VERIFICATION", "PICKINGS"];
+  }
+  if (/^\/sales-orders\/[^/]+$/.test(pathname)) {
+    return [
+      "SALES_ORDERS",
+      "SALES_STOCK_VERIFICATION",
+      "PICKINGS",
+      "PACKINGS",
+      "DELIVERY_ORDERS",
+    ];
+  }
+
   if (!pathname || pathname === "/" || pathname === "/user") {
     return null;
   }

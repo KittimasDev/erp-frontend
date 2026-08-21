@@ -41,7 +41,16 @@ export default function ProductionOrdersListPage() {
   const rows = listQuery.data?.data.items ?? [];
   const total = listQuery.data?.data.total ?? 0;
 
+  const pageSize = 20;
+
   const columns: ColumnsType<ProductionOrder> = [
+    {
+      title: "#",
+      key: "index",
+      width: 56,
+      align: "center",
+      render: (_v, _r, index) => (page - 1) * pageSize + index + 1,
+    },
     {
       title: "เลขที่ใบสั่งผลิต",
       dataIndex: "orderNo",
@@ -175,7 +184,7 @@ export default function ProductionOrdersListPage() {
             loading={listQuery.isFetching}
             pagination={{
               current: page,
-              pageSize: 20,
+              pageSize,
               total,
               onChange: setPage,
               showTotal: (t) => `ทั้งหมด ${t} รายการ`,

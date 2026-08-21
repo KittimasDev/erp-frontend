@@ -56,6 +56,10 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/sales-orders/stock-verification", title: "ตรวจสอบสต๊อกขาย" },
   { href: "/pickings", title: "ใบจ่ายสินค้า / Picking" },
   { href: "/packings", title: "ใบบรรจุสินค้า / Packing" },
+  {
+    href: "/delivery-orders/create-from-packing",
+    title: "สร้างใบส่งจากใบบรรจุ",
+  },
   { href: "/delivery-orders", title: "ใบส่งสินค้า" },
   { href: "/sales-invoices/pending", title: "รอออกใบแจ้งหนี้" },
   { href: "/sales-invoices", title: "ใบแจ้งหนี้ขาย" },
@@ -175,6 +179,10 @@ function resolvePageTitle(
   }
 
   if (pathname === "/sales-orders/stock-verification") {
+    return "ตรวจสอบสต๊อกขาย";
+  }
+
+  if (/^\/sales-orders\/[^/]+\/stock-verification$/.test(pathname)) {
     return "ตรวจสอบสต๊อกขาย";
   }
 

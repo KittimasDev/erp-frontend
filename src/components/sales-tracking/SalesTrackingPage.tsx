@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Button,
   Card,
   Col,
+  DatePicker,
   Drawer,
   Input,
   Row,
@@ -16,77 +18,69 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
+  ArrowRightOutlined,
+  CarOutlined,
   CheckCircleFilled,
   ClockCircleFilled,
   CloseCircleFilled,
+  ExportOutlined,
   EyeOutlined,
   FileTextOutlined,
   InboxOutlined,
   LineChartOutlined,
+  SafetyCertificateOutlined,
   SearchOutlined,
   ShoppingCartOutlined,
-  CarOutlined,
-  SafetyCertificateOutlined,
-  ExportOutlined,
-  ArrowRightOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import {
   useSalesTrackingDetailQuery,
   useSalesTrackingListQuery,
   useSalesTrackingSummaryQuery,
 } from "@/hooks/sales-tracking/useSalesTrackingQuery";
-import { SALES_ORDER_STATUS_LABEL } from "@/types/sales-orders";
+import {
+  resolveSalesTimelineStepTone,
+  salesTrackingStepLabel,
+  type SalesTimelineStepTone,
+} from "@/lib/sales/sales-tracking-timeline";
+import {
+  SALES_ORDER_STATUS_LABEL,
+  type SalesOrderStatus,
+} from "@/types/sales-orders";
 import type {
+  SalesTrackingQueryParams,
   SalesTrackingRow,
-  SalesTrackingTimelineStep,
 } from "@/types/sales-tracking";
 import styles from "./SalesTrackingPage.module.css";
+
+const PAGE_SIZE = 20;
 
 function formatDate(value?: string) {
   if (!value) return "—";
   return dayjs(value).format("DD/MM/YYYY");
 }
 
-type StepTone = "done" | "active" | "pending" | "cancelled";
-
-function resolveStepTone(step: SalesTrackingTimelineStep): StepTone {
-  const status = (step.status ?? "").toUpperCase();
-
-  if (["CANCELLED", "REJECTED", "EXPIRED"].includes(status)) {
-    return "cancelled";
+function soStatusColor(status: string) {
+  switch (status) {
+    case "COMPLETED":
+    case "DELIVERED":
+      return "success";
+    case "CONFIRMED":
+    case "STOCK_CHECKED":
+    case "PICKING":
+    case "PACKED":
+    case "PARTIALLY_ISSUED":
+    case "AWAITING_CONFIRM":
+      return "processing";
+    case "CANCELLED":
+      return "error";
+    default:
+      return "default";
   }
-
-  if (
-    ["DONE", "DELIVERED", "ACCEPTED", "COMPLETED", "PARTIALLY_ISSUED"].includes(
-      status,
-    ) ||
-    status.endsWith("/PAID") ||
-    status === "PAID"
-  ) {
-    return "done";
-  }
-
-  if (status.endsWith("/PARTIALLY_PAID") || status.endsWith("/UNPAID")) {
-    return "active";
-  }
-
-  if (status === "CONFIRMED") {
-    // Delivery confirmed = พร้อม Mark Delivered / SO confirmed = ขั้น SO เสร็จแล้ว
-    return step.step === "Delivery" ? "active" : "done";
-  }
-
-  if (["STOCK_CHECKED", "PICKING", "PACKED", "POSTED"].includes(status)) {
-    return "done";
-  }
-
-  if (["PENDING", "DRAFT", "SENT"].includes(status)) {
-    return "active";
-  }
-
-  return "pending";
 }
 
 function stepIcon(stepName: string) {
@@ -103,14 +97,12 @@ function stepIcon(stepName: string) {
       return <InboxOutlined />;
     case "Delivery":
       return <CarOutlined />;
-    case "Invoice":
-      return <ExportOutlined />;
     default:
       return <ClockCircleFilled />;
   }
 }
 
-function toneIcon(tone: StepTone) {
+function toneIcon(tone: SalesTimelineStepTone) {
   if (tone === "done") return <CheckCircleFilled />;
   if (tone === "cancelled") return <CloseCircleFilled />;
   if (tone === "active") return <ClockCircleFilled />;
@@ -134,36 +126,40 @@ function statusLabel(status?: string) {
     PACKED: "บรรจุแล้ว",
     COMPLETED: "เสร็จสิ้น",
     PARTIALLY_ISSUED: "จ่ายบางส่วน",
-    "POSTED/UNPAID": "โพสต์แล้ว / รอชำระ",
-    "POSTED/PARTIALLY_PAID": "โพสต์แล้ว / ชำระบางส่วน",
-    "POSTED/PAID": "โพสต์แล้ว / ชำระครบ",
-    POSTED: "โพสต์แล้ว",
-    UNPAID: "รอชำระ",
-    PARTIALLY_PAID: "ชำระบางส่วน",
-    PAID: "ชำระครบ",
+    AWAITING_CONFIRM: "รอยืนยัน",
   };
   return map[status.toUpperCase()] ?? status;
 }
 
-function toneTagColor(tone: StepTone): string {
+function toneTagColor(tone: SalesTimelineStepTone): string {
   if (tone === "done") return "success";
   if (tone === "active") return "processing";
   if (tone === "cancelled") return "error";
   return "default";
 }
 
+type SummaryCard = {
+  key: string;
+  label: string;
+  value?: number;
+  filterStatus?: string;
+};
+
 export default function SalesTrackingPage() {
+  const router = useRouter();
+  const trackingActions = useScreenActionPermissions("SALES_TRACKING");
+
   const [keyword, setKeyword] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [status, setStatus] = useState<string | undefined>();
+  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(
+    null,
+  );
   const [page, setPage] = useState(1);
-  const [applied, setApplied] = useState<{
-    keyword?: string;
-    customerId?: string;
-    salesOrderStatus?: string;
-    page: number;
-    pageSize: number;
-  }>({ page: 1, pageSize: 20 });
+  const [applied, setApplied] = useState<SalesTrackingQueryParams>({
+    page: 1,
+    pageSize: PAGE_SIZE,
+  });
   const [selectedSoId, setSelectedSoId] = useState<string | undefined>();
 
   const summaryQuery = useSalesTrackingSummaryQuery();
@@ -175,14 +171,63 @@ export default function SalesTrackingPage() {
   const list = listQuery.data?.data;
   const customers = customersQuery.data?.data ?? [];
 
-  const cards = [
-    { label: "รอลูกค้ายืนยัน QT", value: summary?.quotationAwaiting },
-    { label: "รอตรวจสต๊อก", value: summary?.soAwaitingStockCheck },
-    { label: "รอ Picking", value: summary?.soAwaitingPicking },
-    { label: "รอ Packing", value: summary?.awaitingPacking },
-    { label: "รอ Delivery", value: summary?.awaitingDelivery },
-    { label: "ส่งแล้ว", value: summary?.delivered },
-    { label: "ยกเลิก", value: summary?.cancelled },
+  const applyFilters = (overrides?: Partial<SalesTrackingQueryParams>) => {
+    const nextPage = overrides?.page ?? 1;
+    setPage(nextPage);
+    setApplied({
+      keyword: keyword.trim() || undefined,
+      customerId,
+      salesOrderStatus: status,
+      dateFrom: dateRange?.[0]?.format("YYYY-MM-DD"),
+      dateTo: dateRange?.[1]?.format("YYYY-MM-DD"),
+      page: nextPage,
+      pageSize: PAGE_SIZE,
+      ...overrides,
+    });
+  };
+
+  const cards: SummaryCard[] = [
+    {
+      key: "qt",
+      label: "รอลูกค้ายืนยัน QT",
+      value: summary?.quotationAwaiting,
+    },
+    {
+      key: "stock",
+      label: "รอตรวจสต๊อก",
+      value: summary?.soAwaitingStockCheck,
+      filterStatus: "CONFIRMED",
+    },
+    {
+      key: "picking",
+      label: "รอ Picking",
+      value: summary?.soAwaitingPicking,
+      filterStatus: "STOCK_CHECKED",
+    },
+    {
+      key: "packing",
+      label: "รอ Packing",
+      value: summary?.awaitingPacking,
+      filterStatus: "PICKING",
+    },
+    {
+      key: "delivery",
+      label: "รอ Delivery",
+      value: summary?.awaitingDelivery,
+      filterStatus: "PACKED",
+    },
+    {
+      key: "delivered",
+      label: "ส่งแล้ว",
+      value: summary?.delivered,
+      filterStatus: "DELIVERED",
+    },
+    {
+      key: "cancelled",
+      label: "ยกเลิก",
+      value: summary?.cancelled,
+      filterStatus: "CANCELLED",
+    },
   ];
 
   const columns: ColumnsType<SalesTrackingRow> = useMemo(
@@ -191,32 +236,72 @@ export default function SalesTrackingPage() {
         title: "#",
         width: 56,
         align: "center",
-        render: (_v, _r, index) => (page - 1) * 20 + index + 1,
+        render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,
       },
       {
         title: "SO",
         dataIndex: "salesOrderNo",
-        render: (v: string) => <span className={styles.prNo}>{v}</span>,
+        width: 140,
+        render: (v: string, row) => (
+          <Link
+            href={`/sales-orders/${row.salesOrderId}`}
+            className={styles.prNo}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {v}
+          </Link>
+        ),
       },
       {
         title: "QT",
         dataIndex: "quotationNo",
+        width: 130,
         render: (v?: string) => v ?? "—",
       },
       {
         title: "ลูกค้า",
         dataIndex: "customerName",
+        ellipsis: true,
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "วันที่",
+        title: "วันที่ SO",
         dataIndex: "orderDate",
         width: 110,
         render: formatDate,
       },
-      { title: "สถานะ SO", dataIndex: "salesOrderStatus", width: 120 },
-      { title: "ขั้นตอน", dataIndex: "currentStep" },
-      { title: "Next", dataIndex: "nextAction" },
+      {
+        title: "สถานะ SO",
+        dataIndex: "salesOrderStatus",
+        width: 140,
+        render: (value: string) => (
+          <Tag color={soStatusColor(value)}>
+            {SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value}
+          </Tag>
+        ),
+      },
+      {
+        title: "เอกสารต่อเนื่อง",
+        key: "docs",
+        width: 180,
+        render: (_v, row) => (
+          <div className={styles.docStack}>
+            <span>PK {row.pickingNo ?? "—"}</span>
+            <span>PC {row.packingNo ?? "—"}</span>
+            <span>DO {row.deliveryOrderNo ?? "—"}</span>
+          </div>
+        ),
+      },
+      {
+        title: "ขั้นตอน",
+        dataIndex: "currentStep",
+        width: 150,
+      },
+      {
+        title: "ทำถัดไป",
+        dataIndex: "nextAction",
+        ellipsis: true,
+      },
       {
         title: "",
         key: "actions",
@@ -236,6 +321,10 @@ export default function SalesTrackingPage() {
     [page],
   );
 
+  if (!trackingActions.canView) {
+    return <AccessDenied screenCodes={["SALES_TRACKING"]} />;
+  }
+
   const detail = detailQuery.data?.data;
 
   return (
@@ -248,23 +337,36 @@ export default function SalesTrackingPage() {
           <p className={styles.eyebrow}>Sales · Tracking</p>
           <h1 className={styles.pageTitle}>ติดตามการขายและจัดส่ง</h1>
           <p className={styles.pageSubtitle}>
-            ดูภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery
-            (จบที่ส่งสินค้า)
+            ภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery
           </p>
         </div>
       </header>
 
       <Row gutter={[12, 12]}>
-        {cards.map((card) => (
-          <Col xs={12} sm={8} md={6} lg={3} key={card.label}>
-            <Card size="small">
-              <div style={{ fontSize: 12, color: "#8a9199" }}>{card.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 700 }}>
-                {card.value ?? "—"}
-              </div>
-            </Card>
-          </Col>
-        ))}
+        {cards.map((card) => {
+          const clickable = Boolean(card.filterStatus);
+          const active = status === card.filterStatus;
+          return (
+            <Col xs={12} sm={8} md={6} lg={3} key={card.key}>
+              <Card
+                size="small"
+                className={`${styles.summaryCard} ${active ? styles.summaryCardActive : ""} ${clickable ? styles.summaryCardClickable : ""}`}
+                onClick={() => {
+                  if (!card.filterStatus) return;
+                  const next =
+                    status === card.filterStatus
+                      ? undefined
+                      : card.filterStatus;
+                  setStatus(next);
+                  applyFilters({ salesOrderStatus: next, page: 1 });
+                }}
+              >
+                <div className={styles.summaryLabel}>{card.label}</div>
+                <div className={styles.summaryValue}>{card.value ?? "—"}</div>
+              </Card>
+            </Col>
+          );
+        })}
       </Row>
 
       <section className={styles.filterCard}>
@@ -273,8 +375,10 @@ export default function SalesTrackingPage() {
             <label>ค้นหา</label>
             <Input
               allowClear
+              placeholder="เลข SO / QT / ลูกค้า"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
+              onPressEnter={() => applyFilters({ page: 1 })}
             />
           </div>
           <div className={styles.filterItem}>
@@ -307,38 +411,64 @@ export default function SalesTrackingPage() {
               )}
             />
           </div>
+          <div className={styles.filterItem}>
+            <label>ช่วงวันที่ SO</label>
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(value) => setDateRange(value)}
+              format="DD/MM/YYYY"
+              style={{ width: "100%" }}
+            />
+          </div>
         </div>
         <div className={styles.filterActions}>
           <Button
             type="primary"
             className={styles.primaryBtn}
             icon={<SearchOutlined />}
-            onClick={() => {
-              setPage(1);
-              setApplied({
-                keyword: keyword.trim() || undefined,
-                customerId,
-                salesOrderStatus: status,
-                page: 1,
-                pageSize: 20,
-              });
-            }}
+            onClick={() => applyFilters({ page: 1 })}
           >
             ค้นหา
+          </Button>
+          <Button
+            onClick={() => {
+              setKeyword("");
+              setCustomerId(undefined);
+              setStatus(undefined);
+              setDateRange(null);
+              setPage(1);
+              setApplied({ page: 1, pageSize: PAGE_SIZE });
+            }}
+          >
+            ล้างตัวกรอง
           </Button>
         </div>
       </section>
 
       <section className={styles.tableCard}>
+        <div className={styles.tableToolbar}>
+          <div>
+            <p className={styles.toolbarTitle}>รายการใบสั่งขาย</p>
+            <p className={styles.toolbarHint}>
+              กดแถวเพื่อดูไทม์ไลน์ · กดเลข SO เพื่อเปิดรายละเอียด
+            </p>
+          </div>
+          <span className={styles.tableCount}>
+            {list?.total ?? 0} รายการ
+          </span>
+        </div>
         <Table
           rowKey="salesOrderId"
-          loading={listQuery.isLoading}
+          className={styles.table}
+          loading={listQuery.isLoading || listQuery.isFetching}
           columns={columns}
           dataSource={list?.items ?? []}
+          scroll={{ x: 1100 }}
           pagination={{
             current: page,
-            pageSize: 20,
+            pageSize: PAGE_SIZE,
             total: list?.total ?? 0,
+            showTotal: (total) => `ทั้งหมด ${total} รายการ`,
             onChange: (p) => {
               setPage(p);
               setApplied((prev) => ({ ...prev, page: p }));
@@ -390,73 +520,82 @@ export default function SalesTrackingPage() {
                 <ArrowRightOutlined />
                 <span>{detail.nextAction}</span>
               </div>
+              <Button
+                type="link"
+                className={styles.openSoBtn}
+                onClick={() =>
+                  router.push(`/sales-orders/${detail.salesOrderId}`)
+                }
+              >
+                เปิดใบสั่งขาย
+              </Button>
             </div>
 
             <div className={styles.timeline}>
               {detail.timeline
                 .filter((step) => step.step !== "Invoice")
                 .map((step, index, visible) => {
-                const tone = resolveStepTone(step);
-                return (
-                  <div
-                    key={`${step.step}-${index}`}
-                    className={`${styles.timelineItem} ${styles[`tone_${tone}`]}`}
-                  >
-                    <div className={styles.timelineRail}>
-                      <div className={styles.timelineDot}>
-                        {toneIcon(tone) ?? stepIcon(step.step)}
-                      </div>
-                      {index < visible.length - 1 ? (
-                        <div className={styles.timelineLine} />
-                      ) : null}
-                    </div>
-                    <div className={styles.timelineCard}>
-                      <div className={styles.timelineCardHead}>
-                        <div className={styles.timelineStepIcon}>
-                          {stepIcon(step.step)}
+                  const tone = resolveSalesTimelineStepTone(step);
+                  return (
+                    <div
+                      key={`${step.step}-${index}`}
+                      className={`${styles.timelineItem} ${styles[`tone_${tone}`]}`}
+                    >
+                      <div className={styles.timelineRail}>
+                        <div className={styles.timelineDot}>
+                          {toneIcon(tone) ?? stepIcon(step.step)}
                         </div>
-                        <div className={styles.timelineStepMeta}>
-                          <div className={styles.timelineStepName}>
-                            {step.step}
-                          </div>
-                          <Tag
-                            color={toneTagColor(tone)}
-                            className={styles.timelineTag}
-                          >
-                            {statusLabel(step.status)}
-                          </Tag>
-                        </div>
-                      </div>
-                      <div className={styles.timelineDetails}>
-                        <div className={styles.timelineDetailRow}>
-                          <span>เอกสาร</span>
-                          <strong>{step.documentNo ?? "—"}</strong>
-                        </div>
-                        <div className={styles.timelineDetailRow}>
-                          <span>วันที่</span>
-                          <strong>{formatDate(step.date)}</strong>
-                        </div>
-                        {step.actorName ? (
-                          <div className={styles.timelineDetailRow}>
-                            <span>โดย</span>
-                            <strong>{step.actorName}</strong>
-                          </div>
+                        {index < visible.length - 1 ? (
+                          <div className={styles.timelineLine} />
                         ) : null}
                       </div>
-                      {step.href ? (
-                        <Link href={step.href} className={styles.timelineLink}>
-                          เปิดเอกสาร
-                          <ExportOutlined />
-                        </Link>
-                      ) : (
-                        <span className={styles.timelineLinkDisabled}>
-                          ยังไม่มีเอกสาร
-                        </span>
-                      )}
+                      <div className={styles.timelineCard}>
+                        <div className={styles.timelineCardHead}>
+                          <div className={styles.timelineStepIcon}>
+                            {stepIcon(step.step)}
+                          </div>
+                          <div className={styles.timelineStepMeta}>
+                            <div className={styles.timelineStepName}>
+                              {salesTrackingStepLabel(step.step)}
+                            </div>
+                            <Tag
+                              color={toneTagColor(tone)}
+                              className={styles.timelineTag}
+                            >
+                              {statusLabel(step.status)}
+                            </Tag>
+                          </div>
+                        </div>
+                        <div className={styles.timelineDetails}>
+                          <div className={styles.timelineDetailRow}>
+                            <span>เอกสาร</span>
+                            <strong>{step.documentNo ?? "—"}</strong>
+                          </div>
+                          <div className={styles.timelineDetailRow}>
+                            <span>วันที่</span>
+                            <strong>{formatDate(step.date)}</strong>
+                          </div>
+                          {step.actorName ? (
+                            <div className={styles.timelineDetailRow}>
+                              <span>โดย</span>
+                              <strong>{step.actorName}</strong>
+                            </div>
+                          ) : null}
+                        </div>
+                        {step.href ? (
+                          <Link href={step.href} className={styles.timelineLink}>
+                            เปิดเอกสาร
+                            <ExportOutlined />
+                          </Link>
+                        ) : (
+                          <span className={styles.timelineLinkDisabled}>
+                            ยังไม่มีเอกสาร
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
         ) : null}

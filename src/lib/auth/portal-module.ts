@@ -182,12 +182,7 @@ export function inferPortalModuleFromPathname(
   ) {
     return "purchase";
   }
-  if (
-    pathname.startsWith("/goods-receipts") ||
-    pathname.startsWith("/delivery-orders") ||
-    pathname === "/sales-orders/stock-verification" ||
-    /^\/sales-orders\/[^/]+\/stock-verification/.test(pathname)
-  ) {
+  if (pathname.startsWith("/goods-receipts")) {
     return "rm-warehouse";
   }
   // เมนู "อนุมัติงานคลัง" และ "อนุมัติรับผลผลิตเข้าคลัง" อยู่กลุ่ม «คลัง FG»
@@ -195,7 +190,10 @@ export function inferPortalModuleFromPathname(
   // สลับไปกลุ่มอื่นจนมองไม่เห็นเมนูที่ตัวเองยืนอยู่
   if (
     pathname.startsWith("/warehouse/approvals") ||
-    pathname.startsWith("/warehouse/production-output")
+    pathname.startsWith("/warehouse/production-output") ||
+    pathname === "/sales-orders/stock-verification" ||
+    /^\/sales-orders\/[^/]+\/stock-verification/.test(pathname) ||
+    pathname.startsWith("/delivery-orders")
   ) {
     return "fg-warehouse";
   }
@@ -225,10 +223,19 @@ export function inferPortalModuleFromPathname(
   }
   if (
     pathname.startsWith("/quotations") ||
-    pathname.startsWith("/sales-orders") ||
     pathname.startsWith("/sales-invoices") ||
     pathname.startsWith("/sales-tracking")
   ) {
+    return "sales";
+  }
+  if (pathname === "/sales-orders" || pathname.startsWith("/sales-orders/")) {
+    // รายละเอียด SO ไม่บังคับโมดูลขาย — คลังเปิดจาก FG แล้ว sidebar ยังเป็นคลัง
+    if (/^\/sales-orders\/[^/]+$/.test(pathname)) {
+      return null;
+    }
+    if (pathname.startsWith("/sales-orders/stock-verification")) {
+      return "fg-warehouse";
+    }
     return "sales";
   }
   if (pathname.startsWith("/laboratory")) {

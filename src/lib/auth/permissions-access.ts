@@ -105,8 +105,11 @@ export type ScreenActionPermissions = {
 
 const SALES_OWN_SCOPE_SCREENS = new Set(["QUOTATIONS", "SALES_ORDERS"]);
 
-/** Legacy: Manager / Executive / Admin เห็น QT/SO ทุกใบ — ตรง backend */
-function legacyCanViewAllSalesDocuments(): boolean {
+/**
+ * ใช้เฉพาะตอนสิทธิ์ยังโหลดไม่เสร็จ (localStorage ว่าง) — Manager / Executive /
+ * Admin เห็น QT/SO ทุกใบ ตรงกับ DEFAULT_GRANTS ที่ backend seed ให้
+ */
+function fallbackCanViewAllSalesDocuments(): boolean {
   const user = getStoredUser();
   const roleCodes = user?.roles?.map((role) => role.roleCode) ?? [];
   return roleCodes.some(
@@ -118,16 +121,18 @@ function legacyCanViewAllSalesDocuments(): boolean {
 }
 
 /**
- * Matrix CRUD/action flags for a screen. Legacy mode → all true (RolesGuard/API gate).
- * Admin (*) → all true.
- * QT/SO: canViewAll ตาม VIEW_ALL หรือ legacy role (Manager/Executive/Admin)
+ * Matrix CRUD/action flags for a screen.
+ * - Admin (`*`) → all true
+ * - สิทธิ์ยังโหลดไม่เสร็จ (localStorage ว่าง) → all true เพื่อไม่ให้ UI กระพริบ
+ *   ตัวบังคับจริงคือ backend (PermissionsGuard) ไม่ใช่ flag ชุดนี้
+ * - นอกนั้นอ่านจาก Permission Matrix ตรง ๆ — ไม่มีสิทธิ์ = false
  */
 export function getScreenActionPermissions(
   screenCode: string,
 ): ScreenActionPermissions {
   if (!isMatrixPermissionMode()) {
     const canViewAll = SALES_OWN_SCOPE_SCREENS.has(screenCode)
-      ? legacyCanViewAllSalesDocuments()
+      ? fallbackCanViewAllSalesDocuments()
       : true;
     return {
       canView: true,
