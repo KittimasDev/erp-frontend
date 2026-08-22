@@ -2,16 +2,68 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 import {
+  ensureCompanyInfo as loadCompanyInfo,
   formatTaxId,
   getCompanyInfoSnapshot,
 } from "@/lib/company/company-info";
+import { reportUserError } from "@/lib/ui/toast-bridge";
 
-/** โลโก้สำรอง ใช้เมื่อยังไม่ได้ตั้งค่าโลโก้ใน master ข้อมูลบริษัท */
-export const PDF_LOGO_URL = "/9315db73-509d-48a7-a8a8-deccea44bb93.png";
+/**
+ * โหลดข้อมูลบริษัทก่อนประกอบเอกสาร — generator ทุกตัวเรียกตัวนี้เป็นอย่างแรก
+ *
+ * แจ้งผู้ใช้ให้เห็นก่อนโยนต่อ เพราะ call site หลายจุดเรียกแบบ fire-and-forget
+ * ไม่มี catch ถ้าไม่แจ้งที่นี่ กดปุ่มพิมพ์แล้วจะเงียบหายไปเฉย ๆ
+ */
+export async function ensureCompanyInfo() {
+  try {
+    return await loadCompanyInfo();
+  } catch (error) {
+    reportUserError(
+      error instanceof Error
+        ? error.message
+        : "โหลดข้อมูลบริษัทไม่สำเร็จ — ยังสร้างเอกสารไม่ได้",
+    );
+    throw error;
+  }
+}
 
-/** โลโก้ที่ตั้งไว้ใน master ข้อมูลบริษัท (ตกมาที่ค่าสำรองถ้าไม่ได้ตั้ง) */
+/**
+ * โลโก้บนหัวเอกสาร — ไฟล์ที่อัปโหลดไว้ (data URI) ชนะ path ที่พิมพ์เอง
+ * data URI ไม่ทำให้ canvas ของ html2canvas taint จึงพิมพ์ออกมาได้แน่นอน
+ */
 export function companyLogoUrl() {
-  return getCompanyInfoSnapshot().logoUrl;
+  const company = getCompanyInfoSnapshot();
+  return company.logoDataUrl ?? company.logoUrl;
+}
+
+/** ชื่อที่ใช้ท้ายเอกสาร — ชื่อย่อถ้ามี ไม่งั้นชื่อเต็ม */
+export function companyBrandName() {
+  return getCompanyInfoSnapshot().shortName;
+}
+
+/**
+ * บรรทัดบัญชีธนาคารหลัก สำหรับเอกสารกลุ่มขายที่ลูกค้าต้องโอนเงินเข้ามา
+ * ไม่มีบัญชีหลักที่ active → คืนค่าว่าง ให้เอกสารไม่ต้องขึ้นบรรทัดนี้เลย
+ */
+export function companyBankLineHtml() {
+  const account = getCompanyInfoSnapshot().bankAccount;
+  if (!account) {
+    return "";
+  }
+
+  const parts: string[] = [];
+  if (account.bankName) {
+    const branch = account.branchName ? ` สาขา${account.branchName}` : "";
+    parts.push(escapeHtml(`ธนาคาร${account.bankName}${branch}`));
+  }
+  if (account.accountName) {
+    parts.push(`ชื่อบัญชี ${escapeHtml(account.accountName)}`);
+  }
+  if (account.accountNumber) {
+    parts.push(`เลขที่บัญชี ${escapeHtml(account.accountNumber)}`);
+  }
+
+  return parts.join(" · ");
 }
 
 /**
@@ -305,6 +357,17 @@ export function basePdfStyles() {
         margin-bottom: 10px;
       }
       .sig-date { font-size: 11px; color: #4b5563; font-weight: 600; }
+      .bank-box {
+        margin-top: 14px;
+        border: 1.2px solid #e5e7eb;
+        background: #fcfcfd;
+        padding: 10px 14px;
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        gap: 8px;
+        font-size: 12px;
+      }
+      .bank-box strong { font-weight: 700; }
       .footer-note {
         margin-top: 14px;
         text-align: center;
@@ -499,6 +562,9 @@ export type SalesCommercialPdfData = {
 };
 
 export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
+  // ต้องได้ข้อมูลบริษัทก่อนประกอบ HTML — ไม่มีค่า hardcode สำรองแล้ว
+  await ensureCompanyInfo();
+
   const priceCols = data.withPrices;
   const rows = data.items
     .map((item) => {
@@ -573,6 +639,12 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
     </div>`
     : "";
 
+  // บัญชีธนาคารหลักจาก master ข้อมูลบริษัท — เอกสารกลุ่มขายเท่านั้น
+  const bankLine = companyBankLineHtml();
+  const bankHtml = bankLine
+    ? `<div class="bank-box"><strong>ชำระเงินที่</strong><div>${bankLine}</div></div>`
+    : "";
+
   const remarkHtml = data.remark
     ? `<div class="remark-box"><strong>หมายเหตุ</strong><div>${escapeHtml(data.remark)}</div></div>`
     : "";
@@ -616,8 +688,9 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
       </table>
       ${totalsHtml}
       ${remarkHtml}
+      ${bankHtml}
       ${signatureHtml}
-      <div class="footer-note">เอกสารออกจากระบบ ERP · SMT Energy</div>
+      <div class="footer-note">เอกสารออกจากระบบ ERP · ${escapeHtml(companyBrandName())}</div>
     </div>
   `;
 

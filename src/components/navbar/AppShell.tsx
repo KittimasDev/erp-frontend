@@ -7,6 +7,7 @@ import { Suspense, useState } from "react";
 import AppHeader from "./AppHeader";
 import AppTopHeader from "./AppTopHeader";
 import CompanyProfileSync from "@/components/common/CompanyProfileSync";
+import ToastBridge from "@/components/common/ToastBridge";
 
 // SMT Energy brand theme — scoped to the Main Content subtree only via a nested
 // ConfigProvider. Sidebar/Header render outside this subtree and keep the
@@ -55,6 +56,8 @@ export default function AppShell({
     >
       {/* เก็บข้อมูลบริษัทไว้ให้ฟังก์ชันสร้าง PDF ใช้ — ไม่เรนเดอร์อะไร */}
       <CompanyProfileSync />
+      {/* ให้ฟังก์ชันสร้าง PDF (อยู่นอก React) แจ้ง error ให้ผู้ใช้เห็นได้ */}
+      <ToastBridge />
 
       <Suspense fallback={null}>
         <AppHeader

@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiDownloadBlob, apiFetch, apiUpload } from "./client";
 import type {
   CompanyBankAccountApiResponse,
   CompanyBankAccountListApiResponse,
@@ -26,6 +26,28 @@ export function updateCompanyProfile(
     token,
     body,
   });
+}
+
+/* ---- โลโก้บริษัท ---- */
+
+export function uploadCompanyLogo(token: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<CompanyProfileApiResponse>(`${BASE}/logo`, formData, {
+    token,
+  });
+}
+
+export function deleteCompanyLogo(token: string) {
+  return apiFetch<CompanyProfileApiResponse>(`${BASE}/logo`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+/** โลโก้ต้องแนบ token จึงโหลดใส่ <img src> ตรง ๆ ไม่ได้ — ดึงเป็น blob แทน */
+export function downloadCompanyLogo(token: string) {
+  return apiDownloadBlob(`${BASE}/logo`, { token });
 }
 
 export function getCompanyBankAccounts(token: string) {

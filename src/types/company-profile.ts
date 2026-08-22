@@ -19,7 +19,11 @@ export type CompanyProfile = {
   shortName?: string | null;
   taxId?: string | null;
   businessType?: string | null;
+  /** path โลโก้ที่พิมพ์เอง — ใช้เมื่อ hasLogoFile = false */
   logoUrl?: string | null;
+  /** มีไฟล์โลโก้ที่อัปโหลดไว้ — ถ้า true ให้โหลดรูปจาก GET .../logo แทน logoUrl */
+  hasLogoFile: boolean;
+  logoUpdatedAt?: string | null;
   addressLine?: string | null;
   subDistrict?: string | null;
   district?: string | null;
@@ -54,6 +58,9 @@ export type UpdateCompanyProfileRequest = Partial<
     | "createdAt"
     | "updatedAt"
     | "defaultVatRate"
+    // โลโก้ที่อัปโหลดแก้ผ่าน endpoint /logo ไม่ใช่ PATCH ตัวนี้
+    | "hasLogoFile"
+    | "logoUpdatedAt"
   >
 > & {
   defaultVatRate?: number;

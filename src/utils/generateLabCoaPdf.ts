@@ -1,5 +1,7 @@
 import {
+  companyBrandName,
   companyHeaderHtml,
+  ensureCompanyInfo,
   escapeHtml,
   openPdfFromHtml,
 } from "./pdf-common";
@@ -23,6 +25,9 @@ export type LabCoaPdfData = {
 };
 
 export async function generateLabCoaPdf(data: LabCoaPdfData) {
+  // ต้องได้ข้อมูลบริษัทก่อนประกอบ HTML — ไม่มีค่า hardcode สำรองแล้ว
+  await ensureCompanyInfo();
+
   const rows = data.results
     .map(
       (row, index) => `
@@ -125,7 +130,7 @@ export async function generateLabCoaPdf(data: LabCoaPdfData) {
           <div class="sig-date">วันที่ ....../....../..........</div>
         </div>
       </div>
-      <div class="footer-note">Certificate of Analysis · SMT Energy Laboratory</div>
+      <div class="footer-note">Certificate of Analysis · ${escapeHtml(companyBrandName())} Laboratory</div>
     </div>
   `;
 

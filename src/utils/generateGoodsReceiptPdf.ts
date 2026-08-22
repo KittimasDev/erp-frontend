@@ -1,6 +1,7 @@
 import {
   companyIdentityLinesHtml,
   companyLogoUrl,
+  ensureCompanyInfo,
 } from "./pdf-common";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -434,6 +435,9 @@ function createPdfHtml(data: GoodsReceiptPdfData) {
 }
 
 export async function generateGoodsReceiptPdf(data: GoodsReceiptPdfData) {
+  // ต้องได้ข้อมูลบริษัทก่อนประกอบ HTML — ไม่มีค่า hardcode สำรองแล้ว
+  await ensureCompanyInfo();
+
   const wrapper = document.createElement("div");
   wrapper.style.position = "fixed";
   wrapper.style.left = "-99999px";

@@ -1,6 +1,8 @@
 import {
+  companyBrandName,
   companyIdentityLinesHtml,
   companyLogoUrl,
+  ensureCompanyInfo,
 } from "./pdf-common";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -154,7 +156,7 @@ function createPdfHtml(data: PurchaseRequestPdfData) {
       </div>
 
       <div class="footer-note">
-        เอกสารนี้สร้างจากระบบ ERP · SMT Energy
+        เอกสารนี้สร้างจากระบบ ERP · ${escapeHtml(companyBrandName())}
       </div>
     </div>
   `;
@@ -425,6 +427,9 @@ async function waitForLogo(wrapper: HTMLElement) {
 }
 
 export async function generatePurchaseRequestPdf(data: PurchaseRequestPdfData) {
+  // ต้องได้ข้อมูลบริษัทก่อนประกอบ HTML — ไม่มีค่า hardcode สำรองแล้ว
+  await ensureCompanyInfo();
+
   const wrapper = document.createElement("div");
 
   wrapper.style.position = "fixed";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCompanyProfileQuery } from "@/hooks/company-profile/useCompanyProfileQuery";
-import { getCompanyInfoSnapshot } from "@/lib/company/company-info";
+import { formatTaxId, peekCompanyInfo } from "@/lib/company/company-info";
 import { numberToThaiBahtText } from "@/utils/numberToThaiBahtText";
 import type { WarehouseReceiptSlipData } from "@/utils/generateRawTireWarehouseReceiptPdf";
 
@@ -22,28 +22,36 @@ export default function RawTireWarehouseReceiptSlipView({
     : Math.max(8, data.items.length);
   const bahtText = numberToThaiBahtText(data.netAmountRaw);
 
-  // ระหว่างที่ query ยังไม่ตอบ ใช้ค่าสำรองซึ่งตรงกับข้อความเดิม สลิปจึงไม่วูบเป็นค่าว่าง
+  // ระหว่างที่ query ยังไม่ตอบ ใช้ค่าที่โหลดไว้ก่อนหน้า (ถ้ามี) สลิปจึงไม่วูบเป็นค่าว่าง
   const companyProfile = useCompanyProfileQuery().data?.data;
-  const company = companyProfile ?? getCompanyInfoSnapshot();
+  const companySnapshot = peekCompanyInfo();
+  const company = companyProfile ?? companySnapshot;
+  // โลโก้ที่อัปโหลดต้องแนบ token จึงใส่ url ตรง ๆ ไม่ได้ — ใช้ data URI ที่โหลดไว้
+  const logoSrc = companySnapshot?.logoDataUrl || company?.logoUrl || "";
+  // เลขภาษีต้องจัดกลุ่มให้ตรงกับ PDF คู่กัน (generateRawTireWarehouseReceiptPdf)
   const contactLine = [
-    company.phone ? `เบอร์ติดต่อ : ${company.phone}` : null,
-    company.taxId ? `เลขประจำตัวผู้เสียภาษี ${company.taxId}` : null,
+    company?.phone ? `เบอร์ติดต่อ : ${company.phone}` : null,
+    company?.taxId
+      ? `เลขประจำตัวผู้เสียภาษี ${formatTaxId(company.taxId, "grouped")}`
+      : null,
   ]
     .filter(Boolean)
-    .join(" · ");
+    .join(" ");
 
   return (
     <article className={`${styles.slipPaper} ${compact ? styles.slipCompact : ""}`}>
       <div className={styles.header}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={company.logoUrl ?? getCompanyInfoSnapshot().logoUrl}
-          alt={company.nameTh}
-          className={styles.logo}
-        />
+        {logoSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoSrc}
+            alt={company?.nameTh ?? "โลโก้บริษัท"}
+            className={styles.logo}
+          />
+        ) : null}
         <div className={styles.company}>
-          <p className={styles.companyName}>{company.nameTh}</p>
-          <p className={styles.companyAddress}>{company.addressText}</p>
+          <p className={styles.companyName}>{company?.nameTh ?? ""}</p>
+          <p className={styles.companyAddress}>{company?.addressText ?? ""}</p>
           {contactLine ? (
             <p className={styles.companyAddress}>{contactLine}</p>
           ) : null}

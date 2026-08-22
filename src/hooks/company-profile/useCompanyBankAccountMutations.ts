@@ -10,6 +10,7 @@ import {
   updateCompanyBankAccount,
 } from "@/lib/api/company-profile";
 import { getAccessToken } from "@/lib/auth/token";
+import { invalidateCompanyInfo } from "@/lib/company/company-info";
 import type {
   CreateCompanyBankAccountRequest,
   UpdateCompanyBankAccountRequest,
@@ -26,6 +27,8 @@ function useBankAccountFeedback(fallbackError: string) {
 
   return {
     onSuccess: async (response: { message: string }) => {
+      // เอกสารกลุ่มขายโชว์บัญชีหลัก — ล้าง snapshot ที่ PDF ใช้ด้วย
+      invalidateCompanyInfo();
       await queryClient.invalidateQueries({ queryKey: companyProfileQueryKey });
       message.success(response.message);
     },

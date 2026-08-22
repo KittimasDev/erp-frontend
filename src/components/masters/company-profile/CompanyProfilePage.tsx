@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  App,
   Button,
   Col,
   Form,
@@ -15,7 +16,10 @@ import {
   Table,
   Tag,
   Typography,
+  Upload,
 } from "antd";
+import type { UploadProps } from "antd";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BankOutlined,
   CalculatorOutlined,
@@ -27,6 +31,7 @@ import {
   PlusOutlined,
   SaveOutlined,
   ShopOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
@@ -36,9 +41,22 @@ import {
   useDeleteCompanyBankAccountMutation,
   useUpdateCompanyBankAccountMutation,
 } from "@/hooks/company-profile/useCompanyBankAccountMutations";
-import { useCompanyProfileQuery } from "@/hooks/company-profile/useCompanyProfileQuery";
+import {
+  companyProfileQueryKey,
+  useCompanyProfileQuery,
+} from "@/hooks/company-profile/useCompanyProfileQuery";
 import { useUpdateCompanyProfileMutation } from "@/hooks/company-profile/useUpdateCompanyProfileMutation";
-import { formatTaxId } from "@/lib/company/company-info";
+import { ApiError } from "@/lib/api/client";
+import {
+  deleteCompanyLogo,
+  downloadCompanyLogo,
+  uploadCompanyLogo,
+} from "@/lib/api/company-profile";
+import { getAccessToken } from "@/lib/auth/token";
+import {
+  formatTaxId,
+  invalidateCompanyInfo,
+} from "@/lib/company/company-info";
 import type {
   CompanyBankAccount,
   CreateCompanyBankAccountRequest,
@@ -47,6 +65,9 @@ import type {
 
 import CompanyBankAccountFormModal from "./CompanyBankAccountFormModal";
 import styles from "./company-profile.module.css";
+
+/** ต้องตรงกับ MAX_LOGO_BYTES ฝั่ง backend (company-profile.controller.ts) */
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 const MONTH_OPTIONS = [
   "มกราคม",
@@ -97,6 +118,10 @@ export default function CompanyProfilePage() {
   const [bankModalOpen, setBankModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] =
     useState<CompanyBankAccount | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
 
   const profile = profileQuery.data?.data;
   const bankAccounts = useMemo(
@@ -158,6 +183,98 @@ export default function CompanyProfilePage() {
 
   const handleSubmitProfile = (values: ProfileFormValues) => {
     updateProfile.mutate(values);
+  };
+
+  /**
+   * โลโก้ที่อัปโหลดต้องแนบ token จึงใส่ใน <img src> ตรง ๆ ไม่ได้
+   * โหลดเป็น blob แล้วทำ object URL — ตัวเดียวกับที่หน้าเคสใช้กับรูปแนบ
+   */
+  useEffect(() => {
+    if (!profile?.hasLogoFile) {
+      // ไม่เคลียร์ state ตรงนี้ — ค่าที่ค้างถูกกันด้วย hasLogoFile ตอนคำนวณพรีวิว
+      return;
+    }
+
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const { blob } = await downloadCompanyLogo(getAccessToken());
+        if (cancelled) {
+          return;
+        }
+        objectUrl = URL.createObjectURL(blob);
+        setLogoPreview(objectUrl);
+      } catch {
+        if (!cancelled) {
+          setLogoPreview(null);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+    // logoUpdatedAt เปลี่ยนทุกครั้งที่อัปโหลด — ใช้บังคับให้โหลดรูปใหม่
+  }, [profile?.hasLogoFile, profile?.logoUpdatedAt]);
+
+  const handlePickLogo = async (file: File) => {
+    if (file.size > MAX_LOGO_BYTES) {
+      message.error("ไฟล์โลโก้ต้องไม่เกิน 2 MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const response = await uploadCompanyLogo(getAccessToken(), file);
+      invalidateCompanyInfo();
+      await queryClient.invalidateQueries({ queryKey: companyProfileQueryKey });
+      message.success(response.message || "อัปโหลดโลโก้บริษัทสำเร็จแล้ว");
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "อัปโหลดโลโก้ไม่สำเร็จ",
+      );
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  /** antd ไม่ต้องยิงเอง — เราอัปโหลดผ่าน apiUpload ที่แนบ token ให้ */
+  const logoUploadProps: UploadProps = {
+    showUploadList: false,
+    accept: "image/*,.jpg,.jpeg,.png,.webp,.gif",
+    disabled: uploadingLogo,
+    beforeUpload: (file) => {
+      void handlePickLogo(file as unknown as File);
+      return Upload.LIST_IGNORE;
+    },
+  };
+
+  /**
+   * พรีวิว: ไฟล์ที่อัปโหลด (blob) ก่อน ไม่งั้นใช้ path ที่พิมพ์ในฟอร์ม
+   * เช็ค hasLogoFile ด้วย กัน blob เก่าที่ถูก revoke แล้วค้างอยู่หลังลบโลโก้
+   */
+  const logoUploadPreview =
+    (profile?.hasLogoFile ? logoPreview : null) || previewLogo || "";
+
+  const handleRemoveLogo = async () => {
+    setUploadingLogo(true);
+    try {
+      const response = await deleteCompanyLogo(getAccessToken());
+      invalidateCompanyInfo();
+      await queryClient.invalidateQueries({ queryKey: companyProfileQueryKey });
+      message.success(response.message || "ลบโลโก้บริษัทสำเร็จแล้ว");
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "ลบโลโก้ไม่สำเร็จ",
+      );
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const handleSubmitBankAccount = (values: CreateCompanyBankAccountRequest) => {
@@ -286,11 +403,11 @@ export default function CompanyProfilePage() {
 
           <div>
             <div className={styles.previewPaper}>
-              {previewLogo ? (
+              {logoUploadPreview ? (
                 // ต้องใช้ <img> เพราะ path มาจากข้อมูลผู้ใช้ ไม่ผ่าน loader ของ next/image
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={previewLogo}
+                  src={logoUploadPreview}
                   alt="โลโก้บริษัท"
                   className={styles.previewLogo}
                 />
@@ -393,9 +510,55 @@ export default function CompanyProfilePage() {
 
                 <Col xs={24}>
                   <Form.Item
-                    name="logoUrl"
                     label="โลโก้บริษัท"
-                    extra="ที่อยู่ไฟล์รูป เช่น /logo.png · ปล่อยว่างจะใช้โลโก้เริ่มต้นของระบบ"
+                    extra="ไฟล์รูป JPG PNG WEBP GIF ไม่เกิน 2 MB · โลโก้นี้จะขึ้นบนหัวเอกสาร PDF ทุกใบ"
+                  >
+                    <div className={styles.logoUploadRow}>
+                      {logoUploadPreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={logoUploadPreview}
+                          alt="โลโก้บริษัท"
+                          className={styles.logoUploadPreview}
+                        />
+                      ) : (
+                        <div className={styles.logoUploadEmpty}>ยังไม่มีโลโก้</div>
+                      )}
+                      <Space wrap>
+                        <Upload {...logoUploadProps}>
+                          <Button
+                            icon={<UploadOutlined />}
+                            loading={uploadingLogo}
+                          >
+                            {profile?.hasLogoFile
+                              ? "เปลี่ยนโลโก้"
+                              : "อัปโหลดโลโก้"}
+                          </Button>
+                        </Upload>
+                        {profile?.hasLogoFile ? (
+                          <Popconfirm
+                            title="ลบโลโก้บริษัท"
+                            description="เอกสารจะกลับไปใช้ path โลโก้ที่ตั้งไว้ด้านล่าง"
+                            okText="ลบ"
+                            cancelText="ยกเลิก"
+                            okButtonProps={{ danger: true }}
+                            onConfirm={() => void handleRemoveLogo()}
+                          >
+                            <Button danger icon={<DeleteOutlined />}>
+                              ลบโลโก้
+                            </Button>
+                          </Popconfirm>
+                        ) : null}
+                      </Space>
+                    </div>
+                  </Form.Item>
+                </Col>
+
+                <Col xs={24}>
+                  <Form.Item
+                    name="logoUrl"
+                    label="path โลโก้ (ตัวเลือกสำรอง)"
+                    extra="ใช้เมื่อไม่ได้อัปโหลดไฟล์ เช่น /logo.png — ถ้าอัปโหลดไฟล์ไว้ ระบบจะใช้ไฟล์ที่อัปโหลดก่อน"
                   >
                     <Input maxLength={500} />
                   </Form.Item>

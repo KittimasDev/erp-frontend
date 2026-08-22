@@ -1,5 +1,7 @@
 import {
+  companyBrandName,
   companyHeaderHtml,
+  ensureCompanyInfo,
   escapeHtml,
   openMultiPagePdfFromHtml,
   PDF_PAGE_HEIGHT_PX,
@@ -412,7 +414,7 @@ export function buildShiftReportPagesHtml(
           <span>
             พิมพ์ ${escapeHtml(data.printedAt)}${
               data.printedBy ? ` · โดย ${escapeHtml(data.printedBy)}` : ""
-            } · SMT Energy ERP
+            } · ${escapeHtml(companyBrandName())} ERP
           </span>
           <span>หน้า ${pageIndex + 1}/${pages.length}</span>
         </div>
@@ -429,5 +431,8 @@ export function buildShiftReportPagesHtml(
 export async function generateShiftAssignmentsPdf(
   data: ShiftAssignmentsPdfData,
 ) {
+  // ต้องได้ข้อมูลบริษัทก่อนประกอบ HTML — ไม่มีค่า hardcode สำรองแล้ว
+  await ensureCompanyInfo();
+
   await openMultiPagePdfFromHtml(PAGE_ID, buildShiftReportPagesHtml(data));
 }
