@@ -1,0 +1,86 @@
+/* avatar ตัวใหญ่บนหัวหน้า — ใช้แทน headerAccent ของ master page shell */
+.profileAvatar {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #739816, #8fb32a);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.roleTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+/* label/value อ่านอย่างเดียว — ทรงเดียวกับ metaGrid ของหน้า detail อื่น */
+.metaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 20px;
+  padding: 20px 24px 24px;
+}
+
+@media (max-width: 900px) {
+  .metaGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .metaGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metaItem {
+  display: grid;
+  gap: 4px;
+}
+
+.metaLabel {
+  color: #8a9199;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.metaValue {
+  color: #3f3f43;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.signatureSection {
+  display: grid;
+  gap: 12px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #3f3f43;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sectionTitle :global(.anticon) {
+  color: #739816;
+}
+
+.loadingBox {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+}

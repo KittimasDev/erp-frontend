@@ -30,7 +30,14 @@ const TEMPLATE_URL = "/signature-template.png";
 
 const myProfileQueryKey = ["auth", "me"] as const;
 
-export default function MySignaturePage() {
+type MySignaturePageProps = {
+  /** ฝังในหน้าอื่น — ข้าม section ชั้นนอกไม่ให้ padding ซ้อนกัน */
+  embedded?: boolean;
+};
+
+export default function MySignaturePage({
+  embedded = false,
+}: MySignaturePageProps) {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [preview, setPreview] = useState<string | null>(null);
@@ -139,8 +146,8 @@ export default function MySignaturePage() {
     },
   };
 
-  return (
-    <section className={masterStyles.page}>
+  const content = (
+    <>
       <div className={masterStyles.filterCard}>
         <div className={masterStyles.filterHeader}>
           <div>
@@ -222,9 +229,16 @@ export default function MySignaturePage() {
             <div className={styles.howTo}>
               <Typography.Text strong>วิธีทำลายเซ็น</Typography.Text>
               <ol>
-                <li>กด ดาวน์โหลด template แล้วพิมพ์ใส่กระดาษ</li>
-                <li>เซ็นชื่อกลางกระดาษด้วยปากกาสีเข้ม ให้ใหญ่พอสมควร</li>
-                <li>ถ่ายรูปหรือสแกนกลับเข้าเครื่อง</li>
+                <li>กด ดาวน์โหลด template</li>
+                <li>
+                  <b>ถ้าเซ็นบนจอ</b> (แท็บเล็ต / ปากกา stylus / โปรแกรมแก้รูป) —
+                  เซ็นทับ template ไปเลย พื้นหลังโปร่งใสอยู่แล้ว เซฟเป็น{" "}
+                  <b>.png</b> ได้ทันที ไม่ต้องครอปไม่ต้องลบพื้นหลัง
+                </li>
+                <li>
+                  <b>ถ้าเซ็นบนกระดาษ</b> — พิมพ์ template ออกมา เซ็นกลางแผ่นด้วย
+                  ปากกาสีเข้มให้ใหญ่พอสมควร แล้วถ่ายรูป/สแกนกลับเข้าเครื่อง
+                </li>
                 <li>ครอปให้เหลือแค่ลายเซ็น ตัดพื้นที่ว่างรอบ ๆ ออก</li>
                 <li>
                   ลบพื้นหลังให้โปร่งใสถ้าทำได้ แล้วเซฟเป็นไฟล์ <b>.png</b>
@@ -232,14 +246,21 @@ export default function MySignaturePage() {
                 <li>กลับมาที่หน้านี้แล้วกด อัปโหลดลายเซ็น</li>
               </ol>
               <Typography.Text type="secondary">
-                template เป็นกระดาษเปล่าไม่มีกรอบและไม่มีเส้นโดยตั้งใจ —
-                ถ้ามีเส้น เส้นจะติดไปโผล่ในช่องลายเซ็นบนเอกสารด้วย ·
-                พื้นหลังโปร่งใสจะสวยที่สุด ถ้าเป็นพื้นขาวทึบจะเห็นเป็นกล่องสี่เหลี่ยม
+                template เป็นผืนโปร่งใสเปล่า ไม่มีกรอบไม่มีเส้นโดยตั้งใจ —
+                เปิดดูจะเหมือนว่างเปล่าหรือเห็นเป็นลายตาราง ถือว่าถูกต้องแล้ว ·
+                ที่ไม่ใส่เส้นเพราะเส้นจะติดไปโผล่ในช่องลายเซ็นบนเอกสาร และที่ทำ
+                โปร่งใสเพราะพื้นขาวทึบจะกลายเป็นกล่องสี่เหลี่ยมทับเนื้อเอกสาร
               </Typography.Text>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </>
   );
+
+  if (embedded) {
+    return content;
+  }
+
+  return <section className={masterStyles.page}>{content}</section>;
 }

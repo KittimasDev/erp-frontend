@@ -218,7 +218,8 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/settings/roles", screenCodes: ["ROLES"] },
   { prefix: "/settings/audit-logs", screenCodes: ["AUDIT_LOGS"] },
   { prefix: "/case", screenCodes: ["TEMP_CASES"] },
-  // แท็บลายเซ็นของฉันเป็น self-service — ไม่ผูก screenCode ให้ทุกคนที่ login เข้าได้
+  // ลิงก์เก่าของแท็บลายเซ็น — ต้องไม่ผูก screenCode ไม่งั้น non-admin จะโดน
+  // AccessDenied ก่อนที่ UserManagementPage จะได้ redirect ไป /profile
   { prefix: "/users", query: { tab: "signature" }, screenCodes: [] },
   { prefix: "/users", screenCodes: ["USERS", "ROLES", "PERMISSIONS"] },
   { prefix: "/masters/vendors", screenCodes: ["MASTERS_VENDORS"] },
@@ -307,7 +308,12 @@ export function resolveScreenCodesForPath(
     ];
   }
 
-  if (!pathname || pathname === "/" || pathname === "/user") {
+  if (
+    !pathname ||
+    pathname === "/" ||
+    pathname === "/user" ||
+    pathname === "/profile"
+  ) {
     return null;
   }
 

@@ -34,8 +34,29 @@ export type LoginApiResponse = {
   data: LoginData;
 };
 
+/**
+ * ข้อมูลตัวเองจาก GET /auth/me — กว้างกว่า LoginUser เพราะหน้าโปรไฟล์ต้องใช้
+ * แยก type กันเพราะ response ของ login ไม่มีฟิลด์ HR เหล่านี้
+ */
+export type MeUser = LoginUser & {
+  email?: string;
+  phone?: string;
+  employeeCode?: string;
+  departmentId?: string;
+  departmentName?: string;
+  position?: string;
+  hireDate?: string;
+  canLogin?: boolean;
+  isLocked?: boolean;
+  mustChangePassword?: boolean;
+  lastLoginAt?: string;
+  passwordChangedAt?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type MeApiResponse = {
   statusCode?: number;
   message: string;
-  data: LoginUser;
+  data: MeUser;
 };

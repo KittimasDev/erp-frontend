@@ -457,11 +457,25 @@
   padding: 14px 14px 18px;
 }
 
+/* เป็น <button> แล้ว (กดไปหน้าโปรไฟล์) จึงต้อง reset ทรงปุ่มของเบราว์เซอร์ */
 .sidebarProfile {
   display: flex;
   align-items: center;
   gap: 12px;
   min-height: 48px;
+  width: 100%;
+  padding: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.sidebarProfile:hover {
+  background: rgba(115, 152, 22, 0.08);
 }
 
 .sidebarCollapsed .sidebarProfile {
@@ -511,52 +525,6 @@
   margin-top: 2px;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-}
-
-.signatureButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 40px;
-  margin-bottom: 8px;
-  padding: 0 12px;
-  border: 1px solid var(--erp-border, #e1e2dd);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--erp-text, #3f3f43);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.signatureButton:hover {
-  background: rgba(115, 152, 22, 0.08);
-  border-color: rgba(115, 152, 22, 0.35);
-}
-
-.sidebarCollapsed .signatureButton {
-  width: 44px;
-  padding: 0;
-  gap: 0;
-}
-
-.signatureLabel {
-  overflow: hidden;
-  white-space: nowrap;
-  transition:
-    opacity 0.4s ease,
-    max-width 0.4s ease;
-  max-width: 120px;
-  opacity: 1;
-}
-
-.sidebarCollapsed .signatureLabel {
-  display: none;
 }
 
 .logoutButton {

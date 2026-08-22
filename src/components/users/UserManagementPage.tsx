@@ -6,7 +6,6 @@ import { Tabs, Typography } from "antd";
 import {
   ApartmentOutlined,
   BellOutlined,
-  HighlightOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
@@ -18,24 +17,17 @@ import { isAdministrator } from "@/lib/auth/session";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
 import NotificationSettingsPage from "./NotificationSettingsPage";
-import MySignaturePage from "./MySignaturePage";
 import RolesPage from "./RolesPage";
 import UsersPage from "./UsersPage";
 import styles from "./UserManagementPage.module.css";
 
-type ManagementTab =
-  | "users"
-  | "departments"
-  | "roles"
-  | "notifications"
-  | "signature";
+type ManagementTab = "users" | "departments" | "roles" | "notifications";
 
 function resolveTab(raw: string | null): ManagementTab {
   if (
     raw === "departments" ||
     raw === "roles" ||
-    raw === "notifications" ||
-    raw === "signature"
+    raw === "notifications"
   ) {
     return raw;
   }
@@ -50,13 +42,17 @@ export default function UserManagementPage() {
   const tabParam = searchParams.get("tab");
   const roleIdParam = searchParams.get("roleId");
   const isMatrixView = tabParam === "permissions" && Boolean(roleIdParam);
-  /** ลายเซ็นเป็น self-service — เปิดให้ทุกคนที่ login ไม่ใช่แค่ ADMINISTRATOR */
+  /** ลายเซ็นย้ายไปหน้าโปรไฟล์แล้ว — คงไว้เพื่อ redirect ลิงก์เก่า/bookmark */
   const isSignatureView = tabParam === "signature";
 
   useEffect(() => {
-    // แท็บอื่นยังเป็นของ ADMINISTRATOR เท่านั้น — คนอื่นส่งไปแท็บลายเซ็นของตัวเอง
-    if (!isSignatureView && !isAdministrator()) {
-      router.replace("/users?tab=signature");
+    if (isSignatureView) {
+      router.replace("/profile");
+      return;
+    }
+    // แท็บที่เหลือเป็นของ ADMINISTRATOR เท่านั้น — คนอื่นส่งไปหน้าโปรไฟล์ตัวเอง
+    if (!isAdministrator()) {
+      router.replace("/profile");
     }
   }, [router, pathname, isSignatureView]);
 
@@ -91,14 +87,6 @@ export default function UserManagementPage() {
         <section className={masterStyles.page}>
           <PermissionMatrixPage embedded fromRoles />
         </section>
-      </MasterPageGate>
-    );
-  }
-
-  if (isSignatureView) {
-    return (
-      <MasterPageGate>
-        <MySignaturePage />
       </MasterPageGate>
     );
   }
@@ -177,16 +165,6 @@ export default function UserManagementPage() {
                 </span>
               ),
               children: <UsersPage embedded />,
-            },
-            {
-              key: "signature",
-              label: (
-                <span className={styles.tabLabel}>
-                  <HighlightOutlined />
-                  ลายเซ็นของฉัน
-                </span>
-              ),
-              children: null,
             },
           ]}
         />

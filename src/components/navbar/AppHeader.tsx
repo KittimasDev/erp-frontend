@@ -4,10 +4,11 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Badge } from "antd";
-import { HighlightOutlined, LogoutOutlined } from "@ant-design/icons";
+import { LogoutOutlined } from "@ant-design/icons";
 
 import {
   getStoredUser,
+  initialsFromUser,
   isAdministrator,
   userHasRole,
   type StoredUser,
@@ -38,14 +39,6 @@ import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting
 
 import styles from "./AppHeader.module.css";
 
-function initialsFromUser(user: StoredUser | null) {
-  const source = user?.displayName?.trim() || user?.username?.trim() || "?";
-  const parts = source.split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase();
-  }
-  return source.slice(0, 2).toUpperCase();
-}
 // เพิ่ม/ลบเมนู (route) ในไฟล์นี้ทุกครั้ง ต้องอัปเดต Permission Matrix seed ด้วย:
 // backend/src/security/permissions/permission-seed-data.ts (SCREEN_SEED_DEFINITIONS)
 
@@ -2287,27 +2280,20 @@ export default function AppHeader({
         </div>
 
         <div className={styles.sidebarBottom}>
-          <div className={styles.sidebarProfile}>
-            <div className={styles.avatar} title={user?.displayName || user?.username || ""}>
-              {avatarLabel}
-            </div>
-
-            <div className={styles.profileText}>
-              <strong>{user?.displayName || user?.username || "ผู้ใช้"}</strong>
-              <span>{roleLabel}</span>
-            </div>
-          </div>
-
-          {/* ลายเซ็นของฉัน — self-service ทุกคนเข้าได้ ไม่ผูก screenCode */}
+          {/* กดที่ตัวเอง → หน้าโปรไฟล์ (ข้อมูล + ลายเซ็น) ทุกคนเข้าได้ */}
           <button
             type="button"
-            className={styles.signatureButton}
-            onClick={() => router.push("/users?tab=signature")}
-            title="ลายเซ็นของฉัน"
-            aria-label="ลายเซ็นของฉัน"
+            className={styles.sidebarProfile}
+            onClick={() => router.push("/profile")}
+            title="โปรไฟล์ของฉัน"
+            aria-label="โปรไฟล์ของฉัน"
           >
-            <HighlightOutlined />
-            <span className={styles.signatureLabel}>ลายเซ็นของฉัน</span>
+            <span className={styles.avatar}>{avatarLabel}</span>
+
+            <span className={styles.profileText}>
+              <strong>{user?.displayName || user?.username || "ผู้ใช้"}</strong>
+              <span>{roleLabel}</span>
+            </span>
           </button>
 
           <button

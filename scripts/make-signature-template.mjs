@@ -1,8 +1,12 @@
 /**
- * สร้าง public/signature-template.png — พื้นเปล่าให้ผู้ใช้พิมพ์ไปเซ็นแล้วสแกนกลับมา
+ * สร้าง public/signature-template.png — ผืนโปร่งใสเปล่าให้ผู้ใช้เอาไปทำลายเซ็น
  *
  * ห้ามวาดกรอบหรือเส้นใด ๆ ลงไป — ผู้ใช้สแกนกลับมาแล้วอัปทั้งรูป
  * เส้นพวกนั้นจะติดไปโผล่ในช่องลายเซ็นบนเอกสาร PDF
+ *
+ * และต้องเป็น RGBA (color type 6) alpha = 0 ทั้งแผ่น ไม่ใช่พื้นขาวทึบ
+ * เพราะถ้าใครเซ็นดิจิทัลทับ template แทนการพิมพ์ ไฟล์ที่ได้จะมีพื้นหลัง
+ * โปร่งใสอยู่แล้ว ไม่กลายเป็นกล่องขาวไปทับเนื้อเอกสาร
  *
  * เขียน PNG ด้วยมือผ่าน zlib เพราะ repo ไม่มี lib ทำรูปฝั่ง node
  * (sharp/canvas/jimp ไม่มี — html2canvas รันบนเบราว์เซอร์เท่านั้น)
@@ -15,28 +19,23 @@ import { writeFileSync } from "node:fs";
 /** 3:1 ให้ตรงกับสัดส่วนช่องลายเซ็นใน PDF เอกสารขาย */
 const WIDTH = 1200;
 const HEIGHT = 400;
-const WHITE = [255, 255, 255];
+/** RGBA */
+const CHANNELS = 4;
 
-const px = Buffer.alloc(WIDTH * HEIGHT * 3);
-const setPixel = (x, y, [r, g, b]) => {
-  if (x < 0 || y < 0 || x >= WIDTH || y >= HEIGHT) return;
-  const i = (y * WIDTH + x) * 3;
-  px[i] = r;
-  px[i + 1] = g;
-  px[i + 2] = b;
-};
+// Buffer.alloc คืนไบต์ศูนย์ทั้งหมด = RGBA (0,0,0,0) = โปร่งใสสนิททุกพิกเซล
+const px = Buffer.alloc(WIDTH * HEIGHT * CHANNELS);
 
-// พื้นขาวล้วน ไม่มีกรอบไม่มีเส้น — อะไรที่วาดไว้จะติดไปในเอกสารด้วย
+// ---- เขียนเป็นไฟล์ PNG (color type 6 = truecolor + alpha, 8-bit) ----
+const raw = Buffer.alloc(HEIGHT * (1 + WIDTH * CHANNELS));
 for (let y = 0; y < HEIGHT; y += 1) {
-  for (let x = 0; x < WIDTH; x += 1) setPixel(x, y, WHITE);
-}
-
-// ---- เขียนเป็นไฟล์ PNG (color type 2 = truecolor RGB 8-bit) ----
-const raw = Buffer.alloc(HEIGHT * (1 + WIDTH * 3));
-for (let y = 0; y < HEIGHT; y += 1) {
-  const rowStart = y * (1 + WIDTH * 3);
+  const rowStart = y * (1 + WIDTH * CHANNELS);
   raw[rowStart] = 0; // filter: none
-  px.copy(raw, rowStart + 1, y * WIDTH * 3, (y + 1) * WIDTH * 3);
+  px.copy(
+    raw,
+    rowStart + 1,
+    y * WIDTH * CHANNELS,
+    (y + 1) * WIDTH * CHANNELS,
+  );
 }
 
 const CRC_TABLE = (() => {
@@ -68,7 +67,7 @@ const ihdr = Buffer.alloc(13);
 ihdr.writeUInt32BE(WIDTH, 0);
 ihdr.writeUInt32BE(HEIGHT, 4);
 ihdr[8] = 8; // bit depth
-ihdr[9] = 2; // color type: truecolor
+ihdr[9] = 6; // color type: truecolor + alpha (RGBA)
 ihdr[10] = 0; // compression
 ihdr[11] = 0; // filter
 ihdr[12] = 0; // interlace
@@ -82,4 +81,6 @@ const png = Buffer.concat([
 
 const out = new URL("../public/signature-template.png", import.meta.url);
 writeFileSync(out, png);
-console.log(`wrote ${out.pathname} — ${WIDTH}x${HEIGHT}, ${png.length} bytes`);
+console.log(
+  `wrote ${out.pathname} — ${WIDTH}x${HEIGHT} RGBA โปร่งใส, ${png.length} bytes`,
+);

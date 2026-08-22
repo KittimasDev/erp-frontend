@@ -11,6 +11,8 @@ import {
   useNotificationsQuery,
   useNotificationsUnreadCountQuery,
 } from "@/hooks/notifications/useNotificationsQueries";
+import { useStoredUser } from "@/hooks/auth/useStoredUser";
+import { initialsFromUser } from "@/lib/auth/session";
 import { hasAccessToken } from "@/lib/auth/token";
 import type { AppNotification } from "@/types/notifications";
 
@@ -216,6 +218,10 @@ function resolvePageTitle(
     return "รับผลผลิตเข้าคลัง";
   }
 
+  if (pathname === "/profile") {
+    return "โปรไฟล์ของฉัน";
+  }
+
   if (pathname === "/users" || pathname === "/user") {
     if (tab === "departments") {
       return "แผนก";
@@ -336,6 +342,7 @@ export default function AppTopHeader() {
   const itemCategoryCode = searchParams.get("itemCategoryCode");
   const usersTab = searchParams.get("tab");
   const isLoggedIn = hasAccessToken();
+  const storedUser = useStoredUser();
   const [open, setOpen] = useState(false);
   const toastedIdsRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
@@ -495,6 +502,20 @@ export default function AppTopHeader() {
               <IconBell />
             </button>
           )}
+
+          {isLoggedIn ? (
+            <button
+              type="button"
+              className={styles.profileButton}
+              onClick={() => router.push("/profile")}
+              title={`โปรไฟล์ของฉัน${
+                storedUser?.displayName ? ` — ${storedUser.displayName}` : ""
+              }`}
+              aria-label="โปรไฟล์ของฉัน"
+            >
+              {initialsFromUser(storedUser)}
+            </button>
+          ) : null}
         </div>
       </div>
     </header>
