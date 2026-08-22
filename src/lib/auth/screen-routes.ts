@@ -218,6 +218,8 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/settings/roles", screenCodes: ["ROLES"] },
   { prefix: "/settings/audit-logs", screenCodes: ["AUDIT_LOGS"] },
   { prefix: "/case", screenCodes: ["TEMP_CASES"] },
+  // แท็บลายเซ็นของฉันเป็น self-service — ไม่ผูก screenCode ให้ทุกคนที่ login เข้าได้
+  { prefix: "/users", query: { tab: "signature" }, screenCodes: [] },
   { prefix: "/users", screenCodes: ["USERS", "ROLES", "PERMISSIONS"] },
   { prefix: "/masters/vendors", screenCodes: ["MASTERS_VENDORS"] },
   { prefix: "/masters/items", screenCodes: ["MASTERS_ITEMS"] },

@@ -125,6 +125,10 @@ export default function QuotationDetailPage({ id }: Props) {
       paymentTerm: data.paymentTerm?.name ?? "—",
       validUntil: formatDate(data.validUntil),
       remark: data.remark?.trim() || "",
+      preparedBy: {
+        id: data.createdBy?.id,
+        name: data.createdBy?.displayName,
+      },
       subtotalAmount: Number(data.subtotalAmount) || 0,
       discountAmount: Number(data.discountAmount) || 0,
       vatAmount: Number(data.vatAmount) || 0,

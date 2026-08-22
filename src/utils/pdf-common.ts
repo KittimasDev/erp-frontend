@@ -350,7 +350,28 @@ export function basePdfStyles() {
       .sig-title {
         font-size: 12px;
         font-weight: 700;
-        margin-bottom: 36px;
+        margin-bottom: 4px;
+      }
+      /* สูงคงที่ ไม่ว่าจะมีรูปลายเซ็นหรือไม่ — ให้เส้นเซ็นทุกคอลัมน์ตรงแนวกัน */
+      .sig-space {
+        height: 34px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .sig-image {
+        max-height: 34px;
+        max-width: 100%;
+        object-fit: contain;
+      }
+      .sig-name {
+        font-size: 11px;
+        font-weight: 600;
+        text-align: center;
+        color: #1f2937;
+        margin-bottom: 6px;
+        min-height: 14px;
       }
       .sig-line {
         border-bottom: 1px dashed #6b7280;
@@ -539,6 +560,19 @@ export type SalesLinePdfItem = {
   extra?: string;
 };
 
+/**
+ * ช่องลายเซ็น 1 ช่อง — ส่ง string มาได้เหมือนเดิม (มีแค่หัวข้อ)
+ * หรือส่ง object เพื่อใส่ชื่อผู้เซ็นและรูปลายเซ็นที่อัปโหลดไว้
+ */
+export type SalesSignatureSlot =
+  | string
+  | {
+      title: string;
+      name?: string;
+      /** ต้องเป็น data URI — ดู lib/user/user-signature.ts */
+      signatureDataUrl?: string | null;
+    };
+
 export type SalesCommercialPdfData = {
   pageId: string;
   titleTh: string;
@@ -558,7 +592,7 @@ export type SalesCommercialPdfData = {
   vatAmount?: number;
   totalAmount?: number;
   remark?: string;
-  signatures?: [string, string, string];
+  signatures?: [SalesSignatureSlot, SalesSignatureSlot, SalesSignatureSlot];
 };
 
 export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
@@ -649,18 +683,30 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
     ? `<div class="remark-box"><strong>หมายเหตุ</strong><div>${escapeHtml(data.remark)}</div></div>`
     : "";
 
-  const sigs = data.signatures ?? ["ผู้จัดทำ", "ผู้ตรวจสอบ", "ผู้อนุมัติ"];
+  const sigs: SalesSignatureSlot[] = data.signatures ?? [
+    "ผู้จัดทำ",
+    "ผู้ตรวจสอบ",
+    "ผู้อนุมัติ",
+  ];
   const signatureHtml = `
     <div class="signature-box">
       ${sigs
-        .map(
-          (title) => `
+        .map((slot) => {
+          const { title, name, signatureDataUrl } =
+            typeof slot === "string" ? { title: slot } : slot;
+          return `
         <div class="signature">
           <div class="sig-title">${escapeHtml(title)}</div>
+          <div class="sig-space">${
+            signatureDataUrl
+              ? `<img src="${signatureDataUrl}" class="sig-image" alt="" />`
+              : ""
+          }</div>
           <div class="sig-line"></div>
+          <div class="sig-name">${name ? escapeHtml(name) : "&nbsp;"}</div>
           <div class="sig-date">วันที่ ....../....../..........</div>
-        </div>`,
-        )
+        </div>`;
+        })
         .join("")}
     </div>`;
 

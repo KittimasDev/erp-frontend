@@ -533,6 +533,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
       quotationNo: data.salesQuotationNo ?? "—",
       requestedDeliveryDate: formatDate(data.requestedDeliveryDate),
       remark: data.remark?.trim() || "",
+      preparedBy: {
+        id: data.createdBy?.id,
+        name: data.createdBy?.displayName,
+      },
       subtotalAmount: Number(data.subtotalAmount) || 0,
       discountAmount: Number(data.discountAmount) || 0,
       vatAmount: Number(data.vatAmount) || 0,

@@ -1,3 +1,5 @@
+import { getUserSignatureDataUrl } from "@/lib/user/user-signature";
+
 import {
   generateSalesCommercialPdf,
   type SalesLinePdfItem,
@@ -17,9 +19,13 @@ export type SalesOrderPdfData = {
   vatAmount: number;
   totalAmount: number;
   items: SalesLinePdfItem[];
+  /** ผู้จัดทำเอกสาร — ถ้ามี id และคนนั้นอัปลายเซ็นไว้ จะเอารูปไปแสดงในช่องเซ็น */
+  preparedBy?: { id?: string; name?: string };
 };
 
 export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
+  const preparedSignature = await getUserSignatureDataUrl(data.preparedBy?.id);
+
   await generateSalesCommercialPdf({
     pageId: "sales-order-pdf",
     titleTh: "ใบสั่งขาย",
@@ -44,6 +50,14 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
     vatAmount: data.vatAmount,
     totalAmount: data.totalAmount,
     remark: data.remark,
-    signatures: ["ผู้จัดทำ", "ผู้ตรวจสอบ", "ผู้อนุมัติ"],
+    signatures: [
+      {
+        title: "ผู้จัดทำ",
+        name: data.preparedBy?.name,
+        signatureDataUrl: preparedSignature,
+      },
+      "ผู้ตรวจสอบ",
+      "ผู้อนุมัติ",
+    ],
   });
 }

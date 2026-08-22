@@ -15,6 +15,10 @@ export type LoginUser = {
   displayName: string;
   isActive: boolean;
   roles: AuthRole[];
+  /** มีลายเซ็น PNG อัปโหลดไว้แล้วหรือไม่ (มาจาก GET /auth/me) */
+  hasSignature?: boolean;
+  /** ใช้เป็น cache buster ตอนโหลดรูปลายเซ็น */
+  signatureUpdatedAt?: string | null;
 };
 
 export type LoginData = {

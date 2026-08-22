@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Badge } from "antd";
-import { LogoutOutlined } from "@ant-design/icons";
+import { HighlightOutlined, LogoutOutlined } from "@ant-design/icons";
 
 import {
   getStoredUser,
@@ -2297,6 +2297,18 @@ export default function AppHeader({
               <span>{roleLabel}</span>
             </div>
           </div>
+
+          {/* ลายเซ็นของฉัน — self-service ทุกคนเข้าได้ ไม่ผูก screenCode */}
+          <button
+            type="button"
+            className={styles.signatureButton}
+            onClick={() => router.push("/users?tab=signature")}
+            title="ลายเซ็นของฉัน"
+            aria-label="ลายเซ็นของฉัน"
+          >
+            <HighlightOutlined />
+            <span className={styles.signatureLabel}>ลายเซ็นของฉัน</span>
+          </button>
 
           <button
             type="button"

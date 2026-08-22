@@ -181,7 +181,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     const { generateSalesInvoicePdf } = await import(
       "@/utils/generateSalesInvoicePdf"
     );
-    generateSalesInvoicePdf({
+    await generateSalesInvoicePdf({
       invoiceNo: data.invoiceNo,
       invoiceDate: formatDate(data.invoiceDate),
       dueDate: formatDate(data.dueDate),
@@ -191,6 +191,10 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       deliveryOrderNo: data.deliveryOrder?.deliveryOrderNo ?? "—",
       paymentTerm: data.paymentTerm?.name ?? "—",
       remark: data.remark?.trim() || "",
+      preparedBy: {
+        id: data.createdBy?.id,
+        name: data.createdBy?.displayName,
+      },
       subtotalAmount: Number(data.subtotalAmount) || 0,
       discountAmount: Number(data.discountAmount) || 0,
       vatAmount: Number(data.vatAmount) || 0,

@@ -22,6 +22,9 @@ export type AppUser = {
   passwordChangedAt?: string;
   createdAt: string;
   updatedAt: string;
+  /** มีลายเซ็น PNG อัปโหลดไว้แล้วหรือไม่ */
+  hasSignature: boolean;
+  signatureUpdatedAt?: string;
   roles: UserRole[];
 };
 
