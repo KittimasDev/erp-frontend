@@ -13,7 +13,10 @@ import {
   reserveSalesOrderLine,
   updateSalesOrderCustomerPo,
 } from "@/lib/api/sales-orders";
-import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
+import {
+  deleteDocumentAttachment,
+  uploadDocumentAttachment,
+} from "@/lib/api/document-attachments";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
 import {
@@ -228,6 +231,33 @@ export function useUploadSalesOrderAttachmentMutation() {
     onError: (err: Error) => {
       message.error(
         err instanceof ApiError ? err.message : "อัปโหลดไฟล์ไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useDeleteSalesOrderAttachmentMutation() {
+  const { message } = App.useApp();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "delete-attachment"],
+    mutationFn: ({
+      attachmentId,
+      documentId,
+    }: {
+      attachmentId: string;
+      documentId: string;
+    }) => deleteDocumentAttachment(getAccessToken(), attachmentId),
+    onSuccess: (res, vars) => {
+      message.success(res.message || "ลบไฟล์แนบสำเร็จ");
+      void queryClient.invalidateQueries({
+        queryKey: [...salesOrdersQueryKey, "attachments", vars.documentId],
+      });
+    },
+    onError: (err: Error) => {
+      message.error(
+        err instanceof ApiError ? err.message : "ลบไฟล์แนบไม่สำเร็จ",
       );
     },
   });

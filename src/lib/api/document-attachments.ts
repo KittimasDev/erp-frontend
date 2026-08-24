@@ -50,3 +50,10 @@ export function downloadDocumentAttachment(token: string, id: string) {
     token,
   });
 }
+
+export function deleteDocumentAttachment(token: string, id: string) {
+  return apiFetch<DocumentAttachmentApiResponse>(
+    `/api/documents/attachments/${id}`,
+    { method: "DELETE", token },
+  );
+}

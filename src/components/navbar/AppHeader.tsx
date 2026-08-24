@@ -34,6 +34,7 @@ import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 import { useReadySalesOrdersForPickingCountQuery } from "@/hooks/pickings/usePickingsQuery";
 import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import { usePendingStockVerificationCountQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 
@@ -1846,6 +1847,10 @@ export default function AppHeader({
     useReadySalesOrdersForPickingCountQuery();
   const readySalesOrdersForPickingCount =
     readySalesOrdersForPickingCountQuery.data ?? 0;
+  const pendingStockVerificationCountQuery =
+    usePendingStockVerificationCountQuery();
+  const pendingStockVerificationCount =
+    pendingStockVerificationCountQuery.data ?? 0;
   const visibleSalesMenus = filterMenus(salesMenus);
   const visibleLaboratoryMenus = filterMenus(laboratoryMenus);
   const visibleOilTankFarmMenus = filterMenus(oilTankFarmMenus);
@@ -2054,7 +2059,9 @@ export default function AppHeader({
                     searchParams,
                     item.key === "pickings"
                       ? readySalesOrdersForPickingCount
-                      : undefined,
+                      : item.key === "sd-stock-verification"
+                        ? pendingStockVerificationCount
+                        : undefined,
                   ),
                 )}
               </div>

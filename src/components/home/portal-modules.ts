@@ -133,7 +133,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     code: "PRD",
     label: "การผลิต",
     description: "ใบขอผลิต · ใบสั่งผลิต · รับผลผลิต",
-    href: "/production/production-orders",
+    href: "/production/production-requests",
     tone: "teal",
     screenCodes: [
       "PRODUCTION_REQUESTS",

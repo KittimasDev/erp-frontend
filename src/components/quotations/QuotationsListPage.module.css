@@ -18,7 +18,6 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 16px;
-  overflow: hidden;
   padding: 18px 22px;
   border: 1px solid var(--pr-border);
   border-radius: 16px;
@@ -26,46 +25,24 @@
   box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
 }
 
-.pageHeader::after {
-  content: "";
-  position: absolute;
-  width: 160px;
-  height: 160px;
-  right: -60px;
-  bottom: -100px;
-  border-radius: 50%;
-  background: var(--pr-green);
-  opacity: 0.12;
-}
-
 .headerAccent {
-  position: relative;
-  z-index: 1;
   width: 52px;
   height: 52px;
   display: grid;
   place-items: center;
   border-radius: 14px;
-  color: #fff;
-  background: linear-gradient(
-    135deg,
-    #8CA527 0%,
-    var(--pr-green) 58%,
-    var(--pr-green-dark) 100%
-  );
-  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
-  font-size: 20px;
+  color: var(--pr-green-dark);
+  background: rgba(138, 185, 51, 0.14);
+  font-size: 22px;
 }
 
 .headerContent {
-  position: relative;
-  z-index: 1;
   min-width: 0;
 }
 
 .eyebrow {
   margin: 0 0 4px;
-  color: var(--pr-green-dark);
+  color: var(--pr-muted);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.14em;
@@ -89,8 +66,6 @@
 }
 
 .headerActions {
-  position: relative;
-  z-index: 1;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -100,16 +75,10 @@
   height: 40px !important;
   border-radius: 10px !important;
   border: 0 !important;
-  background: var(--pr-green-dark) !important;
+  background: var(--pr-green) !important;
   color: #fff !important;
   font-weight: 500 !important;
-  box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
-}
-
-.secondaryBtn {
-  height: 40px !important;
-  border-radius: 10px !important;
-  font-weight: 500 !important;
+  box-shadow: 0 8px 18px rgba(138, 185, 51, 0.28) !important;
 }
 
 .filterCard,
@@ -121,13 +90,68 @@
 }
 
 .filterCard {
-  padding: 18px 22px;
+  padding: 18px 22px 20px;
 }
+
+/* ── หัวข้อในการ์ด (SEARCH / QUOTATION LIST) ─────────────────────────── */
+
+.sectionHead {
+  margin-bottom: 16px;
+}
+
+.sectionEyebrow {
+  margin: 0 0 4px;
+  color: var(--pr-muted);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--pr-text);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.sectionSubtitle {
+  margin: 4px 0 0;
+  color: var(--pr-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.tableHead {
+  margin: 0;
+  padding: 18px 22px 14px;
+}
+
+.tableTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.countPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(138, 185, 51, 0.14);
+  color: var(--pr-green-dark);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+/* ── ฟิลเตอร์ ────────────────────────────────────────────────────────── */
 
 .filterGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px 14px;
+  gap: 14px 16px;
 }
 
 .filterItem {
@@ -141,47 +165,36 @@
   font-weight: 500;
 }
 
+.inputPrefix {
+  color: var(--pr-muted);
+}
+
 .filterActions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 16px;
   flex-wrap: wrap;
 }
+
+.clearBtn,
+.searchBtn {
+  height: 34px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+}
+
+.searchBtn {
+  border-color: rgba(138, 185, 51, 0.55) !important;
+  color: var(--pr-green-dark) !important;
+  background: rgba(138, 185, 51, 0.08) !important;
+}
+
+/* ── ตาราง ───────────────────────────────────────────────────────────── */
 
 .tableCard {
   overflow: hidden;
-}
-
-.tableToolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--pr-border);
-  background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
-}
-
-.toolbarLeft {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--pr-muted);
-  font-size: 13px;
-}
-
-.toolbarLeft strong {
-  color: var(--pr-text);
-}
-
-.entriesBox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--pr-muted);
-  font-size: 12px;
 }
 
 .prNo {
@@ -189,7 +202,7 @@
   align-items: center;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(115, 152, 22, 0.12);
+  background: rgba(138, 185, 51, 0.14);
   color: var(--pr-green-dark);
   font-size: 12px;
   font-weight: 500;
@@ -220,29 +233,33 @@
   background: #f8faf5 !important;
 }
 
-.progressCell {
+.customerCell {
   display: grid;
-  gap: 6px;
-  min-width: 140px;
+  gap: 2px;
+  min-width: 0;
 }
 
-.progressMeta {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.progressCount {
-  color: var(--pr-green-dark);
+.customerName {
+  color: var(--pr-text);
   font-size: 13px;
-  font-weight: 800;
+  line-height: 1.35;
+}
+
+.customerMeta {
+  color: var(--pr-muted);
+  font-size: 11.5px;
+}
+
+.moneyCell {
   font-variant-numeric: tabular-nums;
 }
 
-.progressLabel {
-  color: var(--pr-text);
-  font-size: 12px;
-  font-weight: 500;
+/* ── ขั้นตอน ─────────────────────────────────────────────────────────── */
+
+.progressCell {
+  display: grid;
+  gap: 6px;
+  min-width: 120px;
 }
 
 .progressTrack {
@@ -261,156 +278,80 @@
   background: var(--pr-green);
 }
 
-.progress_done .progressCount,
-.progress_done .progressSegOn {
-  color: #389e0d;
-}
-
-.progress_done .progressSegOn {
-  background: #52c41a;
-}
-
-.progress_waiting .progressCount {
-  color: #d48806;
-}
-
-.progress_waiting .progressLabel {
-  color: #ad6800;
-}
-
-.progress_waiting .progressSegOn {
-  background: #faad14;
-}
-
-.progress_waiting .progressSegCurrent {
-  background: #fa8c16;
-  box-shadow: 0 0 0 2px rgba(250, 140, 22, 0.25);
-}
-
-.progressSegCurrent {
-  transform: scaleY(1.35);
-}
-
-.progress_stopped .progressCount,
-.progress_stopped .progressLabel {
-  color: #8a9199;
-}
-
-.progress_stopped .progressSegOn {
+.progressSegStopped {
   background: #bfbfbf;
 }
 
-.progressSo {
+.progressStep {
   color: var(--pr-muted);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 11.5px;
 }
 
-.statusTag {
-  margin-inline-end: 0 !important;
-  border-radius: 999px !important;
-  font-weight: 500 !important;
-}
+/* ── สถานะ ───────────────────────────────────────────────────────────── */
 
-.actionNeededTag {
-  margin-inline-end: 0 !important;
-  border-radius: 999px !important;
-  font-size: 11px !important;
-  font-weight: 500 !important;
-}
-
-.permissionStrip {
-  display: grid;
-  gap: 8px;
-  padding: 14px 18px;
-  border: 1px solid var(--pr-border);
-  border-radius: 14px;
-  background: linear-gradient(180deg, #fafbfc 0%, #fff 100%);
-}
-
-.permissionStripLabel {
-  color: var(--pr-muted);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.permissionChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.permissionChip {
+.statusPill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
-.permissionChipOn {
-  color: var(--pr-green-dark);
-  background: rgba(115, 152, 22, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(115, 152, 22, 0.28);
+.statusDone {
+  background: rgba(138, 185, 51, 0.16);
+  color: #4d7a12;
 }
 
-.permissionChipOff {
+.statusAccepted {
+  background: #fff4d6;
+  color: #a9700a;
+}
+
+.statusSent {
+  background: #e6f0ff;
+  color: #2b5fbe;
+}
+
+.statusDraft {
+  background: #f2f3f5;
+  color: #6b7280;
+}
+
+.statusRejected {
+  background: #ffe9e6;
+  color: #b93c2b;
+}
+
+.statusCancelled {
+  background: #f2f3f5;
   color: #8a9199;
-  background: #f3f4f6;
-  box-shadow: inset 0 0 0 1px #e5e7eb;
-  text-decoration: line-through;
-  text-decoration-color: rgba(138, 145, 153, 0.7);
 }
 
-.permissionHint {
-  font-size: 12px;
-  line-height: 1.45;
-}
+/* ── จัดการ + footer ─────────────────────────────────────────────────── */
 
-.approveAlert {
-  display: grid;
-  gap: 4px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  border: 1px solid #ffd591;
-  background: #fff7e6;
-  color: #ad6800;
-  font-size: 13px;
-}
-
-.approveAlert strong {
-  font-size: 14px;
-}
-
-.table :global(.ant-table-tbody > tr).rowNeedsApprove > td {
-  background: #fffdf5 !important;
-}
-
-.table :global(.ant-table-tbody > tr).rowNeedsApprove:hover > td {
-  background: #fff9e6 !important;
+.actionsCell {
+  display: flex;
+  justify-content: center;
 }
 
 .actionBtn {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  border: 1px solid var(--pr-border);
-  background: #fff;
-  color: #5c6570;
-  display: inline-flex;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  border: 1px solid var(--pr-border) !important;
+  background: #fff !important;
+  color: #5c6570 !important;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: 0.15s ease;
 }
 
 .actionBtn:hover {
-  border-color: rgba(115, 152, 22, 0.45);
-  color: var(--pr-green-dark);
-  background: rgba(115, 152, 22, 0.08);
+  border-color: rgba(138, 185, 51, 0.45) !important;
+  color: var(--pr-green-dark) !important;
+  background: rgba(138, 185, 51, 0.08) !important;
 }
 
 .tableFooter {
@@ -419,7 +360,7 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 12px 18px 16px;
+  padding: 14px 22px 16px;
   border-top: 1px solid var(--pr-border);
 }
 

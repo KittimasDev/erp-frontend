@@ -21,6 +21,7 @@ import {
   CarOutlined,
   CheckOutlined,
   CloseOutlined,
+  DeleteOutlined,
   DownloadOutlined,
   EyeOutlined,
   FilePdfOutlined,
@@ -45,6 +46,7 @@ import {
   useReleaseSalesOrderLineMutation,
   useReserveAllEligibleSalesOrderLinesMutation,
   useReserveSalesOrderLineMutation,
+  useDeleteSalesOrderAttachmentMutation,
   useUpdateSalesOrderCustomerPoMutation,
   useUploadSalesOrderAttachmentMutation,
 } from "@/hooks/sales-orders/useSalesOrderMutations";
@@ -229,6 +231,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const createProductionRequestMutation = useCreateProductionRequestMutation();
   const attachmentsQuery = useSalesOrderAttachmentsQuery(id);
   const uploadAttachmentMutation = useUploadSalesOrderAttachmentMutation();
+  const deleteAttachmentMutation = useDeleteSalesOrderAttachmentMutation();
   const updateCustomerPoMutation = useUpdateSalesOrderCustomerPoMutation();
   const [pendingProductionRequest, setPendingProductionRequest] =
     useState<PendingProductionRequest | null>(null);
@@ -374,6 +377,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     reserveAllMutation.isPending ||
     createProductionRequestMutation.isPending ||
     uploadAttachmentMutation.isPending ||
+    deleteAttachmentMutation.isPending ||
     updateCustomerPoMutation.isPending;
   const progress = resolveSalesOrderProgress(data.status);
 
@@ -496,7 +500,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const stockReady = stockVerification?.isAllAvailable === true;
   const stockShortLines =
     stockVerification?.lines?.filter((line) => !line.isAvailable) ?? [];
-  const canCreateProductionRequest = productionRequestActions.canAdd;
+  /**
+   * ขอผลิตจากหน้าใบสั่งขายได้ด้วยสิทธิ์แก้ไข SO — ไม่ต้องมีสิทธิ์หน้าจอใบขอผลิต
+   * (backend เปิด SALES_ORDERS.EDIT ให้ POST /production-requests ด้วย)
+   */
+  const canCreateProductionRequest =
+    productionRequestActions.canAdd || canWrite;
+  /** เปิดหน้า/เอกสารใบขอผลิตได้เฉพาะคนที่มีสิทธิ์หน้าจอนั้น (AuthGuard กันตาม route) */
+  const canOpenProductionRequestScreen = productionRequestActions.canView;
   const hasActiveProductionRequest = linkedProductionRequests.some(
     (pr) => pr.status !== "CANCELLED",
   );
@@ -589,14 +600,23 @@ export default function SalesOrderDetailPage({ id }: Props) {
       return;
     }
     const requiredDate = productionRequiredDate.format("YYYY-MM-DD");
-    const onSuccess = (response: { data?: { id?: string } }) => {
+    const onSuccess = (response: {
+      data?: { id?: string; requestNo?: string };
+    }) => {
       setPendingProductionRequest(null);
       void eligibleSoQuery.refetch();
       void productionRequestsQuery.refetch();
       void reservationQuery.refetch();
-      if (response.data?.id) {
+      // ไม่มีสิทธิ์หน้าจอใบขอผลิต = เปิดหน้านั้นไม่ได้ (AuthGuard เด้ง) — อยู่หน้านี้ต่อ
+      if (response.data?.id && canOpenProductionRequestScreen) {
         router.push(`/production/production-requests/${response.data.id}`);
+        return;
       }
+      message.success(
+        response.data?.requestNo
+          ? `ออกใบขอผลิต ${response.data.requestNo} แล้ว — รอฝ่ายผลิตเปิดใบสั่งผลิต`
+          : "ออกใบขอผลิตแล้ว — รอฝ่ายผลิตเปิดใบสั่งผลิต",
+      );
     };
 
     if (pendingProductionRequest.kind === "all") {
@@ -1223,6 +1243,34 @@ export default function SalesOrderDetailPage({ id }: Props) {
                         >
                           ดาวน์โหลด
                         </Button>
+                        {canUploadEvidence ? (
+                          <Button
+                            size="small"
+                            danger
+                            icon={<DeleteOutlined />}
+                            loading={
+                              deleteAttachmentMutation.isPending &&
+                              deleteAttachmentMutation.variables
+                                ?.attachmentId === file.id
+                            }
+                            disabled={busy}
+                            onClick={() =>
+                              modal.confirm({
+                                title: "ยืนยันลบไฟล์แนบ?",
+                                content: attachmentDisplayName(file),
+                                okText: "ลบ",
+                                okButtonProps: { danger: true },
+                                onOk: () =>
+                                  deleteAttachmentMutation.mutateAsync({
+                                    attachmentId: file.id,
+                                    documentId: data.id,
+                                  }),
+                              })
+                            }
+                          >
+                            ลบ
+                          </Button>
+                        ) : null}
                       </div>
                     </li>
                   ))}
@@ -1503,20 +1551,26 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     type="primary"
                     icon={<ProfileOutlined />}
                     onClick={() => {
+                      // ออกใบในหน้านี้เลย ไม่ส่งไปหน้าฟอร์มใบขอผลิต
+                      // (คนที่ไม่มีสิทธิ์หน้าจอใบขอผลิตจะถูก AuthGuard เด้งกลับ)
                       if (hasStockShortage) {
-                        router.push(
-                          `/production/production-requests/create?salesOrderId=${data.id}`,
-                        );
+                        openProductionRequestModal({ kind: "all" });
                         return;
                       }
                       const openPr = linkedProductionRequests.find(
                         (pr) =>
                           pr.status !== "CANCELLED" && pr.producedPercent < 100,
                       );
-                      router.push(
+                      if (openPr && canOpenProductionRequestScreen) {
+                        router.push(
+                          `/production/production-requests/${openPr.id}`,
+                        );
+                        return;
+                      }
+                      message.info(
                         openPr
-                          ? `/production/production-requests/${openPr.id}`
-                          : `/production/production-requests/create?salesOrderId=${data.id}`,
+                          ? `ใบขอผลิต ${openPr.requestNo} กำลังดำเนินการ — รอของเข้าคลัง`
+                          : "ยังไม่มีรายการที่ต้องขอผลิตเพิ่ม",
                       );
                     }}
                   >
@@ -1546,12 +1600,18 @@ export default function SalesOrderDetailPage({ id }: Props) {
                         </Tag>
                       </div>
                       <div className={styles.itemBody}>
-                        <Link
-                          href={`/production/production-requests/${pr.id}`}
-                          className={styles.productionRequestLink}
-                        >
-                          {pr.requestNo}
-                        </Link>
+                        {canOpenProductionRequestScreen ? (
+                          <Link
+                            href={`/production/production-requests/${pr.id}`}
+                            className={styles.productionRequestLink}
+                          >
+                            {pr.requestNo}
+                          </Link>
+                        ) : (
+                          <span className={styles.productionRequestLink}>
+                            {pr.requestNo}
+                          </span>
+                        )}
                         <p className={styles.itemCode}>
                           ต้องการภายใน {formatDate(pr.requiredDate)}
                         </p>
@@ -1576,11 +1636,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           </p>
                         ))}
                       </div>
-                      <div className={styles.productionRequestCardFooter}>
-                        <Link href={`/production/production-requests/${pr.id}`}>
-                          เปิดเอกสาร
-                        </Link>
-                      </div>
+                      {canOpenProductionRequestScreen ? (
+                        <div className={styles.productionRequestCardFooter}>
+                          <Link
+                            href={`/production/production-requests/${pr.id}`}
+                          >
+                            เปิดเอกสาร
+                          </Link>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}

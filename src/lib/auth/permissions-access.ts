@@ -103,7 +103,11 @@ export type ScreenActionPermissions = {
   canApprove: boolean;
 };
 
-const SALES_OWN_SCOPE_SCREENS = new Set(["QUOTATIONS", "SALES_ORDERS"]);
+const SALES_OWN_SCOPE_SCREENS = new Set([
+  "QUOTATIONS",
+  "SALES_ORDERS",
+  "SALES_TRACKING",
+]);
 
 /**
  * ใช้เฉพาะตอนสิทธิ์ยังโหลดไม่เสร็จ (localStorage ว่าง) — Manager / Executive /

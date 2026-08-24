@@ -79,7 +79,8 @@ export default function CreatePickingSelectSoPage() {
           <p className={styles.eyebrow}>Picking · Create</p>
           <h1 className={styles.pageTitle}>เลือกใบสั่งขายที่พร้อมจ่าย</h1>
           <p className={styles.pageSubtitle}>
-            เฉพาะ SO สถานะ STOCK_CHECKED และยังไม่มีใบจ่ายที่ใช้งาน
+            เฉพาะ SO สถานะ STOCK_CHECKED ที่ยังไม่เคยออกใบจ่าย — ใบที่ยกเลิกแล้ว
+            ก็ไม่แสดงในรายการนี้
           </p>
         </div>
       </header>

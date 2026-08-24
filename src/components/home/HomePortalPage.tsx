@@ -32,6 +32,7 @@ import {
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 import { useReadySalesOrdersForPickingCountQuery } from "@/hooks/pickings/usePickingsQuery";
 import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import { usePendingStockVerificationCountQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import {
@@ -147,6 +148,15 @@ export default function HomePortalPage() {
     });
   const readySalesOrdersForPickingCount =
     readySalesOrdersForPickingCountQuery.data ?? 0;
+  const pendingStockVerificationCountQuery =
+    usePendingStockVerificationCountQuery({
+      enabled: mounted,
+    });
+  const pendingStockVerificationCount =
+    pendingStockVerificationCountQuery.data ?? 0;
+  /** กล่องคลังสำเร็จรูปคุมหลายคิว — รวม รอตรวจสต๊อก + รอหยิบ ไว้ที่ badge เดียว */
+  const fgWarehousePendingCount =
+    pendingStockVerificationCount + readySalesOrdersForPickingCount;
 
   const displayName = user?.displayName || user?.username || "ผู้ใช้งาน";
   const roleLabel =
@@ -202,11 +212,11 @@ export default function HomePortalPage() {
                   : mod.key === "production"
                     ? pendingProductionOutputStockRequestsCount
                     : mod.key === "fg-warehouse"
-                      ? readySalesOrdersForPickingCount
+                      ? fgWarehousePendingCount
                       : 0;
             const showPendingBadge = pendingBadgeCount > 0;
             const pendingBadgeLabel =
-              mod.key === "fg-warehouse" ? "รอหยิบ" : "รออนุมัติ";
+              mod.key === "fg-warehouse" ? "รอดำเนินการ" : "รออนุมัติ";
 
             return (
               <Badge

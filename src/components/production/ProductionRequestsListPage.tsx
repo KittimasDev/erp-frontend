@@ -34,6 +34,7 @@ import {
 } from "@/components/production/ProductionOrderCreatePage";
 import { useConsolidatedCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useProductionRequestsQuery } from "@/hooks/production-requests/useProductionRequestQueries";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import {
@@ -52,6 +53,9 @@ import styles from "./ProductionRequestsListPage.module.css";
 export default function ProductionRequestsListPage() {
   const router = useRouter();
   const { message } = App.useApp();
+  const productionRequestActions =
+    useScreenActionPermissions("PRODUCTION_REQUESTS");
+  const canViewAll = productionRequestActions.canViewAll;
   const canCreate =
     userHasRole(RoleCode.SALES_OFFICER) ||
     userHasRole(RoleCode.SALES_MANAGER) ||
@@ -330,6 +334,7 @@ export default function ProductionRequestsListPage() {
             <span className={masterStyles.pageSubtitle}>
               เลือกหลายใบสถานะรอเปิดใบสั่งผลิต เพื่อสร้างใบสั่งผลิตใบเดียว
               ที่ผูกทุกรายการไว้ด้วยกัน
+              {canViewAll ? "" : " · แสดงเฉพาะใบที่คุณเป็นผู้ขอ"}
             </span>
           </div>
           {canCreate ? (

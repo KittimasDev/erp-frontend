@@ -338,6 +338,9 @@ export default function SalesTrackingPage() {
           <h1 className={styles.pageTitle}>ติดตามการขายและจัดส่ง</h1>
           <p className={styles.pageSubtitle}>
             ภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery
+            {trackingActions.canViewAll
+              ? null
+              : " · แสดงเฉพาะเอกสารที่คุณเป็นผู้สร้าง"}
           </p>
         </div>
       </header>

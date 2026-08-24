@@ -11,7 +11,14 @@ import {
   getSalesOrderStockVerification,
 } from "@/lib/api/sales-orders";
 import { getDocumentAttachments } from "@/lib/api/document-attachments";
-import { getAccessToken } from "@/lib/auth/token";
+import {
+  canAccessScreen,
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
+import { RoleCode } from "@/lib/auth/role-codes";
+import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
 import { DOCUMENT_TYPE_SO } from "@/types/document-attachments";
 import type { SalesOrderQueryParams } from "@/types/sales-orders";
 
@@ -35,10 +42,68 @@ export function useSalesOrderQuery(id?: string) {
   });
 }
 
+export const pendingStockVerificationQueryKey = [
+  ...salesOrdersQueryKey,
+  "stock-verification-pending",
+] as const;
+
+const COUNT_POLL_MS = 30_000;
+
+function countPollInterval(query: {
+  state: { status: string };
+}): number | false {
+  if (query.state.status === "error") {
+    return false;
+  }
+  return COUNT_POLL_MS;
+}
+
+/** สิทธิ์เข้าหน้าตรวจสอบสต๊อกขาย (เมนู / badge) — ตรงกับ canSeeMenu ของ sd-stock-verification */
+export function canAccessSalesStockVerification(): boolean {
+  if (isAdministrator()) {
+    return true;
+  }
+  if (isMatrixPermissionMode()) {
+    return (
+      canAccessScreen("SALES_STOCK_VERIFICATION") ||
+      hasPermission(
+        "SALES_STOCK_VERIFICATION.VIEW",
+        "SALES_STOCK_VERIFICATION.APPROVE",
+      )
+    );
+  }
+  return (
+    userHasRole(RoleCode.SALES_OFFICER) ||
+    userHasRole(RoleCode.SALES_MANAGER) ||
+    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+    userHasRole(RoleCode.EXECUTIVE)
+  );
+}
+
 export function usePendingStockVerificationQuery() {
   return useQuery({
-    queryKey: [...salesOrdersQueryKey, "stock-verification-pending"],
+    queryKey: pendingStockVerificationQueryKey,
     queryFn: () => getPendingStockVerification(getAccessToken()),
+  });
+}
+
+/** จำนวน SO ที่รอตรวจสอบสต๊อก — ใช้ที่ badge เมนู sidebar / กล่องคลังสำเร็จรูปหน้าแรก */
+export function usePendingStockVerificationCountQuery(options?: {
+  enabled?: boolean;
+}) {
+  return useQuery({
+    queryKey: pendingStockVerificationQueryKey,
+    queryFn: () => getPendingStockVerification(getAccessToken()),
+    enabled:
+      (options?.enabled ?? true) &&
+      hasAccessToken() &&
+      canAccessSalesStockVerification(),
+    refetchInterval: countPollInterval,
+    refetchOnMount: true,
+    refetchOnWindowFocus: (query) => query.state.status !== "error",
+    retry: 1,
+    select: (res) => res?.data?.length ?? 0,
   });
 }
 
