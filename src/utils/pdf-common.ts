@@ -179,7 +179,7 @@ export function basePdfStyles() {
       }
       .company-name {
         font-size: 16px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
       }
       .company-address {
@@ -196,7 +196,7 @@ export function basePdfStyles() {
       }
       .title {
         font-size: 20px;
-        font-weight: 700;
+        font-weight: 500;
         letter-spacing: 0.02em;
       }
       .title-sub {
@@ -220,11 +220,11 @@ export function basePdfStyles() {
         display: block;
         font-size: 10px;
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
       .meta-value {
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
       }
       .info-card {
         border: 1.2px solid #d1d5db;
@@ -246,11 +246,11 @@ export function basePdfStyles() {
       .info-row .label {
         color: #6b7280;
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 500;
       }
       .info-row .value {
         color: #111827;
-        font-weight: 600;
+        font-weight: 500;
       }
       .info-row-emphasis {
         padding: 6px 8px;
@@ -261,11 +261,11 @@ export function basePdfStyles() {
       }
       .info-row-emphasis .label {
         color: #6f9720;
-        font-weight: 700;
+        font-weight: 500;
       }
       .info-row-emphasis .value {
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
         letter-spacing: 0.01em;
       }
       .items-table {
@@ -283,7 +283,7 @@ export function basePdfStyles() {
       .items-table th {
         background: #f3f4f6;
         text-align: center;
-        font-weight: 700;
+        font-weight: 500;
         height: 34px;
       }
       .items-table tbody tr.data-row td { height: 30px; }
@@ -318,13 +318,13 @@ export function basePdfStyles() {
         font-size: 12px;
         color: #374151;
       }
-      .total-line strong { font-weight: 700; color: #111827; }
+      .total-line strong { font-weight: 500; color: #111827; }
       .total-line-grand {
         margin-top: 4px;
         padding-top: 8px;
         border-top: 1px solid #d1d5db;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
       }
       .remark-box {
         margin-top: 14px;
@@ -349,7 +349,7 @@ export function basePdfStyles() {
       .signature:last-child { border-right: 0; }
       .sig-title {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         margin-bottom: 4px;
       }
       /* สูงคงที่ ไม่ว่าจะมีรูปลายเซ็นหรือไม่ — ให้เส้นเซ็นทุกคอลัมน์ตรงแนวกัน */
@@ -367,7 +367,7 @@ export function basePdfStyles() {
       }
       .sig-name {
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 500;
         text-align: center;
         color: #1f2937;
         margin-bottom: 6px;
@@ -377,7 +377,7 @@ export function basePdfStyles() {
         border-bottom: 1px dashed #6b7280;
         margin-bottom: 10px;
       }
-      .sig-date { font-size: 11px; color: #4b5563; font-weight: 600; }
+      .sig-date { font-size: 11px; color: #4b5563; font-weight: 500; }
       .bank-box {
         margin-top: 14px;
         border: 1.2px solid #e5e7eb;
@@ -388,7 +388,7 @@ export function basePdfStyles() {
         gap: 8px;
         font-size: 12px;
       }
-      .bank-box strong { font-weight: 700; }
+      .bank-box strong { font-weight: 500; }
       .footer-note {
         margin-top: 14px;
         text-align: center;

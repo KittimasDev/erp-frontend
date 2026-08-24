@@ -3,15 +3,15 @@
 import { useState } from "react";
 import {
   Button,
-  Popconfirm,
-  Space,
   Table,
   Tag,
   Typography,
 } from "antd";
+import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateUnitMutation } from "@/hooks/units/useCreateUnitMutation";
 import { useDeleteUnitMutation } from "@/hooks/units/useDeleteUnitMutation";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
@@ -178,41 +178,34 @@ export default function UnitsPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 190,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8}>
-          <Button
-            className={styles.editButton}
-            onClick={() =>
-              openEditModal(record)
-            }
-          >
-            แก้ไข
-          </Button>
-
-          <Popconfirm
-            title="ลบหน่วยนับ"
-            description={`ต้องการลบ "${record.code}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการ ${record.code}`}
+          actions={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => openEditModal(record),
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบ",
               danger: true,
-            }}
-            onConfirm={() =>
-              deleteMutation.mutate(record.id)
-            }
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={
-                deleteMutation.isPending
-              }
-            >
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
+              onClick: () => deleteMutation.mutate(record.id),
+              confirm: {
+                title: "ลบหน่วยนับ",
+                content: `ต้องการลบ "${record.code}" หรือไม่?`,
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -351,7 +344,7 @@ export default function UnitsPage() {
               showSizeChanger: false,
             }}
             scroll={{
-              x: 980,
+              x: 890,
             }}
           />
         )}

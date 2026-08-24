@@ -16,7 +16,7 @@
   
   .breadcrumbActive {
     color: #7ca500;
-    font-weight: 600;
+    font-weight: 500;
   }
   
   .pageHeader {
@@ -27,7 +27,7 @@
     margin: 0 0 8px;
     font-size: 28px;
     line-height: 1.2;
-    font-weight: 700;
+    font-weight: 500;
     color: #4b4b58;
   }
   
@@ -58,7 +58,7 @@
   .formItem label {
     font-size: 12px;
     color: #313131;
-    font-weight: 600;
+    font-weight: 500;
   }
   
   .required {
@@ -113,7 +113,7 @@
     min-width: 86px;
     height: 34px;
     border-radius: 4px;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 13px;
     border: 0;
     box-shadow: none;
@@ -143,7 +143,7 @@
     background: #ebc15c !important;
     border: 0 !important;
     color: #5a4522 !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
     box-shadow: none !important;
   }
   
@@ -201,7 +201,7 @@
     background: #676674 !important;
     color: #fff !important;
     font-size: 12px !important;
-    font-weight: 600 !important;
+    font-weight: 500 !important;
     border-right: 1px solid #8a8994 !important;
     border-bottom: 0 !important;
     padding: 10px 8px !important;
@@ -242,7 +242,7 @@
   }
   
   .statusText {
-    font-weight: 600;
+    font-weight: 500;
     color: #49495a;
     letter-spacing: 0.2px;
   }
@@ -321,7 +321,7 @@
   
   .sectionLabel {
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     color: #313131;
   }
   
@@ -345,7 +345,7 @@
   .totalLabel {
     font-size: 12px;
     color: #313131;
-    font-weight: 600;
+    font-weight: 500;
   }
   
   .totalBox {
@@ -380,7 +380,7 @@
     border: 1px solid #d7d7d7;
     background: #efefef;
     color: #7b7b7b;
-    font-weight: 600;
+    font-weight: 500;
   }
   
   .saveBtn {
@@ -390,7 +390,7 @@
     border: 0;
     background: #7ca500 !important;
     color: #fff !important;
-    font-weight: 600;
+    font-weight: 500;
   }
   
   @media (max-width: 1024px) {

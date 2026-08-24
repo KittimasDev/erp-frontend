@@ -1,0 +1,395 @@
+/* Design polish เฉพาะหน้า /customers — ทับ master-page.module.css เฉพาะหน้านี้
+   ใช้ token สี (--unit-*) ที่ประกาศไว้บน :global(.mainLayout)
+   คลาสเขียนซ้ำสองครั้ง (.x.x) เพื่อให้ชนะ shared stylesheet ไม่ต้องพึ่งลำดับ import */
+
+.page.page {
+  gap: 18px;
+}
+
+/* ---------- Header ---------- */
+
+.pageHeader.pageHeader {
+  gap: 20px;
+  padding: 24px 28px;
+  border-color: rgba(115, 152, 22, 0.16);
+  border-radius: 20px;
+  background:
+    radial-gradient(
+      120% 160% at 100% 0%,
+      rgba(115, 152, 22, 0.09) 0%,
+      rgba(115, 152, 22, 0) 55%
+    ),
+    #ffffff;
+  box-shadow: 0 10px 30px rgba(47, 52, 58, 0.06);
+}
+
+/* ปิดวงกลมตกแต่งของ shared แล้วใช้ gradient wash ด้านบนแทน */
+.pageHeader.pageHeader::after {
+  width: auto;
+  height: 3px;
+  inset: 0 0 auto 0;
+  border-radius: 0;
+  background: linear-gradient(
+    90deg,
+    var(--unit-green) 0%,
+    var(--unit-green-dark) 45%,
+    rgba(115, 152, 22, 0) 100%
+  );
+  opacity: 1;
+}
+
+.headerAccent.headerAccent {
+  width: 54px;
+  height: 54px;
+  border-radius: 17px;
+  box-shadow:
+    0 10px 22px rgba(115, 152, 22, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  font-size: 22px;
+}
+
+.eyebrow.eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--unit-green-dark);
+  background: var(--unit-green-soft);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.pageTitle.pageTitle {
+  font-size: 26px !important;
+  font-weight: 500 !important;
+}
+
+.pageSubtitle.pageSubtitle {
+  margin-top: 6px;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.createButton.createButton {
+  border-radius: 14px !important;
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.24);
+  font-weight: 500;
+}
+
+/* ---------- Summary cards ---------- */
+
+.summaryRow.summaryRow {
+  gap: 16px;
+}
+
+.summaryCard.summaryCard {
+  position: relative;
+  overflow: hidden;
+  align-items: flex-start;
+  gap: 16px;
+  min-height: 0;
+  padding: 20px 22px;
+  border-color: var(--unit-border);
+  border-top-width: 1px;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(47, 50, 57, 0.05);
+}
+
+/* แถบสีบางด้านบน แทนขอบหนา 4px ของ shared */
+.summaryCard.summaryCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--card-accent, var(--unit-green));
+}
+
+.summaryCard.summaryCard:hover {
+  transform: translateY(-3px);
+  border-color: var(--card-accent-border, var(--unit-border-dark));
+  box-shadow: 0 16px 32px rgba(47, 50, 57, 0.09);
+}
+
+.summaryIcon.summaryIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.summaryBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.summaryLabel.summaryLabel {
+  margin-bottom: 8px;
+  color: var(--unit-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.summaryCard.summaryCard strong {
+  color: var(--unit-gray-dark);
+  font-size: 30px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.summaryCaption {
+  display: block;
+  margin-top: 8px;
+  color: var(--unit-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.summaryShare {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: var(--card-accent-text, var(--unit-green-dark));
+  background: var(--card-accent-soft, var(--unit-green-soft));
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.cardTotal {
+  --card-accent: linear-gradient(
+    90deg,
+    var(--unit-gray) 0%,
+    var(--unit-gray-dark) 100%
+  );
+  --card-accent-border: var(--unit-border-dark);
+  --card-accent-text: var(--unit-gray-dark);
+  --card-accent-soft: var(--unit-gray-soft);
+}
+
+.cardNew {
+  --card-accent: linear-gradient(
+    90deg,
+    var(--unit-green) 0%,
+    var(--unit-green-dark) 100%
+  );
+  --card-accent-border: rgba(115, 152, 22, 0.4);
+  --card-accent-text: var(--unit-green-dark);
+  --card-accent-soft: var(--unit-green-soft);
+}
+
+.cardNew .summaryIcon {
+  color: #ffffff !important;
+  background: linear-gradient(
+    135deg,
+    var(--unit-green) 0%,
+    var(--unit-green-dark) 100%
+  ) !important;
+  box-shadow: 0 8px 18px rgba(115, 152, 22, 0.24);
+}
+
+.cardActive {
+  --card-accent: linear-gradient(90deg, #4b8ea8 0%, #35708a 100%);
+  --card-accent-border: rgba(53, 112, 138, 0.38);
+  --card-accent-text: #2f6579;
+  --card-accent-soft: #eef5f8;
+}
+
+.cardActive .summaryIcon {
+  color: #2f6579 !important;
+  background: #eef5f8 !important;
+}
+
+/* ---------- Filter ---------- */
+
+.filterCard.filterCard {
+  border-radius: 18px;
+  box-shadow: 0 10px 26px rgba(47, 50, 57, 0.055);
+}
+
+.filterHeader.filterHeader {
+  align-items: center;
+  padding: 18px 24px 2px;
+}
+
+.filterEyebrow.filterEyebrow {
+  color: var(--unit-muted);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.filterHeader.filterHeader h3 {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.filterForm.filterForm {
+  padding: 14px 24px 6px;
+}
+
+.filterForm.filterForm :global(.ant-form-item-label > label) {
+  color: var(--unit-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.filterForm.filterForm :global(.ant-input-affix-wrapper),
+.filterForm.filterForm :global(.ant-input),
+.filterForm.filterForm :global(.ant-select-selector) {
+  border-radius: 12px !important;
+}
+
+.filterForm.filterForm :global(.ant-input-affix-wrapper),
+.filterForm.filterForm :global(.ant-select-single .ant-select-selector) {
+  min-height: 40px;
+}
+
+.filterForm.filterForm
+  :global(.ant-input-affix-wrapper:focus-within),
+.filterForm.filterForm
+  :global(.ant-select-focused .ant-select-selector) {
+  border-color: var(--unit-green) !important;
+  box-shadow: 0 0 0 3px rgba(115, 152, 22, 0.12) !important;
+}
+
+.filterSearchButton.filterSearchButton {
+  height: 40px;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 18px rgba(115, 152, 22, 0.22);
+  font-weight: 500;
+}
+
+.filterClearButton {
+  height: 40px;
+  border-radius: 12px !important;
+  font-weight: 500;
+}
+
+/* ---------- Table ---------- */
+
+.tableCard.tableCard {
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(47, 50, 57, 0.06);
+}
+
+.tableHeader.tableHeader {
+  padding: 20px 24px;
+  border-bottom-color: rgba(115, 152, 22, 0.16);
+  background: linear-gradient(
+    180deg,
+    var(--unit-green-soft) 0%,
+    rgba(242, 246, 232, 0.35) 100%
+  );
+}
+
+.tableEyebrow.tableEyebrow {
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.tableHeader.tableHeader h3 {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.tableCount.tableCount {
+  padding: 6px 13px;
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.dataTable.dataTable :global(.ant-table-thead > tr > th) {
+  padding: 13px 16px !important;
+  border-bottom: 1px solid var(--unit-border) !important;
+  color: var(--unit-muted) !important;
+  background: #ffffff !important;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* เอาลายสลับแถวออก ใช้เส้นคั่นบางแทน อ่านง่ายกว่า
+   ต้องยกเว้น .ant-table-measure-row (แถวซ่อนที่ antd ใช้วัดความกว้างคอลัมน์)
+   ไม่ยกเว้นแล้ว padding !important จะไปดันให้เกิดช่องว่างใต้หัวตาราง */
+.dataTable.dataTable
+  :global(.ant-table-tbody > tr:not(.ant-table-measure-row) > td) {
+  padding: 14px 16px !important;
+  border-bottom: 1px solid rgba(225, 226, 221, 0.7) !important;
+  background: #ffffff !important;
+  font-size: 13.5px;
+}
+
+.dataTable.dataTable :global(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: 0 !important;
+}
+
+/* แถววัดความกว้างของ antd ต้องสูง 0 เสมอ */
+.dataTable.dataTable :global(.ant-table-measure-row > td) {
+  padding: 0 !important;
+  border: 0 !important;
+  height: 0 !important;
+}
+
+.dataTable.dataTable :global(.ant-table-tbody > tr:hover > td) {
+  background: var(--unit-green-soft) !important;
+}
+
+.dataTable.dataTable :global(.ant-table-pagination) {
+  margin: 0 !important;
+  padding: 14px 20px !important;
+  border-top: 1px solid var(--unit-border);
+}
+
+.dataTable.dataTable :global(.ant-pagination-item),
+.dataTable.dataTable :global(.ant-pagination-prev .ant-pagination-item-link),
+.dataTable.dataTable :global(.ant-pagination-next .ant-pagination-item-link) {
+  border-radius: 10px !important;
+}
+
+.dataTable.dataTable :global(.ant-pagination-total-text) {
+  margin-inline-end: auto;
+  color: var(--unit-muted);
+  font-size: 12.5px;
+}
+
+/* เซลล์ในตาราง */
+
+.nameCell.nameCell {
+  font-weight: 500;
+}
+
+.stackCell.stackCell {
+  gap: 3px;
+  font-weight: 500;
+}
+
+.codeBadge.codeBadge {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.orderBadge.orderBadge {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusTag.statusTag {
+  font-weight: 500;
+}
+
+.updatedText.updatedText {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1024px) {
+  .summaryRow.summaryRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

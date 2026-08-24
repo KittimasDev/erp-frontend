@@ -13,7 +13,7 @@
   margin-bottom: 8px;
   color: var(--pr-muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -78,7 +78,7 @@
   margin: 0 0 4px;
   color: var(--pr-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -87,7 +87,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -113,14 +113,14 @@
   border: 0 !important;
   background: var(--pr-green-dark) !important;
   color: #fff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
 }
 
 .secondaryBtn {
   height: 40px !important;
   border-radius: 10px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .filterCard,
@@ -149,7 +149,7 @@
 .filterItem label {
   color: var(--pr-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filterActions {
@@ -185,7 +185,7 @@
 
 .summaryValue {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--pr-text);
 }
 
@@ -200,7 +200,7 @@
 .openSoBtn {
   margin-top: 8px !important;
   padding-inline: 0 !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
 }
 
 .tableCard {
@@ -222,7 +222,7 @@
 .toolbarTitle {
   margin: 0;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--pr-text);
 }
 
@@ -235,7 +235,7 @@
 .tableCount {
   flex-shrink: 0;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--pr-muted);
 }
 
@@ -267,7 +267,7 @@
   background: rgba(115, 152, 22, 0.12);
   color: var(--pr-green-dark);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.02em;
   text-decoration: none;
 }
@@ -280,7 +280,7 @@
   background: #f5f7f2 !important;
   color: var(--pr-text) !important;
   font-size: 12px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   border-bottom: 1px solid var(--pr-border) !important;
   padding: 12px 14px !important;
 }
@@ -365,7 +365,7 @@
   margin: 0 0 4px;
   color: var(--pr-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -374,7 +374,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -420,7 +420,7 @@
 .nextLabel {
   color: var(--pr-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -429,7 +429,7 @@
   margin-top: 4px;
   color: var(--pr-text);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .nextAction {
@@ -439,7 +439,7 @@
   margin-top: 8px;
   color: var(--pr-green-dark);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .timeline {
@@ -523,14 +523,14 @@
 .timelineStepName {
   color: var(--pr-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .timelineTag {
   margin: 0 !important;
   border-radius: 999px !important;
   font-size: 11px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
 }
 
 .timelineDetails {
@@ -554,7 +554,7 @@
 
 .timelineDetailRow strong {
   color: var(--pr-text);
-  font-weight: 600;
+  font-weight: 500;
   text-align: right;
 }
 
@@ -569,7 +569,7 @@
   border: 1px solid #d5e3b8;
   color: var(--pr-green-dark);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   text-decoration: none;
   transition: 0.15s ease;
 }
@@ -584,7 +584,7 @@
   margin-top: 10px;
   color: var(--pr-muted);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* tones */

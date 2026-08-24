@@ -7,7 +7,6 @@ import {
   Col,
   Form,
   Input,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -17,12 +16,15 @@ import {
 } from "antd";
 import {
   ClearOutlined,
+  DeleteOutlined,
+  EditOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateTireClassificationMutation } from "@/hooks/tire-classifications/useCreateTireClassificationMutation";
 import { useDeleteTireClassificationMutation } from "@/hooks/tire-classifications/useDeleteTireClassificationMutation";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
@@ -296,33 +298,34 @@ export default function TireClassificationsPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 190,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8}>
-          <Button
-            className={styles.editButton}
-            onClick={() => openEditModal(record)}
-          >
-            แก้ไข
-          </Button>
-
-          <Popconfirm
-            title="ลบประเภท/กลุ่มยาง"
-            description={`ต้องการลบ "${record.classificationCode}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={deleteMutation.isPending}
-            >
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการ ${record.classificationCode}`}
+          actions={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => openEditModal(record),
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบ",
+              danger: true,
+              onClick: () => deleteMutation.mutate(record.id),
+              confirm: {
+                title: "ลบประเภท/กลุ่มยาง",
+                content: `ต้องการลบ "${record.classificationCode}" หรือไม่?`,
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -511,7 +514,7 @@ export default function TireClassificationsPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 1100 }}
+            scroll={{ x: 1010 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบประเภท/กลุ่มยางตามเงื่อนไขที่ค้นหา"

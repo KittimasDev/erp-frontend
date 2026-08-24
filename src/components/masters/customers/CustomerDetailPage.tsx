@@ -1,18 +1,30 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Descriptions, Popconfirm, Space, Spin, Tag, Typography } from "antd";
-import { ArrowLeftOutlined, EditOutlined } from "@ant-design/icons";
+import { Button, Popconfirm, Space, Spin, Table, Tag, Typography } from "antd";
+import {
+  EditOutlined,
+  LeftOutlined,
+  StopOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
 
 import {
   useActivateCustomerMutation,
   useDeactivateCustomerMutation,
 } from "@/hooks/customers/useActivateDeactivateCustomerMutation";
 import { useCustomerQuery } from "@/hooks/customers/useCustomerQuery";
+import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { SALES_ORDER_STATUS_LABEL } from "@/types/sales-orders";
+import type { SalesOrder, SalesOrderStatus } from "@/types/sales-orders";
 import styles from "@/components/masters/shared/master-page.module.css";
+import detailStyles from "./customer-detail.module.css";
 
 const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   DOMESTIC: "ในประเทศ",
@@ -21,9 +33,80 @@ const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   GENERAL: "ทั่วไป",
 };
 
+function statusColor(status: string) {
+  switch (status) {
+    case "COMPLETED":
+      return "success";
+    case "CONFIRMED":
+    case "STOCK_CHECKED":
+    case "PICKING":
+    case "PACKED":
+    case "DELIVERED":
+    case "PARTIALLY_ISSUED":
+      return "processing";
+    case "CANCELLED":
+      return "default";
+    default:
+      return "warning";
+  }
+}
+
+function formatLongDate(value?: string) {
+  if (!value) {
+    return "-";
+  }
+  return new Date(value).toLocaleDateString("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatMoney(value?: string) {
+  const amount = Number(value ?? 0);
+  if (!Number.isFinite(amount)) {
+    return "-";
+  }
+  return amount.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 type Props = {
   id: string;
 };
+
+type InfoRow = {
+  label: string;
+  value: ReactNode;
+};
+
+function InfoCard({
+  eyebrow,
+  title,
+  rows,
+}: {
+  eyebrow: string;
+  title: string;
+  rows: InfoRow[];
+}) {
+  return (
+    <div className={detailStyles.infoCard}>
+      <div className={detailStyles.infoEyebrow}>{eyebrow}</div>
+      <h3 className={detailStyles.infoTitle}>{title}</h3>
+
+      <div className={detailStyles.infoRows}>
+        {rows.map((row) => (
+          <div className={detailStyles.infoRow} key={row.label}>
+            <span className={detailStyles.infoLabel}>{row.label}</span>
+            <span className={detailStyles.infoValue}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function CustomerDetailPage({ id }: Props) {
   const router = useRouter();
@@ -31,16 +114,101 @@ export default function CustomerDetailPage({ id }: Props) {
   const activateMutation = useActivateCustomerMutation();
   const deactivateMutation = useDeactivateCustomerMutation();
 
+  // ประวัติการซื้อขาย — backend filter customerId อยู่แล้ว และ join items มาให้
+  const salesOrdersQuery = useSalesOrdersQuery({ customerId: id });
+  const canViewAllSalesOrders =
+    useScreenActionPermissions("SALES_ORDERS").canViewAll;
+
   const data = query.data?.data;
   const canManageCustomers =
     userHasRole(RoleCode.SALES_OFFICER) ||
     userHasRole(RoleCode.SALES_MANAGER) ||
     isAdministrator();
 
+  const historyColumns: ColumnsType<SalesOrder> = [
+    {
+      title: "เลขที่ใบสั่งซื้อ",
+      dataIndex: "soNo",
+      key: "soNo",
+      width: 150,
+      render: (value: string, record) => (
+        <Link
+          href={`/sales-orders/${record.id}`}
+          className={detailStyles.historyLink}
+        >
+          {value}
+        </Link>
+      ),
+    },
+    {
+      title: "วันที่ทำรายการ",
+      dataIndex: "soDate",
+      key: "soDate",
+      width: 150,
+      render: (value?: string) => (
+        <span className={styles.updatedText}>
+          {value ? new Date(value).toLocaleDateString("th-TH") : "-"}
+        </span>
+      ),
+    },
+    {
+      title: "รายการสินค้า/บริการ",
+      key: "items",
+      render: (_value, record) => {
+        const items = record.items ?? [];
+        const first = items[0];
+        const firstLabel = first
+          ? (first.itemNameTh || first.itemCode || first.description || "-")
+          : "-";
+
+        return (
+          <span>
+            {firstLabel}
+            {items.length > 1 ? (
+              <span className={detailStyles.itemMore}>
+                +{items.length - 1}
+              </span>
+            ) : null}
+          </span>
+        );
+      },
+    },
+    {
+      title: "จำนวนรายการ",
+      key: "itemCount",
+      width: 130,
+      align: "right",
+      render: (_value, record) => (record.items?.length ?? 0).toLocaleString("th-TH"),
+    },
+    {
+      title: "จำนวนเงิน",
+      dataIndex: "totalAmount",
+      key: "totalAmount",
+      width: 140,
+      align: "right",
+      render: (value?: string) => formatMoney(value),
+    },
+    {
+      title: "สถานะ",
+      dataIndex: "status",
+      key: "status",
+      width: 160,
+      align: "center",
+      render: (value: string) => (
+        <Tag color={statusColor(value)}>
+          {SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value}
+        </Tag>
+      ),
+    },
+  ];
+
   if (query.isLoading) {
     return (
       <section className={styles.page}>
-        <div className={styles.tableCard} style={{ textAlign: "center", padding: 48 }}>
+        <div
+          className={styles.tableCard}
+          style={{ textAlign: "center", padding: 48 }}
+        >
           <Spin /> กำลังโหลดข้อมูลลูกค้า...
         </div>
       </section>
@@ -50,7 +218,10 @@ export default function CustomerDetailPage({ id }: Props) {
   if (!data) {
     return (
       <section className={styles.page}>
-        <div className={styles.tableCard} style={{ textAlign: "center", padding: 48 }}>
+        <div
+          className={styles.tableCard}
+          style={{ textAlign: "center", padding: 48 }}
+        >
           ไม่พบข้อมูลลูกค้า
           <div style={{ marginTop: 12 }}>
             <Link href="/customers">กลับรายการลูกค้า</Link>
@@ -61,80 +232,35 @@ export default function CustomerDetailPage({ id }: Props) {
   }
 
   const busy = activateMutation.isPending || deactivateMutation.isPending;
+  const customerTypeLabel = data.customerType
+    ? (CUSTOMER_TYPE_LABEL[data.customerType] ?? data.customerType)
+    : "-";
+  const salesOrders = salesOrdersQuery.data?.data ?? [];
 
   return (
     <section className={styles.page}>
-      <div className={styles.pageHeader}>
+      <div className={detailStyles.backRow}>
         <Button
-          icon={<ArrowLeftOutlined />}
+          type="text"
+          icon={<LeftOutlined />}
+          className={detailStyles.backLink}
           onClick={() => router.push("/customers")}
-          className={styles.editButton}
         >
-          กลับ
+          ย้อนกลับ
         </Button>
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>CUSTOMER DETAIL</div>
-          <Typography.Title level={2} className={styles.pageTitle}>
-            {data.nameTh}
-          </Typography.Title>
-          <Typography.Text className={styles.pageSubtitle}>
-            {data.customerCode}
-          </Typography.Text>
-        </div>
-
-        {canManageCustomers ? (
-          <Space>
-            <Button
-              icon={<EditOutlined />}
-              className={styles.editButton}
-              onClick={() => router.push(`/customers/${id}/edit`)}
-            >
-              แก้ไข
-            </Button>
-
-            {data.isActive ? (
-              <Popconfirm
-                title="ปิดใช้งานลูกค้า"
-                description={`ต้องการปิดใช้งาน "${data.customerCode}" หรือไม่?`}
-                okText="ปิดใช้งาน"
-                cancelText="ยกเลิก"
-                okButtonProps={{ danger: true }}
-                onConfirm={() => deactivateMutation.mutate(id)}
-              >
-                <Button className={styles.deleteButton} loading={busy}>
-                  ปิดใช้งาน
-                </Button>
-              </Popconfirm>
-            ) : (
-              <Button
-                className={styles.editButton}
-                loading={busy}
-                onClick={() => activateMutation.mutate(id)}
-              >
-                เปิดใช้งาน
-              </Button>
-            )}
-          </Space>
-        ) : (
-          <div />
-        )}
       </div>
 
-      <div className={styles.tableCard}>
-        <div className={styles.sectionTitle}>
-          <span className={styles.sectionLine} />
-          <div>
-            <strong>ข้อมูลลูกค้า</strong>
-            <span>รายละเอียดทั้งหมดของลูกค้ารายนี้</span>
-          </div>
+      <div className={detailStyles.heroCard}>
+        <div className={styles.headerAccent} aria-hidden>
+          <TeamOutlined />
         </div>
 
-        <Descriptions bordered column={2} size="middle">
-          <Descriptions.Item label="รหัสลูกค้า">
-            <span className={styles.codeBadge}>{data.customerCode}</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="สถานะ">
+        <div className={detailStyles.heroContent}>
+          <div className={detailStyles.heroTitleRow}>
+            <Typography.Title level={3} className={detailStyles.heroTitle}>
+              {data.nameTh}
+            </Typography.Title>
+
             {data.isActive ? (
               <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
                 <span className={styles.statusDot} />
@@ -146,40 +272,144 @@ export default function CustomerDetailPage({ id }: Props) {
                 ปิดใช้งาน
               </Tag>
             )}
-          </Descriptions.Item>
-          <Descriptions.Item label="ชื่อลูกค้า" span={2}>
-            {data.nameTh}
-          </Descriptions.Item>
-          <Descriptions.Item label="ประเภทลูกค้า">
-            {data.customerType
-              ? (CUSTOMER_TYPE_LABEL[data.customerType] ?? data.customerType)
-              : "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="เลขประจำตัวผู้เสียภาษี">
-            {data.taxId || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="ที่อยู่" span={2}>
-            {data.address || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="ชื่อผู้ติดต่อ">
-            {data.contactName || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="เบอร์ติดต่อ">
-            {data.contactPhone || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="อีเมล">
-            {data.email || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="จำนวนวันเครดิต">
-            {data.defaultCreditDays} วัน
-          </Descriptions.Item>
-          <Descriptions.Item label="สร้างเมื่อ">
-            {new Date(data.createdAt).toLocaleString("th-TH")}
-          </Descriptions.Item>
-          <Descriptions.Item label="อัปเดตล่าสุด">
-            {new Date(data.updatedAt).toLocaleString("th-TH")}
-          </Descriptions.Item>
-        </Descriptions>
+          </div>
+
+          <span className={detailStyles.heroMeta}>
+            ประเภทลูกค้า: {customerTypeLabel} • ลงทะเบียนเมื่อวันที่{" "}
+            {formatLongDate(data.createdAt)}
+          </span>
+        </div>
+
+        {canManageCustomers ? (
+          <Space className={detailStyles.heroActions}>
+            {data.isActive ? (
+              <Popconfirm
+                title="ปิดใช้งานลูกค้า"
+                description={`ต้องการปิดใช้งาน "${data.customerCode}" หรือไม่?`}
+                okText="ปิดใช้งาน"
+                cancelText="ยกเลิก"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => deactivateMutation.mutate(id)}
+              >
+                <Button
+                  className={styles.deleteButton}
+                  icon={<StopOutlined />}
+                  loading={busy}
+                >
+                  ปิดการใช้งาน
+                </Button>
+              </Popconfirm>
+            ) : (
+              <Button
+                className={styles.editButton}
+                loading={busy}
+                onClick={() => activateMutation.mutate(id)}
+              >
+                เปิดใช้งาน
+              </Button>
+            )}
+
+            <Button
+              icon={<EditOutlined />}
+              className={styles.editButton}
+              onClick={() => router.push(`/customers/${id}/edit`)}
+            >
+              แก้ไขข้อมูล
+            </Button>
+          </Space>
+        ) : null}
+      </div>
+
+      <div className={detailStyles.infoGrid}>
+        <InfoCard
+          eyebrow="GENERAL INFO"
+          title="ข้อมูลทั่วไปและบัญชี"
+          rows={[
+            {
+              label: "รหัสลูกค้า",
+              value: data.customerCode,
+            },
+            {
+              label: "ประเภทลูกค้า",
+              value: customerTypeLabel,
+            },
+            {
+              label: "เลขผู้เสียภาษี",
+              value: data.taxId || "-",
+            },
+            {
+              label: "ระยะเวลาการชำระเงิน",
+              value: `${data.defaultCreditDays} วัน (Credit Term)`,
+            },
+          ]}
+        />
+
+        <InfoCard
+          eyebrow="CONTACT DETAIL"
+          title="ข้อมูลผู้ติดต่อและการสื่อสาร"
+          rows={[
+            {
+              label: "ชื่อผู้ติดต่อหลัก",
+              value: data.contactName || "-",
+            },
+            {
+              label: "เบอร์โทรศัพท์",
+              value: data.contactPhone || "-",
+            },
+            {
+              label: "อีเมลติดต่อ",
+              value: data.email || "-",
+            },
+            {
+              label: "ที่อยู่จัดส่งเอกสาร",
+              value: data.address || "-",
+            },
+          ]}
+        />
+      </div>
+
+      <div className={styles.tableCard}>
+        <div className={styles.tableHeader}>
+          <div>
+            <div className={styles.tableEyebrow}>TRANSACTION HISTORY</div>
+            <h3>ประวัติการซื้อขาย</h3>
+            <p>ประวัติการซื้อขาย และสถานะการดำเนินการของลูกค้า</p>
+
+            {/* สิทธิ์ดูใบสั่งขายของคนอื่นไม่มี → backend คืนเฉพาะรายการที่ตัวเองสร้าง */}
+            {canViewAllSalesOrders ? null : (
+              <div className={detailStyles.historyNote}>
+                แสดงเฉพาะใบสั่งขายที่คุณเป็นผู้สร้าง
+              </div>
+            )}
+          </div>
+
+          <div className={styles.tableCount}>{salesOrders.length} รายการ</div>
+        </div>
+
+        {salesOrdersQuery.isError ? (
+          <div className={styles.errorBox}>
+            <Typography.Text type="danger">
+              {salesOrdersQuery.error instanceof Error
+                ? salesOrdersQuery.error.message
+                : "โหลดประวัติการซื้อขายไม่สำเร็จ"}
+            </Typography.Text>
+          </div>
+        ) : (
+          <Table
+            rowKey="id"
+            className={styles.dataTable}
+            columns={historyColumns}
+            dataSource={salesOrders}
+            loading={salesOrdersQuery.isLoading}
+            pagination={{
+              pageSize: 5,
+              showSizeChanger: false,
+              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+            }}
+            scroll={{ x: 900 }}
+            locale={{ emptyText: "ยังไม่มีประวัติการซื้อขาย" }}
+          />
+        )}
       </div>
     </section>
   );

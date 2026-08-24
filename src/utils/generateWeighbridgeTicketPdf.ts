@@ -232,7 +232,7 @@ function createStyle() {
 
       .company-name {
         font-size: 19px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         margin-bottom: 6px;
         letter-spacing: 0.2px;
@@ -273,7 +273,7 @@ function createStyle() {
 
       .title {
         font-size: 24px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         letter-spacing: 1px;
       }
@@ -306,12 +306,12 @@ function createStyle() {
       .meta-label {
         font-size: 11px;
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .meta-value {
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
       }
 
@@ -353,7 +353,7 @@ function createStyle() {
 
       .panel-title {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
         margin-bottom: 8px;
         padding-bottom: 6px;
@@ -368,12 +368,12 @@ function createStyle() {
         align-items: start;
         margin-bottom: 4px;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .label {
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .weights {
@@ -400,14 +400,14 @@ function createStyle() {
 
       .weight-label {
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 500;
         color: #6b7280;
       }
 
       .weight-value {
         margin-top: 6px;
         font-size: 18px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         font-variant-numeric: tabular-nums;
       }
@@ -419,7 +419,7 @@ function createStyle() {
       .weight-unit {
         margin-top: 2px;
         font-size: 10px;
-        font-weight: 600;
+        font-weight: 500;
         color: #9ca3af;
       }
 
@@ -427,7 +427,7 @@ function createStyle() {
         margin-top: 16px;
         margin-bottom: 6px;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
       }
 
@@ -445,7 +445,7 @@ function createStyle() {
         border-bottom: 1.4px solid #374151;
         padding: 9px 8px;
         text-align: center;
-        font-weight: 700;
+        font-weight: 500;
         background: #ecfdf5;
         color: #14532d;
         vertical-align: middle;
@@ -476,10 +476,10 @@ function createStyle() {
         border-bottom: 1px solid #fde68a;
       }
 
-      .col-no { color: #6b7280; font-weight: 600; }
-      .col-code { font-size: 11px; font-weight: 600; color: #374151; }
-      .col-name .name { font-weight: 600; color: #111827; }
-      .col-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+      .col-no { color: #6b7280; font-weight: 500; }
+      .col-code { font-size: 11px; font-weight: 500; color: #374151; }
+      .col-name .name { font-weight: 500; color: #111827; }
+      .col-amount { font-weight: 500; font-variant-numeric: tabular-nums; }
 
       .deduction-badge {
         display: inline-block;
@@ -488,7 +488,7 @@ function createStyle() {
         border: 1px solid #f59e0b;
         color: #92400e;
         font-size: 10px;
-        font-weight: 700;
+        font-weight: 500;
       }
 
       .sub-note {
@@ -501,7 +501,7 @@ function createStyle() {
       .empty-hint {
         text-align: center;
         color: #9ca3af;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .items-table tbody tr.spacer-row td {
@@ -516,7 +516,7 @@ function createStyle() {
 
       .items-table tbody tr.totals-row td {
         padding: 8px 10px;
-        font-weight: 600;
+        font-weight: 500;
         vertical-align: middle;
         background: #f9fafb;
         border-top: 1px solid #e5e7eb;
@@ -533,9 +533,9 @@ function createStyle() {
         padding-bottom: 10px;
       }
 
-      .totals-label { font-weight: 700; color: #374151; }
+      .totals-label { font-weight: 500; color: #374151; }
       .deduction-amount { color: #b45309; }
-      .total-amount { font-size: 15px; font-weight: 700; color: #166534; }
+      .total-amount { font-size: 15px; font-weight: 500; color: #166534; }
 
       .text-center { text-align: center; }
       .text-right { text-align: right; }
@@ -550,14 +550,14 @@ function createStyle() {
 
       .remark-label {
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 500;
         color: #6b7280;
         margin-bottom: 4px;
       }
 
       .remark-text {
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 500;
         color: #111827;
       }
 
@@ -580,7 +580,7 @@ function createStyle() {
 
       .sig-title {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         margin-bottom: 34px;
       }
 
@@ -592,7 +592,7 @@ function createStyle() {
       .date {
         font-size: 11px;
         color: #4b5563;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .footer-note {

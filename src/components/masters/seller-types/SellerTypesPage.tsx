@@ -7,7 +7,6 @@ import {
   Col,
   Form,
   Input,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -17,12 +16,15 @@ import {
 } from "antd";
 import {
   ClearOutlined,
+  DeleteOutlined,
+  EditOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateSellerTypeMutation } from "@/hooks/seller-types/useCreateSellerTypeMutation";
 import { useDeleteSellerTypeMutation } from "@/hooks/seller-types/useDeleteSellerTypeMutation";
 import { useSellerTypesQuery } from "@/hooks/seller-types/useSellerTypesQuery";
@@ -278,33 +280,34 @@ export default function SellerTypesPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 190,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8}>
-          <Button
-            className={styles.editButton}
-            onClick={() => openEditModal(record)}
-          >
-            แก้ไข
-          </Button>
-
-          <Popconfirm
-            title="ลบประเภทผู้ขาย"
-            description={`ต้องการลบ "${record.sellerTypeCode}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={deleteMutation.isPending}
-            >
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการ ${record.sellerTypeCode}`}
+          actions={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => openEditModal(record),
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบ",
+              danger: true,
+              onClick: () => deleteMutation.mutate(record.id),
+              confirm: {
+                title: "ลบประเภทผู้ขาย",
+                content: `ต้องการลบ "${record.sellerTypeCode}" หรือไม่?`,
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -487,7 +490,7 @@ export default function SellerTypesPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 1050 }}
+            scroll={{ x: 960 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบประเภทผู้ขายตามเงื่อนไขที่ค้นหา"

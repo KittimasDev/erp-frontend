@@ -95,7 +95,7 @@ function reportStyles() {
       }
       .rp-title {
         font-size: 19px;
-        font-weight: 700;
+        font-weight: 500;
         letter-spacing: -0.01em;
       }
       .rp-title-sub {
@@ -129,7 +129,7 @@ function reportStyles() {
         font-size: 10px;
         color: #374151;
       }
-      .rp-filter strong { color: #111827; font-weight: 700; }
+      .rp-filter strong { color: #111827; font-weight: 500; }
       .rp-stats {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -145,12 +145,12 @@ function reportStyles() {
       .rp-stat-label {
         font-size: 9.5px;
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
       .rp-stat-value {
         margin-top: 2px;
         font-size: 16px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
       }
       .rp-stat-hint {
@@ -181,7 +181,7 @@ function reportStyles() {
         border-radius: 50%;
         flex: 0 0 auto;
       }
-      .rp-shift strong { font-weight: 700; }
+      .rp-shift strong { font-weight: 500; }
       .rp-shift span { color: #6b7280; }
       /*
         ตรึงความกว้างเป็น px ตรงๆ (794 - padding ซ้ายขวา 32) แทนการพึ่ง % ใน flex
@@ -203,7 +203,7 @@ function reportStyles() {
         background: #6f9720;
         color: #fff;
         font-size: 10px;
-        font-weight: 700;
+        font-weight: 500;
         text-align: left;
         border-right: 1px solid rgba(255, 255, 255, 0.25);
       }
@@ -251,7 +251,7 @@ function reportStyles() {
         padding: 0 5px;
         border-radius: 4px;
         font-size: 8.5px;
-        font-weight: 700;
+        font-weight: 500;
         line-height: 15px;
       }
       .rp-badge-leave { background: #fde8e6; color: #cf1322; }

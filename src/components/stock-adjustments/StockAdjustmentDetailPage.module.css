@@ -67,7 +67,7 @@
   margin: 0 0 4px;
   color: var(--sc-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -76,7 +76,7 @@
   margin: 0;
   color: var(--sc-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -135,7 +135,7 @@
   margin: 0;
   color: var(--sc-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .metaGrid {
@@ -152,7 +152,7 @@
 .metaLabel {
   color: var(--sc-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -160,7 +160,7 @@
 .metaValue {
   color: var(--sc-text);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
   word-break: break-word;
 }
@@ -198,7 +198,7 @@
   background: rgba(115, 152, 22, 0.14);
   color: var(--sc-green-dark);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .itemBody {
@@ -211,7 +211,7 @@
   margin: 0;
   color: var(--sc-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .itemCode {
@@ -238,7 +238,7 @@
   background: rgba(61, 139, 116, 0.1);
   color: var(--sc-green-dark);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .itemQty {
@@ -250,7 +250,7 @@
   display: block;
   color: var(--sc-text);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -285,7 +285,7 @@
   margin: 0;
   color: var(--sc-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -294,7 +294,7 @@
   margin: 4px 0 0;
   color: var(--sc-text);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -306,7 +306,7 @@
   padding: 8px 12px;
   border-radius: 999px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .statusDraft {
@@ -350,7 +350,7 @@
 .sideRow strong {
   color: var(--sc-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
   word-break: break-word;
 }
@@ -377,14 +377,14 @@
   border: 0 !important;
   background: var(--sc-green-dark) !important;
   color: #fff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
 }
 
 .secondaryBtn {
   height: 40px !important;
   border-radius: 10px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .stateCard,

@@ -7,7 +7,6 @@ import {
   Col,
   Form,
   Input,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -16,13 +15,17 @@ import {
   Typography,
 } from "antd";
 import {
+  CheckCircleOutlined,
   ClearOutlined,
+  EditOutlined,
   PlusOutlined,
   SearchOutlined,
+  StopOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import {
   useActivateWarehouseMutation,
   useDeactivateWarehouseMutation,
@@ -302,43 +305,41 @@ export default function WarehousesPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 190,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8}>
-          <Button
-            className={styles.editButton}
-            onClick={() => router.push(`/warehouses/${record.id}/edit`)}
-          >
-            แก้ไข
-          </Button>
-
-          {record.isActive ? (
-            <Popconfirm
-              title="ปิดใช้งานคลังสินค้า"
-              description={`ต้องการปิดใช้งาน "${record.warehouseCode}" หรือไม่?`}
-              okText="ปิดใช้งาน"
-              cancelText="ยกเลิก"
-              okButtonProps={{ danger: true }}
-              onConfirm={() => deactivateMutation.mutate(record.id)}
-            >
-              <Button
-                className={styles.deleteButton}
-                loading={deactivateMutation.isPending}
-              >
-                ปิดใช้งาน
-              </Button>
-            </Popconfirm>
-          ) : (
-            <Button
-              className={styles.editButton}
-              loading={activateMutation.isPending}
-              onClick={() => activateMutation.mutate(record.id)}
-            >
-              เปิดใช้งาน
-            </Button>
-          )}
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการ ${record.warehouseCode}`}
+          actions={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => router.push(`/warehouses/${record.id}/edit`),
+            },
+            "divider",
+            record.isActive
+              ? {
+                  key: "deactivate",
+                  icon: <StopOutlined />,
+                  label: "ปิดการใช้งาน",
+                  danger: true,
+                  onClick: () => deactivateMutation.mutate(record.id),
+                  confirm: {
+                    title: "ปิดใช้งานคลังสินค้า",
+                    content: `ต้องการปิดใช้งาน "${record.warehouseCode}" หรือไม่?`,
+                    okText: "ปิดใช้งาน",
+                    cancelText: "ยกเลิก",
+                  },
+                }
+              : {
+                  key: "activate",
+                  icon: <CheckCircleOutlined />,
+                  label: "เปิดใช้งาน",
+                  onClick: () => activateMutation.mutate(record.id),
+                },
+          ]}
+        />
       ),
     },
   ];
@@ -553,7 +554,7 @@ export default function WarehousesPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 1200 }}
+            scroll={{ x: 1110 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบคลังสินค้าตามเงื่อนไขที่ค้นหา"

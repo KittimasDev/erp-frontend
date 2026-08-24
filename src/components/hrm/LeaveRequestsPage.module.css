@@ -65,7 +65,7 @@
   margin: 0 0 4px;
   color: var(--lv-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -74,7 +74,7 @@
   margin: 0;
   color: var(--lv-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -133,7 +133,7 @@
   display: block;
   color: var(--lv-muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summaryCard strong {
@@ -141,7 +141,7 @@
   margin-top: 8px;
   color: var(--lv-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .summaryCard small {
@@ -189,7 +189,7 @@
   background: #fa8c16;
   color: #fff;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1;
 }
 
@@ -205,7 +205,7 @@
   background: #f6fbef;
   color: var(--lv-green-dark);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* ---------- ตาราง ---------- */
@@ -227,7 +227,7 @@
 .employeeCell strong {
   color: var(--lv-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .employeeCell span {
@@ -296,7 +296,7 @@
   margin: 0;
   color: var(--lv-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .chartHeader p {

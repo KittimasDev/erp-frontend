@@ -7,7 +7,6 @@ import {
   Col,
   Form,
   Input,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -18,6 +17,8 @@ import {
 } from "antd";
 import {
   ClearOutlined,
+  DeleteOutlined,
+  EditOutlined,
   KeyOutlined,
   PlusOutlined,
   SearchOutlined,
@@ -27,6 +28,7 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { getStoredUser, isAdministrator } from "@/lib/auth/session";
 import {
   useActivateUserMutation,
@@ -304,48 +306,48 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
     {
       title: "จัดการ",
       key: "actions",
-      width: 260,
+      width: 100,
       align: "center",
       render: (_, record) => {
         const isSelf = Boolean(currentUserId && record.id === currentUserId);
         return (
-          <div className={styles.actionGroup}>
-            <Button
-              className={masterStyles.editButton}
-              onClick={() => {
-                setModalMode("edit");
-                setEditingUser(record);
-                setModalOpen(true);
-              }}
-            >
-              แก้ไข
-            </Button>
-            <Button
-              className={styles.resetButton}
-              icon={<KeyOutlined />}
-              onClick={() => setResetUser(record)}
-            >
-              รหัสผ่าน
-            </Button>
-            <Popconfirm
-              title="ลบผู้ใช้งาน?"
-              description={`ลบ "@${record.username}" ถาวร — กู้คืนไม่ได้`}
-              okText="ลบ"
-              cancelText="ยกเลิก"
-              okButtonProps={{ danger: true }}
-              disabled={isSelf}
-              onConfirm={() => deleteMutation.mutate(record.id)}
-            >
-              <Button
-                className={masterStyles.deleteButton}
-                danger
-                disabled={isSelf}
-                loading={deleteMutation.isPending}
-              >
-                ลบ
-              </Button>
-            </Popconfirm>
-          </div>
+          <RowActionsMenu
+            ariaLabel={`เมนูจัดการ @${record.username}`}
+            actions={[
+              {
+                key: "edit",
+                icon: <EditOutlined />,
+                label: "แก้ไข",
+                onClick: () => {
+                  setModalMode("edit");
+                  setEditingUser(record);
+                  setModalOpen(true);
+                },
+              },
+              {
+                key: "reset",
+                icon: <KeyOutlined />,
+                label: "ตั้งรหัสผ่านใหม่",
+                onClick: () => setResetUser(record),
+              },
+              "divider",
+              {
+                key: "delete",
+                icon: <DeleteOutlined />,
+                label: "ลบผู้ใช้งาน",
+                danger: true,
+                disabled: isSelf,
+                disabledReason: "ลบบัญชีของตัวเองไม่ได้",
+                onClick: () => deleteMutation.mutate(record.id),
+                confirm: {
+                  title: "ลบผู้ใช้งาน?",
+                  content: `ลบ "@${record.username}" ถาวร — กู้คืนไม่ได้`,
+                  okText: "ลบ",
+                  cancelText: "ยกเลิก",
+                },
+              },
+            ]}
+          />
         );
       },
     },

@@ -7,7 +7,6 @@ import {
   Col,
   Form,
   Input,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -16,14 +15,20 @@ import {
   Typography,
 } from "antd";
 import {
+  CheckCircleOutlined,
   ClearOutlined,
+  EditOutlined,
   EyeOutlined,
   PlusOutlined,
   SearchOutlined,
+  StopOutlined,
+  TeamOutlined,
+  UserAddOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import {
   useActivateCustomerMutation,
   useDeactivateCustomerMutation,
@@ -35,6 +40,7 @@ import { CUSTOMER_TYPES } from "@/types/customers";
 import type { Customer, CustomerQueryParams } from "@/types/customers";
 
 import styles from "@/components/masters/shared/master-page.module.css";
+import pageStyles from "./customers-page.module.css";
 
 const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   DOMESTIC: "ในประเทศ",
@@ -144,7 +150,34 @@ export default function CustomersPage() {
 
   const customers = customersQuery.data?.data ?? [];
   const activeCount = customers.filter((item) => item.isActive).length;
-  const inactiveCount = customers.filter((item) => !item.isActive).length;
+
+  // ลูกค้าใหม่ในเดือนนี้ — นับจาก createdAt เทียบเดือน/ปีปัจจุบัน
+  const nowForCount = new Date();
+  const newThisMonthCount = customers.filter((item) => {
+    if (!item.createdAt) {
+      return false;
+    }
+    const created = new Date(item.createdAt);
+    return (
+      created.getFullYear() === nowForCount.getFullYear() &&
+      created.getMonth() === nowForCount.getMonth()
+    );
+  }).length;
+
+  // สัดส่วนเทียบจำนวนลูกค้าที่แสดงอยู่ ใช้เป็น caption ในการ์ดสรุป
+  const sharePercent = (value: number) => {
+    if (!customers.length) {
+      return "0%";
+    }
+    return `${Math.round((value / customers.length) * 100)}%`;
+  };
+
+  const thisMonthLabel = new Date().toLocaleDateString("th-TH", {
+    month: "long",
+    year: "numeric",
+  });
+
+  const summaryCardClass = `${styles.summaryCard} ${pageStyles.summaryCard}`;
 
   const applyFiltersToUrl = (values: CustomerFilterFormValues) => {
     const next = buildSearchFromForm(values);
@@ -168,7 +201,7 @@ export default function CustomersPage() {
       width: 90,
       align: "center",
       render: (_value, _record, index) => (
-        <span className={styles.orderBadge}>
+        <span className={`${styles.orderBadge} ${pageStyles.orderBadge}`}>
           {(page - 1) * pageSize + index + 1}
         </span>
       ),
@@ -179,7 +212,7 @@ export default function CustomersPage() {
       key: "customerCode",
       width: 140,
       render: (value: string) => (
-        <span className={styles.codeBadge}>{value}</span>
+        <span className={`${styles.codeBadge} ${pageStyles.codeBadge}`}>{value}</span>
       ),
     },
     {
@@ -187,8 +220,20 @@ export default function CustomersPage() {
       dataIndex: "nameTh",
       key: "nameTh",
       render: (value: string) => (
-        <div className={styles.nameCell}>
+        <div className={`${styles.nameCell} ${pageStyles.nameCell}`}>
           <span>{value}</span>
+        </div>
+      ),
+    },
+    {
+      title: "ผู้ติดต่อ",
+      key: "contact",
+      render: (_value, record) => (
+        <div className={`${styles.stackCell} ${pageStyles.stackCell}`}>
+          <span>{record.contactName || "-"}</span>
+          <span className={styles.symbolText}>
+            {record.contactPhone || "-"}
+          </span>
         </div>
       ),
     },
@@ -213,18 +258,6 @@ export default function CustomersPage() {
       ),
     },
     {
-      title: "ผู้ติดต่อ",
-      key: "contact",
-      render: (_value, record) => (
-        <div className={styles.nameCell}>
-          <span>{record.contactName || "-"}</span>
-          <span className={styles.symbolText}>
-            {record.contactPhone || "-"}
-          </span>
-        </div>
-      ),
-    },
-    {
       title: "สถานะ",
       dataIndex: "isActive",
       key: "isActive",
@@ -232,12 +265,12 @@ export default function CustomersPage() {
       align: "center",
       render: (isActive: boolean) =>
         isActive ? (
-          <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
+          <Tag className={`${styles.statusTag} ${pageStyles.statusTag} ${styles.statusActive}`}>
             <span className={styles.statusDot} />
             ใช้งาน
           </Tag>
         ) : (
-          <Tag className={`${styles.statusTag} ${styles.statusInactive}`}>
+          <Tag className={`${styles.statusTag} ${pageStyles.statusTag} ${styles.statusInactive}`}>
             <span className={styles.statusDot} />
             ปิดใช้งาน
           </Tag>
@@ -249,7 +282,7 @@ export default function CustomersPage() {
       key: "updatedAt",
       width: 180,
       render: (value: string) => (
-        <span className={styles.updatedText}>
+        <span className={`${styles.updatedText} ${pageStyles.updatedText}`}>
           {value ? new Date(value).toLocaleString("th-TH") : "-"}
         </span>
       ),
@@ -257,72 +290,78 @@ export default function CustomersPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 240,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8}>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => router.push(`/customers/${record.id}`)}
-          >
-            ดู
-          </Button>
-
-          {canManageCustomers ? (
-            <>
-              <Button
-                className={styles.editButton}
-                onClick={() => router.push(`/customers/${record.id}/edit`)}
-              >
-                แก้ไข
-              </Button>
-
-              {record.isActive ? (
-                <Popconfirm
-                  title="ปิดใช้งานลูกค้า"
-                  description={`ต้องการปิดใช้งาน "${record.customerCode}" หรือไม่?`}
-                  okText="ปิดใช้งาน"
-                  cancelText="ยกเลิก"
-                  okButtonProps={{ danger: true }}
-                  onConfirm={() => deactivateMutation.mutate(record.id)}
-                >
-                  <Button
-                    className={styles.deleteButton}
-                    loading={deactivateMutation.isPending}
-                  >
-                    ปิดใช้งาน
-                  </Button>
-                </Popconfirm>
-              ) : (
-                <Button
-                  className={styles.editButton}
-                  loading={activateMutation.isPending}
-                  onClick={() => activateMutation.mutate(record.id)}
-                >
-                  เปิดใช้งาน
-                </Button>
-              )}
-            </>
-          ) : null}
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการ ${record.customerCode}`}
+          actions={[
+            {
+              key: "view",
+              icon: <EyeOutlined />,
+              label: "ดูรายละเอียด",
+              onClick: () => router.push(`/customers/${record.id}`),
+            },
+            canManageCustomers && {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => router.push(`/customers/${record.id}/edit`),
+            },
+            canManageCustomers && "divider",
+            canManageCustomers &&
+              (record.isActive
+                ? {
+                    key: "deactivate",
+                    icon: <StopOutlined />,
+                    label: "ปิดการใช้งาน",
+                    danger: true,
+                    onClick: () => deactivateMutation.mutate(record.id),
+                    confirm: {
+                      title: "ปิดใช้งานลูกค้า",
+                      content: `ต้องการปิดใช้งาน "${record.customerCode}" หรือไม่?`,
+                      okText: "ปิดใช้งาน",
+                      cancelText: "ยกเลิก",
+                    },
+                  }
+                : {
+                    key: "activate",
+                    icon: <CheckCircleOutlined />,
+                    label: "เปิดใช้งาน",
+                    onClick: () => activateMutation.mutate(record.id),
+                  }),
+          ]}
+        />
       ),
     },
   ];
 
   return (
     <MasterPageGate isLoading={customersQuery.isLoading}>
-      <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div />
+      <section className={`${styles.page} ${pageStyles.page}`}>
+        <div className={`${styles.pageHeader} ${pageStyles.pageHeader}`}>
+          <div
+            className={`${styles.headerAccent} ${pageStyles.headerAccent}`}
+            aria-hidden
+          >
+            <TeamOutlined />
+          </div>
 
           <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>MASTER DATA</div>
+            <div className={`${styles.eyebrow} ${pageStyles.eyebrow}`}>
+              MASTER DATA
+            </div>
 
-            <Typography.Title level={2} className={styles.pageTitle}>
+            <Typography.Title
+              level={2}
+              className={`${styles.pageTitle} ${pageStyles.pageTitle}`}
+            >
               ลูกค้า
             </Typography.Title>
 
-            <Typography.Text className={styles.pageSubtitle}>
+            <Typography.Text
+              className={`${styles.pageSubtitle} ${pageStyles.pageSubtitle}`}
+            >
               ฐานข้อมูลลูกค้าสำหรับใช้ต่อในใบเสนอราคา ใบสั่งขาย และใบส่งของ
             </Typography.Text>
           </div>
@@ -331,7 +370,7 @@ export default function CustomersPage() {
             <Button
               type="primary"
               size="large"
-              className={styles.createButton}
+              className={`${styles.createButton} ${pageStyles.createButton}`}
               icon={<PlusOutlined />}
               onClick={() => router.push("/customers/create")}
             >
@@ -342,38 +381,75 @@ export default function CustomersPage() {
           )}
         </div>
 
-        <div className={styles.summaryRow}>
-          <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>
-            <div className={styles.summaryIcon}>Σ</div>
-            <div>
-              <span className={styles.summaryLabel}>
+        <div className={`${styles.summaryRow} ${pageStyles.summaryRow}`}>
+          <div className={`${summaryCardClass} ${pageStyles.cardTotal}`}>
+            <div className={`${styles.summaryIcon} ${pageStyles.summaryIcon}`}>
+              <TeamOutlined />
+            </div>
+            <div className={pageStyles.summaryBody}>
+              <span
+                className={`${styles.summaryLabel} ${pageStyles.summaryLabel}`}
+              >
                 {hasFilters ? "ผลค้นหา" : "ลูกค้าทั้งหมด"}
               </span>
-              <strong>{customers.length}</strong>
+              <strong>{customers.length.toLocaleString("th-TH")}</strong>
+              <span className={pageStyles.summaryCaption}>
+                {hasFilters
+                  ? "รายการที่ตรงเงื่อนไขการค้นหา"
+                  : "ลูกค้าในฐานข้อมูลทั้งระบบ"}
+              </span>
             </div>
           </div>
 
-          <div className={`${styles.summaryCard} ${styles.summaryActive}`}>
-            <div className={styles.summaryIcon}>✓</div>
-            <div>
-              <span className={styles.summaryLabel}>สถานะใช้งาน</span>
-              <strong>{activeCount}</strong>
+          <div className={`${summaryCardClass} ${pageStyles.cardNew}`}>
+            <div className={`${styles.summaryIcon} ${pageStyles.summaryIcon}`}>
+              <UserAddOutlined />
+            </div>
+            <div className={pageStyles.summaryBody}>
+              <span
+                className={`${styles.summaryLabel} ${pageStyles.summaryLabel}`}
+              >
+                ลูกค้าใหม่ในเดือนนี้
+              </span>
+              <strong>{newThisMonthCount.toLocaleString("th-TH")}</strong>
+              <span className={pageStyles.summaryCaption}>
+                <span className={pageStyles.summaryShare}>
+                  {sharePercent(newThisMonthCount)}
+                </span>
+                {thisMonthLabel}
+              </span>
             </div>
           </div>
 
-          <div className={`${styles.summaryCard} ${styles.summaryInactive}`}>
-            <div className={styles.summaryIcon}>—</div>
-            <div>
-              <span className={styles.summaryLabel}>ปิดใช้งาน</span>
-              <strong>{inactiveCount}</strong>
+          <div className={`${summaryCardClass} ${pageStyles.cardActive}`}>
+            <div className={`${styles.summaryIcon} ${pageStyles.summaryIcon}`}>
+              <CheckCircleOutlined />
+            </div>
+            <div className={pageStyles.summaryBody}>
+              <span
+                className={`${styles.summaryLabel} ${pageStyles.summaryLabel}`}
+              >
+                สถานะใช้งาน
+              </span>
+              <strong>{activeCount.toLocaleString("th-TH")}</strong>
+              <span className={pageStyles.summaryCaption}>
+                <span className={pageStyles.summaryShare}>
+                  {sharePercent(activeCount)}
+                </span>
+                พร้อมใช้ในเอกสารขาย
+              </span>
             </div>
           </div>
         </div>
 
-        <div className={styles.filterCard}>
-          <div className={styles.filterHeader}>
+        <div className={`${styles.filterCard} ${pageStyles.filterCard}`}>
+          <div className={`${styles.filterHeader} ${pageStyles.filterHeader}`}>
             <div>
-              <div className={styles.filterEyebrow}>SEARCH</div>
+              <div
+                className={`${styles.filterEyebrow} ${pageStyles.filterEyebrow}`}
+              >
+                SEARCH
+              </div>
               <h3>ค้นหาลูกค้า</h3>
               <p>กรองด้วยรหัส/ชื่อ/เลขผู้เสียภาษี ประเภทลูกค้า และสถานะ</p>
             </div>
@@ -388,7 +464,7 @@ export default function CustomersPage() {
           <Form
             form={form}
             layout="vertical"
-            className={styles.filterForm}
+            className={`${styles.filterForm} ${pageStyles.filterForm}`}
             onFinish={handleSearch}
             initialValues={toFormValues(filters)}
           >
@@ -436,13 +512,14 @@ export default function CustomersPage() {
                       type="primary"
                       htmlType="submit"
                       icon={<SearchOutlined />}
-                      className={styles.filterSearchButton}
+                      className={`${styles.filterSearchButton} ${pageStyles.filterSearchButton}`}
                     >
                       ค้นหา
                     </Button>
 
                     <Button
                       icon={<ClearOutlined />}
+                      className={pageStyles.filterClearButton}
                       onClick={handleClearFilters}
                       disabled={!hasFilters}
                     >
@@ -455,10 +532,10 @@ export default function CustomersPage() {
           </Form>
         </div>
 
-        <div className={styles.tableCard}>
-          <div className={styles.tableHeader}>
+        <div className={`${styles.tableCard} ${pageStyles.tableCard}`}>
+          <div className={`${styles.tableHeader} ${pageStyles.tableHeader}`}>
             <div>
-              <div className={styles.tableEyebrow}>CUSTOMER MANAGEMENT</div>
+              <div className={`${styles.tableEyebrow} ${pageStyles.tableEyebrow}`}>CUSTOMER LIST</div>
               <h3>รายการลูกค้า</h3>
               <p>
                 {hasFilters
@@ -467,7 +544,7 @@ export default function CustomersPage() {
               </p>
             </div>
 
-            <div className={styles.tableCount}>{customers.length} รายการ</div>
+            <div className={`${styles.tableCount} ${pageStyles.tableCount}`}>{customers.length} รายการ</div>
           </div>
 
           {customersQuery.isError ? (
@@ -481,7 +558,7 @@ export default function CustomersPage() {
           ) : (
             <Table
               rowKey="id"
-              className={styles.dataTable}
+              className={`${styles.dataTable} ${pageStyles.dataTable}`}
               columns={columns}
               dataSource={customers}
               loading={customersQuery.isLoading || customersQuery.isFetching}
@@ -492,7 +569,7 @@ export default function CustomersPage() {
                 showTotal: (total) => `ทั้งหมด ${total} รายการ`,
                 onChange: setPage,
               }}
-              scroll={{ x: 1300 }}
+              scroll={{ x: 1180 }}
               locale={{
                 emptyText: hasFilters
                   ? "ไม่พบลูกค้าตามเงื่อนไขที่ค้นหา"

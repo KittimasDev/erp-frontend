@@ -31,7 +31,7 @@
 .sourceEyebrow {
   color: var(--unit-green-dark, #6f9720);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
 }
 
@@ -108,7 +108,7 @@
 .sourceTicketNo {
   color: var(--unit-green-dark, #6f9720);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .sourceTicketMeta {
@@ -136,7 +136,7 @@
 .refOrderNo {
   color: var(--unit-green-dark, #6f9720);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .refOrderMeta {
@@ -161,7 +161,7 @@
 
 .refOrderBlocked {
   color: #b45309;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .sourceWeightChips {
@@ -181,7 +181,7 @@
   border: 1px solid #e4e7eb;
   color: var(--unit-text, #2f343a);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .sourceTable :global(.ant-table) {
@@ -226,7 +226,7 @@
 
 .masterHint a {
   color: var(--unit-green-dark, #6f9720);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .lineList {
@@ -259,7 +259,7 @@
   border-radius: 12px !important;
   border-color: rgba(115, 152, 22, 0.45) !important;
   color: var(--unit-green-dark, #6f9720) !important;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .previewList {
@@ -290,7 +290,7 @@
 
 .previewSubQty {
   color: var(--unit-gray, #5c6570);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .previewStatus {
@@ -349,7 +349,7 @@
 .summaryEyebrow {
   color: var(--unit-green-dark, #6f9720);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.16em;
 }
 
@@ -380,7 +380,7 @@
 .previewLabel {
   color: var(--unit-muted, #8a9199);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -389,7 +389,7 @@
   margin: 0;
   color: var(--unit-text, #2f343a);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1.25;
   word-break: break-word;
@@ -429,7 +429,7 @@
 .summaryRow strong {
   color: var(--unit-text, #2f343a);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
   word-break: break-word;
 }

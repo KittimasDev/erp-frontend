@@ -22,7 +22,7 @@
 .eyebrow {
   color: var(--erp-green-dark, #6f9720);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.16em;
 }
 
@@ -38,7 +38,7 @@
   margin: 0 !important;
   color: var(--erp-text, #2f343a) !important;
   font-size: 22px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   letter-spacing: -0.02em;
 }
 
@@ -58,7 +58,7 @@
   background: rgba(115, 152, 22, 0.12);
   color: var(--erp-green-dark, #6f9720);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .headerActions {
@@ -73,7 +73,7 @@
   height: 40px !important;
   padding-inline: 16px !important;
   border-radius: 11px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .summaryGrid {
@@ -95,7 +95,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summaryCard strong {
@@ -128,7 +128,7 @@
 .summaryUnit {
   margin-left: 6px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--erp-muted, #8a9199);
 }
 
@@ -156,7 +156,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .cardHeader p {
@@ -187,13 +187,13 @@
 .fieldLabel {
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .fieldValue {
   color: var(--erp-text, #2f343a);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.45;
 }
 
@@ -212,7 +212,7 @@
   background: rgba(115, 152, 22, 0.12);
   color: var(--erp-green-dark, #6f9720);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .ticketMeta {
@@ -256,7 +256,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .statusBanner strong {
@@ -264,7 +264,7 @@
   margin-top: 4px;
   color: var(--erp-text, #2f343a);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .actionCard {
@@ -291,7 +291,7 @@
   height: 44px !important;
   border: 0 !important;
   border-radius: 11px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   background: linear-gradient(
     135deg,
     #8CA527 0%,
@@ -304,7 +304,7 @@
 .rejectButton {
   height: 44px !important;
   border-radius: 11px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
 }
 
 .rejectBox {
@@ -343,12 +343,12 @@
 
 .metaRow span {
   color: var(--erp-muted, #8a9199);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .metaRow strong {
   color: var(--erp-text, #2f343a);
-  font-weight: 700;
+  font-weight: 500;
   text-align: right;
 }
 

@@ -7,7 +7,6 @@ import {
   Col,
   Form,
   Input,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -17,12 +16,15 @@ import {
 } from "antd";
 import {
   ClearOutlined,
+  DeleteOutlined,
+  EditOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateTruckMutation } from "@/hooks/trucks/useCreateTruckMutation";
 import { useDeleteTruckMutation } from "@/hooks/trucks/useDeleteTruckMutation";
 import { useTrucksQuery } from "@/hooks/trucks/useTrucksQuery";
@@ -364,33 +366,34 @@ export default function TrucksPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 190,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8}>
-          <Button
-            className={styles.editButton}
-            onClick={() => openEditModal(record)}
-          >
-            แก้ไข
-          </Button>
-
-          <Popconfirm
-            title="ลบรถบรรทุก"
-            description={`ต้องการลบ "${record.truckCode}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={deleteMutation.isPending}
-            >
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการ ${record.truckCode}`}
+          actions={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => openEditModal(record),
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบ",
+              danger: true,
+              onClick: () => deleteMutation.mutate(record.id),
+              confirm: {
+                title: "ลบรถบรรทุก",
+                content: `ต้องการลบ "${record.truckCode}" หรือไม่?`,
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -602,7 +605,7 @@ export default function TrucksPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 1250 }}
+            scroll={{ x: 1160 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบรถบรรทุกตามเงื่อนไขที่ค้นหา"

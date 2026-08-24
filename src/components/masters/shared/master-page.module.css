@@ -67,7 +67,7 @@
   );
   box-shadow: 0 12px 24px rgba(115, 152, 22, 0.24);
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .headerContent {
@@ -80,7 +80,7 @@
   margin-bottom: 5px;
   color: var(--unit-green-dark);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.16em;
 }
 
@@ -113,7 +113,7 @@
     var(--unit-green-dark) 100%
   ) !important;
   box-shadow: 0 12px 24px rgba(115, 152, 22, 0.26);
-  font-weight: 600;
+  font-weight: 500;
   transition:
     transform 0.18s ease,
     filter 0.18s ease,
@@ -168,7 +168,7 @@
   flex: none;
   border-radius: 13px;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summaryLabel {
@@ -246,7 +246,7 @@
   margin-bottom: 4px;
   color: var(--unit-green-dark);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.13em;
 }
 
@@ -265,7 +265,7 @@
 .filterActiveTag {
   margin-inline-end: 0 !important;
   border-radius: 999px !important;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filterForm {
@@ -274,7 +274,7 @@
 
 .filterForm :global(.ant-form-item-label > label) {
   color: var(--unit-gray-dark);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filterNumber {
@@ -305,7 +305,7 @@
   margin-bottom: 4px;
   color: var(--unit-green-dark);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.13em;
 }
 
@@ -329,7 +329,7 @@
   color: var(--unit-green-dark);
   background: #ffffff;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .dataTable :global(.ant-table) {
@@ -347,7 +347,7 @@
   background: #f0f1f3;
   border-bottom-color: #dde0e4;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .dataTable :global(.ant-table-thead > tr > th::before) {
@@ -396,7 +396,7 @@
   color: #ffffff;
   background: var(--unit-gray);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .codeBadge {
@@ -409,7 +409,7 @@
   color: var(--unit-green-dark);
   background: var(--unit-green-soft);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.04em;
 }
 
@@ -418,7 +418,7 @@
   align-items: center;
   gap: 10px;
   color: var(--unit-gray-dark);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .unitIcon {
@@ -436,12 +436,12 @@
   );
   box-shadow: 0 7px 14px rgba(85, 87, 96, 0.16);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .symbolText {
   color: var(--unit-muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .statusTag {
@@ -451,7 +451,7 @@
   margin-inline-end: 0 !important;
   padding: 5px 10px;
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .statusDot {
@@ -485,7 +485,7 @@
   height: 34px;
   padding-inline: 12px;
   border-radius: 9px;
-  font-weight: 700;
+  font-weight: 500;
   transition:
     color 0.18s ease,
     border-color 0.18s ease,
@@ -607,7 +607,7 @@
     var(--unit-green-dark) 100%
   );
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .modalHeaderContent {
@@ -721,4 +721,12 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.stackCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--unit-gray-dark);
+  font-weight: 500;
 }

@@ -53,7 +53,7 @@
   background: #fff;
   color: var(--ot-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -68,7 +68,7 @@
   gap: 8px;
   color: var(--ot-green-dark);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 /* ---------- ฟอร์ม ---------- */
@@ -85,7 +85,7 @@
   margin: 0 0 14px;
   color: var(--ot-text);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .fullWidth {
@@ -115,7 +115,7 @@
   border-color: var(--ot-green);
   background: #f6fbef;
   color: var(--ot-green-dark);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .submitBtn {
@@ -130,7 +130,7 @@
   color: #fff;
   font: inherit;
   font-size: 18px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   background: linear-gradient(135deg, #9ac53c 0%, var(--ot-green-dark) 100%);
   box-shadow: 0 12px 26px rgba(111, 151, 32, 0.32);
@@ -173,7 +173,7 @@
   margin: 0 0 8px;
   color: var(--ot-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .historyList {
@@ -208,7 +208,7 @@
   margin-right: auto;
   color: var(--ot-green-dark);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .historyReason {

@@ -62,7 +62,7 @@
   margin: 0 0 4px;
   color: var(--pr-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -71,7 +71,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -96,7 +96,7 @@
 .headerMetaLabel {
   color: var(--pr-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -104,7 +104,7 @@
 .headerMetaValue {
   color: var(--pr-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -126,7 +126,7 @@
   display: block;
   color: var(--pr-muted);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summaryCard strong {
@@ -134,7 +134,7 @@
   margin-top: 6px;
   color: var(--pr-text);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
@@ -183,7 +183,7 @@
 .filterItem label {
   color: var(--pr-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filterActions {
@@ -200,14 +200,14 @@
   border: 0 !important;
   background: var(--pr-green-dark) !important;
   color: #fff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
 }
 
 .secondaryBtn {
   height: 40px !important;
   border-radius: 10px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .tableCard {
@@ -234,7 +234,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .toolbarHint {
@@ -252,7 +252,7 @@
   background: #f5f7f2 !important;
   color: var(--pr-text) !important;
   font-size: 12px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   border-bottom: 1px solid var(--pr-border) !important;
   padding: 12px 14px !important;
 }
@@ -284,13 +284,13 @@
   background: rgba(115, 152, 22, 0.12);
   color: var(--pr-green-dark);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .itemName {
   color: var(--pr-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.35;
 }
 
@@ -301,7 +301,7 @@
 
 .placeMain {
   color: var(--pr-text);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 13px;
 }
 
@@ -312,13 +312,13 @@
 
 .qtyIn {
   color: #389e0d;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .qtyOut {
   color: #cf1322;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -329,18 +329,18 @@
 
 .moneyIn {
   color: #389e0d;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .moneyOut {
   color: #cf1322;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .qtyBalance {
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -354,7 +354,7 @@
 .refType {
   color: var(--pr-muted);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -362,7 +362,7 @@
 .refNo {
   color: var(--pr-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -374,7 +374,7 @@
 }
 
 .dateMain {
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 

@@ -7,6 +7,7 @@ import {
   AlertOutlined,
   ArrowLeftOutlined,
   ClockCircleOutlined,
+  CloseCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
@@ -14,7 +15,6 @@ import {
 import {
   Button,
   Input,
-  Popconfirm,
   Space,
   Table,
   Typography,
@@ -34,6 +34,7 @@ import {
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
   ProductionOutputRequestStatus,
 } from "@/types/production-output-stock-request";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./ProductionOutputStockRequestsPage.module.css";
 
 const STATUS_FILTERS: {
@@ -295,40 +296,35 @@ export default function ProductionOutputStockRequestsPage() {
           const isPending =
             row.status === ProductionOutputRequestStatus.PENDING_APPROVAL;
           return (
-            <Space>
-              <Button
-                size="small"
-                type={isPending ? "primary" : "default"}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  router.push(
-                    `/production/output-stock-requests/${row.id}`,
-                  );
-                }}
-              >
-                {isPending ? "ติดตามสถานะ" : "ดูรายละเอียด"}
-              </Button>
-              {canRequest && isPending ? (
-                <Popconfirm
-                  title="ยกเลิกคำขอ?"
-                  okText="ยกเลิกคำขอ"
-                  cancelText="ปิด"
-                  onConfirm={(event) => {
-                    event?.stopPropagation();
-                    cancelMutation.mutate(row.id);
-                  }}
+            <RowActionsMenu
+              ariaLabel={`เมนูจัดการ ${row.requestNo}`}
+              primary={
+                <Button
+                  size="small"
+                  type={isPending ? "primary" : "default"}
+                  onClick={() =>
+                    router.push(`/production/output-stock-requests/${row.id}`)
+                  }
                 >
-                  <Button
-                    size="small"
-                    danger
-                    loading={cancelMutation.isPending}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    ยกเลิก
-                  </Button>
-                </Popconfirm>
-              ) : null}
-            </Space>
+                  {isPending ? "ติดตามสถานะ" : "ดูรายละเอียด"}
+                </Button>
+              }
+              actions={[
+                canRequest &&
+                  isPending && {
+                    key: "cancel",
+                    icon: <CloseCircleOutlined />,
+                    label: "ยกเลิกคำขอ",
+                    danger: true,
+                    onClick: () => cancelMutation.mutate(row.id),
+                    confirm: {
+                      title: "ยกเลิกคำขอ?",
+                      okText: "ยกเลิกคำขอ",
+                      cancelText: "ปิด",
+                    },
+                  },
+              ]}
+            />
           );
         },
       },

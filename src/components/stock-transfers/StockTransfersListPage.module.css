@@ -62,7 +62,7 @@
   border: 1px solid rgba(111, 151, 32, 0.2);
   color: var(--st-green-dark);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -82,7 +82,7 @@
   margin: 0;
   color: var(--st-ink);
   font-size: clamp(24px, 3vw, 30px);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1.15;
 }
@@ -110,7 +110,7 @@
   border: 0 !important;
   background: var(--st-green-dark) !important;
   color: #fff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
 }
 
@@ -147,7 +147,7 @@
 .statLabel {
   color: var(--st-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -155,7 +155,7 @@
 .statValue {
   color: var(--st-ink);
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -191,7 +191,7 @@
 .filterItem label {
   color: var(--st-ink);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filterActions {
@@ -250,7 +250,7 @@
   background: rgba(61, 139, 116, 0.1);
   color: var(--st-teal);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -262,7 +262,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .statusDot {
@@ -306,7 +306,7 @@
   background: #f3f6ee !important;
   color: var(--st-ink) !important;
   font-size: 12px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   border-bottom: 1px solid var(--st-border) !important;
   padding: 12px 14px !important;
 }

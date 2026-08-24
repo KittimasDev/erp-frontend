@@ -90,13 +90,13 @@ function createStyle() {
         margin: 0 auto;
         padding: 0 76px;
       }
-      .company-name { font-size: 17px; font-weight: 700; }
+      .company-name { font-size: 17px; font-weight: 500; }
       .company-address { font-size: 11.5px; color: #1f2937; margin-top: 3px; }
       .doc-title {
         margin: 14px 0 12px;
         text-align: center;
         font-size: 22px;
-        font-weight: 700;
+        font-weight: 500;
         letter-spacing: 0.06em;
       }
       .info-grid {
@@ -116,7 +116,7 @@ function createStyle() {
         column-gap: 8px;
         margin-bottom: 5px;
       }
-      .info-label { font-weight: 600; white-space: nowrap; }
+      .info-label { font-weight: 500; white-space: nowrap; }
       .meta-grid {
         display: flex;
         flex-direction: column;
@@ -128,7 +128,7 @@ function createStyle() {
         column-gap: 8px;
         align-items: baseline;
       }
-      .meta-label { font-weight: 600; white-space: nowrap; }
+      .meta-label { font-weight: 500; white-space: nowrap; }
       .meta-value { word-break: keep-all; white-space: nowrap; }
       .items-table {
         width: 100%;
@@ -145,7 +145,7 @@ function createStyle() {
       }
       .items-table th {
         background: var(--header-bg);
-        font-weight: 700;
+        font-weight: 500;
         text-align: center;
         height: 32px;
       }
@@ -154,13 +154,13 @@ function createStyle() {
         margin-top: 2px;
         color: #6f9720;
         font-size: 11.5px;
-        font-weight: 600;
+        font-weight: 500;
       }
       .lot-line {
         margin-top: 1px;
         color: #8ab933;
         font-size: 11.5px;
-        font-weight: 600;
+        font-weight: 500;
       }
       .text-center { text-align: center; }
       .text-right { text-align: right; }
@@ -177,13 +177,13 @@ function createStyle() {
         padding: 8px 10px 10px;
         border-right: 1px solid var(--line);
       }
-      .remark-label { font-weight: 700; margin-bottom: 6px; }
+      .remark-label { font-weight: 500; margin-bottom: 6px; }
       .remark-body { flex: 1; min-height: 48px; white-space: pre-wrap; }
       .baht-text {
         margin-top: auto;
         padding-top: 10px;
         font-size: 12.5px;
-        font-weight: 600;
+        font-weight: 500;
         text-align: center;
       }
       .summary-table {
@@ -198,12 +198,12 @@ function createStyle() {
       }
       .summary-table tr:last-child td { border-bottom: none; }
       .summary-table td:first-child {
-        font-weight: 600;
+        font-weight: 500;
         width: 68%;
         border-right: 1px solid var(--line);
         background: #f9fafb;
       }
-      .summary-table tr.net td { font-weight: 700; }
+      .summary-table tr.net td { font-weight: 500; }
       .signatures {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -224,7 +224,7 @@ function createStyle() {
         height: 36px;
       }
       .sig-name { min-height: 16px; font-size: 11.5px; margin-bottom: 2px; }
-      .sig-role { font-weight: 700; font-size: 12.5px; }
+      .sig-role { font-weight: 500; font-size: 12.5px; }
       .sig-date { margin-top: 10px; font-size: 11.5px; color: #374151; }
     </style>
   `;

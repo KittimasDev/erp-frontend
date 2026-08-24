@@ -80,7 +80,7 @@
   margin: 0 0 4px;
   color: var(--pr-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -89,7 +89,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -115,7 +115,7 @@
   border: 0 !important;
   background: var(--pr-green-dark) !important;
   color: #fff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
 }
 
@@ -178,7 +178,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .statusBannerText {
@@ -209,7 +209,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .statusPill {
@@ -218,7 +218,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -261,7 +261,7 @@
 .metaLabel {
   color: var(--pr-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -269,7 +269,7 @@
 .metaValue {
   color: var(--pr-text);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -308,7 +308,7 @@
   border: 1px solid var(--pr-border);
   color: var(--pr-muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .lineBody {
@@ -328,7 +328,7 @@
   margin: 0;
   color: var(--pr-green-dark);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
@@ -336,7 +336,7 @@
   margin: 2px 0 0;
   color: var(--pr-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .qtyGrid {
@@ -357,13 +357,13 @@
 .qtyItem span {
   color: var(--pr-muted);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .qtyItem strong {
   color: var(--pr-text);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -379,7 +379,7 @@
 .locationLabel {
   color: var(--pr-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -406,7 +406,7 @@
 
 .hintCode {
   color: var(--pr-text);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .hintMeta {
@@ -438,7 +438,7 @@
   margin: 0;
   color: var(--pr-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -447,7 +447,7 @@
   margin: 4px 0 0;
   color: var(--pr-text);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -476,13 +476,13 @@
 .statItem span {
   color: var(--pr-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .statItem strong {
   color: var(--pr-text);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.03em;
 }
 

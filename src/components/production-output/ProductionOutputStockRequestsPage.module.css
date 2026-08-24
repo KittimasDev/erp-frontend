@@ -28,7 +28,7 @@
   margin: 0 0 4px;
   color: var(--erp-green-dark, #6f9720);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -37,7 +37,7 @@
   margin: 0 !important;
   color: var(--erp-text, #2f343a);
   font-size: 22px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   letter-spacing: -0.02em;
 }
 
@@ -55,7 +55,7 @@
 
 .createBtn {
   border-radius: 10px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
 }
 
 .pendingAlert {
@@ -79,7 +79,7 @@
 .pendingAlertTitle {
   margin: 0 0 2px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   color: #ad6800;
 }
 
@@ -137,7 +137,7 @@
 .statLabel {
   color: var(--erp-muted, #8a9199);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -145,7 +145,7 @@
 .statValue {
   color: var(--erp-text, #2f343a);
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -182,7 +182,7 @@
 .listHeader h3 {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--erp-text, #2f343a);
 }
 
@@ -206,7 +206,7 @@
   background: #f4f6f8;
   color: var(--erp-text, #2f343a);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -244,7 +244,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.4;
   white-space: nowrap;
 }

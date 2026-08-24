@@ -88,7 +88,7 @@ function createStyle() {
       .company { text-align: center; padding-right: 48px; }
       .company-name {
         font-size: 18px;
-        font-weight: 700;
+        font-weight: 500;
         letter-spacing: 0.02em;
         margin-bottom: 4px;
       }
@@ -108,7 +108,7 @@ function createStyle() {
       .doc-title {
         text-align: center;
         font-size: 24px;
-        font-weight: 700;
+        font-weight: 500;
         letter-spacing: 0.08em;
         margin: 0 0 18px;
       }
@@ -128,7 +128,7 @@ function createStyle() {
       }
       .info-card-title {
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 500;
         color: var(--muted);
         text-transform: uppercase;
         letter-spacing: 0.04em;
@@ -145,7 +145,7 @@ function createStyle() {
       }
       .info-row:last-child { margin-bottom: 0; }
       .info-label {
-        font-weight: 600;
+        font-weight: 500;
         color: #4b5563;
         white-space: nowrap;
       }
@@ -176,24 +176,24 @@ function createStyle() {
       .items-table tbody tr:last-child td { border-bottom: none; }
       .items-table th {
         background: var(--soft);
-        font-weight: 700;
+        font-weight: 500;
         text-align: center;
         color: #374151;
         font-size: 11.5px;
       }
-      .item-code { font-weight: 600; }
+      .item-code { font-weight: 500; }
       .item-name { margin-top: 2px; }
       .warehouse-line {
         margin-top: 3px;
         color: #6f9720;
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 500;
       }
       .lot-line {
         margin-top: 2px;
         color: #8ab933;
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 500;
       }
       .empty-row td {
         height: 34px;
@@ -219,7 +219,7 @@ function createStyle() {
         min-height: 148px;
       }
       .remark-label {
-        font-weight: 700;
+        font-weight: 500;
         color: #4b5563;
         margin-bottom: 8px;
         font-size: 12px;
@@ -235,7 +235,7 @@ function createStyle() {
         padding-top: 10px;
         border-top: 1px dashed var(--line);
         text-align: center;
-        font-weight: 600;
+        font-weight: 500;
         font-size: 12.5px;
         color: #111827;
       }
@@ -256,11 +256,11 @@ function createStyle() {
       .summary-row:last-child { border-bottom: none; }
       .summary-row span:first-child {
         color: #4b5563;
-        font-weight: 600;
+        font-weight: 500;
       }
       .summary-row strong {
         font-variant-numeric: tabular-nums;
-        font-weight: 600;
+        font-weight: 500;
       }
       .summary-row.net {
         background: var(--soft);
@@ -268,7 +268,7 @@ function createStyle() {
       .summary-row.net span:first-child,
       .summary-row.net strong {
         color: #111827;
-        font-weight: 700;
+        font-weight: 500;
         font-size: 13px;
       }
 
@@ -297,7 +297,7 @@ function createStyle() {
         color: #374151;
       }
       .sig-role {
-        font-weight: 700;
+        font-weight: 500;
         font-size: 12.5px;
       }
       .sig-date {

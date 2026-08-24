@@ -146,7 +146,7 @@
 
 .portalContextLabel {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--erp-text, #2f343a);
   line-height: 1.3;
 }
@@ -159,7 +159,7 @@
   background: transparent;
   color: var(--brand-green-dark);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -199,7 +199,7 @@
   margin: 14px 0 8px;
   color: var(--erp-muted, #8a9199);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   max-height: 32px;
@@ -267,7 +267,7 @@
 .menuItemActive {
   background: var(--brand-green-soft);
   color: var(--brand-green-dark);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .menuItemActive::before {
@@ -307,7 +307,7 @@
 .menuItemText {
   flex: 1;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
@@ -414,7 +414,7 @@
 .subMenuItemActive {
   background: var(--brand-green-soft);
   color: var(--brand-green-dark);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .subMenuItemActive::before {
@@ -494,7 +494,7 @@
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   flex: none;
 }
 
@@ -517,7 +517,7 @@
 .profileText strong {
   color: var(--erp-text, #2f343a);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.25;
 }
 
@@ -540,7 +540,7 @@
   background: rgba(185, 28, 28, 0.06);
   color: #b91c1c;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition:
     background 0.15s ease,

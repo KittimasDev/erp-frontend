@@ -261,7 +261,7 @@ function createStyle() {
 
       .company-name {
         font-size: 19px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         margin-bottom: 6px;
       }
@@ -286,7 +286,7 @@ function createStyle() {
 
       .title {
         font-size: 24px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         letter-spacing: 1px;
       }
@@ -318,12 +318,12 @@ function createStyle() {
       .meta-label {
         font-size: 11px;
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .meta-value {
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
       }
 
@@ -341,7 +341,7 @@ function createStyle() {
 
       .panel-title {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
         margin-bottom: 8px;
         padding-bottom: 6px;
@@ -355,12 +355,12 @@ function createStyle() {
         min-height: 20px;
         margin-bottom: 4px;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .label {
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .amount-hero {
@@ -373,20 +373,20 @@ function createStyle() {
 
       .amount-label {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
         margin-bottom: 6px;
       }
 
       .amount-value {
         font-size: 28px;
-        font-weight: 700;
+        font-weight: 500;
         color: #14532d;
       }
 
       .amount-value span {
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .amount-remark {
@@ -399,7 +399,7 @@ function createStyle() {
         margin-top: 14px;
         margin-bottom: 6px;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
       }
 
@@ -417,7 +417,7 @@ function createStyle() {
         border-bottom: 1.4px solid #374151;
         padding: 9px 8px;
         text-align: center;
-        font-weight: 700;
+        font-weight: 500;
         background: #ecfdf5;
         color: #14532d;
         vertical-align: middle;
@@ -438,10 +438,10 @@ function createStyle() {
         border-bottom: 1px solid #f3f4f6;
       }
 
-      .col-no { color: #6b7280; font-weight: 600; }
-      .col-code { font-size: 11px; font-weight: 600; color: #374151; }
-      .col-name .name { font-weight: 600; color: #111827; }
-      .col-amount { font-weight: 700; }
+      .col-no { color: #6b7280; font-weight: 500; }
+      .col-code { font-size: 11px; font-weight: 500; color: #374151; }
+      .col-name .name { font-weight: 500; color: #111827; }
+      .col-amount { font-weight: 500; }
 
       .items-table tbody tr.spacer-row td {
         height: 180px;
@@ -455,7 +455,7 @@ function createStyle() {
 
       .items-table tbody tr.totals-row td {
         padding: 10px;
-        font-weight: 600;
+        font-weight: 500;
         background: #ecfdf5;
         border-top: 1.4px solid #86efac;
         border-right: 1px solid #e5e7eb;
@@ -463,8 +463,8 @@ function createStyle() {
 
       .items-table tbody tr.totals-row td:last-child { border-right: none; }
 
-      .totals-label { font-weight: 700; color: #374151; }
-      .total-amount { font-size: 15px; font-weight: 700; color: #166534; }
+      .totals-label { font-weight: 500; color: #374151; }
+      .total-amount { font-size: 15px; font-weight: 500; color: #166534; }
 
       .text-center { text-align: center; }
       .text-right { text-align: right; }
@@ -488,7 +488,7 @@ function createStyle() {
 
       .sig-title {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         margin-bottom: 28px;
       }
 
@@ -500,7 +500,7 @@ function createStyle() {
       .date {
         font-size: 11px;
         color: #4b5563;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .footer-note {

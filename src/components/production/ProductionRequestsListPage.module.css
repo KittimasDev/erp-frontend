@@ -84,14 +84,14 @@
   margin: 0 0 4px;
   color: #627f13;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .planningItemName {
   margin: 0;
   color: #3f3f43;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .planningMetrics {
@@ -159,7 +159,7 @@
   display: block;
   color: #3f3f43;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .tagTitleWrap {
@@ -173,7 +173,7 @@
   background: none;
   color: #3f3f43;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
 }
@@ -224,7 +224,7 @@
   margin: 0 0 4px;
   color: #627f13;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .queueTitle {
@@ -270,7 +270,7 @@
   border-radius: 10px;
   background: rgba(115, 152, 22, 0.12);
   color: #627f13;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .queueBody {
@@ -306,7 +306,7 @@
   margin-bottom: 6px;
   color: #5f6368;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .modalSection {

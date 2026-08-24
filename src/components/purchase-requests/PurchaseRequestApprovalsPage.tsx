@@ -9,12 +9,11 @@ import {
   Input,
   Modal,
   Pagination,
-  Space,
   Table,
   Tag,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EyeOutlined } from "@ant-design/icons";
+import { CloseCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import {
@@ -29,6 +28,7 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { userHasRole } from "@/lib/auth/session";
 import type { PurchaseRequest } from "@/types/purchase-requests";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./purchase-request.module.css";
 
 function formatDate(value?: string) {
@@ -109,19 +109,13 @@ export default function PurchaseRequestApprovalsPage() {
       {
         title: "จัดการ",
         key: "action",
-        width: 220,
+        width: 170,
         align: "center",
         render: (_v, row) => (
-          <Space size={8}>
-            <button
-              className={`${styles.iconBtn} ${styles.iconBtnView}`}
-              type="button"
-              onClick={() => router.push(`/purchase-requests/${row.id}`)}
-            >
-              <EyeOutlined />
-            </button>
-            {canApprove ? (
-              <>
+          <RowActionsMenu
+            ariaLabel={`เมนูจัดการ ${row.prNo}`}
+            primary={
+              canApprove ? (
                 <Button
                   size="small"
                   type="primary"
@@ -130,19 +124,28 @@ export default function PurchaseRequestApprovalsPage() {
                 >
                   อนุมัติ
                 </Button>
-                <Button
-                  size="small"
-                  danger
-                  onClick={() => {
-                    setRejectId(row.id);
-                    setRejectReason("");
-                  }}
-                >
-                  ปฏิเสธ
-                </Button>
-              </>
-            ) : null}
-          </Space>
+              ) : null
+            }
+            actions={[
+              {
+                key: "view",
+                icon: <EyeOutlined />,
+                label: "ดูรายละเอียด",
+                onClick: () => router.push(`/purchase-requests/${row.id}`),
+              },
+              canApprove && "divider",
+              canApprove && {
+                key: "reject",
+                icon: <CloseCircleOutlined />,
+                label: "ปฏิเสธ",
+                danger: true,
+                onClick: () => {
+                  setRejectId(row.id);
+                  setRejectReason("");
+                },
+              },
+            ]}
+          />
         ),
       },
     ],

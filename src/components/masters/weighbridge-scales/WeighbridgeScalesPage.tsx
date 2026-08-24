@@ -7,7 +7,6 @@ import {
   Col,
   Form,
   Input,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -17,12 +16,15 @@ import {
 } from "antd";
 import {
   ClearOutlined,
+  DeleteOutlined,
+  EditOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateWeighbridgeScaleMutation } from "@/hooks/weighbridge-scales/useCreateWeighbridgeScaleMutation";
 import { useDeleteWeighbridgeScaleMutation } from "@/hooks/weighbridge-scales/useDeleteWeighbridgeScaleMutation";
 import { useUpdateWeighbridgeScaleMutation } from "@/hooks/weighbridge-scales/useUpdateWeighbridgeScaleMutation";
@@ -356,33 +358,34 @@ export default function WeighbridgeScalesPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 190,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8}>
-          <Button
-            className={styles.editButton}
-            onClick={() => openEditModal(record)}
-          >
-            แก้ไข
-          </Button>
-
-          <Popconfirm
-            title="ลบเครื่องชั่ง"
-            description={`ต้องการลบ "${record.scaleCode}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={deleteMutation.isPending}
-            >
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการ ${record.scaleCode}`}
+          actions={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => openEditModal(record),
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบ",
+              danger: true,
+              onClick: () => deleteMutation.mutate(record.id),
+              confirm: {
+                title: "ลบเครื่องชั่ง",
+                content: `ต้องการลบ "${record.scaleCode}" หรือไม่?`,
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -598,7 +601,7 @@ export default function WeighbridgeScalesPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 1350 }}
+            scroll={{ x: 1260 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบเครื่องชั่งตามเงื่อนไขที่ค้นหา"

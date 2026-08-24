@@ -26,7 +26,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 26px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
@@ -85,7 +85,7 @@
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
   padding: 0;
   flex: none;
@@ -107,7 +107,7 @@
   background: #ef4444;
   color: #ffffff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 16px;
   text-align: center;
   box-shadow: 0 0 0 2px var(--erp-bg, #f5f7fa);
@@ -176,7 +176,7 @@
 .notifItemTitle {
   color: #2f343a;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .notifItemMessage {

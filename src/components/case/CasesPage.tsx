@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Button,
-  Popconfirm,
   Segmented,
   Space,
   Table,
@@ -12,9 +11,16 @@ import {
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import {
+  CheckOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import { App } from "antd";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateTempCaseMutation } from "@/hooks/temp-cases/useCreateTempCaseMutation";
 import { useDeleteTempCaseMutation } from "@/hooks/temp-cases/useDeleteTempCaseMutation";
 import { useTempCaseCategoriesQuery } from "@/hooks/temp-cases/useTempCaseCategoriesQuery";
@@ -232,33 +238,45 @@ export default function CasesPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 260,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8} wrap>
-          <Button size="small" onClick={() => toggleStatus(record)}>
-            {record.status === "OPEN" ? "ทำแล้ว" : "เปิดใหม่"}
-          </Button>
-          <Button
-            className={styles.editButton}
-            size="small"
-            onClick={() => openEditModal(record)}
-          >
-            แก้ไข
-          </Button>
-          <Popconfirm
-            title="ลบเคส"
-            description={`ต้องการลบ "${record.title}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button size="small" danger>
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการเคส ${record.title}`}
+          actions={[
+            {
+              key: "toggle",
+              icon:
+                record.status === "OPEN" ? (
+                  <CheckOutlined />
+                ) : (
+                  <ReloadOutlined />
+                ),
+              label: record.status === "OPEN" ? "ทำแล้ว" : "เปิดใหม่",
+              onClick: () => toggleStatus(record),
+            },
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => openEditModal(record),
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบเคส",
+              danger: true,
+              onClick: () => deleteMutation.mutate(record.id),
+              confirm: {
+                title: "ลบเคส",
+                content: `ต้องการลบ "${record.title}" หรือไม่?`,
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -346,7 +364,7 @@ export default function CasesPage() {
           dataSource={cases}
           loading={loading}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1040 }}
         />
 
         <CaseFormModal

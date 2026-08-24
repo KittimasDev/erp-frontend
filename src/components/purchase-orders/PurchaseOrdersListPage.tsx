@@ -9,7 +9,6 @@ import {
   Input,
   Pagination,
   Select,
-  Space,
   Table,
   Tag,
 } from "antd";
@@ -35,6 +34,7 @@ import type { PurchaseOrder } from "@/types/purchase-orders";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import type { PurchaseRequest } from "@/types/purchase-requests";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./PurchaseOrdersListPage.module.css";
 
 function statusColor(status: string) {
@@ -156,33 +156,36 @@ export default function PurchaseOrdersListPage() {
       {
         title: "จัดการ",
         key: "action",
-        width: canCreatePo ? 200 : 72,
+        width: canCreatePo ? 190 : 72,
         align: "center",
         fixed: "right",
         render: (_v, row) => (
-          <Space size={6} wrap>
-            <button
-              className={styles.actionBtn}
-              type="button"
-              title="ดูใบขอซื้อ"
-              onClick={() => router.push(`/purchase-requests/${row.id}`)}
-            >
-              <EyeOutlined />
-            </button>
-            {canCreatePo ? (
-              <Button
-                type="primary"
-                size="small"
-                className={styles.createPoBtn}
-                icon={<ShoppingCartOutlined />}
-                onClick={() =>
-                  router.push(`/purchase-orders/create-from-pr/${row.id}`)
-                }
-              >
-                สร้างใบสั่งซื้อ
-              </Button>
-            ) : null}
-          </Space>
+          <RowActionsMenu
+            ariaLabel={`เมนูจัดการ ${row.prNo}`}
+            primary={
+              canCreatePo ? (
+                <Button
+                  type="primary"
+                  size="small"
+                  className={styles.createPoBtn}
+                  icon={<ShoppingCartOutlined />}
+                  onClick={() =>
+                    router.push(`/purchase-orders/create-from-pr/${row.id}`)
+                  }
+                >
+                  สร้างใบสั่งซื้อ
+                </Button>
+              ) : null
+            }
+            actions={[
+              {
+                key: "view",
+                icon: <EyeOutlined />,
+                label: "ดูใบขอซื้อ",
+                onClick: () => router.push(`/purchase-requests/${row.id}`),
+              },
+            ]}
+          />
         ),
       },
     ],
@@ -254,29 +257,28 @@ export default function PurchaseOrdersListPage() {
       {
         title: "จัดการ",
         key: "action",
-        width: 110,
+        width: 100,
         align: "center",
         render: (_v, row) => (
-          <Space size={6}>
-            <button
-              className={styles.actionBtn}
-              type="button"
-              title="ดูรายละเอียด"
-              onClick={() => router.push(`/purchase-orders/${row.id}`)}
-            >
-              <EyeOutlined />
-            </button>
-            {canEditPo && row.status === "DRAFT" ? (
-              <button
-                className={styles.actionBtn}
-                type="button"
-                title="แก้ไข"
-                onClick={() => router.push(`/purchase-orders/${row.id}/edit`)}
-              >
-                <EditOutlined />
-              </button>
-            ) : null}
-          </Space>
+          <RowActionsMenu
+            ariaLabel={`เมนูจัดการ ${row.poNo}`}
+            actions={[
+              {
+                key: "view",
+                icon: <EyeOutlined />,
+                label: "ดูรายละเอียด",
+                onClick: () => router.push(`/purchase-orders/${row.id}`),
+              },
+              canEditPo &&
+                row.status === "DRAFT" && {
+                  key: "edit",
+                  icon: <EditOutlined />,
+                  label: "แก้ไข",
+                  onClick: () =>
+                    router.push(`/purchase-orders/${row.id}/edit`),
+                },
+            ]}
+          />
         ),
       },
     ],
@@ -318,7 +320,7 @@ export default function PurchaseOrdersListPage() {
           loading={pendingQuery.isLoading}
           pagination={false}
           className={`${styles.table} ${styles.pendingTable}`}
-          scroll={{ x: 960 }}
+          scroll={{ x: 950 }}
           locale={{
             emptyText: "ยังไม่มีใบขอซื้อที่อนุมัติแล้วรอสร้างใบสั่งซื้อ",
           }}

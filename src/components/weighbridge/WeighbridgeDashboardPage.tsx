@@ -42,6 +42,7 @@ import type { CreateSellerRequest } from "@/types/sellers";
 import type { CreateTruckRequest, Truck } from "@/types/trucks";
 import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
 
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
 const { RangePicker } = DatePicker;
@@ -836,7 +837,7 @@ export default function WeighbridgeDashboardPage() {
     {
       title: "ดำเนินการ",
       key: "weighActions",
-      width: 300,
+      width: 190,
       fixed: "right",
       render: (_value, record) => {
         const {
@@ -848,45 +849,76 @@ export default function WeighbridgeDashboardPage() {
           stockPosted,
         } = getTicketActionFlags(record);
 
+        const goClassify = () => router.push(`/receiving/${record.id}`);
+        const goPay = () =>
+          router.push(`/receiving/receipts/${record.receiptId}/payment`);
+        const goStockIn = () => {
+          if (!canStockIn || !canStockInRaw || !record.receiptId) {
+            return;
+          }
+          router.push(
+            `/raw-tire-purchase/receipts/${record.receiptId}/stock-posting-request`,
+          );
+        };
+
+        // ปุ่มหลัก = ขั้นแรกที่ทำได้ตามลำดับสายงาน ชั่ง → จ่ายเงิน → เข้าคลัง
+        // อีกสองอันเข้าเมนู โดยคง disabled ไว้เพื่อให้ label บอกสถานะได้เหมือนเดิม
+        const primaryStage = canClassifyWeigh
+          ? "classify"
+          : canPay
+            ? "pay"
+            : canStockIn
+              ? "stockIn"
+              : null;
+
+        const primaryLabel =
+          primaryStage === "classify"
+            ? "คัดแยกและชั่ง"
+            : primaryStage === "pay"
+              ? "ออกใบจ่ายเงิน"
+              : "เข้าคลัง";
+
+        const primaryAction =
+          primaryStage === "classify"
+            ? goClassify
+            : primaryStage === "pay"
+              ? goPay
+              : goStockIn;
+
         return (
-          <div
+          <RowActionsMenu
             className={styles.tableActions}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <Button
-              size="small"
-              type={canClassifyWeigh ? "primary" : "default"}
-              disabled={!canClassifyWeigh}
-              onClick={() => router.push(`/receiving/${record.id}`)}
-            >
-              คัดแยกและชั่ง
-            </Button>
-            <Button
-              size="small"
-              type={canPay ? "primary" : "default"}
-              disabled={!canPay}
-              onClick={() =>
-                router.push(`/receiving/receipts/${record.receiptId}/payment`)
-              }
-            >
-              {isPaid ? "จ่ายแล้ว" : "ออกใบจ่ายเงิน"}
-            </Button>
-            <Button
-              size="small"
-              type={canStockIn ? "primary" : "default"}
-              disabled={!canStockIn}
-              onClick={() => {
-                if (!canStockIn || !canStockInRaw || !record.receiptId) {
-                  return;
-                }
-                router.push(
-                  `/raw-tire-purchase/receipts/${record.receiptId}/stock-posting-request`,
-                );
-              }}
-            >
-              {stockPosted ? "เข้าคลังแล้ว" : "เข้าคลัง"}
-            </Button>
-          </div>
+            ariaLabel={`เมนูดำเนินการ ${record.ticketNo}`}
+            emptyFallback={<span>—</span>}
+            primary={
+              primaryStage ? (
+                <Button size="small" type="primary" onClick={primaryAction}>
+                  {primaryLabel}
+                </Button>
+              ) : null
+            }
+            actions={[
+              primaryStage !== "classify" && {
+                key: "classify",
+                label: "คัดแยกและชั่ง",
+                disabled: !canClassifyWeigh,
+                disabledReason: "ยืนยัน/จ่ายเงิน/เข้าคลังแล้ว — แก้น้ำหนักไม่ได้",
+                onClick: goClassify,
+              },
+              primaryStage !== "pay" && {
+                key: "pay",
+                label: isPaid ? "จ่ายแล้ว" : "ออกใบจ่ายเงิน",
+                disabled: !canPay,
+                onClick: goPay,
+              },
+              primaryStage !== "stockIn" && {
+                key: "stockIn",
+                label: stockPosted ? "เข้าคลังแล้ว" : "เข้าคลัง",
+                disabled: !canStockIn,
+                onClick: goStockIn,
+              },
+            ]}
+          />
         );
       },
     },
@@ -1093,7 +1125,7 @@ export default function WeighbridgeDashboardPage() {
                 dataSource={filteredTickets}
                 loading={dashboardQuery.isFetching}
                 pagination={{ pageSize: 10, showSizeChanger: false }}
-                scroll={{ x: 1400 }}
+                scroll={{ x: 1290 }}
                 locale={{
                   emptyText:
                     searchQuery || stage !== "all"

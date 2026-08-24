@@ -36,6 +36,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import {
   useCreateCompanyBankAccountMutation,
   useDeleteCompanyBankAccountMutation,
@@ -341,31 +342,37 @@ export default function CompanyProfilePage() {
       title: "จัดการ",
       key: "actions",
       align: "right",
-      width: 150,
+      width: 90,
       render: (_, record) => (
-        <Space size={6}>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingAccount(record);
-              setBankModalOpen(true);
-            }}
-          >
-            แก้ไข
-          </Button>
-
-          <Popconfirm
-            title="ลบบัญชีธนาคารนี้"
-            description="เอกสารที่พิมพ์ไปแล้วไม่เปลี่ยน แต่เอกสารใหม่จะไม่มีบัญชีนี้"
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteBankAccount.mutate(record.id)}
-          >
-            <Button size="small" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการบัญชี ${record.accountNumber}`}
+          actions={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => {
+                setEditingAccount(record);
+                setBankModalOpen(true);
+              },
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบบัญชีธนาคาร",
+              danger: true,
+              onClick: () => deleteBankAccount.mutate(record.id),
+              confirm: {
+                title: "ลบบัญชีธนาคารนี้",
+                content:
+                  "เอกสารที่พิมพ์ไปแล้วไม่เปลี่ยน แต่เอกสารใหม่จะไม่มีบัญชีนี้",
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];

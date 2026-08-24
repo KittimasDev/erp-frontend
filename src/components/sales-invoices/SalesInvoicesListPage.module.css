@@ -70,7 +70,7 @@
   border: 1px solid rgba(111, 151, 32, 0.2);
   color: var(--pay-green-dark);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -90,7 +90,7 @@
   margin: 0;
   color: var(--pay-ink);
   font-size: clamp(24px, 3vw, 30px);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1.15;
 }
@@ -118,7 +118,7 @@
   border: 0 !important;
   background: var(--pay-green-dark) !important;
   color: #fff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
 }
 
@@ -133,7 +133,7 @@
   border-radius: 999px;
   /* color: var(--pay-amber); */
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   box-shadow: 0 2px 8px rgba(196, 146, 42, 0.28);
@@ -147,7 +147,7 @@
 .secondaryBtn {
   height: 40px !important;
   border-radius: 11px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   background: rgba(255, 255, 255, 0.85) !important;
 }
 
@@ -170,7 +170,7 @@
 .statLabel {
   color: var(--pay-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -178,7 +178,7 @@
 .statValue {
   color: var(--pay-ink);
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
@@ -223,7 +223,7 @@
 .filterItem label {
   color: var(--pay-ink);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filterActions {
@@ -275,14 +275,14 @@
   background: rgba(61, 139, 116, 0.1);
   color: var(--pay-teal);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
 
 .poRef {
   color: var(--pay-ink);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
@@ -294,7 +294,7 @@
 
 .creditorName {
   color: var(--pay-ink);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 13px;
 }
 
@@ -306,12 +306,12 @@
 .methodCell {
   color: var(--pay-slate);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .amountCell {
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--pay-ink);
 }
 
@@ -328,7 +328,7 @@
   padding: 4px 10px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .statusDot {
@@ -392,7 +392,7 @@
   background: #f3f6ee !important;
   color: var(--pay-ink) !important;
   font-size: 12px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   border-bottom: 1px solid var(--pay-border) !important;
   padding: 12px 14px !important;
 }

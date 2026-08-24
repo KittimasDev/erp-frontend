@@ -6,7 +6,7 @@
 .moduleCode {
   color: var(--erp-text, #2f343a);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .screenCode {
@@ -16,7 +16,7 @@
 
 .actionTag {
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .actionTag[data-action="CREATE"] {

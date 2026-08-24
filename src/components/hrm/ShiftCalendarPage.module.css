@@ -65,7 +65,7 @@
   margin: 0 0 4px;
   color: var(--sh-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -74,7 +74,7 @@
   margin: 0;
   color: var(--sh-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -106,7 +106,7 @@
 .filterField > span {
   color: var(--sh-muted);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summaryGrid {
@@ -133,7 +133,7 @@
   display: block;
   color: var(--sh-muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summaryCard strong {
@@ -141,7 +141,7 @@
   margin-top: 8px;
   color: var(--sh-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .warnValue {
@@ -181,7 +181,7 @@
   background: #e6f4ff;
   color: #0958d9;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -209,7 +209,7 @@
 
 .cellRoundName {
   color: var(--sh-text);
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -226,7 +226,7 @@
   background: #f2f5ea;
   color: var(--sh-green-dark);
   text-align: center;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .cellRoundCountEmpty {
@@ -259,7 +259,7 @@
   gap: 8px;
   color: var(--sh-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .holidayBody {
@@ -292,7 +292,7 @@
   margin: 0;
   color: var(--sh-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .roundList {
@@ -332,7 +332,7 @@
 .roundTitle strong {
   color: var(--sh-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .roundTitle span {
@@ -360,7 +360,7 @@
   background: #fff;
   color: var(--sh-green-dark);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -412,7 +412,7 @@
 .memberName strong {
   color: var(--sh-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .memberName span {

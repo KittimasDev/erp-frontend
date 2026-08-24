@@ -60,7 +60,7 @@
   margin: 0 0 4px;
   color: var(--erp-green-dark, #6f9720);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -69,7 +69,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -96,7 +96,7 @@
 .scopeSwitchLabel {
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   transition: color 0.15s ease;
 }
@@ -155,7 +155,7 @@
   padding-left: 12px;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
@@ -165,7 +165,7 @@
   margin-top: 6px;
   color: var(--erp-text, #2f343a);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
@@ -178,7 +178,7 @@
   margin-left: 4px;
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summaryGrid {
@@ -251,7 +251,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.35;
 }
 
@@ -286,7 +286,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .metricItem strong {
@@ -294,7 +294,7 @@
   margin-top: 6px;
   color: var(--erp-text, #2f343a);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .filterBar {
@@ -321,7 +321,7 @@
 .filterField > span {
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .filterSearch,
@@ -354,7 +354,7 @@
   flex: none;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .stageChips {
@@ -378,7 +378,7 @@
   background: #ffffff;
   color: var(--erp-text, #2f343a);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition:
@@ -401,7 +401,7 @@
   background: #eef0f3;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 20px;
   text-align: center;
 }
@@ -441,7 +441,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .listHeader p {
@@ -471,7 +471,7 @@
   flex: none;
   color: #6f9720;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -487,7 +487,7 @@
   border-color: rgba(115, 152, 22, 0.35) !important;
   color: #5c7f18 !important;
   background: #fff !important;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .masterLinksButtons :global(.ant-btn:hover) {
@@ -500,7 +500,7 @@
   height: 40px !important;
   padding-inline: 16px !important;
   border-radius: 11px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
   border-color: rgba(115, 152, 22, 0.45) !important;
   color: var(--erp-green-dark, #6f9720) !important;
   background: rgba(115, 152, 22, 0.08) !important;
@@ -518,7 +518,7 @@
   padding-inline: 18px !important;
   border: 0 !important;
   border-radius: 11px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   background: linear-gradient(
     135deg,
     #8CA527 0%,
@@ -546,7 +546,7 @@
 .addSellerButton {
   flex: none;
   border-radius: 10px !important;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .previewBox {
@@ -562,7 +562,7 @@
   margin: 0 0 10px;
   color: var(--erp-green-dark, #6f9720);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .previewGrid {
@@ -585,14 +585,14 @@
 .previewItem strong {
   color: var(--erp-text, #2f343a);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .submitButton {
   min-width: 140px;
   border: 0 !important;
   border-radius: 11px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   background: linear-gradient(
     135deg,
     #8CA527 0%,
@@ -604,7 +604,7 @@
 .flowTag {
   margin-inline-end: 0 !important;
   border-radius: 999px !important;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .clickableRow {
@@ -706,7 +706,7 @@
   margin-bottom: 8px;
   color: var(--erp-green-dark, #6f9720);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.08em;
 }
 
@@ -718,7 +718,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -796,7 +796,7 @@
   margin: 0 0 12px;
   color: var(--erp-text, #2f343a);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .detailGrid {
@@ -819,13 +819,13 @@
 .detailItem span {
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .detailItem strong {
   color: var(--erp-text, #2f343a);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -849,7 +849,7 @@
   border-bottom: 1.5px solid rgba(115, 152, 22, 0.35);
   color: var(--erp-green-dark, #6f9720);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .ticketInfoRows {
@@ -867,13 +867,13 @@
 .ticketInfoRow span {
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .ticketInfoRow strong {
   color: var(--erp-text, #2f343a);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -899,7 +899,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .ticketWeightCard strong {
@@ -909,14 +909,14 @@
   margin-top: 6px;
   color: var(--erp-text, #2f343a);
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.1;
 }
 
 .ticketWeightCard em {
   font-style: normal;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--erp-muted, #8a9199);
 }
 
@@ -941,7 +941,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .receiptRemarkBox strong {
@@ -949,7 +949,7 @@
   margin-top: 4px;
   color: var(--erp-text, #2f343a);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   white-space: pre-wrap;
 }
 
@@ -1013,7 +1013,7 @@
   );
   color: #ffffff;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.02em;
   box-shadow: 0 8px 20px rgba(115, 152, 22, 0.35);
 }
@@ -1118,7 +1118,7 @@
   background: #eef0f3;
   color: #5f6770;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .stepBadgeActive {
@@ -1135,7 +1135,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .stepCardTitle p {
@@ -1171,7 +1171,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .stepMetaItem strong {
@@ -1179,7 +1179,7 @@
   margin-top: 4px;
   color: var(--erp-text, #2f343a);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -1199,7 +1199,7 @@
 }
 
 .stepMetaInput :global(.ant-input-number-input) {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 18px;
   color: var(--erp-green-dark, #6f9720);
 }
@@ -1228,7 +1228,7 @@
   margin-bottom: 8px;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .stepMetaControlFull {
@@ -1262,7 +1262,7 @@
 .stepResultBanner span {
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .stepResultBanner strong {
@@ -1270,7 +1270,7 @@
   margin-top: 2px;
   color: var(--erp-green-dark, #6f9720);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .stepEmptyHint {
@@ -1280,7 +1280,7 @@
   background: #f5f6f8;
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .classifyLayout {
@@ -1339,7 +1339,7 @@
 .classifyEyebrow {
   margin: 0 0 4px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -1356,7 +1356,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyPanelHead p {
@@ -1374,7 +1374,7 @@
   background: rgba(115, 152, 22, 0.12);
   color: var(--erp-green-dark, #6f9720);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyCountMuted {
@@ -1396,7 +1396,7 @@
 .classifyPriceSource label {
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyTypeList {
@@ -1429,7 +1429,7 @@
   background: rgba(115, 152, 22, 0.14);
   color: var(--erp-green-dark, #6f9720);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyTypeDetail {
@@ -1443,7 +1443,7 @@
 .classifyTypeDetail strong {
   color: var(--erp-green-dark, #6f9720);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyTypeDetail span,
@@ -1451,14 +1451,14 @@
   margin: 0;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.45;
 }
 
 .classifyTypeDetail p.classifyTypeAmount {
   color: var(--erp-green-dark, #6f9720);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyTypeMissing {
@@ -1476,7 +1476,7 @@
   background: rgba(255, 255, 255, 0.7);
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .classifyChips {
@@ -1497,7 +1497,7 @@
   color: var(--erp-text, #2f343a);
   font-family: inherit;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   appearance: none;
   transition:
@@ -1545,13 +1545,13 @@
 .classifyDeductionPlanTop strong {
   color: var(--erp-text, #2f343a);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyDeductionPlanTop span {
   color: var(--erp-muted, #8a9199);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .classifyDeductionAmount {
@@ -1567,14 +1567,14 @@
 
 .classifyDeductionInput :global(.ant-input-number-input) {
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyDeductionAmount em {
   font-style: normal;
   color: #8a5a12;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighStepLayout {
@@ -1611,7 +1611,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighManualToggle {
@@ -1621,7 +1621,7 @@
   margin: 0;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -1641,7 +1641,7 @@
 .weighBridgeField > span {
   color: var(--erp-muted, #8a9199);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.02em;
 }
 
@@ -1662,7 +1662,7 @@
 
 .weighBridgeInput :global(.ant-input-number-input) {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--erp-text, #2f343a);
 }
 
@@ -1671,7 +1671,7 @@
   font-style: normal;
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighBridgeOp {
@@ -1681,7 +1681,7 @@
   height: 44px;
   color: var(--erp-green-dark, #6f9720);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighBridgeNet {
@@ -1726,7 +1726,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighAllocValue,
@@ -1749,7 +1749,7 @@
 .weighAllocValueOver span {
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighAllocTrack {
@@ -1781,7 +1781,7 @@
   gap: 8px;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .weighAllocCardOver .weighAllocMeta {
@@ -1815,13 +1815,13 @@
 .weighItemMeta strong {
   color: var(--erp-text, #2f343a);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighItemMeta span {
   color: var(--erp-muted, #8a9199);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .weighItemInput {
@@ -1833,14 +1833,14 @@
 
 .weighItemMaxButton {
   min-width: 52px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighItemInput em {
   font-style: normal;
   color: var(--erp-green-dark, #6f9720);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .weighItemInputMoney em {
@@ -1895,14 +1895,14 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .classifyDocCard p {
   margin: 0;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   word-break: break-word;
 }
 
@@ -2043,7 +2043,7 @@
   margin: 0;
   color: var(--erp-green-dark, #6f9720);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -2052,7 +2052,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -2112,7 +2112,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .summaryAmountItem strong {
@@ -2149,7 +2149,7 @@
   display: block;
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .weightGuideItem strong {
@@ -2204,7 +2204,7 @@
   margin: 0;
   color: var(--erp-text, #2f343a);
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .cardHeader p {

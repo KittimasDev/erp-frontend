@@ -20,7 +20,7 @@
   margin-bottom: 10px;
   color: var(--pr-muted);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
   transition: color 0.15s ease;
 }
@@ -78,7 +78,7 @@
   margin: 0 0 4px;
   color: var(--pr-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -87,7 +87,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -110,7 +110,7 @@
   border: 1px solid #e4ead8;
   color: var(--pr-text);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .metaChipMuted {
@@ -128,7 +128,7 @@
   border: 1px solid #d5e3b8;
   color: var(--pr-green-dark);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   text-decoration: none;
   transition:
     background 0.15s ease,
@@ -162,14 +162,14 @@
   border: 0 !important;
   background: var(--pr-green-dark) !important;
   color: #fff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
 }
 
 .secondaryBtn {
   height: 40px !important;
   border-radius: 10px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .formCard,
@@ -188,7 +188,7 @@
   margin: 0 0 14px;
   color: var(--pr-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .formGrid {
@@ -206,13 +206,13 @@
 .field span {
   color: var(--pr-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .fieldValue {
   color: var(--pr-text);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.45;
   min-height: 32px;
   display: flex;
@@ -247,7 +247,7 @@
   margin: 0;
   color: var(--pr-text);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .toolbarHint {
@@ -265,7 +265,7 @@
   background: #f5f7f2 !important;
   color: var(--pr-text) !important;
   font-size: 12px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   border-bottom: 1px solid var(--pr-border) !important;
   padding: 12px 14px !important;
 }
@@ -284,7 +284,7 @@
 
 .itemCode {
   color: var(--pr-text);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .itemName {
@@ -344,7 +344,7 @@
   margin: 0;
   color: var(--pr-muted);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -353,7 +353,7 @@
   margin: 2px 0 0;
   color: var(--pr-green-dark);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

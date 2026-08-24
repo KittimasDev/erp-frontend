@@ -8,7 +8,6 @@ import {
   DatePicker,
   Form,
   Input,
-  Popconfirm,
   Row,
   Select,
   Space,
@@ -18,6 +17,8 @@ import {
 } from "antd";
 import {
   ClearOutlined,
+  DeleteOutlined,
+  EditOutlined,
   PlusOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
@@ -25,6 +26,7 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateRawTirePriceRuleMutation } from "@/hooks/raw-tire-price-rules/useCreateRawTirePriceRuleMutation";
 import { useDeleteRawTirePriceRuleMutation } from "@/hooks/raw-tire-price-rules/useDeleteRawTirePriceRuleMutation";
 import { useRawTirePriceRulesQuery } from "@/hooks/raw-tire-price-rules/useRawTirePriceRulesQuery";
@@ -369,33 +371,34 @@ export default function RawTirePriceRulesPage() {
     {
       title: "จัดการ",
       key: "actions",
-      width: 190,
+      width: 100,
       align: "center",
       render: (_, record) => (
-        <Space size={8}>
-          <Button
-            className={styles.editButton}
-            onClick={() => openEditModal(record)}
-          >
-            แก้ไข
-          </Button>
-
-          <Popconfirm
-            title="ลบกฎราคา"
-            description={`ต้องการลบ "${record.ruleCode}" หรือไม่?`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button
-              className={styles.deleteButton}
-              loading={deleteMutation.isPending}
-            >
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการ ${record.ruleCode}`}
+          actions={[
+            {
+              key: "edit",
+              icon: <EditOutlined />,
+              label: "แก้ไข",
+              onClick: () => openEditModal(record),
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบ",
+              danger: true,
+              onClick: () => deleteMutation.mutate(record.id),
+              confirm: {
+                title: "ลบกฎราคา",
+                content: `ต้องการลบ "${record.ruleCode}" หรือไม่?`,
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -590,7 +593,7 @@ export default function RawTirePriceRulesPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 1300 }}
+            scroll={{ x: 1210 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบกฎราคาตามเงื่อนไขที่ค้นหา"

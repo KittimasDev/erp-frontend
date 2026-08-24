@@ -364,7 +364,7 @@ function createStyle() {
 
       .company-name {
         font-size: 19px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         margin-bottom: 6px;
         letter-spacing: 0.2px;
@@ -390,7 +390,7 @@ function createStyle() {
 
       .title {
         font-size: 24px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         letter-spacing: 1px;
       }
@@ -422,12 +422,12 @@ function createStyle() {
       .meta-label {
         font-size: 11px;
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .meta-value {
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
       }
 
@@ -446,7 +446,7 @@ function createStyle() {
 
       .panel-title {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
         margin-bottom: 8px;
         padding-bottom: 6px;
@@ -461,12 +461,12 @@ function createStyle() {
         align-items: start;
         margin-bottom: 4px;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .label {
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .net-weight {
@@ -478,7 +478,7 @@ function createStyle() {
         border: 1.2px solid #86efac;
         padding: 8px 10px;
         font-size: 12px;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .net-weight strong {
@@ -490,7 +490,7 @@ function createStyle() {
         margin-top: 16px;
         margin-bottom: 6px;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
       }
 
@@ -508,7 +508,7 @@ function createStyle() {
         border-bottom: 1.4px solid #374151;
         padding: 9px 8px;
         text-align: center;
-        font-weight: 700;
+        font-weight: 500;
         background: #ecfdf5;
         color: #14532d;
         vertical-align: middle;
@@ -545,22 +545,22 @@ function createStyle() {
 
       .col-no {
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .col-code {
         font-size: 11px;
-        font-weight: 600;
+        font-weight: 500;
         color: #374151;
       }
 
       .col-name .name {
-        font-weight: 600;
+        font-weight: 500;
         color: #111827;
       }
 
       .col-amount {
-        font-weight: 700;
+        font-weight: 500;
         font-variant-numeric: tabular-nums;
       }
 
@@ -571,7 +571,7 @@ function createStyle() {
         border: 1px solid #f59e0b;
         color: #92400e;
         font-size: 10px;
-        font-weight: 700;
+        font-weight: 500;
       }
 
       .sub-note {
@@ -595,7 +595,7 @@ function createStyle() {
 
       .items-table tbody tr.totals-row td {
         padding: 8px 10px;
-        font-weight: 600;
+        font-weight: 500;
         vertical-align: middle;
         background: #f9fafb;
         border-top: 1px solid #e5e7eb;
@@ -615,7 +615,7 @@ function createStyle() {
       }
 
       .totals-label {
-        font-weight: 700;
+        font-weight: 500;
         color: #374151;
       }
 
@@ -625,7 +625,7 @@ function createStyle() {
 
       .total-amount {
         font-size: 15px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
       }
 
@@ -653,7 +653,7 @@ function createStyle() {
 
       .sig-title {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         margin-bottom: 28px;
       }
 
@@ -665,7 +665,7 @@ function createStyle() {
       .date {
         font-size: 11px;
         color: #4b5563;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .footer-note {

@@ -210,7 +210,7 @@ function createStyle() {
 
       .company-name {
         font-size: 19px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         margin-bottom: 6px;
         letter-spacing: 0.2px;
@@ -236,7 +236,7 @@ function createStyle() {
 
       .title {
         font-size: 24px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         letter-spacing: 1px;
       }
@@ -268,13 +268,13 @@ function createStyle() {
       .meta-label {
         font-size: 11px;
         color: #6b7280;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .meta-value {
         font-size: 13px;
         color: #111827;
-        font-weight: 700;
+        font-weight: 500;
       }
 
       .info-card {
@@ -305,13 +305,13 @@ function createStyle() {
       .label {
         font-size: 11px;
         color: #6b7280;
-        font-weight: 700;
+        font-weight: 500;
       }
 
       .value {
         font-size: 12px;
         color: #111827;
-        font-weight: 600;
+        font-weight: 500;
         line-height: 1.4;
       }
 
@@ -334,7 +334,7 @@ function createStyle() {
       .items-table th {
         background: #f3f4f6;
         text-align: center;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         height: 34px;
       }
@@ -385,7 +385,7 @@ function createStyle() {
 
       .sig-title {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #111827;
         margin-bottom: 36px;
       }
@@ -398,7 +398,7 @@ function createStyle() {
       .sig-date {
         font-size: 11px;
         color: #4b5563;
-        font-weight: 600;
+        font-weight: 500;
       }
 
       .footer-note {

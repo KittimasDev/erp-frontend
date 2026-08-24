@@ -4,19 +4,20 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Button,
-  Popconfirm,
   Space,
   Table,
   Tag,
   Typography,
 } from "antd";
 import {
+  DeleteOutlined,
   PlusOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import RoleFormModal from "@/components/permissions/RoleFormModal";
 import {
   useCreateRoleMutation,
@@ -81,34 +82,37 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
     {
       title: "จัดการ",
       key: "actions",
-      width: 220,
+      width: 100,
+      align: "center",
       render: (_, record) => (
-        <Space wrap>
-          <Button
-            size="small"
-            onClick={() =>
-              router.push(`/users?tab=permissions&roleId=${record.id}`)
-            }
-          >
-            ตั้งสิทธิ์
-          </Button>
-          <Popconfirm
-            title="ลบบทบาทนี้?"
-            description={
-              record.isSystemRole
-                ? "บทบาทนี้เคยเป็นของระบบ — ลบแล้วจะไม่ถูกสร้างกลับตอน restart (ต้องไม่มีผู้ใช้ผูก)"
-                : "ลบได้เฉพาะบทบาทที่ยังไม่มีผู้ใช้ผูกอยู่"
-            }
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutate(record.id)}
-          >
-            <Button size="small" danger loading={deleteMutation.isPending}>
-              ลบ
-            </Button>
-          </Popconfirm>
-        </Space>
+        <RowActionsMenu
+          ariaLabel={`เมนูจัดการบทบาท ${record.roleName}`}
+          actions={[
+            {
+              key: "permissions",
+              icon: <SafetyCertificateOutlined />,
+              label: "ตั้งสิทธิ์",
+              onClick: () =>
+                router.push(`/users?tab=permissions&roleId=${record.id}`),
+            },
+            "divider",
+            {
+              key: "delete",
+              icon: <DeleteOutlined />,
+              label: "ลบบทบาท",
+              danger: true,
+              onClick: () => deleteMutation.mutate(record.id),
+              confirm: {
+                title: "ลบบทบาทนี้?",
+                content: record.isSystemRole
+                  ? "บทบาทนี้เคยเป็นของระบบ — ลบแล้วจะไม่ถูกสร้างกลับตอน restart (ต้องไม่มีผู้ใช้ผูก)"
+                  : "ลบได้เฉพาะบทบาทที่ยังไม่มีผู้ใช้ผูกอยู่",
+                okText: "ลบ",
+                cancelText: "ยกเลิก",
+              },
+            },
+          ]}
+        />
       ),
     },
   ];
@@ -227,7 +231,7 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
                   }
                 },
               }}
-              scroll={{ x: 900 }}
+              scroll={{ x: 780 }}
               locale={{ emptyText: "ยังไม่มีบทบาท" }}
             />
           )}

@@ -117,14 +117,14 @@ function createStyle() {
       }
       .logo { width: 64px; height: auto; display: block; }
       .company { flex: 1; }
-      .company-name { font-size: 18px; font-weight: 700; }
+      .company-name { font-size: 18px; font-weight: 500; }
       .company-address { margin-top: 3px; font-size: 12px; color: #374151; }
       .header-rule {
         margin: 12px 0 14px;
         border-bottom: 2px solid #374151;
       }
       .title-block { text-align: center; margin-bottom: 14px; }
-      .title { font-size: 24px; font-weight: 700; letter-spacing: 0.06em; }
+      .title { font-size: 24px; font-weight: 500; letter-spacing: 0.06em; }
       .title-sub { margin-top: 2px; font-size: 12px; color: #6b7280; }
       .meta-bar {
         display: grid;
@@ -137,10 +137,10 @@ function createStyle() {
       .meta-label {
         display: block;
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 500;
         color: #6b7280;
       }
-      .meta-value { font-size: 14px; font-weight: 700; }
+      .meta-value { font-size: 14px; font-weight: 500; }
       .panels {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -153,7 +153,7 @@ function createStyle() {
         min-height: 120px;
       }
       .panel-title {
-        font-weight: 700;
+        font-weight: 500;
         color: #14532d;
         margin-bottom: 8px;
       }
@@ -162,7 +162,7 @@ function createStyle() {
         grid-template-columns: 100px 1fr;
         gap: 8px;
         margin-bottom: 4px;
-        font-weight: 600;
+        font-weight: 500;
       }
       .label { color: #6b7280; }
       .amount-hero {
@@ -174,20 +174,20 @@ function createStyle() {
       }
       .amount-label {
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
         margin-bottom: 6px;
       }
       .amount-value {
         font-size: 28px;
-        font-weight: 700;
+        font-weight: 500;
         color: #14532d;
       }
-      .amount-value span { font-size: 14px; font-weight: 600; }
+      .amount-value span { font-size: 14px; font-weight: 500; }
       .amount-baht {
         margin-top: 8px;
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 500;
         color: #374151;
       }
       .amount-remark {
@@ -198,7 +198,7 @@ function createStyle() {
       .section-label {
         margin: 0 0 6px;
         font-size: 12px;
-        font-weight: 700;
+        font-weight: 500;
         color: #166534;
       }
       .items-table {
@@ -217,12 +217,12 @@ function createStyle() {
       .items-table th {
         background: #ecfdf5;
         color: #14532d;
-        font-weight: 700;
+        font-weight: 500;
         text-align: center;
       }
       .text-center { text-align: center; }
       .text-right { text-align: right; }
-      .col-amount { font-weight: 700; }
+      .col-amount { font-weight: 500; }
       .signature-box {
         margin-top: 28px;
         display: grid;
@@ -236,12 +236,12 @@ function createStyle() {
         border-right: 1px solid #374151;
       }
       .signature:last-child { border-right: none; }
-      .sig-title { font-size: 12px; font-weight: 700; margin-bottom: 34px; }
+      .sig-title { font-size: 12px; font-weight: 500; margin-bottom: 34px; }
       .sig-line {
         border-bottom: 1px dashed #6b7280;
         margin: 0 10px 8px;
       }
-      .date { font-size: 11px; color: #4b5563; font-weight: 600; }
+      .date { font-size: 11px; color: #4b5563; font-weight: 500; }
       .footer-note {
         margin-top: 12px;
         text-align: center;

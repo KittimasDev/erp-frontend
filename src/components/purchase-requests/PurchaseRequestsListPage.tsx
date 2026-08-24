@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,7 +9,6 @@ import {
   Input,
   Pagination,
   Select,
-  Space,
   Table,
   Tag,
 } from "antd";
@@ -38,6 +37,7 @@ import {
   PURCHASE_REQUEST_STATUS_LABEL,
   type PurchaseRequestStatus,
 } from "@/types/purchase-requests";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./PurchaseRequestsListPage.module.css";
 
 function statusColor(status: string) {
@@ -110,6 +110,28 @@ export default function PurchaseRequestsListPage() {
     setPage(1);
   };
 
+  // โหลด generator แบบ dynamic — ไฟล์ pdf ใหญ่ ไม่ควรติดมากับ bundle ของหน้า list
+  const handlePrintPdf = useCallback(async (row: PurchaseRequest) => {
+    const { generatePurchaseRequestPdf } = await import(
+      "@/utils/generatePurchaseRequestPdf"
+    );
+    generatePurchaseRequestPdf({
+      prNo: row.prNo,
+      requestBy: row.requestedBy?.displayName ?? "—",
+      department: row.department?.nameTh ?? "—",
+      requestDate: formatDate(row.prDate),
+      requiredDate: formatDate(row.items?.[0]?.requiredDate) || "—",
+      purchaseType: row.purchaseRequestType?.nameTh ?? "—",
+      items: (row.items ?? []).map((item, index) => ({
+        no: index + 1,
+        itemCode: item.itemCode ?? "—",
+        itemName: item.itemNameTh ?? item.description ?? "—",
+        unit: item.unitNameTh ?? item.unitCode ?? "—",
+        qty: Number(item.quantity),
+      })),
+    });
+  }, []);
+
   const columns: ColumnsType<PurchaseRequest> = useMemo(
     () => [
       {
@@ -179,63 +201,37 @@ export default function PurchaseRequestsListPage() {
       {
         title: "จัดการ",
         key: "action",
-        width: 140,
+        width: 100,
         align: "center",
         render: (_v, row) => (
-          <Space size={6}>
-            <button
-              className={styles.actionBtn}
-              type="button"
-              title="ดูรายละเอียด"
-              onClick={() => router.push(`/purchase-requests/${row.id}`)}
-            >
-              <EyeOutlined />
-            </button>
-            <button
-              className={styles.actionBtn}
-              type="button"
-              title="พิมพ์ PDF"
-              onClick={async () => {
-                const { generatePurchaseRequestPdf } = await import(
-                  "@/utils/generatePurchaseRequestPdf"
-                );
-                generatePurchaseRequestPdf({
-                  prNo: row.prNo,
-                  requestBy: row.requestedBy?.displayName ?? "—",
-                  department: row.department?.nameTh ?? "—",
-                  requestDate: formatDate(row.prDate),
-                  requiredDate:
-                    formatDate(row.items?.[0]?.requiredDate) || "—",
-                  purchaseType: row.purchaseRequestType?.nameTh ?? "—",
-                  items: (row.items ?? []).map((item, index) => ({
-                    no: index + 1,
-                    itemCode: item.itemCode ?? "—",
-                    itemName: item.itemNameTh ?? item.description ?? "—",
-                    unit: item.unitNameTh ?? item.unitCode ?? "—",
-                    qty: Number(item.quantity),
-                  })),
-                });
-              }}
-            >
-              <FilePdfOutlined />
-            </button>
-            {row.status === "DRAFT" ? (
-              <button
-                className={styles.actionBtn}
-                type="button"
-                title="แก้ไข"
-                onClick={() =>
-                  router.push(`/purchase-requests/${row.id}/edit`)
-                }
-              >
-                <EditOutlined />
-              </button>
-            ) : null}
-          </Space>
+          <RowActionsMenu
+            ariaLabel={`เมนูจัดการ ${row.prNo}`}
+            actions={[
+              {
+                key: "view",
+                icon: <EyeOutlined />,
+                label: "ดูรายละเอียด",
+                onClick: () => router.push(`/purchase-requests/${row.id}`),
+              },
+              {
+                key: "pdf",
+                icon: <FilePdfOutlined />,
+                label: "พิมพ์ PDF",
+                onClick: () => void handlePrintPdf(row),
+              },
+              row.status === "DRAFT" && {
+                key: "edit",
+                icon: <EditOutlined />,
+                label: "แก้ไข",
+                onClick: () =>
+                  router.push(`/purchase-requests/${row.id}/edit`),
+              },
+            ]}
+          />
         ),
       },
     ],
-    [limit, page, router],
+    [handlePrintPdf, limit, page, router],
   );
 
   return (

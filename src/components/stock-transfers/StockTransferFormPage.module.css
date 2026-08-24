@@ -67,7 +67,7 @@
   margin: 0 0 4px;
   color: var(--st-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -76,7 +76,7 @@
   margin: 0;
   color: var(--st-text);
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -132,7 +132,7 @@
   margin: 0;
   color: var(--st-text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .sectionHint {
@@ -198,7 +198,7 @@
   margin-bottom: 6px;
   color: var(--st-green-dark);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -208,7 +208,7 @@
   border-radius: 12px !important;
   border-color: rgba(115, 152, 22, 0.45) !important;
   color: var(--st-green-dark) !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .footerBar {
@@ -238,7 +238,7 @@
 .cancelBtn {
   height: 40px !important;
   border-radius: 10px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .saveBtn {
@@ -248,7 +248,7 @@
   border: 0 !important;
   background: var(--st-green-dark) !important;
   color: #fff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   box-shadow: 0 8px 18px rgba(111, 151, 32, 0.28) !important;
 }
 
@@ -274,7 +274,7 @@
   margin: 0;
   color: var(--st-green-dark);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -283,7 +283,7 @@
   margin: 4px 0 0;
   color: var(--st-text);
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: -0.02em;
 }
 
@@ -299,7 +299,7 @@
   padding-left: 18px;
   color: var(--st-text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.5;
 }
 
@@ -342,7 +342,7 @@
 .field :global(.ant-form-item-label > label) {
   color: var(--st-text) !important;
   font-size: 12px !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .field :global(.ant-input),
