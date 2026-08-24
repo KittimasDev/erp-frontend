@@ -31,6 +31,7 @@ import {
 } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
@@ -112,10 +113,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     isAdministrator();
   const canCancel =
     userHasRole(RoleCode.PROCUREMENT_MANAGER) || isAdministrator();
-  const canReceive =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  const receiveActions = useScreenActionPermissions("PURCHASE_ORDERS_RECEIVE");
+  const canReceive = isAdministrator() || receiveActions.canAdd;
   const canPay =
     userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
   const canUploadAttachment =
@@ -411,9 +410,9 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </h2>
             </div>
             {attachmentsQuery.isLoading ? (
-              <p className={styles.textBlock}>
+              <div className={styles.textBlock}>
                 <Spin size="small" /> กำลังโหลดไฟล์แนบ...
-              </p>
+              </div>
             ) : attachments.length === 0 ? (
               <p className={styles.textBlock}>ยังไม่มีไฟล์แนบใบเสนอราคา</p>
             ) : (

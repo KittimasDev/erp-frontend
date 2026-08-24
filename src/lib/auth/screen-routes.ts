@@ -94,7 +94,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     prefix: "/inventory/stock-movements",
     screenCodes: ["STOCK_MOVEMENTS"],
   },
-  { prefix: "/goods-receipts", screenCodes: ["GOODS_RECEIPTS"] },
+  {
+    prefix: "/goods-receipts",
+    screenCodes: ["GOODS_RECEIPTS", "PURCHASE_ORDERS_RECEIVE"],
+  },
   { prefix: "/warehouse/approvals", screenCodes: ["WAREHOUSE_APPROVALS"] },
 
   // Production
@@ -310,6 +313,9 @@ export function resolveScreenCodesForPath(
       "PACKINGS",
       "DELIVERY_ORDERS",
     ];
+  }
+  if (/^\/purchase-orders\/[^/]+\/receive$/.test(pathname)) {
+    return ["PURCHASE_ORDERS_RECEIVE", "GOODS_RECEIPTS"];
   }
 
   if (

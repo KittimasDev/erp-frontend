@@ -22,11 +22,14 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreateGoodsReceiptFromPoMutation } from "@/hooks/goods-receipts/useGoodsReceiptMutations";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import { isAdministrator } from "@/lib/auth/session";
 import styles from "./GoodsReceiptFormPage.module.css";
 
 const EMPTY_GRS: never[] = [];
@@ -65,6 +68,16 @@ export default function GoodsReceiptCreateFromPoPage({
 }: Props) {
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
+  const receiveActions = useScreenActionPermissions("PURCHASE_ORDERS_RECEIVE");
+  const goodsReceiptActions = useScreenActionPermissions("GOODS_RECEIPTS");
+  const canView =
+    isAdministrator() ||
+    receiveActions.canView ||
+    goodsReceiptActions.canView;
+  const canAdd =
+    isAdministrator() ||
+    receiveActions.canAdd ||
+    goodsReceiptActions.canAdd;
   const poQuery = usePurchaseOrderQuery(purchaseOrderId);
   const grByPoQuery = useGoodsReceiptsByPoQuery(purchaseOrderId);
   const createMutation = useCreateGoodsReceiptFromPoMutation();
@@ -159,6 +172,14 @@ export default function GoodsReceiptCreateFromPoPage({
       }),
     });
   }, [form, po, receivable, lineMetaByPoItemId]);
+
+  if (!canView) {
+    return (
+      <AccessDenied
+        screenCodes={["PURCHASE_ORDERS_RECEIVE", "GOODS_RECEIPTS"]}
+      />
+    );
+  }
 
   if (poQuery.isLoading || grByPoQuery.isLoading) {
     return (
@@ -618,7 +639,7 @@ export default function GoodsReceiptCreateFromPoPage({
                   type="primary"
                   htmlType="submit"
                   loading={createMutation.isPending}
-                  disabled={!hasReceivableLines}
+                  disabled={!hasReceivableLines || !canAdd}
                 >
                   บันทึกใบรับของ
                 </Button>

@@ -11,9 +11,10 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { usePurchaseOrdersQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { isAdministrator } from "@/lib/auth/session";
 import type { PurchaseOrder } from "@/types/purchase-orders";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import styles from "./PurchaseOrdersListPage.module.css";
@@ -43,10 +44,9 @@ export default function PurchaseOrdersReceiveListPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
-  const canReceive =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  const receiveActions = useScreenActionPermissions("PURCHASE_ORDERS_RECEIVE");
+  const canView = isAdministrator() || receiveActions.canView;
+  const canAdd = isAdministrator() || receiveActions.canAdd;
 
   const confirmedQuery = usePurchaseOrdersQuery({
     status: "CONFIRMED",
@@ -77,77 +77,71 @@ export default function PurchaseOrdersReceiveListPage() {
 
   const loading = confirmedQuery.isLoading || partialQuery.isLoading;
 
-  const columns: ColumnsType<PurchaseOrder> = [
-    {
-      title: "เลขที่ PO",
-      dataIndex: "poNo",
-      render: (value: string, record) => (
-        <Link href={`/purchase-orders/${record.id}`}>{value}</Link>
-      ),
-    },
-    {
-      title: "วันที่",
-      dataIndex: "poDate",
-      width: 120,
-      render: formatDate,
-    },
-    {
-      title: "ผู้ขาย",
-      render: (_, record) => record.creditor?.nameTh ?? "—",
-    },
-    {
-      title: "สถานะ",
-      dataIndex: "status",
-      width: 140,
-      render: (status: string) => (
-        <Tag color={status === "CONFIRMED" ? "success" : "processing"}>
-          {PURCHASE_ORDER_STATUS_LABEL[status] ?? status}
-        </Tag>
-      ),
-    },
-    {
-      title: "รายการ",
-      width: 90,
-      align: "right",
-      render: (_, record) => remainingLines(record),
-    },
-    {
-      title: "ยอดรวม",
-      dataIndex: "totalAmount",
-      width: 130,
-      align: "right",
-      render: formatMoney,
-    },
-    {
-      title: "",
-      width: 120,
-      render: (_, record) =>
-        canReceive ? (
-          <Button
-            type="primary"
-            size="small"
-            icon={<InboxOutlined />}
-            onClick={() =>
-              router.push(`/purchase-orders/${record.id}/receive`)
-            }
-          >
-            รับของ
-          </Button>
-        ) : null,
-    },
-  ];
+  const columns: ColumnsType<PurchaseOrder> = useMemo(
+    () => [
+      {
+        title: "เลขที่ PO",
+        dataIndex: "poNo",
+        render: (value: string, record) => (
+          <Link href={`/purchase-orders/${record.id}`}>{value}</Link>
+        ),
+      },
+      {
+        title: "วันที่",
+        dataIndex: "poDate",
+        width: 120,
+        render: formatDate,
+      },
+      {
+        title: "ผู้ขาย",
+        render: (_, record) => record.creditor?.nameTh ?? "—",
+      },
+      {
+        title: "สถานะ",
+        dataIndex: "status",
+        width: 140,
+        render: (status: string) => (
+          <Tag color={status === "CONFIRMED" ? "success" : "processing"}>
+            {PURCHASE_ORDER_STATUS_LABEL[status] ?? status}
+          </Tag>
+        ),
+      },
+      {
+        title: "รายการ",
+        width: 90,
+        align: "right",
+        render: (_, record) => remainingLines(record),
+      },
+      {
+        title: "ยอดรวม",
+        dataIndex: "totalAmount",
+        width: 130,
+        align: "right",
+        render: formatMoney,
+      },
+      {
+        title: "",
+        width: 120,
+        render: (_, record) =>
+          canAdd ? (
+            <Button
+              type="primary"
+              size="small"
+              icon={<InboxOutlined />}
+              onClick={() =>
+                router.push(`/purchase-orders/${record.id}/receive`)
+              }
+            >
+              รับของ
+            </Button>
+          ) : null,
+      },
+    ],
+    [canAdd, router],
+  );
 
-  if (!canReceive) {
-    return (
-      <div className={styles.page}>
-        <section className={styles.tableCard} style={{ padding: 24 }}>
-          หน้านี้สำหรับเจ้าหน้าที่คลังเท่านั้น
-          <div style={{ marginTop: 12 }}>
-            <Link href="/purchase-orders">กลับรายการใบสั่งซื้อ</Link>
-          </div>
-        </section>
-      </div>
-    );
+  if (!canView) {
+    return <AccessDenied screenCodes={["PURCHASE_ORDERS_RECEIVE"]} />;
   }
 
   return (

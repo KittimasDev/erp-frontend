@@ -22,6 +22,7 @@ import {
   useGoodsReceiptQuery,
   useGoodsReceiptsByPoQuery,
 } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
@@ -65,10 +66,18 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
   const cancelMutation = useCancelGoodsReceiptMutation();
 
   const data = query.data?.data;
+  const receiveActions = useScreenActionPermissions("PURCHASE_ORDERS_RECEIVE");
+  const goodsReceiptActions = useScreenActionPermissions("GOODS_RECEIPTS");
   const canWrite =
+    isAdministrator() ||
     userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
     userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+    receiveActions.canAdd ||
+    receiveActions.canEdit ||
+    receiveActions.canApprove ||
+    goodsReceiptActions.canAdd ||
+    goodsReceiptActions.canEdit ||
+    goodsReceiptActions.canApprove;
   const canReceive = canWrite;
   const canPay =
     userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
