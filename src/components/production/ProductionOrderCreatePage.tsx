@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -341,12 +341,16 @@ export default function ProductionOrderCreatePage() {
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [outputRows, setOutputRows] = useState<PlanRow[]>([emptyPlanRow()]);
   const [wasteRows, setWasteRows] = useState<PlanRow[]>([]);
-  const [outputPrefilled, setOutputPrefilled] = useState(false);
-
-  useEffect(() => {
-    if (!productionRequest?.items?.length || outputPrefilled) {
-      return;
-    }
+  /**
+   * เติมแผนผลผลิตจากใบขอผลิตครั้งเดียว — ปรับ state ตอน render แทน effect
+   * ใช้ตัวใบขอผลิตที่ sync แล้วเป็นตัวกันซ้ำ แทน flag boolean แยก
+   * (เดิมเป็น effect จึงเห็นตารางว่างหนึ่งเฟรมก่อนค่าจะเด้งขึ้นมา)
+   */
+  const [prefilledRequest, setPrefilledRequest] = useState<
+    typeof productionRequest | null
+  >(null);
+  if (productionRequest?.items?.length && prefilledRequest !== productionRequest) {
+    setPrefilledRequest(productionRequest);
     setOutputRows(
       productionRequest.items.map((item) => ({
         key: rowKeySeq++,
@@ -355,8 +359,7 @@ export default function ProductionOrderCreatePage() {
         plannedQty: Number(item.requestedQty),
       })),
     );
-    setOutputPrefilled(true);
-  }, [productionRequest, outputPrefilled]);
+  }
 
   const isPlanRowComplete = (row: PlanRow) =>
     Boolean(row.itemId && row.unitId && row.plannedQty);

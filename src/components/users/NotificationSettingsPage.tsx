@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { App, Alert, Button, Space, Switch, Table, Tag, Typography } from "antd";
 import {
@@ -51,16 +51,20 @@ export default function NotificationSettingsPage({
   const detail = eventQuery.data?.data;
   const roles = detail?.roles ?? [];
 
-  useEffect(() => {
-    if (!detail) {
-      return;
-    }
+  /**
+   * ข้อมูลจาก server มาถึง/เปลี่ยน → รีเซ็ต draft ตามของจริง
+   * ปรับ state ตอน render แทน effect — effect จะทำให้ render รอบสองทุกครั้ง
+   * ที่โหลดข้อมูลเสร็จ และ draft จะกระพริบเป็นค่าเก่าหนึ่งเฟรม
+   */
+  const [syncedDetail, setSyncedDetail] = useState(detail);
+  if (syncedDetail !== detail) {
+    setSyncedDetail(detail);
     const next: Record<string, boolean> = {};
-    for (const row of detail.roles) {
+    for (const row of detail?.roles ?? []) {
       next[row.roleId] = row.isEnabled;
     }
     setDraftEnabled(next);
-  }, [detail]);
+  }
 
   const dirty = useMemo(() => {
     if (!detail) {

@@ -125,14 +125,21 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
   const deleteMutation = useDeleteUserMutation();
   const currentUserId = getStoredUser()?.id;
 
+  // sync ฟอร์มจาก URL — antd Form เป็น external system การใช้ effect ถูกต้องแล้ว
   useEffect(() => {
     form.setFieldsValue({
       q: filters.q,
       isActive: filters.isActive,
       roleId: filters.roleId,
     });
-    setPage(1);
   }, [filters, form]);
+
+  // ตัวกรองเปลี่ยน → กลับไปหน้า 1 · ปรับ state ตอน render ไม่ทำใน effect
+  const [pagedFilters, setPagedFilters] = useState(filters);
+  if (pagedFilters !== filters) {
+    setPagedFilters(filters);
+    setPage(1);
+  }
 
   const users = usersQuery.data?.data?.items ?? [];
   const roles = rolesQuery.data?.data ?? [];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -143,14 +143,26 @@ export default function PickingFormPage({ id, mode }: Props) {
   const [remark, setRemark] = useState("");
   const [rows, setRows] = useState<RowEdit[]>([]);
   const [suggestingId, setSuggestingId] = useState<string | null>(null);
-  const prefilledRef = useRef(false);
+  const leavingEditMode = Boolean(
+    data && data.status !== "DRAFT" && mode === "edit",
+  );
 
+  // เปลี่ยนหน้าเป็น side effect จริง ต้องอยู่ใน effect
   useEffect(() => {
-    if (!data) return;
-    if (data.status !== "DRAFT" && mode === "edit") {
+    if (leavingEditMode && data) {
       router.replace(`/pickings/${data.id}`);
-      return;
     }
+  }, [leavingEditMode, data, router]);
+
+  /**
+   * hydrate ฟอร์มจากข้อมูล server — ปรับ state ตอน render แทน effect
+   * ข้าม hydrate ตอนกำลังเด้งออกจากโหมดแก้ไข ให้ตรงกับ early return ของเดิม
+   * ตัวติดตามเริ่มจาก null ไม่ใช่ data เพราะถ้า query มี cache render แรก
+   * จะได้ data ทันที แล้วเงื่อนไขไม่เข้า → ฟอร์มค้างว่าง
+   */
+  const [syncedData, setSyncedData] = useState<typeof data | null>(null);
+  if (data && syncedData !== data && !leavingEditMode) {
+    setSyncedData(data);
     setPickingDate(dayjs(data.pickingDate));
     setRemark(data.remark ?? "");
     setRows(
@@ -163,38 +175,34 @@ export default function PickingFormPage({ id, mode }: Props) {
         pickedQty: Number(item.pickedQty),
       })),
     );
-    prefilledRef.current = false;
-  }, [data, mode, router]);
+  }
 
-  useEffect(() => {
-    if (!editable || !data || prefilledRef.current) return;
-    const verify = verifyQuery.data?.data;
-    if (!verify) return;
-
-    const needsFill = data.items.some((item) => !item.warehouseId);
-    if (!needsFill) {
-      prefilledRef.current = true;
-      return;
+  /**
+   * เติมคลัง/ล็อตจากผลตรวจสต๊อกให้อัตโนมัติ ครั้งเดียวต่อการโหลดข้อมูลหนึ่งรอบ
+   * ใช้ตัว data ที่เติมแล้วเป็นตัวกันซ้ำ แทน useRef ที่เดิมถูกแก้ค่าใน effect
+   */
+  const verify = verifyQuery.data?.data;
+  const [prefilledData, setPrefilledData] = useState<typeof data | null>(null);
+  if (editable && data && verify && prefilledData !== data) {
+    setPrefilledData(data);
+    if (data.items.some((item) => !item.warehouseId)) {
+      const bySoItem = new Map(
+        verify.lines.map((line) => [line.salesOrderItemId, line]),
+      );
+      setRows((prev) =>
+        prev.map((row) => {
+          if (row.warehouseId) return row;
+          const item = data.items.find((i) => i.id === row.id);
+          if (!item) return row;
+          const source = sourceFromVerification(
+            bySoItem.get(item.salesOrderItemId),
+            item.requiresLotControl,
+          );
+          return { ...row, ...source };
+        }),
+      );
     }
-
-    const bySoItem = new Map(
-      verify.lines.map((line) => [line.salesOrderItemId, line]),
-    );
-
-    setRows((prev) =>
-      prev.map((row) => {
-        if (row.warehouseId) return row;
-        const item = data.items.find((i) => i.id === row.id);
-        if (!item) return row;
-        const source = sourceFromVerification(
-          bySoItem.get(item.salesOrderItemId),
-          item.requiresLotControl,
-        );
-        return { ...row, ...source };
-      }),
-    );
-    prefilledRef.current = true;
-  }, [editable, data, verifyQuery.data]);
+  }
 
   const warehouses = warehousesQuery.data?.data ?? [];
 

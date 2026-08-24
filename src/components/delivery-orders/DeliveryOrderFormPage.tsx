@@ -75,11 +75,22 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     remark: "",
   });
 
+  // เปลี่ยนหน้าเป็น side effect จริง ต้องอยู่ใน effect
   useEffect(() => {
     if (!data) return;
     if (data.status === "DELIVERED" || data.status === "CANCELLED") {
       if (mode === "edit") router.replace(`/delivery-orders/${data.id}`);
     }
+  }, [data, mode, router]);
+
+  /**
+   * hydrate ฟอร์มจากข้อมูล server — ปรับ state ตอน render แทน effect
+   * ตัวติดตามต้องเริ่มจาก null ไม่ใช่ data เพราะถ้า query มี cache อยู่แล้ว
+   * render แรกจะได้ data ทันที แล้วเงื่อนไขไม่เข้า → ฟอร์มค้างว่าง
+   */
+  const [syncedData, setSyncedData] = useState<typeof data | null>(null);
+  if (data && syncedData !== data) {
+    setSyncedData(data);
     setForm({
       deliveryDate: dayjs(data.deliveryDate),
       shippingAddress: data.shippingAddress ?? "",
@@ -91,7 +102,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       driverPhone: data.driverPhone ?? "",
       remark: data.remark ?? "",
     });
-  }, [data, mode, router]);
+  }
 
   if (query.isLoading || !data) {
     return (

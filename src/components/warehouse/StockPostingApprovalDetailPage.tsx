@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   App,
@@ -145,32 +145,26 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
   const approveBlockedByItems = hasUnlinkedItems;
   const approveBlockedByWarehouse = needsWarehousePick && !warehouseReady;
 
-  useEffect(() => {
-    if (!needsWarehousePick || warehouseId) {
-      return;
-    }
+  /**
+   * เลือกค่าเริ่มต้นให้ถ้าผู้ใช้ยังไม่ได้เลือก — ปรับ state ตอน render แทน effect
+   * ทั้งสองก้อนมี guard อยู่แล้ว (ทำงานเฉพาะตอนช่องยังว่าง) จึงลู่เข้าใน render
+   * เดียวและไม่วนซ้ำ · เดิมเป็น effect จึงเห็นช่องว่างหนึ่งเฟรมก่อนค่าจะเด้งมา
+   */
+  if (needsWarehousePick && !warehouseId) {
     const rawWarehouse = (warehousesQuery.data?.data ?? []).find(
       (row) => row.warehouseCode === DEFAULT_RAW_TIRE_WAREHOUSE_CODE,
     );
     if (rawWarehouse) {
       setWarehouseId(rawWarehouse.id);
     }
-  }, [needsWarehousePick, warehouseId, warehousesQuery.data?.data]);
+  }
 
-  useEffect(() => {
-    if (!needsWarehousePick || warehouseLocationId || !warehouseId) {
-      return;
-    }
+  if (needsWarehousePick && warehouseId && !warehouseLocationId) {
     const locations = locationsQuery.data?.data ?? [];
     if (locations.length === 1) {
       setWarehouseLocationId(locations[0].id);
     }
-  }, [
-    needsWarehousePick,
-    warehouseLocationId,
-    warehouseId,
-    locationsQuery.data?.data,
-  ]);
+  }
 
   const warehouseOptions = useMemo(
     () =>

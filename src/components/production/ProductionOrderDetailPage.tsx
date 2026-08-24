@@ -157,10 +157,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const createFromOrderMutation =
     useCreateProductionOutputStockRequestFromOrderMutation();
 
-  if (!orderId) {
-    return null;
-  }
-
   const isDraft = order?.status === ProductionOrderStatus.DRAFT;
   const isInProgress = order?.status === ProductionOrderStatus.IN_PROGRESS;
   const isCompleted = order?.status === ProductionOrderStatus.COMPLETED;
@@ -212,6 +208,17 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     }
     return order?.productionRequestNo ? [order.productionRequestNo] : [];
   }, [order?.productionRequestNo, order?.sourceLines]);
+
+  /**
+   * ต้องอยู่หลัง hook ทุกตัว — ถ้า return ก่อน จำนวน hook ที่เรียกจะไม่เท่ากัน
+   * ระหว่าง render แล้ว React จะโยน
+   * "Rendered more hooks than during the previous render"
+   * ค่าที่คำนวณข้างบนใช้ optional chaining อยู่แล้ว จึงปลอดภัยตอน order ยังว่าง
+   */
+  if (!orderId) {
+    return null;
+  }
+
   const allocationSummary = order?.allocationSummary;
   const hasSourceLines = sourceLines.length > 0;
   const unallocatedQty = Number(allocationSummary?.unallocatedQty ?? 0);

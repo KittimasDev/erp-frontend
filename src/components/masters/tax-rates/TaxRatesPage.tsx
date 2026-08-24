@@ -146,10 +146,18 @@ export default function TaxRatesPage() {
 
   const hasFilters = FILTER_KEYS.some((key) => filters[key] !== undefined);
 
+  // sync ฟอร์มจาก URL — antd Form เป็น external system การใช้ effect ถูกต้องแล้ว
   useEffect(() => {
     form.setFieldsValue(toFormValues(filters));
-    setPage(1);
   }, [filters, form]);
+
+  // ตัวกรองเปลี่ยน → กลับไปหน้า 1 · ปรับ state ตอน render ตามที่ React แนะนำ
+  // ไม่ทำใน effect เพราะจะสั่ง render รอบสองทุกครั้งที่กรอง (cascading render)
+  const [pagedFilters, setPagedFilters] = useState(filters);
+  if (pagedFilters !== filters) {
+    setPagedFilters(filters);
+    setPage(1);
+  }
 
   const taxRatesQuery = useTaxRatesQuery(filters);
   const createMutation = useCreateTaxRateMutation();

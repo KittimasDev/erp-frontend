@@ -224,20 +224,34 @@ export default function ReceivingTicketClassifyWeighPanel({
     (Boolean(ticket.canSaveClassificationPlan) || canComplete) &&
     !receiptConfirmed;
 
-  useEffect(() => {
+  /**
+   * hydrate ฟอร์มจากตั๋ว — ปรับ state ตอน render แทน effect
+   * effect จะทำให้เห็นฟอร์มเปล่าหนึ่งเฟรมก่อนค่าจะเด้งขึ้นมา และ render ซ้อน
+   * ทุกครั้งที่ตั๋วถูก refetch · คีย์รวมเท่ากับ deps เดิมของสอง effect ที่รวมมา
+   */
+  const hydrateKey = [
+    ticket.id,
+    ticket.grossWeightKg,
+    ticket.tareWeightKg,
+  ].join("|");
+  const [hydrated, setHydrated] = useState<{
+    key: string;
+    plan: typeof ticket.classificationPlan;
+  } | null>(null);
+
+  if (hydrated?.key !== hydrateKey || hydrated.plan !== ticket.classificationPlan) {
     const plan = ticket.classificationPlan;
-    if (plan?.items?.length) {
-      setItems(
-        plan.items.map((item) =>
-          createItemRow({
-            tireClassificationId: item.tireClassificationId,
-            description: item.description,
-          }),
-        ),
-      );
-    } else {
-      setItems([createItemRow()]);
-    }
+    setHydrated({ key: hydrateKey, plan });
+    setItems(
+      plan?.items?.length
+        ? plan.items.map((item) =>
+            createItemRow({
+              tireClassificationId: item.tireClassificationId,
+              description: item.description,
+            }),
+          )
+        : [createItemRow()],
+    );
     setDeductions(
       (plan?.deductions ?? []).map((item) =>
         createDeductionRow({
@@ -248,17 +262,13 @@ export default function ReceivingTicketClassifyWeighPanel({
     );
     setPlanRemark(plan?.remark ?? "");
     setPriceSourceLineNo(plan?.priceSourceLineNo);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate local form from ticket plan
-  }, [ticket.id, ticket.classificationPlan]);
-
-  useEffect(() => {
     setGrossWeightKg(
       Number(ticket.grossWeightKg) > 0 ? Number(ticket.grossWeightKg) : null,
     );
     setTareWeightKg(
       Number(ticket.tareWeightKg) > 0 ? Number(ticket.tareWeightKg) : null,
     );
-  }, [ticket.id, ticket.grossWeightKg, ticket.tareWeightKg]);
+  }
 
   const netWeightKg = useMemo(() => {
     if (!grossWeightKg || !tareWeightKg) {

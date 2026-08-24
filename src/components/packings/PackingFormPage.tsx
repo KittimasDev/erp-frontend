@@ -77,12 +77,26 @@ export default function PackingFormPage({ id, mode }: Props) {
   const [remark, setRemark] = useState("");
   const [rows, setRows] = useState<RowEdit[]>([]);
 
+  const leavingEditMode = Boolean(
+    data && data.status !== "DRAFT" && mode === "edit",
+  );
+
+  // เปลี่ยนหน้าเป็น side effect จริง ต้องอยู่ใน effect
   useEffect(() => {
-    if (!data) return;
-    if (data.status !== "DRAFT" && mode === "edit") {
+    if (leavingEditMode && data) {
       router.replace(`/packings/${data.id}`);
-      return;
     }
+  }, [leavingEditMode, data, router]);
+
+  /**
+   * hydrate ฟอร์มจากข้อมูล server — ปรับ state ตอน render แทน effect
+   * ข้าม hydrate ตอนกำลังเด้งออกจากโหมดแก้ไข ให้ตรงกับ early return ของเดิม
+   * ตัวติดตามเริ่มจาก null ไม่ใช่ data เพราะถ้า query มี cache render แรก
+   * จะได้ data ทันที แล้วเงื่อนไขไม่เข้า → ฟอร์มค้างว่าง
+   */
+  const [syncedData, setSyncedData] = useState<typeof data | null>(null);
+  if (data && syncedData !== data && !leavingEditMode) {
+    setSyncedData(data);
     setPackingDate(dayjs(data.packingDate));
     setPackageType(data.packageType ?? "");
     setPackageCount(data.packageCount ?? null);
@@ -97,7 +111,7 @@ export default function PackingFormPage({ id, mode }: Props) {
         remark: item.remark,
       })),
     );
-  }, [data, mode, router]);
+  }
 
   const updateRow = (itemId: string, patch: Partial<RowEdit>) => {
     setRows((prev) =>
