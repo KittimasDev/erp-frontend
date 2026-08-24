@@ -32,7 +32,7 @@ import {
 } from "@/lib/auth/portal-module";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
-import { usePendingDraftPickingsCountQuery } from "@/hooks/pickings/usePickingsQuery";
+import { useReadySalesOrdersForPickingCountQuery } from "@/hooks/pickings/usePickingsQuery";
 import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
@@ -1842,8 +1842,10 @@ export default function AppHeader({
     });
   const pendingProductionOutputStockRequestsCount =
     pendingProductionOutputStockRequestsCountQuery.data ?? 0;
-  const pendingDraftPickingsCountQuery = usePendingDraftPickingsCountQuery();
-  const pendingDraftPickingsCount = pendingDraftPickingsCountQuery.data ?? 0;
+  const readySalesOrdersForPickingCountQuery =
+    useReadySalesOrdersForPickingCountQuery();
+  const readySalesOrdersForPickingCount =
+    readySalesOrdersForPickingCountQuery.data ?? 0;
   const visibleSalesMenus = filterMenus(salesMenus);
   const visibleLaboratoryMenus = filterMenus(laboratoryMenus);
   const visibleOilTankFarmMenus = filterMenus(oilTankFarmMenus);
@@ -2051,7 +2053,7 @@ export default function AppHeader({
                     handleGo,
                     searchParams,
                     item.key === "pickings"
-                      ? pendingDraftPickingsCount
+                      ? readySalesOrdersForPickingCount
                       : undefined,
                   ),
                 )}

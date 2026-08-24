@@ -30,7 +30,7 @@ import {
   type StoredUser,
 } from "@/lib/auth/session";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
-import { usePendingDraftPickingsCountQuery } from "@/hooks/pickings/usePickingsQuery";
+import { useReadySalesOrdersForPickingCountQuery } from "@/hooks/pickings/usePickingsQuery";
 import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
@@ -141,10 +141,12 @@ export default function HomePortalPage() {
     });
   const pendingProductionOutputStockRequestsCount =
     pendingProductionOutputStockRequestsCountQuery.data ?? 0;
-  const pendingDraftPickingsCountQuery = usePendingDraftPickingsCountQuery({
-    enabled: mounted,
-  });
-  const pendingDraftPickingsCount = pendingDraftPickingsCountQuery.data ?? 0;
+  const readySalesOrdersForPickingCountQuery =
+    useReadySalesOrdersForPickingCountQuery({
+      enabled: mounted,
+    });
+  const readySalesOrdersForPickingCount =
+    readySalesOrdersForPickingCountQuery.data ?? 0;
 
   const displayName = user?.displayName || user?.username || "ผู้ใช้งาน";
   const roleLabel =
@@ -200,11 +202,11 @@ export default function HomePortalPage() {
                   : mod.key === "production"
                     ? pendingProductionOutputStockRequestsCount
                     : mod.key === "fg-warehouse"
-                      ? pendingDraftPickingsCount
+                      ? readySalesOrdersForPickingCount
                       : 0;
             const showPendingBadge = pendingBadgeCount > 0;
             const pendingBadgeLabel =
-              mod.key === "fg-warehouse" ? "รอหยิบ/ยืนยัน" : "รออนุมัติ";
+              mod.key === "fg-warehouse" ? "รอหยิบ" : "รออนุมัติ";
 
             return (
               <Badge

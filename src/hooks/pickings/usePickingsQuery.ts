@@ -19,9 +19,9 @@ import type { PickingQueryParams } from "@/types/pickings";
 
 export const pickingsQueryKey = ["pickings"] as const;
 
-export const pendingDraftPickingsCountQueryKey = [
+export const readySalesOrdersForPickingQueryKey = [
   ...pickingsQueryKey,
-  "draft-count",
+  "ready-sales-orders",
 ] as const;
 
 const COUNT_POLL_MS = 30_000;
@@ -72,21 +72,19 @@ export function usePickingQuery(id?: string) {
 
 export function useReadySalesOrdersForPickingQuery() {
   return useQuery({
-    queryKey: [...pickingsQueryKey, "ready-sales-orders"],
+    queryKey: readySalesOrdersForPickingQueryKey,
     queryFn: () => getReadySalesOrdersForPicking(getAccessToken()),
+    enabled: hasAccessToken(),
   });
 }
 
-/** จำนวนใบจ่ายสินค้าร่าง สำหรับ badge (เมนู / หน้าแรก) */
-export function usePendingDraftPickingsCountQuery(options?: {
+/** จำนวน SO ที่พร้อมสร้างใบจ่าย — ใช้ร่วมกันที่ปุ่มสร้างจาก SO / เมนู / หน้าแรก */
+export function useReadySalesOrdersForPickingCountQuery(options?: {
   enabled?: boolean;
 }) {
   return useQuery({
-    queryKey: pendingDraftPickingsCountQueryKey,
-    queryFn: () =>
-      getPickings(getAccessToken(), {
-        status: "DRAFT",
-      }),
+    queryKey: readySalesOrdersForPickingQueryKey,
+    queryFn: () => getReadySalesOrdersForPicking(getAccessToken()),
     enabled:
       (options?.enabled ?? true) && hasAccessToken() && canAccessPickings(),
     refetchInterval: countPollInterval,

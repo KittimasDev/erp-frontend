@@ -16,7 +16,7 @@ import dayjs from "dayjs";
 
 import {
   usePickingsQuery,
-  useReadySalesOrdersForPickingQuery,
+  useReadySalesOrdersForPickingCountQuery,
 } from "@/hooks/pickings/usePickingsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -52,10 +52,10 @@ export default function PickingsListPage() {
 
   const customersQuery = useCustomersQuery();
   const query = usePickingsQuery(applied);
-  const readySosQuery = useReadySalesOrdersForPickingQuery();
+  const readyCountQuery = useReadySalesOrdersForPickingCountQuery();
   const rows = query.data?.data ?? [];
   const customers = customersQuery.data?.data ?? [];
-  const readyCount = readySosQuery.data?.data?.length ?? 0;
+  const readyCount = readyCountQuery.data ?? 0;
 
   const columns: ColumnsType<Picking> = useMemo(
     () => [
