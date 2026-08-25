@@ -172,6 +172,13 @@ function reservationLineTag(line: SalesOrderReservationLine) {
   if (line.isFullyReserved) {
     return <Tag color="success">จองครบ</Tag>;
   }
+  // ขาดของแต่มีใบขอผลิตคุมไว้แล้ว = รอของ ไม่ใช่ต้องไปหาของเพิ่ม
+  if (
+    Number(line.shortageQty) > 0 &&
+    Number(line.unplannedShortageQty ?? line.shortageQty) <= 0.0005
+  ) {
+    return <Tag color="processing">รอผลผลิต</Tag>;
+  }
   if (Number(line.shortageQty) > 0) {
     return <Tag color="error">สต๊อกไม่พอ</Tag>;
   }
@@ -186,7 +193,10 @@ function buildProductionRequestLine(
   const reservationLine = reservationLines.find(
     (line) => line.salesOrderItemId === salesOrderItemId,
   );
-  const shortage = Number(reservationLine?.shortageQty ?? 0);
+  // ใช้ยอดขาดที่หักใบขอผลิตเดิมออกแล้ว — กันเสนอเปิดใบขอผลิตซ้ำของก้อนเดียวกัน
+  const shortage = Number(
+    reservationLine?.unplannedShortageQty ?? reservationLine?.shortageQty ?? 0,
+  );
   const eligibleItem = eligibleItems.find(
     (item) => item.salesOrderItemId === salesOrderItemId,
   );
@@ -1513,7 +1523,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             : (item.itemNameTh ?? "—")}
                         </p>
                         <p className={styles.itemCode}>
-                          ขาด {Number(reservationLine.shortageQty).toLocaleString("th-TH")}{" "}
+                          ขาด{" "}
+                          {Number(
+                            reservationLine.unplannedShortageQty ??
+                              reservationLine.shortageQty,
+                          ).toLocaleString("th-TH")}{" "}
                           {item.unitCode ?? ""} · ขอผลิต {productionRequestLine.requestedQty.toLocaleString("th-TH")}{" "}
                           {item.unitCode ?? ""}
                         </p>
@@ -1568,7 +1582,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
               ) : reservationStatus ? (
                 <div className={styles.stockTruthList}>
                   {reservationStatus.lines.map((line) => {
-                    const stillShort = Number(line.shortageQty) > 0.0005;
+                    const pendingProduction = Number(
+                      line.pendingProductionQty ?? 0,
+                    );
+                    // ขาดจริง = หักทั้งที่จองแล้วและที่มีใบขอผลิตคุมไว้แล้ว
+                    const stillShort =
+                      Number(line.unplannedShortageQty ?? line.shortageQty) >
+                      0.0005;
                     return (
                       <div key={line.salesOrderItemId} className={styles.stockTruthRow}>
                         <div className={styles.itemBody}>
@@ -1581,13 +1601,28 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             สั่ง {formatQty(line.orderedQty)} · ในคลังพร้อมใช้{" "}
                             {formatQty(line.availableQty)} · จองแล้ว{" "}
                             {formatQty(line.reservedQty)}
+                            {pendingProduction > 0.0005
+                              ? ` · รอผลิต ${formatQty(line.pendingProductionQty)}`
+                              : ""}
                             {stillShort
-                              ? ` · ขาดอีก ${formatQty(line.shortageQty)}`
+                              ? ` · ขาดอีก ${formatQty(line.unplannedShortageQty ?? line.shortageQty)}`
                               : ""}
                           </p>
                         </div>
-                        <Tag color={stillShort ? "error" : "success"}>
-                          {stillShort ? "ยังไม่พอจริง" : "พอจริง"}
+                        <Tag
+                          color={
+                            stillShort
+                              ? "error"
+                              : pendingProduction > 0.0005
+                                ? "processing"
+                                : "success"
+                          }
+                        >
+                          {stillShort
+                            ? "ยังไม่พอจริง"
+                            : pendingProduction > 0.0005
+                              ? "รอผลผลิต"
+                              : "พอจริง"}
                         </Tag>
                       </div>
                     );

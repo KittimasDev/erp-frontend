@@ -161,6 +161,10 @@ export type SalesOrderReservationLine = {
   reservedQty: string;
   availableQty: string;
   shortageQty: string;
+  /** มีใบขอผลิตคุมไว้แล้วแต่ยังผลิตไม่เสร็จ */
+  pendingProductionQty: string;
+  /** ยังต้องหาของเพิ่มจริง ๆ = สั่ง − จองแล้ว − รอผลิต */
+  unplannedShortageQty: string;
   canReserve: boolean;
   canRelease: boolean;
   isFullyReserved: boolean;
@@ -172,6 +176,8 @@ export type SalesOrderReservationStatus = {
   status: string;
   isAllFullyReserved: boolean;
   hasShortage: boolean;
+  /** ยังขาดของจริง ๆ หลังหักที่สั่งผลิตไว้แล้ว */
+  hasUnplannedShortage: boolean;
   lines: SalesOrderReservationLine[];
 };
 

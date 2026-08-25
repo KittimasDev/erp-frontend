@@ -67,7 +67,12 @@ function buildSharedItemPools(orders: LinkedSalesOrder[]): SharedItemPool[] {
   for (const order of orders) {
     const needByItem = new Map<string, number>();
     for (const line of order.lines ?? []) {
-      const need = Number(line.needQty);
+      // ของที่รอผลิตผูกกับ SO ใบนี้แล้ว ไม่ได้แย่งสต๊อกกลางกับใบอื่น
+      // จึงต้องหักออกก่อน ไม่งั้น totalNeed พองแล้วขึ้นเตือน "ของไม่พอ" ทั้งที่มีคนสั่งผลิตให้แล้ว
+      const need = Math.max(
+        Number(line.needQty) - Number(line.pendingProductionQty),
+        0,
+      );
       if (!(need > 0.0005)) {
         continue;
       }
@@ -169,10 +174,40 @@ export default function SalesOrdersInProductionPage() {
         render: (_, line) => `${fmtQty(line.orderedQty)} ${line.unitCode ?? ""}`,
       },
       {
-        title: "ต้องการ",
-        key: "needQty",
+        title: "จองแล้ว",
+        key: "reservedQty",
         align: "right",
-        render: (_, line) => `${fmtQty(line.needQty)} ${line.unitCode ?? ""}`,
+        render: (_, line) => (
+          <span style={{ color: "#237804" }}>
+            {fmtQty(line.reservedQty)} {line.unitCode ?? ""}
+          </span>
+        ),
+      },
+      {
+        title: "รอผลิต",
+        key: "pendingProductionQty",
+        align: "right",
+        render: (_, line) =>
+          Number(line.pendingProductionQty) > 0.0005 ? (
+            <span style={{ color: "#0958d9" }}>
+              {fmtQty(line.pendingProductionQty)} {line.unitCode ?? ""}
+            </span>
+          ) : (
+            "—"
+          ),
+      },
+      {
+        title: "ขาด",
+        key: "shortageQty",
+        align: "right",
+        render: (_, line) =>
+          Number(line.shortageQty) > 0.0005 ? (
+            <strong style={{ color: "#cf1322" }}>
+              {fmtQty(line.shortageQty)} {line.unitCode ?? ""}
+            </strong>
+          ) : (
+            "—"
+          ),
       },
       {
         title: "สถานะของ",
@@ -181,11 +216,25 @@ export default function SalesOrdersInProductionPage() {
           if (line.isFullyReserved && hasReservedQty(line)) {
             return <Tag color="success">จัดลง SO ครบแล้ว</Tag>;
           }
-          const need = Number(line.needQty);
+          // มีใบขอผลิตคุมส่วนที่ขาดครบแล้ว — ไม่ต้องไปแย่งของกลาง
+          if (
+            Number(line.shortageQty) <= 0.0005 &&
+            Number(line.pendingProductionQty) > 0.0005
+          ) {
+            return (
+              <Tag color="processing">
+                รอผลผลิต {fmtQty(line.pendingProductionQty)}
+              </Tag>
+            );
+          }
+          const need = Math.max(
+            Number(line.needQty) - Number(line.pendingProductionQty),
+            0,
+          );
           const warehouse = Number(line.warehouseAvailableQty);
           const totalNeed = poolByItemId.get(line.itemId)?.totalNeed ?? need;
           if (need > warehouse + 0.0005) {
-            return <Tag color="warning">คลังไม่พอแม้เลือกใบนี้</Tag>;
+            return <Tag color="warning">คลังไม่พอ ต้องเปิดใบขอผลิตเพิ่ม</Tag>;
           }
           if (totalNeed > warehouse + 0.0005) {
             return <Tag color="processing">พอถ้าเลือกใบนี้</Tag>;
@@ -335,8 +384,10 @@ export default function SalesOrdersInProductionPage() {
                 <div className={styles.actions}>
                   {row.isFullyReserved ? (
                     <Tag color="success">พร้อมยืนยัน</Tag>
+                  ) : row.hasUnplannedShortage ? (
+                    <Tag color="warning">ของไม่พอ ต้องเปิดใบขอผลิตเพิ่ม</Tag>
                   ) : (
-                    <Tag color="warning">ยังไม่มีของ / ของไม่พอ</Tag>
+                    <Tag color="processing">รอผลผลิต</Tag>
                   )}
                   <Button
                     type="primary"
@@ -351,8 +402,11 @@ export default function SalesOrdersInProductionPage() {
 
               <div>
                 <p className={styles.itemHint}>
-                  สินค้าในใบนี้ · ยังไม่ได้จองลงใบสั่งขายจนกว่าจะกดจัดของลง SO
-                  ถ้าสินค้าเดียวกันมีหลายใบ ให้ดูสรุปคลังร่วมด้านบน
+                  สินค้าในใบนี้ · <strong>รอผลิต</strong>{" "}
+                  คือของที่มีใบขอผลิตคุมไว้ให้ใบนี้แล้ว ผลิตเสร็จเมื่อไหร่ระบบจะจอง
+                  กลับมาให้อัตโนมัติ ใบสั่งขายอื่นแย่งไปไม่ได้ ·{" "}
+                  <strong>ขาด</strong> คือส่วนที่ยังไม่มีทั้งของและใบขอผลิต
+                  ต้องเปิดใบขอผลิตเพิ่ม
                 </p>
                 <Table<LinkedSalesOrderLine>
                   size="small"

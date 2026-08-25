@@ -273,8 +273,14 @@ export type LinkedSalesOrderLine = {
   reservedQty: string;
   needQty: string;
   warehouseAvailableQty: string;
+  /** มีใบขอผลิตคุมไว้แล้วแต่ยังผลิตไม่เสร็จ — ผูกกับ SO นี้แล้ว ใบอื่นเอาไปไม่ได้ */
+  pendingProductionQty: string;
+  /** ยังต้องหาของเพิ่มจริง ๆ = สั่ง − จองแล้ว − รอผลิต */
+  shortageQty: string;
   isFullyReserved: boolean;
   warehouseCoversNeed: boolean;
+  /** จองแล้ว + รอผลิต ครอบคลุมยอดสั่งครบ */
+  isCoveredByPlan: boolean;
 };
 
 export type LinkedSalesOrder = {
@@ -287,6 +293,8 @@ export type LinkedSalesOrder = {
   latestRequestStatus: string;
   hasShortage: boolean;
   isFullyReserved: boolean;
+  /** ยังขาดของจริง ๆ หลังหักที่จองแล้วและที่สั่งผลิตไว้ — ต้องเปิดใบขอผลิตเพิ่ม */
+  hasUnplannedShortage: boolean;
   productionRequests: LinkedSalesOrderProductionRequest[];
   lines: LinkedSalesOrderLine[];
 };

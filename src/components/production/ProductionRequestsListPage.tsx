@@ -165,7 +165,19 @@ export default function ProductionRequestsListPage() {
       title: "ใบสั่งขายอ้างอิง",
       dataIndex: "soNo",
       key: "soNo",
-      render: (value?: string) => value || "-",
+      render: (value: string | undefined, row) =>
+        value ? (
+          <button
+            type="button"
+            className={masterStyles.codeBadge}
+            style={{ border: 0, cursor: "pointer" }}
+            onClick={() => router.push(`/sales-orders/${row.salesOrderId}`)}
+          >
+            {value}
+          </button>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "ลูกค้า",
@@ -191,6 +203,30 @@ export default function ProductionRequestsListPage() {
       key: "itemCount",
       align: "right",
       render: (_, row) => `${row.items.length} รายการ`,
+    },
+    {
+      title: "ค้างส่ง SO",
+      key: "outstanding",
+      align: "right",
+      width: 120,
+      render: (_, row) => {
+        const outstanding = (row.items ?? []).reduce(
+          (sum, item) => sum + (Number(item.outstandingQty) || 0),
+          0,
+        );
+        if (!(outstanding > 0.0005) || row.status === "CANCELLED") {
+          return "—";
+        }
+        return (
+          <Tooltip title="ยอดที่ผูกไว้ให้ใบสั่งขายนี้แล้วแต่ยังผลิตไม่เสร็จ — ผลิตเสร็จเมื่อไหร่ระบบจองกลับให้ SO อัตโนมัติ ใบอื่นแย่งไม่ได้">
+            <span style={{ color: "#0958d9" }}>
+              {outstanding.toLocaleString("th-TH", {
+                maximumFractionDigits: 3,
+              })}
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "ผลิตได้แล้ว",
