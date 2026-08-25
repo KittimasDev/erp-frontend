@@ -5,6 +5,7 @@ import type {
   PurchaseOrderByPrApiResponse,
   PurchaseOrderListApiResponse,
   PurchaseOrderQueryParams,
+  RejectPurchaseOrderBody,
   UpdatePurchaseOrderBody,
 } from "@/types/purchase-orders";
 
@@ -73,10 +74,53 @@ export function updatePurchaseOrder(
   });
 }
 
-export function confirmPurchaseOrder(token: string, id: string) {
+/** ใบสั่งซื้อรออนุมัติ — หน้า /purchase-orders/approvals */
+export function getPendingPurchaseOrderApprovals(
+  token: string,
+  params?: PurchaseOrderQueryParams,
+) {
+  return apiFetch<PurchaseOrderListApiResponse>(
+    `/api/purchase-orders/approvals/pending${buildQuery(params)}`,
+    { method: "GET", token },
+  );
+}
+
+/** จัดซื้อส่งให้หัวหน้าอนุมัติ (DRAFT → รออนุมัติ) */
+export function submitPurchaseOrder(token: string, id: string) {
   return apiFetch<PurchaseOrderApiResponse>(
-    `/api/purchase-orders/${id}/confirm`,
+    `/api/purchase-orders/${id}/submit`,
     { method: "POST", token },
+  );
+}
+
+/** หัวหน้าอนุมัติ (รออนุมัติ → อนุมัติแล้ว รอส่งสินค้า) */
+export function approvePurchaseOrder(token: string, id: string) {
+  return apiFetch<PurchaseOrderApiResponse>(
+    `/api/purchase-orders/${id}/approve`,
+    { method: "POST", token },
+  );
+}
+
+export function rejectPurchaseOrder(
+  token: string,
+  id: string,
+  body: RejectPurchaseOrderBody,
+) {
+  return apiFetch<PurchaseOrderApiResponse>(
+    `/api/purchase-orders/${id}/reject`,
+    { method: "POST", token, body },
+  );
+}
+
+/** ส่งกลับให้จัดซื้อแก้ไข (รออนุมัติ → ร่าง) */
+export function returnPurchaseOrderToDraft(
+  token: string,
+  id: string,
+  body: RejectPurchaseOrderBody,
+) {
+  return apiFetch<PurchaseOrderApiResponse>(
+    `/api/purchase-orders/${id}/return-to-draft`,
+    { method: "POST", token, body },
   );
 }
 

@@ -46,9 +46,9 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/reports/ar-aging", title: "รายงานลูกหนี้คงค้าง" },
   { href: "/reports/sales-invoices", title: "รายงานใบแจ้งหนี้" },
   { href: "/reports/sales-payments", title: "รายงานรับชำระเงิน" },
-  { href: "/procurement/tracking", title: "ติดตามจัดซื้อ" },
+  { href: "/procurement/tracking", title: "ติดตามการจัดซื้อ" },
+  { href: "/purchase-orders/approvals", title: "อนุมัติใบสั่งซื้อ" },
   { href: "/purchase-orders", title: "ใบสั่งซื้อ PO" },
-  { href: "/purchase-orders/receive", title: "รับของ (PO)" },
   { href: "/purchase-requests/approvals", title: "อนุมัติใบขอซื้อ" },
   { href: "/purchase-requests/create", title: "สร้างใบขอซื้อ" },
   { href: "/purchase-requests", title: "ใบขอซื้อ PR" },
@@ -238,9 +238,6 @@ function resolvePageTitle(
     return "ผู้ใช้งาน";
   }
 
-  if (/^\/purchase-orders\/[^/]+\/receive$/.test(pathname)) {
-    return "รับของจากใบสั่งซื้อ";
-  }
 
   if (/^\/receiving\/receipts\/[^/]+\/warehouse-receipt$/.test(pathname)) {
     return "ใบรับสินค้าเข้าคลัง";

@@ -96,7 +96,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   {
     prefix: "/goods-receipts",
-    screenCodes: ["GOODS_RECEIPTS", "PURCHASE_ORDERS_RECEIVE"],
+    screenCodes: ["GOODS_RECEIPTS"],
   },
   { prefix: "/warehouse/approvals", screenCodes: ["WAREHOUSE_APPROVALS"] },
 
@@ -157,8 +157,8 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   { prefix: "/purchase-requests", screenCodes: ["PURCHASE_REQUESTS"] },
   {
-    prefix: "/purchase-orders/receive",
-    screenCodes: ["PURCHASE_ORDERS_RECEIVE"],
+    prefix: "/purchase-orders/approvals",
+    screenCodes: ["PURCHASE_ORDER_APPROVALS"],
   },
   { prefix: "/purchase-orders", screenCodes: ["PURCHASE_ORDERS"] },
   { prefix: "/procurement/tracking", screenCodes: ["PROCUREMENT_TRACKING"] },
@@ -314,8 +314,8 @@ export function resolveScreenCodesForPath(
       "DELIVERY_ORDERS",
     ];
   }
-  if (/^\/purchase-orders\/[^/]+\/receive$/.test(pathname)) {
-    return ["PURCHASE_ORDERS_RECEIVE", "GOODS_RECEIPTS"];
+  if (/^\/goods-receipts\/create-from-po\/[^/]+$/.test(pathname)) {
+    return ["GOODS_RECEIPTS"];
   }
 
   if (
@@ -403,7 +403,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   PURCHASE_REQUESTS: "/purchase-requests",
   PURCHASE_REQUEST_APPROVALS: "/purchase-requests/approvals",
   PURCHASE_ORDERS: "/purchase-orders",
-  PURCHASE_ORDERS_RECEIVE: "/purchase-orders/receive",
+  PURCHASE_ORDER_APPROVALS: "/purchase-orders/approvals",
   PROCUREMENT_TRACKING: "/procurement/tracking",
   MASTERS_CUSTOMERS: "/customers",
   QUOTATIONS: "/quotations",

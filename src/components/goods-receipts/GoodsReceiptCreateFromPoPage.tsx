@@ -68,16 +68,9 @@ export default function GoodsReceiptCreateFromPoPage({
 }: Props) {
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
-  const receiveActions = useScreenActionPermissions("PURCHASE_ORDERS_RECEIVE");
   const goodsReceiptActions = useScreenActionPermissions("GOODS_RECEIPTS");
-  const canView =
-    isAdministrator() ||
-    receiveActions.canView ||
-    goodsReceiptActions.canView;
-  const canAdd =
-    isAdministrator() ||
-    receiveActions.canAdd ||
-    goodsReceiptActions.canAdd;
+  const canView = isAdministrator() || goodsReceiptActions.canView;
+  const canAdd = isAdministrator() || goodsReceiptActions.canAdd;
   const poQuery = usePurchaseOrderQuery(purchaseOrderId);
   const grByPoQuery = useGoodsReceiptsByPoQuery(purchaseOrderId);
   const createMutation = useCreateGoodsReceiptFromPoMutation();
@@ -175,9 +168,7 @@ export default function GoodsReceiptCreateFromPoPage({
 
   if (!canView) {
     return (
-      <AccessDenied
-        screenCodes={["PURCHASE_ORDERS_RECEIVE", "GOODS_RECEIPTS"]}
-      />
+      <AccessDenied screenCodes={["GOODS_RECEIPTS"]} />
     );
   }
 
@@ -199,7 +190,7 @@ export default function GoodsReceiptCreateFromPoPage({
           description="ไม่สามารถโหลดใบสั่งซื้อหรือประวัติการรับของได้ ลองรีเฟรชหน้าอีกครั้ง"
         />
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders/receive">กลับรายการรับของ</Link>
+          <Link href={resolvedBackHref}>กลับ</Link>
         </div>
       </div>
     );
@@ -210,7 +201,7 @@ export default function GoodsReceiptCreateFromPoPage({
       <div className={styles.page}>
         ไม่พบใบสั่งซื้อ
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders/receive">กลับ</Link>
+          <Link href={resolvedBackHref}>กลับ</Link>
         </div>
       </div>
     );

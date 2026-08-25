@@ -6,9 +6,12 @@ import { App } from "antd";
 import { ApiError } from "@/lib/api/client";
 import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
 import {
+  approvePurchaseOrder,
   cancelPurchaseOrder,
-  confirmPurchaseOrder,
   createPurchaseOrderFromPr,
+  rejectPurchaseOrder,
+  returnPurchaseOrderToDraft,
+  submitPurchaseOrder,
   updatePurchaseOrder,
 } from "@/lib/api/purchase-orders";
 import { getAccessToken } from "@/lib/auth/token";
@@ -18,6 +21,7 @@ import {
 } from "@/types/document-attachments";
 import type {
   CreatePurchaseOrderFromPrBody,
+  RejectPurchaseOrderBody,
   UpdatePurchaseOrderBody,
 } from "@/types/purchase-orders";
 import { purchaseOrdersQueryKey } from "./usePurchaseOrdersQuery";
@@ -77,20 +81,92 @@ export function useUpdatePurchaseOrderMutation() {
   });
 }
 
-export function useConfirmPurchaseOrderMutation() {
+/** จัดซื้อส่งใบสั่งซื้อให้หัวหน้าอนุมัติ (ร่าง → รออนุมัติ) */
+export function useSubmitPurchaseOrderMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
   return useMutation({
-    mutationKey: [...purchaseOrdersQueryKey, "confirm"],
-    mutationFn: (id: string) => confirmPurchaseOrder(getAccessToken(), id),
+    mutationKey: [...purchaseOrdersQueryKey, "submit"],
+    mutationFn: (id: string) => submitPurchaseOrder(getAccessToken(), id),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
-      message.success(response.message || "Confirm ใบสั่งซื้อสำเร็จแล้ว");
+      message.success(response.message || "ส่งอนุมัติใบสั่งซื้อแล้ว");
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "Confirm ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : "ส่งอนุมัติไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+/** หัวหน้าอนุมัติ (รออนุมัติ → อนุมัติแล้ว รอส่งสินค้า) */
+export function useApprovePurchaseOrderMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseOrdersQueryKey, "approve"],
+    mutationFn: (id: string) => approvePurchaseOrder(getAccessToken(), id),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
+      message.success(response.message || "อนุมัติใบสั่งซื้อสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "อนุมัติไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useRejectPurchaseOrderMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseOrdersQueryKey, "reject"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: RejectPurchaseOrderBody;
+    }) => rejectPurchaseOrder(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
+      message.success(response.message || "ปฏิเสธใบสั่งซื้อแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ปฏิเสธไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+/** หัวหน้าส่งกลับให้จัดซื้อแก้ไข (รออนุมัติ → ร่าง) */
+export function useReturnPurchaseOrderToDraftMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseOrdersQueryKey, "return-to-draft"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: RejectPurchaseOrderBody;
+    }) => returnPurchaseOrderToDraft(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
+      message.success(response.message || "ส่งกลับให้แก้ไขแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ส่งกลับแก้ไขไม่สำเร็จ",
       );
     },
   });

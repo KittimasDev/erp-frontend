@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Modal, Spin, Upload } from "antd";
+import { App, Button, Input, Modal, Spin, Upload } from "antd";
 import type { UploadProps } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
+  CloseCircleOutlined,
   DownloadOutlined,
   DollarOutlined,
   EditOutlined,
@@ -16,16 +17,22 @@ import {
   FileTextOutlined,
   InboxOutlined,
   PaperClipOutlined,
+  RollbackOutlined,
+  SendOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import {
+  useApprovePurchaseOrderMutation,
   useCancelPurchaseOrderMutation,
-  useConfirmPurchaseOrderMutation,
+  useRejectPurchaseOrderMutation,
+  useReturnPurchaseOrderToDraftMutation,
+  useSubmitPurchaseOrderMutation,
   useUploadPurchaseOrderAttachmentMutation,
 } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import {
+  canAccessPurchaseOrderApprovals,
   usePurchaseOrderAttachmentsQuery,
   usePurchaseOrderQuery,
 } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
@@ -59,6 +66,11 @@ function formatDate(value?: string) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
+function formatDateTime(value?: string) {
+  if (!value) return "—";
+  return dayjs(value).format("DD/MM/YYYY HH:mm");
+}
+
 function formatMoney(value?: string) {
   const n = Number(value ?? 0);
   if (Number.isNaN(n)) return value ?? "—";
@@ -76,6 +88,7 @@ function statusClass(status: string) {
     case "PARTIALLY_RECEIVED":
       return styles.statusApproved;
     case "CANCELLED":
+    case "REJECTED":
       return styles.statusCancelled;
     default:
       return styles.statusDraft;
@@ -95,10 +108,18 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const { modal, message } = App.useApp();
   const query = usePurchaseOrderQuery(id);
   const attachmentsQuery = usePurchaseOrderAttachmentsQuery(id);
-  const confirmMutation = useConfirmPurchaseOrderMutation();
+  const submitMutation = useSubmitPurchaseOrderMutation();
+  const approveMutation = useApprovePurchaseOrderMutation();
+  const rejectMutation = useRejectPurchaseOrderMutation();
+  const returnMutation = useReturnPurchaseOrderToDraftMutation();
   const cancelMutation = useCancelPurchaseOrderMutation();
   const uploadMutation = useUploadPurchaseOrderAttachmentMutation();
 
+  // modal เหตุผลของฝั่งอนุมัติ — ใช้ทั้งปฏิเสธและส่งกลับแก้ไข
+  const [reviewAction, setReviewAction] = useState<"reject" | "return" | null>(
+    null,
+  );
+  const [reviewReason, setReviewReason] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -113,13 +134,17 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     isAdministrator();
   const canCancel =
     userHasRole(RoleCode.PROCUREMENT_MANAGER) || isAdministrator();
-  const receiveActions = useScreenActionPermissions("PURCHASE_ORDERS_RECEIVE");
+  // อนุมัติ PO = หัวหน้าจัดซื้อ (คนละสิทธิ์กับคนสร้าง PO)
+  const canApprove = canAccessPurchaseOrderApprovals();
+  const receiveActions = useScreenActionPermissions("GOODS_RECEIPTS");
   const canReceive = isAdministrator() || receiveActions.canAdd;
   const canPay =
     userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
   const canUploadAttachment =
     canWrite &&
-    (data?.status === "DRAFT" || data?.status === "CONFIRMED");
+    (data?.status === "DRAFT" ||
+      data?.status === "PENDING_APPROVAL" ||
+      data?.status === "CONFIRMED");
 
   const grByPoQuery = useGoodsReceiptsByPoQuery(
     data ? data.id : undefined,
@@ -227,7 +252,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   }
 
   const busy =
-    confirmMutation.isPending ||
+    submitMutation.isPending ||
+    approveMutation.isPending ||
+    rejectMutation.isPending ||
+    returnMutation.isPending ||
     cancelMutation.isPending ||
     uploadMutation.isPending;
 
@@ -501,7 +529,40 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               <span>ไฟล์แนบ</span>
               <strong>{attachments.length}</strong>
             </div>
+            {data.submittedAt ? (
+              <div className={styles.sideRow}>
+                <span>ส่งอนุมัติเมื่อ</span>
+                <strong>{formatDateTime(data.submittedAt)}</strong>
+              </div>
+            ) : null}
+            {data.approvedBy ? (
+              <div className={styles.sideRow}>
+                <span>
+                  {data.status === "REJECTED" ? "ผู้ไม่อนุมัติ" : "ผู้อนุมัติ"}
+                </span>
+                <strong>{data.approvedBy.displayName}</strong>
+              </div>
+            ) : null}
+            {data.approvedAt ? (
+              <div className={styles.sideRow}>
+                <span>
+                  {data.status === "REJECTED" ? "ไม่อนุมัติเมื่อ" : "อนุมัติเมื่อ"}
+                </span>
+                <strong>{formatDateTime(data.approvedAt)}</strong>
+              </div>
+            ) : null}
           </div>
+
+          {data.rejectedReason ? (
+            <div className={styles.flowNote}>
+              <strong>
+                {data.status === "REJECTED"
+                  ? "เหตุผลที่ไม่อนุมัติ"
+                  : "หัวหน้าส่งกลับให้แก้ไข"}
+              </strong>
+              <p style={{ margin: "6px 0 0" }}>{data.rejectedReason}</p>
+            </div>
+          ) : null}
 
           <div className={styles.actionStack}>
             <Button
@@ -517,11 +578,20 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 <Button
                   className={styles.primaryBtn}
                   type="primary"
-                  icon={<CheckOutlined />}
+                  icon={<SendOutlined />}
                   loading={busy}
-                  onClick={() => confirmMutation.mutate(data.id)}
+                  onClick={() =>
+                    modal.confirm({
+                      title: "ส่งใบสั่งซื้อให้หัวหน้าอนุมัติ?",
+                      content:
+                        "ส่งแล้วจะแก้ไขไม่ได้จนกว่าหัวหน้าจะส่งกลับให้แก้ไข",
+                      okText: "ส่งอนุมัติ",
+                      cancelText: "ยกเลิก",
+                      onOk: () => submitMutation.mutateAsync(data.id),
+                    })
+                  }
                 >
-                  Confirm ใบสั่งซื้อ
+                  ส่งอนุมัติ
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -535,6 +605,59 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </>
             ) : null}
 
+            {data.status === "PENDING_APPROVAL" && canApprove ? (
+              <>
+                <Button
+                  className={styles.primaryBtn}
+                  type="primary"
+                  icon={<CheckOutlined />}
+                  loading={busy}
+                  onClick={() =>
+                    modal.confirm({
+                      title: "อนุมัติใบสั่งซื้อนี้?",
+                      content:
+                        "อนุมัติแล้วจะส่ง PO ให้ผู้ขายและรอส่งสินค้า — แก้ไขไม่ได้อีก",
+                      okText: "อนุมัติ",
+                      cancelText: "ยกเลิก",
+                      onOk: () => approveMutation.mutateAsync(data.id),
+                    })
+                  }
+                >
+                  อนุมัติใบสั่งซื้อ
+                </Button>
+                <Button
+                  className={styles.secondaryBtn}
+                  icon={<RollbackOutlined />}
+                  loading={busy}
+                  onClick={() => {
+                    setReviewAction("return");
+                    setReviewReason("");
+                  }}
+                >
+                  ส่งกลับแก้ไข
+                </Button>
+                <Button
+                  className={styles.secondaryBtn}
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  loading={busy}
+                  onClick={() => {
+                    setReviewAction("reject");
+                    setReviewReason("");
+                  }}
+                >
+                  ไม่อนุมัติ
+                </Button>
+              </>
+            ) : null}
+
+            {data.status === "PENDING_APPROVAL" && !canApprove ? (
+              <p className={styles.sectionHint}>
+                ส่งอนุมัติแล้ว — รอหัวหน้าจัดซื้อพิจารณาที่เมนู
+                &quot;อนุมัติใบสั่งซื้อ&quot;
+              </p>
+            ) : null}
+
             {canReceive &&
             (data.status === "CONFIRMED" ||
               data.status === "PARTIALLY_RECEIVED") ? (
@@ -543,10 +666,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 type="primary"
                 icon={<InboxOutlined />}
                 onClick={() =>
-                  router.push(`/purchase-orders/${data.id}/receive`)
+                  router.push(`/goods-receipts/create-from-po/${data.id}`)
                 }
               >
-                รับของ
+                สร้างใบรับของ
               </Button>
             ) : null}
 
@@ -582,7 +705,9 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             ) : null}
 
             {canCancel &&
-            (data.status === "DRAFT" || data.status === "CONFIRMED") ? (
+            (data.status === "DRAFT" ||
+              data.status === "PENDING_APPROVAL" ||
+              data.status === "CONFIRMED") ? (
               <Button
                 className={styles.secondaryBtn}
                 danger
@@ -687,6 +812,41 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           />
         </aside>
       </div>
+
+      <Modal
+        title={
+          reviewAction === "reject"
+            ? "ไม่อนุมัติใบสั่งซื้อ"
+            : "ส่งกลับให้จัดซื้อแก้ไข"
+        }
+        open={Boolean(reviewAction)}
+        onCancel={() => setReviewAction(null)}
+        confirmLoading={rejectMutation.isPending || returnMutation.isPending}
+        okText={reviewAction === "reject" ? "ไม่อนุมัติ" : "ส่งกลับแก้ไข"}
+        cancelText="ยกเลิก"
+        okButtonProps={{ danger: reviewAction === "reject" }}
+        onOk={async () => {
+          if (!reviewAction) return;
+          const body = { reason: reviewReason.trim() || undefined };
+          if (reviewAction === "reject") {
+            await rejectMutation.mutateAsync({ id: data.id, body });
+          } else {
+            await returnMutation.mutateAsync({ id: data.id, body });
+          }
+          setReviewAction(null);
+        }}
+      >
+        <Input.TextArea
+          rows={3}
+          placeholder={
+            reviewAction === "reject"
+              ? "เหตุผลที่ไม่อนุมัติ (ถ้ามี)"
+              : "สิ่งที่ต้องแก้ไข (ถ้ามี)"
+          }
+          value={reviewReason}
+          onChange={(e) => setReviewReason(e.target.value)}
+        />
+      </Modal>
 
       <Modal
         open={previewOpen}

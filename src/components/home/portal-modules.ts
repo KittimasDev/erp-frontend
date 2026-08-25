@@ -80,14 +80,14 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     key: "purchase",
     code: "PO",
     label: "จัดซื้อ",
-    description: "PR · PO · รับของ · ติดตาม",
+    description: "PR · อนุมัติ PR · PO · อนุมัติ PO · ติดตาม",
     href: "/purchase-requests",
     tone: "amber",
     screenCodes: [
       "PURCHASE_REQUESTS",
       "PURCHASE_REQUEST_APPROVALS",
       "PURCHASE_ORDERS",
-      "PURCHASE_ORDERS_RECEIVE",
+      "PURCHASE_ORDER_APPROVALS",
       "PROCUREMENT_TRACKING",
     ],
     roles: [
@@ -440,7 +440,7 @@ export function resolvePortalHref(mod: PortalModuleDef): string {
       !userHasRole(RoleCode.PROCUREMENT_OFFICER) &&
       !userHasRole(RoleCode.PROCUREMENT_MANAGER)
     ) {
-      return "/purchase-orders/receive";
+      return "/goods-receipts";
     }
   }
 

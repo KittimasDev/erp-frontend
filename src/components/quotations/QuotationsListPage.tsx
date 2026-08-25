@@ -343,7 +343,10 @@ export default function QuotationsListPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <Dropdown
-              trigger={["click"]}
+              // hover = เปิดเมนูได้เลยไม่ต้องคลิก, click = เผื่อ touch/keyboard ที่ hover ไม่ทำงาน
+              trigger={["hover", "click"]}
+              mouseEnterDelay={0.1}
+              mouseLeaveDelay={0.2}
               placement="bottomRight"
               menu={{ items: rowActions(row) }}
             >

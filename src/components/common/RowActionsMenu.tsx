@@ -116,7 +116,14 @@ export default function RowActionsMenu({
       {primary}
 
       {hasItems ? (
-        <Dropdown trigger={["click"]} placement={placement} menu={{ items }}>
+        <Dropdown
+          // hover = เปิดเมนูได้เลยไม่ต้องคลิก, click = เผื่อ touch/keyboard ที่ hover ไม่ทำงาน
+          trigger={["hover", "click"]}
+          mouseEnterDelay={0.1}
+          mouseLeaveDelay={0.2}
+          placement={placement}
+          menu={{ items }}
+        >
           <Button
             type="text"
             className={styles.actionMenuButton}

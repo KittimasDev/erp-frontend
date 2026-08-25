@@ -82,14 +82,14 @@ export function resolveProcurementFlow(
   const { pr, po, goodsReceipts = [], payment } = input;
 
   const prDone = isPrStepDone(pr?.status);
-  const poExists = Boolean(po && po.status !== "CANCELLED");
+  const poExists = Boolean(po && !isTerminalFail(po.status));
   const poDone = isPoStepDone(po?.status);
   const grDone = isGrStepDone(po?.status, goodsReceipts);
   const payDone = isPayStepDone(po?.paymentStatus, payment);
 
   const failed =
     isTerminalFail(pr?.status) ||
-    po?.status === "CANCELLED" ||
+    isTerminalFail(po?.status) ||
     payment?.status === "CANCELLED";
 
   const stepDone = [prDone, poDone, grDone, payDone];
@@ -112,8 +112,12 @@ export function resolveProcurementFlow(
     current = 1;
   }
 
-  // If PO draft exists, on step 1
-  if (po && po.status === "DRAFT" && !failed) {
+  // PO ที่ยังไม่ผ่านอนุมัติ (ร่าง / รออนุมัติ) = ยังอยู่ขั้นสั่งซื้อ
+  if (
+    po &&
+    (po.status === "DRAFT" || po.status === "PENDING_APPROVAL") &&
+    !failed
+  ) {
     current = 1;
   }
 
@@ -123,7 +127,7 @@ export function resolveProcurementFlow(
         // mark the step where failure is visible
         if (
           (index === 0 && isTerminalFail(pr?.status)) ||
-          (index === 1 && po?.status === "CANCELLED") ||
+          (index === 1 && isTerminalFail(po?.status)) ||
           (index === 3 && payment?.status === "CANCELLED")
         ) {
           return "error";
@@ -140,7 +144,7 @@ export function resolveProcurementFlow(
   if (isTerminalFail(pr?.status)) {
     stepStates[0] = "error";
     current = 0;
-  } else if (po?.status === "CANCELLED") {
+  } else if (isTerminalFail(po?.status)) {
     stepStates[1] = "error";
     current = 1;
   } else if (payment?.status === "CANCELLED" && !payDone) {
@@ -163,10 +167,13 @@ export function resolveProcurementFlow(
     badgeLabel = pr?.status === "REJECTED" ? "ปฏิเสธ" : "ยกเลิก";
     badgeTone = "error";
     stepsStatus = "error";
-  } else if (po?.status === "CANCELLED") {
-    nextHint = "ใบสั่งซื้อถูกยกเลิกแล้ว";
-    summaryLabel = "ยกเลิกแล้ว";
-    badgeLabel = "ยกเลิก";
+  } else if (isTerminalFail(po?.status)) {
+    nextHint =
+      po?.status === "REJECTED"
+        ? "ใบสั่งซื้อไม่ผ่านอนุมัติ — แก้ไขแล้วสร้างใบใหม่"
+        : "ใบสั่งซื้อถูกยกเลิกแล้ว";
+    summaryLabel = po?.status === "REJECTED" ? "ไม่อนุมัติ" : "ยกเลิกแล้ว";
+    badgeLabel = po?.status === "REJECTED" ? "ไม่อนุมัติ" : "ยกเลิก";
     badgeTone = "error";
     stepsStatus = "error";
   } else if (current >= 4 || payDone) {
@@ -192,8 +199,11 @@ export function resolveProcurementFlow(
       badgeLabel = "รอสร้างที่ใบสั่งซื้อ";
       badgeTone = "wait";
     } else if (po?.status === "DRAFT") {
-      nextHint = "ตรวจสอบราคาแล้ว Confirm ใบสั่งซื้อ";
+      nextHint = "ตรวจสอบราคา/ผู้ขายแล้วกดส่งอนุมัติใบสั่งซื้อ";
       badgeLabel = "2/4 · สั่งซื้อ";
+    } else if (po?.status === "PENDING_APPROVAL") {
+      nextHint = "รอหัวหน้าจัดซื้ออนุมัติใบสั่งซื้อ";
+      badgeLabel = "2/4 · รออนุมัติ PO";
     } else {
       nextHint = "ดำเนินการใบสั่งซื้อ";
       badgeLabel = "2/4 · สั่งซื้อ";
@@ -296,6 +306,16 @@ export function resolveListFlowBadge(source: ListFlowSource): {
     case "po": {
       if (source.status === "CANCELLED") {
         return { label: "ยกเลิก", tone: "error" };
+      }
+      if (source.status === "REJECTED") {
+        return { label: "ไม่อนุมัติ", tone: "error" };
+      }
+      if (source.status === "PENDING_APPROVAL") {
+        return {
+          label: "2/4 · รออนุมัติ PO",
+          tone: "wait",
+          href: "/purchase-orders/approvals",
+        };
       }
       if (source.status === "DRAFT") {
         return { label: "2/4 · สั่งซื้อ", tone: "active" };

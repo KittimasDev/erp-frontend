@@ -33,7 +33,10 @@ import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 import { useReadySalesOrdersForPickingCountQuery } from "@/hooks/pickings/usePickingsQuery";
 import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { usePendingStockVerificationCountQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
-import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
+import {
+  usePendingPurchaseRequestApprovalsCountQuery,
+  usePurchaseOrdersPendingFromPrCountQuery,
+} from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import {
   getVisiblePortalModules,
@@ -130,6 +133,12 @@ export default function HomePortalPage() {
       enabled: mounted,
     });
   const pendingPrApprovalsCount = pendingPrApprovalsCountQuery.data ?? 0;
+  const pendingFromPrCountQuery = usePurchaseOrdersPendingFromPrCountQuery({
+    enabled: mounted,
+  });
+  const pendingFromPrCount = pendingFromPrCountQuery.data ?? 0;
+  /** กล่องจัดซื้อคุมหลายคิว — รวม รออนุมัติ PR + PR รอสร้าง PO */
+  const purchasePendingCount = pendingPrApprovalsCount + pendingFromPrCount;
   const pendingStockPostingApprovalsCountQuery =
     usePendingStockPostingApprovalsCountQuery({
       enabled: mounted,
@@ -206,7 +215,7 @@ export default function HomePortalPage() {
           {modules.map((mod) => {
             const pendingBadgeCount =
               mod.key === "purchase"
-                ? pendingPrApprovalsCount
+                ? purchasePendingCount
                 : mod.key === "raw-tire"
                   ? pendingStockPostingApprovalsCount
                   : mod.key === "production"
@@ -216,7 +225,9 @@ export default function HomePortalPage() {
                       : 0;
             const showPendingBadge = pendingBadgeCount > 0;
             const pendingBadgeLabel =
-              mod.key === "fg-warehouse" ? "รอดำเนินการ" : "รออนุมัติ";
+              mod.key === "fg-warehouse" || mod.key === "purchase"
+                ? "รอดำเนินการ"
+                : "รออนุมัติ";
 
             return (
               <Badge

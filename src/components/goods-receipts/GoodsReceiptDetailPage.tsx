@@ -66,15 +66,11 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
   const cancelMutation = useCancelGoodsReceiptMutation();
 
   const data = query.data?.data;
-  const receiveActions = useScreenActionPermissions("PURCHASE_ORDERS_RECEIVE");
   const goodsReceiptActions = useScreenActionPermissions("GOODS_RECEIPTS");
   const canWrite =
     isAdministrator() ||
     userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
     userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    receiveActions.canAdd ||
-    receiveActions.canEdit ||
-    receiveActions.canApprove ||
     goodsReceiptActions.canAdd ||
     goodsReceiptActions.canEdit ||
     goodsReceiptActions.canApprove;

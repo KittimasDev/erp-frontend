@@ -18,10 +18,12 @@ import {
   EyeOutlined,
   FileTextOutlined,
   SearchOutlined,
+  SendOutlined,
   ShoppingCartOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useSubmitPurchaseOrderMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import { usePurchaseOrdersQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchaseOrdersPendingFromPrQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import {
@@ -40,9 +42,15 @@ import styles from "./PurchaseOrdersListPage.module.css";
 function statusColor(status: string) {
   switch (status) {
     case "CONFIRMED":
+    case "COMPLETED":
       return "success";
+    case "PENDING_APPROVAL":
+      return "gold";
     case "DRAFT":
+    case "PARTIALLY_RECEIVED":
       return "processing";
+    case "REJECTED":
+      return "error";
     case "CANCELLED":
       return "default";
     default:
@@ -88,6 +96,8 @@ export default function PurchaseOrdersListPage() {
   const matrixMode = isMatrixPermissionMode();
   const canCreatePo = matrixMode ? poActions.canAdd : legacyWrite;
   const canEditPo = matrixMode ? poActions.canEdit : legacyWrite;
+
+  const submitMutation = useSubmitPurchaseOrderMutation();
 
   const query = usePurchaseOrdersQuery({ ...applied, page, limit });
   const rows = query.data?.data.items ?? [];
@@ -277,12 +287,25 @@ export default function PurchaseOrdersListPage() {
                   onClick: () =>
                     router.push(`/purchase-orders/${row.id}/edit`),
                 },
+              canEditPo &&
+                row.status === "DRAFT" && {
+                  key: "submit",
+                  icon: <SendOutlined />,
+                  label: "ส่งอนุมัติ",
+                  onClick: () => submitMutation.mutate(row.id),
+                  confirm: {
+                    title: `ส่งใบสั่งซื้อ ${row.poNo} ให้หัวหน้าอนุมัติ?`,
+                    content:
+                      "ส่งแล้วจะแก้ไขไม่ได้จนกว่าหัวหน้าจะส่งกลับให้แก้ไข",
+                    okText: "ส่งอนุมัติ",
+                  },
+                },
             ]}
           />
         ),
       },
     ],
-    [canEditPo, limit, page, router],
+    [canEditPo, limit, page, router, submitMutation],
   );
 
   return (
@@ -388,7 +411,11 @@ export default function PurchaseOrdersListPage() {
               onChange={setStatus}
               options={[
                 { value: "DRAFT", label: "ร่าง" },
-                { value: "CONFIRMED", label: "ยืนยันแล้ว" },
+                { value: "PENDING_APPROVAL", label: "รออนุมัติ" },
+                { value: "CONFIRMED", label: "อนุมัติแล้ว · รอส่งสินค้า" },
+                { value: "PARTIALLY_RECEIVED", label: "รับของบางส่วน" },
+                { value: "COMPLETED", label: "รับครบแล้ว" },
+                { value: "REJECTED", label: "ไม่อนุมัติ" },
                 { value: "CANCELLED", label: "ยกเลิก" },
               ]}
             />

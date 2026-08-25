@@ -3,7 +3,6 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Badge } from "antd";
 import { LogoutOutlined } from "@ant-design/icons";
 
 import {
@@ -35,7 +34,11 @@ import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 import { useReadySalesOrdersForPickingCountQuery } from "@/hooks/pickings/usePickingsQuery";
 import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { usePendingStockVerificationCountQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
-import { usePendingPurchaseRequestApprovalsCountQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
+import { usePendingPurchaseOrderApprovalsCountQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import {
+  usePendingPurchaseRequestApprovalsCountQuery,
+  usePurchaseOrdersPendingFromPrCountQuery,
+} from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 
 import styles from "./AppHeader.module.css";
@@ -917,20 +920,17 @@ const purchaseMenus: MenuItem[] = [
     ],
   },
   {
-    key: "purchase-orders-receive",
-    screenCode: "PURCHASE_ORDERS_RECEIVE",
-    label: "รับของ (PO)",
-    href: "/purchase-orders/receive",
-    icon: <IconPurchaseOrder />,
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-    ],
+    key: "purchase-order-approvals",
+    screenCode: "PURCHASE_ORDER_APPROVALS",
+    label: "อนุมัติใบสั่งซื้อ",
+    href: "/purchase-orders/approvals",
+    icon: <IconPrType />,
+    roles: [ROLE.PROCUREMENT_MANAGER],
   },
   {
     key: "procurement-tracking",
     screenCode: "PROCUREMENT_TRACKING",
-    label: "ติดตามจัดซื้อ",
+    label: "ติดตามการจัดซื้อ",
     href: "/procurement/tracking",
     icon: <IconProcurementTracking />,
     roles: [
@@ -1695,12 +1695,12 @@ function renderMenuButton(
       <span className={styles.menuItemIcon}>{item.icon}</span>
       <span className={styles.menuItemText}>{item.label}</span>
       {count > 0 ? (
-        <Badge
-          count={count}
-          overflowCount={99}
-          size="small"
+        <span
           className={styles.menuBadge}
-        />
+          aria-label={`${count} รายการรอดำเนินการ`}
+        >
+          {count > 99 ? "99+" : count}
+        </span>
       ) : null}
     </button>
   );
@@ -1833,6 +1833,11 @@ export default function AppHeader({
   const pendingPrApprovalsCountQuery =
     usePendingPurchaseRequestApprovalsCountQuery();
   const pendingPrApprovalsCount = pendingPrApprovalsCountQuery.data ?? 0;
+  const pendingFromPrCountQuery = usePurchaseOrdersPendingFromPrCountQuery();
+  const pendingFromPrCount = pendingFromPrCountQuery.data ?? 0;
+  const pendingPoApprovalsCountQuery =
+    usePendingPurchaseOrderApprovalsCountQuery();
+  const pendingPoApprovalsCount = pendingPoApprovalsCountQuery.data ?? 0;
   const pendingStockPostingApprovalsCountQuery =
     usePendingStockPostingApprovalsCountQuery();
   const pendingStockPostingApprovalsCount =
@@ -2100,7 +2105,11 @@ export default function AppHeader({
                     searchParams,
                     item.key === "purchase-request-approvals"
                       ? pendingPrApprovalsCount
-                      : undefined,
+                      : item.key === "purchase-orders"
+                        ? pendingFromPrCount
+                        : item.key === "purchase-order-approvals"
+                          ? pendingPoApprovalsCount
+                          : undefined,
                   ),
                 )}
               </div>

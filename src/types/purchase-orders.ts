@@ -1,12 +1,19 @@
 export type PurchaseOrderStatus =
   | "DRAFT"
+  | "PENDING_APPROVAL"
   | "CONFIRMED"
+  | "REJECTED"
+  | "PARTIALLY_RECEIVED"
+  | "COMPLETED"
   | "CANCELLED"
   | string;
 
 export const PURCHASE_ORDER_STATUS_LABEL: Record<string, string> = {
   DRAFT: "ร่าง",
-  CONFIRMED: "ยืนยันแล้ว",
+  PENDING_APPROVAL: "รออนุมัติ",
+  // อนุมัติแล้ว = ส่ง PO ให้ Supplier ได้ และรอของเข้า
+  CONFIRMED: "อนุมัติแล้ว · รอส่งสินค้า",
+  REJECTED: "ไม่อนุมัติ",
   PARTIALLY_RECEIVED: "รับของบางส่วน",
   COMPLETED: "รับครบแล้ว",
   CANCELLED: "ยกเลิก",
@@ -85,6 +92,11 @@ export type PurchaseOrder = {
   vatAmount: string;
   totalAmount: string;
   remark?: string;
+  submittedAt?: string;
+  approvedById?: string;
+  approvedBy?: PurchaseOrderUserSummary;
+  approvedAt?: string;
+  rejectedReason?: string;
   createdById?: string;
   createdBy?: PurchaseOrderUserSummary;
   items: PurchaseOrderItem[];
@@ -146,6 +158,11 @@ export type UpdatePurchaseOrderBody = {
   discountAmount?: number;
   remark?: string;
   items?: UpdatePurchaseOrderItemBody[];
+};
+
+/** ปฏิเสธ / ส่งกลับแก้ไข ใบสั่งซื้อ */
+export type RejectPurchaseOrderBody = {
+  reason?: string;
 };
 
 export type PurchaseOrderApiResponse = {
