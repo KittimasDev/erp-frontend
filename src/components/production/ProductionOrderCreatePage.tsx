@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -11,6 +11,7 @@ import {
   InputNumber,
   Select,
   Table,
+  Tooltip,
 } from "antd";
 import {
   ArrowLeftOutlined,
@@ -24,7 +25,10 @@ import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
-import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import {
+  useInventoryLotsQuery,
+  useStockBalancesByItemQuery,
+} from "@/hooks/inventory/useInventoryQueries";
 import { useProductionRequestQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import type {
   CreateProductionOrderInputItemBody,
@@ -50,6 +54,15 @@ export type PlanRow = {
   plannedQty?: number;
 };
 
+/** ดาวแดงหลังชื่อช่องที่ต้องกรอก — ให้เห็นตั้งแต่ก่อนกดปุ่มว่าอะไรบังคับ */
+function Required() {
+  return (
+    <span aria-hidden style={{ color: "#d4380d", marginLeft: 2 }}>
+      *
+    </span>
+  );
+}
+
 let rowKeySeq = 1;
 export function emptyRow(): Row {
   return { key: rowKeySeq++ };
@@ -73,6 +86,18 @@ export function MaterialRow({
   removable: boolean;
 }) {
   const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
+  // ยอดคงเหลือรวมต่อสินค้า — ใช้ปิดตัวเลือกที่ไม่มีของ (เลือกไปก็ไม่มี Lot ให้เลือกต่อ)
+  const stockByItemQuery = useStockBalancesByItemQuery({ hasStock: true });
+  const availableByItemId = useMemo(
+    () =>
+      new Map(
+        (stockByItemQuery.data?.data ?? []).map((balance) => [
+          balance.itemId,
+          Number(balance.totalQuantityAvailable) || 0,
+        ]),
+      ),
+    [stockByItemQuery.data],
+  );
   const lotsForItemQuery = useInventoryLotsQuery(
     row.itemId ? { itemId: row.itemId, hasStock: true } : undefined,
     { enabled: Boolean(row.itemId) },
@@ -121,19 +146,33 @@ export function MaterialRow({
       <span className={styles.materialCardNo}>{index + 1}</span>
       <div className={styles.materialGrid}>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>สินค้า (วัตถุดิบ)</span>
+          <span className={styles.fieldLabel}>สินค้า (วัตถุดิบ)<Required /></span>
           <Select
             showSearch
             placeholder="เลือกสินค้า"
             optionFilterProp="label"
-            loading={itemsQuery.isLoading}
+            loading={itemsQuery.isLoading || stockByItemQuery.isLoading}
             value={row.itemId}
             style={{ width: "100%" }}
-            options={(itemsQuery.data?.data ?? []).map((item) => ({
-              value: item.id,
-              label: `${item.itemCode} — ${item.itemNameTh}`,
-              unitId: item.unitId,
-            }))}
+            options={(itemsQuery.data?.data ?? []).map((item) => {
+              const available = availableByItemId.get(item.id) ?? 0;
+              // อ่านยอดคงเหลือไม่ได้ (สิทธิ์/เน็ตล่ม) = ไม่ปิดตัวเลือก
+              // ปล่อยให้ backend ตรวจตอนบันทึก ดีกว่าปิดทั้งลิสต์
+              const outOfStock = stockByItemQuery.isSuccess && available <= 0;
+              return {
+                value: item.id,
+                // ของหมดยังโชว์ในลิสต์แต่กดไม่ได้ — ให้รู้ว่ามีสินค้านี้แต่ไม่มีของให้เบิก
+                label: `${item.itemCode} — ${item.itemNameTh}${
+                  outOfStock
+                    ? " (ไม่มีสต๊อก)"
+                    : stockByItemQuery.isSuccess
+                      ? ` (คงเหลือ ${available.toLocaleString("th-TH")})`
+                      : ""
+                }`,
+                unitId: item.unitId,
+                disabled: outOfStock,
+              };
+            })}
             onChange={(value, option) => {
               const opt = option as { unitId?: string } | undefined;
               onChange({
@@ -148,7 +187,7 @@ export function MaterialRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>คลัง</span>
+          <span className={styles.fieldLabel}>คลัง<Required /></span>
           <Select
             showSearch
             placeholder={row.itemId ? "เลือกคลังของสินค้านี้" : "เลือกสินค้าเพื่อดูคลัง"}
@@ -169,7 +208,7 @@ export function MaterialRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>ตำแหน่งจัดเก็บ</span>
+          <span className={styles.fieldLabel}>ตำแหน่งจัดเก็บ<Required /></span>
           <Select
             showSearch
             placeholder={row.warehouseId ? "เลือกตำแหน่งของสินค้านี้" : "เลือกคลังก่อน"}
@@ -187,7 +226,7 @@ export function MaterialRow({
       </div>
       <div className={styles.materialQtyRow}>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>Lot</span>
+          <span className={styles.fieldLabel}>Lot<Required /></span>
           <Select
             showSearch
             placeholder={
@@ -208,7 +247,7 @@ export function MaterialRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>จำนวนที่วางแผน</span>
+          <span className={styles.fieldLabel}>จำนวนที่วางแผน<Required /></span>
           <InputNumber
             min={0.001}
             placeholder="0.000"
@@ -259,7 +298,7 @@ export function PlanLineRow({
       <span className={styles.materialCardNo}>{index + 1}</span>
       <div className={styles.materialGrid}>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>สินค้า</span>
+          <span className={styles.fieldLabel}>สินค้า<Required /></span>
           <Select
             showSearch
             placeholder="เลือกสินค้า"
@@ -283,7 +322,7 @@ export function PlanLineRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>หน่วยนับ</span>
+          <span className={styles.fieldLabel}>หน่วยนับ<Required /></span>
           <Select
             showSearch
             placeholder="เลือกหน่วย"
@@ -299,7 +338,7 @@ export function PlanLineRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>จำนวนที่วางแผน</span>
+          <span className={styles.fieldLabel}>จำนวนที่วางแผน<Required /></span>
           <InputNumber
             min={0.001}
             style={{ width: "100%" }}
@@ -361,23 +400,60 @@ export default function ProductionOrderCreatePage() {
     );
   }
 
-  const isPlanRowComplete = (row: PlanRow) =>
-    Boolean(row.itemId && row.unitId && row.plannedQty);
+  /**
+   * รายการช่องที่ยังกรอกไม่ครบ — บอกเป็นข้อความว่าขาดอะไรตรงไหน
+   * ไม่ใช่แค่ปิดปุ่มเฉย ๆ ให้ผู้ใช้เดาเอง
+   */
+  const missingFields: string[] = [];
 
-  const canSubmit =
-    rows.length > 0 &&
-    rows.every(
-      (r) =>
-        r.itemId &&
-        r.unitId &&
-        r.warehouseId &&
-        r.locationId &&
-        r.lotId &&
-        r.plannedQty,
-    ) &&
-    outputRows.length > 0 &&
-    outputRows.every(isPlanRowComplete) &&
-    wasteRows.every(isPlanRowComplete);
+  if (rows.length === 0) {
+    missingFields.push("วัตถุดิบที่ต้องใช้: ต้องมีอย่างน้อย 1 รายการ");
+  }
+  rows.forEach((row, index) => {
+    const gaps: string[] = [];
+    if (!row.itemId) gaps.push("สินค้า (วัตถุดิบ)");
+    if (!row.warehouseId) gaps.push("คลัง");
+    if (!row.locationId) gaps.push("ตำแหน่งจัดเก็บ");
+    if (!row.lotId) gaps.push("Lot");
+    if (!row.unitId) gaps.push("หน่วยนับ");
+    if (!row.plannedQty) gaps.push("จำนวนที่วางแผน");
+    if (gaps.length) {
+      missingFields.push(
+        `วัตถุดิบรายการที่ ${index + 1}: ยังขาด ${gaps.join(" · ")}`,
+      );
+    }
+  });
+
+  const collectPlanGaps = (row: PlanRow) => {
+    const gaps: string[] = [];
+    if (!row.itemId) gaps.push("สินค้า");
+    if (!row.unitId) gaps.push("หน่วยนับ");
+    if (!row.plannedQty) gaps.push("จำนวนที่วางแผน");
+    return gaps;
+  };
+
+  if (outputRows.length === 0) {
+    missingFields.push("ผลผลิตที่คาดว่าจะได้: ต้องมีอย่างน้อย 1 รายการ");
+  }
+  outputRows.forEach((row, index) => {
+    const gaps = collectPlanGaps(row);
+    if (gaps.length) {
+      missingFields.push(
+        `ผลผลิตรายการที่ ${index + 1}: ยังขาด ${gaps.join(" · ")}`,
+      );
+    }
+  });
+
+  wasteRows.forEach((row, index) => {
+    const gaps = collectPlanGaps(row);
+    if (gaps.length) {
+      missingFields.push(
+        `ของเสียรายการที่ ${index + 1}: ยังขาด ${gaps.join(" · ")} (ถ้าไม่ต้องการวางแผนของเสีย กดลบรายการทิ้งได้)`,
+      );
+    }
+  });
+
+  const canSubmit = missingFields.length === 0;
 
   const handleSubmit = () => {
     const inputItems: CreateProductionOrderInputItemBody[] = rows.map((r) => ({
@@ -568,6 +644,11 @@ export default function ProductionOrderCreatePage() {
               เพิ่มวัตถุดิบ
             </Button>
           </div>
+          <p className={styles.sectionHint}>
+            ทุกแถวต้องเลือกให้ครบ: สินค้า · คลัง · ตำแหน่งจัดเก็บ · Lot ·
+            จำนวนที่วางแผน (ช่องที่มี <Required />) — เลือกไล่จากซ้ายไปขวา
+            เพราะคลัง/ตำแหน่ง/Lot จะขึ้นตามสินค้าที่เลือก
+          </p>
           <div className={styles.materialsList}>
             {rows.map((row, index) => (
               <MaterialRow
@@ -604,7 +685,9 @@ export default function ProductionOrderCreatePage() {
             </Button>
           </div>
           <p className={styles.sectionHint}>
-            ประมาณการผลผลิต — ใช้เทียบ yield กับของจริงที่รับเข้าคลังภายหลัง
+            ประมาณการผลผลิต — ใช้เทียบ yield กับของจริงที่รับเข้าคลังภายหลัง ·
+            ต้องมีอย่างน้อย 1 รายการ และทุกแถวต้องครบ สินค้า · หน่วยนับ ·
+            จำนวนที่วางแผน
           </p>
           <div className={styles.materialsList}>
             {outputRows.map((row, index) => (
@@ -668,6 +751,22 @@ export default function ProductionOrderCreatePage() {
               ))
             )}
           </div>
+          {canSubmit ? null : (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginTop: 16 }}
+              title="ยังกรอกไม่ครบ — เติมให้ครบก่อนถึงจะสร้างใบสั่งผลิตได้"
+              description={
+                <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                  {missingFields.map((text) => (
+                    <li key={text}>{text}</li>
+                  ))}
+                </ul>
+              }
+            />
+          )}
+
           <div className={styles.footerActions}>
             <Button
               className={styles.secondaryBtn}
@@ -675,15 +774,23 @@ export default function ProductionOrderCreatePage() {
             >
               ยกเลิก
             </Button>
-            <Button
-              type="primary"
-              className={styles.primaryBtn}
-              disabled={!canSubmit}
-              loading={createMutation.isPending}
-              onClick={handleSubmit}
+            <Tooltip
+              title={
+                canSubmit ? "" : "ยังกรอกไม่ครบ — ดูรายการที่ขาดด้านบน"
+              }
             >
-              สร้างใบสั่งผลิต
-            </Button>
+              <span>
+                <Button
+                  type="primary"
+                  className={styles.primaryBtn}
+                  disabled={!canSubmit}
+                  loading={createMutation.isPending}
+                  onClick={handleSubmit}
+                >
+                  สร้างใบสั่งผลิต
+                </Button>
+              </span>
+            </Tooltip>
           </div>
         </section>
       </div>

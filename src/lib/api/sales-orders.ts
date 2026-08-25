@@ -9,6 +9,7 @@ import type {
   SalesOrderStockVerificationApiResponse,
   StockVerificationPendingListApiResponse,
   UpdateSalesOrderCustomerPoBody,
+  UpdateSalesOrderItemsBody,
 } from "@/types/sales-orders";
 
 function buildSalesOrdersQuery(params?: SalesOrderQueryParams) {
@@ -117,6 +118,19 @@ export function updateSalesOrderCustomerPo(
     `/api/sales-orders/${id}/customer-po`,
     { method: "PATCH", token, body },
   );
+}
+
+/** แก้จำนวน / ราคา / ส่วนลด ของรายการสินค้า (ก่อนยืนยันใบสั่งขายเท่านั้น) */
+export function updateSalesOrderItems(
+  token: string,
+  id: string,
+  body: UpdateSalesOrderItemsBody,
+) {
+  return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/items`, {
+    method: "PATCH",
+    token,
+    body,
+  });
 }
 
 export function getSalesOrderReservationStatus(token: string, id: string) {

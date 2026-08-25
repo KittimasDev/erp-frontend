@@ -105,6 +105,19 @@ export type UpdateSalesOrderCustomerPoBody = {
   customerPoNo: string;
 };
 
+/** แก้จำนวน / ราคา / ส่วนลด รายบรรทัด — ส่งเฉพาะบรรทัดที่เปลี่ยนก็ได้ */
+export type UpdateSalesOrderItemLineBody = {
+  id: string;
+  quantity?: number;
+  unitPrice?: number;
+  discountAmount?: number;
+};
+
+export type UpdateSalesOrderItemsBody = {
+  items: UpdateSalesOrderItemLineBody[];
+  discountAmount?: number;
+};
+
 export type StockVerificationAvailableLot = {
   lotId: string;
   lotNo?: string;

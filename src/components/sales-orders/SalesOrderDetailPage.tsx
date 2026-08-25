@@ -8,6 +8,7 @@ import {
   Button,
   DatePicker,
   Input,
+  InputNumber,
   Modal,
   Progress,
   Spin,
@@ -23,6 +24,7 @@ import {
   CloseOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  EditOutlined,
   EyeOutlined,
   FilePdfOutlined,
   FileTextOutlined,
@@ -48,6 +50,7 @@ import {
   useReserveSalesOrderLineMutation,
   useDeleteSalesOrderAttachmentMutation,
   useUpdateSalesOrderCustomerPoMutation,
+  useUpdateSalesOrderItemsMutation,
   useUploadSalesOrderAttachmentMutation,
 } from "@/hooks/sales-orders/useSalesOrderMutations";
 import {
@@ -233,6 +236,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const uploadAttachmentMutation = useUploadSalesOrderAttachmentMutation();
   const deleteAttachmentMutation = useDeleteSalesOrderAttachmentMutation();
   const updateCustomerPoMutation = useUpdateSalesOrderCustomerPoMutation();
+  const updateItemsMutation = useUpdateSalesOrderItemsMutation();
+  // แก้จำนวน/ราคา/ส่วนลด — null = ยังไม่เข้าโหมดแก้ไข
+  const [itemDrafts, setItemDrafts] = useState<Record<
+    string,
+    { quantity: number; unitPrice: number; discountAmount: number }
+  > | null>(null);
   const [pendingProductionRequest, setPendingProductionRequest] =
     useState<PendingProductionRequest | null>(null);
   const [productionRequiredDate, setProductionRequiredDate] =
@@ -378,8 +387,85 @@ export default function SalesOrderDetailPage({ id }: Props) {
     createProductionRequestMutation.isPending ||
     uploadAttachmentMutation.isPending ||
     deleteAttachmentMutation.isPending ||
-    updateCustomerPoMutation.isPending;
+    updateCustomerPoMutation.isPending ||
+    updateItemsMutation.isPending;
   const progress = resolveSalesOrderProgress(data.status);
+
+  const canEditItems = isPreConfirm && canWrite;
+  const isEditingItems = itemDrafts !== null;
+
+  const startEditItems = () => {
+    setItemDrafts(
+      Object.fromEntries(
+        data.items.map((item) => [
+          item.id,
+          {
+            quantity: Number(item.quantity) || 0,
+            unitPrice: Number(item.unitPrice) || 0,
+            discountAmount: Number(item.discountAmount) || 0,
+          },
+        ]),
+      ),
+    );
+  };
+
+  const patchItemDraft = (
+    itemId: string,
+    patch: Partial<{
+      quantity: number;
+      unitPrice: number;
+      discountAmount: number;
+    }>,
+  ) => {
+    setItemDrafts((prev) =>
+      prev ? { ...prev, [itemId]: { ...prev[itemId], ...patch } } : prev,
+    );
+  };
+
+  const saveItemDrafts = async () => {
+    if (!itemDrafts) return;
+
+    // ส่งเฉพาะบรรทัดที่ค่าเปลี่ยนจริง
+    const changed = data.items
+      .filter((item) => {
+        const draft = itemDrafts[item.id];
+        if (!draft) return false;
+        return (
+          Math.abs(draft.quantity - Number(item.quantity)) > 0.0005 ||
+          Math.abs(draft.unitPrice - Number(item.unitPrice)) > 0.00005 ||
+          Math.abs(draft.discountAmount - Number(item.discountAmount)) > 0.005
+        );
+      })
+      .map((item) => ({
+        id: item.id,
+        quantity: itemDrafts[item.id].quantity,
+        unitPrice: itemDrafts[item.id].unitPrice,
+        discountAmount: itemDrafts[item.id].discountAmount,
+      }));
+
+    if (!changed.length) {
+      setItemDrafts(null);
+      message.info("ไม่มีรายการที่เปลี่ยนแปลง");
+      return;
+    }
+
+    const invalid = changed.find(
+      (line) =>
+        line.quantity <= 0 ||
+        line.unitPrice < 0 ||
+        line.discountAmount < 0 ||
+        line.discountAmount > line.quantity * line.unitPrice + 0.005,
+    );
+    if (invalid) {
+      message.error(
+        "ตรวจค่าอีกครั้ง — จำนวนต้องมากกว่า 0 และส่วนลดต้องไม่เกินยอดของรายการ",
+      );
+      return;
+    }
+
+    await updateItemsMutation.mutateAsync({ id: data.id, body: { items: changed } });
+    setItemDrafts(null);
+  };
 
   const openCustomerPoModal = (initial?: string) => {
     setPoDraft((initial ?? data.customerPoNo ?? "").trim());
@@ -1655,7 +1741,45 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
+              {canEditItems ? (
+                isEditingItems ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckOutlined />}
+                      loading={updateItemsMutation.isPending}
+                      onClick={() => void saveItemDrafts()}
+                    >
+                      บันทึก
+                    </Button>
+                    <Button
+                      size="small"
+                      icon={<CloseOutlined />}
+                      disabled={updateItemsMutation.isPending}
+                      onClick={() => setItemDrafts(null)}
+                    >
+                      ยกเลิก
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="small"
+                    icon={<EditOutlined />}
+                    disabled={busy}
+                    onClick={startEditItems}
+                  >
+                    แก้ไขรายการ
+                  </Button>
+                )
+              ) : null}
             </div>
+            {isEditingItems ? (
+              <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
+                แก้จำนวน ราคา และส่วนลดได้ก่อนยืนยันใบสั่งขาย — บันทึกแล้วระบบ
+                คำนวณยอดรวม/VAT ใหม่ และจองสต๊อกให้ตามจำนวนที่แก้
+              </p>
+            ) : null}
             {isPreConfirm && canWrite && !hasShortage ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
                 จองสต๊อกต่อรายการได้เมื่อของพอครบตามจำนวนที่สั่ง
@@ -1683,13 +1807,80 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           ? `${item.itemCode} — ${item.itemNameTh ?? ""}`
                           : (item.itemNameTh ?? "—")}
                       </p>
-                      <p className={styles.itemCode}>
-                        {Number(item.quantity).toLocaleString("th-TH")}{" "}
-                        {item.unitCode ?? ""} · ราคา {formatMoney(item.unitPrice)}
-                        {Number(item.discountAmount) > 0
-                          ? ` · ส่วนลด ${formatMoney(item.discountAmount)}`
-                          : ""}
-                      </p>
+                      {isEditingItems && itemDrafts?.[item.id] ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 12,
+                            margin: "6px 0",
+                          }}
+                        >
+                          <label style={{ fontSize: 12 }}>
+                            <span style={{ display: "block", color: "#8a9199" }}>
+                              จำนวน ({item.unitCode ?? "หน่วย"})
+                            </span>
+                            <InputNumber
+                              size="small"
+                              min={0.001}
+                              step={1}
+                              precision={3}
+                              style={{ width: 130 }}
+                              value={itemDrafts[item.id].quantity}
+                              onChange={(value) =>
+                                patchItemDraft(item.id, {
+                                  quantity: Number(value ?? 0),
+                                })
+                              }
+                            />
+                          </label>
+                          <label style={{ fontSize: 12 }}>
+                            <span style={{ display: "block", color: "#8a9199" }}>
+                              ราคา/หน่วย
+                            </span>
+                            <InputNumber
+                              size="small"
+                              min={0}
+                              step={1}
+                              precision={4}
+                              style={{ width: 130 }}
+                              value={itemDrafts[item.id].unitPrice}
+                              onChange={(value) =>
+                                patchItemDraft(item.id, {
+                                  unitPrice: Number(value ?? 0),
+                                })
+                              }
+                            />
+                          </label>
+                          <label style={{ fontSize: 12 }}>
+                            <span style={{ display: "block", color: "#8a9199" }}>
+                              ส่วนลด
+                            </span>
+                            <InputNumber
+                              size="small"
+                              min={0}
+                              step={1}
+                              precision={2}
+                              style={{ width: 130 }}
+                              value={itemDrafts[item.id].discountAmount}
+                              onChange={(value) =>
+                                patchItemDraft(item.id, {
+                                  discountAmount: Number(value ?? 0),
+                                })
+                              }
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <p className={styles.itemCode}>
+                          {Number(item.quantity).toLocaleString("th-TH")}{" "}
+                          {item.unitCode ?? ""} · ราคา{" "}
+                          {formatMoney(item.unitPrice)}
+                          {Number(item.discountAmount) > 0
+                            ? ` · ส่วนลด ${formatMoney(item.discountAmount)}`
+                            : ""}
+                        </p>
+                      )}
                       {isPreConfirm && reservationLine ? (
                         <p className={styles.itemCode}>
                           ต้องการ{" "}
@@ -1729,7 +1920,20 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       ) : null}
                     </div>
                     <div className={styles.itemQty}>
-                      {isPreConfirm && reservationLine ? (
+                      {isEditingItems && itemDrafts?.[item.id] ? (
+                        <strong>
+                          {formatMoney(
+                            String(
+                              Math.max(
+                                0,
+                                itemDrafts[item.id].quantity *
+                                  itemDrafts[item.id].unitPrice -
+                                  itemDrafts[item.id].discountAmount,
+                              ),
+                            ),
+                          )}
+                        </strong>
+                      ) : isPreConfirm && reservationLine ? (
                         <div
                           style={{
                             display: "flex",

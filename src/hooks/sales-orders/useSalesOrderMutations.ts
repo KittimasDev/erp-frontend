@@ -12,6 +12,7 @@ import {
   reserveAllEligibleSalesOrderLines,
   reserveSalesOrderLine,
   updateSalesOrderCustomerPo,
+  updateSalesOrderItems,
 } from "@/lib/api/sales-orders";
 import {
   deleteDocumentAttachment,
@@ -26,6 +27,7 @@ import {
 import type {
   CreateSalesOrderFromQuotationBody,
   UpdateSalesOrderCustomerPoBody,
+  UpdateSalesOrderItemsBody,
 } from "@/types/sales-orders";
 
 import { salesOrdersQueryKey } from "./useSalesOrdersQuery";
@@ -258,6 +260,29 @@ export function useDeleteSalesOrderAttachmentMutation() {
     onError: (err: Error) => {
       message.error(
         err instanceof ApiError ? err.message : "ลบไฟล์แนบไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+/** แก้จำนวน / ราคา / ส่วนลด รายการสินค้าในใบสั่งขาย (ก่อนยืนยัน) */
+export function useUpdateSalesOrderItemsMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "update-items"],
+    mutationFn: ({ id, body }: { id: string; body: UpdateSalesOrderItemsBody }) =>
+      updateSalesOrderItems(getAccessToken(), id, body),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || "บันทึกรายการสินค้าสำเร็จ");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "บันทึกรายการสินค้าไม่สำเร็จ",
       );
     },
   });
