@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge } from "antd";
+import { Badge, Tooltip } from "antd";
 import {
   ExperimentOutlined,
   FundOutlined,
@@ -29,15 +29,11 @@ import {
   getStoredUser,
   type StoredUser,
 } from "@/lib/auth/session";
-import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
-import { useReadySalesOrdersForPickingCountQuery } from "@/hooks/pickings/usePickingsQuery";
-import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
-import { usePendingStockVerificationCountQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import {
-  usePendingPurchaseRequestApprovalsCountQuery,
-  usePurchaseOrdersPendingFromPrCountQuery,
-} from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
-import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
+  badgeBreakdownForScreenCodes,
+  badgeLabelForBreakdown,
+  useMenuBadgeCounts,
+} from "@/hooks/badges/useMenuBadgeCounts";
 import {
   getVisiblePortalModules,
   resolvePortalHref,
@@ -128,44 +124,11 @@ export default function HomePortalPage() {
     return getVisiblePortalModules();
   }, [mounted, user, permsTick]);
 
-  const pendingPrApprovalsCountQuery =
-    usePendingPurchaseRequestApprovalsCountQuery({
-      enabled: mounted,
-    });
-  const pendingPrApprovalsCount = pendingPrApprovalsCountQuery.data ?? 0;
-  const pendingFromPrCountQuery = usePurchaseOrdersPendingFromPrCountQuery({
-    enabled: mounted,
-  });
-  const pendingFromPrCount = pendingFromPrCountQuery.data ?? 0;
-  /** กล่องจัดซื้อคุมหลายคิว — รวม รออนุมัติ PR + PR รอสร้าง PO */
-  const purchasePendingCount = pendingPrApprovalsCount + pendingFromPrCount;
-  const pendingStockPostingApprovalsCountQuery =
-    usePendingStockPostingApprovalsCountQuery({
-      enabled: mounted,
-    });
-  const pendingStockPostingApprovalsCount =
-    pendingStockPostingApprovalsCountQuery.data ?? 0;
-  const pendingProductionOutputStockRequestsCountQuery =
-    usePendingProductionOutputStockRequestsCountQuery({
-      enabled: mounted && PRODUCTION_OUTPUT_ENABLED,
-    });
-  const pendingProductionOutputStockRequestsCount =
-    pendingProductionOutputStockRequestsCountQuery.data ?? 0;
-  const readySalesOrdersForPickingCountQuery =
-    useReadySalesOrdersForPickingCountQuery({
-      enabled: mounted,
-    });
-  const readySalesOrdersForPickingCount =
-    readySalesOrdersForPickingCountQuery.data ?? 0;
-  const pendingStockVerificationCountQuery =
-    usePendingStockVerificationCountQuery({
-      enabled: mounted,
-    });
-  const pendingStockVerificationCount =
-    pendingStockVerificationCountQuery.data ?? 0;
-  /** กล่องคลังสำเร็จรูปคุมหลายคิว — รวม รอตรวจสต๊อก + รอหยิบ ไว้ที่ badge เดียว */
-  const fgWarehousePendingCount =
-    pendingStockVerificationCount + readySalesOrdersForPickingCount;
+  /**
+   * ยอดคิวค้างของทุกเมนูจากทะเบียนกลาง — กล่องรวมยอดเองจาก screenCodes
+   * เดิมที่นี่เรียก hook ทีละตัวแล้วบวกมือ ทำให้ badge ที่เพิ่มใหม่ตกหล่นบ่อย
+   */
+  const badgeCounts = useMenuBadgeCounts({ enabled: mounted });
 
   const displayName = user?.displayName || user?.username || "ผู้ใช้งาน";
   const roleLabel =
@@ -213,25 +176,22 @@ export default function HomePortalPage() {
       ) : (
         <div className={styles.grid}>
           {modules.map((mod) => {
-            const pendingBadgeCount =
-              mod.key === "purchase"
-                ? purchasePendingCount
-                : mod.key === "raw-tire"
-                  ? pendingStockPostingApprovalsCount
-                  : mod.key === "production"
-                    ? pendingProductionOutputStockRequestsCount
-                    : mod.key === "fg-warehouse"
-                      ? fgWarehousePendingCount
-                      : 0;
+            const breakdown = badgeBreakdownForScreenCodes(
+              badgeCounts,
+              mod.screenCodes,
+            );
+            const pendingBadgeCount = breakdown.reduce(
+              (sum, item) => sum + item.count,
+              0,
+            );
             const showPendingBadge = pendingBadgeCount > 0;
-            const pendingBadgeLabel =
-              mod.key === "fg-warehouse" || mod.key === "purchase"
-                ? "รอดำเนินการ"
-                : "รออนุมัติ";
+            const pendingBadgeLabel = badgeLabelForBreakdown(breakdown);
+            const breakdownText = breakdown
+              .map((item) => `${item.label} ${item.count}`)
+              .join(" · ");
 
-            return (
+            const tile = (
               <Badge
-                key={mod.key}
                 count={showPendingBadge ? pendingBadgeCount : 0}
                 overflowCount={99}
                 offset={[-6, 8]}
@@ -243,7 +203,7 @@ export default function HomePortalPage() {
                   onClick={() => openModule(mod)}
                   aria-label={
                     showPendingBadge
-                      ? `${mod.label} — ${mod.description} — ${pendingBadgeLabel} ${pendingBadgeCount} รายการ`
+                      ? `${mod.label} — ${mod.description} — ${pendingBadgeLabel} ${pendingBadgeCount} รายการ: ${breakdownText}`
                       : `${mod.label} — ${mod.description}`
                   }
                 >
@@ -253,6 +213,29 @@ export default function HomePortalPage() {
                   <span className={styles.tileDesc}>{mod.description}</span>
                 </button>
               </Badge>
+            );
+
+            // กล่องที่รวมหลายคิว เลขเปล่า ๆ อ่านไม่รู้ว่ามาจากเมนูไหน
+            return breakdown.length > 1 ? (
+              <Tooltip
+                key={mod.key}
+                title={
+                  <div>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                      {pendingBadgeLabel} {pendingBadgeCount} รายการ
+                    </div>
+                    {breakdown.map((item) => (
+                      <div key={item.menuKey}>
+                        {item.label} · {item.count}
+                      </div>
+                    ))}
+                  </div>
+                }
+              >
+                <span className={styles.tileBadgeWrap}>{tile}</span>
+              </Tooltip>
+            ) : (
+              <span key={mod.key}>{tile}</span>
             );
           })}
         </div>

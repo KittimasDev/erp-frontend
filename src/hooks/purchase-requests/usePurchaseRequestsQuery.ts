@@ -16,6 +16,10 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
+import {
+  pendingCountQueryOptions,
+  selectListTotal,
+} from "@/lib/query/count-query";
 import type { PurchaseRequestQueryParams } from "@/types/purchase-requests";
 
 export const purchaseRequestsQueryKey = ["purchase-requests"] as const;
@@ -29,28 +33,6 @@ export const purchaseOrdersPendingFromPrCountQueryKey = [
   ...purchaseRequestsQueryKey,
   "pending-from-pr-count",
 ] as const;
-
-const COUNT_POLL_MS = 30_000;
-
-function countPollInterval(): number {
-  return COUNT_POLL_MS;
-}
-
-function selectListTotal(res: {
-  data?: { total?: number | string; items?: unknown[] };
-}): number {
-  const total = res?.data?.total as number | string | undefined;
-  if (typeof total === "number" && Number.isFinite(total)) {
-    return total;
-  }
-  if (typeof total === "string" && total.trim() !== "") {
-    const parsed = Number(total);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return res?.data?.items?.length ?? 0;
-}
 
 /** สิทธิ์เข้าหน้ารายการใบขอซื้อรออนุมัติ (เมนู / badge) — ตรงกับ canSeeMenu */
 export function canAccessPurchaseRequestApprovals(): boolean {
@@ -108,26 +90,26 @@ export function usePendingPurchaseRequestApprovalsQuery(
 }
 
 /** จำนวน PR รออนุมัติสำหรับ badge (เมนู / หน้าแรก) */
-export function usePendingPurchaseRequestApprovalsCountQuery(options?: {
+export function pendingPurchaseRequestApprovalsCountOptions(ctx?: {
   enabled?: boolean;
 }) {
-  return useQuery({
+  return pendingCountQueryOptions({
     queryKey: pendingPurchaseRequestApprovalsCountQueryKey,
     queryFn: () =>
       getPendingPurchaseRequestApprovals(getAccessToken(), {
         page: 1,
         limit: 1,
       }),
-    enabled:
-      (options?.enabled ?? true) &&
-      hasAccessToken() &&
-      canAccessPurchaseRequestApprovals(),
-    refetchInterval: countPollInterval,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    retry: 2,
     select: selectListTotal,
+    canAccess: canAccessPurchaseRequestApprovals,
+    enabled: ctx?.enabled,
   });
+}
+
+export function usePendingPurchaseRequestApprovalsCountQuery(options?: {
+  enabled?: boolean;
+}) {
+  return useQuery(pendingPurchaseRequestApprovalsCountOptions(options));
 }
 
 export function usePurchaseOrdersPendingFromPrQuery(
@@ -140,26 +122,26 @@ export function usePurchaseOrdersPendingFromPrQuery(
 }
 
 /** จำนวน PR ที่อนุมัติแล้วรอสร้าง PO สำหรับ badge (เมนูใบสั่งซื้อ / หน้าแรก) */
-export function usePurchaseOrdersPendingFromPrCountQuery(options?: {
+export function purchaseOrdersPendingFromPrCountOptions(ctx?: {
   enabled?: boolean;
 }) {
-  return useQuery({
+  return pendingCountQueryOptions({
     queryKey: purchaseOrdersPendingFromPrCountQueryKey,
     queryFn: () =>
       getPurchaseOrdersPendingFromPr(getAccessToken(), {
         page: 1,
         limit: 1,
       }),
-    enabled:
-      (options?.enabled ?? true) &&
-      hasAccessToken() &&
-      canAccessPurchaseOrders(),
-    refetchInterval: countPollInterval,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    retry: 2,
     select: selectListTotal,
+    canAccess: canAccessPurchaseOrders,
+    enabled: ctx?.enabled,
   });
+}
+
+export function usePurchaseOrdersPendingFromPrCountQuery(options?: {
+  enabled?: boolean;
+}) {
+  return useQuery(purchaseOrdersPendingFromPrCountOptions(options));
 }
 
 export function usePurchaseRequestQuery(id?: string) {

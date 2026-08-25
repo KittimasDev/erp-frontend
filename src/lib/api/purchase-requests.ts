@@ -148,6 +148,25 @@ export function rejectPurchaseRequest(
   );
 }
 
+/**
+ * ส่งใบขอซื้อกลับให้ผู้ขอแก้ไข (รออนุมัติ → แก้ไข)
+ * ต่างจากปฏิเสธที่จบเรื่อง — ผู้ขอแก้แล้วส่งอนุมัติใหม่ได้
+ */
+export function returnPurchaseRequestToDraft(
+  token: string,
+  id: string,
+  body?: RejectPurchaseRequestBody,
+) {
+  return apiFetch<PurchaseRequestApiResponse>(
+    `/api/purchase-requests/${id}/return-to-draft`,
+    {
+      method: "POST",
+      token,
+      body: body ?? {},
+    },
+  );
+}
+
 export function cancelPurchaseRequest(token: string, id: string) {
   return apiFetch<PurchaseRequestApiResponse>(
     `/api/purchase-requests/${id}/cancel`,

@@ -112,10 +112,12 @@ export function resolveProcurementFlow(
     current = 1;
   }
 
-  // PO ที่ยังไม่ผ่านอนุมัติ (ร่าง / รออนุมัติ) = ยังอยู่ขั้นสั่งซื้อ
+  // PO ที่ยังไม่ผ่านอนุมัติ (ร่าง / ส่งกลับแก้ไข / รออนุมัติ) = ยังอยู่ขั้นสั่งซื้อ
   if (
     po &&
-    (po.status === "DRAFT" || po.status === "PENDING_APPROVAL") &&
+    (po.status === "DRAFT" ||
+      po.status === "REVISING" ||
+      po.status === "PENDING_APPROVAL") &&
     !failed
   ) {
     current = 1;
@@ -186,6 +188,8 @@ export function resolveProcurementFlow(
   } else if (current === 0) {
     if (!pr || pr.status === "DRAFT") {
       nextHint = "ส่งใบขอซื้อเพื่อรออนุมัติ";
+    } else if (pr.status === "REVISING") {
+      nextHint = "ผู้อนุมัติส่งกลับให้แก้ไข — แก้แล้วส่งอนุมัติอีกครั้ง";
     } else if (pr.status === "PENDING_APPROVAL") {
       nextHint = "รอผู้อนุมัติพิจารณาใบขอซื้อ";
     } else {
@@ -201,6 +205,9 @@ export function resolveProcurementFlow(
     } else if (po?.status === "DRAFT") {
       nextHint = "ตรวจสอบราคา/ผู้ขายแล้วกดส่งอนุมัติใบสั่งซื้อ";
       badgeLabel = "2/4 · สั่งซื้อ";
+    } else if (po?.status === "REVISING") {
+      nextHint = "หัวหน้าส่งกลับให้แก้ไข — แก้แล้วกดส่งอนุมัติอีกครั้ง";
+      badgeLabel = "2/4 · แก้ไข PO";
     } else if (po?.status === "PENDING_APPROVAL") {
       nextHint = "รอหัวหน้าจัดซื้ออนุมัติใบสั่งซื้อ";
       badgeLabel = "2/4 · รออนุมัติ PO";
@@ -294,6 +301,9 @@ export function resolveListFlowBadge(source: ListFlowSource): {
       if (source.status === "CANCELLED") {
         return { label: "ยกเลิก", tone: "error" };
       }
+      if (source.status === "REVISING") {
+        return { label: "1/4 · แก้ไข PR", tone: "active" };
+      }
       if (source.status === "APPROVED") {
         return {
           label: "รอสร้างที่ใบสั่งซื้อ",
@@ -316,6 +326,9 @@ export function resolveListFlowBadge(source: ListFlowSource): {
           tone: "wait",
           href: "/purchase-orders/approvals",
         };
+      }
+      if (source.status === "REVISING") {
+        return { label: "2/4 · แก้ไข PO", tone: "active" };
       }
       if (source.status === "DRAFT") {
         return { label: "2/4 · สั่งซื้อ", tone: "active" };

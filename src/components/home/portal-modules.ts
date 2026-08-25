@@ -189,6 +189,9 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "MASTERS_CUSTOMERS",
       "QUOTATIONS",
       "SALES_ORDERS",
+      // เมนูนี้อยู่ในกลุ่มขายของ sidebar แต่เดิมตกจากลิสต์นี้ — ทำให้คนที่มีสิทธิ์
+      // ขายเฉพาะหน้านี้มองไม่เห็นกล่องขายเลย และ badge ก็ไม่ถูกรวมเข้ากล่อง
+      "SALES_ORDERS_IN_PRODUCTION",
       "SALES_INVOICES_PENDING",
       "SALES_INVOICES",
       "SALES_TRACKING",

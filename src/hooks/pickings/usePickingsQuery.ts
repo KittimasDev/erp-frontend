@@ -15,6 +15,10 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
+import {
+  pendingCountQueryOptions,
+  selectDataLength,
+} from "@/lib/query/count-query";
 import type { PickingQueryParams } from "@/types/pickings";
 
 export const pickingsQueryKey = ["pickings"] as const;
@@ -24,16 +28,16 @@ export const readySalesOrdersForPickingQueryKey = [
   "ready-sales-orders",
 ] as const;
 
-const COUNT_POLL_MS = 30_000;
-
-function countPollInterval(query: {
-  state: { status: string };
-}): number | false {
-  if (query.state.status === "error") {
-    return false;
-  }
-  return COUNT_POLL_MS;
-}
+/**
+ * แยก key ของ badge ออกจาก key ของ list — เดิมใช้ key เดียวกันทำให้เป็น cache
+ * entry เดียวกันแต่ options ต่างกัน (enabled / refetchInterval / select)
+ * observer ตัวไหน mount ก่อนก็ชนะ · key นี้เป็นส่วนขยายของ prefix เดิม
+ * ดังนั้น invalidate ด้วย pickingsQueryKey ยังรีเฟรช badge ให้ด้วย
+ */
+export const readySalesOrdersForPickingCountQueryKey = [
+  ...readySalesOrdersForPickingQueryKey,
+  "count",
+] as const;
 
 /** สิทธิ์เข้าหน้ารายการใบจ่ายสินค้า (เมนู / badge) — ตรงกับ canSeeMenu */
 export function canAccessPickings(): boolean {
@@ -79,18 +83,20 @@ export function useReadySalesOrdersForPickingQuery() {
 }
 
 /** จำนวน SO ที่พร้อมสร้างใบจ่าย — ใช้ร่วมกันที่ปุ่มสร้างจาก SO / เมนู / หน้าแรก */
+export function readySalesOrdersForPickingCountOptions(ctx?: {
+  enabled?: boolean;
+}) {
+  return pendingCountQueryOptions({
+    queryKey: readySalesOrdersForPickingCountQueryKey,
+    queryFn: () => getReadySalesOrdersForPicking(getAccessToken()),
+    select: selectDataLength,
+    canAccess: canAccessPickings,
+    enabled: ctx?.enabled,
+  });
+}
+
 export function useReadySalesOrdersForPickingCountQuery(options?: {
   enabled?: boolean;
 }) {
-  return useQuery({
-    queryKey: readySalesOrdersForPickingQueryKey,
-    queryFn: () => getReadySalesOrdersForPicking(getAccessToken()),
-    enabled:
-      (options?.enabled ?? true) && hasAccessToken() && canAccessPickings(),
-    refetchInterval: countPollInterval,
-    refetchOnMount: true,
-    refetchOnWindowFocus: (query) => query.state.status !== "error",
-    retry: 1,
-    select: (res) => res?.data?.length ?? 0,
-  });
+  return useQuery(readySalesOrdersForPickingCountOptions(options));
 }

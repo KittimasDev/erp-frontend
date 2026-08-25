@@ -99,7 +99,8 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
     const data = detailQuery.data?.data;
     if (!data) return;
 
-    if (data.status !== "DRAFT") {
+    // ใบที่ถูกส่งกลับแก้ไขต้องเข้าฟอร์มได้ ไม่งั้นแก้ตามที่สั่งไม่ได้
+    if (data.status !== "DRAFT" && data.status !== "REVISING") {
       router.replace(`/purchase-requests/${data.id}`);
       return;
     }

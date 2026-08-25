@@ -121,6 +121,19 @@ export function getLinkedSalesOrders(
   );
 }
 
+/**
+ * นับใบสั่งขายรอยืนยันหลังส่งผลิต สำหรับ badge
+ * แยก endpoint จาก getLinkedSalesOrders เพราะตัวนั้น sync สถานะ SO ให้ด้วย
+ * ซึ่งไม่ควรถูก poll จาก badge
+ */
+export function getLinkedSalesOrdersCount(token: string) {
+  return apiFetch<{
+    statusCode: number;
+    message: string;
+    data: { count: number };
+  }>(`${BASE}/linked-sales-orders/count`, { method: "GET", token });
+}
+
 export function getEligibleSalesOrder(token: string, salesOrderId: string) {
   return apiFetch<EligibleSalesOrderApiResponse>(
     `${BASE}/eligible-sales-orders/${salesOrderId}`,

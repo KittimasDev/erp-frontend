@@ -39,6 +39,9 @@ import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadg
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./PurchaseOrdersListPage.module.css";
 
+/** ร่าง กับ ที่ถูกส่งกลับแก้ไข ทำอย่างเดียวกันได้ทั้งคู่ — ให้ตรงกับ guard ฝั่ง backend */
+const PO_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
+
 function statusColor(status: string) {
   switch (status) {
     case "CONFIRMED":
@@ -46,6 +49,9 @@ function statusColor(status: string) {
       return "success";
     case "PENDING_APPROVAL":
       return "gold";
+    // ส่งกลับแก้ไข = มีงานค้างต้องทำ ใช้สีส้มให้ต่างจากร่าง (processing)
+    case "REVISING":
+      return "orange";
     case "DRAFT":
     case "PARTIALLY_RECEIVED":
       return "processing";
@@ -280,7 +286,7 @@ export default function PurchaseOrdersListPage() {
                 onClick: () => router.push(`/purchase-orders/${row.id}`),
               },
               canEditPo &&
-                row.status === "DRAFT" && {
+                PO_EDITABLE_STATUSES.includes(row.status) && {
                   key: "edit",
                   icon: <EditOutlined />,
                   label: "แก้ไข",
@@ -288,7 +294,7 @@ export default function PurchaseOrdersListPage() {
                     router.push(`/purchase-orders/${row.id}/edit`),
                 },
               canEditPo &&
-                row.status === "DRAFT" && {
+                PO_EDITABLE_STATUSES.includes(row.status) && {
                   key: "submit",
                   icon: <SendOutlined />,
                   label: "ส่งอนุมัติ",
@@ -411,6 +417,7 @@ export default function PurchaseOrdersListPage() {
               onChange={setStatus}
               options={[
                 { value: "DRAFT", label: "ร่าง" },
+                { value: "REVISING", label: "แก้ไข" },
                 { value: "PENDING_APPROVAL", label: "รออนุมัติ" },
                 { value: "CONFIRMED", label: "อนุมัติแล้ว · รอส่งสินค้า" },
                 { value: "PARTIALLY_RECEIVED", label: "รับของบางส่วน" },

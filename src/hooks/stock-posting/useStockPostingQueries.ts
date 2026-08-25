@@ -15,6 +15,10 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
+import {
+  pendingCountQueryOptions,
+  selectDataLength,
+} from "@/lib/query/count-query";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
 
 export const stockPostingRequestsQueryKey = [
@@ -22,20 +26,16 @@ export const stockPostingRequestsQueryKey = [
   "stock-posting-requests",
 ] as const;
 
+/**
+ * key ของ badge — เดิมตรงเป๊ะกับ key ของ useStockPostingApprovalsQuery()
+ * ทำให้เป็น cache entry เดียวกันแต่ options ต่างกัน ต่อท้าย "count" แยกออกมา
+ */
 export const pendingStockPostingApprovalsCountQueryKey = [
   ...stockPostingRequestsQueryKey,
   "approvals",
   StockPostingRequestStatus.PENDING_APPROVAL,
+  "count",
 ] as const;
-
-const COUNT_POLL_MS = 30_000;
-
-function countPollInterval(query: { state: { status: string } }): number | false {
-  if (query.state.status === "error") {
-    return false;
-  }
-  return COUNT_POLL_MS;
-}
 
 /** สิทธิ์เข้าหน้ารายการอนุมัติรับยางเข้าคลัง (เมนู / badge) — ตรงกับ canSeeMenu */
 export function canAccessStockPostingApprovals(): boolean {
@@ -78,26 +78,26 @@ export function useStockPostingApprovalsQuery(status?: string) {
 }
 
 /** จำนวนคำขอรับยางเข้าคลังรออนุมัติ สำหรับ badge (เมนู / หน้าแรก) */
-export function usePendingStockPostingApprovalsCountQuery(options?: {
+export function pendingStockPostingApprovalsCountOptions(ctx?: {
   enabled?: boolean;
 }) {
-  return useQuery({
+  return pendingCountQueryOptions({
     queryKey: pendingStockPostingApprovalsCountQueryKey,
     queryFn: () =>
       getStockPostingApprovals(
         getAccessToken(),
         StockPostingRequestStatus.PENDING_APPROVAL,
       ),
-    enabled:
-      (options?.enabled ?? true) &&
-      hasAccessToken() &&
-      canAccessStockPostingApprovals(),
-    refetchInterval: countPollInterval,
-    refetchOnMount: true,
-    refetchOnWindowFocus: (query) => query.state.status !== "error",
-    retry: 1,
-    select: (res) => res?.data?.length ?? 0,
+    select: selectDataLength,
+    canAccess: canAccessStockPostingApprovals,
+    enabled: ctx?.enabled,
   });
+}
+
+export function usePendingStockPostingApprovalsCountQuery(options?: {
+  enabled?: boolean;
+}) {
+  return useQuery(pendingStockPostingApprovalsCountOptions(options));
 }
 
 export function useStockPostingApprovalQuery(id?: string) {

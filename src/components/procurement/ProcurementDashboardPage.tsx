@@ -57,6 +57,8 @@ function statusColor(status: string) {
     case "CONFIRMED":
     case "COMPLETED":
       return "success";
+    case "REVISING":
+      return "orange";
     case "DRAFT":
     case "PENDING_APPROVAL":
       return "processing";

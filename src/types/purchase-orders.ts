@@ -1,6 +1,7 @@
 export type PurchaseOrderStatus =
   | "DRAFT"
   | "PENDING_APPROVAL"
+  | "REVISING"
   | "CONFIRMED"
   | "REJECTED"
   | "PARTIALLY_RECEIVED"
@@ -11,6 +12,8 @@ export type PurchaseOrderStatus =
 export const PURCHASE_ORDER_STATUS_LABEL: Record<string, string> = {
   DRAFT: "ร่าง",
   PENDING_APPROVAL: "รออนุมัติ",
+  // ถูกหัวหน้าส่งกลับมาแก้ — ต้องแยกจาก "ร่าง" ให้เห็นว่ามีงานค้างอยู่
+  REVISING: "แก้ไข",
   // อนุมัติแล้ว = ส่ง PO ให้ Supplier ได้ และรอของเข้า
   CONFIRMED: "อนุมัติแล้ว · รอส่งสินค้า",
   REJECTED: "ไม่อนุมัติ",

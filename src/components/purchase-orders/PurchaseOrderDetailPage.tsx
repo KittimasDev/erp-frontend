@@ -53,6 +53,9 @@ import styles from "./PurchaseOrderDetailPage.module.css";
 
 type Props = { id: string };
 
+/** ร่าง กับ ที่ถูกส่งกลับแก้ไข แก้ไข/ส่งอนุมัติ ได้เหมือนกัน — ตรงกับ guard ฝั่ง backend */
+const PO_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
+
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_TYPES = new Set([
   "application/pdf",
@@ -87,6 +90,8 @@ function statusClass(status: string) {
       return styles.statusApproved;
     case "PARTIALLY_RECEIVED":
       return styles.statusApproved;
+    case "REVISING":
+      return styles.statusRevision;
     case "CANCELLED":
     case "REJECTED":
       return styles.statusCancelled;
@@ -128,21 +133,31 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
   const data = query.data?.data;
   const attachments = attachmentsQuery.data?.data ?? [];
-  const canWrite =
+  // สิทธิ์ต้องอ่าน Permission Matrix ด้วย ไม่ใช่ดู role ล้วน — ไม่งั้น role ที่ติ๊ก
+  // PURCHASE_ORDERS.EDIT ไว้จะเห็นปุ่มในหน้ารายการแต่ไม่เห็นในหน้านี้
+  // ใช้ hook (ไม่ใช่ getter) เพื่อให้ปุ่มอัปเดตทันทีเมื่อแอดมิน save matrix
+  const poActions = useScreenActionPermissions("PURCHASE_ORDERS");
+  const paymentActions = useScreenActionPermissions("PURCHASE_PAYMENTS");
+  const legacyPurchaseWrite =
     userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
-    userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
-    isAdministrator();
+    userHasRole(RoleCode.PROCUREMENT_MANAGER);
+  const canWrite = isAdministrator() || poActions.canEdit || legacyPurchaseWrite;
+  // backend ให้ยกเลิกด้วย PURCHASE_ORDERS.EDIT ไม่ได้จำกัดแค่หัวหน้า
   const canCancel =
-    userHasRole(RoleCode.PROCUREMENT_MANAGER) || isAdministrator();
+    isAdministrator() ||
+    poActions.canEdit ||
+    userHasRole(RoleCode.PROCUREMENT_MANAGER);
   // อนุมัติ PO = หัวหน้าจัดซื้อ (คนละสิทธิ์กับคนสร้าง PO)
   const canApprove = canAccessPurchaseOrderApprovals();
   const receiveActions = useScreenActionPermissions("GOODS_RECEIPTS");
   const canReceive = isAdministrator() || receiveActions.canAdd;
   const canPay =
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
+    isAdministrator() ||
+    paymentActions.canAdd ||
+    userHasRole(RoleCode.ACCOUNTING_OFFICER);
   const canUploadAttachment =
     canWrite &&
-    (data?.status === "DRAFT" ||
+    (PO_EDITABLE_STATUSES.includes(data?.status ?? "") ||
       data?.status === "PENDING_APPROVAL" ||
       data?.status === "CONFIRMED");
 
@@ -573,7 +588,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               พิมพ์ PDF สั่งซื้อ
             </Button>
 
-            {canWrite && data.status === "DRAFT" ? (
+            {canWrite && PO_EDITABLE_STATUSES.includes(data.status) ? (
               <>
                 <Button
                   className={styles.primaryBtn}
@@ -705,7 +720,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             ) : null}
 
             {canCancel &&
-            (data.status === "DRAFT" ||
+            (PO_EDITABLE_STATUSES.includes(data.status) ||
               data.status === "PENDING_APPROVAL" ||
               data.status === "CONFIRMED") ? (
               <Button

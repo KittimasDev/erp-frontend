@@ -40,12 +40,18 @@ import {
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./PurchaseRequestsListPage.module.css";
 
+/** ร่าง กับ ที่ถูกส่งกลับแก้ไข แก้ไข/ส่งอนุมัติ ได้เหมือนกัน — ตรงกับ guard ฝั่ง backend */
+const PR_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
+
 function statusColor(status: string) {
   switch (status) {
     case "APPROVED":
       return "success";
     case "PENDING_APPROVAL":
       return "warning";
+    // ส่งกลับแก้ไข = ผู้ขอมีงานค้างต้องทำ ต้องต่างจากร่าง
+    case "REVISING":
+      return "orange";
     case "REJECTED":
       return "error";
     case "CANCELLED":
@@ -219,7 +225,7 @@ export default function PurchaseRequestsListPage() {
                 label: "พิมพ์ PDF",
                 onClick: () => void handlePrintPdf(row),
               },
-              row.status === "DRAFT" && {
+              PR_EDITABLE_STATUSES.includes(row.status) && {
                 key: "edit",
                 icon: <EditOutlined />,
                 label: "แก้ไข",

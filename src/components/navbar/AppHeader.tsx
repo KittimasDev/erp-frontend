@@ -31,15 +31,11 @@ import {
 } from "@/lib/auth/portal-module";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
-import { useReadySalesOrdersForPickingCountQuery } from "@/hooks/pickings/usePickingsQuery";
-import { usePendingProductionOutputStockRequestsCountQuery } from "@/hooks/production-output/useProductionOutputQueries";
-import { usePendingStockVerificationCountQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
-import { usePendingPurchaseOrderApprovalsCountQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import {
-  usePendingPurchaseRequestApprovalsCountQuery,
-  usePurchaseOrdersPendingFromPrCountQuery,
-} from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
-import { usePendingStockPostingApprovalsCountQuery } from "@/hooks/stock-posting/useStockPostingQueries";
+  badgeLabelForMenuKey,
+  useMenuBadgeCounts,
+  type MenuBadgeCounts,
+} from "@/hooks/badges/useMenuBadgeCounts";
 
 import styles from "./AppHeader.module.css";
 
@@ -1672,17 +1668,21 @@ function filterMenus(items: MenuItem[]) {
   });
 }
 
+/**
+ * รับยอด badge มาทั้งชุดแล้วหยิบตาม item.key เอง — ทุก call site ส่งตัวเดียวกัน
+ * ดังนั้นเพิ่ม badge ใหม่ไม่ต้องแตะไฟล์นี้เลย แค่เพิ่ม entry ใน menu-badge-registry
+ */
 function renderMenuButton(
   item: MenuItem,
   pathname: string,
   collapsed: boolean,
   handleGo: (href: string) => void,
   searchParams?: URLSearchParams,
-  badgeCount?: number,
+  badgeCounts?: MenuBadgeCounts,
 ) {
   const active = isActive(item, pathname, searchParams);
-  const count =
-    typeof badgeCount === "number" && badgeCount > 0 ? badgeCount : 0;
+  const raw = badgeCounts?.[item.key];
+  const count = typeof raw === "number" && raw > 0 ? raw : 0;
 
   return (
     <button
@@ -1697,7 +1697,7 @@ function renderMenuButton(
       {count > 0 ? (
         <span
           className={styles.menuBadge}
-          aria-label={`${count} รายการรอดำเนินการ`}
+          aria-label={`${count} รายการ${badgeLabelForMenuKey(item.key)}`}
         >
           {count > 99 ? "99+" : count}
         </span>
@@ -1830,32 +1830,14 @@ export default function AppHeader({
     finishedGoodsWarehouseMenus,
   );
   const visiblePurchaseMenus = filterMenus(purchaseMenus);
-  const pendingPrApprovalsCountQuery =
-    usePendingPurchaseRequestApprovalsCountQuery();
-  const pendingPrApprovalsCount = pendingPrApprovalsCountQuery.data ?? 0;
-  const pendingFromPrCountQuery = usePurchaseOrdersPendingFromPrCountQuery();
-  const pendingFromPrCount = pendingFromPrCountQuery.data ?? 0;
-  const pendingPoApprovalsCountQuery =
-    usePendingPurchaseOrderApprovalsCountQuery();
-  const pendingPoApprovalsCount = pendingPoApprovalsCountQuery.data ?? 0;
-  const pendingStockPostingApprovalsCountQuery =
-    usePendingStockPostingApprovalsCountQuery();
-  const pendingStockPostingApprovalsCount =
-    pendingStockPostingApprovalsCountQuery.data ?? 0;
-  const pendingProductionOutputStockRequestsCountQuery =
-    usePendingProductionOutputStockRequestsCountQuery({
-      enabled: PRODUCTION_OUTPUT_ENABLED,
-    });
-  const pendingProductionOutputStockRequestsCount =
-    pendingProductionOutputStockRequestsCountQuery.data ?? 0;
-  const readySalesOrdersForPickingCountQuery =
-    useReadySalesOrdersForPickingCountQuery();
-  const readySalesOrdersForPickingCount =
-    readySalesOrdersForPickingCountQuery.data ?? 0;
-  const pendingStockVerificationCountQuery =
-    usePendingStockVerificationCountQuery();
-  const pendingStockVerificationCount =
-    pendingStockVerificationCountQuery.data ?? 0;
+  /**
+   * ยอดคิวค้างของทุกเมนูจากทะเบียนกลาง — renderMenuButton หยิบตาม item.key เอง
+   * เดิมที่นี่เรียก hook 7 ตัวแล้ว map เข้า menu key ด้วย ternary รายกลุ่ม
+   * ทำให้ badge ที่เพิ่มใหม่ต้องมาไล่แก้ที่นี่ด้วยและตกหล่นบ่อย
+   *
+   * รอ user จาก getStoredUser() ก่อน ไม่ยิง request ตอน render ก่อน hydrate
+   */
+  const badgeCounts = useMenuBadgeCounts({ enabled: Boolean(user) });
   const visibleSalesMenus = filterMenus(salesMenus);
   const visibleLaboratoryMenus = filterMenus(laboratoryMenus);
   const visibleOilTankFarmMenus = filterMenus(oilTankFarmMenus);
@@ -1982,6 +1964,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2000,9 +1983,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
-                    item.key === "stock-posting-approvals"
-                      ? pendingStockPostingApprovalsCount
-                      : undefined,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2022,6 +2003,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2040,9 +2022,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
-                    item.key === "production-output-stock-requests"
-                      ? pendingProductionOutputStockRequestsCount
-                      : undefined,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2062,11 +2042,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
-                    item.key === "pickings"
-                      ? readySalesOrdersForPickingCount
-                      : item.key === "sd-stock-verification"
-                        ? pendingStockVerificationCount
-                        : undefined,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2085,6 +2061,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2103,13 +2080,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
-                    item.key === "purchase-request-approvals"
-                      ? pendingPrApprovalsCount
-                      : item.key === "purchase-orders"
-                        ? pendingFromPrCount
-                        : item.key === "purchase-order-approvals"
-                          ? pendingPoApprovalsCount
-                          : undefined,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2128,6 +2099,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2147,6 +2119,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2166,6 +2139,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2184,6 +2158,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2202,6 +2177,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2220,6 +2196,7 @@ export default function AppHeader({
                     collapsed,
                     handleGo,
                     searchParams,
+                    badgeCounts,
                   ),
                 )}
               </div>
@@ -2240,6 +2217,7 @@ export default function AppHeader({
                         collapsed,
                         handleGo,
                         searchParams,
+                        badgeCounts,
                       ),
                     )
                   : null}

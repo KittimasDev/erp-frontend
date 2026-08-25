@@ -17,6 +17,10 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
+import {
+  pendingCountQueryOptions,
+  selectListTotal,
+} from "@/lib/query/count-query";
 import { DOCUMENT_TYPE_PO } from "@/types/document-attachments";
 import type { PurchaseOrderQueryParams } from "@/types/purchase-orders";
 
@@ -27,23 +31,6 @@ export const pendingPurchaseOrderApprovalsCountQueryKey = [
   "approvals-pending-count",
 ] as const;
 
-const COUNT_POLL_MS = 30_000;
-
-function selectListTotal(res: {
-  data?: { total?: number | string; items?: unknown[] };
-}): number {
-  const total = res?.data?.total as number | string | undefined;
-  if (typeof total === "number" && Number.isFinite(total)) {
-    return total;
-  }
-  if (typeof total === "string" && total.trim() !== "") {
-    const parsed = Number(total);
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-  return res?.data?.items?.length ?? 0;
-}
 
 /** สิทธิ์เข้าหน้าใบสั่งซื้อรออนุมัติ (เมนู / badge) — ตรงกับ canSeeMenu */
 export function canAccessPurchaseOrderApprovals(): boolean {
@@ -72,26 +59,26 @@ export function usePendingPurchaseOrderApprovalsQuery(
 }
 
 /** จำนวน PO รออนุมัติสำหรับ badge (เมนู / หน้าแรก) */
-export function usePendingPurchaseOrderApprovalsCountQuery(options?: {
+export function pendingPurchaseOrderApprovalsCountOptions(ctx?: {
   enabled?: boolean;
 }) {
-  return useQuery({
+  return pendingCountQueryOptions({
     queryKey: pendingPurchaseOrderApprovalsCountQueryKey,
     queryFn: () =>
       getPendingPurchaseOrderApprovals(getAccessToken(), {
         page: 1,
         limit: 1,
       }),
-    enabled:
-      (options?.enabled ?? true) &&
-      hasAccessToken() &&
-      canAccessPurchaseOrderApprovals(),
-    refetchInterval: COUNT_POLL_MS,
-    refetchOnMount: "always",
-    refetchOnWindowFocus: true,
-    retry: 2,
     select: selectListTotal,
+    canAccess: canAccessPurchaseOrderApprovals,
+    enabled: ctx?.enabled,
   });
+}
+
+export function usePendingPurchaseOrderApprovalsCountQuery(options?: {
+  enabled?: boolean;
+}) {
+  return useQuery(pendingPurchaseOrderApprovalsCountOptions(options));
 }
 
 export function usePurchaseOrdersQuery(params?: PurchaseOrderQueryParams) {

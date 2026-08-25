@@ -66,7 +66,8 @@ export default function PurchaseOrderEditPage({ id }: Props) {
 
   useEffect(() => {
     if (!data) return;
-    if (data.status !== "DRAFT") {
+    // ใบที่ถูกส่งกลับแก้ไขต้องเข้าฟอร์มได้ ไม่งั้นแก้ตามที่หัวหน้าสั่งไม่ได้เลย
+    if (data.status !== "DRAFT" && data.status !== "REVISING") {
       router.replace(`/purchase-orders/${data.id}`);
       return;
     }

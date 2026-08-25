@@ -8,6 +8,7 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   CloseOutlined,
+  RollbackOutlined,
   EditOutlined,
   FileTextOutlined,
   FilePdfOutlined,
@@ -20,6 +21,7 @@ import {
   useApprovePurchaseRequestMutation,
   useCancelPurchaseRequestMutation,
   useRejectPurchaseRequestMutation,
+  useReturnPurchaseRequestToDraftMutation,
   useSubmitPurchaseRequestMutation,
 } from "@/hooks/purchase-requests/usePurchaseRequestMutations";
 import { usePurchaseRequestQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
@@ -52,6 +54,9 @@ function formatQty(value: string) {
   return Number(value).toLocaleString("th-TH", { maximumFractionDigits: 3 });
 }
 
+/** ร่าง กับ ที่ถูกส่งกลับแก้ไข ทำอย่างเดียวกันได้ — ตรงกับ guard ฝั่ง backend */
+const PR_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
+
 function statusClass(status: string) {
   switch (status) {
     case "APPROVED":
@@ -60,6 +65,8 @@ function statusClass(status: string) {
       return styles.statusPending;
     case "REJECTED":
       return styles.statusRejected;
+    case "REVISING":
+      return styles.statusRevision;
     case "CANCELLED":
       return styles.statusCancelled;
     default:
@@ -74,9 +81,14 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
   const submitMutation = useSubmitPurchaseRequestMutation();
   const approveMutation = useApprovePurchaseRequestMutation();
   const rejectMutation = useRejectPurchaseRequestMutation();
+  const returnMutation = useReturnPurchaseRequestToDraftMutation();
   const cancelMutation = useCancelPurchaseRequestMutation();
   const [rejectReason, setRejectReason] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
+  // modal เหตุผลตัวเดียวใช้ทั้งไม่อนุมัติและส่งกลับแก้ไข
+  const [reviewAction, setReviewAction] = useState<"reject" | "return">(
+    "reject",
+  );
 
   const data = query.data?.data;
   const canApprove =
@@ -306,8 +318,17 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
             </div>
           </div>
 
+          {/* สิ่งที่ผู้อนุมัติสั่งให้แก้ — ต้องเห็นชัดก่อนกดแก้ไข
+              (เหตุผลที่ปฏิเสธยังอยู่ในหมายเหตุเหมือนเดิม) */}
+          {data.rejectedReason ? (
+            <div className={styles.flowNote}>
+              <strong>ผู้อนุมัติส่งกลับให้แก้ไข</strong>
+              <p style={{ margin: "6px 0 0" }}>{data.rejectedReason}</p>
+            </div>
+          ) : null}
+
           <div className={styles.actionStack}>
-            {data.status === "DRAFT" ? (
+            {PR_EDITABLE_STATUSES.includes(data.status) ? (
               <>
                 <Button
                   className={styles.primaryBtn}
@@ -358,12 +379,28 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                     </Button>
                     <Button
                       className={styles.secondaryBtn}
+                      icon={<RollbackOutlined />}
+                      loading={busy}
+                      onClick={() => {
+                        setReviewAction("return");
+                        setRejectReason("");
+                        setRejectOpen(true);
+                      }}
+                    >
+                      ส่งกลับแก้ไข
+                    </Button>
+                    <Button
+                      className={styles.secondaryBtn}
                       danger
                       icon={<CloseOutlined />}
                       loading={busy}
-                      onClick={() => setRejectOpen(true)}
+                      onClick={() => {
+                        setReviewAction("reject");
+                        setRejectReason("");
+                        setRejectOpen(true);
+                      }}
                     >
-                      ปฏิเสธ
+                      ไม่อนุมัติ
                     </Button>
                   </>
                 ) : null}
@@ -448,24 +485,35 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
       </div>
 
       <Modal
-        title="ปฏิเสธใบขอซื้อ"
+        title={
+          reviewAction === "reject"
+            ? "ไม่อนุมัติใบขอซื้อ"
+            : "ส่งกลับให้ผู้ขอแก้ไข"
+        }
         open={rejectOpen}
         onCancel={() => setRejectOpen(false)}
         onOk={async () => {
-          await rejectMutation.mutateAsync({
-            id: data.id,
-            body: { reason: rejectReason.trim() || undefined },
-          });
+          const body = { reason: rejectReason.trim() || undefined };
+          if (reviewAction === "reject") {
+            await rejectMutation.mutateAsync({ id: data.id, body });
+          } else {
+            await returnMutation.mutateAsync({ id: data.id, body });
+          }
           setRejectOpen(false);
           setRejectReason("");
         }}
-        confirmLoading={rejectMutation.isPending}
-        okText="ปฏิเสธ"
-        okButtonProps={{ danger: true }}
+        confirmLoading={rejectMutation.isPending || returnMutation.isPending}
+        okText={reviewAction === "reject" ? "ไม่อนุมัติ" : "ส่งกลับแก้ไข"}
+        cancelText="ยกเลิก"
+        okButtonProps={{ danger: reviewAction === "reject" }}
       >
         <Input.TextArea
           rows={3}
-          placeholder="เหตุผล (ถ้ามี)"
+          placeholder={
+            reviewAction === "reject"
+              ? "เหตุผลที่ไม่อนุมัติ (ถ้ามี)"
+              : "สิ่งที่ต้องแก้ไข (ถ้ามี)"
+          }
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}
         />

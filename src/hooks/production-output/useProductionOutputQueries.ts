@@ -20,6 +20,10 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
+import {
+  pendingCountQueryOptions,
+  selectDataLength,
+} from "@/lib/query/count-query";
 import type { ProductionOutputPendingTicketQueryParams } from "@/types/production-output-pending-tickets";
 import {
   ProductionOutputRequestStatus,
@@ -36,15 +40,6 @@ export const pendingProductionOutputStockRequestsCountQueryKey = [
   ...productionOutputStockRequestsQueryKey,
   "pending-approval-count",
 ] as const;
-
-const COUNT_POLL_MS = 30_000;
-
-function countPollInterval(query: { state: { status: string } }): number | false {
-  if (query.state.status === "error") {
-    return false;
-  }
-  return COUNT_POLL_MS;
-}
 
 /** สิทธิ์เข้าหน้าขอรับผลผลิตเข้าคลัง (เมนู / badge) — ตรงกับ canSeeMenu */
 export function canAccessProductionOutputStockRequests(): boolean {
@@ -99,25 +94,100 @@ export function useProductionOutputStockRequestsQuery(
 }
 
 /** จำนวนคำขอรับผลผลิตรออนุมัติ สำหรับ badge (เมนู / หน้าแรก) */
-export function usePendingProductionOutputStockRequestsCountQuery(options?: {
+export function pendingProductionOutputStockRequestsCountOptions(ctx?: {
   enabled?: boolean;
 }) {
-  return useQuery({
+  return pendingCountQueryOptions({
     queryKey: pendingProductionOutputStockRequestsCountQueryKey,
     queryFn: () =>
       getProductionOutputStockRequests(getAccessToken(), {
         status: ProductionOutputRequestStatus.PENDING_APPROVAL,
       }),
-    enabled:
-      (options?.enabled ?? true) &&
-      hasAccessToken() &&
-      PRODUCTION_OUTPUT_ENABLED &&
-      canAccessProductionOutputStockRequests(),
-    refetchInterval: countPollInterval,
-    refetchOnMount: true,
-    refetchOnWindowFocus: (query) => query.state.status !== "error",
-    retry: 1,
-    select: (res) => res?.data?.length ?? 0,
+    select: selectDataLength,
+    canAccess: canAccessProductionOutputStockRequests,
+    // feature flag พับเข้า enabled ไม่ filter registry ทิ้ง (ต้องคงจำนวน query)
+    enabled: (ctx?.enabled ?? true) && PRODUCTION_OUTPUT_ENABLED,
+  });
+}
+
+export function usePendingProductionOutputStockRequestsCountQuery(options?: {
+  enabled?: boolean;
+}) {
+  return useQuery(pendingProductionOutputStockRequestsCountOptions(options));
+}
+
+/** สิทธิ์เข้าหน้าอนุมัติรับผลผลิตเข้าคลัง (คลัง FG) — คนละหน้าจอกับหน้าขอรับผลผลิต */
+export function canAccessProductionOutputApprovals(): boolean {
+  if (isAdministrator()) {
+    return true;
+  }
+  if (isMatrixPermissionMode()) {
+    return (
+      canAccessScreen("PRODUCTION_OUTPUT_APPROVALS") ||
+      hasPermission(
+        "PRODUCTION_OUTPUT_APPROVALS.VIEW",
+        "PRODUCTION_OUTPUT_APPROVALS.APPROVE",
+      )
+    );
+  }
+  return (
+    userHasRole(RoleCode.WAREHOUSE_MANAGER) || userHasRole(RoleCode.EXECUTIVE)
+  );
+}
+
+export const pendingProductionOutputApprovalsCountQueryKey = [
+  ...productionOutputStockRequestsQueryKey,
+  "approvals",
+  "count",
+] as const;
+
+/** จำนวนคำขอที่คลัง FG ต้องอนุมัติ สำหรับ badge */
+export function pendingProductionOutputApprovalsCountOptions(ctx?: {
+  enabled?: boolean;
+}) {
+  return pendingCountQueryOptions({
+    queryKey: pendingProductionOutputApprovalsCountQueryKey,
+    queryFn: () => getProductionOutputApprovals(getAccessToken()),
+    select: selectDataLength,
+    canAccess: canAccessProductionOutputApprovals,
+    enabled: (ctx?.enabled ?? true) && PRODUCTION_OUTPUT_ENABLED,
+  });
+}
+
+/** สิทธิ์เข้าหน้ารับผลผลิตเข้าคลัง (อ้างอิงตั๋วผลิต) */
+export function canAccessPendingProductionOutput(): boolean {
+  if (isAdministrator()) {
+    return true;
+  }
+  if (isMatrixPermissionMode()) {
+    return (
+      canAccessScreen("PENDING_PRODUCTION_OUTPUT") ||
+      hasPermission("PENDING_PRODUCTION_OUTPUT.VIEW")
+    );
+  }
+  return (
+    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+    userHasRole(RoleCode.EXECUTIVE)
+  );
+}
+
+export const pendingProductionOutputTicketsCountQueryKey = [
+  ...productionOutputPendingTicketsQueryKey,
+  "count",
+] as const;
+
+/** จำนวนตั๋วผลิตที่ยังไม่ได้รับเข้าคลัง สำหรับ badge */
+export function pendingProductionOutputTicketsCountOptions(ctx?: {
+  enabled?: boolean;
+}) {
+  return pendingCountQueryOptions({
+    queryKey: pendingProductionOutputTicketsCountQueryKey,
+    queryFn: () => getProductionOutputPendingTickets(getAccessToken()),
+    select: selectDataLength,
+    canAccess: canAccessPendingProductionOutput,
+    enabled: (ctx?.enabled ?? true) && PRODUCTION_OUTPUT_ENABLED,
   });
 }
 

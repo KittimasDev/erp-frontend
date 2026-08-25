@@ -9,6 +9,7 @@ import {
   cancelPurchaseRequest,
   createPurchaseRequest,
   rejectPurchaseRequest,
+  returnPurchaseRequestToDraft,
   submitPurchaseRequest,
   updatePurchaseRequest,
 } from "@/lib/api/purchase-requests";
@@ -130,6 +131,34 @@ export function useRejectPurchaseRequestMutation() {
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError ? error.message : "ปฏิเสธใบขอซื้อไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+/** ผู้อนุมัติส่งกลับให้ผู้ขอแก้ไข (รออนุมัติ → แก้ไข) */
+export function useReturnPurchaseRequestToDraftMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseRequestsQueryKey, "return-to-draft"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body?: RejectPurchaseRequestBody;
+    }) => returnPurchaseRequestToDraft(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({
+        queryKey: purchaseRequestsQueryKey,
+      });
+      message.success(response.message || "ส่งกลับให้แก้ไขแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "ส่งกลับแก้ไขไม่สำเร็จ",
       );
     },
   });

@@ -1,6 +1,7 @@
 export type PurchaseRequestStatus =
   | "DRAFT"
   | "PENDING_APPROVAL"
+  | "REVISING"
   | "APPROVED"
   | "REJECTED"
   | "CANCELLED";
@@ -11,6 +12,8 @@ export const PURCHASE_REQUEST_STATUS_LABEL: Record<
 > = {
   DRAFT: "ร่าง",
   PENDING_APPROVAL: "รออนุมัติ",
+  // ถูกผู้อนุมัติส่งกลับมาแก้ — ต้องแยกจาก "ร่าง"
+  REVISING: "แก้ไข",
   APPROVED: "อนุมัติแล้ว",
   REJECTED: "ปฏิเสธ",
   CANCELLED: "ยกเลิก",
@@ -62,6 +65,8 @@ export type PurchaseRequest = {
   objective?: string;
   status: PurchaseRequestStatus | string;
   remark?: string;
+  /** สิ่งที่ผู้อนุมัติสั่งให้แก้ไข ตอนส่งกลับแก้ไข (สถานะ REVISING) */
+  rejectedReason?: string;
   items: PurchaseRequestItem[];
   linkedPurchaseOrder?: {
     id: string;
