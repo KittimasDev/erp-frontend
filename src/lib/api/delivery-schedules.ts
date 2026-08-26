@@ -5,6 +5,7 @@ import type {
   DeliveryScheduleApiResponse,
   DeliveryScheduleListApiResponse,
   DeliveryScheduleStockStatusApiResponse,
+  RescheduleDeliveryScheduleBody,
   UpdateDeliveryScheduleBody,
 } from "@/types/delivery-schedules";
 
@@ -55,10 +56,26 @@ export function updateDeliverySchedule(
   );
 }
 
+/**
+ * เลื่อนกำหนดส่ง — แตะวันเท่านั้น จำนวนและยอดเงินไม่เปลี่ยน
+ * แยกจาก updateDeliverySchedule เพราะทำได้กับรอบที่คลังเริ่มทำงานไปแล้วด้วย
+ */
+export function rescheduleDeliverySchedule(
+  token: string,
+  id: string,
+  body: RescheduleDeliveryScheduleBody,
+) {
+  return apiFetch<DeliveryScheduleApiResponse>(
+    `/api/sales-orders/delivery-schedules/${id}/reschedule`,
+    { method: "POST", token, body },
+  );
+}
+
+/** ยกเลิกรอบ — reason บังคับ ไม่มี default ว่างอีกแล้ว */
 export function cancelDeliverySchedule(
   token: string,
   id: string,
-  body: CancelDeliveryScheduleBody = {},
+  body: CancelDeliveryScheduleBody,
 ) {
   return apiFetch<DeliveryScheduleApiResponse>(
     `/api/sales-orders/delivery-schedules/${id}/cancel`,

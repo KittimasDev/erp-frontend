@@ -11,6 +11,7 @@ import {
   createDeliverySchedule,
   getDeliverySchedules,
   getDeliveryScheduleStockStatus,
+  rescheduleDeliverySchedule,
   updateDeliverySchedule,
 } from "@/lib/api/delivery-schedules";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
@@ -18,6 +19,7 @@ import { salesOrdersQueryKey } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import type {
   CancelDeliveryScheduleBody,
   CreateDeliveryScheduleBody,
+  RescheduleDeliveryScheduleBody,
   UpdateDeliveryScheduleBody,
 } from "@/types/delivery-schedules";
 
@@ -124,17 +126,40 @@ export function useUpdateDeliveryScheduleMutation(salesOrderId?: string) {
   });
 }
 
-export function useCancelDeliveryScheduleMutation(salesOrderId?: string) {
+/**
+ * เลื่อนกำหนดส่ง — ยอดเงินไม่เปลี่ยน แต่ยัง invalidate ใบสั่งขายด้วย
+ * เพราะ requested_delivery_date บนหัวใบสรุปมาจากรอบที่เร็วสุด
+ */
+export function useRescheduleDeliveryScheduleMutation(salesOrderId?: string) {
   const invalidate = useInvalidateSchedules(salesOrderId);
   return useMutation({
     mutationFn: async (params: {
       id: string;
-      body?: CancelDeliveryScheduleBody;
+      body: RescheduleDeliveryScheduleBody;
+    }) => {
+      const res = await rescheduleDeliverySchedule(
+        getAccessToken() ?? "",
+        params.id,
+        params.body,
+      );
+      return res.data;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useCancelDeliveryScheduleMutation(salesOrderId?: string) {
+  const invalidate = useInvalidateSchedules(salesOrderId);
+  return useMutation({
+    // body บังคับแล้ว — reason ว่างไม่ผ่าน validation ฝั่ง backend
+    mutationFn: async (params: {
+      id: string;
+      body: CancelDeliveryScheduleBody;
     }) => {
       const res = await cancelDeliverySchedule(
         getAccessToken() ?? "",
         params.id,
-        params.body ?? {},
+        params.body,
       );
       return res.data;
     },

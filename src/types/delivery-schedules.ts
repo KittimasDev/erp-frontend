@@ -3,6 +3,9 @@
  *
  * จำนวน/ราคาของจริงอยู่ที่บรรทัดรอบ ไม่ใช่บรรทัด SO
  * (`sales_order_items.quantity` เป็นจำนวนที่ตกลงขาย = สัญญา)
+ *
+ * **ยกเลิกรอบของใบที่ยืนยันแล้วจะลดสัญญาและยอดเงินลงตามรอบนั้น** — หน้าจอต้องบอก
+ * ผู้ใช้ล่วงหน้าก่อนกด ไม่ใช่ให้ไปเห็นยอดเปลี่ยนเองทีหลัง
  */
 export type DeliveryScheduleStatus =
   | "PLANNED"
@@ -36,6 +39,17 @@ export const DELIVERY_SCHEDULE_STATUS_COLOR: Record<
 /** แก้ไข/ยกเลิกรอบได้เฉพาะตอนยังไม่จ่ายของ */
 export function isDeliveryScheduleEditable(status: string): boolean {
   return status === "PLANNED";
+}
+
+/**
+ * เลื่อนกำหนดส่งได้จนก่อนส่งจบ — กว้างกว่า isDeliveryScheduleEditable โดยเจตนา
+ *
+ * เลื่อนวันไม่แตะจำนวนหรือยอดเงิน ของยังอยู่ครบเหมือนเดิม จึงทำได้แม้คลังจ่ายของ
+ * หรือบรรจุไปแล้ว · ส่งถึงลูกค้าแล้วหรือยกเลิกแล้วเท่านั้นที่เลื่อนไม่ได้
+ * (ต้องตรงกับ RESCHEDULABLE_STATUSES ฝั่ง backend)
+ */
+export function isDeliveryScheduleReschedulable(status: string): boolean {
+  return status === "PLANNED" || status === "ISSUED" || status === "PACKED";
 }
 
 export type DeliveryScheduleItem = {
@@ -73,6 +87,12 @@ export type DeliverySchedule = {
   packedAt?: string;
   deliveredAt?: string;
   cancelledAt?: string;
+  /** วันส่งที่ตกลงไว้ครั้งแรก — ไม่มีค่าคือยังไม่เคยเลื่อน */
+  originalDeliveryDate?: string;
+  /** เลื่อนกำหนดส่งมากี่ครั้ง — มากกว่า 0 ให้ขึ้นป้ายเตือนบนหัวรอบ */
+  rescheduledCount?: number;
+  lastRescheduledAt?: string;
+  lastRescheduleReason?: string;
   items: DeliveryScheduleItem[];
 };
 
@@ -119,8 +139,19 @@ export type UpdateDeliveryScheduleBody = {
   items?: UpsertDeliveryScheduleItemBody[];
 };
 
+export type RescheduleDeliveryScheduleBody = {
+  deliveryDate: string;
+  /** บังคับ — เป็นหลักฐานเวลาฝ่ายขายกับคลังเถียงกันว่าเลื่อนเพราะอะไร */
+  reason: string;
+  /** ขยับวันบนเอกสารของรอบที่ยังเป็นร่างด้วย (default true ฝั่ง backend) */
+  cascadeToDocuments?: boolean;
+};
+
 export type CancelDeliveryScheduleBody = {
-  reason?: string;
+  /** บังคับ — การยกเลิกรอบลดจำนวนและยอดเงินของใบสั่งขาย ต้องรู้ว่าเพราะอะไร */
+  reason: string;
+  /** ยืนยันว่าตรวจใบแจ้งหนี้ของใบสั่งขายนี้แล้ว (ใบแจ้งหนี้ไม่ผูกรอบ) */
+  acknowledgeInvoice?: boolean;
 };
 
 export type DeliveryScheduleApiResponse = {

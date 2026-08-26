@@ -5,6 +5,7 @@ import {
   Alert,
   App,
   Button,
+  Checkbox,
   DatePicker,
   Empty,
   Form,
@@ -14,10 +15,13 @@ import {
   Space,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import {
+  CalendarOutlined,
   DeleteOutlined,
   EditOutlined,
+  HistoryOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -26,6 +30,7 @@ import {
   useCancelDeliveryScheduleMutation,
   useCreateDeliveryScheduleMutation,
   useDeliverySchedulesQuery,
+  useRescheduleDeliveryScheduleMutation,
   useUpdateDeliveryScheduleMutation,
 } from "@/hooks/delivery-schedules/useDeliverySchedulesQuery";
 import { ApiError } from "@/lib/api/client";
@@ -33,6 +38,7 @@ import {
   DELIVERY_SCHEDULE_STATUS_COLOR,
   DELIVERY_SCHEDULE_STATUS_LABEL,
   isDeliveryScheduleEditable,
+  isDeliveryScheduleReschedulable,
   type DeliverySchedule,
   type DeliveryScheduleStatus,
   type UpsertDeliveryScheduleItemBody,
@@ -66,28 +72,57 @@ type DraftLine = {
  * กติกาที่หน้าจอนี้ต้องสื่อให้ชัด:
  *  - Σ จำนวนทุกรอบ **ต้องเท่ากับ** จำนวนที่ตกลงขาย ก่อนจะยืนยันใบสั่งขายได้
  *  - จำนวนที่ตกลงขายบนบรรทัด SO คือ "สัญญา" · จำนวนจริงที่ส่งอยู่ที่บรรทัดรอบ
- *  - แก้/ยกเลิกรอบได้เฉพาะรอบที่ยังไม่จ่ายของ
+ *    (ยกเว้นการยกเลิกรอบหลังยืนยัน ซึ่งลดสัญญาลงตามรอบนั้น)
+ *  - แก้รอบได้เฉพาะรอบที่ยังไม่จ่ายของ · **เลื่อนวัน** ทำได้จนก่อนส่งจบ
+ *  - ยกเลิกรอบหลังยืนยันใบสั่งขาย **ลดจำนวนและยอดเงิน** ต้องบอกผู้ใช้ก่อนกด
  */
 export default function DeliverySchedulesSection({
   salesOrderId,
   salesOrderItems,
   canEdit,
+  salesOrderStatus,
 }: {
   salesOrderId: string;
   salesOrderItems: SalesOrderItem[];
   canEdit: boolean;
+  /** ต้องรู้เพื่อบอกล่วงหน้าว่าการยกเลิกรอบจะลดจำนวน/ยอดเงินหรือไม่ */
+  salesOrderStatus: string;
 }) {
   const { message } = App.useApp();
   const schedulesQuery = useDeliverySchedulesQuery(salesOrderId);
   const createMutation = useCreateDeliveryScheduleMutation(salesOrderId);
   const updateMutation = useUpdateDeliveryScheduleMutation(salesOrderId);
   const cancelMutation = useCancelDeliveryScheduleMutation(salesOrderId);
+  const rescheduleMutation =
+    useRescheduleDeliveryScheduleMutation(salesOrderId);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<DeliverySchedule | null>(null);
   const [deliveryDate, setDeliveryDate] = useState<dayjs.Dayjs | null>(null);
   const [remark, setRemark] = useState("");
   const [draftLines, setDraftLines] = useState<DraftLine[]>([]);
+
+  // ── เลื่อนกำหนดส่ง ─────────────────────────────────────────────────────────
+  const [rescheduleTarget, setRescheduleTarget] =
+    useState<DeliverySchedule | null>(null);
+  const [newDeliveryDate, setNewDeliveryDate] = useState<dayjs.Dayjs | null>(
+    null,
+  );
+  const [rescheduleReason, setRescheduleReason] = useState("");
+  const [cascadeDates, setCascadeDates] = useState(true);
+
+  // ── ยกเลิกรอบ ──────────────────────────────────────────────────────────────
+  const [cancelTarget, setCancelTarget] = useState<DeliverySchedule | null>(
+    null,
+  );
+  const [cancelReason, setCancelReason] = useState("");
+  /*
+   * ใบแจ้งหนี้ผูกกับใบสั่งขายไม่ผูกกับรอบ backend จึงถามกลับมาให้คนยืนยัน
+   * ไม่โชว์ช่องนี้ตั้งแต่แรกเพราะส่วนใหญ่ไม่มีใบแจ้งหนี้ — โชว์ตอน backend ทักมา
+   * พร้อมเลขใบจริง จะเข้าใจง่ายกว่าเดาไว้ล่วงหน้า
+   */
+  const [invoiceWarning, setInvoiceWarning] = useState<string | null>(null);
+  const [acknowledgeInvoice, setAcknowledgeInvoice] = useState(false);
 
   // ห่อด้วย useMemo ไม่ใช่ `?? []` เปล่า — array literal ใหม่ทุก render
   // จะทำให้ dependency ของ useMemo ข้างล่างเปลี่ยนทุกครั้ง คำนวณซ้ำฟรี
@@ -224,31 +259,101 @@ export default function DeliverySchedulesSection({
     }
   }
 
-  function confirmCancel(schedule: DeliverySchedule) {
-    Modal.confirm({
-      title: `ยกเลิกรอบ ${schedule.roundNo}?`,
-      content:
-        "ของที่จองไว้ให้รอบนี้จะถูกคืนเป็นสต๊อกกลาง · รอบอื่นไม่กระทบ",
-      okText: "ยกเลิกรอบนี้",
-      okButtonProps: { danger: true },
-      cancelText: "ปิด",
-      onOk: async () => {
-        try {
-          await cancelMutation.mutateAsync({ id: schedule.id });
-          message.success("ยกเลิกรอบจัดส่งแล้ว");
-        } catch (error) {
-          message.error(
-            error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ",
-          );
-        }
-      },
-    });
+  function openReschedule(schedule: DeliverySchedule) {
+    setRescheduleTarget(schedule);
+    setNewDeliveryDate(dayjs(schedule.deliveryDate));
+    setRescheduleReason("");
+    setCascadeDates(true);
   }
+
+  async function submitReschedule() {
+    if (!rescheduleTarget) return;
+    if (!newDeliveryDate) {
+      message.error("ต้องระบุวันจัดส่งใหม่");
+      return;
+    }
+    const nextDate = newDeliveryDate.format("YYYY-MM-DD");
+    if (nextDate === rescheduleTarget.deliveryDate) {
+      message.error("วันใหม่ตรงกับวันเดิม — ไม่มีอะไรต้องเลื่อน");
+      return;
+    }
+    if (!rescheduleReason.trim()) {
+      message.error("ต้องระบุเหตุผลการเลื่อนกำหนดส่ง");
+      return;
+    }
+
+    try {
+      await rescheduleMutation.mutateAsync({
+        id: rescheduleTarget.id,
+        body: {
+          deliveryDate: nextDate,
+          reason: rescheduleReason.trim(),
+          cascadeToDocuments: cascadeDates,
+        },
+      });
+      message.success(
+        `เลื่อนกำหนดส่งรอบ ${rescheduleTarget.roundNo} เป็น ${newDeliveryDate.format("DD/MM/YYYY")} แล้ว`,
+      );
+      setRescheduleTarget(null);
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "เลื่อนกำหนดส่งไม่สำเร็จ",
+      );
+    }
+  }
+
+  function openCancel(schedule: DeliverySchedule) {
+    setCancelTarget(schedule);
+    setCancelReason("");
+    setInvoiceWarning(null);
+    setAcknowledgeInvoice(false);
+  }
+
+  async function submitCancel() {
+    if (!cancelTarget) return;
+    if (!cancelReason.trim()) {
+      message.error("ต้องระบุเหตุผลการยกเลิกรอบ");
+      return;
+    }
+
+    try {
+      await cancelMutation.mutateAsync({
+        id: cancelTarget.id,
+        body: {
+          reason: cancelReason.trim(),
+          acknowledgeInvoice: acknowledgeInvoice || undefined,
+        },
+      });
+      message.success(`ยกเลิกรอบ ${cancelTarget.roundNo} แล้ว`);
+      setCancelTarget(null);
+    } catch (error) {
+      const detail =
+        error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ";
+      /*
+       * backend ทักว่ามีใบแจ้งหนี้ → เปิดช่องยืนยันในโมดัลเดิม ไม่ปิดโมดัลทิ้ง
+       * ให้คนอ่านเลขใบแจ้งหนี้จริงจาก backend แล้วตัดสินใจ ไม่ใช่เดาไว้ล่วงหน้า
+       */
+      if (detail.includes("ใบแจ้งหนี้")) {
+        setInvoiceWarning(detail);
+        return;
+      }
+      message.error(detail);
+    }
+  }
+
+  /** ยกเลิกรอบนี้แล้วจำนวนที่ตกลงขายจะลดไหม — ลดเฉพาะใบที่ยืนยันแล้ว */
+  const cancelReducesQuantity = salesOrderStatus === "CONFIRMED";
+
+  /** รอบที่ยังเดินอยู่ นับรวมรอบที่กำลังจะยกเลิก — ใช้เตือนว่าจะปิดใบทั้งใบ */
+  const cancelClosesOrder = Boolean(
+    cancelTarget && activeSchedules.length <= 1,
+  );
 
   const busy =
     createMutation.isPending ||
     updateMutation.isPending ||
-    cancelMutation.isPending;
+    cancelMutation.isPending ||
+    rescheduleMutation.isPending;
 
   return (
     <>
@@ -329,26 +434,64 @@ export default function DeliverySchedulesSection({
                   ส่งวันที่ {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
                 </span>
                 {statusTag(schedule.status)}
+                {(schedule.rescheduledCount ?? 0) > 0 ? (
+                  <Tooltip
+                    title={
+                      <span>
+                        เดิม{" "}
+                        {schedule.originalDeliveryDate
+                          ? dayjs(schedule.originalDeliveryDate).format(
+                              "DD/MM/YYYY",
+                            )
+                          : "—"}{" "}
+                        → ปัจจุบัน{" "}
+                        {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
+                        {schedule.lastRescheduleReason
+                          ? ` · เหตุผลล่าสุด: ${schedule.lastRescheduleReason}`
+                          : ""}
+                      </span>
+                    }
+                  >
+                    <Tag color="warning" icon={<HistoryOutlined />}>
+                      เลื่อนกำหนดส่งแล้ว {schedule.rescheduledCount} ครั้ง
+                    </Tag>
+                  </Tooltip>
+                ) : null}
                 <span style={{ flex: 1 }} />
-                {canEdit && isDeliveryScheduleEditable(schedule.status) ? (
+                {canEdit ? (
                   <Space>
-                    <Button
-                      size="small"
-                      icon={<EditOutlined />}
-                      disabled={busy}
-                      onClick={() => openEdit(schedule)}
-                    >
-                      แก้ไข
-                    </Button>
-                    <Button
-                      size="small"
-                      danger
-                      icon={<DeleteOutlined />}
-                      disabled={busy}
-                      onClick={() => confirmCancel(schedule)}
-                    >
-                      ยกเลิกรอบ
-                    </Button>
+                    {/* เลื่อนวันทำได้กว้างกว่าแก้รอบ — วันเปลี่ยนแต่ของยังอยู่ครบ */}
+                    {isDeliveryScheduleReschedulable(schedule.status) ? (
+                      <Button
+                        size="small"
+                        icon={<CalendarOutlined />}
+                        disabled={busy}
+                        onClick={() => openReschedule(schedule)}
+                      >
+                        เลื่อนกำหนดส่ง
+                      </Button>
+                    ) : null}
+                    {isDeliveryScheduleEditable(schedule.status) ? (
+                      <>
+                        <Button
+                          size="small"
+                          icon={<EditOutlined />}
+                          disabled={busy}
+                          onClick={() => openEdit(schedule)}
+                        >
+                          แก้ไข
+                        </Button>
+                        <Button
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                          disabled={busy}
+                          onClick={() => openCancel(schedule)}
+                        >
+                          ยกเลิกรอบ
+                        </Button>
+                      </>
+                    ) : null}
                   </Space>
                 ) : null}
               </div>
@@ -523,6 +666,177 @@ export default function DeliverySchedulesSection({
           ใส่ 0 ในรายการที่ไม่ต้องส่งในรอบนี้ · สินค้าเดียวกันอยู่ได้หลายรอบ
           แต่รวมกันต้องไม่เกินจำนวนที่ตกลงขาย
         </p>
+      </Modal>
+
+      {/* ── เลื่อนกำหนดส่ง ─────────────────────────────────────────────────── */}
+      <Modal
+        open={Boolean(rescheduleTarget)}
+        title={`เลื่อนกำหนดส่ง — รอบ ${rescheduleTarget?.roundNo ?? ""}`}
+        onCancel={() => setRescheduleTarget(null)}
+        onOk={() => void submitReschedule()}
+        okText="เลื่อนกำหนดส่ง"
+        cancelText="ปิด"
+        confirmLoading={rescheduleMutation.isPending}
+        width={560}
+        destroyOnHidden
+      >
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title="เปลี่ยนแค่วันส่ง — จำนวนและยอดเงินไม่เปลี่ยน"
+          description={
+            rescheduleTarget?.status !== "PLANNED"
+              ? "รอบนี้คลังเริ่มทำงานไปแล้ว ระบบจะแจ้งเตือนคลังให้ทราบ · วันบนเอกสารที่ยืนยันแล้วจะไม่ถูกแก้"
+              : "ถ้ามีใบจ่าย/ใบบรรจุ/ใบส่งที่ยังเป็นร่างของรอบนี้ วันบนใบนั้นจะขยับตามให้"
+          }
+        />
+
+        <Form layout="vertical">
+          <Form.Item label="วันส่งเดิม">
+            <Input
+              disabled
+              value={
+                rescheduleTarget
+                  ? dayjs(rescheduleTarget.deliveryDate).format("DD/MM/YYYY")
+                  : ""
+              }
+            />
+          </Form.Item>
+          <Form.Item label="วันส่งใหม่" required>
+            <DatePicker
+              value={newDeliveryDate}
+              onChange={setNewDeliveryDate}
+              format="DD/MM/YYYY"
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
+          <Form.Item
+            label="เหตุผลการเลื่อน"
+            required
+            extra="บันทึกไว้ในประวัติของใบสั่งขาย — เป็นหลักฐานเวลาต้องอธิบายย้อนหลัง"
+          >
+            <Input.TextArea
+              value={rescheduleReason}
+              onChange={(e) => setRescheduleReason(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              placeholder="เช่น ลูกค้าขอเลื่อนรับของ ไซต์ยังไม่พร้อม"
+            />
+          </Form.Item>
+          <Form.Item>
+            <Checkbox
+              checked={cascadeDates}
+              onChange={(e) => setCascadeDates(e.target.checked)}
+            >
+              ขยับวันบนเอกสารของรอบนี้ที่ยังเป็นร่างให้ตามด้วย
+            </Checkbox>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* ── ยกเลิกรอบ ──────────────────────────────────────────────────────── */}
+      <Modal
+        open={Boolean(cancelTarget)}
+        title={`ยกเลิกรอบ ${cancelTarget?.roundNo ?? ""}`}
+        onCancel={() => setCancelTarget(null)}
+        onOk={() => void submitCancel()}
+        okText="ยกเลิกรอบนี้"
+        okButtonProps={{ danger: true }}
+        cancelText="ปิด"
+        confirmLoading={cancelMutation.isPending}
+        width={620}
+        destroyOnHidden
+      >
+        {/*
+          สรุปผลกระทบก่อนกด — รอบก่อนคนกดยกเลิกแล้วตกใจว่ายอดเงินเปลี่ยน
+          เพราะไม่มีใครบอกล่วงหน้า
+        */}
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title={
+            cancelClosesOrder
+              ? "นี่เป็นรอบสุดท้ายที่ยังเดินอยู่ — ยกเลิกแล้วใบสั่งขายจะถูกยกเลิกทั้งใบ"
+              : "ยกเลิกรอบนี้แล้วจะเกิดอะไรขึ้น"
+          }
+          description={
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              <li>ของที่จองไว้ให้รอบนี้คืนเป็นสต๊อกกลาง ให้ใบอื่นใช้ได้ทันที</li>
+              <li>
+                ใบขอผลิตของรอบนี้ที่ <strong>ยังไม่เริ่มผลิต</strong>{" "}
+                จะถูกยกเลิกอัตโนมัติ · ใบที่เริ่มผลิตแล้วไม่ถูกยกเลิก
+                แต่จะแจ้งเตือนฝ่ายผลิต
+              </li>
+              {cancelReducesQuantity ? (
+                <li>
+                  <strong>จำนวนที่ตกลงขายและยอดเงินของใบสั่งขายจะลดลง</strong>{" "}
+                  ตามจำนวนของรอบนี้
+                  <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+                    {(cancelTarget?.items ?? []).map((line) => {
+                      const soItem = salesOrderItems.find(
+                        (row) => row.id === line.salesOrderItemId,
+                      );
+                      const before = toNum(soItem?.quantity);
+                      const after = Math.max(before - toNum(line.quantity), 0);
+                      return (
+                        <li key={line.id}>
+                          {line.itemCode ?? line.itemNameTh ?? "สินค้า"}:{" "}
+                          {before.toFixed(3)} → {after.toFixed(3)}{" "}
+                          {line.unitCode ?? ""}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </li>
+              ) : (
+                <li>
+                  ใบสั่งขายยังไม่ยืนยัน — จำนวนที่ตกลงขายไม่เปลี่ยน
+                  (รอบนี้แค่ถูกเอาออก ต้องจัดรอบใหม่ให้ครบก่อนยืนยัน)
+                </li>
+              )}
+            </ul>
+          }
+        />
+
+        {invoiceWarning ? (
+          <Alert
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+            title="ใบสั่งขายนี้มีใบแจ้งหนี้ออกไปแล้ว"
+            description={
+              <div>
+                {invoiceWarning}
+                <div style={{ marginTop: 8 }}>
+                  <Checkbox
+                    checked={acknowledgeInvoice}
+                    onChange={(e) => setAcknowledgeInvoice(e.target.checked)}
+                  >
+                    ตรวจใบแจ้งหนี้แล้ว ยืนยันว่าไม่ครอบรอบนี้ — ยกเลิกรอบต่อได้
+                  </Checkbox>
+                </div>
+              </div>
+            }
+          />
+        ) : null}
+
+        <Form layout="vertical">
+          <Form.Item
+            label="เหตุผลการยกเลิก"
+            required
+            extra="บันทึกไว้ในประวัติของใบสั่งขาย พร้อมจำนวนและยอดเงินก่อน/หลัง"
+          >
+            <Input.TextArea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              placeholder="เช่น ลูกค้ายกเลิกออเดอร์ส่วนนี้"
+            />
+          </Form.Item>
+        </Form>
       </Modal>
     </>
   );

@@ -2054,10 +2054,17 @@ export default function SalesOrderDetailPage({ id }: Props) {
           </div>
 
           <div className={styles.section}>
+            {/*
+              canWrite ไม่ใช่ canEditItems — canEditItems จำกัดที่ก่อนยืนยัน
+              ซึ่งจะทำให้ปุ่มเลื่อน/ยกเลิกรอบหายไปตอนใบยืนยันแล้ว คือตอนที่
+              ต้องใช้พอดี · การคุมสถานะอยู่ในแผงเองแล้วทีละปุ่มตามสถานะรอบ
+              และ backend คุมซ้ำอีกชั้น (SCHEDULABLE_SO_STATUSES มี CONFIRMED)
+            */}
             <DeliverySchedulesSection
               salesOrderId={data.id}
               salesOrderItems={data.items ?? []}
-              canEdit={canEditItems}
+              canEdit={canWrite}
+              salesOrderStatus={data.status}
             />
           </div>
 
