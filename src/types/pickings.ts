@@ -44,8 +44,20 @@ export type Picking = {
   updatedAt: string;
 };
 
+/**
+ * รอบจัดส่งที่พร้อมให้คลังเปิดใบจ่าย
+ *
+ * ชื่อ type ยังเป็น ReadySalesOrder ตามเดิมเพื่อไม่ต้องแก้ทุกที่ที่อ้างถึง
+ * แต่ **1 แถว = 1 รอบ ไม่ใช่ 1 ใบสั่งขาย** — SO ใบเดียวโผล่ได้หลายแถว
+ * ดังนั้น key ของตารางต้องใช้ deliveryScheduleId ไม่ใช่ id (ซึ่งซ้ำได้)
+ */
 export type ReadySalesOrder = {
+  /** รหัสใบสั่งขายต้นทาง — ซ้ำได้เมื่อ SO ใบเดียวมีหลายรอบ */
   id: string;
+  /** รหัสรอบจัดส่ง — ตัวนี้ไม่ซ้ำ ใช้เป็น rowKey และใช้สร้างใบจ่าย */
+  deliveryScheduleId: string;
+  roundNo: number;
+  deliveryDate: string;
   soNo: string;
   soDate: string;
   customerId?: string;

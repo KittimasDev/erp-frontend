@@ -36,6 +36,8 @@ import styles from "./SalesOrderTimeline.module.css";
 type Props = {
   salesOrderId: string;
   salesOrderStatus?: string;
+  /** sales_orders.delivery_status — ความคืบหน้าจริงหลังยืนยัน (สรุปจากทุกรอบ) */
+  salesOrderDeliveryStatus?: string;
   loading?: boolean;
   refreshing?: boolean;
   currentStep?: string;
@@ -136,6 +138,7 @@ function FlowStepCard({
 export default function SalesOrderTimeline({
   salesOrderId,
   salesOrderStatus,
+  salesOrderDeliveryStatus,
   loading,
   refreshing,
   currentStep,
@@ -145,7 +148,7 @@ export default function SalesOrderTimeline({
   canNavigateHref,
 }: Props) {
   const activeTimelineStep = salesOrderStatus
-    ? resolveActiveTimelineStepName(salesOrderStatus)
+    ? resolveActiveTimelineStepName(salesOrderStatus, salesOrderDeliveryStatus)
     : null;
   const hasNext = Boolean(nextAction && nextAction !== "—");
   const nowLabel =

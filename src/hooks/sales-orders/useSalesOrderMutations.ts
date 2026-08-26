@@ -6,11 +6,7 @@ import { App } from "antd";
 import {
   cancelSalesOrder,
   confirmSalesOrder,
-  confirmStockVerification,
   createSalesOrderFromQuotation,
-  releaseSalesOrderLineReservation,
-  reserveAllEligibleSalesOrderLines,
-  reserveSalesOrderLine,
   updateSalesOrderCustomerPo,
   updateSalesOrderItems,
 } from "@/lib/api/sales-orders";
@@ -104,103 +100,15 @@ export function useCancelSalesOrderMutation() {
   });
 }
 
-export function useConfirmStockVerificationMutation() {
-  const { message } = App.useApp();
-  const invalidate = useInvalidateSalesOrders();
-
-  return useMutation({
-    mutationKey: [...salesOrdersQueryKey, "confirm-stock-verification"],
-    mutationFn: (id: string) => confirmStockVerification(getAccessToken(), id),
-    onSuccess: async (res) => {
-      await invalidate();
-      message.success(res.message || "ยืนยันผลตรวจสอบสต๊อกสำเร็จ");
-    },
-    onError: (error: Error) => {
-      message.error(
-        error instanceof ApiError
-          ? error.message
-          : "ยืนยันผลตรวจสอบสต๊อกไม่สำเร็จ",
-      );
-    },
-  });
-}
-
-function useReservationMutation(
-  mutationKey: string,
-  mutationFn: (args: { salesOrderId: string; itemId?: string }) => Promise<{
-    message: string;
-  }>,
-  successFallback: string,
-  errorFallback: string,
-) {
-  const { message } = App.useApp();
-  const invalidate = useInvalidateSalesOrders();
-
-  return useMutation({
-    mutationKey: [...salesOrdersQueryKey, mutationKey],
-    mutationFn,
-    onSuccess: async (res) => {
-      await invalidate();
-      message.success(res.message || successFallback);
-    },
-    onError: (error: Error) => {
-      message.error(error instanceof ApiError ? error.message : errorFallback);
-    },
-  });
-}
-
-export function useReserveSalesOrderLineMutation() {
-  return useReservationMutation(
-    "reserve-line",
-    ({ salesOrderId, itemId }) =>
-      reserveSalesOrderLine(getAccessToken(), salesOrderId, itemId as string),
-    "จองสต๊อกสำเร็จ",
-    "จองสต๊อกไม่สำเร็จ",
-  );
-}
-
-export function useReleaseSalesOrderLineMutation() {
-  return useReservationMutation(
-    "release-line",
-    ({ salesOrderId, itemId }) =>
-      releaseSalesOrderLineReservation(
-        getAccessToken(),
-        salesOrderId,
-        itemId as string,
-      ),
-    "ยกเลิกการจองสำเร็จ",
-    "ยกเลิกการจองไม่สำเร็จ",
-  );
-}
-
-export function useReserveAllEligibleSalesOrderLinesMutation() {
-  const { message } = App.useApp();
-  const invalidate = useInvalidateSalesOrders();
-
-  return useMutation({
-    mutationKey: [...salesOrdersQueryKey, "reserve-all-eligible"],
-    mutationFn: ({
-      salesOrderId,
-    }: {
-      salesOrderId: string;
-      silent?: boolean;
-    }) => reserveAllEligibleSalesOrderLines(getAccessToken(), salesOrderId),
-    onSuccess: async (res, vars) => {
-      await invalidate();
-      if (!vars.silent) {
-        message.success(res.message || "จองสต๊อกที่พร้อมใช้สำเร็จ");
-      }
-    },
-    onError: (error: Error, vars) => {
-      if (vars.silent) {
-        return;
-      }
-      message.error(
-        error instanceof ApiError ? error.message : "จองสต๊อกไม่สำเร็จ",
-      );
-    },
-  });
-}
+/*
+ * ถอด 4 hook ออกแล้ว (2026-08-26): useConfirmStockVerificationMutation,
+ * useReserveSalesOrderLineMutation, useReleaseSalesOrderLineMutation,
+ * useReserveAllEligibleSalesOrderLinesMutation (+ helper useReservationMutation)
+ *
+ * ทั้งหมดยิง endpoint ที่ถูกถอดออกฝั่ง backend แล้ว — การจองด้วยมือระดับ
+ * ใบสั่งขายทำให้จองซ้ำกับการจองระดับรอบ (สั่ง 2 กลายเป็นจองไว้ 4)
+ * ของถูกจองตอนคลังเปิดใบจ่ายของรอบเท่านั้น
+ */
 
 export function useUploadSalesOrderAttachmentMutation() {
   const { message } = App.useApp();

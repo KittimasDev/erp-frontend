@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Spin, Tag, Tooltip, Typography } from "antd";
+import { Button, Spin, Tag, Typography } from "antd";
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
-  CheckOutlined,
   ExclamationCircleOutlined,
   ReloadOutlined,
   SearchOutlined,
@@ -15,14 +14,12 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import { useConfirmStockVerificationMutation } from "@/hooks/sales-orders/useSalesOrderMutations";
 import {
   useSalesOrderQuery,
   useSalesOrderStockVerificationQuery,
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { canApproveStockVerification } from "@/lib/sales/sales-fulfillment-nav";
 import { resolveTimelineStepHref } from "@/lib/sales/sales-tracking-timeline";
 import {
   SALES_ORDER_STATUS_LABEL,
@@ -125,16 +122,11 @@ export default function StockVerificationDetailPage({ id }: Props) {
   const orderQuery = useSalesOrderQuery(id);
   const verifyQuery = useSalesOrderStockVerificationQuery(id);
   const trackingQuery = useSalesTrackingDetailQuery(id);
-  const confirmMutation = useConfirmStockVerificationMutation();
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const stockVerificationActions = useScreenActionPermissions(
     "SALES_STOCK_VERIFICATION",
   );
   const pickingActions = useScreenActionPermissions("PICKINGS");
-  const canApproveStock = canApproveStockVerification({
-    stockVerification: stockVerificationActions,
-    picking: pickingActions,
-  });
   const canViewSalesOrder = salesOrderActions.canView;
   const canFulfill =
     salesOrderActions.canEdit ||
@@ -148,7 +140,6 @@ export default function StockVerificationDetailPage({ id }: Props) {
   const timeline = trackingQuery.data?.data?.timeline ?? [];
   const lines = verification?.lines ?? [];
   const allOk = verification?.isAllAvailable === true;
-  const busy = confirmMutation.isPending || verifyQuery.isFetching;
   const soStatus = order?.status ?? verification?.status ?? "";
   const soNo = order?.soNo ?? verification?.soNo ?? "—";
   const isConfirmed = soStatus === "CONFIRMED";
@@ -217,41 +208,45 @@ export default function StockVerificationDetailPage({ id }: Props) {
     );
   };
 
+  /**
+   * พาไปหน้า "เลือกรอบจัดส่งที่พร้อมจ่าย" ไม่ใช่หน้าที่สร้างใบจ่ายให้ทันที
+   *
+   * ตั้งแต่ 1 รอบ = 1 ใบจ่าย คนต้องเลือกก่อนว่าจะจ่ายรอบไหน และหน้านั้นกางดู
+   * ต้องการ/มี/ขาด ได้ก่อนกดสร้าง (การกดสร้างคือการจองของจริง)
+   */
+  const openCreatePickingButton = (block = false) => {
+    if (!pickingActions.canAdd) return null;
+    return (
+      <Button
+        type="primary"
+        block={block}
+        className={styles.primaryBtn}
+        icon={<ShoppingOutlined />}
+        onClick={() => router.push("/pickings/create-from-sales-order")}
+      >
+        ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย
+      </Button>
+    );
+  };
+
   const renderPrimaryAction = (block = false) => {
     // ผ่านขั้นตรวจสต๊อกแล้ว — ไม่ให้สร้าง/ยืนยันซ้ำ มีแค่เปิดเอกสารที่ทำต่อ
     if (isPastStockVerification) {
       return openPickingButton(block);
     }
 
-    if (isConfirmed && canApproveStock) {
-      return (
-        <Tooltip
-          title={
-            allOk ? undefined : "มีรายการที่สต๊อกไม่พอ — ไม่สามารถยืนยันได้"
-          }
-        >
-          <Button
-            type="primary"
-            block={block}
-            className={styles.primaryBtn}
-            icon={<CheckOutlined />}
-            disabled={!allOk || busy}
-            loading={confirmMutation.isPending}
-            onClick={async () => {
-              await confirmMutation.mutateAsync(id);
-              if (pickingActions.canAdd) {
-                router.push(`/pickings/create-from-sales-order/${id}`);
-              } else if (canViewSalesOrder) {
-                router.push(`/sales-orders/${id}`);
-              } else {
-                router.push("/sales-orders/stock-verification");
-              }
-            }}
-          >
-            ยืนยันผลตรวจสอบสต๊อก
-          </Button>
-        </Tooltip>
-      );
+    /*
+     * ถอดปุ่ม "ยืนยันผลตรวจสอบสต๊อก" ออกแล้ว (2026-08-26)
+     *
+     * ปุ่มนี้เคยดัน CONFIRMED → STOCK_CHECKED · พอใบจ่ายผูกกับรอบจัดส่ง
+     * สถานะนั้นทำให้เปิดใบจ่ายไม่ได้อีกเลย จึงถอดการเขียนสถานะออกไปก่อนหน้านี้
+     * เหลือปุ่มที่กดแล้วขึ้น "สำเร็จ" แต่ไม่มีอะไรเปลี่ยน และไม่บอกว่าต้องทำอะไรต่อ
+     *
+     * ขั้นนี้เป็นรายงานอ่านอย่างเดียวแล้ว — งานถัดไปคือคลังเปิดใบจ่ายของรอบ
+     * ที่ถึงกำหนด จึงพาไปหน้าเลือกรอบตรง ๆ
+     */
+    if (isConfirmed) {
+      return openCreatePickingButton(block);
     }
 
     if (isStockChecked && canFulfill) {
@@ -294,8 +289,8 @@ export default function StockVerificationDetailPage({ id }: Props) {
         ? "มีใบจ่ายสินค้าแล้ว — กดเปิดใบจ่ายเพื่อดำเนินการต่อ"
         : "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบจ่ายสินค้าเพื่อไปขั้นถัดไป"
       : allOk
-        ? "สามารถยืนยันผลตรวจสอบสต๊อกได้ — ขั้นตอนนี้ยังไม่ตัดและไม่จองสต๊อก"
-        : "ระบบจะไม่เปลี่ยนสถานะใบสั่งขายจนกว่าทุกรายการจะมียอดพร้อมขายเพียงพอ";
+        ? "หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด (ของจะถูกจองตอนนั้น)"
+        : "ของไม่พอ ณ ตอนนี้ — ยืนยันใบสั่งขายได้เลย ด่านเช็คของจริงอยู่ตอนคลังเปิดใบจ่ายของแต่ละรอบ";
 
   const statusBannerTone =
     isPastStockVerification || isStockChecked || allOk
@@ -309,7 +304,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
         ? "มีใบจ่ายแล้ว"
         : "พร้อมจ่ายสินค้า"
       : allOk
-        ? "พร้อมยืนยัน"
+        ? "ของพอ"
         : `ขาด ${shortCount} รายการ`;
 
   const sideNote = isPastStockVerification ? (
@@ -327,14 +322,18 @@ export default function StockVerificationDetailPage({ id }: Props) {
         ตรวจสต๊อกเสร็จแล้ว — กด <strong>สร้างใบจ่ายสินค้า</strong> เพื่อไปขั้นถัดไป
       </>
     )
-  ) : allOk && canApproveStock ? (
+  ) : allOk && pickingActions.canAdd ? (
     <>
-      พร้อมกด <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นถัดไป
+      ขั้นถัดไป: กด <strong>ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย</strong> — ของจะถูก
+      จองตอนสร้างใบจ่าย ไม่ใช่ตอนนี้
     </>
-  ) : allOk && !canApproveStock ? (
-    <>สต๊อกพอแล้ว — รอคลังหรือเจ้าหน้าที่ขายยืนยันผลตรวจสอบสต๊อก</>
+  ) : allOk ? (
+    <>ของพอแล้ว — ขั้นถัดไปเป็นงานของคลัง (เปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด)</>
   ) : (
-    <>ต้องเติมสต๊อกหรือปรับยอดสั่งขายก่อน จึงจะยืนยันผลตรวจได้</>
+    <>
+      ของไม่พอ ณ ตอนนี้ — เปิดใบขอผลิตไว้ได้จากหน้าใบสั่งขาย · ยืนยันใบสั่งขาย
+      ไม่ต้องรอของ
+    </>
   );
 
   return (

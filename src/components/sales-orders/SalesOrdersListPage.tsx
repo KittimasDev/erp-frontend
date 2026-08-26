@@ -53,8 +53,14 @@ function formatMoney(value?: string) {
   });
 }
 
-function SalesOrderProgressCell({ status }: { status: string }) {
-  const progress = resolveSalesOrderProgress(status);
+function SalesOrderProgressCell({
+  status,
+  deliveryStatus,
+}: {
+  status: string;
+  deliveryStatus?: string;
+}) {
+  const progress = resolveSalesOrderProgress(status, deliveryStatus);
   return (
     <div
       className={`${styles.progressCell} ${styles[`progress_${progress.tone}`]}`}
@@ -190,7 +196,12 @@ export default function SalesOrdersListPage() {
         title: "ขั้นตอน",
         key: "progress",
         width: 220,
-        render: (_v, row) => <SalesOrderProgressCell status={row.status} />,
+        render: (_v, row) => (
+          <SalesOrderProgressCell
+            status={row.status}
+            deliveryStatus={row.deliveryStatus}
+          />
+        ),
       },
       {
         title: "สถานะ",
@@ -229,9 +240,11 @@ export default function SalesOrdersListPage() {
         <div className={styles.headerContent}>
           <p className={styles.eyebrow}>Sales · Sales Order</p>
           <h1 className={styles.pageTitle}>ใบสั่งขาย</h1>
+          {/* สร้างจาก SALES_ORDER_FLOW_STEPS ไม่ hardcode — เดิมเขียน 6 ขั้น
+              ค้างไว้ ไม่ตรงกับแถบความคืบหน้าที่เหลือ 5 ขั้นหลังถอดขั้นตรวจสต๊อก */}
           <p className={styles.pageSubtitle}>
-            ติดตาม 6 ขั้นตอน: ร่าง → ยืนยัน → ตรวจสต๊อก → จ่ายสินค้า → บรรจุ →
-            ส่งสินค้าสำเร็จ
+            ติดตาม {SALES_ORDER_FLOW_STEPS.length} ขั้นตอน:{" "}
+            {SALES_ORDER_FLOW_STEPS.map((step) => step.label).join(" → ")}
             {!canViewAll ? " · แสดงเฉพาะเอกสารที่คุณสร้าง" : ""}
           </p>
         </div>

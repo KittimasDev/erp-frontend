@@ -1,5 +1,15 @@
 import { apiFetch } from "./client";
 import type {
+/*
+ * ถอด confirmStockVerification / reserveSalesOrderLine /
+ * releaseSalesOrderLineReservation / reserveAllEligibleSalesOrderLines ออกแล้ว (2026-08-26)
+ * — endpoint ฝั่ง backend ถูกถอดไปด้วย
+ *
+ * การจองด้วยมือระดับใบสั่งขายทำให้จองซ้ำกับการจองระดับรอบจัดส่ง
+ * (สั่ง 2 กลายเป็นจองไว้ 4) และการยืนยันผลตรวจสต๊อกไม่มีผลอะไรแล้ว
+ * ของถูกจองตอนคลังเปิดใบจ่ายของรอบเท่านั้น
+ */
+
   CreateSalesOrderFromQuotationBody,
   SalesOrderApiResponse,
   SalesOrderAvailableWarehouseListApiResponse,
@@ -81,13 +91,6 @@ export function getSalesOrderStockVerification(token: string, id: string) {
   );
 }
 
-export function confirmStockVerification(token: string, id: string) {
-  return apiFetch<SalesOrderStockVerificationApiResponse>(
-    `/api/sales-orders/${id}/stock-verification`,
-    { method: "POST", token },
-  );
-}
-
 export function getSalesOrderAvailableWarehouses(token: string, id: string) {
   return apiFetch<SalesOrderAvailableWarehouseListApiResponse>(
     `/api/sales-orders/${id}/available-warehouses`,
@@ -137,34 +140,5 @@ export function getSalesOrderReservationStatus(token: string, id: string) {
   return apiFetch<SalesOrderReservationStatusApiResponse>(
     `/api/sales-orders/${id}/reservation-status`,
     { method: "GET", token },
-  );
-}
-
-export function reserveSalesOrderLine(
-  token: string,
-  salesOrderId: string,
-  itemId: string,
-) {
-  return apiFetch<SalesOrderReservationStatusApiResponse>(
-    `/api/sales-orders/${salesOrderId}/items/${itemId}/reserve`,
-    { method: "POST", token },
-  );
-}
-
-export function releaseSalesOrderLineReservation(
-  token: string,
-  salesOrderId: string,
-  itemId: string,
-) {
-  return apiFetch<SalesOrderReservationStatusApiResponse>(
-    `/api/sales-orders/${salesOrderId}/items/${itemId}/release-reservation`,
-    { method: "POST", token },
-  );
-}
-
-export function reserveAllEligibleSalesOrderLines(token: string, id: string) {
-  return apiFetch<SalesOrderReservationStatusApiResponse>(
-    `/api/sales-orders/${id}/reserve-all-eligible`,
-    { method: "POST", token },
   );
 }

@@ -6,6 +6,7 @@ import { App } from "antd";
 import {
   cancelPicking,
   confirmPicking,
+  createPickingFromDeliverySchedule,
   createPickingFromSalesOrder,
   updatePicking,
 } from "@/lib/api/pickings";
@@ -41,6 +42,32 @@ export function useCreatePickingFromSalesOrderMutation() {
       body?: CreatePickingFromSalesOrderBody;
     }) =>
       createPickingFromSalesOrder(getAccessToken(), salesOrderId, body),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || "เปิดใบจ่ายสินค้าแล้ว");
+    },
+    onError: (e: Error) =>
+      message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ"),
+  });
+}
+
+/**
+ * เปิดใบจ่ายของรอบจัดส่งหนึ่งรอบ
+ *
+ * error ที่เจอบ่อยคือ "สต๊อกไม่พอสำหรับรอบจัดส่งนี้" — โชว์ข้อความจาก backend
+ * ตรง ๆ เพราะมันบอกจำนวนที่ยังขาดมาให้แล้ว คนจะเอาไปเปิดใบขอผลิตต่อได้
+ */
+export function useCreatePickingFromScheduleMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({
+      scheduleId,
+      body,
+    }: {
+      scheduleId: string;
+      body?: CreatePickingFromSalesOrderBody;
+    }) => createPickingFromDeliverySchedule(getAccessToken(), scheduleId, body),
     onSuccess: async (res) => {
       await invalidate();
       message.success(res.message || "เปิดใบจ่ายสินค้าแล้ว");

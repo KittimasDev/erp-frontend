@@ -26,6 +26,7 @@ import {
   FileTextOutlined,
   InboxOutlined,
   SaveOutlined,
+  CarOutlined,
   ShoppingCartOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -408,22 +409,24 @@ export default function PackingFormPage({ id, mode }: Props) {
         <Alert
           type="success"
           showIcon
-          title="ยืนยันแล้ว — ใบสั่งขายเปลี่ยนสถานะเป็น PACKED พร้อมสร้างใบส่งสินค้า"
+          /* ข้อความเดิมเขียนว่า "ใบสั่งขายเปลี่ยนสถานะเป็น PACKED" ซึ่งไม่จริงแล้ว —
+             ตั้งแต่แบ่งส่งหลายรอบ so.status ค้างที่ CONFIRMED และ **รอบ** เป็น PACKED
+             (ใบเดียวมีรอบที่ส่งจบแล้วกับรอบที่ยังรอของพร้อมกันได้)
+
+             และปุ่มเดิมพากลับไปใบสั่งขาย ทำให้ไม่รู้ว่าต้องไปทำอะไรต่อ —
+             งานถัดไปคือสร้างใบส่งสินค้าจากใบบรรจุนี้ */
+          title="ยืนยันแล้ว — บรรจุครบตามรอบจัดส่งนี้แล้ว ขั้นถัดไปคือสร้างใบส่งสินค้า"
           action={
             <Button
               size="small"
               type="primary"
               className={styles.primaryBtn}
-              icon={<ShoppingCartOutlined />}
+              icon={<CarOutlined />}
               onClick={() =>
-                router.push(
-                  data.salesOrderId
-                    ? `/sales-orders/${data.salesOrderId}`
-                    : "/sales-orders",
-                )
+                router.push(`/delivery-orders/create-from-packing/${id}`)
               }
             >
-              ไปใบสั่งขาย
+              สร้างใบส่งสินค้า
             </Button>
           }
         />

@@ -3,13 +3,21 @@ import {
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 
-/** 6 ขั้นของใบสั่งขาย: ร่าง → ยืนยัน → ตรวจสต๊อก → จ่าย → บรรจุ → ส่ง (จบที่ DELIVERED) */
+/**
+ * 5 ขั้นของใบสั่งขาย: ร่าง → ยืนยัน → จ่ายสินค้า → บรรจุ → ส่งสินค้า
+ *
+ * **ถอดขั้น "ตรวจสต๊อก" ออกแล้ว (2026-08-26)** — ตั้งแต่แบ่งส่งหลายรอบ
+ * การเช็คสต๊อกไม่ใช่ขั้นของทั้งใบอีกต่อไป แต่เกิดต่อรอบตอนคลังเปิดใบจ่าย
+ * ใบเดียวมีรอบที่ส่งจบแล้วกับรอบที่ยังรอของอยู่พร้อมกันได้
+ *
+ * และตั้งแต่เฟส 1b ระบบ **เลิกเขียน `so.status` เป็น `PICKING`/`PACKED`/`DELIVERED`**
+ * ความคืบหน้าหลังยืนยันจึงต้องอ่านจาก `so.delivery_status` ที่สรุปมาจากทุกรอบ
+ */
 export const SALES_ORDER_FLOW_STEPS = [
   { key: "DRAFT", label: "ร่าง", shortLabel: "ร่าง" },
   { key: "CONFIRMED", label: "ยืนยัน", shortLabel: "ยืนยัน" },
-  { key: "STOCK_CHECKED", label: "ตรวจสต๊อก", shortLabel: "ตรวจสต๊อก" },
-  { key: "PICKING", label: "จ่ายสินค้า", shortLabel: "จ่าย" },
-  { key: "PACKED", label: "บรรจุ", shortLabel: "บรรจุ" },
+  { key: "ISSUING", label: "จ่ายสินค้า", shortLabel: "จ่าย" },
+  { key: "PACKING", label: "บรรจุ", shortLabel: "บรรจุ" },
   { key: "DELIVERED", label: "ส่งสินค้า", shortLabel: "ส่ง" },
 ] as const;
 
@@ -25,14 +33,27 @@ export type SalesOrderProgress = {
   tone: "active" | "done" | "stopped";
 };
 
+/** ค่าใน sales_orders.delivery_status — สรุปจากสถานะรอบทั้งหมด */
+export type SalesOrderDeliveryStatus =
+  | "NOT_STARTED"
+  | "PARTIALLY_DELIVERED"
+  | "DELIVERED";
+
 /** map สถานะ SO → ชื่อขั้นใน timeline เอกสาร (ใช้ไฮไลต์การ์ด) */
-export function resolveActiveTimelineStepName(status: string): string | null {
+export function resolveActiveTimelineStepName(
+  status: string,
+  deliveryStatus?: string,
+): string | null {
   switch (status) {
     case "DRAFT":
     case "AWAITING_CONFIRM":
       return "Sales Order";
     case "CONFIRMED":
-      return "Stock Verification";
+      // ยืนยันแล้ว = รอคลังจ่ายของตามรอบ · ไปต่อตาม delivery_status
+      if (deliveryStatus === "DELIVERED") return "Delivery";
+      if (deliveryStatus === "PARTIALLY_DELIVERED") return "Picking";
+      return "Picking";
+    // สถานะเก่าของใบที่ค้างมาก่อนเปลี่ยนระบบ — ยังต้องแปลได้
     case "STOCK_CHECKED":
       return "Picking";
     case "PICKING":
@@ -50,6 +71,17 @@ export function resolveActiveTimelineStepName(status: string): string | null {
 
 export function resolveSalesOrderProgress(
   status: string,
+  deliveryStatus?: string,
+  /**
+   * สถานะของรอบที่คืบหน้าน้อยสุดที่ยังไม่จบ (PLANNED / ISSUED / PACKED)
+   *
+   * ส่งมาเมื่อผู้เรียกรู้จักรอบ (หน้ารายละเอียด SO) · ถ้าไม่ส่ง จะได้ความละเอียด
+   * แค่ระดับ delivery_status เหมือนเดิม (หน้ารายการ SO ที่ยังไม่มีข้อมูลรอบ)
+   *
+   * ต้องมีตัวนี้ ไม่งั้นแถบค้างที่ "จ่ายสินค้า" ทั้งที่หัวเรื่องบอกว่า
+   * "รอบ 1 รอส่งสินค้า" — สองที่บนหน้าเดียวกันขัดกันเอง
+   */
+  inFlightRoundStatus?: string,
 ): SalesOrderProgress {
   const total = SALES_ORDER_FLOW_STEPS.length;
 
@@ -61,6 +93,62 @@ export function resolveSalesOrderProgress(
       label: "ยกเลิก",
       currentStepLabel: "ยกเลิก",
       tone: "stopped",
+    };
+  }
+
+  // ── ยืนยันแล้ว: ความคืบหน้ามาจาก delivery_status ไม่ใช่ so.status ───────────
+  // so.status ค้างที่ CONFIRMED ตลอดอายุใบ ถ้าอ่านแค่ตัวนั้นแถบจะไม่ขยับเลย
+  if (status === "CONFIRMED") {
+    if (deliveryStatus === "DELIVERED") {
+      return {
+        current: 5,
+        inProgress: 5,
+        total,
+        label: "ส่งครบทุกรอบแล้ว",
+        currentStepLabel: "ส่งสินค้า",
+        tone: "done",
+      };
+    }
+
+    /*
+     * PARTIALLY_DELIVERED ไม่ได้แปลว่าส่งไปแล้วบางรอบ — รอบที่แค่จ่ายของ/บรรจุ
+     * ก็เข้าเงื่อนไขนี้ · ไม่เขียนว่า "ส่งแล้ว" เพื่อไม่ให้เข้าใจว่าของถึงลูกค้าแล้ว
+     * (ข้อความละเอียดรายรอบมาจาก currentStep ของ backend ที่เช็ครอบ DELIVERED จริง)
+     */
+    const partial = deliveryStatus === "PARTIALLY_DELIVERED";
+    const partialPrefix = "";
+
+    // รู้สถานะรอบ → เดินแถบตามรอบได้จริง
+    if (inFlightRoundStatus === "PACKED") {
+      return {
+        current: 4,
+        inProgress: 5,
+        total,
+        label: `${partialPrefix}รอส่งสินค้า`,
+        currentStepLabel: "ส่งสินค้า",
+        tone: "active",
+      };
+    }
+    if (inFlightRoundStatus === "ISSUED") {
+      return {
+        current: 3,
+        inProgress: 4,
+        total,
+        label: `${partialPrefix}รอบรรจุสินค้า`,
+        currentStepLabel: "บรรจุ",
+        tone: "active",
+      };
+    }
+
+    return {
+      current: 2,
+      inProgress: 3,
+      total,
+      label: partial
+        ? "ส่งบางรอบแล้ว รอรอบที่เหลือ"
+        : "รอจ่ายสินค้าตามรอบจัดส่ง",
+      currentStepLabel: "จ่ายสินค้า",
+      tone: "active",
     };
   }
 
@@ -77,55 +165,50 @@ export function resolveSalesOrderProgress(
     DRAFT: {
       current: 1,
       inProgress: 1,
-      label: "รอจองสต๊อก/ยืนยัน",
+      label: "รอจัดรอบจัดส่ง/ยืนยัน",
       currentStepLabel: "ร่าง",
     },
     AWAITING_CONFIRM: {
       current: 1,
       inProgress: 1,
-      label: "รอของครบแล้วยืนยันใบสั่งขาย",
+      label: "รอจัดรอบให้ครบแล้วยืนยันใบสั่งขาย",
       currentStepLabel: "รอยืนยันใบสั่งขาย",
     },
-    CONFIRMED: {
+    // ── สถานะเก่าของใบที่ค้างมาก่อนเปลี่ยนระบบ (2026-08-26) ─────────────────
+    // ระบบไม่เขียนค่าพวกนี้อีกแล้ว แต่ใบเก่ายังมีอยู่ใน DB จึงต้องแปลได้
+    STOCK_CHECKED: {
       current: 2,
       inProgress: 3,
-      label: "รอตรวจสต๊อก",
-      currentStepLabel: "ตรวจสต๊อก",
-    },
-    STOCK_CHECKED: {
-      current: 3,
-      inProgress: 4,
       label: "รอจ่ายสินค้า",
       currentStepLabel: "จ่ายสินค้า",
     },
     PICKING: {
-      current: 4,
-      inProgress: 5,
+      current: 3,
+      inProgress: 4,
       label: "รอบรรจุสินค้า",
       currentStepLabel: "บรรจุ",
     },
     PARTIALLY_ISSUED: {
-      current: 4,
-      inProgress: 5,
+      current: 3,
+      inProgress: 4,
       label: "รอบรรจุสินค้า",
       currentStepLabel: "บรรจุ",
     },
     PACKED: {
-      current: 5,
-      inProgress: 6,
+      current: 4,
+      inProgress: 5,
       label: "รอส่งสินค้า",
       currentStepLabel: "ส่งสินค้า",
     },
     DELIVERED: {
-      current: 6,
-      inProgress: 6,
+      current: 5,
+      inProgress: 5,
       label: "ส่งสินค้าสำเร็จ",
       currentStepLabel: "ส่งสินค้า",
     },
-    /** legacy — แสดงเป็นจบที่ส่งสินค้า */
     COMPLETED: {
-      current: 6,
-      inProgress: 6,
+      current: 5,
+      inProgress: 5,
       label: "ส่งสินค้าสำเร็จ",
       currentStepLabel: "ส่งสินค้า",
     },

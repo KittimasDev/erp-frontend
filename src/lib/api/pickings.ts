@@ -41,6 +41,23 @@ export function getPicking(token: string, id: string) {
   });
 }
 
+/**
+ * สร้างใบจ่ายจากรอบจัดส่งโดยตรง — ทางที่ควรใช้
+ *
+ * backend จะจองสต๊อกให้ครบทั้งรอบตรงนี้ · ของไม่พอจะไม่สร้างใบให้เลย
+ * และไม่มีของค้างจอง (กฎ 1 รอบต้องจ่ายครบ ไม่จ่ายบางส่วน)
+ */
+export function createPickingFromDeliverySchedule(
+  token: string,
+  scheduleId: string,
+  body: CreatePickingFromSalesOrderBody = {},
+) {
+  return apiFetch<PickingApiResponse>(
+    `/api/pickings/from-delivery-schedule/${scheduleId}`,
+    { method: "POST", token, body },
+  );
+}
+
 export function createPickingFromSalesOrder(
   token: string,
   salesOrderId: string,

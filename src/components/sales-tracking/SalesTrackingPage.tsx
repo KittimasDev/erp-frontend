@@ -35,6 +35,10 @@ import {
 import dayjs, { type Dayjs } from "dayjs";
 
 import AccessDenied from "@/components/auth/AccessDenied";
+import {
+  DELIVERY_SCHEDULE_STATUS_LABEL,
+  type DeliveryScheduleStatus,
+} from "@/types/delivery-schedules";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import {
@@ -281,16 +285,33 @@ export default function SalesTrackingPage() {
         ),
       },
       {
+        title: "รอบจัดส่ง",
+        key: "rounds",
+        width: 110,
+        align: "center",
+        render: (_v, row) =>
+          row.roundCount > 1 ? (
+            <Tag color="blue">{row.roundCount} รอบ</Tag>
+          ) : (
+            <span>รอบเดียว</span>
+          ),
+      },
+      {
         title: "เอกสารต่อเนื่อง",
         key: "docs",
         width: 180,
-        render: (_v, row) => (
-          <div className={styles.docStack}>
-            <span>PK {row.pickingNo ?? "—"}</span>
-            <span>PC {row.packingNo ?? "—"}</span>
-            <span>DO {row.deliveryOrderNo ?? "—"}</span>
-          </div>
-        ),
+        render: (_v, row) =>
+          // ใบที่แบ่งหลายรอบ: backend ไม่ส่งคอลัมน์ระดับใบมาให้ (เจตนา)
+          // เพราะเลขของรอบเดียวจะทำให้เข้าใจผิดว่าเป็นของทั้งใบ
+          row.roundCount > 1 ? (
+            <span className={styles.docStack}>กางแถวเพื่อดูรายรอบ</span>
+          ) : (
+            <div className={styles.docStack}>
+              <span>PK {row.pickingNo ?? "—"}</span>
+              <span>PC {row.packingNo ?? "—"}</span>
+              <span>DO {row.deliveryOrderNo ?? "—"}</span>
+            </div>
+          ),
       },
       {
         title: "ขั้นตอน",
@@ -466,7 +487,62 @@ export default function SalesTrackingPage() {
           loading={listQuery.isLoading || listQuery.isFetching}
           columns={columns}
           dataSource={list?.items ?? []}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 1200 }}
+          expandable={{
+            rowExpandable: (row) => row.rounds.length > 0,
+            expandedRowRender: (row) => (
+              <Table
+                rowKey="deliveryScheduleId"
+                size="small"
+                pagination={false}
+                dataSource={row.rounds}
+                columns={[
+                  {
+                    title: "รอบ",
+                    dataIndex: "roundNo",
+                    width: 70,
+                    align: "center",
+                    render: (v: number) => <Tag>รอบ {v}</Tag>,
+                  },
+                  {
+                    title: "วันที่ต้องส่ง",
+                    dataIndex: "deliveryDate",
+                    width: 120,
+                    render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
+                  },
+                  {
+                    title: "สถานะรอบ",
+                    dataIndex: "roundStatus",
+                    width: 120,
+                    render: (v: string) => (
+                      <Tag>
+                        {DELIVERY_SCHEDULE_STATUS_LABEL[
+                          v as DeliveryScheduleStatus
+                        ] ?? v}
+                      </Tag>
+                    ),
+                  },
+                  {
+                    title: "ใบจ่าย",
+                    dataIndex: "pickingNo",
+                    render: (v?: string) => v ?? "—",
+                  },
+                  {
+                    title: "ใบบรรจุ",
+                    dataIndex: "packingNo",
+                    render: (v?: string) => v ?? "—",
+                  },
+                  {
+                    title: "ใบส่งของ",
+                    dataIndex: "deliveryOrderNo",
+                    render: (v?: string) => v ?? "—",
+                  },
+                  { title: "ขั้นตอน", dataIndex: "currentStep", width: 150 },
+                  { title: "ต้องทำต่อ", dataIndex: "nextAction", width: 200 },
+                ]}
+              />
+            ),
+          }}
           pagination={{
             current: page,
             pageSize: PAGE_SIZE,

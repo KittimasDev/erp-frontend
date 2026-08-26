@@ -176,6 +176,13 @@ export type EligibleSalesOrder = {
 
 export type CreateProductionRequestItemBody = {
   salesOrderItemId: string;
+  /**
+   * บรรทัดรอบจัดส่งที่ขอผลิตให้ — ไม่ส่งก็ได้ (ผลิตเผื่อ)
+   *
+   * ถ้าส่งมา ของที่ผลิตเสร็จจะถูกกันไว้ให้รอบนั้นตรง ๆ · ถ้าไม่ส่ง ระบบจะเลือก
+   * รอบที่ต้องส่งเร็วสุดที่ยังขาดของให้เองตอนของเข้าคลัง
+   */
+  deliveryScheduleItemId?: string;
   requestedQty: number;
   remark?: string;
   sortOrder?: number;

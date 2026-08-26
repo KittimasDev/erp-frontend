@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+
+import { useDeliverySchedulesQuery } from "@/hooks/delivery-schedules/useDeliverySchedulesQuery";
 import {
   Alert,
   Button,
@@ -47,6 +49,12 @@ function fmt(value: string | number) {
 type Props = {
   /** ระบุเมื่อใช้หน้านี้แก้ไขใบขอผลิตเดิม — ใบสั่งขายที่อ้างอิงจะถูกล็อกไว้ */
   requestId?: string;
+  /**
+   * รอบจัดส่งจาก deep-link ?deliveryScheduleId=
+   * มาจากหน้าเลือกรอบสร้างใบจ่าย ตอนกด "เปิดใบขอผลิตสำหรับส่วนที่ขาด"
+   * ใบขอผลิตที่สร้างจะผูกกับรอบนั้น ของที่ผลิตเสร็จจึงเข้ารอบที่ตั้งใจ
+   */
+  initialDeliveryScheduleId?: string;
   /** จาก deep-link ?salesOrderId= บนหน้าสร้างใหม่ */
   initialSalesOrderId?: string;
 };
@@ -58,6 +66,7 @@ type Props = {
 export default function ProductionRequestCreatePage({
   requestId,
   initialSalesOrderId,
+  initialDeliveryScheduleId,
 }: Props) {
   const existingQuery = useProductionRequestQuery(requestId);
   const existing = existingQuery.data?.data;
@@ -72,6 +81,7 @@ export default function ProductionRequestCreatePage({
       requestId={requestId}
       existing={existing}
       initialSalesOrderId={initialSalesOrderId}
+      initialDeliveryScheduleId={initialDeliveryScheduleId}
     />
   );
 }
@@ -79,17 +89,26 @@ export default function ProductionRequestCreatePage({
 export function ProductionRequestCreatePageWithSearchParams() {
   const searchParams = useSearchParams();
   const salesOrderId = searchParams.get("salesOrderId") ?? undefined;
-  return <ProductionRequestCreatePage initialSalesOrderId={salesOrderId} />;
+  const deliveryScheduleId =
+    searchParams.get("deliveryScheduleId") ?? undefined;
+  return (
+    <ProductionRequestCreatePage
+      initialSalesOrderId={salesOrderId}
+      initialDeliveryScheduleId={deliveryScheduleId}
+    />
+  );
 }
 
 function ProductionRequestForm({
   requestId,
   existing,
+  initialDeliveryScheduleId,
   initialSalesOrderId,
 }: {
   requestId?: string;
   existing?: ProductionRequest;
   initialSalesOrderId?: string;
+  initialDeliveryScheduleId?: string;
 }) {
   const router = useRouter();
   const isEdit = Boolean(requestId);
@@ -108,6 +127,38 @@ function ProductionRequestForm({
     existing?.requiredDate ? dayjs(existing.requiredDate) : null,
   );
   const [remark, setRemark] = useState(existing?.remark ?? "");
+
+  /**
+   * บรรทัด SO → บรรทัดรอบ ของรอบที่ deep-link ระบุมา
+   *
+   * ผูกใบขอผลิตกับรอบไว้ตั้งแต่ตอนเปิดใบ (เฟส 3) ของที่ผลิตเสร็จจะเข้ารอบนั้น
+   * ตรง ๆ ไม่ต้องให้ระบบเดา — กันกรณีมีรอบใหม่ที่วันส่งเร็วกว่าแทรกเข้ามา
+   * ระหว่างรอผลิต แล้วของไหลไปผิดรอบ
+   */
+  const schedulesQuery = useDeliverySchedulesQuery(
+    initialDeliveryScheduleId ? salesOrderId : undefined,
+  );
+  const scheduleItemIdBySoItemId = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!initialDeliveryScheduleId) return map;
+    const round = (schedulesQuery.data ?? []).find(
+      (s) => s.id === initialDeliveryScheduleId,
+    );
+    for (const line of round?.items ?? []) {
+      map.set(line.salesOrderItemId, line.id);
+    }
+    return map;
+  }, [initialDeliveryScheduleId, schedulesQuery.data]);
+
+  const boundRound = useMemo(
+    () =>
+      initialDeliveryScheduleId
+        ? (schedulesQuery.data ?? []).find(
+            (s) => s.id === initialDeliveryScheduleId,
+          )
+        : undefined,
+    [initialDeliveryScheduleId, schedulesQuery.data],
+  );
   /** จำนวนที่ขอผลิต ต่อ salesOrderItemId — ใส่เฉพาะรายการที่ต้องการขอ */
   const [qtyByItemId, setQtyByItemId] = useState<Record<string, number>>(() =>
     Object.fromEntries(
@@ -139,7 +190,17 @@ function ProductionRequestForm({
     { salesOrderId, limit: 50 },
     { enabled: Boolean(salesOrderId) && !isEdit },
   );
-  const blockingPr = (existingForSoQuery.data?.data.items ?? []).find(
+  /**
+   * ใบขอผลิตอื่นของ SO เดียวกันที่ยัง active
+   *
+   * **ไม่บล็อกการเปิดใบใหม่แล้ว (2026-08-26)** — SO ใบเดียวแบ่งส่งหลายรอบ
+   * แต่ละรอบขาดของไม่พร้อมกัน จึงต้องเปิดใบขอผลิตแยกกันตามรอบ
+   * (backend ก็ถอดกฎ 1 ใบต่อ 1 SO ออกแล้ว)
+   *
+   * เพดานจำนวนยังคุมอยู่ผ่าน "คงค้างขอได้" ต่อบรรทัด จึงขอผลิตเกิน
+   * จำนวนที่ตกลงขายไม่ได้อยู่ดี
+   */
+  const otherActivePrs = (existingForSoQuery.data?.data.items ?? []).filter(
     (pr) => pr.status !== "CANCELLED",
   );
   const selectedSo = detailQuery.data?.data;
@@ -183,7 +244,7 @@ function ProductionRequestForm({
   const hasOverQty = selectedLines.some(
     (line) => line.qty > maxQtyFor(line.item),
   );
-  const canSubmit = selectedLines.length > 0 && !hasOverQty && !blockingPr;
+  const canSubmit = selectedLines.length > 0 && !hasOverQty;
 
   const handleSelectSo = (value?: string) => {
     setSalesOrderId(value);
@@ -194,12 +255,15 @@ function ProductionRequestForm({
     if (!salesOrderId) {
       return;
     }
-    if (blockingPr) {
-      return;
-    }
+
     const items: CreateProductionRequestItemBody[] = selectedLines.map(
       (line, index) => ({
         salesOrderItemId: line.item.salesOrderItemId,
+        // ผูกรอบให้บรรทัดที่อยู่ในรอบที่ deep-link ระบุมา · บรรทัดอื่นปล่อยว่าง
+        // ให้ระบบเลือกรอบเองตอนของเข้าคลัง
+        deliveryScheduleItemId: scheduleItemIdBySoItemId.get(
+          line.item.salesOrderItemId,
+        ),
         requestedQty: line.qty,
         sortOrder: index,
       }),
@@ -325,29 +389,49 @@ function ProductionRequestForm({
             <p className={styles.pageSubtitle}>
               {isEdit
                 ? "แก้ไขจำนวนและรายการได้ตราบที่ยังไม่มีใบสั่งผลิตอ้างอิง — เปลี่ยนใบสั่งขายไม่ได้"
-                : "เลือกใบสั่งขายที่ยังไม่อนุมัติ 1 ใบ แล้วระบุจำนวนที่ขอผลิตของสินค้าใน SO นั้น"}
+                : "เลือกใบสั่งขาย 1 ใบ แล้วระบุจำนวนที่ขอผลิตของสินค้าใน SO นั้น · รับถึงใบที่ยืนยันแล้ว"}
             </p>
           </div>
         </header>
 
+        {/* มาจากหน้าเลือกรอบ — บอกให้ชัดว่าใบนี้ผูกกับรอบไหน
+            เพราะมันเปลี่ยนว่าของที่ผลิตเสร็จจะไปเข้ารอบใด */}
+        {boundRound ? (
+          <Alert
+            type="success"
+            showIcon
+            style={{ marginBottom: 12 }}
+            title={`ผูกกับรอบจัดส่งที่ ${boundRound.roundNo} (ส่งวันที่ ${dayjs(
+              boundRound.deliveryDate,
+            ).format("DD/MM/YYYY")})`}
+            description="ของที่ผลิตเสร็จจะถูกกันไว้ให้รอบนี้โดยตรง ใบสั่งขายอื่นและรอบอื่นแย่งไม่ได้"
+          />
+        ) : null}
+
         <Alert
           type="info"
           showIcon
-          title="SO ใช้เป็นเอกสารอ้างอิงความต้องการผลิตเท่านั้น"
-          description="ไม่ถือเป็นการจองผลผลิต — เมื่อผลิตเสร็จ สินค้าจะรับเข้าสต๊อกกลาง และนำไปจ่ายให้คำสั่งขายอื่นได้"
+          title="ผลผลิตจะถูกกันไว้ให้ใบสั่งขายนี้"
+          description="เมื่อผลิตเสร็จและรับเข้าคลัง ระบบจะกันของไว้ให้ SO ต้นทางตามยอดที่ขอผลิตค้างอยู่ ใบสั่งขายอื่นแย่งไม่ได้ · ส่วนที่เกินความต้องการเท่านั้นที่เข้าสต๊อกกลาง"
           style={{ marginBottom: 16 }}
         />
-        {blockingPr ? (
+        {otherActivePrs.length ? (
           <Alert
-            type="warning"
+            type="info"
             showIcon
-            title="ใบสั่งขายนี้มีใบขอผลิตแล้ว"
+            title={`ใบสั่งขายนี้มีใบขอผลิตอยู่แล้ว ${otherActivePrs.length} ใบ`}
             description={
               <span>
-                ไม่สามารถออกใบขอผลิตซ้ำได้ — เปิด{" "}
-                <Link href={`/production/production-requests/${blockingPr.id}`}>
-                  {blockingPr.requestNo}
-                </Link>
+                เปิดใบเพิ่มได้ถ้าต้องแบ่งผลิตตามรอบจัดส่ง · ยอดที่ขอไปแล้วถูกหักออกจาก
+                &quot;คงค้างขอได้&quot; ให้แล้ว —{" "}
+                {otherActivePrs.map((pr, i) => (
+                  <span key={pr.id}>
+                    {i > 0 ? ", " : ""}
+                    <Link href={`/production/production-requests/${pr.id}`}>
+                      {pr.requestNo}
+                    </Link>
+                  </span>
+                ))}
               </span>
             }
             style={{ marginBottom: 16 }}
@@ -359,7 +443,7 @@ function ProductionRequestForm({
           <div className={styles.fieldGrid}>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>
-                ใบสั่งขาย (เฉพาะที่ยังไม่อนุมัติ)
+                ใบสั่งขาย (รับถึงใบที่ยืนยันแล้ว)
               </span>
               {isEdit || lockedSalesOrder ? (
                 <Input

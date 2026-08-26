@@ -39,15 +39,13 @@ import {
 import dayjs from "dayjs";
 
 import AccessDenied from "@/components/auth/AccessDenied";
+import { useDeliverySchedulesQuery } from "@/hooks/delivery-schedules/useDeliverySchedulesQuery";
+import DeliverySchedulesSection from "./DeliverySchedulesSection";
 import DocumentAuditTrail from "@/components/common/DocumentAuditTrail";
 import SalesOrderTimeline from "@/components/sales/SalesOrderTimeline";
 import {
   useCancelSalesOrderMutation,
   useConfirmSalesOrderMutation,
-  useConfirmStockVerificationMutation,
-  useReleaseSalesOrderLineMutation,
-  useReserveAllEligibleSalesOrderLinesMutation,
-  useReserveSalesOrderLineMutation,
   useDeleteSalesOrderAttachmentMutation,
   useUpdateSalesOrderCustomerPoMutation,
   useUpdateSalesOrderItemsMutation,
@@ -69,7 +67,6 @@ import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
 import {
   canAccessSalesOrderDetail,
-  canApproveStockVerification,
   canCreateDeliveryFromPacking,
   canNavigateSalesFulfillmentHref,
   canOpenStockVerification,
@@ -236,11 +233,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   );
   const trackingQuery = useSalesTrackingDetailQuery(id);
   const confirmMutation = useConfirmSalesOrderMutation();
-  const confirmStockMutation = useConfirmStockVerificationMutation();
   const cancelMutation = useCancelSalesOrderMutation();
-  const reserveLineMutation = useReserveSalesOrderLineMutation();
-  const releaseLineMutation = useReleaseSalesOrderLineMutation();
-  const reserveAllMutation = useReserveAllEligibleSalesOrderLinesMutation();
   const createProductionRequestMutation = useCreateProductionRequestMutation();
   const attachmentsQuery = useSalesOrderAttachmentsQuery(id);
   const uploadAttachmentMutation = useUploadSalesOrderAttachmentMutation();
@@ -289,10 +282,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
     picking: pickingActions,
     packing: packingActions,
     delivery: deliveryActions,
-  });
-  const canApproveStock = canApproveStockVerification({
-    stockVerification: stockVerificationActions,
-    picking: pickingActions,
   });
   const canOpenStockCheck = canOpenStockVerification({
     stockVerification: stockVerificationActions,
@@ -354,6 +343,43 @@ export default function SalesOrderDetailPage({ id }: Props) {
     [productionRequestLineByItemId],
   );
 
+  /**
+   * **เงื่อนไขยืนยันเปลี่ยนแล้ว (2026-08-26)** — เดิมต้องของพอและจองครบก่อน
+   * (hasShortage เป็น false และ allLinesReserved เป็น true)
+   *
+   * ตอนนี้ยืนยันได้แม้สต๊อกเป็น 0 ขอแค่ **จัดรอบจัดส่งครบทุกบรรทัด**
+   * (backend เช็คด้วย assertFullyScheduled) เพราะด่านเช็คของย้ายไปตอน
+   * คลังเปิดใบจ่ายของแต่ละรอบแล้ว
+   *
+   * **ต้องอยู่เหนือ early return ทุกตัว** — วางไว้ล่างกว่านั้นจะกลายเป็น hook
+   * ที่เรียกแบบมีเงื่อนไข แล้ว React พังทั้งหน้า ("Rendered more hooks than
+   * during the previous render") · ใช้ query เดียวกับแผงจัดรอบ จึงโดน cache
+   * ไม่ได้ยิงซ้ำ
+   */
+  const schedulesForGate = useDeliverySchedulesQuery(data?.id);
+  const isFullyScheduled = useMemo(() => {
+    const items = data?.items ?? [];
+    if (!items.length) return false;
+    const schedules = schedulesForGate.data;
+    if (!schedules) return false;
+    const scheduledByItem = new Map<string, number>();
+    for (const schedule of schedules) {
+      if (schedule.status === "CANCELLED") continue;
+      for (const line of schedule.items ?? []) {
+        scheduledByItem.set(
+          line.salesOrderItemId,
+          (scheduledByItem.get(line.salesOrderItemId) ?? 0) +
+            Number(line.quantity ?? 0),
+        );
+      }
+    }
+    return items.every(
+      (item) =>
+        (scheduledByItem.get(item.id) ?? 0) - Number(item.quantity ?? 0) >
+        -0.0005,
+    );
+  }, [data?.items, schedulesForGate.data]);
+
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
@@ -390,16 +416,22 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const busy =
     confirmMutation.isPending ||
     cancelMutation.isPending ||
-    confirmStockMutation.isPending ||
-    reserveLineMutation.isPending ||
-    releaseLineMutation.isPending ||
-    reserveAllMutation.isPending ||
     createProductionRequestMutation.isPending ||
     uploadAttachmentMutation.isPending ||
     deleteAttachmentMutation.isPending ||
     updateCustomerPoMutation.isPending ||
     updateItemsMutation.isPending;
-  const progress = resolveSalesOrderProgress(data.status);
+  // ส่ง deliveryStatus ไปด้วย — หลังยืนยัน so.status ค้างที่ CONFIRMED ตลอด
+  // ความคืบหน้าจริงอยู่ที่ delivery_status ที่สรุปจากทุกรอบ
+  const progress = resolveSalesOrderProgress(
+    data.status,
+    data.deliveryStatus,
+    // รอบที่คืบหน้าน้อยสุดที่ยังไม่จบ — ทำให้แถบตรงกับหัวเรื่อง
+    (tracking?.rounds ?? []).find(
+      (round) =>
+        round.roundStatus !== "DELIVERED" && round.roundStatus !== "CANCELLED",
+    )?.roundStatus,
+  );
 
   const canEditItems = isPreConfirm && canWrite;
   const isEditingItems = itemDrafts !== null;
@@ -587,15 +619,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const stockReadyForReserve =
     isPreConfirm && reservationReady && !hasShortage && !allLinesReserved;
   const showReserveCta = stockReadyForReserve && canWrite;
-  const showConfirmCta =
-    isPreConfirm &&
-    canConfirm &&
-    reservationReady &&
-    !hasShortage &&
-    allLinesReserved;
-  const stockReady = stockVerification?.isAllAvailable === true;
-  const stockShortLines =
-    stockVerification?.lines?.filter((line) => !line.isAvailable) ?? [];
+
+  const showConfirmCta = isPreConfirm && canConfirm && isFullyScheduled;
   /**
    * ขอผลิตจากหน้าใบสั่งขายได้ด้วยสิทธิ์แก้ไข SO — ไม่ต้องมีสิทธิ์หน้าจอใบขอผลิต
    * (backend เปิด SALES_ORDERS.EDIT ให้ POST /production-requests ด้วย)
@@ -780,45 +805,98 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
   let nextStepButton: ReactNode = null;
   if (data.status === "CONFIRMED") {
-    if (stockReady && canApproveStock) {
-      nextStepButton = (
-        <>
-          <Button
-            className={styles.primaryBtn}
-            type="primary"
-            icon={<CheckOutlined />}
-            loading={confirmStockMutation.isPending}
-            onClick={() => confirmStockMutation.mutate(data.id)}
-          >
-            ยืนยันผลตรวจสอบสต๊อก
-          </Button>
-          {canOpenStockCheck ? (
-            <Button
-              icon={<SearchOutlined />}
-              onClick={() =>
-                router.push(`/sales-orders/${data.id}/stock-verification`)
-              }
-            >
-              ดูรายละเอียด
-            </Button>
-          ) : null}
-        </>
-      );
-    } else {
-      nextStepButton = navOrWait(
-        canOpenStockCheck,
+    /*
+     * ยืนยันแล้ว → ปุ่มต้องชี้ไปที่ **งานถัดไปของรอบที่คืบหน้าน้อยสุด**
+     *
+     * เดิมชี้ "ยืนยันผลตรวจสอบสต๊อก" ซึ่งไม่มีผลอะไรแล้ว · แก้รอบแรกให้ชี้
+     * "ไปเลือกรอบจัดส่ง" ซึ่งก็ยังผิดเมื่อรอบนั้นเลยขั้นจ่ายไปแล้ว — หน้าเลือกรอบ
+     * จะไม่มีรอบนั้นให้เลือก (ถูกต้อง เพราะมีใบจ่ายแล้ว) คนจึงเจอหน้าที่ทำอะไร
+     * ไม่ได้ · ต้องดูสถานะรอบแล้วพาไปเอกสารที่ค้างอยู่จริง
+     */
+    const roundInFlight = (tracking?.rounds ?? []).find(
+      (round) =>
+        round.roundStatus !== "DELIVERED" && round.roundStatus !== "CANCELLED",
+    );
+    const roundDoc = (step: string) =>
+      roundInFlight?.timeline?.find((s) => s.step === step);
+    const packingDoc = roundDoc("Packing");
+    const pickingDoc = roundDoc("Picking");
+
+    let roundAction: ReactNode;
+    if (roundInFlight?.roundStatus === "PACKED") {
+      // บรรจุแล้ว → สร้าง/เปิดใบส่งสินค้า
+      roundAction = packingDoc?.documentId ? (
         <Button
           className={styles.primaryBtn}
           type="primary"
-          icon={<SearchOutlined />}
+          icon={<ShoppingOutlined />}
           onClick={() =>
-            router.push(`/sales-orders/${data.id}/stock-verification`)
+            router.push(
+              `/delivery-orders/create-from-packing/${packingDoc.documentId}`,
+            )
           }
         >
-          {stockReady ? "ดูผลตรวจสต๊อก" : "ตรวจสอบสต๊อก"}
-        </Button>,
+          สร้างใบส่งสินค้า (รอบ {roundInFlight.roundNo})
+        </Button>
+      ) : (
+        waitProcessHint
       );
+    } else if (roundInFlight?.roundStatus === "ISSUED") {
+      // จ่ายของแล้ว → สร้าง/เปิดใบบรรจุ
+      roundAction = pickingDoc?.documentId ? (
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<ShoppingOutlined />}
+          onClick={() =>
+            router.push(`/packings/create-from-picking/${pickingDoc.documentId}`)
+          }
+        >
+          สร้างใบบรรจุสินค้า (รอบ {roundInFlight.roundNo})
+        </Button>
+      ) : (
+        waitProcessHint
+      );
+    } else if (pickingActions.canAdd) {
+      // ยังไม่จ่าย — ถ้ามีใบจ่ายร่างอยู่แล้วให้เปิดใบนั้น ไม่ใช่ไปสร้างใหม่
+      roundAction = pickingDoc?.documentId ? (
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<ShoppingOutlined />}
+          onClick={() => router.push(`/pickings/${pickingDoc.documentId}/edit`)}
+        >
+          เปิดใบจ่ายสินค้า (ร่าง)
+        </Button>
+      ) : (
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<ShoppingOutlined />}
+          onClick={() => router.push("/pickings/create-from-sales-order")}
+        >
+          ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย
+        </Button>
+      );
+    } else {
+      roundAction = waitProcessHint;
     }
+
+    nextStepButton = (
+      <>
+        {roundAction}
+        {canOpenStockCheck ? (
+          <Button
+            icon={<SearchOutlined />}
+            onClick={() =>
+              router.push(`/sales-orders/${data.id}/stock-verification`)
+            }
+          >
+            ดูผลตรวจสต๊อก
+          </Button>
+        ) : null}
+      </>
+    );
   } else if (data.status === "STOCK_CHECKED") {
     const picking = findStep(timeline, "Picking");
     const canCreatePicking = pickingActions.canAdd;
@@ -1023,20 +1101,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       : "ทุกรายการที่สต๊อกไม่พอ";
 
   let preConfirmHeaderButton: ReactNode = null;
-  if (showReserveCta) {
-    preConfirmHeaderButton = (
-      <Button
-        className={styles.primaryBtn}
-        type="primary"
-        icon={<InboxOutlined />}
-        loading={reserveAllMutation.isPending}
-        disabled={busy || reservationQuery.isLoading}
-        onClick={() => reserveAllMutation.mutate({ salesOrderId: data.id })}
-      >
-        จองสต๊อก
-      </Button>
-    );
-  } else if (showConfirmCta) {
+  if (showConfirmCta) {
     preConfirmHeaderButton = (
       <Button
         className={styles.primaryBtn}
@@ -1107,16 +1172,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
       {stockReadyForReserve ? (
         <div className={styles.reserveActionBanner}>
-          {canWrite ? (
-            <>
-              สต๊อกพอทุกรายการแล้ว — กด <strong>จองสต๊อก</strong>{" "}
-              เพื่อจองของลงใบสั่งขาย จากนั้นยืนยันใบสั่งขายเพื่อไปขั้นจ่ายสินค้า
-            </>
-          ) : (
-            <>
-              สต๊อกพอแล้ว แต่บัญชีนี้ไม่มีสิทธิ์จองสต๊อก — ติดต่อผู้ดูแลระบบ
-            </>
-          )}
+          <>
+            สต๊อกพอทุกรายการแล้ว — จัดรอบจัดส่งให้ครบแล้วกด{" "}
+            <strong>ยืนยันใบสั่งขาย</strong> · ของจะถูกจองตอนคลังเปิดใบจ่าย
+            ของแต่ละรอบ ไม่ต้องจองจากหน้านี้
+          </>
         </div>
       ) : null}
       {showConfirmCta ? (
@@ -1384,9 +1444,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 {isPreConfirm
                   ? hasShortage
                     ? hasActiveProductionRequest
-                      ? "สต๊อกไม่พอ — มีใบขอผลิตแล้ว ติดตามของเข้าคลังจากเอกสารที่มี จองหรือยืนยันใบสั่งขายยังทำไม่ได้จนกว่าของจะพอ"
-                      : "สต๊อกไม่พอ — ทำต่อได้เฉพาะออกใบขอผลิต จองหรือยืนยันใบสั่งขายยังทำไม่ได้จนกว่าของจะพอ"
-                    : "กดจองสต๊อกเมื่อของพอ — ยืนยันใบสั่งขายได้เมื่อจองครบทุกรายการ"
+                      ? "สต๊อกไม่พอ — มีใบขอผลิตแล้ว ติดตามของเข้าคลังได้จากเอกสารนั้น · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ"
+                      : "สต๊อกไม่พอ — เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ ขอแค่จัดรอบจัดส่งให้ครบ"
+                    : "ดูยอดคงเหลือไว้ประกอบการตัดสินใจ — ของจะถูกจองจริงตอนคลังเปิดใบจ่ายของแต่ละรอบ"
                   : "เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย"}
               </span>
             </div>
@@ -1395,26 +1455,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 <Spin size="small" />
               ) : reservationStatus ? (
                 <>
-                  {showReserveCta ? (
-                    <div style={{ marginBottom: 12 }}>
-                      <Button
-                        type="primary"
-                        icon={<InboxOutlined />}
-                        loading={reserveAllMutation.isPending}
-                        disabled={busy}
-                        onClick={() =>
-                          reserveAllMutation.mutate({ salesOrderId: data.id })
-                        }
-                      >
-                        จองสต๊อก
-                      </Button>
-                    </div>
-                  ) : null}
+
                   {hasShortage ? (
                     <p className={styles.stockReadyNote}>
-                      สต๊อกไม่พอ — {hasActiveProductionRequest
-                        ? "มีใบขอผลิตแล้ว ไม่สามารถออกใบขอผลิตซ้ำได้"
-                        : "ต้องออกใบขอผลิตเท่านั้น"} ไม่สามารถจองหรือยืนยันใบสั่งขายได้
+                      สต๊อกไม่พอ ณ ตอนนี้ —{" "}
+                      {hasActiveProductionRequest
+                        ? "มีใบขอผลิตอยู่แล้ว เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด"
+                        : "เปิดใบขอผลิตไว้ได้"}{" "}
+                      · <strong>ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ</strong>{" "}
+                      ด่านเช็คของอยู่ตอนคลังเปิดใบจ่ายของแต่ละรอบ
                     </p>
                   ) : null}
                   {allLinesReserved ? (
@@ -1430,12 +1479,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
             ) : (
               <>
                 {data.status === "CONFIRMED" &&
-                stockVerification?.isAllAvailable &&
-                canApproveStock ? (
+                stockVerification?.isAllAvailable ? (
                   <p className={styles.stockReadyNote}>
-                    สต๊อกพอทุกรายการแล้ว — กด{" "}
-                    <strong>ยืนยันผลตรวจสอบสต๊อก</strong> เพื่อไปขั้นจ่ายสินค้า
-                    (การเปิดหน้านี้เพื่อดูผลอย่างเดียวยังไม่เปลี่ยนสถานะ)
+                    สต๊อกพอทุกรายการ ณ ตอนนี้ — หน้านี้เป็นรายงานอ่านอย่างเดียว ·
+                    ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด
+                    (ของจะถูกจองตอนนั้น ไม่ใช่ตอนนี้)
                   </p>
                 ) : null}
                 {stockVerificationQuery.isLoading ? (
@@ -1497,8 +1545,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 <div>
                   <h2 className={styles.sectionTitle}>รายการที่ต้องขอผลิตเพิ่ม</h2>
                   <p className={styles.sectionHint}>
-                    สต๊อกไม่พอ — ออกใบขอผลิตได้ทีละรายการหรือรวมทั้งใบ
-                    จองสต๊อกและยืนยันใบสั่งขายยังใช้ไม่ได้
+                    สต๊อกไม่พอ — ออกใบขอผลิตได้ทีละรายการหรือรวมทั้งใบ ·
+                    ไม่บล็อกการยืนยันใบสั่งขาย
                   </p>
                 </div>
                 <Tag color="error">
@@ -1632,20 +1680,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
               {showReserveCta ? (
                 <div className={styles.productionContinueRow}>
-                  <Button
-                    type="primary"
-                    icon={<InboxOutlined />}
-                    loading={reserveAllMutation.isPending}
-                    disabled={busy}
-                    onClick={() =>
-                      reserveAllMutation.mutate({ salesOrderId: data.id })
-                    }
-                  >
-                    จองสต๊อก
-                  </Button>
                   <span className={styles.sectionHint}>
-                    ของในคลังพอแล้ว — กดจองเพื่อล็อกของลงใบสั่งขาย
-                    แล้วยืนยันใบสั่งขายเพื่อไปขั้นถัดไป
+                    ของในคลังพอแล้ว — จัดรอบจัดส่งให้ครบแล้วยืนยันใบสั่งขาย ·
+                    ของจะถูกจองตอนคลังเปิดใบจ่ายของรอบ
                   </span>
                 </div>
               ) : null}
@@ -1817,14 +1854,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
             ) : null}
             {isPreConfirm && canWrite && !hasShortage ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                จองสต๊อกต่อรายการได้เมื่อของพอครบตามจำนวนที่สั่ง
+                ของจะถูกจองตอนคลังเปิดใบจ่ายของรอบจัดส่ง ไม่ต้องจองจากหน้านี้
               </p>
             ) : null}
             {isPreConfirm && hasShortage ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
                 {hasActiveProductionRequest
-                  ? "รายการที่สต๊อกไม่พอมีใบขอผลิตแล้ว — ออกใบขอผลิตซ้ำไม่ได้"
-                  : "รายการที่สต๊อกไม่พอทำต่อได้เฉพาะออกใบขอผลิต"}
+                  ? "รายการที่สต๊อกไม่พอมีใบขอผลิตแล้ว — เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด"
+                  : "รายการที่สต๊อกไม่พอ เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ"}
               </p>
             ) : null}
             <div className={styles.itemList}>
@@ -1977,42 +2014,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             gap: 8,
                           }}
                         >
+                          {/* ถอดปุ่ม จอง / ยกเลิกจอง ออกแล้ว (2026-08-26) —
+                              การจองด้วยมือระดับบรรทัดทำให้จองซ้ำกับการจอง
+                              ระดับรอบ (สั่ง 2 กลายเป็นจองไว้ 4) · การจองที่ถูก
+                              เกิดตอนคลังเปิดใบจ่ายของรอบเท่านั้น */}
                           {reservationLineTag(reservationLine)}
-                          {canWrite && !hasShortage ? (
-                            <div style={{ display: "flex", gap: 6 }}>
-                              {reservationLine.canReserve ? (
-                                <Button
-                                  size="small"
-                                  type="primary"
-                                  loading={reserveLineMutation.isPending}
-                                  disabled={busy}
-                                  onClick={() =>
-                                    reserveLineMutation.mutate({
-                                      salesOrderId: data.id,
-                                      itemId: item.id,
-                                    })
-                                  }
-                                >
-                                  จอง
-                                </Button>
-                              ) : null}
-                              {reservationLine.canRelease ? (
-                                <Button
-                                  size="small"
-                                  loading={releaseLineMutation.isPending}
-                                  disabled={busy}
-                                  onClick={() =>
-                                    releaseLineMutation.mutate({
-                                      salesOrderId: data.id,
-                                      itemId: item.id,
-                                    })
-                                  }
-                                >
-                                  ยกเลิกจอง
-                                </Button>
-                              ) : null}
-                            </div>
-                          ) : null}
                           {hasShortage &&
                           canIssueProductionRequest &&
                           productionRequestLine ? (
@@ -2045,6 +2051,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 );
               })}
             </div>
+          </div>
+
+          <div className={styles.section}>
+            <DeliverySchedulesSection
+              salesOrderId={data.id}
+              salesOrderItems={data.items ?? []}
+              canEdit={canEditItems}
+            />
           </div>
 
           {data.remark ? (
@@ -2109,20 +2123,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={styles.actionStack}>
             {isPreConfirm ? (
               <>
-                {showReserveCta ? (
-                  <Button
-                    className={styles.primaryBtn}
-                    type="primary"
-                    icon={<InboxOutlined />}
-                    loading={reserveAllMutation.isPending}
-                    disabled={busy || reservationQuery.isLoading}
-                    onClick={() =>
-                      reserveAllMutation.mutate({ salesOrderId: data.id })
-                    }
-                  >
-                    จองสต๊อก
-                  </Button>
-                ) : null}
                 {canIssueProductionRequest && hasStockShortage ? (
                   <Button
                     className={styles.primaryBtn}
