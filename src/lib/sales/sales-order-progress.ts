@@ -236,3 +236,40 @@ export function resolveSalesOrderProgress(
     tone: "active",
   };
 }
+
+type CanCancelSalesOrderInput = {
+  status: string;
+  deliveryStatus?: string;
+  items?: Array<{ issuedQuantity?: string | number }>;
+  rounds?: Array<{ roundStatus?: string }>;
+};
+
+/** สอดคล้อง backend cancel() — ซ่อนปุ่มเมื่อ fulfillment เริ่มหรือส่งครบแล้ว */
+export function canCancelSalesOrder({
+  status,
+  deliveryStatus,
+  items = [],
+  rounds = [],
+}: CanCancelSalesOrderInput): boolean {
+  if (status === "DRAFT" || status === "AWAITING_CONFIRM") {
+    return true;
+  }
+  if (status !== "CONFIRMED") {
+    return false;
+  }
+  if (deliveryStatus === "DELIVERED" || deliveryStatus === "PARTIALLY_DELIVERED") {
+    return false;
+  }
+  if (items.some((item) => Number(item.issuedQuantity) > 0)) {
+    return false;
+  }
+  if (
+    rounds.some(
+      (round) =>
+        round.roundStatus !== "PLANNED" && round.roundStatus !== "CANCELLED",
+    )
+  ) {
+    return false;
+  }
+  return deliveryStatus === "NOT_STARTED" || deliveryStatus === undefined;
+}

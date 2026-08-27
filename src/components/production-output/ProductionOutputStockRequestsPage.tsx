@@ -26,9 +26,8 @@ import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCancelProductionOutputStockRequestMutation } from "@/hooks/production-output/useProductionOutputMutations";
 import { useProductionOutputStockRequestsQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import { getProductionOutputStockRequests } from "@/lib/api/production-output-stock-requests";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { getAccessToken } from "@/lib/auth/token";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { ProductionOutputStockRequest } from "@/types/production-output-stock-request";
 import {
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
@@ -114,8 +113,10 @@ export default function ProductionOutputStockRequestsPage() {
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
-  const canRequest =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) || isAdministrator();
+  /** เปิด/ยกเลิกใบขอรับผลผลิตเข้าคลัง = งานของหน้านี้ ตัดสินจาก Permission Matrix */
+  const canRequest = useScreenActionPermissions(
+    "PRODUCTION_OUTPUT_STOCK_REQUESTS",
+  ).canAdd;
 
   const listQuery = useProductionOutputStockRequestsQuery({
     status,

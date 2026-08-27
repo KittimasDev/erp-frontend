@@ -6,6 +6,7 @@ import {
   getPendingStockVerification,
   getSalesOrder,
   getSalesOrderAvailableWarehouses,
+  getSalesOrderPdfSnapshots,
   getSalesOrderReservationStatus,
   getSalesOrders,
   getSalesOrderStockVerification,
@@ -144,5 +145,14 @@ export function useSalesOrderAttachmentsQuery(documentId?: string) {
         documentId: documentId as string,
       }),
     enabled: Boolean(documentId),
+  });
+}
+
+export function useSalesOrderPdfSnapshotsQuery(id?: string) {
+  return useQuery({
+    queryKey: [...salesOrdersQueryKey, "pdf-snapshots", id],
+    queryFn: () => getSalesOrderPdfSnapshots(getAccessToken(), id as string),
+    enabled: Boolean(id),
+    ...SALES_ORDER_LIVE_QUERY_OPTIONS,
   });
 }

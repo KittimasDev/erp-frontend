@@ -16,12 +16,11 @@ import {
   useCancelChemicalIssueMutation,
 } from "@/hooks/chemical-issues/useChemicalIssueMutations";
 import { useChemicalIssueQuery } from "@/hooks/chemical-issues/useChemicalIssuesQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import {
   CHEMICAL_ISSUE_PURPOSE_LABEL,
   CHEMICAL_ISSUE_STATUS_LABEL,
 } from "@/types/chemical-issues";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./ChemicalIssueDetailPage.module.css";
 
 type Props = { id: string };
@@ -51,10 +50,10 @@ export default function ChemicalIssueDetailPage({ id }: Props) {
 
   const data = query.data?.data;
 
-  const canRequest =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) || isAdministrator();
-  const canApprove =
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) || isAdministrator();
+  /** ส่งเอกสาร = สิทธิ์แก้ไข · อนุมัติ = สิทธิ์อนุมัติ ตาม Permission Matrix ของหน้านี้ */
+  const screenActions = useScreenActionPermissions("CHEMICAL_ISSUES");
+  const canRequest = screenActions.canEdit;
+  const canApprove = screenActions.canApprove;
 
   if (query.isLoading) {
     return (

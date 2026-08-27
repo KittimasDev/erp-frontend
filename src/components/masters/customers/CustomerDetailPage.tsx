@@ -19,8 +19,6 @@ import {
 import { useCustomerQuery } from "@/hooks/customers/useCustomerQuery";
 import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import { SALES_ORDER_STATUS_LABEL } from "@/types/sales-orders";
 import type { SalesOrder, SalesOrderStatus } from "@/types/sales-orders";
 import styles from "@/components/masters/shared/master-page.module.css";
@@ -120,10 +118,9 @@ export default function CustomerDetailPage({ id }: Props) {
     useScreenActionPermissions("SALES_ORDERS").canViewAll;
 
   const data = query.data?.data;
-  const canManageCustomers =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
+  /** เพิ่ม/แก้ไขลูกค้า = สิทธิ์ของหน้าข้อมูลลูกค้าใน Permission Matrix */
+  const customerActions = useScreenActionPermissions("MASTERS_CUSTOMERS");
+  const canManageCustomers = customerActions.canAdd || customerActions.canEdit;
 
   const historyColumns: ColumnsType<SalesOrder> = [
     {

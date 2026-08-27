@@ -15,10 +15,9 @@ import {
 import dayjs from "dayjs";
 
 import { usePendingPurchasePaymentsQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { PendingSupplierPaymentPo } from "@/types/purchase-payments";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchasePaymentsPendingPage.module.css";
 
 function formatDate(value?: string) {
@@ -45,8 +44,8 @@ export default function PurchasePaymentsPendingPage() {
     {},
   );
 
-  const canPay =
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
+  /** ตั้งใบสำคัญจ่ายจาก PO = PURCHASE_PAYMENTS_PENDING.EDIT (ตรงกับ guard ฝั่ง backend) */
+  const canPay = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING").canEdit;
 
   const query = usePendingPurchasePaymentsQuery({ page, limit });
   const rows = query.data?.data.items ?? [];

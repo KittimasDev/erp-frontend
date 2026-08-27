@@ -37,6 +37,7 @@ import type {
 
 import RoleFormModal from "./RoleFormModal";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./PermissionMatrixPage.module.css";
 
 /**
@@ -245,7 +246,8 @@ export default function PermissionMatrixPage({
   const lockedRoleId = searchParams.get("roleId");
 
   useEffect(() => {
-    if (!isAdministrator()) {
+    // ผู้ที่ถูกติ๊กสิทธิ์หน้าสิทธิ์การใช้งานก็เข้าได้ ไม่จำกัดแค่ ADMINISTRATOR
+    if (!isAdministrator() && !canAccessScreen("PERMISSIONS")) {
       router.replace("/");
     }
   }, [router, pathname]);

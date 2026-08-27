@@ -13,9 +13,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockCountsQuery } from "@/hooks/stock-counts/useStockCountsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { StockCount } from "@/types/stock-counts";
 import { STOCK_COUNT_STATUS_LABEL } from "@/types/stock-counts";
 import styles from "./StockCountsListPage.module.css";
@@ -55,10 +54,10 @@ export default function StockCountsListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  /** สิทธิ์จาก Permission Matrix ของหน้านี้ — สร้างกับแก้ไขแยกกันตามที่ติ๊กไว้ */
+  const screenActions = useScreenActionPermissions("STOCK_COUNTS");
+  const canAdd = screenActions.canAdd;
+  const canEdit = screenActions.canEdit;
 
   const query = useStockCountsQuery({ ...applied, page, limit });
   const allQuery = useStockCountsQuery({ page: 1, limit: 1 });
@@ -168,7 +167,7 @@ export default function StockCountsListPage() {
             >
               <EyeOutlined />
             </button>
-            {canWrite && row.status === "DRAFT" ? (
+            {canEdit && row.status === "DRAFT" ? (
               <button
                 type="button"
                 className={styles.actionBtn}
@@ -184,7 +183,7 @@ export default function StockCountsListPage() {
         ),
       },
     ],
-    [canWrite, limit, page, router],
+    [canEdit, limit, page, router],
   );
 
   return (
@@ -202,7 +201,7 @@ export default function StockCountsListPage() {
             เปิดใบนับ (DRAFT) กรอกยอดนับจริง แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อปรับปรุงสต๊อกจริง
           </p>
         </div>
-        {canWrite ? (
+        {canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}

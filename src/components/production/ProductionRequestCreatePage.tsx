@@ -19,7 +19,9 @@ import { ArrowLeftOutlined, ProfileOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useCreateProductionRequestMutation,
   useUpdateProductionRequestMutation,
@@ -70,6 +72,13 @@ export default function ProductionRequestCreatePage({
 }: Props) {
   const existingQuery = useProductionRequestQuery(requestId);
   const existing = existingQuery.data?.data;
+  /** สร้างใบใหม่ใช้ ADD · เข้ามาแก้ใบเดิมใช้ EDIT — ตรงกับ guard ฝั่ง backend */
+  const actions = useScreenActionPermissions("PRODUCTION_REQUESTS");
+  const allowed = requestId ? actions.canEdit : actions.canAdd;
+
+  if (!allowed) {
+    return <AccessDenied screenCodes={["PRODUCTION_REQUESTS"]} />;
+  }
 
   if (requestId && !existing) {
     return <MasterPageGate isLoading>{null}</MasterPageGate>;

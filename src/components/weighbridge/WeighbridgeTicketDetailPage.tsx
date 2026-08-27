@@ -22,6 +22,7 @@ import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRaw
 import { useSellerQuery } from "@/hooks/sellers/useSellerQuery";
 import { useStockPostingRequestByReceiptQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
+import { useCanApproveStockPostingApprovals } from "@/lib/auth/stock-posting-access";
 import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
 import { buildRawTireWarehouseReceiptSlipData } from "@/utils/buildRawTireWarehouseReceiptSlipData";
@@ -177,6 +178,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const { message } = App.useApp();
   const [isPrinting, setIsPrinting] = useState(false);
   const [isPrintingWarehouseSlip, setIsPrintingWarehouseSlip] = useState(false);
+  const canApproveStockIn = useCanApproveStockPostingApprovals();
 
   const ticketQuery = useWeighbridgeTicketQuery(ticketId);
   const ticket = ticketQuery.data?.data;
@@ -776,7 +778,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         ดูเต็มจอ
                       </Button>
                     </div>
-                  ) : stockRequestPending && ticket.receiptId ? (
+                  ) : stockRequestPending &&
+                    ticket.receiptId &&
+                    canApproveStockIn ? (
                     <div className={styles.weighActions} style={{ marginTop: 16 }}>
                       <Button
                         type="primary"
@@ -792,7 +796,11 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         คลังเลือกคลังและอนุมัติ
                       </Button>
                     </div>
-                  ) : paid && receiptConfirmed && ticket.receiptId && !stockPosted ? (
+                  ) : paid &&
+                    receiptConfirmed &&
+                    ticket.receiptId &&
+                    !stockPosted &&
+                    canApproveStockIn ? (
                     <div className={styles.weighActions} style={{ marginTop: 16 }}>
                       <Button
                         type="primary"
@@ -808,7 +816,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     <div className={styles.stepEmptyHint}>
                       จ่ายเงินใน Step 2 ให้เสร็จก่อน ระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
                     </div>
-                  ) : (
+                  ) : stockRequestPending || readyForStockIn ? null : (
                     <div className={styles.stepEmptyHint}>
                       บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จ แล้วจ่ายเงิน Step 2 ก่อนเข้าคลัง
                     </div>

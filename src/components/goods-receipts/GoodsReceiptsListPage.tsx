@@ -22,9 +22,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useGoodsReceiptsQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { GoodsReceipt } from "@/types/goods-receipts";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
@@ -74,10 +73,10 @@ export default function GoodsReceiptsListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  /** สิทธิ์จาก Permission Matrix ของหน้านี้ — สร้างกับแก้ไขแยกกันตามที่ติ๊กไว้ */
+  const screenActions = useScreenActionPermissions("GOODS_RECEIPTS");
+  const canAdd = screenActions.canAdd;
+  const canEdit = screenActions.canEdit;
 
   const query = useGoodsReceiptsQuery({ ...applied, page, limit });
   const allQuery = useGoodsReceiptsQuery({ page: 1, limit: 1 });
@@ -220,7 +219,7 @@ export default function GoodsReceiptsListPage() {
             >
               <EyeOutlined />
             </button>
-            {canWrite && row.status === "DRAFT" ? (
+            {canEdit && row.status === "DRAFT" ? (
               <button
                 type="button"
                 className={styles.actionBtn}
@@ -234,7 +233,7 @@ export default function GoodsReceiptsListPage() {
         ),
       },
     ],
-    [canWrite, limit, page, router],
+    [canEdit, limit, page, router],
   );
 
   return (

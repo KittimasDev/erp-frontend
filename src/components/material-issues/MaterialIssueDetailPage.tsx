@@ -16,9 +16,8 @@ import {
   useCancelStockIssueMutation,
 } from "@/hooks/stock-issues/useStockIssueMutations";
 import { useStockIssueQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./MaterialIssueDetailPage.module.css";
 
 type Props = { id: string };
@@ -48,10 +47,10 @@ export default function MaterialIssueDetailPage({ id }: Props) {
 
   const data = query.data?.data;
 
-  const canRequest =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) || isAdministrator();
-  const canApprove =
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) || isAdministrator();
+  /** ส่งเอกสาร = สิทธิ์แก้ไข · อนุมัติ = สิทธิ์อนุมัติ ตาม Permission Matrix ของหน้านี้ */
+  const screenActions = useScreenActionPermissions("MATERIAL_ISSUES");
+  const canRequest = screenActions.canEdit;
+  const canApprove = screenActions.canApprove;
 
   if (query.isLoading) {
     return (

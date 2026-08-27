@@ -21,9 +21,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockAdjustmentsQuery } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type {
   StockAdjustment,
   StockAdjustmentStatus,
@@ -72,10 +71,10 @@ export default function StockAdjustmentsListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  /** สิทธิ์จาก Permission Matrix ของหน้านี้ — สร้างกับแก้ไขแยกกันตามที่ติ๊กไว้ */
+  const screenActions = useScreenActionPermissions("STOCK_ADJUSTMENTS");
+  const canAdd = screenActions.canAdd;
+  const canEdit = screenActions.canEdit;
 
   const query = useStockAdjustmentsQuery({ ...applied, page, limit });
   const allQuery = useStockAdjustmentsQuery({ page: 1, limit: 1 });
@@ -210,7 +209,7 @@ export default function StockAdjustmentsListPage() {
             >
               <EyeOutlined />
             </button>
-            {canWrite && row.status === "DRAFT" ? (
+            {canEdit && row.status === "DRAFT" ? (
               <button
                 type="button"
                 className={styles.actionBtn}
@@ -226,7 +225,7 @@ export default function StockAdjustmentsListPage() {
         ),
       },
     ],
-    [canWrite, limit, page, router],
+    [canEdit, limit, page, router],
   );
 
   return (
@@ -244,7 +243,7 @@ export default function StockAdjustmentsListPage() {
             เปิดใบร่าง ส่งอนุมัติ แล้วให้หัวหน้าคลังอนุมัติเพื่อปรับยอดสต๊อกจริง
           </p>
         </div>
-        {canWrite ? (
+        {canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}

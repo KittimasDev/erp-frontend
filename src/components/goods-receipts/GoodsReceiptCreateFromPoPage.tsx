@@ -29,7 +29,6 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
-import { isAdministrator } from "@/lib/auth/session";
 import styles from "./GoodsReceiptFormPage.module.css";
 
 const EMPTY_GRS: never[] = [];
@@ -69,8 +68,8 @@ export default function GoodsReceiptCreateFromPoPage({
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const goodsReceiptActions = useScreenActionPermissions("GOODS_RECEIPTS");
-  const canView = isAdministrator() || goodsReceiptActions.canView;
-  const canAdd = isAdministrator() || goodsReceiptActions.canAdd;
+  const canView = goodsReceiptActions.canView;
+  const canAdd = goodsReceiptActions.canAdd;
   const poQuery = usePurchaseOrderQuery(purchaseOrderId);
   const grByPoQuery = useGoodsReceiptsByPoQuery(purchaseOrderId);
   const createMutation = useCreateGoodsReceiptFromPoMutation();

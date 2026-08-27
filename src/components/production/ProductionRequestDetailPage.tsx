@@ -25,8 +25,7 @@ import dayjs from "dayjs";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCancelProductionRequestMutation } from "@/hooks/production-requests/useProductionRequestMutations";
 import { useProductionRequestQuery } from "@/hooks/production-requests/useProductionRequestQueries";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   getProductionRequestStatusDisplay,
   ProductionRequestStatus,
@@ -53,15 +52,11 @@ function fmt(value?: string) {
 
 export default function ProductionRequestDetailPage({ requestId }: Props) {
   const router = useRouter();
-  const canManage =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
-    isAdministrator();
+  /** แก้ไข/ยกเลิกใบขอผลิต = งานของหน้านี้ (backend ใช้ PRODUCTION_REQUESTS.EDIT ทั้งคู่) */
+  const canManage = useScreenActionPermissions("PRODUCTION_REQUESTS").canEdit;
+  /** เปิดใบสั่งผลิตเป็นงานของหน้า PRODUCTION_ORDERS — ปุ่มนี้พาไปกดต่อที่หน้านั้น */
   const canOpenProductionOrder =
-    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    isAdministrator();
+    useScreenActionPermissions("PRODUCTION_ORDERS").canAdd;
 
   const detailQuery = useProductionRequestQuery(requestId);
   const request = detailQuery.data?.data;

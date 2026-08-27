@@ -11,6 +11,8 @@ import {
   InputNumber,
   Modal,
   Progress,
+  Select,
+  Space,
   Spin,
   Tag,
   Upload,
@@ -53,6 +55,7 @@ import {
 } from "@/hooks/sales-orders/useSalesOrderMutations";
 import {
   useSalesOrderAttachmentsQuery,
+  useSalesOrderPdfSnapshotsQuery,
   useSalesOrderQuery,
   useSalesOrderReservationStatusQuery,
   useSalesOrderStockVerificationQuery,
@@ -72,15 +75,19 @@ import {
   canOpenStockVerification,
 } from "@/lib/sales/sales-fulfillment-nav";
 import {
+  canCancelSalesOrder,
   resolveSalesOrderProgress,
 } from "@/lib/sales/sales-order-progress";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import {
   SALES_ORDER_STATUS_LABEL,
   isPreConfirmSalesOrderStatus,
+  type SalesOrder,
+  type SalesOrderPdfSnapshotPayload,
   type SalesOrderReservationLine,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
+import type { SalesOrderPdfData } from "@/utils/generateSalesOrderPdf";
 import {
   PRODUCTION_REQUEST_STATUS_LABEL,
   type EligibleSalesOrderItem,
@@ -137,6 +144,62 @@ function formatMoney(value?: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function buildSalesOrderPdfDataFromOrder(order: SalesOrder): SalesOrderPdfData {
+  return {
+    soNo: order.soNo,
+    soDate: formatDate(order.soDate),
+    customerName: order.customer?.nameTh ?? "—",
+    customerCode: order.customer?.customerCode ?? "—",
+    customerPoNo: order.customerPoNo?.trim() || "—",
+    quotationNo: order.salesQuotationNo ?? "—",
+    requestedDeliveryDate: formatDate(order.requestedDeliveryDate),
+    remark: order.remark?.trim() || "",
+    preparedBy: {
+      id: order.createdBy?.id,
+      name: order.createdBy?.displayName,
+    },
+    subtotalAmount: Number(order.subtotalAmount) || 0,
+    discountAmount: Number(order.discountAmount) || 0,
+    vatAmount: Number(order.vatAmount) || 0,
+    totalAmount: Number(order.totalAmount) || 0,
+    items: (order.items ?? []).map((item, index) => ({
+      no: index + 1,
+      itemCode: item.itemCode ?? "—",
+      itemName: item.itemNameTh ?? item.description ?? "—",
+      unit: item.unitCode ?? "—",
+      qty: Number(item.quantity) || 0,
+      unitPrice: Number(item.unitPrice) || 0,
+      discountAmount: Number(item.discountAmount) || 0,
+      amount: Number(item.amount) || 0,
+    })),
+  };
+}
+
+function mapSnapshotPayloadToPdfData(
+  payload: SalesOrderPdfSnapshotPayload,
+): SalesOrderPdfData {
+  return {
+    soNo: payload.soNo,
+    soDate: formatDate(payload.soDate),
+    customerName: payload.customerName,
+    customerCode: payload.customerCode,
+    customerPoNo: payload.customerPoNo,
+    quotationNo: payload.quotationNo,
+    requestedDeliveryDate: formatDate(payload.requestedDeliveryDate),
+    remark: payload.remark,
+    subtotalAmount: payload.subtotalAmount,
+    discountAmount: payload.discountAmount,
+    vatAmount: payload.vatAmount,
+    totalAmount: payload.totalAmount,
+    items: payload.items,
+    preparedBy: payload.preparedBy
+      ? { id: payload.preparedBy.id, name: payload.preparedBy.name }
+      : undefined,
+    preparedBySignatureDataUrl:
+      payload.preparedBy?.preparedBySignatureDataUrl ?? null,
+  };
 }
 
 function statusClass(status: string) {
@@ -232,6 +295,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     isPreConfirm ? id : undefined,
   );
   const trackingQuery = useSalesTrackingDetailQuery(id);
+  const pdfSnapshotsQuery = useSalesOrderPdfSnapshotsQuery(id);
   const confirmMutation = useConfirmSalesOrderMutation();
   const cancelMutation = useCancelSalesOrderMutation();
   const createProductionRequestMutation = useCreateProductionRequestMutation();
@@ -254,6 +318,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedPdfVersion, setSelectedPdfVersion] = useState<
+    "current" | string
+  >("current");
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewIsImage, setPreviewIsImage] = useState(false);
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
@@ -656,35 +723,24 @@ export default function SalesOrderDetailPage({ id }: Props) {
     const { generateSalesOrderPdf } = await import(
       "@/utils/generateSalesOrderPdf"
     );
-    await generateSalesOrderPdf({
-      soNo: data.soNo,
-      soDate: formatDate(data.soDate),
-      customerName: data.customer?.nameTh ?? "—",
-      customerCode: data.customer?.customerCode ?? "—",
-      customerPoNo: data.customerPoNo?.trim() || "—",
-      quotationNo: data.salesQuotationNo ?? "—",
-      requestedDeliveryDate: formatDate(data.requestedDeliveryDate),
-      remark: data.remark?.trim() || "",
-      preparedBy: {
-        id: data.createdBy?.id,
-        name: data.createdBy?.displayName,
-      },
-      subtotalAmount: Number(data.subtotalAmount) || 0,
-      discountAmount: Number(data.discountAmount) || 0,
-      vatAmount: Number(data.vatAmount) || 0,
-      totalAmount: Number(data.totalAmount) || 0,
-      items: (data.items ?? []).map((item, index) => ({
-        no: index + 1,
-        itemCode: item.itemCode ?? "—",
-        itemName: item.itemNameTh ?? item.description ?? "—",
-        unit: item.unitCode ?? "—",
-        qty: Number(item.quantity) || 0,
-        unitPrice: Number(item.unitPrice) || 0,
-        discountAmount: Number(item.discountAmount) || 0,
-        amount: Number(item.amount) || 0,
-      })),
-    });
+    const pdfSnapshots = pdfSnapshotsQuery.data?.data?.items ?? [];
+    let pdfData: SalesOrderPdfData;
+    if (selectedPdfVersion === "current") {
+      pdfData = buildSalesOrderPdfDataFromOrder(data);
+    } else {
+      const snapshot = pdfSnapshots.find(
+        (entry) => entry.id === selectedPdfVersion,
+      );
+      if (!snapshot) {
+        message.warning("ไม่พบเวอร์ชัน PDF ที่เลือก");
+        return;
+      }
+      pdfData = mapSnapshotPayloadToPdfData(snapshot.payload);
+    }
+    await generateSalesOrderPdf(pdfData);
   };
+
+  const pdfSnapshots = pdfSnapshotsQuery.data?.data?.items ?? [];
 
   const openProductionRequestModal = (
     pending: PendingProductionRequest,
@@ -704,10 +760,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
         return;
       }
     }
+    const today = dayjs(todayInErp());
+    const preferred = data.requestedDeliveryDate
+      ? dayjs(data.requestedDeliveryDate)
+      : today;
     setProductionRequiredDate(
-      data.requestedDeliveryDate
-        ? dayjs(data.requestedDeliveryDate)
-        : dayjs(todayInErp()),
+      preferred.isBefore(today, "day") ? today : preferred,
     );
     setPendingProductionRequest(pending);
   };
@@ -718,6 +776,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
     }
     if (!productionRequiredDate) {
       message.warning("กรุณาเลือกวันที่ต้องการผลผลิต");
+      return;
+    }
+    if (productionRequiredDate.isBefore(dayjs(todayInErp()), "day")) {
+      message.warning("วันที่ต้องการผลผลิตต้องไม่ย้อนหลังจากวันปัจจุบัน");
       return;
     }
     const requiredDate = productionRequiredDate.format("YYYY-MM-DD");
@@ -779,9 +841,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
   const cancelButton =
     canWrite &&
-    (data.status === "DRAFT" ||
-      data.status === "AWAITING_CONFIRM" ||
-      data.status === "CONFIRMED") ? (
+    canCancelSalesOrder({
+      status: data.status,
+      deliveryStatus: data.deliveryStatus,
+      items: data.items,
+      rounds: tracking?.rounds,
+    }) ? (
       <Button
         danger
         icon={<CloseOutlined />}
@@ -823,7 +888,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
     const pickingDoc = roundDoc("Picking");
 
     let roundAction: ReactNode;
-    if (roundInFlight?.roundStatus === "PACKED") {
+    if (
+      data.deliveryStatus === "DELIVERED" ||
+      !roundInFlight
+    ) {
+      // ส่งครบทุกรอบแล้ว (หรือไม่มีรอบค้าง) — อย่าโชว์ปุ่มไปสร้างใบจ่าย
+      roundAction = null;
+    } else if (roundInFlight.roundStatus === "PACKED") {
       // บรรจุแล้ว → สร้าง/เปิดใบส่งสินค้า
       roundAction = packingDoc?.documentId ? (
         <Button
@@ -841,7 +912,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       ) : (
         waitProcessHint
       );
-    } else if (roundInFlight?.roundStatus === "ISSUED") {
+    } else if (roundInFlight.roundStatus === "ISSUED") {
       // จ่ายของแล้ว → สร้าง/เปิดใบบรรจุ
       roundAction = pickingDoc?.documentId ? (
         <Button
@@ -1139,9 +1210,30 @@ export default function SalesOrderDetailPage({ id }: Props) {
           >
             กลับ
           </Button>
-          <Button icon={<FilePdfOutlined />} onClick={printPdf}>
-            พิมพ์ PDF
-          </Button>
+          {pdfSnapshots.length > 0 ? (
+            <Space.Compact>
+              <Select
+                aria-label="เลือกเวอร์ชัน PDF"
+                value={selectedPdfVersion}
+                onChange={setSelectedPdfVersion}
+                style={{ minWidth: 220 }}
+                options={[
+                  { value: "current", label: "ล่าสุด (ปัจจุบัน)" },
+                  ...pdfSnapshots.map((snapshot) => ({
+                    value: snapshot.id,
+                    label: `Version ${snapshot.versionNo} — ${dayjs(snapshot.createdAt).format("DD/MM/YYYY HH:mm")}`,
+                  })),
+                ]}
+              />
+              <Button icon={<FilePdfOutlined />} onClick={() => void printPdf()}>
+                พิมพ์ PDF
+              </Button>
+            </Space.Compact>
+          ) : (
+            <Button icon={<FilePdfOutlined />} onClick={() => void printPdf()}>
+              พิมพ์ PDF
+            </Button>
+          )}
           {isPreConfirm ? preConfirmHeaderButton : nextStepButton}
         </div>
       </header>
@@ -1149,6 +1241,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       <SalesOrderTimeline
         salesOrderId={id}
         salesOrderStatus={data.status}
+        salesOrderDeliveryStatus={data.deliveryStatus}
         loading={trackingQuery.isLoading}
         refreshing={
           trackingQuery.isFetching &&
@@ -2065,6 +2158,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               salesOrderItems={data.items ?? []}
               canEdit={canWrite}
               salesOrderStatus={data.status}
+              deliveryStatus={data.deliveryStatus}
             />
           </div>
 
@@ -2214,6 +2308,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
           style={{ width: "100%", marginTop: 8 }}
           value={productionRequiredDate}
           onChange={(value) => setProductionRequiredDate(value)}
+          disabledDate={(current) =>
+            Boolean(current && current.isBefore(dayjs(todayInErp()), "day"))
+          }
         />
       </Modal>
 

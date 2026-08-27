@@ -20,6 +20,7 @@ import type {
   StockVerificationPendingListApiResponse,
   UpdateSalesOrderCustomerPoBody,
   UpdateSalesOrderItemsBody,
+  SalesOrderPdfSnapshotListApiResponse,
 } from "@/types/sales-orders";
 
 function buildSalesOrdersQuery(params?: SalesOrderQueryParams) {
@@ -139,6 +140,13 @@ export function updateSalesOrderItems(
 export function getSalesOrderReservationStatus(token: string, id: string) {
   return apiFetch<SalesOrderReservationStatusApiResponse>(
     `/api/sales-orders/${id}/reservation-status`,
+    { method: "GET", token },
+  );
+}
+
+export function getSalesOrderPdfSnapshots(token: string, id: string) {
+  return apiFetch<SalesOrderPdfSnapshotListApiResponse>(
+    `/api/sales-orders/${id}/pdf-snapshots`,
     { method: "GET", token },
   );
 }

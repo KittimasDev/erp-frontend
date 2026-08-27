@@ -19,14 +19,13 @@ import {
 import { usePurchasePaymentQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
   SUPPLIER_PAYMENT_STATUS_LABEL,
 } from "@/types/purchase-payments";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchasePaymentDetailPage.module.css";
 
 type Props = { id: string };
@@ -99,8 +98,13 @@ function PurchasePaymentDetailView({
     remark?: string;
   }>();
 
-  const canWrite =
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
+  /**
+   * ตรงกับ guard ฝั่ง backend ของ purchase-payments.controller
+   * confirm จ่ายเงิน = PURCHASE_PAYMENTS_PENDING.APPROVE · ยกเลิกเอกสาร = .EDIT
+   */
+  const pendingActions = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING");
+  const canConfirmPayment = pendingActions.canApprove;
+  const canCancelPayment = pendingActions.canEdit;
 
   const poId = data.purchaseOrderId ?? data.purchaseOrder?.id;
   const poQuery = usePurchaseOrderQuery(poId);
@@ -282,36 +286,36 @@ function PurchasePaymentDetailView({
           </div>
 
           <div className={styles.actionStack}>
-            {canWrite && data.status === "DRAFT" ? (
-              <>
-                <Button
-                  className={styles.primaryBtn}
-                  type="primary"
-                  icon={<CheckOutlined />}
-                  loading={busy}
-                  onClick={() => {
-                    confirmForm.setFieldsValue({
-                      paymentDate: dayjs(data.voucherDate),
-                    });
-                    setConfirmOpen(true);
-                  }}
-                >
-                  Confirm จ่ายเงิน
-                </Button>
-                <Button
-                  className={styles.secondaryBtn}
-                  danger
-                  loading={busy}
-                  onClick={() =>
-                    modal.confirm({
-                      title: "ยืนยันยกเลิกใบสำคัญจ่าย?",
-                      onOk: () => cancelMutation.mutateAsync(data.id),
-                    })
-                  }
-                >
-                  ยกเลิกเอกสาร
-                </Button>
-              </>
+            {data.status === "DRAFT" && canConfirmPayment ? (
+              <Button
+                className={styles.primaryBtn}
+                type="primary"
+                icon={<CheckOutlined />}
+                loading={busy}
+                onClick={() => {
+                  confirmForm.setFieldsValue({
+                    paymentDate: dayjs(data.voucherDate),
+                  });
+                  setConfirmOpen(true);
+                }}
+              >
+                Confirm จ่ายเงิน
+              </Button>
+            ) : null}
+            {data.status === "DRAFT" && canCancelPayment ? (
+              <Button
+                className={styles.secondaryBtn}
+                danger
+                loading={busy}
+                onClick={() =>
+                  modal.confirm({
+                    title: "ยืนยันยกเลิกใบสำคัญจ่าย?",
+                    onOk: () => cancelMutation.mutateAsync(data.id),
+                  })
+                }
+              >
+                ยกเลิกเอกสาร
+              </Button>
             ) : null}
           </div>
 

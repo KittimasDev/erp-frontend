@@ -283,15 +283,35 @@ export default function PickingFormPage({ id, mode }: Props) {
       return true;
     });
 
-  const packingStep = trackingQuery.data?.data?.timeline?.find(
-    (step) => step.step === "Packing",
-  );
+  const packingStep = (() => {
+    const rounds = trackingQuery.data?.data?.rounds ?? [];
+    // ต้องใช้รอบของใบจ่ายนี้ — timeline ระดับ SO ชี้รอบถัดไป จะพาไปสร้างบรรจุซ้ำบนรอบที่จบแล้ว
+    const thisRound = rounds.find((round) =>
+      round.timeline?.some(
+        (step) => step.step === "Picking" && step.documentId === data?.id,
+      ),
+    );
+    const step = thisRound?.timeline?.find((s) => s.step === "Packing");
+    const roundStatus = thisRound?.roundStatus;
+    return { step, roundStatus };
+  })();
+  const packingDoc = packingStep.step;
   const packingHref =
-    packingStep?.href && packingStep.status !== "CANCELLED"
-      ? packingStep.status === "DRAFT"
-        ? `${packingStep.href}/edit`
-        : packingStep.href
+    packingDoc?.href && packingDoc.status !== "CANCELLED"
+      ? packingDoc.status === "DRAFT"
+        ? `${packingDoc.href}/edit`
+        : packingDoc.href
       : undefined;
+  /** สร้างใบบรรจุใหม่ได้เฉพาะรอบที่เพิ่งจ่ายของ — รอบที่บรรจุ/ส่งแล้วห้ามโชว์ปุ่มสร้าง */
+  const canCreatePackingFromThis =
+    data?.status === "CONFIRMED" &&
+    !packingHref &&
+    packingStep.roundStatus === "ISSUED";
+  const packingRoundDone =
+    data?.status === "CONFIRMED" &&
+    !packingHref &&
+    (packingStep.roundStatus === "PACKED" ||
+      packingStep.roundStatus === "DELIVERED");
 
   const renderItemLotHint = (item: PickingItem) => {
     const row = rows.find((r) => r.id === item.id);
@@ -641,7 +661,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               >
                 เปิดใบบรรจุสินค้า
               </Button>
-            ) : (
+            ) : canCreatePackingFromThis ? (
               <Button
                 type="primary"
                 className={styles.primaryBtn}
@@ -652,7 +672,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               >
                 สร้างใบบรรจุสินค้า
               </Button>
-            )
+            ) : null
           ) : null}
           <Button
             className={styles.secondaryBtn}
@@ -696,7 +716,11 @@ export default function PickingFormPage({ id, mode }: Props) {
           description={
             packingHref
               ? "ขั้นถัดไป: เปิดใบบรรจุสินค้าเพื่อดำเนินการต่อ"
-              : "ขั้นถัดไป: สร้างใบบรรจุสินค้าจากใบจ่ายนี้"
+              : canCreatePackingFromThis
+                ? "ขั้นถัดไป: สร้างใบบรรจุสินค้าจากใบจ่ายนี้"
+                : packingRoundDone
+                  ? "รอบจัดส่งนี้บรรจุหรือส่งของไปแล้ว — ไม่สร้างใบบรรจุซ้ำจากใบจ่ายนี้"
+                  : "ขั้นถัดไปของรอบนี้ดำเนินการไปแล้ว หรือรอเอกสารบรรจุจากรอบนี้"
           }
         />
       ) : null}
@@ -816,18 +840,27 @@ export default function PickingFormPage({ id, mode }: Props) {
               </Button>
             ) : null}
             {data.status === "CONFIRMED" ? (
-              <Button
-                type="primary"
-                className={styles.primaryBtn}
-                icon={<InboxOutlined />}
-                onClick={() =>
-                  router.push(
-                    packingHref ?? `/packings/create-from-picking/${id}`,
-                  )
-                }
-              >
-                {packingHref ? "เปิดใบบรรจุสินค้า" : "สร้างใบบรรจุสินค้า"}
-              </Button>
+              packingHref ? (
+                <Button
+                  type="primary"
+                  className={styles.primaryBtn}
+                  icon={<InboxOutlined />}
+                  onClick={() => router.push(packingHref)}
+                >
+                  เปิดใบบรรจุสินค้า
+                </Button>
+              ) : canCreatePackingFromThis ? (
+                <Button
+                  type="primary"
+                  className={styles.primaryBtn}
+                  icon={<InboxOutlined />}
+                  onClick={() =>
+                    router.push(`/packings/create-from-picking/${id}`)
+                  }
+                >
+                  สร้างใบบรรจุสินค้า
+                </Button>
+              ) : null
             ) : null}
           </div>
         </section>

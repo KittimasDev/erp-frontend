@@ -25,8 +25,6 @@ import {
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./GoodsReceiptDetailPage.module.css";
@@ -68,15 +66,12 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
   const data = query.data?.data;
   const goodsReceiptActions = useScreenActionPermissions("GOODS_RECEIPTS");
   const canWrite =
-    isAdministrator() ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
     goodsReceiptActions.canAdd ||
     goodsReceiptActions.canEdit ||
     goodsReceiptActions.canApprove;
   const canReceive = canWrite;
-  const canPay =
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) || isAdministrator();
+  /** ตั้งใบสำคัญจ่ายเป็นงานของหน้า "รอจ่ายเงิน Supplier" — พาไปกดที่หน้านั้น */
+  const canPay = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING").canEdit;
 
   const poId = data?.purchaseOrderId ?? data?.purchaseOrder?.id;
   const poQuery = usePurchaseOrderQuery(poId);

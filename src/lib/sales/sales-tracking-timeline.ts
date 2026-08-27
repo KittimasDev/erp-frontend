@@ -5,6 +5,7 @@ export type SalesTimelineStepTone = "done" | "active" | "pending" | "cancelled";
 export const SALES_TRACKING_STEP_LABEL: Record<string, string> = {
   Quotation: "ใบเสนอราคา",
   "Sales Order": "ใบสั่งขาย",
+  "Delivery Rounds": "รอบจัดส่ง",
   "Stock Verification": "ตรวจสอบสต๊อก",
   Picking: "ใบจ่ายสินค้า",
   Packing: "ใบบรรจุสินค้า",

@@ -21,10 +21,15 @@ export type SalesOrderPdfData = {
   items: SalesLinePdfItem[];
   /** ผู้จัดทำเอกสาร — ถ้ามี id และคนนั้นอัปลายเซ็นไว้ จะเอารูปไปแสดงในช่องเซ็น */
   preparedBy?: { id?: string; name?: string };
+  /** ใช้ลายเซ็นจาก snapshot — ถ้าไม่ส่งจะดึงจาก API ตาม preparedBy.id */
+  preparedBySignatureDataUrl?: string | null;
 };
 
 export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
-  const preparedSignature = await getUserSignatureDataUrl(data.preparedBy?.id);
+  const preparedSignature =
+    data.preparedBySignatureDataUrl !== undefined
+      ? data.preparedBySignatureDataUrl
+      : await getUserSignatureDataUrl(data.preparedBy?.id);
 
   await generateSalesCommercialPdf({
     pageId: "sales-order-pdf",

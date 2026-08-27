@@ -81,13 +81,17 @@ export default function DeliverySchedulesSection({
   salesOrderItems,
   canEdit,
   salesOrderStatus,
+  deliveryStatus,
 }: {
   salesOrderId: string;
   salesOrderItems: SalesOrderItem[];
   canEdit: boolean;
   /** ต้องรู้เพื่อบอกล่วงหน้าว่าการยกเลิกรอบจะลดจำนวน/ยอดเงินหรือไม่ */
   salesOrderStatus: string;
+  /** สรุปจากทุกรอบ — ส่งครบแล้วห้ามเพิ่มรอบ */
+  deliveryStatus?: string;
 }) {
+  const canAddSchedule = canEdit && deliveryStatus !== "DELIVERED";
   const { message } = App.useApp();
   const schedulesQuery = useDeliverySchedulesQuery(salesOrderId);
   const createMutation = useCreateDeliveryScheduleMutation(salesOrderId);
@@ -359,7 +363,7 @@ export default function DeliverySchedulesSection({
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <h2 style={{ margin: 0, fontSize: 16 }}>รอบจัดส่ง</h2>
-        {canEdit ? (
+        {canAddSchedule ? (
           <Button
             size="small"
             type="primary"

@@ -39,6 +39,7 @@ import {
 } from "@/hooks/packings/usePackingMutations";
 import { usePackingQuery } from "@/hooks/packings/usePackingsQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import type { PackingItem } from "@/types/packings";
 import { PACKING_STATUS_LABEL } from "@/types/packings";
 import styles from "./PackingFormPage.module.css";
@@ -67,8 +68,35 @@ export default function PackingFormPage({ id, mode }: Props) {
   const canWrite = canEdit || canConfirm;
 
   const data = query.data?.data;
+  const trackingQuery = useSalesTrackingDetailQuery(data?.salesOrderId);
   const isDraft = data?.status === "DRAFT";
   const editable = mode === "edit" && isDraft && canEdit;
+
+  const deliveryStep = (() => {
+    const rounds = trackingQuery.data?.data?.rounds ?? [];
+    // รอบของใบบรรจุนี้ — อย่าใช้ timeline ระดับ SO (ชี้รอบถัดไป)
+    const thisRound = rounds.find((round) =>
+      round.timeline?.some(
+        (step) => step.step === "Packing" && step.documentId === data?.id,
+      ),
+    );
+    const step = thisRound?.timeline?.find((s) => s.step === "Delivery");
+    return { step, roundStatus: thisRound?.roundStatus };
+  })();
+  const deliveryDoc = deliveryStep.step;
+  const deliveryHref =
+    deliveryDoc?.href && deliveryDoc.status !== "CANCELLED"
+      ? deliveryDoc.status === "DRAFT" || deliveryDoc.status === "CONFIRMED"
+        ? `${deliveryDoc.href}/edit`
+        : deliveryDoc.href
+      : undefined;
+  const canCreateDeliveryFromThis =
+    data?.status === "CONFIRMED" &&
+    !deliveryHref &&
+    deliveryStep.roundStatus === "PACKED";
+  const deliveryRoundDone =
+    data?.status === "CONFIRMED" &&
+    (Boolean(deliveryHref) || deliveryStep.roundStatus === "DELIVERED");
 
   const [packingDate, setPackingDate] = useState<dayjs.Dayjs | null>(null);
   const [packageType, setPackageType] = useState("");
@@ -414,20 +442,40 @@ export default function PackingFormPage({ id, mode }: Props) {
              (ใบเดียวมีรอบที่ส่งจบแล้วกับรอบที่ยังรอของพร้อมกันได้)
 
              และปุ่มเดิมพากลับไปใบสั่งขาย ทำให้ไม่รู้ว่าต้องไปทำอะไรต่อ —
-             งานถัดไปคือสร้างใบส่งสินค้าจากใบบรรจุนี้ */
-          title="ยืนยันแล้ว — บรรจุครบตามรอบจัดส่งนี้แล้ว ขั้นถัดไปคือสร้างใบส่งสินค้า"
+             งานถัดไปคือสร้าง/เปิดใบส่งสินค้าจากใบบรรจุนี้ (ของรอบนี้เท่านั้น) */
+          title={
+            deliveryHref
+              ? "ยืนยันแล้ว — บรรจุครบตามรอบนี้แล้ว เปิดใบส่งสินค้าของรอบนี้ได้"
+              : canCreateDeliveryFromThis
+                ? "ยืนยันแล้ว — บรรจุครบตามรอบจัดส่งนี้แล้ว ขั้นถัดไปคือสร้างใบส่งสินค้า"
+                : deliveryRoundDone
+                  ? "ยืนยันแล้ว — รอบนี้ส่งของไปแล้ว ไม่สร้างใบส่งซ้ำจากใบบรรจุนี้"
+                  : "ยืนยันแล้ว — บรรจุครบตามรอบจัดส่งนี้แล้ว"
+          }
           action={
-            <Button
-              size="small"
-              type="primary"
-              className={styles.primaryBtn}
-              icon={<CarOutlined />}
-              onClick={() =>
-                router.push(`/delivery-orders/create-from-packing/${id}`)
-              }
-            >
-              สร้างใบส่งสินค้า
-            </Button>
+            deliveryHref ? (
+              <Button
+                size="small"
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<CarOutlined />}
+                onClick={() => router.push(deliveryHref)}
+              >
+                เปิดใบส่งสินค้า
+              </Button>
+            ) : canCreateDeliveryFromThis ? (
+              <Button
+                size="small"
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<CarOutlined />}
+                onClick={() =>
+                  router.push(`/delivery-orders/create-from-packing/${id}`)
+                }
+              >
+                สร้างใบส่งสินค้า
+              </Button>
+            ) : undefined
           }
         />
       ) : null}

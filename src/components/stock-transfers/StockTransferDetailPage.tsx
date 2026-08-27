@@ -16,9 +16,8 @@ import {
   useApproveStockTransferMutation,
   useCancelStockTransferMutation,
 } from "@/hooks/stock-transfers/useStockTransferMutations";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockTransferQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import { STOCK_TRANSFER_STATUS_LABEL } from "@/types/stock-transfers";
 import styles from "./StockTransferDetailPage.module.css";
 
@@ -49,10 +48,10 @@ export default function StockTransferDetailPage({ id }: Props) {
 
   const data = query.data?.data;
 
-  const canRequest =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) || isAdministrator();
-  const canApprove =
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) || isAdministrator();
+  /** ส่งเอกสาร = สิทธิ์แก้ไข · อนุมัติ = สิทธิ์อนุมัติ ตาม Permission Matrix ของหน้านี้ */
+  const screenActions = useScreenActionPermissions("STOCK_TRANSFERS");
+  const canRequest = screenActions.canEdit;
+  const canApprove = screenActions.canApprove;
 
   if (query.isLoading) {
     return (

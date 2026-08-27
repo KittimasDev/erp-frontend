@@ -13,9 +13,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useChemicalIssuesQuery } from "@/hooks/chemical-issues/useChemicalIssuesQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { ChemicalIssue } from "@/types/chemical-issues";
 import {
   CHEMICAL_ISSUE_PURPOSE_LABEL,
@@ -61,10 +60,10 @@ export default function ChemicalIssuesListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  /** สิทธิ์จาก Permission Matrix ของหน้านี้ — สร้างกับแก้ไขแยกกันตามที่ติ๊กไว้ */
+  const screenActions = useScreenActionPermissions("CHEMICAL_ISSUES");
+  const canAdd = screenActions.canAdd;
+  const canEdit = screenActions.canEdit;
 
   const query = useChemicalIssuesQuery({ ...applied, page, limit });
   const allQuery = useChemicalIssuesQuery({ page: 1, limit: 1 });
@@ -179,7 +178,7 @@ export default function ChemicalIssuesListPage() {
             >
               <EyeOutlined />
             </button>
-            {canWrite && row.status === "DRAFT" ? (
+            {canEdit && row.status === "DRAFT" ? (
               <button
                 type="button"
                 className={styles.actionBtn}
@@ -195,7 +194,7 @@ export default function ChemicalIssuesListPage() {
         ),
       },
     ],
-    [canWrite, limit, page, router],
+    [canEdit, limit, page, router],
   );
 
   return (
@@ -213,7 +212,7 @@ export default function ChemicalIssuesListPage() {
             สร้างใบเบิกจ่ายสารเคมี (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัดสต๊อกจริง
           </p>
         </div>
-        {canWrite ? (
+        {canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}

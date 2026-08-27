@@ -150,6 +150,8 @@ export default function SalesOrderTimeline({
   const activeTimelineStep = salesOrderStatus
     ? resolveActiveTimelineStepName(salesOrderStatus, salesOrderDeliveryStatus)
     : null;
+  const flowComplete =
+    salesOrderDeliveryStatus === "DELIVERED" || progress?.tone === "done";
   const hasNext = Boolean(nextAction && nextAction !== "—");
   const nowLabel =
     currentStep ||
@@ -291,7 +293,10 @@ export default function SalesOrderTimeline({
               const href = waitForPermission ? undefined : rawHref;
               const isHere = step.step === "Sales Order";
               const isFocus =
-                activeTimelineStep === step.step || tone === "active";
+                !flowComplete &&
+                tone !== "done" &&
+                tone !== "cancelled" &&
+                (activeTimelineStep === step.step || tone === "active");
 
               return (
                 <div

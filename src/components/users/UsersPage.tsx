@@ -50,6 +50,7 @@ import type {
 import ResetPasswordModal from "./ResetPasswordModal";
 import UserFormModal from "./UserFormModal";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./UsersPage.module.css";
 
 type FilterFormValues = {
@@ -109,7 +110,8 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
   const pageSize = 10;
 
   useEffect(() => {
-    if (!isAdministrator()) {
+    // ผู้ที่ถูกติ๊กสิทธิ์หน้าผู้ใช้ใน Permission Matrix ก็เข้าได้ ไม่จำกัดแค่ ADMINISTRATOR
+    if (!isAdministrator() && !canAccessScreen("USERS")) {
       router.replace("/");
     }
   }, [router, pathname]);

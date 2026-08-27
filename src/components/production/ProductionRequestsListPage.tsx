@@ -35,8 +35,6 @@ import {
 import { useConsolidatedCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useProductionRequestsQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import {
   PRODUCTION_ORDER_STATUS_LABEL,
   ProductionOrderPlanLineType,
@@ -56,11 +54,14 @@ export default function ProductionRequestsListPage() {
   const productionRequestActions =
     useScreenActionPermissions("PRODUCTION_REQUESTS");
   const canViewAll = productionRequestActions.canViewAll;
-  const canCreate =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
-    isAdministrator();
+  /** สิทธิ์ของหน้านี้ล้วน ๆ — ใครติ๊ก PRODUCTION_REQUESTS.ADD ใน Permission Matrix ก็เปิดใบขอผลิตได้ */
+  const canCreate = productionRequestActions.canAdd;
+  /**
+   * การเปิด "ใบสั่งผลิต" เป็นงานของหน้า PRODUCTION_ORDERS ไม่ใช่ของหน้านี้
+   * จึงตัดสินด้วยสิทธิ์ของหน้าปลายทาง แล้วพาไปกดยืนยันที่หน้านั้น
+   */
+  const canCreateProductionOrder =
+    useScreenActionPermissions("PRODUCTION_ORDERS").canAdd;
 
   const [requestNo, setRequestNo] = useState("");
   const [soNo, setSoNo] = useState("");
@@ -446,7 +447,7 @@ export default function ProductionRequestsListPage() {
               {selectedRowKeys.length ? (
                 <>
                   <Button onClick={handleClearSelection}>ล้างที่เลือก</Button>
-                  {canCreate ? (
+                  {canCreateProductionOrder ? (
                     <Button type="primary" onClick={handleOpenCreateModal}>
                       สร้างใบสั่งผลิตจากที่เลือก ({selectedRowKeys.length})
                     </Button>
@@ -463,7 +464,8 @@ export default function ProductionRequestsListPage() {
             dataSource={rows}
             loading={listQuery.isFetching}
             rowSelection={
-              canCreate
+              /* ติ๊กเลือกไว้เพื่อเปิดใบสั่งผลิต — ไม่มีสิทธิ์หน้านั้นก็ไม่ต้องมีช่องติ๊ก */
+              canCreateProductionOrder
                 ? {
                     selectedRowKeys,
                     preserveSelectedRowKeys: true,

@@ -31,6 +31,7 @@ import { useAuditLogsQuery } from "@/hooks/audit-logs/useAuditLogsQuery";
 import type { AuditLog, AuditLogQueryParams } from "@/types/audit-logs";
 
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./AuditLogsPage.module.css";
 
 const { RangePicker } = DatePicker;
@@ -62,7 +63,8 @@ export default function AuditLogsPage() {
   const [detail, setDetail] = useState<AuditLog | null>(null);
 
   useEffect(() => {
-    if (!isAdministrator()) {
+    // ผู้ที่ถูกติ๊กสิทธิ์หน้าประวัติการใช้งานก็เข้าได้ ไม่จำกัดแค่ ADMINISTRATOR
+    if (!isAdministrator() && !canAccessScreen("AUDIT_LOGS")) {
       router.replace("/");
     }
   }, [router, pathname]);

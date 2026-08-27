@@ -85,7 +85,11 @@ export function MaterialRow({
   onRemove: () => void;
   removable: boolean;
 }) {
-  const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
+  const itemsQuery = useItemsQuery({
+    isActive: true,
+    isStockItem: true,
+    itemCategoryCode: "RAW_MATERIAL",
+  });
   // ยอดคงเหลือรวมต่อสินค้า — ใช้ปิดตัวเลือกที่ไม่มีของ (เลือกไปก็ไม่มี Lot ให้เลือกต่อ)
   const stockByItemQuery = useStockBalancesByItemQuery({ hasStock: true });
   const availableByItemId = useMemo(
@@ -279,6 +283,7 @@ export function PlanLineRow({
   onRemove,
   removable,
   stockItemsOnly = false,
+  itemCategoryCode,
 }: {
   row: PlanRow;
   index: number;
@@ -286,10 +291,13 @@ export function PlanLineRow({
   onRemove: () => void;
   removable: boolean;
   stockItemsOnly?: boolean;
+  /** กรองหมวดสินค้า เช่น FINISHED_GOODS สำหรับผลผลิต */
+  itemCategoryCode?: string;
 }) {
   const itemsQuery = useItemsQuery({
     isActive: true,
     ...(stockItemsOnly ? { isStockItem: true } : {}),
+    ...(itemCategoryCode ? { itemCategoryCode } : {}),
   });
   const unitsQuery = useUnitsQuery();
 
@@ -696,6 +704,7 @@ export default function ProductionOrderCreatePage() {
                 row={row}
                 index={index}
                 removable={outputRows.length > 1}
+                itemCategoryCode="FINISHED_GOODS"
                 onChange={(next) =>
                   setOutputRows((prev) =>
                     prev.map((r) => (r.key === row.key ? next : r)),

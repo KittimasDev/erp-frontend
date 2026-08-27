@@ -13,9 +13,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockTransfersQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { StockTransfer } from "@/types/stock-transfers";
 import { STOCK_TRANSFER_STATUS_LABEL } from "@/types/stock-transfers";
 import styles from "./StockTransfersListPage.module.css";
@@ -55,10 +54,10 @@ export default function StockTransfersListPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  const canWrite =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    isAdministrator();
+  /** สิทธิ์จาก Permission Matrix ของหน้านี้ — สร้างกับแก้ไขแยกกันตามที่ติ๊กไว้ */
+  const screenActions = useScreenActionPermissions("STOCK_TRANSFERS");
+  const canAdd = screenActions.canAdd;
+  const canEdit = screenActions.canEdit;
 
   const query = useStockTransfersQuery({ ...applied, page, limit });
   const allQuery = useStockTransfersQuery({ page: 1, limit: 1 });
@@ -166,7 +165,7 @@ export default function StockTransfersListPage() {
             >
               <EyeOutlined />
             </button>
-            {canWrite && row.status === "DRAFT" ? (
+            {canEdit && row.status === "DRAFT" ? (
               <button
                 type="button"
                 className={styles.actionBtn}
@@ -182,7 +181,7 @@ export default function StockTransfersListPage() {
         ),
       },
     ],
-    [canWrite, limit, page, router],
+    [canEdit, limit, page, router],
   );
 
   return (
@@ -200,7 +199,7 @@ export default function StockTransfersListPage() {
             สร้างใบโอน (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัด+เพิ่มสต๊อกจริง
           </p>
         </div>
-        {canWrite ? (
+        {canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}

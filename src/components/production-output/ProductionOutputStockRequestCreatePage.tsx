@@ -45,8 +45,7 @@ import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { getTicketClassification } from "@/lib/api/raw-tire-purchase-receipts";
 import { getAccessToken } from "@/lib/auth/token";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type {
   CreateProductionOutputStockRequestBatchBody,
   CreateProductionOutputStockRequestBody,
@@ -180,8 +179,10 @@ export default function ProductionOutputStockRequestCreatePage({
   const selectedProductionOrderId = Form.useWatch("productionOrderId", form);
   const lines = Form.useWatch("lines", form) ?? [];
 
-  const canRequest =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) || isAdministrator();
+  /** เปิดใบขอรับผลผลิตเข้าคลัง = งานของหน้านี้ ตัดสินจาก Permission Matrix */
+  const canRequest = useScreenActionPermissions(
+    "PRODUCTION_OUTPUT_STOCK_REQUESTS",
+  ).canAdd;
 
   const [batchTickets, setBatchTickets] = useState<
     ProductionOutputTicketBatchItem[]

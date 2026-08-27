@@ -28,12 +28,11 @@ import {
   useStockAdjustmentAttachmentsQuery,
   useStockAdjustmentQuery,
 } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import {
   STOCK_ADJUSTMENT_STATUS_LABEL,
   STOCK_ADJUSTMENT_TYPE_LABEL,
 } from "@/types/stock-adjustments";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./StockAdjustmentDetailPage.module.css";
 
 type Props = { id: string };
@@ -80,10 +79,10 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
   const data = query.data?.data;
   const attachments = attachmentsQuery.data?.data ?? [];
 
-  const canRequest =
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) || isAdministrator();
-  const canApprove =
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) || isAdministrator();
+  /** ส่งเอกสาร = สิทธิ์แก้ไข · อนุมัติ = สิทธิ์อนุมัติ ตาม Permission Matrix ของหน้านี้ */
+  const screenActions = useScreenActionPermissions("STOCK_ADJUSTMENTS");
+  const canRequest = screenActions.canEdit;
+  const canApprove = screenActions.canApprove;
 
   if (query.isLoading) {
     return (

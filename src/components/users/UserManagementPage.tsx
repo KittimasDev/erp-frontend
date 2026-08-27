@@ -19,6 +19,7 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import NotificationSettingsPage from "./NotificationSettingsPage";
 import RolesPage from "./RolesPage";
 import UsersPage from "./UsersPage";
+import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./UserManagementPage.module.css";
 
 type ManagementTab = "users" | "departments" | "roles" | "notifications";
@@ -50,8 +51,13 @@ export default function UserManagementPage() {
       router.replace("/profile");
       return;
     }
-    // แท็บที่เหลือเป็นของ ADMINISTRATOR เท่านั้น — คนอื่นส่งไปหน้าโปรไฟล์ตัวเอง
-    if (!isAdministrator()) {
+    // แท็บที่เหลือเปิดให้ ADMINISTRATOR หรือคนที่ถูกติ๊กสิทธิ์หน้าผู้ใช้/สิทธิ์การใช้งาน
+    // คนที่ไม่มีสิทธิ์ส่งไปหน้าโปรไฟล์ตัวเอง
+    if (
+      !isAdministrator() &&
+      !canAccessScreen("USERS") &&
+      !canAccessScreen("PERMISSIONS")
+    ) {
       router.replace("/profile");
     }
   }, [router, pathname, isSignatureView]);

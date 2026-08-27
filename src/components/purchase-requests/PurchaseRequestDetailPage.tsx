@@ -39,6 +39,7 @@ import {
   type PurchaseRequestStatus,
 } from "@/types/purchase-requests";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchaseRequestDetailPage.module.css";
 
 type Props = {
@@ -95,16 +96,10 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
     hasPermission("PURCHASE_REQUEST_APPROVALS.APPROVE") ||
     (!isMatrixPermissionMode() &&
       (userHasRole(RoleCode.PROCUREMENT_MANAGER) || isAdministrator()));
-  const canWritePo =
-    userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
-    userHasRole(RoleCode.PROCUREMENT_MANAGER) ||
-    isAdministrator();
-  const canReadPo =
-    canWritePo ||
-    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
-    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
-    userHasRole(RoleCode.ACCOUNTING_OFFICER) ||
-    userHasRole(RoleCode.EXECUTIVE);
+  /** เปิด/ดูใบสั่งซื้อเป็นงานของหน้า PURCHASE_ORDERS — ใช้สิทธิ์ของหน้านั้นตัดสิน */
+  const poActions = useScreenActionPermissions("PURCHASE_ORDERS");
+  const canWritePo = poActions.canAdd;
+  const canReadPo = poActions.canView;
 
   const linkedPoQuery = usePurchaseOrderByPrQuery(
     data?.status === "APPROVED" && canReadPo ? data.id : undefined,

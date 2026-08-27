@@ -41,9 +41,7 @@ import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurcha
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken } from "@/lib/auth/token";
-import { RoleCode } from "@/lib/auth/role-codes";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
@@ -133,28 +131,21 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
   const data = query.data?.data;
   const attachments = attachmentsQuery.data?.data ?? [];
-  // สิทธิ์ต้องอ่าน Permission Matrix ด้วย ไม่ใช่ดู role ล้วน — ไม่งั้น role ที่ติ๊ก
-  // PURCHASE_ORDERS.EDIT ไว้จะเห็นปุ่มในหน้ารายการแต่ไม่เห็นในหน้านี้
-  // ใช้ hook (ไม่ใช่ getter) เพื่อให้ปุ่มอัปเดตทันทีเมื่อแอดมิน save matrix
+  // Matrix เป็นตัวตัดสินอย่างเดียว — ไม่ OR role ทับ ไม่งั้นคนที่ไม่ได้ติ๊กสิทธิ์ก็ยังกดได้
+  // (admin `*` และโหมด legacy คืน all-true จาก getScreenActionPermissions อยู่แล้ว)
+  // ใช้ hook ไม่ใช่ getter เพื่อให้ปุ่มอัปเดตทันทีเมื่อแอดมิน save matrix
   const poActions = useScreenActionPermissions("PURCHASE_ORDERS");
-  const paymentActions = useScreenActionPermissions("PURCHASE_PAYMENTS");
-  const legacyPurchaseWrite =
-    userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
-    userHasRole(RoleCode.PROCUREMENT_MANAGER);
-  const canWrite = isAdministrator() || poActions.canEdit || legacyPurchaseWrite;
+  // ตั้งใบสำคัญจ่ายอยู่หน้า "รอจ่ายเงิน Supplier" — หน้า PURCHASE_PAYMENTS มีแค่ VIEW/EXPORT
+  const paymentActions = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING");
+  const canWrite = poActions.canEdit;
   // backend ให้ยกเลิกด้วย PURCHASE_ORDERS.EDIT ไม่ได้จำกัดแค่หัวหน้า
-  const canCancel =
-    isAdministrator() ||
-    poActions.canEdit ||
-    userHasRole(RoleCode.PROCUREMENT_MANAGER);
+  const canCancel = poActions.canEdit;
   // อนุมัติ PO = หัวหน้าจัดซื้อ (คนละสิทธิ์กับคนสร้าง PO)
   const canApprove = canAccessPurchaseOrderApprovals();
+  // รับของ / จ่ายเงิน เป็นงานของหน้าอื่น — ใช้สิทธิ์ของหน้านั้นตัดสิน แล้วพาไปทำที่หน้านั้น
   const receiveActions = useScreenActionPermissions("GOODS_RECEIPTS");
-  const canReceive = isAdministrator() || receiveActions.canAdd;
-  const canPay =
-    isAdministrator() ||
-    paymentActions.canAdd ||
-    userHasRole(RoleCode.ACCOUNTING_OFFICER);
+  const canReceive = receiveActions.canAdd;
+  const canPay = paymentActions.canEdit;
   const canUploadAttachment =
     canWrite &&
     (PO_EDITABLE_STATUSES.includes(data?.status ?? "") ||

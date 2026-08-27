@@ -27,6 +27,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import {
@@ -34,8 +35,6 @@ import {
   useDeactivateCustomerMutation,
 } from "@/hooks/customers/useActivateDeactivateCustomerMutation";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import { RoleCode } from "@/lib/auth/role-codes";
 import { CUSTOMER_TYPES } from "@/types/customers";
 import type { Customer, CustomerQueryParams } from "@/types/customers";
 
@@ -119,10 +118,9 @@ export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
-  const canManageCustomers =
-    userHasRole(RoleCode.SALES_OFFICER) ||
-    userHasRole(RoleCode.SALES_MANAGER) ||
-    isAdministrator();
+  /** เพิ่ม/แก้ไขลูกค้า = สิทธิ์ของหน้าข้อมูลลูกค้าใน Permission Matrix */
+  const customerActions = useScreenActionPermissions("MASTERS_CUSTOMERS");
+  const canManageCustomers = customerActions.canAdd || customerActions.canEdit;
 
   const filters = useMemo(
     () => parseFiltersFromSearch(searchParams),

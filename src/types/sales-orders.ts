@@ -242,3 +242,54 @@ export type SalesOrderListApiResponse = {
   message: string;
   data: SalesOrder[];
 };
+
+export type SalesOrderPdfSnapshotChangeSource =
+  | "UPDATE_ITEMS"
+  | "UPDATE_CUSTOMER_PO";
+
+export type SalesOrderPdfSnapshotPayload = {
+  soNo: string;
+  soDate: string;
+  customerName: string;
+  customerCode: string;
+  customerPoNo: string;
+  quotationNo: string;
+  requestedDeliveryDate: string;
+  remark: string;
+  subtotalAmount: number;
+  discountAmount: number;
+  vatAmount: number;
+  totalAmount: number;
+  items: Array<{
+    no: number;
+    itemCode: string;
+    itemName: string;
+    unit: string;
+    qty: number;
+    unitPrice: number;
+    discountAmount: number;
+    amount: number;
+  }>;
+  preparedBy?: {
+    id?: string;
+    name?: string;
+    preparedBySignatureDataUrl?: string;
+  };
+};
+
+export type SalesOrderPdfSnapshot = {
+  id: string;
+  versionNo: number;
+  changeSource: SalesOrderPdfSnapshotChangeSource | string;
+  createdAt: string;
+  createdByName?: string;
+  payload: SalesOrderPdfSnapshotPayload;
+};
+
+export type SalesOrderPdfSnapshotListApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: {
+    items: SalesOrderPdfSnapshot[];
+  };
+};
