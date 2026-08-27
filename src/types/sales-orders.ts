@@ -84,6 +84,9 @@ export type SalesOrder = {
   customerPoNo?: string;
   createdById?: string;
   createdBy?: SalesOrderUserSummary;
+  confirmedById?: string;
+  confirmedBy?: SalesOrderUserSummary;
+  confirmedAt?: string;
   items: SalesOrderItem[];
   createdAt: string;
   updatedAt: string;

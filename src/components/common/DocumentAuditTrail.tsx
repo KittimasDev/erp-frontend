@@ -13,12 +13,43 @@ type Props = {
   title?: string;
 };
 
+function actionLabel(action: string) {
+  switch (action) {
+    case "CREATE":
+      return "สร้างเอกสาร";
+    case "CONFIRM":
+      return "ยืนยันใบสั่งขาย";
+    case "CANCEL":
+      return "ยกเลิก";
+    case "CANCEL_ROUND":
+      return "ยกเลิกรอบจัดส่ง";
+    case "UPDATE":
+      return "แก้ไข";
+    case "UPDATE_ITEMS":
+      return "แก้รายการ/ยอด";
+    case "UPDATE_CUSTOMER_PO":
+      return "แก้เลข PO ลูกค้า";
+    case "RESCHEDULE":
+      return "เลื่อนกำหนดส่ง";
+    case "DELETE":
+      return "ลบ";
+    default:
+      return action;
+  }
+}
+
 function actionColor(action: string) {
   switch (action) {
     case "CREATE":
+    case "CONFIRM":
       return "green";
     case "UPDATE":
+    case "UPDATE_ITEMS":
+    case "UPDATE_CUSTOMER_PO":
+    case "RESCHEDULE":
       return "blue";
+    case "CANCEL":
+    case "CANCEL_ROUND":
     case "DELETE":
       return "red";
     default:
@@ -57,7 +88,9 @@ export default function DocumentAuditTrail({
             color: actionColor(log.action),
             content: (
               <div>
-                <Tag color={actionColor(log.action)}>{log.action}</Tag>{" "}
+                <Tag color={actionColor(log.action)}>
+                  {actionLabel(log.action)}
+                </Tag>{" "}
                 <span style={{ fontSize: 13 }}>
                   {log.performedBy?.displayName ?? "ระบบ"}
                 </span>

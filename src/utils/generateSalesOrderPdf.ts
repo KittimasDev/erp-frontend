@@ -23,6 +23,9 @@ export type SalesOrderPdfData = {
   preparedBy?: { id?: string; name?: string };
   /** ใช้ลายเซ็นจาก snapshot — ถ้าไม่ส่งจะดึงจาก API ตาม preparedBy.id */
   preparedBySignatureDataUrl?: string | null;
+  /** ผู้ยืนยันใบสั่งขาย → ช่องผู้อนุมัติบน PDF */
+  approvedBy?: { id?: string; name?: string };
+  approvedBySignatureDataUrl?: string | null;
 };
 
 export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
@@ -30,6 +33,11 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
     data.preparedBySignatureDataUrl !== undefined
       ? data.preparedBySignatureDataUrl
       : await getUserSignatureDataUrl(data.preparedBy?.id);
+
+  const approvedSignature =
+    data.approvedBySignatureDataUrl !== undefined
+      ? data.approvedBySignatureDataUrl
+      : await getUserSignatureDataUrl(data.approvedBy?.id);
 
   await generateSalesCommercialPdf({
     pageId: "sales-order-pdf",
@@ -62,7 +70,11 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
         signatureDataUrl: preparedSignature,
       },
       "ผู้ตรวจสอบ",
-      "ผู้อนุมัติ",
+      {
+        title: "ผู้อนุมัติ",
+        name: data.approvedBy?.name,
+        signatureDataUrl: approvedSignature,
+      },
     ],
   });
 }

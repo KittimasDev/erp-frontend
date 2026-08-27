@@ -7,6 +7,7 @@ import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
+  ProfileOutlined,
   ReloadOutlined,
   SearchOutlined,
   ShoppingOutlined,
@@ -229,6 +230,19 @@ export default function StockVerificationDetailPage({ id }: Props) {
     );
   };
 
+  /** ของไม่พอ — พาไปหน้า SO ใบนี้เพื่อออกใบขอผลิต (ไม่ใช่รายการ SO ทั่วไป) */
+  const openProductionRequestOnSoButton = (block = false) => (
+    <Button
+      type="primary"
+      block={block}
+      className={styles.primaryBtn}
+      icon={<ProfileOutlined />}
+      onClick={() => router.push(`/sales-orders/${id}`)}
+    >
+      ไปใบสั่งขายเพื่อออกใบขอผลิต
+    </Button>
+  );
+
   const renderPrimaryAction = (block = false) => {
     // ผ่านขั้นตรวจสต๊อกแล้ว — ไม่ให้สร้าง/ยืนยันซ้ำ มีแค่เปิดเอกสารที่ทำต่อ
     if (isPastStockVerification) {
@@ -238,15 +252,13 @@ export default function StockVerificationDetailPage({ id }: Props) {
     /*
      * ถอดปุ่ม "ยืนยันผลตรวจสอบสต๊อก" ออกแล้ว (2026-08-26)
      *
-     * ปุ่มนี้เคยดัน CONFIRMED → STOCK_CHECKED · พอใบจ่ายผูกกับรอบจัดส่ง
-     * สถานะนั้นทำให้เปิดใบจ่ายไม่ได้อีกเลย จึงถอดการเขียนสถานะออกไปก่อนหน้านี้
-     * เหลือปุ่มที่กดแล้วขึ้น "สำเร็จ" แต่ไม่มีอะไรเปลี่ยน และไม่บอกว่าต้องทำอะไรต่อ
-     *
-     * ขั้นนี้เป็นรายงานอ่านอย่างเดียวแล้ว — งานถัดไปคือคลังเปิดใบจ่ายของรอบ
-     * ที่ถึงกำหนด จึงพาไปหน้าเลือกรอบตรง ๆ
+     * ของพอ → คลังเปิดใบจ่ายของรอบ
+     * ของไม่พอ → ไปหน้า SO ใบเดิมเพื่อออกใบขอผลิต (สร้างใบจ่ายตอนนี้ไม่ได้)
      */
     if (isConfirmed) {
-      return openCreatePickingButton(block);
+      return allOk
+        ? openCreatePickingButton(block)
+        : openProductionRequestOnSoButton(block);
     }
 
     if (isStockChecked && canFulfill) {
@@ -290,7 +302,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
         : "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบจ่ายสินค้าเพื่อไปขั้นถัดไป"
       : allOk
         ? "หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด (ของจะถูกจองตอนนั้น)"
-        : "ของไม่พอ ณ ตอนนี้ — ยืนยันใบสั่งขายได้เลย ด่านเช็คของจริงอยู่ตอนคลังเปิดใบจ่ายของแต่ละรอบ";
+        : "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต";
 
   const statusBannerTone =
     isPastStockVerification || isStockChecked || allOk
@@ -331,8 +343,8 @@ export default function StockVerificationDetailPage({ id }: Props) {
     <>ของพอแล้ว — ขั้นถัดไปเป็นงานของคลัง (เปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด)</>
   ) : (
     <>
-      ของไม่พอ ณ ตอนนี้ — เปิดใบขอผลิตไว้ได้จากหน้าใบสั่งขาย · ยืนยันใบสั่งขาย
-      ไม่ต้องรอของ
+      ของไม่พอ — กด <strong>ไปใบสั่งขายเพื่อออกใบขอผลิต</strong> (ใบ{" "}
+      {soNo}) แล้วออกใบขอผลิตจากหน้านั้น
     </>
   );
 

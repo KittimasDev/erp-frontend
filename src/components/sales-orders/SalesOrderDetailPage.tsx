@@ -118,6 +118,11 @@ function formatDate(value?: string) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
+function formatDateTime(value?: string) {
+  if (!value) return "—";
+  return dayjs(value).format("DD/MM/YYYY HH:mm");
+}
+
 function todayInErp() {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: ERP_TIMEZONE,
@@ -160,6 +165,12 @@ function buildSalesOrderPdfDataFromOrder(order: SalesOrder): SalesOrderPdfData {
       id: order.createdBy?.id,
       name: order.createdBy?.displayName,
     },
+    approvedBy: order.confirmedBy
+      ? {
+          id: order.confirmedBy.id,
+          name: order.confirmedBy.displayName,
+        }
+      : undefined,
     subtotalAmount: Number(order.subtotalAmount) || 0,
     discountAmount: Number(order.discountAmount) || 0,
     vatAmount: Number(order.vatAmount) || 0,
@@ -2203,6 +2214,26 @@ export default function SalesOrderDetailPage({ id }: Props) {
           ) : null}
 
           <div className={styles.sideRows}>
+            <div className={styles.sideRow}>
+              <span>ผู้สร้าง</span>
+              <strong>{data.createdBy?.displayName ?? "—"}</strong>
+            </div>
+            <div className={styles.sideRow}>
+              <span>สร้างเมื่อ</span>
+              <strong>{formatDateTime(data.createdAt)}</strong>
+            </div>
+            {data.confirmedBy || data.confirmedAt ? (
+              <>
+                <div className={styles.sideRow}>
+                  <span>ผู้ยืนยัน</span>
+                  <strong>{data.confirmedBy?.displayName ?? "—"}</strong>
+                </div>
+                <div className={styles.sideRow}>
+                  <span>ยืนยันเมื่อ</span>
+                  <strong>{formatDateTime(data.confirmedAt)}</strong>
+                </div>
+              </>
+            ) : null}
             <div className={styles.sideRow}>
               <span>Subtotal</span>
               <strong>{formatMoney(data.subtotalAmount)}</strong>
