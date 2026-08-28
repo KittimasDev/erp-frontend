@@ -148,8 +148,11 @@ export type SalesOrderStockVerificationLine = {
   itemName?: string;
   orderedQty: string;
   reservedQty?: string;
+  issuedQty?: string;
   availableQty: string;
   shortageQty: string;
+  pendingProductionQty?: string;
+  unplannedShortageQty?: string;
   isAvailable: boolean;
   availableLots?: StockVerificationAvailableLot[];
   availableLocations?: StockVerificationAvailableLocation[];

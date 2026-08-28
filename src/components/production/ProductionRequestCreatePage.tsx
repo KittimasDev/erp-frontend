@@ -4,7 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { useDeliverySchedulesQuery } from "@/hooks/delivery-schedules/useDeliverySchedulesQuery";
+import {
+  useDeliverySchedulesQuery,
+  useDeliveryScheduleStockStatusQuery,
+} from "@/hooks/delivery-schedules/useDeliverySchedulesQuery";
 import {
   Alert,
   Button,
@@ -147,6 +150,10 @@ function ProductionRequestForm({
   const schedulesQuery = useDeliverySchedulesQuery(
     initialDeliveryScheduleId ? salesOrderId : undefined,
   );
+  const roundStockQuery = useDeliveryScheduleStockStatusQuery(
+    initialDeliveryScheduleId,
+    { enabled: Boolean(initialDeliveryScheduleId) && !isEdit },
+  );
   const scheduleItemIdBySoItemId = useMemo(() => {
     const map = new Map<string, string>();
     if (!initialDeliveryScheduleId) return map;
@@ -215,25 +222,99 @@ function ProductionRequestForm({
   const selectedSo = detailQuery.data?.data;
   const soItems = useMemo(() => selectedSo?.items ?? [], [selectedSo]);
 
+  /**
+   * มาจากรอบจัดส่ง: แสดงเฉพาะรายการที่ยังขาดของ (ต้องขอผลิต)
+   * รายการที่ของพอแล้วหรือไม่อยู่ในรอบนี้ไม่โชว์ในตาราง
+   */
+  const visibleSoItems = useMemo(() => {
+    if (isEdit || !initialDeliveryScheduleId) {
+      return soItems;
+    }
+    if (roundStockQuery.isError) {
+      return soItems;
+    }
+    if (!roundStockQuery.isSuccess || !roundStockQuery.data) {
+      return [];
+    }
+    const neededIds = new Set(
+      roundStockQuery.data.lines
+        .filter((line) => toNumber(line.productionNeededQuantity) > 0)
+        .map((line) => line.salesOrderItemId),
+    );
+    return soItems.filter((item) => neededIds.has(item.salesOrderItemId));
+  }, [
+    isEdit,
+    initialDeliveryScheduleId,
+    soItems,
+    roundStockQuery.isSuccess,
+    roundStockQuery.isError,
+    roundStockQuery.data,
+  ]);
+  const roundStockLoading =
+    Boolean(initialDeliveryScheduleId) &&
+    !isEdit &&
+    !roundStockQuery.isError &&
+    (roundStockQuery.isFetching || !roundStockQuery.isSuccess);
+  const allRoundItemsCovered =
+    Boolean(initialDeliveryScheduleId) &&
+    !isEdit &&
+    roundStockQuery.isSuccess &&
+    soItems.length > 0 &&
+    visibleSoItems.length === 0;
+
+  /**
+   * Deep-link จากรอบจัดส่ง → seed จากยอดขาดของรอบ (productionNeeded)
+   * ไม่มีรอบ → ใช้ suggestedProductionQty จาก eligible API
+   * รอ stock status ของรอบโหลดเสร็จก่อน seed กัน race ได้ qty ว่าง
+   */
   useEffect(() => {
     if (!lockedSalesOrder || !selectedSo || isEdit) {
       return;
     }
+    if (initialDeliveryScheduleId) {
+      if (!roundStockQuery.isSuccess || !roundStockQuery.data) {
+        return;
+      }
+      const neededBySoItemId = new Map(
+        roundStockQuery.data.lines.map((line) => [
+          line.salesOrderItemId,
+          toNumber(line.productionNeededQuantity),
+        ]),
+      );
+      const nextQty: Record<string, number> = {};
+      for (const item of selectedSo.items) {
+        const needed = neededBySoItemId.get(item.salesOrderItemId) ?? 0;
+        const remaining = toNumber(item.remainingQty);
+        const qty = Math.min(needed, remaining);
+        if (qty > 0) {
+          nextQty[item.salesOrderItemId] = qty;
+        }
+      }
+      setQtyByItemId(nextQty);
+      return;
+    }
+
     const nextQty: Record<string, number> = {};
     for (const item of selectedSo.items) {
-      const ordered = toNumber(item.salesOrderQty);
-      const delivered = toNumber(item.deliveredQty);
-      const reserved = toNumber(item.reservedQty);
-      const available = toNumber(item.availableQty);
-      const shortage = Math.max(ordered - delivered - reserved - available, 0);
-      if (shortage > 0) {
-        nextQty[item.salesOrderItemId] = toNumber(item.remainingQty);
+      const suggested = toNumber(item.suggestedProductionQty);
+      if (suggested > 0) {
+        nextQty[item.salesOrderItemId] = Math.min(
+          suggested,
+          toNumber(item.remainingQty),
+        );
       }
     }
     if (Object.keys(nextQty).length > 0) {
       setQtyByItemId(nextQty);
     }
-  }, [isEdit, lockedSalesOrder, selectedSo]);
+  }, [
+    isEdit,
+    lockedSalesOrder,
+    selectedSo,
+    initialDeliveryScheduleId,
+    roundStockQuery.isSuccess,
+    roundStockQuery.data,
+  ]);
 
   const maxQtyFor = useMemo(
     () => (item: EligibleSalesOrderItem) =>
@@ -249,6 +330,26 @@ function ProductionRequestForm({
         .filter((line) => line.qty > 0),
     [soItems, qtyByItemId],
   );
+
+  /** รอบยังขาดของ แต่เพดาน SO ถูกใบ PR อื่นกินหมด — seed ได้ 0 */
+  const roundBlockedByCap = useMemo(() => {
+    if (!initialDeliveryScheduleId || isEdit) return false;
+    if (!roundStockQuery.isSuccess || !roundStockQuery.data) return false;
+    if (!selectedSo) return false;
+    const totalNeeded = roundStockQuery.data.lines.reduce(
+      (sum, line) => sum + toNumber(line.productionNeededQuantity),
+      0,
+    );
+    if (totalNeeded <= 0) return false;
+    return selectedLines.length === 0;
+  }, [
+    initialDeliveryScheduleId,
+    isEdit,
+    roundStockQuery.isSuccess,
+    roundStockQuery.data,
+    selectedSo,
+    selectedLines.length,
+  ]);
 
   const hasOverQty = selectedLines.some(
     (line) => line.qty > maxQtyFor(line.item),
@@ -424,7 +525,35 @@ function ProductionRequestForm({
           description="เมื่อผลิตเสร็จและรับเข้าคลัง ระบบจะกันของไว้ให้ SO ต้นทางตามยอดที่ขอผลิตค้างอยู่ ใบสั่งขายอื่นแย่งไม่ได้ · ส่วนที่เกินความต้องการเท่านั้นที่เข้าสต๊อกกลาง"
           style={{ marginBottom: 16 }}
         />
-        {otherActivePrs.length ? (
+        {roundBlockedByCap ? (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            title="รอบนี้ยังขาดของ แต่ขอผลิตเพิ่มไม่ได้ — เพดานของใบสั่งขายถูกใบขอผลิตอื่นกินหมดแล้ว"
+            description={
+              <span>
+                ยอดคงค้างขอได้เป็น 0 เพราะมีใบขอผลิต active ของ SO นี้อยู่แล้ว
+                (อาจยังไม่ผูกรอบนี้) — ติดตามหรือแก้ที่ใบเดิม{" "}
+                {otherActivePrs.length ? (
+                  <>
+                    —{" "}
+                    {otherActivePrs.map((pr, i) => (
+                      <span key={pr.id}>
+                        {i > 0 ? ", " : ""}
+                        <Link href={`/production/production-requests/${pr.id}`}>
+                          {pr.requestNo}
+                        </Link>
+                      </span>
+                    ))}
+                  </>
+                ) : (
+                  "— ตรวจรายการใบขอผลิตของใบสั่งขายนี้"
+                )}
+              </span>
+            }
+          />
+        ) : otherActivePrs.length ? (
           <Alert
             type="info"
             showIcon
@@ -536,7 +665,7 @@ function ProductionRequestForm({
         <section className={styles.formCard}>
           <div className={styles.materialsHeader}>
             <h2 className={styles.sectionTitle} style={{ margin: 0 }}>
-              สินค้าในใบสั่งขาย ({soItems.length} รายการ)
+              สินค้าในใบสั่งขาย ({visibleSoItems.length} รายการ)
             </h2>
           </div>
 
@@ -547,13 +676,20 @@ function ProductionRequestForm({
               title="เลือกใบสั่งขายก่อน จึงจะเลือกสินค้าได้"
               description="เลือกได้เฉพาะสินค้าที่อยู่ในใบสั่งขายที่อ้างอิงเท่านั้น"
             />
+          ) : allRoundItemsCovered ? (
+            <Alert
+              type="success"
+              showIcon
+              title="ทุกรายการมีของพอแล้ว ไม่ต้องขอผลิต"
+              description="สต๊อกและของที่กันไว้ครอบยอดรอบนี้แล้ว จึงไม่แสดงรายการในใบสั่งขายที่ของพอ"
+            />
           ) : (
             <>
               <Table
                 rowKey="salesOrderItemId"
                 columns={columns}
-                dataSource={soItems}
-                loading={detailQuery.isFetching}
+                dataSource={visibleSoItems}
+                loading={detailQuery.isFetching || roundStockLoading}
                 pagination={false}
                 scroll={{ x: "max-content" }}
               />

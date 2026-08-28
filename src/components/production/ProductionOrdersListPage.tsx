@@ -2,15 +2,20 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Input, Select, Table, Tag } from "antd";
+import { Button, Input, Popconfirm, Select, Table, Tag } from "antd";
 import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { useCancelProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useProductionOrdersQuery } from "@/hooks/production-orders/useProductionOrderQueries";
 import type { ProductionOrder } from "@/types/production-order";
-import { PRODUCTION_ORDER_STATUS_LABEL } from "@/types/production-order";
+import {
+  PRODUCTION_ORDER_STATUS_LABEL,
+  ProductionOrderStatus,
+} from "@/types/production-order";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -22,6 +27,10 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function ProductionOrdersListPage() {
   const router = useRouter();
+  const orderActions = useScreenActionPermissions("PRODUCTION_ORDERS");
+  const canOperate =
+    orderActions.canEdit || orderActions.canAdd || orderActions.canApprove;
+  const cancelMutation = useCancelProductionOrderMutation();
 
   const [orderNo, setOrderNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -107,6 +116,33 @@ export default function ProductionOrdersListPage() {
       key: "completedAt",
       render: (value?: string) =>
         value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "-",
+    },
+    {
+      title: "",
+      key: "actions",
+      width: 120,
+      align: "right",
+      render: (_v, row) =>
+        canOperate && row.status === ProductionOrderStatus.DRAFT ? (
+          <Popconfirm
+            title="ยกเลิกใบสั่งผลิต?"
+            description="ยกเลิกได้เฉพาะใบที่ยังไม่เริ่มผลิต"
+            okText="ยกเลิกใบ"
+            cancelText="ปิด"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => cancelMutation.mutate(row.id)}
+          >
+            <Button
+              danger
+              size="small"
+              loading={
+                cancelMutation.isPending && cancelMutation.variables === row.id
+              }
+            >
+              ยกเลิก
+            </Button>
+          </Popconfirm>
+        ) : null,
     },
   ];
 

@@ -43,15 +43,21 @@ export type SalesOrderDeliveryStatus =
 export function resolveActiveTimelineStepName(
   status: string,
   deliveryStatus?: string,
+  /**
+   * สถานะรอบที่ยังไม่จบ (PLANNED / ISSUED / PACKED) — ใช้ตอนรอบเดียว
+   * เพื่อชี้การ์ดคลังให้ตรงกับงานจริง ไม่ใช่แค่ delivery_status ระดับใบ
+   */
+  inFlightRoundStatus?: string,
 ): string | null {
   switch (status) {
     case "DRAFT":
     case "AWAITING_CONFIRM":
       return "Sales Order";
     case "CONFIRMED":
-      // ยืนยันแล้ว = รอคลังจ่ายของตามรอบ · ไปต่อตาม delivery_status
+      // ยืนยันแล้ว = รอคลังจ่ายของตามรอบ · ไปต่อตามรอบที่ค้าง แล้วค่อย delivery_status
       if (deliveryStatus === "DELIVERED") return "Delivery";
-      if (deliveryStatus === "PARTIALLY_DELIVERED") return "Picking";
+      if (inFlightRoundStatus === "PACKED") return "Delivery";
+      if (inFlightRoundStatus === "ISSUED") return "Packing";
       return "Picking";
     // สถานะเก่าของใบที่ค้างมาก่อนเปลี่ยนระบบ — ยังต้องแปลได้
     case "STOCK_CHECKED":

@@ -381,3 +381,30 @@
     align-items: stretch;
   }
 }
+
+/* ── yield ────────────────────────────────────────────────────────────────── */
+
+.yieldCell {
+  display: grid;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.yieldValue {
+  font-weight: 500;
+  color: var(--erp-text, #2f343a);
+}
+
+/* ต่ำกว่าแผนเกิน 5 จุด = ควรไปดูว่าเสียหายตรงไหน */
+.yieldBelow {
+  color: #b45309;
+}
+
+.yieldAbove {
+  color: var(--erp-green-dark, #6f9720);
+}
+
+.yieldNone {
+  color: var(--erp-muted, #8a9199);
+  font-weight: 400;
+}

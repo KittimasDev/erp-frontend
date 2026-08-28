@@ -732,7 +732,7 @@ const productionMenus: MenuItem[] = [
   {
     key: "pending-production-output",
     screenCode: "PENDING_PRODUCTION_OUTPUT",
-    label: "รับผลผลิตเข้าคลัง (อ้างอิง)",
+    label: "ใบสั่งผลิตรอรับเข้าคลัง",
     href: "/receiving/pending-production-output",
     icon: <IconReceiving />,
     roles: [

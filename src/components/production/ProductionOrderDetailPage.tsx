@@ -396,6 +396,25 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 </Popconfirm>
               ) : null}
 
+              {isCompleted &&
+              canOperate &&
+              !(relatedRequestsQuery.data?.data ?? []).some(
+                (r) => r.status === "APPROVED",
+              ) ? (
+                <Popconfirm
+                  title="ยกเลิกใบสั่งผลิตที่เสร็จแล้ว?"
+                  description="ใช้เมื่อไม่มีของจะรับเข้าคลัง — ไม่คืนวัตถุดิบที่ตัดตอนเริ่มผลิต · คำขอรออนุมัติ (ถ้ามี) จะถูกยกเลิกและหลุดจากคิวคลัง"
+                  okText="ยกเลิกใบ"
+                  cancelText="ปิด"
+                  okButtonProps={{ danger: true }}
+                  onConfirm={() => cancelMutation.mutate(orderId)}
+                >
+                  <Button danger loading={cancelMutation.isPending}>
+                    ยกเลิกใบสั่งผลิต
+                  </Button>
+                </Popconfirm>
+              ) : null}
+
               {isInProgress && canOperate ? (
                 <Button
                   type="primary"

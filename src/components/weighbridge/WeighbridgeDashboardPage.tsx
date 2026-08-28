@@ -13,6 +13,7 @@ import {
   Select,
   Switch,
   Table,
+  Tabs,
   Tag,
   Typography,
 } from "antd";
@@ -43,6 +44,7 @@ import type { CreateTruckRequest, Truck } from "@/types/trucks";
 import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
 
 import RowActionsMenu from "@/components/common/RowActionsMenu";
+import T2900OutboundTicketsPanel from "@/components/weighbridge/T2900OutboundTicketsPanel";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
 const { RangePicker } = DatePicker;
@@ -92,6 +94,8 @@ type ReceivingStage =
   | "classify-weigh"
   | "payment"
   | "warehouse";
+
+type ReceivingTab = "tickets" | "t2900";
 
 const FLOW_LABELS: Record<string, string> = {
   WAITING_WEIGH_IN: "รอกรอกน้ำหนัก",
@@ -159,6 +163,10 @@ function parseStage(value: string | null): ReceivingStage {
     return "warehouse";
   }
   return "all";
+}
+
+function parseTab(value: string | null): ReceivingTab {
+  return value === "t2900" ? "t2900" : "tickets";
 }
 
 /** เงื่อนไขเดียวกับปุ่มในคอลัมน์ "ชั่งน้ำหนัก" — ใช้ทั้ง filter และปุ่ม */
@@ -379,6 +387,7 @@ export default function WeighbridgeDashboardPage() {
   const [truckId, setTruckId] = useState<string | undefined>();
 
   const stage = parseStage(searchParams.get("stage"));
+  const tab = parseTab(searchParams.get("tab"));
   const searchQuery = searchParams.get("q")?.trim() ?? "";
   const showAll = searchParams.get("all") === "1";
   const legacyDateParam = searchParams.get("date")?.trim() || undefined;
@@ -395,6 +404,7 @@ export default function WeighbridgeDashboardPage() {
       : fromParam || toParam
         ? { from: fromParam, to: toParam }
         : undefined,
+    { enabled: tab === "tickets" },
   );
   const sellersQuery = useSellersQuery({ isActive: true });
   const sellerTypesQuery = useSellerTypesQuery({ isActive: true });
@@ -421,6 +431,7 @@ export default function WeighbridgeDashboardPage() {
     from?: string | null;
     to?: string | null;
     all?: boolean | null;
+    tab?: ReceivingTab | null;
   }) => {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -473,6 +484,14 @@ export default function WeighbridgeDashboardPage() {
         next.set("to", toValue);
       } else {
         next.delete("to");
+      }
+    }
+
+    if (patch.tab !== undefined) {
+      if (patch.tab === "t2900") {
+        next.set("tab", "t2900");
+      } else {
+        next.delete("tab");
       }
     }
 
@@ -749,6 +768,9 @@ export default function WeighbridgeDashboardPage() {
     STAGE_OPTIONS.find((item) => item.key === stage)?.label ?? "ทั้งหมด";
   const dateRangeValue: [Dayjs, Dayjs] | null =
     fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null;
+  const todayYmd = dayjs().format("YYYY-MM-DD");
+  const t2900From = fromParam ?? todayYmd;
+  const t2900To = toParam ?? fromParam ?? todayYmd;
   const dateLabel = (() => {
     if (showAll) return "ทั้งหมด";
     if (!fromParam && !toParam) return "วันนี้";
@@ -925,9 +947,18 @@ export default function WeighbridgeDashboardPage() {
   ];
 
   return (
-    <MasterPageGate isLoading={dashboardQuery.isLoading}>
+    <MasterPageGate
+      isLoading={tab === "tickets" && dashboardQuery.isLoading}
+    >
       <section className={styles.page}>
-        <header className={styles.pageHeader}>
+        <header
+          className={[
+            styles.pageHeader,
+            tab === "t2900" ? styles.pageHeaderT2900 : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
           <div className={styles.headerAccent} aria-hidden>
             <CarOutlined />
           </div>
@@ -935,43 +966,46 @@ export default function WeighbridgeDashboardPage() {
             <p className={styles.eyebrow}>Receiving</p>
             <h1 className={styles.pageTitle}>รับซื้อยาง</h1>
             <p className={styles.pageSubtitle}>
-              {dateLabel}
-              {searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · กดแถวเพื่อดูรายละเอียดตั๋ว
+              {tab === "t2900"
+                ? `${dateLabel} · เลือกบัตรชั่งจากตาชั่งแล้วเปิดเป็นตั๋วรับซื้อ`
+                : `${dateLabel}${searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · กดแถวเพื่อดูรายละเอียดตั๋ว`}
             </p>
           </div>
-          <div className={styles.scopeSwitch}>
-            <span
-              className={[
-                styles.scopeSwitchLabel,
-                !showAll ? styles.scopeSwitchLabelActive : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              วันนี้
-            </span>
-            <Switch
-              checked={showAll}
-              onChange={(checked) => {
-                if (checked) {
-                  updateParams({ all: true });
-                  return;
-                }
-                updateParams({ all: false, from: null, to: null });
-              }}
-              aria-label="สลับแสดงทั้งหมดหรือแค่วันนี้"
-            />
-            <span
-              className={[
-                styles.scopeSwitchLabel,
-                showAll ? styles.scopeSwitchLabelActive : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              ทั้งหมด
-            </span>
-          </div>
+          {tab === "tickets" ? (
+            <div className={styles.scopeSwitch}>
+              <span
+                className={[
+                  styles.scopeSwitchLabel,
+                  !showAll ? styles.scopeSwitchLabelActive : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                วันนี้
+              </span>
+              <Switch
+                checked={showAll}
+                onChange={(checked) => {
+                  if (checked) {
+                    updateParams({ all: true });
+                    return;
+                  }
+                  updateParams({ all: false, from: null, to: null });
+                }}
+                aria-label="สลับแสดงทั้งหมดหรือแค่วันนี้"
+              />
+              <span
+                className={[
+                  styles.scopeSwitchLabel,
+                  showAll ? styles.scopeSwitchLabelActive : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                ทั้งหมด
+              </span>
+            </div>
+          ) : null}
           <div className={styles.headerActions}>
             <Button
               className={styles.dashboardButton}
@@ -991,6 +1025,63 @@ export default function WeighbridgeDashboardPage() {
           </div>
         </header>
 
+        <Tabs
+          className={styles.viewTabs}
+          activeKey={tab}
+          onChange={(key) => {
+            updateParams({
+              tab: key === "t2900" ? "t2900" : null,
+              all: key === "t2900" ? false : undefined,
+            });
+          }}
+          items={[
+            {
+              key: "tickets",
+              label: <span className={styles.tabLabel}>ตั๋วรับซื้อ</span>,
+            },
+            {
+              key: "t2900",
+              label: <span className={styles.tabLabel}>เปิดจากตาชั่ง</span>,
+            },
+          ]}
+        />
+
+        {tab === "t2900" ? (
+          <div className={styles.card}>
+            <div className={styles.listHeader}>
+              <div>
+                <h3>บัตรชั่งขาออก T2900</h3>
+                <p>เลือกใบจากตาชั่ง แล้วเปิดเป็นตั๋วรับซื้อเพื่อคัดแยกและบันทึกน้ำหนัก — ไม่ต้องเลือกเครื่องชั่ง</p>
+              </div>
+            </div>
+            <div className={styles.filterBar}>
+              <div className={styles.filterTop}>
+                <div className={styles.filterField}>
+                  <span>ช่วงวันที่ชั่ง</span>
+                  <RangePicker
+                    allowClear={false}
+                    value={[dayjs(t2900From), dayjs(t2900To)]}
+                    format="DD/MM/YYYY"
+                    placeholder={["เริ่มต้น", "สิ้นสุด"]}
+                    className={styles.filterDateRange}
+                    onChange={(values) => {
+                      if (!values || !values[0] || !values[1]) {
+                        return;
+                      }
+                      updateParams({
+                        from: values[0].format("YYYY-MM-DD"),
+                        to: values[1].format("YYYY-MM-DD"),
+                        all: false,
+                      });
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+            <T2900OutboundTicketsPanel dateFrom={t2900From} dateTo={t2900To} />
+          </div>
+        ) : (
+          <>
         <div className={styles.statsStrip}>
           <div className={styles.statHighlight}>
             <span>น้ำหนักรวม</span>
@@ -1159,6 +1250,8 @@ export default function WeighbridgeDashboardPage() {
             )}
           </div>
         </div>
+          </>
+        )}
       </section>
 
       <SideSheet

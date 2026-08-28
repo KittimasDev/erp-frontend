@@ -106,6 +106,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["PRODUCTION_OUTPUT_APPROVALS"],
   },
   {
+    prefix: "/production/output-stock-requests",
+    screenCodes: ["PRODUCTION_OUTPUT_STOCK_REQUESTS"],
+  },
+  {
     prefix: "/production/production-requests",
     screenCodes: ["PRODUCTION_REQUESTS"],
   },

@@ -87,7 +87,10 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/warehouse/approvals", title: "อนุมัติงานคลัง" },
   { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับยางเข้าคลัง" },
   { href: "/warehouse/production-output-approvals", title: "อนุมัติรับผลผลิตเข้าคลัง" },
-  { href: "/receiving/pending-production-output", title: "รับผลผลิตเข้าคลัง" },
+  {
+    href: "/receiving/pending-production-output",
+    title: "ใบสั่งผลิตรอรับเข้าคลัง",
+  },
   { href: "/production/output-stock-requests", title: "ขอรับผลผลิตเข้าคลัง" },
   { href: "/users", title: "ผู้ใช้งาน" },
   { href: "/settings/roles", title: "Roles" },
@@ -215,7 +218,7 @@ function resolvePageTitle(
   }
 
   if (pathname === "/receiving/pending-production-output") {
-    return "รับผลผลิตเข้าคลัง";
+    return "ใบสั่งผลิตรอรับเข้าคลัง";
   }
 
   if (pathname === "/profile") {

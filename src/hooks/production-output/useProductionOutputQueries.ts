@@ -27,6 +27,7 @@ import {
 import type { ProductionOutputPendingTicketQueryParams } from "@/types/production-output-pending-tickets";
 import {
   ProductionOutputRequestStatus,
+  type ProductionOutputReadyOrderListApiResponse,
   type ProductionOutputStockRequestQueryParams,
   type QueryProductionOutputReadyOrdersParams,
 } from "@/types/production-output-stock-request";
@@ -178,14 +179,20 @@ export const pendingProductionOutputTicketsCountQueryKey = [
   "count",
 ] as const;
 
-/** จำนวนตั๋วผลิตที่ยังไม่ได้รับเข้าคลัง สำหรับ badge */
+/**
+ * จำนวน "ใบสั่งผลิตที่ปิดงานแล้วแต่ยังไม่มีคำขอรับผลผลิตสักใบ" สำหรับ badge เมนู
+ *
+ * เดิมนับจากตั๋วชั่ง PURCHASE_IN ซึ่งเป็นคนละ flow กับการรับผลผลิตเข้าคลัง
+ * ตัวเลขจึงพาไปหน้าที่ทำอะไรต่อไม่ได้ — ย้ายมานับของที่ค้างจริงในคิวแทน
+ */
 export function pendingProductionOutputTicketsCountOptions(ctx?: {
   enabled?: boolean;
 }) {
   return pendingCountQueryOptions({
     queryKey: pendingProductionOutputTicketsCountQueryKey,
-    queryFn: () => getProductionOutputPendingTickets(getAccessToken()),
-    select: selectDataLength,
+    queryFn: () => getProductionOutputReadyOrders(getAccessToken(), { all: true }),
+    select: (res: ProductionOutputReadyOrderListApiResponse) =>
+      res.data.filter((order) => order.totalRequestCount === 0).length,
     canAccess: canAccessPendingProductionOutput,
     enabled: (ctx?.enabled ?? true) && PRODUCTION_OUTPUT_ENABLED,
   });

@@ -1327,7 +1327,7 @@ export default function ProductionOutputStockRequestCreatePage({
                   <Alert
                     type="warning"
                     showIcon
-                    message={productionOrderRefError}
+                    title={productionOrderRefError}
                   />
                 ) : productionOrderRefSummary ? (
                   <>

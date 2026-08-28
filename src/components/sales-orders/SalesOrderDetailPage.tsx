@@ -74,6 +74,7 @@ import {
   canNavigateSalesFulfillmentHref,
   canOpenStockVerification,
 } from "@/lib/sales/sales-fulfillment-nav";
+import { stockVerificationLineTag } from "@/lib/sales/stock-verification-line-tag";
 import {
   canCancelSalesOrder,
   resolveSalesOrderProgress,
@@ -691,6 +692,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const packingStep = findStep(timeline, "Packing");
   const allLinesReserved = reservationStatus?.isAllFullyReserved === true;
   const hasShortage = reservationStatus?.hasShortage === true;
+  const hasUnplannedShortage =
+    reservationStatus?.hasUnplannedShortage === true;
   const hasStockShortage = productionRequestItems.length > 0;
   const reservationReady =
     Boolean(reservationStatus) && !reservationQuery.isLoading;
@@ -1263,6 +1266,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
         nextAction={tracking?.nextAction}
         timeline={timeline}
         progress={progress}
+        roundCount={tracking?.roundCount ?? 0}
+        rounds={tracking?.rounds ?? []}
         canNavigateHref={(href) =>
           canNavigateSalesFulfillmentHref(href, {
             stockVerification: stockVerificationActions,
@@ -1546,7 +1551,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               </h2>
               <span className={styles.sectionHint}>
                 {isPreConfirm
-                  ? hasShortage
+                  ? hasUnplannedShortage
                     ? hasActiveProductionRequest
                       ? "สต๊อกไม่พอ — มีใบขอผลิตแล้ว ติดตามของเข้าคลังได้จากเอกสารนั้น · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ"
                       : "สต๊อกไม่พอ — เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ ขอแค่จัดรอบจัดส่งให้ครบ"
@@ -1560,7 +1565,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               ) : reservationStatus ? (
                 <>
 
-                  {hasShortage ? (
+                  {hasUnplannedShortage ? (
                     <p className={styles.stockReadyNote}>
                       สต๊อกไม่พอ ณ ตอนนี้ —{" "}
                       {hasActiveProductionRequest
@@ -1594,10 +1599,17 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   <Spin size="small" />
                 ) : stockVerification ? (
                   <div className={styles.itemList}>
-                    {stockVerification.lines.map((line) => (
+                    {stockVerification.lines.map((line) => {
+                      const tag = stockVerificationLineTag(line);
+                      const issued = Number(line.issuedQty ?? 0);
+                      const pending = Number(line.pendingProductionQty ?? 0);
+                      const unplanned = Number(
+                        line.unplannedShortageQty ?? line.shortageQty,
+                      );
+                      return (
                       <div key={line.salesOrderItemId} className={styles.itemCard}>
                         <div className={styles.itemIndex}>
-                          {line.isAvailable ? "✓" : "!"}
+                          {line.isAvailable || unplanned <= 0.0005 ? "✓" : "!"}
                         </div>
                         <div className={styles.itemBody}>
                           <p className={styles.itemName}>
@@ -1608,6 +1620,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           <p className={styles.itemCode}>
                             ต้องการ{" "}
                             {Number(line.orderedQty).toLocaleString("th-TH")}
+                            {issued > 0.0005
+                              ? ` · จ่ายแล้ว ${issued.toLocaleString("th-TH")}`
+                              : ""}
                             {" · "}
                             จองแล้ว{" "}
                             {Number(line.reservedQty ?? 0).toLocaleString(
@@ -1616,23 +1631,20 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             {" · "}
                             พร้อมใช้ว่าง{" "}
                             {Number(line.availableQty).toLocaleString("th-TH")}
-                            {Number(line.shortageQty) > 0
-                              ? ` · ขาด ${Number(line.shortageQty).toLocaleString("th-TH")}`
+                            {pending > 0.0005
+                              ? ` · รอผลิต ${pending.toLocaleString("th-TH")}`
+                              : ""}
+                            {unplanned > 0.0005
+                              ? ` · ขาดอีก ${unplanned.toLocaleString("th-TH")}`
                               : ""}
                           </p>
                         </div>
                         <div className={styles.itemQty}>
-                          <Tag color={line.isAvailable ? "success" : "error"}>
-                            {line.isAvailable
-                              ? Number(line.reservedQty ?? 0) >=
-                                Number(line.orderedQty) - 0.0005
-                                ? "จองครบ"
-                                : "พอ"
-                              : "ไม่พอ"}
-                          </Tag>
+                          <Tag color={tag.color}>{tag.label}</Tag>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className={styles.textBlock}>
@@ -1719,7 +1731,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   {reservationQuery.isLoading ? (
                     <Spin size="small" />
                   ) : reservationStatus ? (
-                    hasShortage ? (
+                    hasUnplannedShortage ? (
                       <Tag color="error">ยังไม่พอจริง</Tag>
                     ) : (
                       <Tag color="success">พอจริงแล้ว</Tag>
@@ -1807,7 +1819,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               ) : null}
 
-              {hasShortage && canIssueProductionRequest ? (
+              {hasUnplannedShortage && canIssueProductionRequest ? (
                 <div className={styles.productionContinueRow}>
                   <Button
                     type="primary"
@@ -1961,7 +1973,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 ของจะถูกจองตอนคลังเปิดใบจ่ายของรอบจัดส่ง ไม่ต้องจองจากหน้านี้
               </p>
             ) : null}
-            {isPreConfirm && hasShortage ? (
+            {isPreConfirm && hasUnplannedShortage ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
                 {hasActiveProductionRequest
                   ? "รายการที่สต๊อกไม่พอมีใบขอผลิตแล้ว — เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด"
@@ -2123,7 +2135,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                               ระดับรอบ (สั่ง 2 กลายเป็นจองไว้ 4) · การจองที่ถูก
                               เกิดตอนคลังเปิดใบจ่ายของรอบเท่านั้น */}
                           {reservationLineTag(reservationLine)}
-                          {hasShortage &&
+                          {hasUnplannedShortage &&
                           canIssueProductionRequest &&
                           productionRequestLine ? (
                             <Button
@@ -2269,7 +2281,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     ออกใบขอผลิตทุกรายการที่ขาด
                   </Button>
                 ) : null}
-                {hasShortage && !hasStockShortage ? (
+                {hasUnplannedShortage && !hasStockShortage ? (
                   <p className={styles.sectionHint}>
                     สต๊อกยังไม่พอ — จองหรือยืนยันใบสั่งขายยังทำไม่ได้
                     {hasActiveProductionRequest ||

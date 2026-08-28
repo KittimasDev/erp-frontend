@@ -161,6 +161,8 @@ export type EligibleSalesOrderItem = {
   availableQty?: string;
   alreadyRequestedQty: string;
   remainingQty: string;
+  /** คงค้างขอได้ − ของที่มีในคลังแล้ว — ค่าตั้งต้นเมื่อไม่ได้ deep-link รอบ */
+  suggestedProductionQty?: string;
   sortOrder: number;
 };
 

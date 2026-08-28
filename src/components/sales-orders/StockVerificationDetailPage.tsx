@@ -21,6 +21,7 @@ import {
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { stockVerificationLineTag } from "@/lib/sales/stock-verification-line-tag";
 import { resolveTimelineStepHref } from "@/lib/sales/sales-tracking-timeline";
 import {
   SALES_ORDER_STATUS_LABEL,
@@ -141,6 +142,11 @@ export default function StockVerificationDetailPage({ id }: Props) {
   const timeline = trackingQuery.data?.data?.timeline ?? [];
   const lines = verification?.lines ?? [];
   const allOk = verification?.isAllAvailable === true;
+  const needsMoreProduction = lines.some(
+    (line) =>
+      Number(line.unplannedShortageQty ?? line.shortageQty) > 0.0005,
+  );
+  const waitingProduction = !allOk && !needsMoreProduction && lines.length > 0;
   const soStatus = order?.status ?? verification?.status ?? "";
   const soNo = order?.soNo ?? verification?.soNo ?? "—";
   const isConfirmed = soStatus === "CONFIRMED";
@@ -160,9 +166,17 @@ export default function StockVerificationDetailPage({ id }: Props) {
   const hasPickingDocument = Boolean(pickingStep?.documentId);
 
   const okCount = lines.filter((line) => line.isAvailable).length;
-  const shortCount = lines.length - okCount;
+  const unplannedShortCount = lines.filter(
+    (line) => Number(line.unplannedShortageQty ?? line.shortageQty) > 0.0005,
+  ).length;
+  const waitingCount = lines.filter((line) => {
+    const tag = stockVerificationLineTag(line);
+    return tag.label === "รอผลผลิต";
+  }).length;
+  const shortCount = unplannedShortCount;
   const totalShortage = lines.reduce(
-    (sum, line) => sum + (Number(line.shortageQty) || 0),
+    (sum, line) =>
+      sum + (Number(line.unplannedShortageQty ?? line.shortageQty) || 0),
     0,
   );
 
@@ -258,7 +272,18 @@ export default function StockVerificationDetailPage({ id }: Props) {
     if (isConfirmed) {
       return allOk
         ? openCreatePickingButton(block)
-        : openProductionRequestOnSoButton(block);
+        : needsMoreProduction
+          ? openProductionRequestOnSoButton(block)
+          : (
+            <Button
+              block={block}
+              className={styles.primaryBtn}
+              icon={<ProfileOutlined />}
+              onClick={() => router.push(`/sales-orders/${id}`)}
+            >
+              ไปใบสั่งขายเพื่อติดตามใบขอผลิต
+            </Button>
+          );
     }
 
     if (isStockChecked && canFulfill) {
@@ -292,7 +317,9 @@ export default function StockVerificationDetailPage({ id }: Props) {
       ? "ยืนยันผลตรวจสอบสต๊อกแล้ว"
       : allOk
         ? "สต๊อกพอทุกรายการ"
-        : "สต๊อกไม่พอบางรายการ";
+        : waitingProduction
+          ? "รอผลผลิตเข้าคลัง"
+          : "สต๊อกไม่พอบางรายการ";
 
   const statusBannerText = isPastStockVerification
     ? "ใบสั่งขายไปขั้นถัดไปแล้ว — หน้านี้ดูผลตรวจย้อนหลังได้อย่างเดียว ไม่สร้างใบจ่ายใหม่จากที่นี่"
@@ -302,7 +329,9 @@ export default function StockVerificationDetailPage({ id }: Props) {
         : "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบจ่ายสินค้าเพื่อไปขั้นถัดไป"
       : allOk
         ? "หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด (ของจะถูกจองตอนนั้น)"
-        : "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต";
+        : waitingProduction
+          ? "มีใบขอผลิตคุมยอดที่ขาดอยู่แล้ว — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง"
+          : "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต";
 
   const statusBannerTone =
     isPastStockVerification || isStockChecked || allOk
@@ -317,7 +346,9 @@ export default function StockVerificationDetailPage({ id }: Props) {
         : "พร้อมจ่ายสินค้า"
       : allOk
         ? "ของพอ"
-        : `ขาด ${shortCount} รายการ`;
+        : waitingProduction
+          ? "รอผลผลิต"
+          : `ขาด ${shortCount} รายการ`;
 
   const sideNote = isPastStockVerification ? (
     <>
@@ -341,6 +372,10 @@ export default function StockVerificationDetailPage({ id }: Props) {
     </>
   ) : allOk ? (
     <>ของพอแล้ว — ขั้นถัดไปเป็นงานของคลัง (เปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด)</>
+  ) : waitingProduction ? (
+    <>
+      รอผลผลิตเข้าคลัง — กด <strong>ไปใบสั่งขาย</strong> เพื่อติดตามใบขอผลิต
+    </>
   ) : (
     <>
       ของไม่พอ — กด <strong>ไปใบสั่งขายเพื่อออกใบขอผลิต</strong> (ใบ{" "}
@@ -488,24 +523,33 @@ export default function StockVerificationDetailPage({ id }: Props) {
                           {row.itemName ?? "—"}
                         </p>
                       </div>
-                      {row.isAvailable ? (
-                        <Tag color="success" icon={<CheckCircleOutlined />}>
-                          {Number(row.reservedQty ?? 0) >=
-                          Number(row.orderedQty) - 0.0005
-                            ? "จองครบ"
-                            : "พอ"}
-                        </Tag>
-                      ) : (
-                        <Tag color="error" icon={<ExclamationCircleOutlined />}>
-                          ไม่พอ
-                        </Tag>
-                      )}
+                      {(() => {
+                        const tag = stockVerificationLineTag(row);
+                        return (
+                          <Tag
+                            color={tag.color}
+                            icon={
+                              tag.color === "error" ? (
+                                <ExclamationCircleOutlined />
+                              ) : (
+                                <CheckCircleOutlined />
+                              )
+                            }
+                          >
+                            {tag.label}
+                          </Tag>
+                        );
+                      })()}
                     </div>
 
                     <div className={styles.qtyGrid}>
                       <div className={styles.qtyItem}>
                         <span>ยอดสั่งขาย</span>
                         <strong>{formatQty(row.orderedQty)}</strong>
+                      </div>
+                      <div className={styles.qtyItem}>
+                        <span>จ่ายแล้ว</span>
+                        <strong>{formatQty(row.issuedQty ?? 0)}</strong>
                       </div>
                       <div className={styles.qtyItem}>
                         <span>จองแล้ว</span>
@@ -515,13 +559,28 @@ export default function StockVerificationDetailPage({ id }: Props) {
                         <span>พร้อมใช้ว่าง</span>
                         <strong>{formatQty(row.availableQty)}</strong>
                       </div>
+                      {Number(row.pendingProductionQty ?? 0) > 0.0005 ? (
+                        <div className={styles.qtyItem}>
+                          <span>รอผลิต</span>
+                          <strong>
+                            {formatQty(row.pendingProductionQty)}
+                          </strong>
+                        </div>
+                      ) : null}
                       <div
                         className={`${styles.qtyItem} ${
-                          row.isAvailable ? "" : styles.qtyShortage
+                          Number(row.unplannedShortageQty ?? row.shortageQty) >
+                          0.0005
+                            ? styles.qtyShortage
+                            : ""
                         }`}
                       >
                         <span>ยอดขาด</span>
-                        <strong>{formatQty(row.shortageQty)}</strong>
+                        <strong>
+                          {formatQty(
+                            row.unplannedShortageQty ?? row.shortageQty,
+                          )}
+                        </strong>
                       </div>
                     </div>
 
@@ -554,6 +613,12 @@ export default function StockVerificationDetailPage({ id }: Props) {
               <span>พอ</span>
               <strong>{okCount}</strong>
             </div>
+            {waitingCount > 0 ? (
+              <div className={styles.statItem}>
+                <span>รอผลผลิต</span>
+                <strong>{waitingCount}</strong>
+              </div>
+            ) : null}
             <div className={`${styles.statItem} ${styles.statWarn}`}>
               <span>ไม่พอ</span>
               <strong>{shortCount}</strong>

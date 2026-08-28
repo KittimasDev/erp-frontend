@@ -19,13 +19,65 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken } from "@/lib/auth/token";
-import { pendingCountQueryOptions } from "@/lib/query/count-query";
-import type {
-  QueryLinkedSalesOrdersParams,
-  QueryProductionRequestsParams,
+import { pendingCountQueryOptions, selectListTotal } from "@/lib/query/count-query";
+import {
+  ProductionRequestStatus,
+  type QueryLinkedSalesOrdersParams,
+  type QueryProductionRequestsParams,
 } from "@/types/production-request";
 
 export const productionRequestsQueryKey = ["production-requests"] as const;
+
+export const pendingProductionRequestsCountQueryKey = [
+  ...productionRequestsQueryKey,
+  "pending-count",
+] as const;
+
+/** สิทธิ์เข้าหน้าใบขอผลิต (เมนู / badge) — ตรงกับ canSeeMenu */
+export function canAccessProductionRequests(): boolean {
+  if (isAdministrator()) {
+    return true;
+  }
+  if (isMatrixPermissionMode()) {
+    return (
+      canAccessScreen("PRODUCTION_REQUESTS") ||
+      hasPermission(
+        "PRODUCTION_REQUESTS.VIEW",
+        "PRODUCTION_REQUESTS.VIEW_ALL",
+        "PRODUCTION_REQUESTS.ADD",
+      )
+    );
+  }
+  return (
+    userHasRole(RoleCode.SALES_OFFICER) ||
+    userHasRole(RoleCode.SALES_MANAGER) ||
+    userHasRole(RoleCode.PRODUCTION_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
+    userHasRole(RoleCode.WAREHOUSE_MANAGER) ||
+    userHasRole(RoleCode.EXECUTIVE)
+  );
+}
+
+/**
+ * จำนวนใบขอผลิตที่รอเปิดใบสั่งผลิต สำหรับ badge sidebar / หน้าแรก
+ * คนผลิตเห็นคิวงานที่ฝ่ายขายส่งมาแล้ว ยังไม่ได้เปิด PO
+ */
+export function pendingProductionRequestsCountOptions(ctx?: {
+  enabled?: boolean;
+}) {
+  return pendingCountQueryOptions({
+    queryKey: pendingProductionRequestsCountQueryKey,
+    queryFn: () =>
+      getProductionRequests(getAccessToken(), {
+        status: ProductionRequestStatus.PENDING,
+        page: 1,
+        limit: 1,
+      }),
+    select: selectListTotal,
+    canAccess: canAccessProductionRequests,
+    enabled: ctx?.enabled,
+  });
+}
 
 export function useProductionRequestsQuery(
   params?: QueryProductionRequestsParams,

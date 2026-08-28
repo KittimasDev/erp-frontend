@@ -154,6 +154,16 @@ export type ProductionOutputReadyOrder = {
   completedAt?: string;
   totalRequestCount: number;
   blockedItemIds: string[];
+  /** วัตถุดิบที่ตัดเข้าผลิตจริง */
+  totalInputQty: string;
+  /** ผลผลิตที่รับเข้าคลังแล้ว (คำขอที่อนุมัติ) */
+  totalOutputQty: string;
+  /** ผลผลิตตามแผนของใบสั่งผลิต */
+  totalPlannedOutputQty: string;
+  /** yield จริง (%) — นิยามเดียวกับหน้าสรุปใบสั่งผลิต */
+  yieldPercent: number;
+  /** yield ตามแผน (%) */
+  plannedYieldPercent: number;
 };
 
 export type ProductionOutputReadyOrderListApiResponse = {

@@ -27,6 +27,10 @@ import type {
   RecordDowntimeBody,
 } from "@/types/production-order";
 import { productionRequestsQueryKey } from "../production-requests/useProductionRequestQueries";
+import {
+  productionOutputPendingTicketsQueryKey,
+  productionOutputStockRequestsQueryKey,
+} from "../production-output/useProductionOutputQueries";
 import { productionOrdersQueryKey } from "./useProductionOrderQueries";
 
 function useInvalidateProductionOrders() {
@@ -35,6 +39,12 @@ function useInvalidateProductionOrders() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: productionOrdersQueryKey }),
       queryClient.invalidateQueries({ queryKey: productionRequestsQueryKey }),
+      queryClient.invalidateQueries({
+        queryKey: productionOutputStockRequestsQueryKey,
+      }),
+      queryClient.invalidateQueries({
+        queryKey: productionOutputPendingTicketsQueryKey,
+      }),
     ]);
 }
 

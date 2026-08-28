@@ -36,6 +36,7 @@ type PlanItemRow = {
   tireClassificationId: string;
   description?: string;
   weightKg?: number;
+  pricePerKg?: number;
 };
 
 type PlanDeductionRow = {
@@ -44,6 +45,7 @@ type PlanDeductionRow = {
   description?: string;
   deductionWeightKg?: number;
   deductionPricePerKg?: number;
+  deductionAmount?: number;
 };
 
 type Props = {
@@ -142,6 +144,10 @@ function roundMoney(value: number) {
 }
 
 function deductionLineAmount(row: PlanDeductionRow) {
+  const lumpSum = Number(row.deductionAmount ?? 0);
+  if (lumpSum > 0) {
+    return roundMoney(lumpSum);
+  }
   const weight = Number(row.deductionWeightKg ?? 0);
   const price = Number(row.deductionPricePerKg ?? 0);
   if (weight <= 0 || price <= 0) {
@@ -150,12 +156,20 @@ function deductionLineAmount(row: PlanDeductionRow) {
   return roundMoney(weight * price);
 }
 
+function isLumpSumDeduction(row: PlanDeductionRow) {
+  return (
+    Number(row.deductionAmount ?? 0) > 0 &&
+    Number(row.deductionWeightKg ?? 0) <= 0
+  );
+}
+
 function createItemRow(partial?: Partial<PlanItemRow>): PlanItemRow {
   return {
     key: partial?.key ?? createClientId(),
     tireClassificationId: partial?.tireClassificationId ?? "",
     description: partial?.description,
     weightKg: partial?.weightKg,
+    pricePerKg: partial?.pricePerKg,
   };
 }
 
@@ -164,10 +178,11 @@ function createDeductionRow(
 ): PlanDeductionRow {
   return {
     key: partial?.key ?? createClientId(),
-    deductionType: "OTHER",
+    deductionType: partial?.deductionType ?? "OTHER",
     description: partial?.description,
     deductionWeightKg: partial?.deductionWeightKg,
     deductionPricePerKg: partial?.deductionPricePerKg,
+    deductionAmount: partial?.deductionAmount,
   };
 }
 
@@ -248,6 +263,12 @@ export default function ReceivingTicketClassifyWeighPanel({
             createItemRow({
               tireClassificationId: item.tireClassificationId,
               description: item.description,
+              pricePerKg:
+                Number(item.pricePerKg) > 0 ? Number(item.pricePerKg) : undefined,
+              weightKg:
+                plan.items.length === 1 && Number(ticket.netWeightKg) > 0
+                  ? Number(ticket.netWeightKg)
+                  : undefined,
             }),
           )
         : [createItemRow()],
@@ -255,8 +276,17 @@ export default function ReceivingTicketClassifyWeighPanel({
     setDeductions(
       (plan?.deductions ?? []).map((item) =>
         createDeductionRow({
+          deductionType: item.deductionType,
           description: resolveDeductionName(item),
+          deductionWeightKg:
+            item.deductionWeightKg === undefined
+              ? undefined
+              : Number(item.deductionWeightKg),
           deductionPricePerKg: item.deductionPricePerKg,
+          deductionAmount:
+            item.deductionAmount === undefined
+              ? undefined
+              : Number(item.deductionAmount),
         }),
       ),
     );
@@ -301,8 +331,13 @@ export default function ReceivingTicketClassifyWeighPanel({
       return;
     }
     const sourceItem = items[priceSourceLineNo - 1];
+    if (!sourceItem?.tireClassificationId) {
+      setPriceSourceLineNo(undefined);
+      return;
+    }
+    const hasScalePrice = Number(sourceItem.pricePerKg ?? 0) > 0;
     if (
-      !sourceItem?.tireClassificationId ||
+      !hasScalePrice &&
       !priceByClassificationId.has(sourceItem.tireClassificationId)
     ) {
       setPriceSourceLineNo(undefined);
@@ -392,6 +427,16 @@ export default function ReceivingTicketClassifyWeighPanel({
         selectedClassificationIds.has(option.value),
     }));
 
+  const rowHasPricable = (item: PlanItemRow) => {
+    if (!item.tireClassificationId) {
+      return false;
+    }
+    return (
+      Number(item.pricePerKg ?? 0) > 0 ||
+      priceByClassificationId.has(item.tireClassificationId)
+    );
+  };
+
   const priceSourceOptions = useMemo(() => {
     const options: Array<{ value: number | "OWN"; label: string; disabled?: boolean }> =
       [
@@ -402,48 +447,54 @@ export default function ReceivingTicketClassifyWeighPanel({
       ];
     items.forEach((item, index) => {
       const lineNo = index + 1;
-      const hasClass = Boolean(item.tireClassificationId);
-      const hasPrice =
-        hasClass &&
-        priceByClassificationId.has(item.tireClassificationId);
       options.push({
         value: lineNo,
         label: `ราคาของรายการที่ ${lineNo} ทั้งชุด`,
-        disabled: !hasClass || !hasPrice,
+        disabled: !rowHasPricable(item),
       });
     });
     return options;
   }, [items, priceByClassificationId]);
 
-  const sharedPriceRule = useMemo(() => {
+  const resolveRowPrice = (item?: PlanItemRow): { pricePerKg: number; source: "scale" | "rule" } | undefined => {
+    if (!item) {
+      return undefined;
+    }
+    const scalePrice = Number(item.pricePerKg ?? 0);
+    if (scalePrice > 0) {
+      return { pricePerKg: scalePrice, source: "scale" };
+    }
+    if (!item.tireClassificationId) {
+      return undefined;
+    }
+    const rule = priceByClassificationId.get(item.tireClassificationId);
+    if (!rule) {
+      return undefined;
+    }
+    return { pricePerKg: Number(rule.pricePerKg), source: "rule" };
+  };
+
+  const sharedEffectivePrice = useMemo(() => {
     if (priceSourceLineNo === undefined) {
       return undefined;
     }
-    const sourceItem = items[priceSourceLineNo - 1];
-    if (!sourceItem?.tireClassificationId) {
-      return undefined;
-    }
-    return priceByClassificationId.get(sourceItem.tireClassificationId);
+    return resolveRowPrice(items[priceSourceLineNo - 1]);
   }, [items, priceByClassificationId, priceSourceLineNo]);
 
-  const resolveEffectivePriceRule = (lineIndex: number) => {
+  const resolveEffectivePrice = (lineIndex: number) => {
     if (priceSourceLineNo !== undefined) {
-      return sharedPriceRule;
+      return sharedEffectivePrice;
     }
-    const item = items[lineIndex];
-    if (!item?.tireClassificationId) {
-      return undefined;
-    }
-    return priceByClassificationId.get(item.tireClassificationId);
+    return resolveRowPrice(items[lineIndex]);
   };
 
   const tireLineAmount = (lineIndex: number, weightKg?: number) => {
-    const priceRule = resolveEffectivePriceRule(lineIndex);
+    const price = resolveEffectivePrice(lineIndex);
     const weight = Number(weightKg ?? 0);
-    if (!priceRule || weight <= 0) {
+    if (!price || weight <= 0) {
       return 0;
     }
-    return roundMoney(weight * Number(priceRule.pricePerKg));
+    return roundMoney(weight * price.pricePerKg);
   };
 
   const totalTireAmount = roundMoney(
@@ -477,6 +528,9 @@ export default function ReceivingTicketClassifyWeighPanel({
           tireClassificationId: item.tireClassificationId,
           weightKg: Number(item.weightKg),
           description: item.description?.trim() || undefined,
+          ...(Number(item.pricePerKg) > 0
+            ? { pricePerKg: Number(item.pricePerKg) }
+            : {}),
         },
       ];
     });
@@ -518,16 +572,26 @@ export default function ReceivingTicketClassifyWeighPanel({
           item.deductionPricePerKg === undefined
             ? undefined
             : Number(item.deductionPricePerKg),
+        deductionAmount:
+          item.deductionAmount === undefined
+            ? undefined
+            : Number(item.deductionAmount),
       }))
       .filter(
         (item) =>
-          item.deductionWeightKg > 0 || Number(item.deductionPricePerKg ?? 0) > 0,
+          item.deductionWeightKg > 0 ||
+          Number(item.deductionPricePerKg ?? 0) > 0 ||
+          Number(item.deductionAmount ?? 0) > 0,
       );
 
     for (const item of nextDeductions) {
       if (!item.description) {
         message.error("รายการหักสารปนเปื้อนต้องระบุชื่อ");
         return;
+      }
+      const hasLumpSum = Number(item.deductionAmount ?? 0) > 0;
+      if (hasLumpSum) {
+        continue;
       }
       if (item.deductionWeightKg <= 0) {
         message.error(`"${item.description}" ต้องใส่น้ำหนักหัก (กก.)`);
@@ -539,15 +603,30 @@ export default function ReceivingTicketClassifyWeighPanel({
       }
     }
 
+    const lineHasPrice = (uiIndex: number, pricePerKg?: number) => {
+      if (Number(pricePerKg) > 0) {
+        return true;
+      }
+      const effective = resolveEffectivePrice(uiIndex);
+      if (effective && effective.pricePerKg > 0) {
+        return true;
+      }
+      const classificationId = items[uiIndex]?.tireClassificationId;
+      return Boolean(
+        classificationId && priceByClassificationId.has(classificationId),
+      );
+    };
+
     if (submittedPriceSourceLineNo !== undefined) {
       const sourceItem = nextItems[submittedPriceSourceLineNo - 1];
+      const sourceUiIndex = includedUiIndexes[submittedPriceSourceLineNo - 1];
       if (!sourceItem?.tireClassificationId) {
         message.error(
           `รายการที่ ${submittedPriceSourceLineNo} ยังไม่ได้เลือกประเภทยาง`,
         );
         return;
       }
-      if (!priceByClassificationId.has(sourceItem.tireClassificationId)) {
+      if (!lineHasPrice(sourceUiIndex, sourceItem.pricePerKg)) {
         message.error(
           `รายการที่ ${submittedPriceSourceLineNo} ยังไม่มีราคาที่มีผลวันนี้`,
         );
@@ -556,7 +635,8 @@ export default function ReceivingTicketClassifyWeighPanel({
     } else {
       for (let index = 0; index < nextItems.length; index += 1) {
         const item = nextItems[index];
-        if (!priceByClassificationId.has(item.tireClassificationId)) {
+        const uiIndex = includedUiIndexes[index];
+        if (!lineHasPrice(uiIndex, item.pricePerKg)) {
           const meta = classificationLabelById.get(item.tireClassificationId);
           message.error(
             meta
@@ -954,7 +1034,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                     const meta = classificationLabelById.get(
                       item.tireClassificationId,
                     );
-                    const priceRule = resolveEffectivePriceRule(index);
+                    const price = resolveEffectivePrice(index);
                     const usingSharedPrice =
                       priceSourceLineNo !== undefined &&
                       priceSourceLineNo !== index + 1;
@@ -1027,10 +1107,10 @@ export default function ReceivingTicketClassifyWeighPanel({
                         {item.tireClassificationId ? (
                           <div
                             className={`${styles.classifyTypeDetail} ${
-                              priceRule ? "" : styles.classifyTypeMissing
+                              price ? "" : styles.classifyTypeMissing
                             }`}
                           >
-                            {priceRule ? (
+                            {price ? (
                               <>
                                 <span>
                                   {usingSharedPrice
@@ -1038,14 +1118,16 @@ export default function ReceivingTicketClassifyWeighPanel({
                                     : isPriceSourceLine &&
                                         priceSourceLineNo !== undefined
                                       ? "ใช้เป็นแหล่งราคาทั้งชุด"
-                                      : "ราคาซื้อวันนี้"}
+                                      : price.source === "scale"
+                                        ? "ราคาจากตาชั่ง"
+                                        : "ราคาซื้อวันนี้"}
                                 </span>
                                 <strong>
-                                  {formatPrice(priceRule.pricePerKg)} บาท/กก.
+                                  {formatPrice(price.pricePerKg)} บาท/กก.
                                 </strong>
                                 <p className={styles.classifyTypeAmount}>
                                   {lineAmount > 0
-                                    ? `${formatWeight(item.weightKg)} กก. × ${formatPrice(priceRule.pricePerKg)} = ${formatBaht(lineAmount)} บาท`
+                                    ? `${formatWeight(item.weightKg)} กก. × ${formatPrice(price.pricePerKg)} = ${formatBaht(lineAmount)} บาท`
                                     : "ใส่น้ำหนักเพื่อดูยอดเงิน"}
                                 </p>
                               </>
@@ -1161,7 +1243,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                   <div>
                     <p className={styles.classifyEyebrow}>รายการหัก</p>
                     <h4>สารปนเปื้อน</h4>
-                    <p>กรอกชื่อรายการ น้ำหนัก (กก.) และราคา/กก. — หักทั้งน้ำหนักจ่ายและเงิน</p>
+                    <p>กรอกชื่อรายการแล้วหักด้วยน้ำหนัก × ราคา/กก. หรือยอดหักเป็นก้อนเงิน</p>
                   </div>
                   <span
                     className={`${styles.classifyCount} ${
@@ -1178,6 +1260,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                   <div className={styles.classifyDeductionPlanList}>
                     {deductions.map((item) => {
                       const lineAmount = deductionLineAmount(item);
+                      const lumpSum = isLumpSumDeduction(item);
                       return (
                         <div
                           key={item.key}
@@ -1205,7 +1288,9 @@ export default function ReceivingTicketClassifyWeighPanel({
                             <span>
                               {lineAmount > 0
                                 ? `= ${formatBaht(lineAmount)} บาท`
-                                : "กก. × บาท/กก."}
+                                : lumpSum
+                                  ? "ยอดหัก (บาท)"
+                                  : "กก. × บาท/กก."}
                             </span>
                             {formEditable ? (
                               <Button
@@ -1221,6 +1306,38 @@ export default function ReceivingTicketClassifyWeighPanel({
                               />
                             ) : null}
                           </div>
+                          {lumpSum ? (
+                            <div className={styles.classifyDeductionAmount}>
+                              <InputNumber
+                                aria-label="ยอดหัก"
+                                min={0.01}
+                                step={0.01}
+                                precision={2}
+                                className={styles.classifyDeductionInput}
+                                value={item.deductionAmount}
+                                placeholder="0.00"
+                                disabled={!formEditable}
+                                onKeyDown={blockNonNumericWeightKey}
+                                onChange={(value) =>
+                                  setDeductions((prev) =>
+                                    prev.map((row) =>
+                                      row.key === item.key
+                                        ? {
+                                            ...row,
+                                            deductionAmount:
+                                              typeof value === "number"
+                                                ? value
+                                                : undefined,
+                                          }
+                                        : row,
+                                    ),
+                                  )
+                                }
+                              />
+                              <em>บาท</em>
+                            </div>
+                          ) : (
+                            <>
                           <div className={styles.classifyDeductionAmount}>
                             <InputNumber
                               aria-label="น้ำหนักหัก"
@@ -1281,6 +1398,8 @@ export default function ReceivingTicketClassifyWeighPanel({
                             />
                             <em>บาท/กก.</em>
                           </div>
+                            </>
+                          )}
                         </div>
                       );
                     })}
@@ -1338,6 +1457,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                     const hasData =
                       Number(item.deductionWeightKg ?? 0) > 0 ||
                       Number(item.deductionPricePerKg ?? 0) > 0 ||
+                      Number(item.deductionAmount ?? 0) > 0 ||
                       Boolean(item.description?.trim());
                     return hasData && !item.description?.trim();
                   })

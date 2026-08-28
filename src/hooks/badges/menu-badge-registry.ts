@@ -11,7 +11,10 @@ import {
   pendingProductionOutputStockRequestsCountOptions,
   pendingProductionOutputTicketsCountOptions,
 } from "@/hooks/production-output/useProductionOutputQueries";
-import { linkedSalesOrdersCountOptions } from "@/hooks/production-requests/useProductionRequestQueries";
+import {
+  linkedSalesOrdersCountOptions,
+  pendingProductionRequestsCountOptions,
+} from "@/hooks/production-requests/useProductionRequestQueries";
 import { pendingPurchaseOrderApprovalsCountOptions } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { pendingPurchasePaymentsCountOptions } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import {
@@ -114,6 +117,18 @@ export const MENU_BADGE_REGISTRY: readonly MenuBadgeEntry[] = [
 
   // ─── การผลิต ─────────────────────────────────────────────────────────────
   {
+    menuKey: "production-requests",
+    screenCode: "PRODUCTION_REQUESTS",
+    kind: "action",
+    label: "ใบขอผลิตรอเปิดใบสั่งผลิต",
+    options: (ctx) =>
+      pendingProductionRequestsCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+  {
     menuKey: "production-output-stock-requests",
     screenCode: "PRODUCTION_OUTPUT_STOCK_REQUESTS",
     kind: "approval",
@@ -129,7 +144,7 @@ export const MENU_BADGE_REGISTRY: readonly MenuBadgeEntry[] = [
     menuKey: "pending-production-output",
     screenCode: "PENDING_PRODUCTION_OUTPUT",
     kind: "action",
-    label: "ตั๋วผลิตรอรับเข้าคลัง",
+    label: "ใบสั่งผลิตที่ยังไม่ได้ขอรับเข้าคลัง",
     options: (ctx) =>
       pendingProductionOutputTicketsCountOptions(ctx) as UseQueryOptions<
         unknown,

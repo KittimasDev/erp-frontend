@@ -153,11 +153,13 @@ export type WeighbridgeTicketDetailApiResponse = {
 export type ClassificationPlanItem = {
   tireClassificationId: string;
   description?: string;
+  pricePerKg?: number;
 };
 
 export type ClassificationPlanDeduction = {
   deductionType: string;
   description?: string;
+  deductionWeightKg?: number;
   deductionPricePerKg?: number;
   deductionAmount?: number;
 };
@@ -183,6 +185,7 @@ export type CompleteWeighAndReceiptRequest = {
     tireClassificationId: string;
     weightKg: number;
     description?: string;
+    pricePerKg?: number;
   }>;
   deductions?: Array<{
     deductionType: string;

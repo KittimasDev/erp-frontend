@@ -12,11 +12,15 @@ import {
 import dayjs from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useApproveProductionOutputStockRequestMutation,
   useRejectProductionOutputStockRequestMutation,
 } from "@/hooks/production-output/useProductionOutputMutations";
-import { useProductionOutputApprovalQuery } from "@/hooks/production-output/useProductionOutputQueries";
+import {
+  useProductionOutputApprovalQuery,
+  useProductionOutputStockRequestQuery,
+} from "@/hooks/production-output/useProductionOutputQueries";
 import {
   hasPermission,
   isMatrixPermissionMode,
@@ -78,7 +82,27 @@ export default function ProductionOutputApprovalDetailPage({
         userHasRole(RoleCode.ADMINISTRATOR)));
   /** ปุ่มอนุมัติจริงมีเฉพาะหน้าฝั่งคลัง FG — ฝั่งผลิตดูอย่างเดียว */
   const canApprove = !readOnly && hasApproveRight;
-  const detailQuery = useProductionOutputApprovalQuery(requestId);
+  const canViewProductionOrders = useScreenActionPermissions(
+    "PRODUCTION_ORDERS",
+  ).canView;
+  const canViewStockMovements =
+    useScreenActionPermissions("STOCK_MOVEMENTS").canView;
+  const canViewFgStockMovements = useScreenActionPermissions(
+    "FG_STOCK_MOVEMENTS",
+  ).canView;
+  const stockMovementsHref = canViewStockMovements
+    ? "/inventory/stock-movements"
+    : canViewFgStockMovements
+      ? "/inventory/stock-movements?itemCategoryCode=FINISHED_GOODS"
+      : null;
+  /** ฝั่งผลิตใช้ GET stock-requests (ไม่ต้องมีสิทธิ์อนุมัติคลัง) */
+  const stockRequestQuery = useProductionOutputStockRequestQuery(
+    readOnly ? requestId : undefined,
+  );
+  const approvalQuery = useProductionOutputApprovalQuery(
+    readOnly ? undefined : requestId,
+  );
+  const detailQuery = readOnly ? stockRequestQuery : approvalQuery;
   const approveMutation = useApproveProductionOutputStockRequestMutation();
   const rejectMutation = useRejectProductionOutputStockRequestMutation();
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -250,24 +274,30 @@ export default function ProductionOutputApprovalDetailPage({
                       <div className={styles.field}>
                         <span className={styles.fieldLabel}>ใบสั่งผลิตต้นทาง</span>
                         <span className={styles.fieldValue}>
-                          <button
-                            type="button"
-                            style={{
-                              border: "none",
-                              background: "transparent",
-                              padding: 0,
-                              cursor: "pointer",
-                              color: "inherit",
-                              textDecoration: "underline",
-                            }}
-                            onClick={() =>
-                              router.push(
-                                `/production/production-orders/${request.productionOrderId}`,
-                              )
-                            }
-                          >
-                            {request.productionOrderNo ?? request.productionOrderId}
-                          </button>
+                          {canViewProductionOrders ? (
+                            <button
+                              type="button"
+                              style={{
+                                border: "none",
+                                background: "transparent",
+                                padding: 0,
+                                cursor: "pointer",
+                                color: "inherit",
+                                textDecoration: "underline",
+                              }}
+                              onClick={() =>
+                                router.push(
+                                  `/production/production-orders/${request.productionOrderId}`,
+                                )
+                              }
+                            >
+                              {request.productionOrderNo ??
+                                request.productionOrderId}
+                            </button>
+                          ) : (
+                            (request.productionOrderNo ??
+                              request.productionOrderId)
+                          )}
                         </span>
                       </div>
                     ) : null}
@@ -401,12 +431,14 @@ export default function ProductionOutputApprovalDetailPage({
                     <p className={styles.actionHint}>
                       อนุมัติแล้ว — ดูรายการเคลื่อนไหวสต๊อกที่เกิดจากคำขอนี้ได้
                     </p>
-                    <Button
-                      block
-                      onClick={() => router.push("/inventory/stock-movements")}
-                    >
-                      ดู Stock Movement
-                    </Button>
+                    {stockMovementsHref ? (
+                      <Button
+                        block
+                        onClick={() => router.push(stockMovementsHref)}
+                      >
+                        ดู Stock Movement
+                      </Button>
+                    ) : null}
                   </div>
                 ) : null}
 

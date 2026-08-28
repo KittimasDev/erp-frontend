@@ -30,8 +30,13 @@ import {
   SALES_ORDER_FLOW_STEPS,
   type SalesOrderProgress,
 } from "@/lib/sales/sales-order-progress";
-import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
+import type {
+  SalesTrackingRoundTimeline,
+  SalesTrackingTimelineStep,
+} from "@/types/sales-tracking";
 import styles from "./SalesOrderTimeline.module.css";
+
+type FlowRound = Pick<SalesTrackingRoundTimeline, "roundNo" | "roundStatus">;
 
 type Props = {
   salesOrderId: string;
@@ -44,9 +49,68 @@ type Props = {
   nextAction?: string;
   timeline?: SalesTrackingTimelineStep[];
   progress?: SalesOrderProgress;
+  roundCount?: number;
+  rounds?: FlowRound[];
   /** ถ้าเปิด URL ของขั้นนั้นไม่ได้ — ไม่ใส่ลิงก์ และโชว์ รอกระบวนการ */
   canNavigateHref?: (href: string) => boolean;
 };
+
+function isOpenRound(roundStatus: string) {
+  return roundStatus !== "DELIVERED" && roundStatus !== "CANCELLED";
+}
+
+function nextOpenRound(rounds: FlowRound[]): FlowRound | undefined {
+  return rounds.find((round) => isOpenRound(round.roundStatus));
+}
+
+/** การ์ดสีส้มได้ใบเดียว — หลายรอบที่ยังไม่จบชี้ที่รอบจัดส่ง */
+function resolveFlowFocusStepName({
+  flowComplete,
+  roundCount,
+  rounds,
+  salesOrderStatus,
+  salesOrderDeliveryStatus,
+}: {
+  flowComplete: boolean;
+  roundCount: number;
+  rounds: FlowRound[];
+  salesOrderStatus?: string;
+  salesOrderDeliveryStatus?: string;
+}): string | null {
+  if (flowComplete) return null;
+  const remaining = rounds.filter((round) => isOpenRound(round.roundStatus));
+  if (roundCount > 1 && remaining.length > 0) {
+    return "Delivery Rounds";
+  }
+  if (!salesOrderStatus) return null;
+  return resolveActiveTimelineStepName(
+    salesOrderStatus,
+    salesOrderDeliveryStatus,
+    remaining[0]?.roundStatus,
+  );
+}
+
+function flowStepCaption(
+  step: SalesTrackingTimelineStep,
+  roundCount: number,
+  remainingRound: FlowRound | undefined,
+  lastRound: FlowRound | undefined,
+  allRoundsDone: boolean,
+): string | undefined {
+  if (step.step === "Delivery Rounds") {
+    if (!roundCount) return undefined;
+    if (allRoundsDone || !remainingRound) {
+      return `ครบ ${roundCount} รอบ`;
+    }
+    return `รอบ ${remainingRound.roundNo} จาก ${roundCount}`;
+  }
+  if (step.step === "Picking" || step.step === "Packing" || step.step === "Delivery") {
+    const round = remainingRound ?? lastRound;
+    if (!round) return undefined;
+    return `รอบ ${round.roundNo}`;
+  }
+  return undefined;
+}
 
 function stepIcon(stepName: string) {
   switch (stepName) {
@@ -74,6 +138,7 @@ function FlowStepCard({
   isHere,
   isFocus,
   waitForPermission,
+  caption,
 }: {
   step: SalesTrackingTimelineStep;
   href?: string;
@@ -81,6 +146,7 @@ function FlowStepCard({
   isHere?: boolean;
   isFocus?: boolean;
   waitForPermission?: boolean;
+  caption?: string;
 }) {
   const actionLabel = waitForPermission
     ? "รอกระบวนการ"
@@ -103,6 +169,7 @@ function FlowStepCard({
       <div className={styles.flowStepName}>
         {salesTrackingStepLabel(step.step)}
       </div>
+      {caption ? <div className={styles.flowStepMeta}>{caption}</div> : null}
       <div
         className={`${styles.flowStepAction} ${
           href ? styles.flowStepActionLink : ""
@@ -145,13 +212,23 @@ export default function SalesOrderTimeline({
   nextAction,
   timeline = [],
   progress,
+  roundCount = 0,
+  rounds = [],
   canNavigateHref,
 }: Props) {
-  const activeTimelineStep = salesOrderStatus
-    ? resolveActiveTimelineStepName(salesOrderStatus, salesOrderDeliveryStatus)
-    : null;
   const flowComplete =
     salesOrderDeliveryStatus === "DELIVERED" || progress?.tone === "done";
+  const remainingRound = nextOpenRound(rounds);
+  const lastRound = rounds[rounds.length - 1];
+  const allRoundsDone =
+    roundCount > 0 && rounds.every((round) => !isOpenRound(round.roundStatus));
+  const focusStep = resolveFlowFocusStepName({
+    flowComplete,
+    roundCount,
+    rounds,
+    salesOrderStatus,
+    salesOrderDeliveryStatus,
+  });
   const hasNext = Boolean(nextAction && nextAction !== "—");
   const nowLabel =
     currentStep ||
@@ -296,7 +373,20 @@ export default function SalesOrderTimeline({
                 !flowComplete &&
                 tone !== "done" &&
                 tone !== "cancelled" &&
-                (activeTimelineStep === step.step || tone === "active");
+                focusStep === step.step;
+              const displayTone: SalesTimelineStepTone =
+                tone === "done" || tone === "cancelled"
+                  ? tone
+                  : isFocus
+                    ? "active"
+                    : "pending";
+              const caption = flowStepCaption(
+                step,
+                roundCount,
+                remainingRound,
+                lastRound,
+                allRoundsDone,
+              );
 
               return (
                 <div
@@ -306,10 +396,11 @@ export default function SalesOrderTimeline({
                   <FlowStepCard
                     step={step}
                     href={href}
-                    tone={isFocus && tone === "pending" ? "active" : tone}
+                    tone={displayTone}
                     isHere={isHere}
                     isFocus={isFocus}
                     waitForPermission={waitForPermission}
+                    caption={caption}
                   />
                   {index < visible.length - 1 ? (
                     <RightOutlined

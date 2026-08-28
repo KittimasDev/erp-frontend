@@ -117,6 +117,9 @@ export default function ProductionOutputStockRequestsPage() {
   const canRequest = useScreenActionPermissions(
     "PRODUCTION_OUTPUT_STOCK_REQUESTS",
   ).canAdd;
+  const canViewProductionOrders = useScreenActionPermissions(
+    "PRODUCTION_ORDERS",
+  ).canView;
 
   const listQuery = useProductionOutputStockRequestsQuery({
     status,
@@ -337,13 +340,15 @@ export default function ProductionOutputStockRequestsPage() {
     <MasterPageGate isLoading={listQuery.isLoading}>
       <section className={styles.page}>
         <header className={styles.hero}>
-          <Button
-            icon={<ArrowLeftOutlined />}
-            className={styles.backBtn}
-            onClick={() => router.push("/production/production-orders")}
-          >
-            กลับใบสั่งผลิต
-          </Button>
+          {canViewProductionOrders ? (
+            <Button
+              icon={<ArrowLeftOutlined />}
+              className={styles.backBtn}
+              onClick={() => router.push("/production/production-orders")}
+            >
+              กลับใบสั่งผลิต
+            </Button>
+          ) : null}
           <div className={styles.heroMain}>
             <p className={styles.eyebrow}>PRODUCTION · OUTPUT</p>
             <Typography.Title level={2} className={styles.pageTitle}>

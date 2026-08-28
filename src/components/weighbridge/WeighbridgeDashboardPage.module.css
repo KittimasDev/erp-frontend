@@ -18,6 +18,10 @@
   box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
 }
 
+.pageHeaderT2900 {
+  grid-template-columns: auto 1fr auto;
+}
+
 .pageHeader::after {
   content: "";
   position: absolute;
@@ -605,6 +609,38 @@
   margin-inline-end: 0 !important;
   border-radius: 999px !important;
   font-weight: 500;
+}
+
+.viewTabs :global(.ant-tabs-nav) {
+  margin-bottom: 4px !important;
+}
+
+.tabLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.t2900Preview {
+  display: grid;
+  gap: 4px;
+}
+
+.t2900Preview p {
+  margin: 0 0 8px;
+}
+
+.t2900Toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 20px 12px;
+}
+
+.t2900RowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .clickableRow {
