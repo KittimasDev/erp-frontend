@@ -6,6 +6,7 @@ export type SalesFulfillmentNavPermissions = {
   packing: ScreenActionPermissions;
   delivery: ScreenActionPermissions;
   salesOrder: ScreenActionPermissions;
+  quotation?: ScreenActionPermissions;
 };
 
 /** เปิดหน้ารายละเอียดใบสั่งขายได้เมื่อทำงานใน flow ขาย/คลัง (ไม่ต้องมี SALES_ORDERS แยก) */
@@ -38,15 +39,11 @@ export function canApproveStockVerification(
   return perms.stockVerification.canApprove || perms.picking.canAdd;
 }
 
-/** สร้างใบส่งจาก packing ได้เมื่อเข้าหน้า create-from-packing ได้ตาม screen-routes */
+/** สร้างใบส่งจาก packing ได้เมื่อมีสิทธิ์สร้างใบส่งสินค้า — หน้าสร้างกันด้วย canAdd อยู่แล้ว */
 export function canCreateDeliveryFromPacking(
   perms: Pick<SalesFulfillmentNavPermissions, "delivery" | "salesOrder">,
 ): boolean {
-  return (
-    perms.delivery.canAdd ||
-    perms.delivery.canView ||
-    perms.salesOrder.canView
-  );
+  return perms.delivery.canAdd;
 }
 
 /** สิทธิ์ที่ต้องมีเพื่อเปิด URL ขั้นถัดไปของ flow ขาย (ตรวจสต๊อก / จ่าย / บรรจุ / ส่ง) */
@@ -85,6 +82,12 @@ export function canNavigateSalesFulfillmentHref(
   }
   if (path.startsWith("/delivery-orders")) {
     return perms.delivery.canView;
+  }
+  if (path.startsWith("/quotations")) {
+    return perms.quotation?.canView === true;
+  }
+  if (path.startsWith("/sales-orders")) {
+    return perms.salesOrder.canView;
   }
   return true;
 }

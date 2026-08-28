@@ -107,7 +107,7 @@ export function useCancelSalesOrderMutation() {
  *
  * ทั้งหมดยิง endpoint ที่ถูกถอดออกฝั่ง backend แล้ว — การจองด้วยมือระดับ
  * ใบสั่งขายทำให้จองซ้ำกับการจองระดับรอบ (สั่ง 2 กลายเป็นจองไว้ 4)
- * ของถูกจองตอนคลังเปิดใบจ่ายของรอบเท่านั้น
+ * ของถูกจองตอนสร้างใบสั่งขาย — เปิดใบจ่ายยกแถวเดิมมาใช้ ไม่จองซ้ำ
  */
 
 export function useUploadSalesOrderAttachmentMutation() {

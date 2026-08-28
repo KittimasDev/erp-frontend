@@ -254,7 +254,8 @@ function reservationLineTag(line: SalesOrderReservationLine) {
   if (Number(line.shortageQty) > 0) {
     return <Tag color="error">สต๊อกไม่พอ</Tag>;
   }
-  return <Tag color="warning">รอจอง</Tag>;
+  // ยังไม่จองเป็นเรื่องปกติเมื่อของไม่พอ — ของถูกจองตอนสร้างใบถ้ามีของ อย่าโชว์ «รอจอง»
+  return null;
 }
 
 function buildProductionRequestLine(
@@ -335,6 +336,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   >("current");
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewIsImage, setPreviewIsImage] = useState(false);
+  const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const productionRequestActions = useScreenActionPermissions(
     "PRODUCTION_REQUESTS",
@@ -868,6 +870,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
         onClick={() =>
           modal.confirm({
             title: "ยืนยันยกเลิกใบสั่งขาย?",
+            content: isPreConfirm
+              ? "ของที่จองไว้จะถูกคืนเข้าคลัง"
+              : "ยกเลิกใบสั่งขาย และคืนสต๊อกที่จองไว้ (ถ้ายังไม่ได้จ่ายออกคลัง)",
+            okText: "ยกเลิกใบสั่งขาย",
+            okButtonProps: { danger: true },
             onOk: () => cancelMutation.mutateAsync(data.id),
           })
         }
@@ -909,23 +916,24 @@ export default function SalesOrderDetailPage({ id }: Props) {
       // ส่งครบทุกรอบแล้ว (หรือไม่มีรอบค้าง) — อย่าโชว์ปุ่มไปสร้างใบจ่าย
       roundAction = null;
     } else if (roundInFlight.roundStatus === "PACKED") {
-      // บรรจุแล้ว → สร้าง/เปิดใบส่งสินค้า
-      roundAction = packingDoc?.documentId ? (
-        <Button
-          className={styles.primaryBtn}
-          type="primary"
-          icon={<ShoppingOutlined />}
-          onClick={() =>
-            router.push(
-              `/delivery-orders/create-from-packing/${packingDoc.documentId}`,
-            )
-          }
-        >
-          สร้างใบส่งสินค้า (รอบ {roundInFlight.roundNo})
-        </Button>
-      ) : (
-        waitProcessHint
-      );
+      const canCreateDo = deliveryActions.canAdd;
+      roundAction =
+        canCreateDo && packingDoc?.documentId ? (
+          <Button
+            className={styles.primaryBtn}
+            type="primary"
+            icon={<ShoppingOutlined />}
+            onClick={() =>
+              router.push(
+                `/delivery-orders/create-from-packing/${packingDoc.documentId}`,
+              )
+            }
+          >
+            สร้างใบส่งสินค้า (รอบ {roundInFlight.roundNo})
+          </Button>
+        ) : canCreateDo ? (
+          waitProcessHint
+        ) : null;
     } else if (roundInFlight.roundStatus === "ISSUED") {
       // จ่ายของแล้ว → สร้าง/เปิดใบบรรจุ
       roundAction = pickingDoc?.documentId ? (
@@ -1128,11 +1136,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
         </Button>,
       );
     } else if (packing?.documentId && packing.status === "CONFIRMED") {
-      nextStepButton = navOrWait(
-        canCreateDeliveryFromPacking({
-          delivery: deliveryActions,
-          salesOrder: salesOrderActions,
-        }),
+      const canCreateDo = canCreateDeliveryFromPacking({
+        delivery: deliveryActions,
+        salesOrder: salesOrderActions,
+      });
+      nextStepButton = canCreateDo ? (
         <Button
           className={styles.primaryBtn}
           type="primary"
@@ -1144,8 +1152,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
           }
         >
           สร้างใบส่งสินค้า
-        </Button>,
-      );
+        </Button>
+      ) : null;
     } else if (packing?.href && packing.status === "DRAFT") {
       nextStepButton = navOrWait(
         packingActions.canEdit,
@@ -1159,11 +1167,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
         </Button>,
       );
     } else {
-      nextStepButton = navOrWait(
-        canCreateDeliveryFromPacking({
-          delivery: deliveryActions,
-          salesOrder: salesOrderActions,
-        }),
+      const canCreateDo = canCreateDeliveryFromPacking({
+        delivery: deliveryActions,
+        salesOrder: salesOrderActions,
+      });
+      nextStepButton = canCreateDo ? (
         <Button
           className={styles.primaryBtn}
           type="primary"
@@ -1171,8 +1179,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
           onClick={() => router.push("/delivery-orders/create-from-packing")}
         >
           สร้างใบส่งสินค้า
-        </Button>,
-      );
+        </Button>
+      ) : null;
     }
   }
 
@@ -1248,7 +1256,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
               พิมพ์ PDF
             </Button>
           )}
-          {isPreConfirm ? preConfirmHeaderButton : nextStepButton}
+          {isPreConfirm ? (
+            <>
+              {preConfirmHeaderButton}
+              {cancelButton}
+            </>
+          ) : (
+            nextStepButton
+          )}
         </div>
       </header>
 
@@ -1275,22 +1290,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
             packing: packingActions,
             delivery: deliveryActions,
             salesOrder: salesOrderActions,
+            quotation: quotationActions,
           })
         }
       />
 
-      {stockReadyForReserve ? (
-        <div className={styles.reserveActionBanner}>
-          <>
-            สต๊อกพอทุกรายการแล้ว — จัดรอบจัดส่งให้ครบแล้วกด{" "}
-            <strong>ยืนยันใบสั่งขาย</strong> · ของจะถูกจองตอนคลังเปิดใบจ่าย
-            ของแต่ละรอบ ไม่ต้องจองจากหน้านี้
-          </>
-        </div>
-      ) : null}
-      {showConfirmCta ? (
-        <div className={`${styles.reserveActionBanner} ${styles.reserveActionBannerReady}`}>
-          จองครบแล้ว — กด <strong>ยืนยันใบสั่งขาย</strong> เพื่อดำเนินการต่อ
+      {isPreConfirm && allLinesReserved ? (
+        <div
+          className={`${styles.reserveActionBanner} ${styles.reserveActionBannerReady}`}
+        >
+          จองสต๊อกแล้ว — ยกเลิกใบได้ก่อนยืนยันเพื่อคืนของ
         </div>
       ) : null}
 
@@ -1555,7 +1564,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     ? hasActiveProductionRequest
                       ? "สต๊อกไม่พอ — มีใบขอผลิตแล้ว ติดตามของเข้าคลังได้จากเอกสารนั้น · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ"
                       : "สต๊อกไม่พอ — เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ ขอแค่จัดรอบจัดส่งให้ครบ"
-                    : "ดูยอดคงเหลือไว้ประกอบการตัดสินใจ — ของจะถูกจองจริงตอนคลังเปิดใบจ่ายของแต่ละรอบ"
+                    : allLinesReserved
+                      ? "จองสต๊อกแล้ว — ยกเลิกใบได้ก่อนยืนยันเพื่อคืนของ"
+                      : "ของพอจะถูกจองตอนสร้างใบ ถ้าไม่พอจองเท่าที่มี"
                   : "เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย"}
               </span>
             </div>
@@ -1575,12 +1586,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       ด่านเช็คของอยู่ตอนคลังเปิดใบจ่ายของแต่ละรอบ
                     </p>
                   ) : null}
-                  {allLinesReserved ? (
-                    <p className={styles.stockReadyNote}>
-                      จองครบทุกรายการแล้ว — กด <strong>ยืนยันใบสั่งขาย</strong>{" "}
-                      เพื่อไปขั้นจ่ายสินค้า
-                    </p>
-                  ) : null}
                 </>
               ) : (
                 <p className={styles.textBlock}>ไม่สามารถโหลดสถานะการจองได้</p>
@@ -1592,7 +1597,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   <p className={styles.stockReadyNote}>
                     สต๊อกพอทุกรายการ ณ ตอนนี้ — หน้านี้เป็นรายงานอ่านอย่างเดียว ·
                     ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด
-                    (ของจะถูกจองตอนนั้น ไม่ใช่ตอนนี้)
+                    (ใช้ของที่จองไว้ตอนสร้างใบ ไม่จองซ้ำ)
                   </p>
                 ) : null}
                 {stockVerificationQuery.isLoading ? (
@@ -1797,8 +1802,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               {showReserveCta ? (
                 <div className={styles.productionContinueRow}>
                   <span className={styles.sectionHint}>
-                    ของในคลังพอแล้ว — จัดรอบจัดส่งให้ครบแล้วยืนยันใบสั่งขาย ·
-                    ของจะถูกจองตอนคลังเปิดใบจ่ายของรอบ
+                    ของในคลังพอแล้ว — จัดรอบจัดส่งให้ครบแล้วยืนยันใบสั่งขาย
                   </span>
                 </div>
               ) : null}
@@ -1814,7 +1818,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     ยืนยันใบสั่งขาย
                   </Button>
                   <span className={styles.sectionHint}>
-                    จองครบแล้ว — กดยืนยันเพื่อไปขั้นจ่ายสินค้า
+                    จัดรอบครบแล้ว — กดยืนยันได้
+                    {allLinesReserved
+                      ? " ของถูกจองไว้แล้ว ยืนยันใบไม่จองซ้ำ"
+                      : ""}
                   </span>
                 </div>
               ) : null}
@@ -1968,9 +1975,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 คำนวณยอดรวม/VAT ใหม่ และจองสต๊อกให้ตามจำนวนที่แก้
               </p>
             ) : null}
-            {isPreConfirm && canWrite && !hasShortage ? (
+            {isPreConfirm && canWrite && allLinesReserved ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                ของจะถูกจองตอนคลังเปิดใบจ่ายของรอบจัดส่ง ไม่ต้องจองจากหน้านี้
+                ของถูกจองตอนสร้างใบสั่งขาย — ยกเลิกใบก่อนยืนยันเพื่อคืนสต๊อก
               </p>
             ) : null}
             {isPreConfirm && hasUnplannedShortage ? (
@@ -2075,10 +2082,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           {Number(reservationLine.orderedQty).toLocaleString(
                             "th-TH",
                           )}{" "}
-                          · จองแล้ว{" "}
-                          {Number(reservationLine.reservedQty).toLocaleString(
-                            "th-TH",
-                          )}{" "}
+                          {Number(reservationLine.reservedQty) > 0.0005
+                            ? ` · จองแล้ว ${Number(reservationLine.reservedQty).toLocaleString("th-TH")}`
+                            : ""}{" "}
                           · พร้อมใช้{" "}
                           {Number(reservationLine.availableQty).toLocaleString(
                             "th-TH",
@@ -2088,7 +2094,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             : ""}
                         </p>
                       ) : null}
-                      {!isPreConfirm ? (
+                      {!isPreConfirm &&
+                      (Number(item.reservedQuantity) > 0.0005 ||
+                        Number(item.issuedQuantity) > 0.0005 ||
+                        Number(item.deliveredQuantity) > 0.0005) ? (
                         <div className={styles.itemMeta}>
                           <span>
                             จอง{" "}
@@ -2130,10 +2139,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             gap: 8,
                           }}
                         >
-                          {/* ถอดปุ่ม จอง / ยกเลิกจอง ออกแล้ว (2026-08-26) —
-                              การจองด้วยมือระดับบรรทัดทำให้จองซ้ำกับการจอง
-                              ระดับรอบ (สั่ง 2 กลายเป็นจองไว้ 4) · การจองที่ถูก
-                              เกิดตอนคลังเปิดใบจ่ายของรอบเท่านั้น */}
+                          {/* ถอดปุ่ม จอง / ยกเลิกจอง ด้วยมือออกแล้ว —
+                              จองตอนสร้างใบ · เปิดใบจ่ายยกแถวเดิมมาใช้ ไม่จองซ้ำ */}
                           {reservationLineTag(reservationLine)}
                           {hasUnplannedShortage &&
                           canIssueProductionRequest &&

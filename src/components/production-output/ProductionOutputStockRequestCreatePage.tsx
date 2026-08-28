@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQueries } from "@tanstack/react-query";
@@ -33,10 +33,6 @@ import {
   useProductionOutputReadyOrdersQuery,
   useProductionOutputStockRequestsQuery,
 } from "@/hooks/production-output/useProductionOutputQueries";
-import {
-  useProductionOrderQuery,
-  useProductionOrderSummaryQuery,
-} from "@/hooks/production-orders/useProductionOrderQueries";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
@@ -49,6 +45,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import type {
   CreateProductionOutputStockRequestBatchBody,
   CreateProductionOutputStockRequestBody,
+  ProductionOutputReadyOrder,
 } from "@/types/production-output-stock-request";
 import {
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
@@ -126,6 +123,36 @@ const EMPTY_LINE: LineValues = {
   quantity: undefined,
   lotNo: undefined,
 };
+
+function linesFromReadyOrder(order: ProductionOutputReadyOrder): LineValues[] {
+  const blocked = new Set(order.blockedItemIds ?? []);
+  const lines = (order.outputItems ?? [])
+    .filter(
+      (item) => Number(item.remainingQty) > 0 && !blocked.has(item.itemId),
+    )
+    .map((item) => ({
+      itemId: item.itemId,
+      unitId: item.unitId,
+      quantity: Number(item.remainingQty),
+      lotNo: undefined,
+    }));
+  return lines.length > 0 ? lines : [{ ...EMPTY_LINE }];
+}
+
+function qtyPlanHint(
+  itemId: string | undefined,
+  order: ProductionOutputReadyOrder | undefined,
+) {
+  if (!itemId || !order?.outputItems) {
+    return undefined;
+  }
+  const plan = order.outputItems.find((row) => row.itemId === itemId);
+  if (!plan) {
+    return undefined;
+  }
+  const unit = plan.unitCode ? ` ${plan.unitCode}` : "";
+  return `แผน ${formatQty(plan.plannedQty)} · ขอแล้ว ${formatQty(plan.requestedQty)} · ค้าง ${formatQty(plan.remainingQty)}${unit}`;
+}
 
 const SOURCE_ITEM_COLUMNS: ColumnsType<ClassificationItem> = [
   {
@@ -322,13 +349,8 @@ export default function ProductionOutputStockRequestCreatePage({
     [readyOrders, selectedProductionOrderId],
   );
   const blockedItemIds = selectedProductionOrder?.blockedItemIds ?? [];
+  const lastPrefillOrderIdRef = useRef<string | undefined>(undefined);
 
-  const productionOrderDetailQuery = useProductionOrderQuery(
-    selectedProductionOrderId ?? undefined,
-  );
-  const productionOrderSummaryQuery = useProductionOrderSummaryQuery(
-    selectedProductionOrderId ?? undefined,
-  );
   const productionOrderRequestsQuery = useProductionOutputStockRequestsQuery(
     selectedProductionOrderId
       ? {
@@ -339,90 +361,23 @@ export default function ProductionOutputStockRequestCreatePage({
     { enabled: Boolean(selectedProductionOrderId) },
   );
 
-  const productionOrderRefLoading =
-    productionOrderDetailQuery.isLoading ||
-    productionOrderSummaryQuery.isLoading ||
-    productionOrderRequestsQuery.isLoading;
-
-  const productionOrderRefError =
-    (productionOrderDetailQuery.isError &&
-      productionOrderDetailQuery.error instanceof Error &&
-      productionOrderDetailQuery.error.message) ||
-    (productionOrderSummaryQuery.isError &&
-      productionOrderSummaryQuery.error instanceof Error &&
-      productionOrderSummaryQuery.error.message) ||
-    (productionOrderRequestsQuery.isError &&
-      productionOrderRequestsQuery.error instanceof Error &&
-      productionOrderRequestsQuery.error.message) ||
-    null;
-
-  const productionOrderRefSummary = useMemo(() => {
-    if (!selectedProductionOrderId) {
-      return null;
-    }
-
-    const summary = productionOrderSummaryQuery.data?.data;
-    const order = productionOrderDetailQuery.data?.data;
-    const requests = productionOrderRequestsQuery.data?.data ?? [];
-    const orderNo =
-      selectedProductionOrder?.orderNo ?? order?.orderNo ?? "—";
-
-    if (!summary && !order && requests.length === 0) {
-      return null;
-    }
-
-    const inputItems = (order?.inputItems ?? [])
-      .slice()
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((item) => ({
-        key: item.id,
-        label:
-          item.itemCode && item.itemNameTh
-            ? `${item.itemCode} — ${item.itemNameTh}`
-            : item.itemNameTh || item.itemCode || "—",
-        qty: formatQty(item.actualQty || item.plannedQty),
-        unitCode: item.unitCode,
-      }));
-
-    const outputByItem = (summary?.outputByItem ?? []).map((item) => ({
-      key: item.itemId,
-      label:
-        item.itemCode && item.itemNameTh
-          ? `${item.itemCode} — ${item.itemNameTh}`
-          : item.itemNameTh || item.itemCode || "—",
-      qty: formatQty(item.quantity),
-    }));
-
-    const previousRequests = requests.map((req) => ({
-      key: req.id,
-      requestNo: req.requestNo,
-      itemLabel:
-        req.itemCode && req.itemNameTh
-          ? `${req.itemCode} — ${req.itemNameTh}`
-          : req.itemNameTh || req.itemCode || "—",
-      qty: formatQty(req.quantity),
-      unitCode: req.unitCode,
-      status: req.status,
-      statusLabel:
-        PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[req.status] ?? req.status,
-    }));
-
-    return {
-      orderNo,
-      totalInputQty: summary?.totalInputQty ?? "0",
-      totalOutputQty: summary?.totalOutputQty ?? "0",
-      yieldPercent: summary?.yieldPercent ?? 0,
-      inputItems,
-      outputByItem,
-      previousRequests,
-    };
-  }, [
-    selectedProductionOrderId,
-    selectedProductionOrder?.orderNo,
-    productionOrderSummaryQuery.data?.data,
-    productionOrderDetailQuery.data?.data,
-    productionOrderRequestsQuery.data?.data,
-  ]);
+  const previousRequests = useMemo(
+    () =>
+      (productionOrderRequestsQuery.data?.data ?? []).map((req) => ({
+        key: req.id,
+        requestNo: req.requestNo,
+        itemLabel:
+          req.itemCode && req.itemNameTh
+            ? `${req.itemCode} — ${req.itemNameTh}`
+            : req.itemNameTh || req.itemCode || "—",
+        qty: formatQty(req.quantity),
+        unitCode: req.unitCode,
+        status: req.status,
+        statusLabel:
+          PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[req.status] ?? req.status,
+      })),
+    [productionOrderRequestsQuery.data?.data],
+  );
 
   const items = itemsQuery.data?.data ?? [];
   const units = unitsQuery.data?.data ?? [];
@@ -452,14 +407,42 @@ export default function ProductionOutputStockRequestCreatePage({
   useEffect(() => {
     form.setFieldsValue({
       postingDate: dayjs(),
-      lines: [{ ...EMPTY_LINE }],
       productionOrderId: initialProductionOrderId,
       referenceDocNo:
         batchTickets.length === 1
           ? batchTickets[0].ticketNo
           : undefined,
+      ...(initialProductionOrderId ? {} : { lines: [{ ...EMPTY_LINE }] }),
     });
   }, [form, batchTickets, initialProductionOrderId]);
+
+  useEffect(() => {
+    if (!showProductionOrderRef) {
+      return;
+    }
+    if (!selectedProductionOrderId) {
+      if (lastPrefillOrderIdRef.current) {
+        lastPrefillOrderIdRef.current = undefined;
+        form.setFieldsValue({ lines: [{ ...EMPTY_LINE }] });
+      }
+      return;
+    }
+    if (!selectedProductionOrder) {
+      return;
+    }
+    if (lastPrefillOrderIdRef.current === selectedProductionOrder.id) {
+      return;
+    }
+    lastPrefillOrderIdRef.current = selectedProductionOrder.id;
+    form.setFieldsValue({
+      lines: linesFromReadyOrder(selectedProductionOrder),
+    });
+  }, [
+    form,
+    showProductionOrderRef,
+    selectedProductionOrder,
+    selectedProductionOrderId,
+  ]);
 
   useEffect(() => {
     form.setFieldValue("warehouseLocationId", undefined);
@@ -551,9 +534,19 @@ export default function ProductionOutputStockRequestCreatePage({
   );
 
   const handleItemChange = (index: number, itemId?: string) => {
+    const plan = selectedProductionOrder?.outputItems?.find(
+      (row) => row.itemId === itemId,
+    );
     const item = items.find((row) => row.id === itemId);
-    if (item?.unitId) {
-      form.setFieldValue(["lines", index, "unitId"], item.unitId);
+    form.setFieldValue(
+      ["lines", index, "unitId"],
+      plan?.unitId ?? item?.unitId,
+    );
+    if (plan && Number(plan.remainingQty) > 0) {
+      form.setFieldValue(
+        ["lines", index, "quantity"],
+        Number(plan.remainingQty),
+      );
     }
   };
 
@@ -962,6 +955,10 @@ export default function ProductionOutputStockRequestCreatePage({
                                 rules={[
                                   { required: true, message: "กรอกจำนวน" },
                                 ]}
+                                extra={qtyPlanHint(
+                                  lines[field.name]?.itemId,
+                                  selectedProductionOrder,
+                                )}
                               >
                                 <InputNumber
                                   size="large"
@@ -1314,88 +1311,75 @@ export default function ProductionOutputStockRequestCreatePage({
             {selectedProductionOrderId ? (
               <div className={styles.previewBox}>
                 <div className={styles.previewLabel}>
-                  จากใบสั่งผลิต{" "}
-                  {productionOrderRefSummary?.orderNo ??
-                    selectedProductionOrder?.orderNo ??
-                    "—"}
+                  จากใบสั่งผลิต {selectedProductionOrder?.orderNo ?? "—"}
                 </div>
-                {productionOrderRefLoading ? (
+                {readyOrdersQuery.isLoading && !selectedProductionOrder ? (
                   <div className={styles.previewLoading}>
                     <Spin size="small" />
                   </div>
-                ) : productionOrderRefError ? (
-                  <Alert
-                    type="warning"
-                    showIcon
-                    title={productionOrderRefError}
-                  />
-                ) : productionOrderRefSummary ? (
+                ) : selectedProductionOrder ? (
                   <>
                     <p className={styles.previewMeta}>
                       <strong>วัตถุดิบเข้าจริง</strong>{" "}
-                      {formatQty(productionOrderRefSummary.totalInputQty)}
+                      {formatQty(selectedProductionOrder.totalInputQty)}
                     </p>
-                    {productionOrderRefSummary.inputItems.length > 0 ? (
-                      <ul className={styles.previewSubList}>
-                        {productionOrderRefSummary.inputItems.map((item) => (
-                          <li key={item.key}>
-                            {item.label}{" "}
-                            <span className={styles.previewSubQty}>
-                              {item.qty}
-                              {item.unitCode ? ` ${item.unitCode}` : ""}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
                     <p className={styles.previewMeta}>
-                      <strong>ผลผลิตเข้าคลังแล้ว</strong>{" "}
-                      {formatQty(productionOrderRefSummary.totalOutputQty)}
-                      {" · "}Yield{" "}
-                      {productionOrderRefSummary.yieldPercent.toLocaleString(
-                        "th-TH",
-                        { maximumFractionDigits: 2 },
-                      )}
-                      %
+                      <strong>ผลผลิตตามแผน</strong>{" "}
+                      {formatQty(selectedProductionOrder.totalPlannedOutputQty)}
                     </p>
-                    {productionOrderRefSummary.outputByItem.length > 0 ? (
+                    {(selectedProductionOrder.outputItems ?? []).length > 0 ? (
                       <ul className={styles.previewSubList}>
-                        {productionOrderRefSummary.outputByItem.map((item) => (
-                          <li key={item.key}>
-                            {item.label}{" "}
-                            <span className={styles.previewSubQty}>
-                              {item.qty}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    <p className={styles.previewMeta}>
-                      <strong>คำขอที่เคยส่ง</strong>{" "}
-                      {productionOrderRefSummary.previousRequests.length} รายการ
-                    </p>
-                    {productionOrderRefSummary.previousRequests.length > 0 ? (
-                      <ul className={styles.previewSubList}>
-                        {productionOrderRefSummary.previousRequests.map(
-                          (req) => (
-                            <li key={req.key}>
-                              {req.requestNo} · {req.itemLabel}{" "}
+                        {(selectedProductionOrder.outputItems ?? []).map(
+                          (item) => (
+                            <li key={item.itemId}>
+                              {item.itemCode && item.itemNameTh
+                                ? `${item.itemCode} — ${item.itemNameTh}`
+                                : item.itemNameTh || item.itemCode || "—"}{" "}
                               <span className={styles.previewSubQty}>
-                                {req.qty}
-                                {req.unitCode ? ` ${req.unitCode}` : ""}
-                              </span>{" "}
-                              <span className={styles.previewStatus}>
-                                ({req.statusLabel})
+                                แผน {formatQty(item.plannedQty)} · ขอแล้ว{" "}
+                                {formatQty(item.requestedQty)} · ค้าง{" "}
+                                {formatQty(item.remainingQty)}
+                                {item.unitCode ? ` ${item.unitCode}` : ""}
                               </span>
                             </li>
                           ),
                         )}
                       </ul>
                     ) : null}
+                    <p className={styles.previewMeta}>
+                      <strong>ผลผลิตเข้าคลังแล้ว</strong>{" "}
+                      {formatQty(selectedProductionOrder.totalOutputQty)}
+                      {" · "}Yield{" "}
+                      {selectedProductionOrder.yieldPercent.toLocaleString(
+                        "th-TH",
+                        { maximumFractionDigits: 2 },
+                      )}
+                      %
+                    </p>
+                    <p className={styles.previewMeta}>
+                      <strong>คำขอที่เคยส่ง</strong>{" "}
+                      {previousRequests.length} รายการ
+                    </p>
+                    {previousRequests.length > 0 ? (
+                      <ul className={styles.previewSubList}>
+                        {previousRequests.map((req) => (
+                          <li key={req.key}>
+                            {req.requestNo} · {req.itemLabel}{" "}
+                            <span className={styles.previewSubQty}>
+                              {req.qty}
+                              {req.unitCode ? ` ${req.unitCode}` : ""}
+                            </span>{" "}
+                            <span className={styles.previewStatus}>
+                              ({req.statusLabel})
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </>
                 ) : (
                   <p className={styles.previewMeta}>
-                    ไม่พบข้อมูลสรุปจากใบสั่งผลิต
+                    ไม่พบใบสั่งผลิตในคิวรับเข้าคลัง
                   </p>
                 )}
               </div>
@@ -1430,9 +1414,7 @@ export default function ProductionOutputStockRequestCreatePage({
                   {batchTickets.length > 0
                     ? `${batchTickets.length} ตั๋ว`
                     : selectedProductionOrder
-                      ? productionOrderRefSummary
-                        ? `${selectedProductionOrder.orderNo} · วัตถุดิบ ${formatQty(productionOrderRefSummary.totalInputQty)}`
-                        : selectedProductionOrder.orderNo
+                      ? `${selectedProductionOrder.orderNo} · วัตถุดิบ ${formatQty(selectedProductionOrder.totalInputQty)}`
                       : "—"}
                 </strong>
               </div>

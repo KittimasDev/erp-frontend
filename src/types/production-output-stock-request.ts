@@ -145,6 +145,17 @@ export type QueryProductionOutputReadyOrdersParams = {
   q?: string;
 };
 
+export type ProductionOutputReadyOrderItem = {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitId: string;
+  unitCode?: string;
+  plannedQty: string;
+  requestedQty: string;
+  remainingQty: string;
+};
+
 export type ProductionOutputReadyOrder = {
   id: string;
   orderNo: string;
@@ -164,7 +175,23 @@ export type ProductionOutputReadyOrder = {
   yieldPercent: number;
   /** yield ตามแผน (%) */
   plannedYieldPercent: number;
+  /** ผลผลิตตามแผนต่อสินค้า — planned / requested / remaining */
+  outputItems?: ProductionOutputReadyOrderItem[];
 };
+
+/** ยังขอรับผลผลิตเข้าคลังได้อีก — มี SKU ค้างและยังไม่ถูกบล็อกทั้งตัว */
+export function hasRequestableProductionOutput(
+  order: ProductionOutputReadyOrder,
+): boolean {
+  const blocked = new Set(order.blockedItemIds ?? []);
+  const items = order.outputItems;
+  if (!items) {
+    return blocked.size === 0;
+  }
+  return items.some(
+    (item) => Number(item.remainingQty) > 0 && !blocked.has(item.itemId),
+  );
+}
 
 export type ProductionOutputReadyOrderListApiResponse = {
   statusCode?: number;

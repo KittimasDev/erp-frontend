@@ -53,7 +53,10 @@ import {
   ProductionOrderPlanLineType,
   ProductionOrderStatus,
 } from "@/types/production-order";
-import { PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL } from "@/types/production-output-stock-request";
+import {
+  hasRequestableProductionOutput,
+  PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
+} from "@/types/production-output-stock-request";
 import type { CreateProductionOutputStockRequestFromOrderBody } from "@/types/production-output-stock-request";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
@@ -140,12 +143,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     { all: true },
     { enabled: Boolean(orderId) },
   );
-  const blockedItemIds = useMemo(
+  const readyOrder = useMemo(
     () =>
-      readyOrdersQuery.data?.data.find((row) => row.id === orderId)
-        ?.blockedItemIds ?? [],
+      readyOrdersQuery.data?.data.find((row) => row.id === orderId),
     [readyOrdersQuery.data, orderId],
   );
+  const blockedItemIds = readyOrder?.blockedItemIds ?? [];
+  const canStillRequestOutput =
+    !readyOrdersQuery.isSuccess ||
+    (readyOrder ? hasRequestableProductionOutput(readyOrder) : false);
 
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const selectedWarehouseId = Form.useWatch("warehouseId", requestForm);
@@ -459,7 +465,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 </Button>
               ) : null}
 
-              {isCompleted && canRequestOutput ? (
+              {isCompleted && canRequestOutput && canStillRequestOutput ? (
                 <Button
                   type="primary"
                   className={masterStyles.createButton}

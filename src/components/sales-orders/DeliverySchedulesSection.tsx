@@ -43,7 +43,10 @@ import {
   type DeliveryScheduleStatus,
   type UpsertDeliveryScheduleItemBody,
 } from "@/types/delivery-schedules";
-import type { SalesOrderItem } from "@/types/sales-orders";
+import {
+  isPreConfirmSalesOrderStatus,
+  type SalesOrderItem,
+} from "@/types/sales-orders";
 
 const EPS = 0.0005;
 
@@ -464,8 +467,10 @@ export default function DeliverySchedulesSection({
                 <span style={{ flex: 1 }} />
                 {canEdit ? (
                   <Space>
-                    {/* เลื่อนวันทำได้กว้างกว่าแก้รอบ — วันเปลี่ยนแต่ของยังอยู่ครบ */}
-                    {isDeliveryScheduleReschedulable(schedule.status) ? (
+                    {/* เลื่อนวันทำได้กว้างกว่าแก้รอบ — วันเปลี่ยนแต่ของยังอยู่ครบ
+                        โชว์หลังยืนยัน SO เท่านั้น ก่อนนั้นแก้วันผ่านปุ่มแก้ไข */}
+                    {!isPreConfirmSalesOrderStatus(salesOrderStatus) &&
+                    isDeliveryScheduleReschedulable(schedule.status) ? (
                       <Button
                         size="small"
                         icon={<CalendarOutlined />}
@@ -477,14 +482,16 @@ export default function DeliverySchedulesSection({
                     ) : null}
                     {isDeliveryScheduleEditable(schedule.status) ? (
                       <>
-                        <Button
-                          size="small"
-                          icon={<EditOutlined />}
-                          disabled={busy}
-                          onClick={() => openEdit(schedule)}
-                        >
-                          แก้ไข
-                        </Button>
+                        {isPreConfirmSalesOrderStatus(salesOrderStatus) ? (
+                          <Button
+                            size="small"
+                            icon={<EditOutlined />}
+                            disabled={busy}
+                            onClick={() => openEdit(schedule)}
+                          >
+                            แก้ไข
+                          </Button>
+                        ) : null}
                         <Button
                           size="small"
                           danger

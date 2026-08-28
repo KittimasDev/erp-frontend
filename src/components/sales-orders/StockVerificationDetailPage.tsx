@@ -21,7 +21,11 @@ import {
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { stockVerificationLineTag } from "@/lib/sales/stock-verification-line-tag";
+import { canAccessSalesOrderDetail } from "@/lib/sales/sales-fulfillment-nav";
+import {
+  stockVerificationLineTag,
+  type StockVerificationLineTag,
+} from "@/lib/sales/stock-verification-line-tag";
 import { resolveTimelineStepHref } from "@/lib/sales/sales-tracking-timeline";
 import {
   SALES_ORDER_STATUS_LABEL,
@@ -119,6 +123,12 @@ function findTimelineStep(
   return timeline.find((entry) => entry.step === step);
 }
 
+function lineCardToneClass(tag: StockVerificationLineTag) {
+  if (tag.color === "success") return styles.lineOk;
+  if (tag.color === "error") return styles.lineShort;
+  return "";
+}
+
 export default function StockVerificationDetailPage({ id }: Props) {
   const router = useRouter();
   const orderQuery = useSalesOrderQuery(id);
@@ -129,7 +139,15 @@ export default function StockVerificationDetailPage({ id }: Props) {
     "SALES_STOCK_VERIFICATION",
   );
   const pickingActions = useScreenActionPermissions("PICKINGS");
-  const canViewSalesOrder = salesOrderActions.canView;
+  const packingActions = useScreenActionPermissions("PACKINGS");
+  const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const canOpenDetail = canAccessSalesOrderDetail({
+    salesOrder: salesOrderActions,
+    stockVerification: stockVerificationActions,
+    picking: pickingActions,
+    packing: packingActions,
+    delivery: deliveryActions,
+  });
   const canFulfill =
     salesOrderActions.canEdit ||
     stockVerificationActions.canEdit ||
@@ -141,12 +159,11 @@ export default function StockVerificationDetailPage({ id }: Props) {
   const verification = verifyQuery.data?.data;
   const timeline = trackingQuery.data?.data?.timeline ?? [];
   const lines = verification?.lines ?? [];
-  const allOk = verification?.isAllAvailable === true;
-  const needsMoreProduction = lines.some(
-    (line) =>
-      Number(line.unplannedShortageQty ?? line.shortageQty) > 0.0005,
-  );
-  const waitingProduction = !allOk && !needsMoreProduction && lines.length > 0;
+  const lineTags = lines.map((line) => stockVerificationLineTag(line));
+  const allOk =
+    lines.length > 0 && lineTags.every((tag) => tag.color === "success");
+  const needsMoreProduction = lineTags.some((tag) => tag.label === "ไม่พอ");
+  const waitingProduction = lines.length > 0 && !allOk && !needsMoreProduction;
   const soStatus = order?.status ?? verification?.status ?? "";
   const soNo = order?.soNo ?? verification?.soNo ?? "—";
   const isConfirmed = soStatus === "CONFIRMED";
@@ -165,15 +182,9 @@ export default function StockVerificationDetailPage({ id }: Props) {
     : undefined;
   const hasPickingDocument = Boolean(pickingStep?.documentId);
 
-  const okCount = lines.filter((line) => line.isAvailable).length;
-  const unplannedShortCount = lines.filter(
-    (line) => Number(line.unplannedShortageQty ?? line.shortageQty) > 0.0005,
-  ).length;
-  const waitingCount = lines.filter((line) => {
-    const tag = stockVerificationLineTag(line);
-    return tag.label === "รอผลผลิต";
-  }).length;
-  const shortCount = unplannedShortCount;
+  const okCount = lineTags.filter((tag) => tag.color === "success").length;
+  const waitingCount = lineTags.filter((tag) => tag.label === "รอผลผลิต").length;
+  const shortCount = lineTags.filter((tag) => tag.label === "ไม่พอ").length;
   const totalShortage = lines.reduce(
     (sum, line) =>
       sum + (Number(line.unplannedShortageQty ?? line.shortageQty) || 0),
@@ -245,17 +256,34 @@ export default function StockVerificationDetailPage({ id }: Props) {
   };
 
   /** ของไม่พอ — พาไปหน้า SO ใบนี้เพื่อออกใบขอผลิต (ไม่ใช่รายการ SO ทั่วไป) */
-  const openProductionRequestOnSoButton = (block = false) => (
-    <Button
-      type="primary"
-      block={block}
-      className={styles.primaryBtn}
-      icon={<ProfileOutlined />}
-      onClick={() => router.push(`/sales-orders/${id}`)}
-    >
-      ไปใบสั่งขายเพื่อออกใบขอผลิต
-    </Button>
-  );
+  const openProductionRequestOnSoButton = (block = false) => {
+    if (!canOpenDetail) return null;
+    return (
+      <Button
+        type="primary"
+        block={block}
+        className={styles.primaryBtn}
+        icon={<ProfileOutlined />}
+        onClick={() => router.push(`/sales-orders/${id}`)}
+      >
+        ไปใบสั่งขายเพื่อออกใบขอผลิต
+      </Button>
+    );
+  };
+
+  const openFollowProductionOnSoButton = (block = false) => {
+    if (!canOpenDetail) return null;
+    return (
+      <Button
+        block={block}
+        className={styles.primaryBtn}
+        icon={<ProfileOutlined />}
+        onClick={() => router.push(`/sales-orders/${id}`)}
+      >
+        ไปใบสั่งขายเพื่อติดตามใบขอผลิต
+      </Button>
+    );
+  };
 
   const renderPrimaryAction = (block = false) => {
     // ผ่านขั้นตรวจสต๊อกแล้ว — ไม่ให้สร้าง/ยืนยันซ้ำ มีแค่เปิดเอกสารที่ทำต่อ
@@ -274,16 +302,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
         ? openCreatePickingButton(block)
         : needsMoreProduction
           ? openProductionRequestOnSoButton(block)
-          : (
-            <Button
-              block={block}
-              className={styles.primaryBtn}
-              icon={<ProfileOutlined />}
-              onClick={() => router.push(`/sales-orders/${id}`)}
-            >
-              ไปใบสั่งขายเพื่อติดตามใบขอผลิต
-            </Button>
-          );
+          : openFollowProductionOnSoButton(block);
     }
 
     if (isStockChecked && canFulfill) {
@@ -328,10 +347,12 @@ export default function StockVerificationDetailPage({ id }: Props) {
         ? "มีใบจ่ายสินค้าแล้ว — กดเปิดใบจ่ายเพื่อดำเนินการต่อ"
         : "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบจ่ายสินค้าเพื่อไปขั้นถัดไป"
       : allOk
-        ? "หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด (ของจะถูกจองตอนนั้น)"
+        ? "หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด (ใช้ของที่จองไว้แล้ว ไม่จองซ้ำ)"
         : waitingProduction
           ? "มีใบขอผลิตคุมยอดที่ขาดอยู่แล้ว — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง"
-          : "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต";
+          : canOpenDetail
+            ? "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต"
+            : "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง";
 
   const statusBannerTone =
     isPastStockVerification || isStockChecked || allOk
@@ -373,14 +394,20 @@ export default function StockVerificationDetailPage({ id }: Props) {
   ) : allOk ? (
     <>ของพอแล้ว — ขั้นถัดไปเป็นงานของคลัง (เปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด)</>
   ) : waitingProduction ? (
-    <>
-      รอผลผลิตเข้าคลัง — กด <strong>ไปใบสั่งขาย</strong> เพื่อติดตามใบขอผลิต
-    </>
-  ) : (
+    canOpenDetail ? (
+      <>
+        รอผลผลิตเข้าคลัง — กด <strong>ไปใบสั่งขาย</strong> เพื่อติดตามใบขอผลิต
+      </>
+    ) : (
+      <>รอผลผลิตเข้าคลัง — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง</>
+    )
+  ) : canOpenDetail ? (
     <>
       ของไม่พอ — กด <strong>ไปใบสั่งขายเพื่อออกใบขอผลิต</strong> (ใบ{" "}
       {soNo}) แล้วออกใบขอผลิตจากหน้านั้น
     </>
+  ) : (
+    <>ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง</>
   );
 
   return (
@@ -466,7 +493,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>เลขที่ SO</span>
                 <div className={styles.metaValue}>
-                  {canViewSalesOrder ? (
+                  {canOpenDetail ? (
                     <Link href={`/sales-orders/${id}`}>{soNo}</Link>
                   ) : (
                     soNo
@@ -505,12 +532,12 @@ export default function StockVerificationDetailPage({ id }: Props) {
             </div>
 
             <div className={styles.lineList}>
-              {lines.map((row, index) => (
+              {lines.map((row, index) => {
+                const tag = lineTags[index] ?? stockVerificationLineTag(row);
+                return (
                 <article
                   key={row.salesOrderItemId}
-                  className={`${styles.lineCard} ${
-                    row.isAvailable ? styles.lineOk : styles.lineShort
-                  }`}
+                  className={`${styles.lineCard} ${lineCardToneClass(tag)}`}
                 >
                   <div className={styles.lineIndex}>{index + 1}</div>
                   <div className={styles.lineBody}>
@@ -523,23 +550,18 @@ export default function StockVerificationDetailPage({ id }: Props) {
                           {row.itemName ?? "—"}
                         </p>
                       </div>
-                      {(() => {
-                        const tag = stockVerificationLineTag(row);
-                        return (
-                          <Tag
-                            color={tag.color}
-                            icon={
-                              tag.color === "error" ? (
-                                <ExclamationCircleOutlined />
-                              ) : (
-                                <CheckCircleOutlined />
-                              )
-                            }
-                          >
-                            {tag.label}
-                          </Tag>
-                        );
-                      })()}
+                      <Tag
+                        color={tag.color}
+                        icon={
+                          tag.color === "error" ? (
+                            <ExclamationCircleOutlined />
+                          ) : (
+                            <CheckCircleOutlined />
+                          )
+                        }
+                      >
+                        {tag.label}
+                      </Tag>
                     </div>
 
                     <div className={styles.qtyGrid}>
@@ -592,7 +614,8 @@ export default function StockVerificationDetailPage({ id }: Props) {
                     </div>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -633,7 +656,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
 
           {renderPrimaryAction(true)}
 
-          {canViewSalesOrder ? (
+          {canOpenDetail ? (
             <Button
               block
               onClick={() => router.push(`/sales-orders/${id}`)}

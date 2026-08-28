@@ -587,6 +587,44 @@
   font-weight: 500;
 }
 
+.timelineActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.timelinePdfBtn {
+  height: auto !important;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  background: rgba(22, 119, 255, 0.08) !important;
+  border: 1px solid #adc6ff !important;
+  color: #1677ff !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.roundBlock {
+  display: grid;
+  gap: 0;
+}
+
+.roundHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 12px 0 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f5f7f2;
+  color: var(--pr-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* tones */
 .tone_done .timelineDot {
   color: #fff;

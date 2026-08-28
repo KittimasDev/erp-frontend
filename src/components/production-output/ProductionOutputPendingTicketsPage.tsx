@@ -17,6 +17,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { useCancelProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useProductionOutputReadyOrdersQuery } from "@/hooks/production-output/useProductionOutputQueries";
 import type { ProductionOutputReadyOrder } from "@/types/production-output-stock-request";
+import { hasRequestableProductionOutput } from "@/types/production-output-stock-request";
 import styles from "./ProductionOutputPendingTicketsPage.module.css";
 
 function formatDate(value?: string) {
@@ -38,11 +39,12 @@ function formatQty(value?: string) {
 const YIELD_GAP_ALERT = 5;
 
 /**
- * คิว "ใบสั่งผลิตที่ผลิตเสร็จแล้ว แต่ยังไม่ได้ขอรับผลผลิตเข้าคลัง"
+ * คิว "ใบสั่งผลิตที่ผลิตเสร็จแล้ว และยังขอรับผลผลิตเข้าคลังได้อีก"
  *
  * รับผลผลิตเข้าคลัง (FINISHED_GOODS) เริ่มจากใบสั่งผลิตเท่านั้น ไม่เริ่มจากตั๋วชั่งรับซื้อยาง (PURCHASE_IN)
  * หน้านี้จึงไล่จาก production order ที่ปิดงานแล้ว เพื่อไม่ให้ของผลิตเสร็จค้างโดยไม่มีใครขอเข้าคลัง
  * (กับดักที่ FLOW_PRODUCTION.md เขียนไว้ว่า "ยืนยันเสร็จสิ้นแล้ว ทำไมสต๊อกไม่ขึ้น")
+ * ใบที่ขอครบทุก SKU แล้ว (รออนุมัติหรืออนุมัติเข้าคลังแล้ว) ไม่ขึ้นในคิวนี้
  */
 export default function ProductionOutputPendingTicketsPage() {
   const router = useRouter();
@@ -55,7 +57,11 @@ export default function ProductionOutputPendingTicketsPage() {
     all: allRange || undefined,
     q: q.trim() || undefined,
   });
-  const rows = useMemo(() => readyQuery.data?.data ?? [], [readyQuery.data]);
+  const rows = useMemo(
+    () =>
+      (readyQuery.data?.data ?? []).filter(hasRequestableProductionOutput),
+    [readyQuery.data],
+  );
 
   /** ยังไม่มีคำขอสักใบ = งานที่ต้องรีบทำ · มีแล้วบางส่วน = ตามต่อได้ */
   const notRequested = rows.filter((row) => row.totalRequestCount === 0);
@@ -207,7 +213,7 @@ export default function ProductionOutputPendingTicketsPage() {
         align: "right",
         render: (_v, row) => (
           <Space size={8} wrap>
-            {canCreateRequest ? (
+            {canCreateRequest && hasRequestableProductionOutput(row) ? (
               <Button
                 type="primary"
                 size="small"
@@ -286,7 +292,7 @@ export default function ProductionOutputPendingTicketsPage() {
             </strong>
           </div>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>ใบสั่งผลิตที่ปิดงานแล้ว</span>
+            <span>คิวที่ยังต้องขอรับ</span>
             <strong>
               {rows.length}
               <span className={styles.summaryUnit}>ใบ</span>
@@ -310,8 +316,8 @@ export default function ProductionOutputPendingTicketsPage() {
             <div>
               <h3>ใบสั่งผลิตรอรับผลผลิตเข้าคลัง</h3>
               <p>
-                ใบสั่งผลิตที่ปิดงานแล้วแต่ยังไม่ได้ขอรับผลผลิตเข้าคลัง — ของที่ผลิตเสร็จ
-                จะยังไม่เข้าสต๊อกจนกว่าจะเปิดคำขอและหัวหน้าคลังอนุมัติ
+                ใบสั่งผลิตที่ปิดงานแล้วและยังขอรับผลผลิตเข้าคลังได้อีก — ของที่ผลิตเสร็จ
+                จะยังไม่เข้าสต๊อกจนกว่าจะเปิดคำขอและหัวหน้าคลังอนุมัติ ใบที่ขอครบแล้วไม่ขึ้นที่นี่
               </p>
             </div>
             <div className={styles.listHeaderActions}>

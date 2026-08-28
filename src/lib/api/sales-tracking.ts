@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import type { DeliveryOrderApiResponse } from "@/types/delivery-orders";
 import type {
   SalesTrackingDetail,
   SalesTrackingList,
@@ -42,6 +43,17 @@ export function getSalesTrackingList(
 export function getSalesTrackingDetail(token: string, salesOrderId: string) {
   return apiFetch<ApiWrap<SalesTrackingDetail>>(
     `/api/sales-tracking/${salesOrderId}`,
+    { method: "GET", token },
+  );
+}
+
+export function getSalesTrackingDeliveryOrder(
+  token: string,
+  salesOrderId: string,
+  deliveryOrderId: string,
+) {
+  return apiFetch<DeliveryOrderApiResponse>(
+    `/api/sales-tracking/${salesOrderId}/delivery-orders/${deliveryOrderId}`,
     { method: "GET", token },
   );
 }

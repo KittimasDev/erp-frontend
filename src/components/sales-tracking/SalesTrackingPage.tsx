@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  App,
   Button,
   Card,
   Col,
@@ -25,6 +26,7 @@ import {
   CloseCircleFilled,
   ExportOutlined,
   EyeOutlined,
+  FilePdfOutlined,
   FileTextOutlined,
   InboxOutlined,
   LineChartOutlined,
@@ -46,6 +48,10 @@ import {
   useSalesTrackingListQuery,
   useSalesTrackingSummaryQuery,
 } from "@/hooks/sales-tracking/useSalesTrackingQuery";
+import { ApiError } from "@/lib/api/client";
+import { getSalesTrackingDeliveryOrder } from "@/lib/api/sales-tracking";
+import { getAccessToken } from "@/lib/auth/token";
+import { canNavigateSalesFulfillmentHref } from "@/lib/sales/sales-fulfillment-nav";
 import {
   resolveSalesTimelineStepTone,
   salesTrackingStepLabel,
@@ -58,10 +64,16 @@ import {
 import type {
   SalesTrackingQueryParams,
   SalesTrackingRow,
+  SalesTrackingTimelineStep,
 } from "@/types/sales-tracking";
 import styles from "./SalesTrackingPage.module.css";
 
 const PAGE_SIZE = 20;
+const HEADER_TIMELINE_STEPS = new Set([
+  "Quotation",
+  "Sales Order",
+  "Delivery Rounds",
+]);
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -142,6 +154,98 @@ function toneTagColor(tone: SalesTimelineStepTone): string {
   return "default";
 }
 
+function canOpenTimelineHref(
+  href: string | undefined,
+  nav: Parameters<typeof canNavigateSalesFulfillmentHref>[1],
+): boolean {
+  if (!href) return false;
+  return canNavigateSalesFulfillmentHref(href, nav);
+}
+
+function TimelineStepCard({
+  step,
+  isLast,
+  canOpenDoc,
+  onOpenDeliveryPdf,
+  pdfLoading,
+}: {
+  step: SalesTrackingTimelineStep;
+  isLast: boolean;
+  canOpenDoc: boolean;
+  onOpenDeliveryPdf?: (deliveryOrderId: string) => void;
+  pdfLoading?: boolean;
+}) {
+  const tone = resolveSalesTimelineStepTone(step);
+  const canOpenPdf =
+    step.step === "Delivery" &&
+    Boolean(step.documentId) &&
+    Boolean(onOpenDeliveryPdf);
+
+  return (
+    <div className={`${styles.timelineItem} ${styles[`tone_${tone}`]}`}>
+      <div className={styles.timelineRail}>
+        <div className={styles.timelineDot}>
+          {toneIcon(tone) ?? stepIcon(step.step)}
+        </div>
+        {!isLast ? <div className={styles.timelineLine} /> : null}
+      </div>
+      <div className={styles.timelineCard}>
+        <div className={styles.timelineCardHead}>
+          <div className={styles.timelineStepIcon}>{stepIcon(step.step)}</div>
+          <div className={styles.timelineStepMeta}>
+            <div className={styles.timelineStepName}>
+              {salesTrackingStepLabel(step.step)}
+            </div>
+            <Tag color={toneTagColor(tone)} className={styles.timelineTag}>
+              {statusLabel(step.status)}
+            </Tag>
+          </div>
+        </div>
+        <div className={styles.timelineDetails}>
+          <div className={styles.timelineDetailRow}>
+            <span>เอกสาร</span>
+            <strong>{step.documentNo ?? "—"}</strong>
+          </div>
+          <div className={styles.timelineDetailRow}>
+            <span>วันที่</span>
+            <strong>{formatDate(step.date)}</strong>
+          </div>
+          {step.actorName ? (
+            <div className={styles.timelineDetailRow}>
+              <span>โดย</span>
+              <strong>{step.actorName}</strong>
+            </div>
+          ) : null}
+        </div>
+        {canOpenDoc || canOpenPdf ? (
+          <div className={styles.timelineActions}>
+            {canOpenDoc && step.href ? (
+              <Link href={step.href} className={styles.timelineLink}>
+                เปิดเอกสาร
+                <ExportOutlined />
+              </Link>
+            ) : null}
+            {canOpenPdf && step.documentId ? (
+              <Button
+                type="link"
+                size="small"
+                className={styles.timelinePdfBtn}
+                icon={<FilePdfOutlined />}
+                loading={pdfLoading}
+                onClick={() => onOpenDeliveryPdf?.(step.documentId as string)}
+              >
+                เปิด PDF
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <span className={styles.timelineLinkDisabled}>ยังไม่มีเอกสาร</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type SummaryCard = {
   key: string;
   label: string;
@@ -151,7 +255,26 @@ type SummaryCard = {
 
 export default function SalesTrackingPage() {
   const router = useRouter();
+  const { message } = App.useApp();
   const trackingActions = useScreenActionPermissions("SALES_TRACKING");
+  const quotationActions = useScreenActionPermissions("QUOTATIONS");
+  const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
+  const stockVerificationActions = useScreenActionPermissions(
+    "SALES_STOCK_VERIFICATION",
+  );
+  const pickingActions = useScreenActionPermissions("PICKINGS");
+  const packingActions = useScreenActionPermissions("PACKINGS");
+  const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const fulfillmentNav = {
+    stockVerification: stockVerificationActions,
+    picking: pickingActions,
+    packing: packingActions,
+    delivery: deliveryActions,
+    salesOrder: salesOrderActions,
+    quotation: quotationActions,
+  };
+  const canOpenSalesOrder = salesOrderActions.canView;
+  const [pdfLoadingId, setPdfLoadingId] = useState<string | undefined>();
 
   const [keyword, setKeyword] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
@@ -347,6 +470,53 @@ export default function SalesTrackingPage() {
   }
 
   const detail = detailQuery.data?.data;
+  const headerSteps = (detail?.timeline ?? []).filter(
+    (step) =>
+      step.step !== "Invoice" && HEADER_TIMELINE_STEPS.has(step.step),
+  );
+
+  const openDeliveryPdf = async (deliveryOrderId: string) => {
+    if (!selectedSoId) return;
+    setPdfLoadingId(deliveryOrderId);
+    try {
+      const response = await getSalesTrackingDeliveryOrder(
+        getAccessToken(),
+        selectedSoId,
+        deliveryOrderId,
+      );
+      const data = response.data;
+      const { generateDeliveryOrderPdf } = await import(
+        "@/utils/generateDeliveryOrderPdf"
+      );
+      await generateDeliveryOrderPdf({
+        deliveryOrderNo: data.deliveryOrderNo,
+        deliveryDate: dayjs(data.deliveryDate).format("DD/MM/YYYY"),
+        salesOrderNo: data.salesOrderNo ?? "—",
+        packingNo: data.packingNo ?? "—",
+        customerName: data.customerName ?? "—",
+        shippingAddress: data.shippingAddress ?? "—",
+        contactName: data.contactName ?? "—",
+        contactPhone: data.contactPhone ?? "—",
+        carrierName: data.carrierName ?? "—",
+        vehiclePlate: data.vehiclePlate ?? "—",
+        driverName: data.driverName ?? "—",
+        remark: data.remark?.trim() || "",
+        items: (data.items ?? []).map((item, index) => ({
+          no: index + 1,
+          itemCode: item.itemCode ?? "—",
+          itemName: item.itemNameTh ?? "—",
+          unit: item.unitCode ?? "—",
+          qty: Number(item.deliveredQty) || 0,
+        })),
+      });
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "เปิด PDF ไม่สำเร็จ",
+      );
+    } finally {
+      setPdfLoadingId(undefined);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -562,7 +732,7 @@ export default function SalesTrackingPage() {
       <Drawer
         open={Boolean(selectedSoId)}
         onClose={() => setSelectedSoId(undefined)}
-        size={460}
+        size={520}
         className={styles.timelineDrawer}
         title={null}
         styles={{
@@ -599,82 +769,67 @@ export default function SalesTrackingPage() {
                 <ArrowRightOutlined />
                 <span>{detail.nextAction}</span>
               </div>
-              <Button
-                type="link"
-                className={styles.openSoBtn}
-                onClick={() =>
-                  router.push(`/sales-orders/${detail.salesOrderId}`)
-                }
-              >
-                เปิดใบสั่งขาย
-              </Button>
+              {canOpenSalesOrder ? (
+                <Button
+                  type="link"
+                  className={styles.openSoBtn}
+                  onClick={() =>
+                    router.push(`/sales-orders/${detail.salesOrderId}`)
+                  }
+                >
+                  เปิดใบสั่งขาย
+                </Button>
+              ) : null}
             </div>
 
             <div className={styles.timeline}>
-              {detail.timeline
-                .filter((step) => step.step !== "Invoice")
-                .map((step, index, visible) => {
-                  const tone = resolveSalesTimelineStepTone(step);
-                  return (
-                    <div
-                      key={`${step.step}-${index}`}
-                      className={`${styles.timelineItem} ${styles[`tone_${tone}`]}`}
-                    >
-                      <div className={styles.timelineRail}>
-                        <div className={styles.timelineDot}>
-                          {toneIcon(tone) ?? stepIcon(step.step)}
-                        </div>
-                        {index < visible.length - 1 ? (
-                          <div className={styles.timelineLine} />
-                        ) : null}
-                      </div>
-                      <div className={styles.timelineCard}>
-                        <div className={styles.timelineCardHead}>
-                          <div className={styles.timelineStepIcon}>
-                            {stepIcon(step.step)}
-                          </div>
-                          <div className={styles.timelineStepMeta}>
-                            <div className={styles.timelineStepName}>
-                              {salesTrackingStepLabel(step.step)}
-                            </div>
-                            <Tag
-                              color={toneTagColor(tone)}
-                              className={styles.timelineTag}
-                            >
-                              {statusLabel(step.status)}
-                            </Tag>
-                          </div>
-                        </div>
-                        <div className={styles.timelineDetails}>
-                          <div className={styles.timelineDetailRow}>
-                            <span>เอกสาร</span>
-                            <strong>{step.documentNo ?? "—"}</strong>
-                          </div>
-                          <div className={styles.timelineDetailRow}>
-                            <span>วันที่</span>
-                            <strong>{formatDate(step.date)}</strong>
-                          </div>
-                          {step.actorName ? (
-                            <div className={styles.timelineDetailRow}>
-                              <span>โดย</span>
-                              <strong>{step.actorName}</strong>
-                            </div>
-                          ) : null}
-                        </div>
-                        {step.href ? (
-                          <Link href={step.href} className={styles.timelineLink}>
-                            เปิดเอกสาร
-                            <ExportOutlined />
-                          </Link>
-                        ) : (
-                          <span className={styles.timelineLinkDisabled}>
-                            ยังไม่มีเอกสาร
-                          </span>
-                        )}
-                      </div>
+              {headerSteps.map((step, index) => (
+                <TimelineStepCard
+                  key={`${step.step}-${step.documentId ?? index}`}
+                  step={step}
+                  isLast={
+                    index === headerSteps.length - 1 &&
+                    detail.rounds.length === 0
+                  }
+                  canOpenDoc={canOpenTimelineHref(step.href, fulfillmentNav)}
+                />
+              ))}
+              {detail.rounds.map((round) => {
+                const roundSteps = round.timeline.filter(
+                  (step) => step.step !== "Invoice",
+                );
+                const roundStatusLabel =
+                  DELIVERY_SCHEDULE_STATUS_LABEL[
+                    round.roundStatus as DeliveryScheduleStatus
+                  ] ?? round.roundStatus;
+                return (
+                  <div
+                    key={round.deliveryScheduleId}
+                    className={styles.roundBlock}
+                  >
+                    <div className={styles.roundHeading}>
+                      <span>
+                        รอบที่ {round.roundNo} · ส่งวันที่{" "}
+                        {formatDate(round.deliveryDate)}
+                      </span>
+                      <Tag>{roundStatusLabel}</Tag>
                     </div>
-                  );
-                })}
+                    {roundSteps.map((step, index) => (
+                      <TimelineStepCard
+                        key={`${round.deliveryScheduleId}-${step.step}-${step.documentId ?? index}`}
+                        step={step}
+                        isLast={index === roundSteps.length - 1}
+                        canOpenDoc={canOpenTimelineHref(
+                          step.href,
+                          fulfillmentNav,
+                        )}
+                        onOpenDeliveryPdf={openDeliveryPdf}
+                        pdfLoading={pdfLoadingId === step.documentId}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : null}
