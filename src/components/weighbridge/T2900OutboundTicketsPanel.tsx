@@ -59,25 +59,26 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
 
   const rows = ticketsQuery.data?.data.items ?? [];
 
-  const goToTicket = (ticketId: string) => {
-    router.push(`/receiving/${ticketId}`);
+  const goToImportedTicket = (ticket: {
+    id: string;
+    nextActionHref?: string;
+  }) => {
+    router.push(ticket.nextActionHref || `/receiving/${ticket.id}`);
   };
 
   const handleOpen = async (ticket: T2900ErpOutboundTicket) => {
-    if (ticket.alreadyImported && ticket.erpTicketId) {
-      goToTicket(ticket.erpTicketId);
-      return;
-    }
-    if (!ticket.canImport) {
+    if (!ticket.canImport && !ticket.alreadyImported) {
       return;
     }
     try {
       const response = await importMutation.mutateAsync({
         tckNo: ticket.TckNo,
       });
-      goToTicket(response.data.id);
+      goToImportedTicket(response.data);
     } catch {
-      // toast มาจาก mutation onError
+      if (ticket.erpActionHref) {
+        router.push(ticket.erpActionHref);
+      }
     }
   };
 
@@ -124,7 +125,13 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
         const label =
           RECORD_STATUS_LABEL[value as T2900RecordStatus] ?? value;
         if (record.alreadyImported) {
-          return <Tag color="green">เปิดตั๋วแล้ว</Tag>;
+          if (record.erpStockPostingStatus === "POSTED") {
+            return <Tag color="green">เข้าคลังแล้ว</Tag>;
+          }
+          if (record.erpReceiptId) {
+            return <Tag color="gold">เปิดตั๋วแล้ว</Tag>;
+          }
+          return <Tag color="blue">รอคัดแยก</Tag>;
         }
         if (!record.canImport) {
           return <Tag>{label}</Tag>;
@@ -161,7 +168,8 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
               void handleOpen(record);
             }}
           >
-            {record.alreadyImported ? "ไปคัดแยก" : "เปิดตั๋วและคัดแยก"}
+            {record.erpActionLabel ||
+              (record.alreadyImported ? "ไปคัดแยก" : "เปิดตั๋วและคัดแยก")}
           </Button>
           <Popconfirm
             title="ลบบัตรชั่งจากรายการ mock?"

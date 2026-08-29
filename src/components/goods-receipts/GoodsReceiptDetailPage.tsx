@@ -25,6 +25,7 @@ import {
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import { formatQtyWithBase, pickUnitLabel } from "@/lib/units/format";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./GoodsReceiptDetailPage.module.css";
@@ -273,8 +274,17 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   </div>
                   <div className={styles.itemQty}>
                     <strong>
-                      {Number(item.quantity).toLocaleString("th-TH")}{" "}
-                      {item.unitNameTh ?? item.unitCode ?? ""}
+                      {/* แสดงหน่วยที่กรอกจริง พร้อมวงเล็บหน่วยหลักเมื่อคนละหน่วยกัน */}
+                      {formatQtyWithBase({
+                        qty: item.enteredQuantity ?? item.quantity,
+                        unitLabel:
+                          item.enteredUnitNameTh ??
+                          item.enteredUnitCode ??
+                          pickUnitLabel(item),
+                        baseQty: item.baseQuantity,
+                        baseUnitLabel:
+                          item.baseUnitNameTh ?? item.baseUnitCode ?? "",
+                      })}
                     </strong>
                     <span>{formatMoney(item.amount)}</span>
                   </div>

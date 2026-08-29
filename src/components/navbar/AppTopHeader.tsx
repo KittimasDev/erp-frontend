@@ -110,6 +110,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters/weighbridge-scales", title: "เครื่องชั่ง" },
   { href: "/masters/items", title: "สินค้า" },
   { href: "/masters/item-categories", title: "หมวดสินค้า" },
+  { href: "/masters/unit-conversions", title: "กฎแปลงหน่วยนับ" },
   { href: "/masters/units", title: "หน่วยนับ" },
   { href: "/warehouses", title: "คลังสินค้า" },
   { href: "/warehouse-locations", title: "ตำแหน่งจัดเก็บ" },

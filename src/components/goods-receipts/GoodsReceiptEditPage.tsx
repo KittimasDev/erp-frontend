@@ -1,31 +1,39 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Button,
-  DatePicker,
-  Form,
-  Input,
-  InputNumber,
-  Select,
-  Spin,
-} from "antd";
+import { Button, DatePicker, Form, Input, Select, Spin } from "antd";
 import { ArrowLeftOutlined, EditOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import QuantityUnitInput, {
+  makeQtyUnitValidator,
+  type QuantityUnitValue,
+} from "@/components/common/QuantityUnitInput";
 import { useUpdateGoodsReceiptMutation } from "@/hooks/goods-receipts/useGoodsReceiptMutations";
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useUnitConversionIndex } from "@/hooks/unit-conversions/useUnitConversionIndex";
+import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useGoodsReceiptQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import type { Item } from "@/types/items";
+import type { Unit } from "@/types/units";
 import styles from "./GoodsReceiptFormPage.module.css";
+
+const EMPTY_ITEMS: Item[] = [];
+const EMPTY_UNITS: Unit[] = [];
 
 type LineValues = {
   id: string;
   purchaseOrderItemId?: string;
   itemLabel: string;
-  quantity: number;
+  itemId: string;
+  /** หน่วยหลักของสินค้า — ถอยไปใช้หน่วยเดิมของบรรทัดถ้าหาไม่เจอ */
+  baseUnitId?: string;
+  baseUnitLabel?: string;
+  qty?: QuantityUnitValue;
   warehouseId: string;
   locationId: string;
   lotNo?: string;
@@ -46,11 +54,27 @@ export default function GoodsReceiptEditPage({ id }: Props) {
   const updateMutation = useUpdateGoodsReceiptMutation();
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
+  // ต้องรู้หน่วยหลักของสินค้าเพื่อเทียบกับหน่วยที่ผู้ใช้กรอกไว้เดิม
+  const itemsQuery = useItemsQuery({ isActive: true });
+  const unitsQuery = useUnitsQuery({ isActive: true });
+  const { index: conversionIndex } = useUnitConversionIndex();
 
   const data = detailQuery.data?.data;
   const warehouses = warehousesQuery.data?.data ?? [];
   const locations = locationsQuery.data?.data ?? [];
+  const items = itemsQuery.data?.data ?? EMPTY_ITEMS;
+  const units = unitsQuery.data?.data ?? EMPTY_UNITS;
+  const mastersLoading = itemsQuery.isLoading || unitsQuery.isLoading;
   const watchedItems = Form.useWatch("items", form) ?? [];
+
+  const itemById = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items],
+  );
+  const unitLabelById = useMemo(
+    () => new Map(units.map((unit) => [unit.id, unit.nameTh || unit.code])),
+    [units],
+  );
 
   useEffect(() => {
     if (!data) return;
@@ -58,20 +82,42 @@ export default function GoodsReceiptEditPage({ id }: Props) {
       router.replace(`/goods-receipts/${data.id}`);
       return;
     }
+    if (mastersLoading) return;
+
     form.setFieldsValue({
       grDate: dayjs(data.grDate),
       remark: data.remark,
-      items: (data.items ?? []).map((item) => ({
-        id: item.id,
-        purchaseOrderItemId: item.purchaseOrderItemId,
-        itemLabel: `${item.itemCode ?? ""} — ${item.itemNameTh ?? ""}`,
-        quantity: Number(item.quantity),
-        warehouseId: item.warehouseId,
-        locationId: item.locationId,
-        lotNo: item.lotNo,
-      })),
+      items: (data.items ?? []).map((item) => {
+        // หน่วยที่ผู้ใช้กรอกไว้เดิม — เอกสารก่อนเปิดใช้การแปลงหน่วยจะไม่มี entered*
+        const enteredUnitId = item.enteredUnitId ?? item.unitId;
+        const baseUnitId =
+          item.baseUnitId ?? itemById.get(item.itemId)?.unitId ?? item.unitId;
+        return {
+          id: item.id,
+          purchaseOrderItemId: item.purchaseOrderItemId,
+          itemLabel: `${item.itemCode ?? ""} — ${item.itemNameTh ?? ""}`,
+          itemId: item.itemId,
+          baseUnitId,
+          baseUnitLabel: unitLabelById.get(baseUnitId) ?? "",
+          qty: {
+            // decimal จาก backend เป็น string ต้อง Number() ก่อน
+            quantity: Number(item.enteredQuantity ?? item.quantity),
+            unitId: enteredUnitId,
+          },
+          warehouseId: item.warehouseId,
+          locationId: item.locationId,
+          lotNo: item.lotNo,
+        };
+      }),
     });
-  }, [data, form, router]);
+  }, [
+    data,
+    form,
+    router,
+    itemById,
+    unitLabelById,
+    mastersLoading,
+  ]);
 
   if (detailQuery.isLoading) {
     return (
@@ -101,7 +147,9 @@ export default function GoodsReceiptEditPage({ id }: Props) {
         items: values.items.map((item, index) => ({
           id: item.id,
           purchaseOrderItemId: item.purchaseOrderItemId,
-          quantity: Number(item.quantity),
+          // ส่งจำนวน+หน่วยที่กรอกไป backend เป็นคนแปลงเป็นหน่วยหลักให้
+          quantity: Number(item.qty?.quantity),
+          unitId: item.qty?.unitId,
           warehouseId: item.warehouseId,
           locationId: item.locationId,
           lotNo: item.lotNo?.trim() || undefined,
@@ -185,12 +233,24 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                                 {...restField}
                                 className={styles.field}
                                 label="จำนวนรับ"
-                                name={[name, "quantity"]}
-                                rules={[{ required: true }]}
+                                name={[name, "qty"]}
+                                rules={[
+                                  {
+                                    validator: makeQtyUnitValidator({
+                                      index: conversionIndex,
+                                      itemId: line?.itemId,
+                                      baseUnitId: line?.baseUnitId,
+                                      baseUnitLabel: line?.baseUnitLabel,
+                                    }),
+                                  },
+                                ]}
                               >
-                                <InputNumber
-                                  min={0.001}
-                                  style={{ width: "100%" }}
+                                <QuantityUnitInput
+                                  index={conversionIndex}
+                                  units={units}
+                                  itemId={line?.itemId}
+                                  baseUnitId={line?.baseUnitId}
+                                  size="middle"
                                 />
                               </Form.Item>
                               <Form.Item

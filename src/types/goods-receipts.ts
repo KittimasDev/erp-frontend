@@ -51,10 +51,20 @@ export type GoodsReceiptItem = {
   itemCode?: string;
   itemNameTh?: string;
   description?: string;
+  /** หน่วยฐานของสินค้าเสมอ (เท่ากับ baseQuantity) — ใช้ตัดสต๊อกจริง */
   quantity: string;
   unitId: string;
   unitCode?: string;
   unitNameTh?: string;
+  /** จำนวน+หน่วยที่ผู้ใช้กรอกจริง — ยังไม่มีในเอกสารที่สร้างก่อนเปิดใช้การแปลงหน่วย */
+  enteredQuantity?: string;
+  enteredUnitId?: string;
+  enteredUnitCode?: string;
+  enteredUnitNameTh?: string;
+  baseQuantity?: string;
+  baseUnitId?: string;
+  baseUnitCode?: string;
+  baseUnitNameTh?: string;
   unitPrice: string;
   discountAmount: string;
   amount: string;
@@ -115,7 +125,10 @@ export type GoodsReceiptQueryParams = {
 
 export type CreateGoodsReceiptItemFromPoBody = {
   purchaseOrderItemId: string;
+  /** จำนวนในหน่วยที่ระบุใน unitId */
   quantity: number;
+  /** ไม่ส่ง = ใช้หน่วยของรายการในใบสั่งซื้อ */
+  unitId?: string;
   warehouseId: string;
   locationId: string;
   lotNo?: string;
@@ -135,6 +148,7 @@ export type UpdateGoodsReceiptItemBody = {
   id?: string;
   purchaseOrderItemId?: string;
   quantity?: number;
+  unitId?: string;
   warehouseId?: string;
   locationId?: string;
   lotNo?: string;

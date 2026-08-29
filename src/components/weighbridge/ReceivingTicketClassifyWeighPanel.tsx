@@ -266,9 +266,11 @@ export default function ReceivingTicketClassifyWeighPanel({
               pricePerKg:
                 Number(item.pricePerKg) > 0 ? Number(item.pricePerKg) : undefined,
               weightKg:
-                plan.items.length === 1 && Number(ticket.netWeightKg) > 0
-                  ? Number(ticket.netWeightKg)
-                  : undefined,
+                Number(item.weightKg) > 0
+                  ? Number(item.weightKg)
+                  : plan.items.length === 1 && Number(ticket.netWeightKg) > 0
+                    ? Number(ticket.netWeightKg)
+                    : undefined,
             }),
           )
         : [createItemRow()],

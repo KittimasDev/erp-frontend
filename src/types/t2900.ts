@@ -30,6 +30,11 @@ export type T2900ErpOutboundTicket = T2900OutboundTicketSummary & {
   erpReceiptId?: string;
   alreadyImported: boolean;
   canImport: boolean;
+  erpReceiptStatus?: string;
+  erpPaymentStatus?: string;
+  erpStockPostingStatus?: string;
+  erpActionLabel?: string;
+  erpActionHref?: string;
 };
 
 export type T2900ErpOutboundListData = {

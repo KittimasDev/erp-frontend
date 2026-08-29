@@ -137,6 +137,8 @@ export type WeighbridgeTicketDetail = {
   receiptNo?: string;
   receiptStatus?: string;
   receiptPaymentStatus?: string;
+  receiptStockPostingStatus?: string;
+  hasPendingStockPosting?: boolean;
   canCreatePurchaseReceipt: boolean;
   weighInReadSource?: string;
   weighInRemark?: string;
@@ -154,6 +156,7 @@ export type ClassificationPlanItem = {
   tireClassificationId: string;
   description?: string;
   pricePerKg?: number;
+  weightKg?: number;
 };
 
 export type ClassificationPlanDeduction = {

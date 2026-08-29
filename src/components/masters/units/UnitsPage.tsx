@@ -1,13 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Button,
   Table,
   Tag,
   Typography,
 } from "antd";
-import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
+import {
+  DeleteOutlined,
+  EditOutlined,
+  SwapOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
@@ -16,12 +21,14 @@ import { useCreateUnitMutation } from "@/hooks/units/useCreateUnitMutation";
 import { useDeleteUnitMutation } from "@/hooks/units/useDeleteUnitMutation";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useUpdateUnitMutation } from "@/hooks/units/useUpdateUnitMutation";
+import { canAccessScreen } from "@/lib/auth/permissions-access";
 import type { CreateUnitRequest, Unit } from "@/types/units";
 
 import UnitFormModal from "./UnitFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 export default function UnitsPage() {
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
 
   const [modalMode, setModalMode] = useState<
@@ -189,6 +196,13 @@ export default function UnitsPage() {
               icon: <EditOutlined />,
               label: "แก้ไข",
               onClick: () => openEditModal(record),
+            },
+            canAccessScreen("MASTERS_UNIT_CONVERSIONS") && {
+              key: "unit-conversions",
+              icon: <SwapOutlined />,
+              label: "กฎแปลงหน่วย",
+              onClick: () =>
+                router.push(`/masters/unit-conversions?unitId=${record.id}`),
             },
             "divider",
             {

@@ -1407,6 +1407,15 @@ const masterMenus: MenuItem[] = [
     ],
   },
   {
+    // ตั้งกฎผิดทำให้ยอดสต๊อกทั้งระบบเพี้ยน จึงจำกัดเฉพาะระดับหัวหน้าฝ่าย
+    key: "unit-conversions",
+    screenCode: "MASTERS_UNIT_CONVERSIONS",
+    label: "กฎแปลงหน่วย",
+    href: "/masters/unit-conversions",
+    icon: <IconUnit />,
+    roles: [ROLE.PROCUREMENT_MANAGER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
     key: "warehouses",
     screenCode: "WAREHOUSES",
     label: "คลังสินค้า",

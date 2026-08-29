@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,7 +10,6 @@ import {
   DatePicker,
   Form,
   Input,
-  InputNumber,
   Select,
   Spin,
 } from "antd";
@@ -23,24 +22,84 @@ import {
 import dayjs from "dayjs";
 
 import AccessDenied from "@/components/auth/AccessDenied";
+import QuantityUnitInput, {
+  makeQtyUnitValidator,
+  type QuantityUnitValue,
+} from "@/components/common/QuantityUnitInput";
 import { useCreateGoodsReceiptFromPoMutation } from "@/hooks/goods-receipts/useGoodsReceiptMutations";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import { useUnitConversionIndex } from "@/hooks/unit-conversions/useUnitConversionIndex";
+import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import {
+  convertQty,
+  fromBaseQty,
+  roundQty,
+  toBaseQty,
+  type ConversionIndex,
+} from "@/lib/units/conversion";
+import { formatQtyUnit, formatQtyWithBase } from "@/lib/units/format";
+import type { Item } from "@/types/items";
+import type { Unit } from "@/types/units";
 import styles from "./GoodsReceiptFormPage.module.css";
 
 const EMPTY_GRS: never[] = [];
 const EMPTY_WAREHOUSES: never[] = [];
 const EMPTY_LOCATIONS: never[] = [];
+const EMPTY_ITEMS: Item[] = [];
+const EMPTY_UNITS: Unit[] = [];
 
 type DestinationValues = {
-  quantity?: number;
+  /** จำนวน + หน่วยที่ผู้ใช้เลือก — หน่วยอยู่ระดับปลายทาง เพราะแต่ละคลังอาจนับคนละหน่วย */
+  qty?: QuantityUnitValue;
   warehouseId?: string;
   locationId?: string;
   lotNo?: string;
 };
+
+type LineMeta = {
+  itemId: string;
+  itemLabel: string;
+  /** หน่วยที่ใบสั่งซื้อใช้ */
+  poUnitId: string;
+  unitLabel: string;
+  /**
+   * หน่วยที่ใช้เป็นฐานของบรรทัดนี้
+   * ปกติคือหน่วยหลักของสินค้า แต่ถ้าแปลงจากหน่วย PO ไม่ได้ (ข้อมูลเก่า)
+   * จะถอยไปใช้หน่วย PO เพื่อให้หน้าทำงานเหมือนเดิม ไม่พัง
+   */
+  baseUnitId: string;
+  baseUnitLabel: string;
+  /** แปลงหน่วย PO เป็นหน่วยหลักได้จริงไหม — false = โหมดถอยกลับ ล็อกหน่วยไว้ */
+  convertible: boolean;
+  orderedQty: number;
+  receivedQty: number;
+  remainingQty: number;
+  remainingBaseQty: number;
+  expectedWarehouseId?: string;
+  expectedLocationId?: string;
+};
+
+/** จำนวนของปลายทางหนึ่งในหน่วยฐานของบรรทัด — null = หน่วยที่เลือกแปลงไม่ได้ */
+function destBaseQty(
+  index: ConversionIndex,
+  meta: LineMeta | undefined,
+  dest: DestinationValues | undefined,
+): number | null {
+  if (!meta) {
+    return null;
+  }
+  return toBaseQty(index, {
+    qty: dest?.qty?.quantity,
+    unitId: dest?.qty?.unitId,
+    baseUnitId: meta.baseUnitId,
+    itemId: meta.itemId,
+  });
+}
 
 type LineValues = {
   selected: boolean;
@@ -75,6 +134,10 @@ export default function GoodsReceiptCreateFromPoPage({
   const createMutation = useCreateGoodsReceiptFromPoMutation();
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
+  // ต้องรู้หน่วยหลักของสินค้าจริง — หน่วยบน PO อาจเป็นหน่วยรอง
+  const itemsQuery = useItemsQuery({ isActive: true });
+  const unitsQuery = useUnitsQuery({ isActive: true });
+  const { index: conversionIndex } = useUnitConversionIndex();
 
   const po = poQuery.data?.data;
   const existingGrs = Array.isArray(grByPoQuery.data?.data)
@@ -86,11 +149,31 @@ export default function GoodsReceiptCreateFromPoPage({
   const locations = Array.isArray(locationsQuery.data?.data)
     ? locationsQuery.data.data
     : EMPTY_LOCATIONS;
+  const items = Array.isArray(itemsQuery.data?.data)
+    ? itemsQuery.data.data
+    : EMPTY_ITEMS;
+  const units = Array.isArray(unitsQuery.data?.data)
+    ? unitsQuery.data.data
+    : EMPTY_UNITS;
   const watchedItems = Form.useWatch("items", form) ?? [];
+
+  const itemById = useMemo(
+    () => new Map(items.map((item) => [item.id, item])),
+    [items],
+  );
+  const unitLabelById = useMemo(
+    () => new Map(units.map((unit) => [unit.id, unit.nameTh || unit.code])),
+    [units],
+  );
 
   const resolvedBackHref =
     backHref ?? `/purchase-orders/${purchaseOrderId}`;
 
+  /**
+   * ยอดรับสะสมต่อรายการ PO ในหน่วยฐานของสินค้า
+   * ต้องใช้ baseQuantity ไม่ใช่ quantity ดิบ ไม่งั้นถ้าใบก่อนรับเป็นมัดใบนี้เป็นกิโลกรัม
+   * ยอดจะถูกบวกข้ามหน่วยแบบเงียบๆ
+   */
   const receivedByPoItem = useMemo(() => {
     const map = new Map<string, number>();
     for (const gr of existingGrs) {
@@ -98,47 +181,89 @@ export default function GoodsReceiptCreateFromPoPage({
       for (const item of gr.items ?? []) {
         if (!item.purchaseOrderItemId) continue;
         const prev = map.get(item.purchaseOrderItemId) ?? 0;
-        map.set(item.purchaseOrderItemId, prev + Number(item.quantity));
+        map.set(
+          item.purchaseOrderItemId,
+          prev + Number(item.baseQuantity ?? item.quantity),
+        );
       }
     }
     return map;
   }, [existingGrs]);
 
   const lineMetaByPoItemId = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        itemLabel: string;
-        orderedQty: number;
-        receivedQty: number;
-        remainingQty: number;
-        unitLabel: string;
-        expectedWarehouseId?: string;
-        expectedLocationId?: string;
-      }
-    >();
-    for (const item of po?.items ?? []) {
-      const ordered = Number(item.quantity);
-      const received = receivedByPoItem.get(item.id) ?? 0;
-      const remaining = Number(Math.max(0, ordered - received).toFixed(3));
-      map.set(item.id, {
-        itemLabel: `${item.itemCode ?? ""} — ${item.itemNameTh ?? ""}`,
-        orderedQty: ordered,
-        receivedQty: received,
-        remainingQty: remaining,
-        unitLabel: item.unitNameTh ?? item.unitCode ?? "",
-        expectedWarehouseId: item.expectedWarehouseId,
-        expectedLocationId: item.expectedLocationId,
+    const map = new Map<string, LineMeta>();
+
+    for (const poItem of po?.items ?? []) {
+      const poUnitId = poItem.unitId;
+      const unitLabel = poItem.unitNameTh ?? poItem.unitCode ?? "";
+      const itemMasterUnitId = itemById.get(poItem.itemId)?.unitId;
+      const orderedInPoUnit = Number(poItem.quantity);
+
+      // ยอดสั่งบน PO อยู่ในหน่วย PO ต้องแปลงเป็นหน่วยหลักก่อนหักยอดที่รับไปแล้ว
+      const orderedBase =
+        itemMasterUnitId === undefined
+          ? null
+          : convertQty(conversionIndex, {
+              qty: orderedInPoUnit,
+              fromUnitId: poUnitId,
+              toUnitId: itemMasterUnitId,
+              itemId: poItem.itemId,
+            });
+
+      // แปลงไม่ได้ (ข้อมูลเก่า/ยังไม่ได้ตั้งกฎ) → ถอยไปคิดทุกอย่างในหน่วย PO เหมือนเดิม
+      const convertible = orderedBase !== null && itemMasterUnitId !== undefined;
+      const baseUnitId = convertible ? (itemMasterUnitId as string) : poUnitId;
+      const orderedBaseQty = convertible
+        ? (orderedBase as number)
+        : orderedInPoUnit;
+
+      const receivedBase = receivedByPoItem.get(poItem.id) ?? 0;
+      const remainingBaseQty = roundQty(
+        Math.max(0, orderedBaseQty - receivedBase),
+      );
+
+      const remainingInPoUnit = convertible
+        ? (fromBaseQty(conversionIndex, {
+            baseQty: remainingBaseQty,
+            unitId: poUnitId,
+            baseUnitId,
+            itemId: poItem.itemId,
+          }) ?? remainingBaseQty)
+        : remainingBaseQty;
+
+      map.set(poItem.id, {
+        itemId: poItem.itemId,
+        itemLabel: `${poItem.itemCode ?? ""} — ${poItem.itemNameTh ?? ""}`,
+        poUnitId,
+        unitLabel,
+        baseUnitId,
+        baseUnitLabel: unitLabelById.get(baseUnitId) ?? unitLabel,
+        convertible,
+        orderedQty: orderedInPoUnit,
+        receivedQty: receivedBase,
+        remainingQty: remainingInPoUnit,
+        remainingBaseQty,
+        expectedWarehouseId: poItem.expectedWarehouseId,
+        expectedLocationId: poItem.expectedLocationId,
       });
     }
+
     return map;
-  }, [po?.items, receivedByPoItem]);
+  }, [po?.items, receivedByPoItem, itemById, unitLabelById, conversionIndex]);
 
   const receivable =
     po?.status === "CONFIRMED" || po?.status === "PARTIALLY_RECEIVED";
 
+  // meta ขึ้นกับ query หลายตัวที่โหลดเสร็จไม่พร้อมกัน — ถ้าไม่กันไว้
+  // effect จะยิงซ้ำแล้วทับค่าที่ผู้ใช้กรอกไปแล้ว
+  const prefilledForRef = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     if (!po || !receivable) return;
+    // รอ query ที่ meta ต้องใช้ให้ครบก่อน ไม่งั้น prefill ด้วยหน่วยที่ยังไม่รู้จัก
+    if (itemsQuery.isLoading || unitsQuery.isLoading) return;
+    if (prefilledForRef.current === po.id) return;
+    prefilledForRef.current = po.id;
 
     form.setFieldsValue({
       grDate: dayjs(),
@@ -153,7 +278,8 @@ export default function GoodsReceiptCreateFromPoPage({
             remaining > 0
               ? [
                   {
-                    quantity: remaining,
+                    // เริ่มด้วยหน่วยของ PO เสมอ เลขที่ผู้ใช้เห็นจะได้ตรงกับใบสั่งซื้อ
+                    qty: { quantity: remaining, unitId: meta?.poUnitId },
                     warehouseId: item.expectedWarehouseId ?? undefined,
                     locationId: item.expectedLocationId ?? undefined,
                     lotNo: undefined,
@@ -163,7 +289,14 @@ export default function GoodsReceiptCreateFromPoPage({
         };
       }),
     });
-  }, [form, po, receivable, lineMetaByPoItemId]);
+  }, [
+    form,
+    po,
+    receivable,
+    lineMetaByPoItemId,
+    itemsQuery.isLoading,
+    unitsQuery.isLoading,
+  ]);
 
   if (!canView) {
     return (
@@ -171,7 +304,12 @@ export default function GoodsReceiptCreateFromPoPage({
     );
   }
 
-  if (poQuery.isLoading || grByPoQuery.isLoading) {
+  if (
+    poQuery.isLoading ||
+    grByPoQuery.isLoading ||
+    itemsQuery.isLoading ||
+    unitsQuery.isLoading
+  ) {
     return (
       <div className={styles.page}>
         <Spin /> กำลังโหลด...
@@ -226,6 +364,7 @@ export default function GoodsReceiptCreateFromPoPage({
     const flat: Array<{
       purchaseOrderItemId: string;
       quantity: number;
+      unitId?: string;
       warehouseId: string;
       locationId: string;
       lotNo?: string;
@@ -235,15 +374,16 @@ export default function GoodsReceiptCreateFromPoPage({
     for (const item of values.items) {
       if (!item.selected) continue;
       const meta = lineMetaByPoItemId.get(item.purchaseOrderItemId);
-      const remaining = meta?.remainingQty ?? 0;
-      if (remaining <= 0) continue;
+      const remainingBase = meta?.remainingBaseQty ?? 0;
+      if (remainingBase <= 0) continue;
       const label = meta?.itemLabel ?? "รายการ";
+      const baseUnitLabel = meta?.baseUnitLabel ?? "";
       const destinations = (item.destinations ?? []).filter(
-        (d) => (d.quantity ?? 0) > 0,
+        (d) => (d.qty?.quantity ?? 0) > 0,
       );
       if (!destinations.length) continue;
 
-      let sumQty = 0;
+      let sumBase = 0;
       for (const dest of destinations) {
         if (!dest.warehouseId || !dest.locationId) {
           form.setFields([
@@ -254,23 +394,40 @@ export default function GoodsReceiptCreateFromPoPage({
           ]);
           return;
         }
-        sumQty += Number(dest.quantity);
+
+        // ด่านที่สองต่อจาก validator — กันเอกสารเก่าที่หน่วยไม่มีกฎแปลงหลุดไปถึง backend
+        const base = destBaseQty(conversionIndex, meta, dest);
+        if (base === null) {
+          form.setFields([
+            {
+              name: "items",
+              errors: [
+                `${label}: หน่วยที่เลือกยังไม่มีกฎแปลงเป็น ${baseUnitLabel} กรุณาแก้หน่วยก่อนบันทึก`,
+              ],
+            },
+          ]);
+          return;
+        }
+
+        sumBase += base;
         flat.push({
           purchaseOrderItemId: item.purchaseOrderItemId,
-          quantity: Number(dest.quantity),
+          quantity: Number(dest.qty?.quantity),
+          unitId: dest.qty?.unitId,
           warehouseId: dest.warehouseId,
           locationId: dest.locationId,
           lotNo: dest.lotNo?.trim() || undefined,
           label,
         });
       }
-      sumQty = Number(sumQty.toFixed(3));
-      if (sumQty > remaining + 1e-9) {
+
+      sumBase = roundQty(sumBase);
+      if (sumBase > remainingBase + 1e-9) {
         form.setFields([
           {
             name: "items",
             errors: [
-              `${label}: รวมจำนวนปลายทาง ${sumQty} เกินที่เหลือ ${remaining}`,
+              `${label}: รวมจำนวนปลายทาง ${formatQtyUnit(sumBase, baseUnitLabel)} เกินที่เหลือ ${formatQtyUnit(remainingBase, baseUnitLabel)}`,
             ],
           },
         ]);
@@ -300,19 +457,34 @@ export default function GoodsReceiptCreateFromPoPage({
   };
 
   const hasReceivableLines = Array.from(lineMetaByPoItemId.values()).some(
-    (meta) => meta.remainingQty > 0,
+    (meta) => meta.remainingBaseQty > 0,
   );
 
   const selectedPreview = watchedItems.flatMap((item) => {
     if (!item?.selected) return [];
     const meta = lineMetaByPoItemId.get(item.purchaseOrderItemId);
-    const dests = (item.destinations ?? []).filter((d) => (d.quantity ?? 0) > 0);
+    const dests = (item.destinations ?? []).filter(
+      (d) => (d.qty?.quantity ?? 0) > 0,
+    );
     if (!dests.length) return [];
+
+    const unitIds = new Set(
+      dests.map((d) => d.qty?.unitId).filter(Boolean) as string[],
+    );
+
     return [
       {
+        key: item.purchaseOrderItemId,
         label: meta?.itemLabel ?? "—",
-        qty: dests.reduce((s, d) => s + Number(d.quantity ?? 0), 0),
-        unit: meta?.unitLabel ?? "",
+        // สรุปรวมต้องอยู่ในหน่วยเดียวกันเสมอ จึงรวมในหน่วยฐาน
+        qty: roundQty(
+          dests.reduce(
+            (s, d) => s + (destBaseQty(conversionIndex, meta, d) ?? 0),
+            0,
+          ),
+        ),
+        unit: meta?.baseUnitLabel ?? "",
+        mixed: unitIds.size > 1,
         destCount: dests.length,
       },
     ];
@@ -389,12 +561,17 @@ export default function GoodsReceiptCreateFromPoPage({
                           "";
                         const meta = lineMetaByPoItemId.get(poItemId);
                         const remaining = meta?.remainingQty ?? 0;
-                        const disabled = remaining <= 0;
+                        const remainingBase = meta?.remainingBaseQty ?? 0;
+                        const baseUnitLabel = meta?.baseUnitLabel ?? "";
+                        const disabled = remainingBase <= 0;
                         const destinations = line?.destinations ?? [];
-                        const destSum = Number(
-                          destinations
-                            .reduce((s, d) => s + Number(d.quantity ?? 0), 0)
-                            .toFixed(3),
+                        // รวมยอดในหน่วยฐานเสมอ แต่ละปลายทางอาจเลือกคนละหน่วย
+                        const destSumBase = roundQty(
+                          destinations.reduce(
+                            (s, d) =>
+                              s + (destBaseQty(conversionIndex, meta, d) ?? 0),
+                            0,
+                          ),
                         );
 
                         return (
@@ -413,9 +590,23 @@ export default function GoodsReceiptCreateFromPoPage({
                                 </Checkbox>
                               </Form.Item>
                               <span className={styles.sectionHint}>
-                                สั่ง {meta?.orderedQty ?? 0} · รับแล้ว{" "}
-                                {meta?.receivedQty ?? 0} · เหลือ {remaining}{" "}
-                                {meta?.unitLabel}
+                                สั่ง{" "}
+                                {formatQtyUnit(
+                                  meta?.orderedQty ?? 0,
+                                  meta?.unitLabel ?? "",
+                                )}{" "}
+                                · รับแล้ว{" "}
+                                {formatQtyUnit(
+                                  meta?.receivedQty ?? 0,
+                                  baseUnitLabel,
+                                )}{" "}
+                                · เหลือ{" "}
+                                {formatQtyWithBase({
+                                  qty: remaining,
+                                  unitLabel: meta?.unitLabel ?? "",
+                                  baseQty: remainingBase,
+                                  baseUnitLabel,
+                                })}
                               </span>
                             </div>
                             <Form.Item
@@ -437,19 +628,25 @@ export default function GoodsReceiptCreateFromPoPage({
                                         (loc) =>
                                           loc.warehouseId === dest.warehouseId,
                                       );
-                                      const otherSum = Number(
-                                        destinations
-                                          .reduce((s, d, i) => {
-                                            if (i === destName) return s;
-                                            return s + Number(d.quantity ?? 0);
-                                          }, 0)
-                                          .toFixed(3),
+                                      const otherBaseSum = roundQty(
+                                        destinations.reduce((s, d, i) => {
+                                          if (i === destName) return s;
+                                          return (
+                                            s +
+                                            (destBaseQty(
+                                              conversionIndex,
+                                              meta,
+                                              d,
+                                            ) ?? 0)
+                                          );
+                                        }, 0),
                                       );
-                                      const maxForThis = Number(
+                                      // เดิมใช้ Math.max(0.001, ...) ซึ่งยังปล่อยให้กรอกได้ทั้งที่เต็มแล้ว
+                                      const maxBaseForThis = roundQty(
                                         Math.max(
-                                          0.001,
-                                          remaining - otherSum,
-                                        ).toFixed(3),
+                                          0,
+                                          remainingBase - otherBaseSum,
+                                        ),
                                       );
 
                                       return (
@@ -480,31 +677,33 @@ export default function GoodsReceiptCreateFromPoPage({
                                               {...destRest}
                                               className={styles.field}
                                               label="จำนวนรับ"
-                                              name={[destName, "quantity"]}
+                                              name={[destName, "qty"]}
                                               rules={[
                                                 {
-                                                  validator: async (_, value) => {
-                                                    if (!(value > 0)) {
-                                                      throw new Error(
-                                                        "ต้องมากกว่า 0",
-                                                      );
-                                                    }
-                                                    if (
-                                                      value >
-                                                      maxForThis + 1e-9
-                                                    ) {
-                                                      throw new Error(
-                                                        "เกินจำนวนที่เหลือของบรรทัดนี้",
-                                                      );
-                                                    }
-                                                  },
+                                                  validator:
+                                                    makeQtyUnitValidator({
+                                                      index: conversionIndex,
+                                                      itemId: meta?.itemId,
+                                                      baseUnitId:
+                                                        meta?.baseUnitId,
+                                                      baseUnitLabel,
+                                                      maxBaseQty:
+                                                        maxBaseForThis,
+                                                    }),
                                                 },
                                               ]}
                                             >
-                                              <InputNumber
-                                                min={0.001}
-                                                max={maxForThis}
-                                                style={{ width: "100%" }}
+                                              <QuantityUnitInput
+                                                index={conversionIndex}
+                                                units={units}
+                                                itemId={meta?.itemId}
+                                                baseUnitId={meta?.baseUnitId}
+                                                maxBaseQty={maxBaseForThis}
+                                                // แปลงจากหน่วย PO ไปหน่วยหลักไม่ได้ = ล็อกไว้หน่วยเดียว
+                                                allowUnitChange={
+                                                  meta?.convertible ?? false
+                                                }
+                                                size="middle"
                                               />
                                             </Form.Item>
                                             <Form.Item
@@ -579,25 +778,49 @@ export default function GoodsReceiptCreateFromPoPage({
                                       <Button
                                         type="dashed"
                                         icon={<PlusOutlined />}
-                                        disabled={destSum >= remaining - 1e-9}
-                                        onClick={() =>
-                                          add({
-                                            quantity: Number(
-                                              Math.max(
-                                                0.001,
-                                                remaining - destSum,
-                                              ).toFixed(3),
+                                        disabled={
+                                          destSumBase >= remainingBase - 1e-9
+                                        }
+                                        onClick={() => {
+                                          const leftBase = roundQty(
+                                            Math.max(
+                                              0,
+                                              remainingBase - destSumBase,
                                             ),
+                                          );
+                                          // เสนอค่าเริ่มต้นในหน่วยของ PO เพื่อให้ตัวเลขอ่านคู่กับใบสั่งซื้อได้
+                                          const leftInPoUnit = meta
+                                            ? fromBaseQty(conversionIndex, {
+                                                baseQty: leftBase,
+                                                unitId: meta.poUnitId,
+                                                baseUnitId: meta.baseUnitId,
+                                                itemId: meta.itemId,
+                                              })
+                                            : null;
+                                          add({
+                                            qty: {
+                                              quantity:
+                                                leftInPoUnit ?? leftBase,
+                                              unitId: meta?.poUnitId,
+                                            },
                                             warehouseId: undefined,
                                             locationId: undefined,
-                                          })
-                                        }
+                                          });
+                                        }}
                                       >
                                         เพิ่มปลายทางคลัง
                                       </Button>
                                       <span className={styles.sectionHint}>
-                                        รวมรับ {destSum} / เหลือ {remaining}{" "}
-                                        {meta?.unitLabel}
+                                        รวมรับ{" "}
+                                        {formatQtyUnit(
+                                          destSumBase,
+                                          baseUnitLabel,
+                                        )}{" "}
+                                        / เหลือ{" "}
+                                        {formatQtyUnit(
+                                          remainingBase,
+                                          baseUnitLabel,
+                                        )}
                                       </span>
                                     </div>
                                   </div>
@@ -655,8 +878,9 @@ export default function GoodsReceiptCreateFromPoPage({
             {selectedPreview.length > 0 ? (
               <ul className={styles.previewList}>
                 {selectedPreview.map((row) => (
-                  <li key={row.label}>
-                    {row.label}: {row.qty} {row.unit}
+                  <li key={row.key}>
+                    {row.label}: {formatQtyUnit(row.qty, row.unit)}
+                    {row.mixed ? " (หลายหน่วย)" : ""}
                     {row.destCount > 1 ? ` (${row.destCount} คลัง)` : ""}
                   </li>
                 ))}

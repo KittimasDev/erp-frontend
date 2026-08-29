@@ -27,7 +27,9 @@ export function useImportT2900TicketMutation() {
           queryKey: weighbridgeDashboardQueryKey,
         }),
       ]);
-      message.success(response.message || "เปิดตั๋วชั่งจาก T2900 สำเร็จแล้ว");
+      message.success(
+        response.message || "เปิดตั๋วชั่งจาก T2900 สำเร็จแล้ว",
+      );
     },
     onError: (error: Error) => {
       message.error(

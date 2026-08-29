@@ -20,6 +20,7 @@ import {
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
@@ -31,7 +32,10 @@ import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUpdateItemMutation } from "@/hooks/items/useUpdateItemMutation";
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
-import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
+import {
+  canAccessScreen,
+  getScreenActionPermissions,
+} from "@/lib/auth/permissions-access";
 import type {
   CreateItemRequest,
   Item,
@@ -368,6 +372,15 @@ export default function ItemsPage() {
                     icon: <EditOutlined />,
                     label: "แก้ไข",
                     onClick: () => openEditModal(record),
+                  },
+                  canAccessScreen("MASTERS_UNIT_CONVERSIONS") && {
+                    key: "unit-conversions",
+                    icon: <SwapOutlined />,
+                    label: "กฎแปลงหน่วย",
+                    onClick: () =>
+                      router.push(
+                        `/masters/unit-conversions?itemId=${record.id}`,
+                      ),
                   },
                   canDelete && "divider",
                   canDelete && {

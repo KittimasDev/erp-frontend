@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input, Modal, Switch } from "antd";
+import { Form, Input, Modal, Select, Switch } from "antd";
+
+import {
+  UNIT_DIMENSION_LABELS,
+  UNIT_DIMENSIONS,
+  type UnitDimension,
+} from "@/lib/units/constants";
 
 import type { CreateUnitRequest, Unit } from "@/types/units";
 import styles from "@/components/masters/shared/master-page.module.css";
@@ -10,6 +16,7 @@ type UnitFormValues = {
   code: string;
   name: string;
   symbol?: string;
+  dimension?: UnitDimension;
   isActive: boolean;
 };
 
@@ -42,6 +49,7 @@ export default function UnitFormModal({
         code: initialUnit.code,
         name: initialUnit.nameTh,
         symbol: initialUnit.nameEn,
+        dimension: (initialUnit.dimension as UnitDimension) ?? undefined,
         isActive: initialUnit.isActive,
       });
 
@@ -52,6 +60,7 @@ export default function UnitFormModal({
       code: "",
       name: "",
       symbol: "",
+      dimension: undefined,
       isActive: true,
     });
   }, [open, mode, initialUnit, form]);
@@ -63,6 +72,7 @@ export default function UnitFormModal({
       code: values.code.trim(),
       name: values.name.trim(),
       symbol: values.symbol?.trim() || undefined,
+      dimension: values.dimension,
       isActive: values.isActive,
     });
   };
@@ -159,6 +169,22 @@ export default function UnitFormModal({
             />
           </Form.Item>
         </div>
+
+        <Form.Item
+          label="มิติของหน่วย"
+          name="dimension"
+          extra="ใช้เตือนตอนตั้งกฎแปลงหน่วยกลางข้ามมิติเท่านั้น ไม่ระบุก็ได้"
+        >
+          <Select
+            size="large"
+            allowClear
+            placeholder="เช่น น้ำหนัก"
+            options={UNIT_DIMENSIONS.map((dimension) => ({
+              value: dimension,
+              label: `${UNIT_DIMENSION_LABELS[dimension]} (${dimension})`,
+            }))}
+          />
+        </Form.Item>
 
         <Form.Item
           label="ชื่อหน่วยนับ"
