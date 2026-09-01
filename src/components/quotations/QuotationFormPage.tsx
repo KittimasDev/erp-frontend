@@ -24,6 +24,7 @@ import dayjs from "dayjs";
 import AccessDenied from "@/components/auth/AccessDenied";
 import QuickCreateCustomerModal from "@/components/masters/customers/QuickCreateCustomerModal";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
@@ -36,7 +37,6 @@ import {
   useQuotationQuery,
 } from "@/hooks/quotations/useQuotationsQuery";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
-import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import type { CreateQuotationBody } from "@/types/quotations";
 
 import styles from "./QuotationFormPage.module.css";
@@ -104,13 +104,13 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const availabilityQuery = useQuotationItemAvailabilityQuery({
     itemCategoryCode: "FINISHED_GOODS",
   });
-  const unitsQuery = useUnitsQuery({ isActive: true });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
   const taxRatesQuery = useTaxRatesQuery({ isActive: true });
 
   const customers = customersQuery.data?.data ?? [];
   const items = itemsQuery.data?.data ?? [];
-  const units = unitsQuery.data?.data ?? [];
+  // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
+  const { resolveUnitField } = useUnitFieldResolver(items);
   const paymentTerms = paymentTermsQuery.data?.data ?? [];
   const taxRates = taxRatesQuery.data?.data ?? [];
 
@@ -534,11 +534,11 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               >
                                 <Select
                                   showSearch
-                                  optionFilterProp="label"
-                                  options={units.map((u) => ({
-                                    value: u.id,
-                                    label: `${u.code} — ${u.nameTh}`,
-                                  }))}
+                                  optionFilterProp="title"
+                                  {...resolveUnitField(
+                                    watchedItems[field.name]?.itemId,
+                                    watchedItems[field.name]?.unitId,
+                                  )}
                                 />
                               </Form.Item>
                               <Form.Item

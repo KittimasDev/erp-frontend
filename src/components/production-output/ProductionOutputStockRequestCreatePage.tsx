@@ -33,6 +33,7 @@ import {
   useProductionOutputReadyOrdersQuery,
   useProductionOutputStockRequestsQuery,
 } from "@/hooks/production-output/useProductionOutputQueries";
+import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
@@ -380,6 +381,8 @@ export default function ProductionOutputStockRequestCreatePage({
   );
 
   const items = itemsQuery.data?.data ?? [];
+  // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
+  const { resolveUnitField } = useUnitFieldResolver(items);
   const units = unitsQuery.data?.data ?? [];
   const warehouses = warehousesQuery.data?.data ?? [];
   const locations = locationsQuery.data?.data ?? [];
@@ -471,15 +474,6 @@ export default function ProductionOutputStockRequestCreatePage({
           .join(" · "),
       })),
     [readyOrders],
-  );
-
-  const unitOptions = useMemo(
-    () =>
-      units.map((unit) => ({
-        value: unit.id,
-        label: `${unit.code} — ${unit.nameTh}`,
-      })),
-    [units],
   );
 
   const warehouseOptions = useMemo(
@@ -982,10 +976,12 @@ export default function ProductionOutputStockRequestCreatePage({
                                 <Select
                                   size="large"
                                   showSearch
-                                  optionFilterProp="label"
-                                  placeholder="กรัม / ลิตร / kg"
-                                  options={unitOptions}
+                                  optionFilterProp="title"
                                   loading={unitsQuery.isFetching}
+                                  {...resolveUnitField(
+                                    lines[field.name]?.itemId,
+                                    lines[field.name]?.unitId,
+                                  )}
                                 />
                               </Form.Item>
 

@@ -24,7 +24,11 @@ import dayjs, { type Dayjs } from "dayjs";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
-import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
+import { useUnitOptionContext } from "@/hooks/unit-conversions/useUnitOptionContext";
+import {
+  buildUnitSelectOptions,
+  type UnitOptionContext,
+} from "@/lib/units/unitSelectOptions";
 import {
   useInventoryLotsQuery,
   useStockBalancesByItemQuery,
@@ -284,6 +288,7 @@ export function PlanLineRow({
   removable,
   stockItemsOnly = false,
   itemCategoryCode,
+  unitCtx,
 }: {
   row: PlanRow;
   index: number;
@@ -293,13 +298,25 @@ export function PlanLineRow({
   stockItemsOnly?: boolean;
   /** กรองหมวดสินค้า เช่น FINISHED_GOODS สำหรับผลผลิต */
   itemCategoryCode?: string;
+  /** ก้อนกฎแปลงหน่วย — parent สร้างครั้งเดียวแล้วส่งลงมา เพื่อให้ graphCache ถูกแชร์ */
+  unitCtx: UnitOptionContext & { isLoading: boolean };
 }) {
   const itemsQuery = useItemsQuery({
     isActive: true,
     ...(stockItemsOnly ? { isStockItem: true } : {}),
     ...(itemCategoryCode ? { itemCategoryCode } : {}),
   });
-  const unitsQuery = useUnitsQuery();
+
+  const itemList = itemsQuery.data?.data ?? [];
+  const baseUnitId = row.itemId
+    ? itemList.find((item) => item.id === row.itemId)?.unitId
+    : undefined;
+  // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
+  const unitField = buildUnitSelectOptions(unitCtx, {
+    itemId: row.itemId,
+    baseUnitId,
+    currentUnitId: row.unitId,
+  });
 
   return (
     <div className={styles.materialCard}>
@@ -314,7 +331,7 @@ export function PlanLineRow({
             loading={itemsQuery.isLoading}
             value={row.itemId}
             style={{ width: "100%" }}
-            options={(itemsQuery.data?.data ?? []).map((item) => ({
+            options={itemList.map((item) => ({
               value: item.id,
               label: `${item.itemCode} — ${item.itemNameTh}`,
               unitId: item.unitId,
@@ -333,15 +350,11 @@ export function PlanLineRow({
           <span className={styles.fieldLabel}>หน่วยนับ<Required /></span>
           <Select
             showSearch
-            placeholder="เลือกหน่วย"
-            optionFilterProp="label"
-            loading={unitsQuery.isLoading}
+            optionFilterProp="title"
+            loading={unitCtx.isLoading}
             value={row.unitId}
             style={{ width: "100%" }}
-            options={(unitsQuery.data?.data ?? []).map((unit) => ({
-              value: unit.id,
-              label: `${unit.code} — ${unit.nameTh}`,
-            }))}
+            {...unitField}
             onChange={(value) => onChange({ ...row, unitId: value })}
           />
         </div>
@@ -387,6 +400,8 @@ export default function ProductionOrderCreatePage() {
   const [remark, setRemark] = useState("");
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
   const [outputRows, setOutputRows] = useState<PlanRow[]>([emptyPlanRow()]);
+  // สร้างครั้งเดียวต่อหน้า แล้วส่งให้ทุกแถว เพื่อให้ graphCache ของกฎแปลงถูกแชร์
+  const unitCtx = useUnitOptionContext();
   const [wasteRows, setWasteRows] = useState<PlanRow[]>([]);
   /**
    * เติมแผนผลผลิตจากใบขอผลิตครั้งเดียว — ปรับ state ตอน render แทน effect
@@ -705,6 +720,7 @@ export default function ProductionOrderCreatePage() {
                 index={index}
                 removable={outputRows.length > 1}
                 itemCategoryCode="FINISHED_GOODS"
+                unitCtx={unitCtx}
                 onChange={(next) =>
                   setOutputRows((prev) =>
                     prev.map((r) => (r.key === row.key ? next : r)),
@@ -748,6 +764,7 @@ export default function ProductionOrderCreatePage() {
                   row={row}
                   index={index}
                   removable
+                  unitCtx={unitCtx}
                   onChange={(next) =>
                     setWasteRows((prev) =>
                       prev.map((r) => (r.key === row.key ? next : r)),

@@ -1,0 +1,12 @@
+.optionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.optionTag {
+  margin-inline-end: 0;
+  font-size: 11px;
+  line-height: 16px;
+  padding-inline: 4px;
+}

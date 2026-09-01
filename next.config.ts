@@ -20,7 +20,7 @@ const apiUrl = resolveApiUrl(process.env.NEXT_PUBLIC_API_URL);
 const nextConfig: NextConfig = {
   output: "standalone",
   // ให้เครื่องอื่นใน LAN เปิด dev ผ่าน IP ได้ (HMR /_next/*)
-  allowedDevOrigins: ["192.168.1.56"],
+  allowedDevOrigins: ["192.168.1.135"],
   // ปิดเครื่องหมาย Next.js (dev indicator) มุมจอตอนพัฒนา
   devIndicators: false,
   experimental: {

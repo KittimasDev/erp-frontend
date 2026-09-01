@@ -13,6 +13,7 @@ import {
 import dayjs from "dayjs";
 
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useProductionOrdersQuery } from "@/hooks/production-orders/useProductionOrderQueries";
 import {
@@ -20,7 +21,6 @@ import {
   useUpdateStockIssueMutation,
 } from "@/hooks/stock-issues/useStockIssueMutations";
 import { useStockIssueQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
-import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import type { CreateStockIssueBody } from "@/types/stock-issues";
 import styles from "./MaterialIssueFormPage.module.css";
 
@@ -54,12 +54,12 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
   const updateMutation = useUpdateStockIssueMutation();
 
   const itemsQuery = useItemsQuery({ isActive: true });
-  const unitsQuery = useUnitsQuery({ isActive: true });
   const lotsQuery = useInventoryLotsQuery({ hasStock: true });
   const productionOrdersQuery = useProductionOrdersQuery({ limit: 100 });
 
   const items = (itemsQuery.data?.data ?? []).filter((item) => item.isIssueItem);
-  const units = unitsQuery.data?.data ?? [];
+  // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
+  const { resolveUnitField } = useUnitFieldResolver(items);
   const lots = lotsQuery.data?.data ?? [];
   const productionOrders = productionOrdersQuery.data?.data.items ?? [];
 
@@ -392,13 +392,12 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                                 rules={[{ required: true, message: "เลือกหน่วย" }]}
                               >
                                 <Select
-                                  placeholder="หน่วย"
                                   showSearch
-                                  optionFilterProp="label"
-                                  options={units.map((unit) => ({
-                                    value: unit.id,
-                                    label: `${unit.code} — ${unit.nameTh}`,
-                                  }))}
+                                  optionFilterProp="title"
+                                  {...resolveUnitField(
+                                    watchedItems[name]?.itemId,
+                                    watchedItems[name]?.unitId,
+                                  )}
                                 />
                               </Form.Item>
                             </div>

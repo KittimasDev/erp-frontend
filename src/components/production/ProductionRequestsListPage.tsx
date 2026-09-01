@@ -33,6 +33,7 @@ import {
   type Row,
 } from "@/components/production/ProductionOrderCreatePage";
 import { useConsolidatedCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
+import { useUnitOptionContext } from "@/hooks/unit-conversions/useUnitOptionContext";
 import { useProductionRequestsQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
@@ -80,6 +81,8 @@ export default function ProductionRequestsListPage() {
   const [remark, setRemark] = useState("");
   const [inputRows, setInputRows] = useState<Row[]>([emptyRow()]);
   const [wasteRows, setWasteRows] = useState<PlanRow[]>([]);
+  // สร้างครั้งเดียวที่ระดับหน้า ไม่ใช่ในโมดัล เพื่อให้ identity นิ่ง
+  const unitCtx = useUnitOptionContext();
 
   const queryParams = useMemo(
     () => ({
@@ -663,6 +666,7 @@ export default function ProductionRequestsListPage() {
                     index={index}
                     removable={wasteRows.length > 1}
                     stockItemsOnly
+                    unitCtx={unitCtx}
                     onChange={(next) =>
                       setWasteRows((prev) =>
                         prev.map((current) =>

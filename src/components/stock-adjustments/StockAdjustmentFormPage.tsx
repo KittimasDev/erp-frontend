@@ -20,13 +20,13 @@ import {
 import dayjs from "dayjs";
 
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import {
   useCreateStockAdjustmentMutation,
   useUpdateStockAdjustmentMutation,
 } from "@/hooks/stock-adjustments/useStockAdjustmentMutations";
 import { useStockAdjustmentQuery } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
-import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateStockAdjustmentBody } from "@/types/stock-adjustments";
@@ -64,13 +64,13 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
   const updateMutation = useUpdateStockAdjustmentMutation();
 
   const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
-  const unitsQuery = useUnitsQuery({ isActive: true });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
   const lotsQuery = useInventoryLotsQuery({});
 
   const items = itemsQuery.data?.data ?? [];
-  const units = unitsQuery.data?.data ?? [];
+  // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
+  const { resolveUnitField } = useUnitFieldResolver(items);
   const warehouses = Array.isArray(warehousesQuery.data?.data)
     ? warehousesQuery.data.data
     : [];
@@ -358,13 +358,12 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                                 ]}
                               >
                                 <Select
-                                  placeholder="หน่วย"
                                   showSearch
-                                  optionFilterProp="label"
-                                  options={units.map((unit) => ({
-                                    value: unit.id,
-                                    label: `${unit.code} — ${unit.nameTh}`,
-                                  }))}
+                                  optionFilterProp="title"
+                                  {...resolveUnitField(
+                                    watchedItems[name]?.itemId,
+                                    watchedItems[name]?.unitId,
+                                  )}
                                 />
                               </Form.Item>
 
