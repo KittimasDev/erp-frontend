@@ -88,6 +88,7 @@ export type PurchaseOrder = {
   paymentTerm?: PurchaseOrderPaymentTermSummary;
   taxRateId?: string;
   taxRate?: PurchaseOrderTaxRateSummary;
+  vatMode?: string;
   status: PurchaseOrderStatus;
   paymentStatus?: string;
   subtotalAmount: string;
@@ -136,6 +137,7 @@ export type CreatePurchaseOrderFromPrBody = {
   creditorId: string;
   paymentTermId?: string;
   taxRateId?: string;
+  vatMode?: string;
   discountAmount?: number;
   remark?: string;
   items: CreatePurchaseOrderItemFromPrBody[];
@@ -158,6 +160,7 @@ export type UpdatePurchaseOrderBody = {
   creditorId?: string;
   paymentTermId?: string | null;
   taxRateId?: string | null;
+  vatMode?: string;
   discountAmount?: number;
   remark?: string;
   items?: UpdatePurchaseOrderItemBody[];

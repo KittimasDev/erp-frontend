@@ -50,6 +50,13 @@ export type SalesInvoicePaymentTermSummary = {
   creditDays: number;
 };
 
+export type SalesInvoiceTaxRateSummary = {
+  id: string;
+  code: string;
+  name: string;
+  rate: number;
+};
+
 export type SalesInvoiceUserSummary = {
   id: string;
   username: string;
@@ -98,6 +105,8 @@ export type SalesInvoice = {
   customer?: SalesInvoiceCustomerSummary;
   paymentTermId?: string;
   paymentTerm?: SalesInvoicePaymentTermSummary;
+  vatMode?: string;
+  taxRate?: SalesInvoiceTaxRateSummary;
   subtotalAmount: string;
   discountAmount: string;
   vatAmount: string;

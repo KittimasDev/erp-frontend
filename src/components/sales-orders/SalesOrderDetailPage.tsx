@@ -63,6 +63,15 @@ import {
 } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useProductionRequestsQuery, useEligibleSalesOrderQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import { useCreateProductionRequestMutation } from "@/hooks/production-requests/useProductionRequestMutations";
+import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
+import {
+  calcDocumentTotals,
+  resolveVatMode,
+  VatMode,
+  VAT_MODE_LABEL,
+  VAT_MODE_OPTIONS,
+  vatAmountLabel,
+} from "@/lib/money/vat-totals";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
 import type { DeliverySchedule } from "@/types/delivery-schedules";
@@ -161,12 +170,9 @@ function formatMoney(value?: string) {
   });
 }
 
-function vatLabel(order: SalesOrder): string {
-  const rate = order.taxRate?.rate;
-  if (typeof rate === "number" && Number.isFinite(rate)) {
-    return `ภาษีมูลค่าเพิ่ม ${rate}%`;
-  }
-  return "ภาษีมูลค่าเพิ่ม 7%";
+function vatLabel(order: SalesOrder, rateOverride?: number | string): string {
+  const rate = Number(rateOverride ?? order.taxRate?.rate);
+  return vatAmountLabel(Number.isFinite(rate) ? rate : undefined);
 }
 
 const PAYMENT_METHOD_OPTIONS = (
@@ -182,6 +188,8 @@ type SalesOrderHeaderDraft = {
   paymentDueDate: string;
   customerPoDate: string;
   remark: string;
+  vatMode: string;
+  taxRateId?: string;
 };
 
 type SalesOrderItemDraft = {
@@ -198,15 +206,20 @@ function headerTotalsFromAmounts(
   lineAmounts: number[],
   headerDiscount: number,
   taxRatePercent: number,
+  vatMode?: string,
 ) {
-  const subtotal = Number(
-    lineAmounts.reduce((sum, amount) => sum + amount, 0).toFixed(2),
+  const totals = calcDocumentTotals(
+    lineAmounts,
+    headerDiscount,
+    resolveVatMode(vatMode),
+    taxRatePercent,
   );
-  const discount = Math.min(headerDiscount, subtotal);
-  const taxable = Math.max(0, subtotal - discount);
-  const vat = Number(((taxable * taxRatePercent) / 100).toFixed(2));
-  const total = Number((taxable + vat).toFixed(2));
-  return { subtotal, discount, vat, total };
+  return {
+    subtotal: totals.subtotal,
+    discount: totals.discount,
+    vat: totals.vat,
+    total: totals.total,
+  };
 }
 
 function buildSalesOrderPdfDataFromOrder(
@@ -215,14 +228,18 @@ function buildSalesOrderPdfDataFromOrder(
     schedules?: DeliverySchedule[];
     headerDraft?: SalesOrderHeaderDraft;
     itemDrafts?: Record<string, SalesOrderItemDraft> | null;
+    taxRates?: Array<{ id: string; rate: number | string }>;
   },
 ): SalesOrderPdfData {
   const header = options?.headerDraft;
   const drafts = options?.itemDrafts ?? null;
+  const vatMode = resolveVatMode(header?.vatMode ?? order.vatMode);
+  const taxRateId = header?.taxRateId ?? order.taxRateId;
+  const selectedRate = options?.taxRates?.find((row) => row.id === taxRateId);
   const taxRate =
-    typeof order.taxRate?.rate === "number" && Number.isFinite(order.taxRate.rate)
-      ? order.taxRate.rate
-      : 7;
+    vatMode === VatMode.NONE
+      ? 0
+      : Number(selectedRate?.rate ?? order.taxRate?.rate ?? 0) || 0;
 
   const items = (order.items ?? []).map((item, index) => {
     const draft = drafts?.[item.id];
@@ -246,6 +263,7 @@ function buildSalesOrderPdfDataFromOrder(
         items.map((item) => item.amount),
         Number(order.discountAmount) || 0,
         taxRate,
+        vatMode,
       )
     : {
         subtotal: Number(order.subtotalAmount) || 0,
@@ -480,6 +498,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const updateCustomerPoMutation = useUpdateSalesOrderCustomerPoMutation();
   const updateHeaderMutation = useUpdateSalesOrderHeaderMutation();
   const updateItemsMutation = useUpdateSalesOrderItemsMutation();
+  const taxRatesQuery = useTaxRatesQuery({ isActive: true });
+  const taxRates = taxRatesQuery.data?.data ?? [];
   // แก้จำนวน/ส่วนลด — ราคาต่อหน่วยล็อกตาม QT; null = ยังไม่เข้าโหมดแก้ไข
   const [itemDrafts, setItemDrafts] = useState<Record<
     string,
@@ -504,6 +524,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     paymentDueDate: "",
     customerPoDate: "",
     remark: "",
+    vatMode: VatMode.EXCLUSIVE,
   });
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
@@ -531,6 +552,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
       paymentDueDate: data.paymentDueDate ?? "",
       customerPoDate: data.customerPoDate ?? "",
       remark: data.remark ?? "",
+      vatMode: resolveVatMode(data.vatMode),
+      taxRateId: data.taxRateId,
     });
   }, [
     data,
@@ -541,6 +564,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
     data?.paymentDueDate,
     data?.customerPoDate,
     data?.remark,
+    data?.vatMode,
+    data?.taxRateId,
     data?.customer?.contactName,
   ]);
 
@@ -944,6 +969,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
           paymentDueDate: headerDraft.paymentDueDate || undefined,
           customerPoDate: headerDraft.customerPoDate || undefined,
           remark: headerDraft.remark,
+          vatMode: resolveVatMode(headerDraft.vatMode),
+          taxRateId:
+            resolveVatMode(headerDraft.vatMode) === VatMode.NONE
+              ? undefined
+              : headerDraft.taxRateId,
         },
       },
       { onSuccess: () => setSelectedPdfVersion("current") },
@@ -988,6 +1018,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       schedules: schedulesForGate.data ?? [],
       headerDraft,
       itemDrafts,
+      taxRates,
     });
     await generateSalesOrderPdf(pdfData);
   };
@@ -1782,6 +1813,65 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   <div className={styles.metaValue}>{data.paymentTerm.name}</div>
                 </div>
               ) : null}
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>รูปแบบ VAT</span>
+                <div className={styles.metaValue}>
+                  {canEditHeader ? (
+                    <Select
+                      aria-label="รูปแบบ VAT"
+                      style={{ width: "100%" }}
+                      options={VAT_MODE_OPTIONS}
+                      value={resolveVatMode(headerDraft.vatMode)}
+                      onChange={(value) =>
+                        setHeaderDraft((prev) => ({
+                          ...prev,
+                          vatMode: value,
+                          taxRateId:
+                            value === VatMode.NONE
+                              ? undefined
+                              : prev.taxRateId,
+                        }))
+                      }
+                    />
+                  ) : (
+                    (VAT_MODE_LABEL[resolveVatMode(data.vatMode)] ??
+                      "ไม่รวม VAT")
+                  )}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>อัตรา VAT</span>
+                <div className={styles.metaValue}>
+                  {canEditHeader ? (
+                    <Select
+                      aria-label="อัตรา VAT"
+                      allowClear
+                      showSearch
+                      optionFilterProp="label"
+                      placeholder="เลือกอัตรา"
+                      style={{ width: "100%" }}
+                      disabled={
+                        resolveVatMode(headerDraft.vatMode) === VatMode.NONE
+                      }
+                      value={headerDraft.taxRateId}
+                      options={taxRates.map((row) => ({
+                        value: row.id,
+                        label: `${row.code} — ${row.name} (${row.rate}%)`,
+                      }))}
+                      onChange={(value) =>
+                        setHeaderDraft((prev) => ({
+                          ...prev,
+                          taxRateId: value,
+                        }))
+                      }
+                    />
+                  ) : data.taxRate ? (
+                    `${data.taxRate.name} (${data.taxRate.rate}%)`
+                  ) : (
+                    "ไม่คิด VAT"
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2772,7 +2862,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
               </strong>
             </div>
             <div className={styles.sideRow}>
-              <span>{vatLabel(data)}</span>
+              <span>
+                {vatLabel(
+                  data,
+                  taxRates.find((row) => row.id === headerDraft.taxRateId)
+                    ?.rate ?? data.taxRate?.rate,
+                )}
+              </span>
               <strong>{formatMoney(data.vatAmount)}</strong>
             </div>
             <div className={styles.sideRow}>

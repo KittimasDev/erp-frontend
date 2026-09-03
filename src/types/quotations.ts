@@ -64,6 +64,11 @@ export type Quotation = {
   paymentTerm?: QuotationPaymentTermSummary;
   taxRateId?: string;
   taxRate?: QuotationTaxRateSummary;
+  vatMode?: string;
+  contactName?: string;
+  withholdingTaxType?: string;
+  withholdingTaxPercent?: string;
+  withholdingTaxAmount?: string;
   status: QuotationStatus | string;
   /** ใบสั่งขายที่เปิดจาก QT นี้ (ถ้ามี) */
   salesOrderId?: string;
@@ -101,8 +106,12 @@ export type QuotationItemInput = {
 export type CreateQuotationBody = {
   quotationDate: string;
   customerId: string;
+  contactName?: string;
   paymentTermId?: string;
+  vatMode?: string;
   taxRateId?: string;
+  withholdingTaxType?: string;
+  withholdingTaxPercent?: number;
   validUntil?: string;
   discountAmount?: number;
   remark?: string;

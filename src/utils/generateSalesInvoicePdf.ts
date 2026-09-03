@@ -1,4 +1,5 @@
 import { getUserSignatureDataUrl } from "@/lib/user/user-signature";
+import { vatAmountLabel } from "@/lib/money/vat-totals";
 
 import {
   generateSalesCommercialPdf,
@@ -14,10 +15,13 @@ export type SalesInvoicePdfData = {
   salesOrderNo: string;
   deliveryOrderNo: string;
   paymentTerm: string;
+  vatModeLabel?: string;
   remark: string;
   subtotalAmount: number;
   discountAmount: number;
+  afterDiscount?: number;
   vatAmount: number;
+  vatRate?: number;
   totalAmount: number;
   items: SalesLinePdfItem[];
   /** ผู้จัดทำเอกสาร — ถ้ามี id และคนนั้นอัปลายเซ็นไว้ จะเอารูปไปแสดงในช่องเซ็น */
@@ -26,6 +30,9 @@ export type SalesInvoicePdfData = {
 
 export async function generateSalesInvoicePdf(data: SalesInvoicePdfData) {
   const preparedSignature = await getUserSignatureDataUrl(data.preparedBy?.id);
+  const afterDiscount =
+    data.afterDiscount ??
+    Math.max(0, data.subtotalAmount - data.discountAmount);
 
   await generateSalesCommercialPdf({
     pageId: "sales-invoice-pdf",
@@ -39,6 +46,7 @@ export async function generateSalesInvoicePdf(data: SalesInvoicePdfData) {
       { label: "อ้างอิง SO", value: data.salesOrderNo },
       { label: "อ้างอิง DO", value: data.deliveryOrderNo },
       { label: "เงื่อนไขชำระ", value: data.paymentTerm },
+      { label: "รูปแบบ VAT", value: data.vatModeLabel || "—" },
       { label: "ครบกำหนด", value: data.dueDate },
     ],
     items: data.items,
@@ -47,6 +55,13 @@ export async function generateSalesInvoicePdf(data: SalesInvoicePdfData) {
     discountAmount: data.discountAmount,
     vatAmount: data.vatAmount,
     totalAmount: data.totalAmount,
+    totalsLines: [
+      { label: "ยอดรวมก่อนส่วนลด", value: data.subtotalAmount },
+      { label: "ส่วนลดท้ายบิล", value: data.discountAmount },
+      { label: "ยอดหลังหักส่วนลด", value: afterDiscount },
+      { label: vatAmountLabel(data.vatRate), value: data.vatAmount },
+      { label: "ยอดสุทธิ", value: data.totalAmount, grand: true },
+    ],
     remark: data.remark,
     signatures: [
       {

@@ -53,6 +53,11 @@ import {
   SALES_INVOICE_PAYMENT_STATUS_LABEL,
   SALES_INVOICE_STATUS_LABEL,
 } from "@/types/sales-invoices";
+import {
+  resolveVatMode,
+  VAT_MODE_LABEL,
+  vatAmountLabel,
+} from "@/lib/money/vat-totals";
 import styles from "./SalesInvoiceDetailPage.module.css";
 
 type Props = { id: string };
@@ -190,6 +195,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       salesOrderNo: data.salesOrder?.soNo ?? "—",
       deliveryOrderNo: data.deliveryOrder?.deliveryOrderNo ?? "—",
       paymentTerm: data.paymentTerm?.name ?? "—",
+      vatModeLabel: VAT_MODE_LABEL[resolveVatMode(data.vatMode)],
       remark: data.remark?.trim() || "",
       preparedBy: {
         id: data.createdBy?.id,
@@ -197,7 +203,12 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       },
       subtotalAmount: Number(data.subtotalAmount) || 0,
       discountAmount: Number(data.discountAmount) || 0,
+      afterDiscount: Math.max(
+        0,
+        Number(data.subtotalAmount) - Number(data.discountAmount),
+      ),
       vatAmount: Number(data.vatAmount) || 0,
+      vatRate: data.taxRate ? Number(data.taxRate.rate) : undefined,
       totalAmount: Number(data.totalAmount) || 0,
       items: (data.items ?? []).map((item, index) => ({
         no: index + 1,
@@ -505,6 +516,20 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                 </div>
               </div>
               <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>รูปแบบ VAT</span>
+                <div className={styles.metaValue}>
+                  {VAT_MODE_LABEL[resolveVatMode(data.vatMode)]}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>อัตรา VAT</span>
+                <div className={styles.metaValue}>
+                  {data.taxRate
+                    ? `${data.taxRate.name} (${data.taxRate.rate}%)`
+                    : "ไม่คิด VAT"}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>หมายเหตุ</span>
                 <div className={styles.metaValue}>{data.remark || "—"}</div>
               </div>
@@ -524,19 +549,37 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
             />
             <div className={styles.metaGrid} style={{ marginTop: 16 }}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ยอดรวม</span>
+                <span className={styles.metaLabel}>ยอดรวมก่อนส่วนลด</span>
                 <div className={styles.metaValue}>
                   {formatMoney(data.subtotalAmount)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ส่วนลด</span>
+                <span className={styles.metaLabel}>ส่วนลดท้ายบิล</span>
                 <div className={styles.metaValue}>
                   {formatMoney(data.discountAmount)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>VAT</span>
+                <span className={styles.metaLabel}>ยอดหลังหักส่วนลด</span>
+                <div className={styles.metaValue}>
+                  {formatMoney(
+                    String(
+                      Math.max(
+                        0,
+                        Number(data.subtotalAmount) -
+                          Number(data.discountAmount),
+                      ),
+                    ),
+                  )}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>
+                  {vatAmountLabel(
+                    data.taxRate ? Number(data.taxRate.rate) : undefined,
+                  )}
+                </span>
                 <div className={styles.metaValue}>
                   {formatMoney(data.vatAmount)}
                 </div>

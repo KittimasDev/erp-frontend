@@ -40,7 +40,7 @@ function formatDate(value?: string) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
-function formatMoney(value?: string) {
+function formatMoney(value?: string | number) {
   const n = Number(value ?? 0);
   if (Number.isNaN(n)) return value ?? "—";
   return n.toLocaleString("th-TH", {
@@ -122,6 +122,7 @@ export default function QuotationDetailPage({ id }: Props) {
       quotationDate: formatDate(data.quotationDate),
       customerName: data.customer?.nameTh ?? "—",
       customerCode: data.customer?.customerCode ?? "—",
+      contactName: data.contactName,
       paymentTerm: data.paymentTerm?.name ?? "—",
       validUntil: formatDate(data.validUntil),
       remark: data.remark?.trim() || "",
@@ -131,7 +132,14 @@ export default function QuotationDetailPage({ id }: Props) {
       },
       subtotalAmount: Number(data.subtotalAmount) || 0,
       discountAmount: Number(data.discountAmount) || 0,
+      afterDiscount: Math.max(
+        0,
+        Number(data.subtotalAmount) - Number(data.discountAmount),
+      ),
       vatAmount: Number(data.vatAmount) || 0,
+      vatRate: data.taxRate?.rate,
+      withholdingAmount: Number(data.withholdingTaxAmount) || 0,
+      withholdingPercent: Number(data.withholdingTaxPercent) || 0,
       totalAmount: Number(data.totalAmount) || 0,
       items: (data.items ?? []).map((item, index) => ({
         no: index + 1,
@@ -188,15 +196,21 @@ export default function QuotationDetailPage({ id }: Props) {
                 <div className={styles.metaValue}>{data.quotationNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่</span>
+                <span className={styles.metaLabel}>วันที่เอกสาร</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.quotationDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันหมดอายุ</span>
+                <span className={styles.metaLabel}>ยืนราคาถึงวันที่</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.validUntil)}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>ผู้ติดต่อ</span>
+                <div className={styles.metaValue}>
+                  {data.contactName?.trim() || "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -206,15 +220,25 @@ export default function QuotationDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>VAT</span>
+                <span className={styles.metaLabel}>รูปแบบ VAT</span>
                 <div className={styles.metaValue}>
-                  {data.taxRate
-                    ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-                    : "ไม่มี (0%)"}
+                  {data.vatMode === "NONE"
+                    ? "ไม่คิด VAT"
+                    : data.vatMode === "INCLUSIVE"
+                      ? "รวม VAT"
+                      : "ไม่รวม VAT"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>สร้างโดย</span>
+                <span className={styles.metaLabel}>อัตรา VAT</span>
+                <div className={styles.metaValue}>
+                  {data.taxRate
+                    ? `${data.taxRate.name} (${data.taxRate.rate}%)`
+                    : "ไม่คิด VAT"}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>ผู้เสนอราคา</span>
                 <div className={styles.metaValue}>
                   {data.createdBy?.displayName ?? "—"}
                 </div>
@@ -298,19 +322,42 @@ export default function QuotationDetailPage({ id }: Props) {
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>Subtotal</span>
+              <span>ยอดรวมก่อนส่วนลด</span>
               <strong>{formatMoney(data.subtotalAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>Discount</span>
+              <span>ส่วนลดท้ายบิล</span>
               <strong>{formatMoney(data.discountAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>VAT</span>
-              <strong>{formatMoney(data.vatAmount)}</strong>
+              <span>ยอดหลังหักส่วนลด</span>
+              <strong>
+                {formatMoney(
+                  Math.max(
+                    0,
+                    Number(data.subtotalAmount) - Number(data.discountAmount),
+                  ),
+                )}
+              </strong>
             </div>
             <div className={styles.sideRow}>
-              <span>Total</span>
+              <span>
+                {data.taxRate?.rate
+                  ? `ภาษีมูลค่าเพิ่ม ${data.taxRate.rate}%`
+                  : "ภาษีมูลค่าเพิ่ม"}
+              </span>
+              <strong>{formatMoney(data.vatAmount)}</strong>
+            </div>
+            {Number(data.withholdingTaxPercent) > 0 ? (
+              <div className={styles.sideRow}>
+                <span>
+                  ภาษีหัก ณ ที่จ่าย {data.withholdingTaxPercent}%
+                </span>
+                <strong>{formatMoney(data.withholdingTaxAmount)}</strong>
+              </div>
+            ) : null}
+            <div className={styles.sideRow}>
+              <span>ยอดสุทธิ</span>
               <strong>{formatMoney(data.totalAmount)}</strong>
             </div>
           </div>

@@ -71,7 +71,7 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
   const vatRate =
     typeof data.taxRatePercent === "number" && Number.isFinite(data.taxRatePercent)
       ? data.taxRatePercent
-      : 7;
+      : undefined;
   const afterDiscount = Math.max(
     0,
     Number((data.subtotalAmount - data.discountAmount).toFixed(2)),
@@ -150,7 +150,7 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
       { label: "ยอดรวมก่อนส่วนลด", value: data.subtotalAmount },
       { label: "ส่วนลดท้ายบิล", value: data.discountAmount },
       { label: "ยอดหลังหักส่วนลด", value: afterDiscount },
-      { label: `ภาษีมูลค่าเพิ่ม ${vatRate}%`, value: data.vatAmount },
+      { label: vatRate && vatRate > 0 ? `ภาษีมูลค่าเพิ่ม ${vatRate}%` : "ภาษีมูลค่าเพิ่ม", value: data.vatAmount },
       { label: "ยอดสุทธิ", value: data.totalAmount, grand: true },
     ],
     remark: data.remark,

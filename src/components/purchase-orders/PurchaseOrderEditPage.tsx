@@ -20,6 +20,11 @@ import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useUpdatePurchaseOrderMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import {
+  resolveVatMode,
+  VatMode,
+  VAT_MODE_OPTIONS,
+} from "@/lib/money/vat-totals";
 import styles from "./PurchaseOrderFormPage.module.css";
 
 type LineValues = {
@@ -39,6 +44,7 @@ type FormValues = {
   poDate: dayjs.Dayjs;
   creditorId: string;
   paymentTermId?: string;
+  vatMode: VatMode;
   taxRateId?: string;
   discountAmount?: number;
   remark?: string;
@@ -63,6 +69,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
   const data = detailQuery.data?.data;
 
   const watchedItems = Form.useWatch("items", form) ?? [];
+  const watchedVatMode = Form.useWatch("vatMode", form);
 
   useEffect(() => {
     if (!data) return;
@@ -75,6 +82,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
       poDate: dayjs(data.poDate),
       creditorId: data.creditorId,
       paymentTermId: data.paymentTermId,
+      vatMode: resolveVatMode(data.vatMode),
       taxRateId: data.taxRateId,
       discountAmount: Number(data.discountAmount),
       remark: data.remark,
@@ -119,7 +127,11 @@ export default function PurchaseOrderEditPage({ id }: Props) {
         poDate: values.poDate.format("YYYY-MM-DD"),
         creditorId: values.creditorId,
         paymentTermId: values.paymentTermId ?? null,
-        taxRateId: values.taxRateId ?? null,
+        vatMode: resolveVatMode(values.vatMode),
+        taxRateId:
+          resolveVatMode(values.vatMode) === VatMode.NONE
+            ? null
+            : (values.taxRateId ?? null),
         discountAmount: values.discountAmount ?? 0,
         remark: values.remark?.trim() || undefined,
         items: values.items.map((item, index) => ({
@@ -202,22 +214,52 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ภาษี"
+                    label="รูปแบบ VAT"
+                    name="vatMode"
+                  >
+                    <Select
+                      options={VAT_MODE_OPTIONS}
+                      onChange={(mode) => {
+                        if (mode === VatMode.NONE) {
+                          form.setFieldValue("taxRateId", undefined);
+                        }
+                      }}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    className={styles.field}
+                    label="อัตรา VAT"
                     name="taxRateId"
+                    rules={[
+                      {
+                        validator: async (_, value) => {
+                          if (
+                            resolveVatMode(form.getFieldValue("vatMode")) ===
+                            VatMode.NONE
+                          ) {
+                            return;
+                          }
+                          if (!value) {
+                            throw new Error("ต้องเลือกอัตรา VAT");
+                          }
+                        },
+                      },
+                    ]}
                   >
                     <Select
                       allowClear
                       showSearch
                       optionFilterProp="label"
+                      disabled={resolveVatMode(watchedVatMode) === VatMode.NONE}
                       options={taxRates.map((t) => ({
                         value: t.id,
-                        label: `${t.code} — ${t.name}`,
+                        label: `${t.code} — ${t.name} (${t.rate}%)`,
                       }))}
                     />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ส่วนลดหัวเอกสาร"
+                    label="ส่วนลดท้ายบิล"
                     name="discountAmount"
                   >
                     <InputNumber min={0} style={{ width: "100%" }} />

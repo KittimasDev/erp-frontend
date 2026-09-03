@@ -209,6 +209,22 @@
   font-size: 13px;
 }
 
+.lineAmount {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0 12px;
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.lineAmount strong {
+  color: var(--pr-text);
+  font-size: 16px;
+  font-weight: 500;
+}
+
 .lineGrid {
   display: grid;
   grid-template-columns: 1.4fr 0.7fr 0.9fr;

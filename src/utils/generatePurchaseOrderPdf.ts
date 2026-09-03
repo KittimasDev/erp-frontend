@@ -24,12 +24,15 @@ export type PurchaseOrderPdfData = {
   vendorName: string;
   vendorCode: string;
   paymentTerm: string;
+  vatModeLabel?: string;
   taxLabel: string;
+  vatRate?: number;
   prNo: string;
   createdBy: string;
   remark: string;
   subtotalAmount: number;
   discountAmount: number;
+  afterDiscount?: number;
   vatAmount: number;
   totalAmount: number;
   items: PurchaseOrderPdfItem[];
@@ -151,7 +154,11 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
             <span class="value">${escapeHtml(data.paymentTerm)}</span>
           </div>
           <div class="info-row">
-            <span class="label">ภาษี</span>
+            <span class="label">รูปแบบ VAT</span>
+            <span class="value">${escapeHtml(data.vatModeLabel || "—")}</span>
+          </div>
+          <div class="info-row">
+            <span class="label">อัตรา VAT</span>
             <span class="value">${escapeHtml(data.taxLabel)}</span>
           </div>
           <div class="info-row info-row-full">
@@ -184,19 +191,30 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
         <div class="totals-spacer"></div>
         <div class="totals-box">
           <div class="total-line">
-            <span>Subtotal</span>
+            <span>ยอดรวมก่อนส่วนลด</span>
             <strong>${formatMoney(data.subtotalAmount)}</strong>
           </div>
           <div class="total-line">
-            <span>ส่วนลด</span>
+            <span>ส่วนลดท้ายบิล</span>
             <strong>${formatMoney(data.discountAmount)}</strong>
           </div>
           <div class="total-line">
-            <span>VAT</span>
+            <span>ยอดหลังหักส่วนลด</span>
+            <strong>${formatMoney(
+              data.afterDiscount ??
+                Math.max(0, data.subtotalAmount - data.discountAmount),
+            )}</strong>
+          </div>
+          <div class="total-line">
+            <span>${
+              data.vatRate && data.vatRate > 0
+                ? `ภาษีมูลค่าเพิ่ม ${data.vatRate}%`
+                : "ภาษีมูลค่าเพิ่ม"
+            }</span>
             <strong>${formatMoney(data.vatAmount)}</strong>
           </div>
           <div class="total-line total-line-grand">
-            <span>รวมทั้งสิ้น</span>
+            <span>ยอดสุทธิ</span>
             <strong>${formatMoney(data.totalAmount)}</strong>
           </div>
         </div>

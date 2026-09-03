@@ -100,6 +100,7 @@ export type SalesOrder = {
   paymentTerm?: SalesOrderPaymentTermSummary;
   taxRateId?: string;
   taxRate?: SalesOrderTaxRateSummary;
+  vatMode?: string;
   contactName?: string;
   paymentMethod?: string;
   paymentDueDate?: string;
@@ -146,6 +147,8 @@ export type UpdateSalesOrderHeaderBody = {
   paymentDueDate?: string;
   customerPoDate?: string;
   remark?: string;
+  vatMode?: string;
+  taxRateId?: string;
 };
 
 /** แก้จำนวน / ส่วนลด รายบรรทัด — ราคาต่อหน่วยล็อกตาม QT */

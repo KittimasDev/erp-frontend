@@ -31,6 +31,14 @@ import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useCreatePurchaseOrderFromPrMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import { usePurchaseOrderByPrQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchaseRequestQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
+import {
+  calcDocumentTotals,
+  calcLineAmount,
+  resolveVatMode,
+  VatMode,
+  VAT_MODE_OPTIONS,
+  vatAmountLabel,
+} from "@/lib/money/vat-totals";
 import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
 import {
   getScreenActionPermissions,
@@ -57,6 +65,7 @@ type FormValues = {
   poDate: dayjs.Dayjs;
   creditorId: string;
   paymentTermId?: string;
+  vatMode: VatMode;
   taxRateId?: string;
   discountAmount?: number;
   remark?: string;
@@ -146,6 +155,7 @@ export default function PurchaseOrderCreateFromPrPage({
   const watchedItems = Form.useWatch("items", form) ?? [];
   const watchedDiscount = Form.useWatch("discountAmount", form) ?? 0;
   const watchedTaxId = Form.useWatch("taxRateId", form);
+  const watchedVatMode = Form.useWatch("vatMode", form);
 
   const lineMetaByPrItemId = useMemo(() => {
     const map = new Map<
@@ -169,6 +179,7 @@ export default function PurchaseOrderCreateFromPrPage({
     if (!pr) return;
     form.setFieldsValue({
       poDate: dayjs(),
+      vatMode: VatMode.EXCLUSIVE,
       discountAmount: 0,
       remark: pr.remark,
       items: (pr.items ?? []).map((item) => ({
@@ -200,16 +211,28 @@ export default function PurchaseOrderCreateFromPrPage({
       const qty = Number(meta?.quantity ?? line?.quantity) || 0;
       const price = Number(line?.unitPrice) || 0;
       const disc = Number(line?.discountAmount) || 0;
-      return Math.max(0, qty * price - disc);
+      return calcLineAmount(qty, price, disc);
     });
-    const subtotal = lineAmounts.reduce((s, n) => s + n, 0);
-    const discount = Math.min(Number(watchedDiscount) || 0, subtotal);
-    const taxable = Math.max(0, subtotal - discount);
-    const rate = Number(selectedTax?.rate ?? 0);
-    const vat = (taxable * rate) / 100;
-    const total = taxable + vat;
-    return { subtotal, discount, vat, total };
-  }, [watchedDiscount, watchedItems, selectedTax, lineMetaByPrItemId, pr?.items]);
+    const vatMode = resolveVatMode(watchedVatMode);
+    const rate =
+      vatMode === VatMode.NONE ? 0 : Number(selectedTax?.rate ?? 0);
+    return {
+      ...calcDocumentTotals(
+        lineAmounts,
+        Number(watchedDiscount) || 0,
+        vatMode,
+        rate,
+      ),
+      vatRate: rate,
+    };
+  }, [
+    watchedDiscount,
+    watchedItems,
+    selectedTax,
+    watchedVatMode,
+    lineMetaByPrItemId,
+    pr?.items,
+  ]);
 
   const uploadProps: UploadProps = {
     multiple: true,
@@ -300,7 +323,11 @@ export default function PurchaseOrderCreateFromPrPage({
           poDate: values.poDate.format("YYYY-MM-DD"),
           creditorId: values.creditorId,
           paymentTermId: values.paymentTermId,
-          taxRateId: values.taxRateId,
+          vatMode: resolveVatMode(values.vatMode),
+          taxRateId:
+            resolveVatMode(values.vatMode) === VatMode.NONE
+              ? undefined
+              : values.taxRateId,
           discountAmount: values.discountAmount ?? 0,
           remark: values.remark?.trim() || undefined,
           items: values.items.map((item) => ({
@@ -375,6 +402,7 @@ export default function PurchaseOrderCreateFromPrPage({
         layout="vertical"
         onFinish={onFinish}
         disabled={saving}
+        initialValues={{ vatMode: VatMode.EXCLUSIVE }}
       >
         <div className={styles.layout}>
           <section className={styles.formCard}>
@@ -426,14 +454,44 @@ export default function PurchaseOrderCreateFromPrPage({
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="อัตราภาษี"
+                    label="รูปแบบ VAT"
+                    name="vatMode"
+                  >
+                    <Select
+                      options={VAT_MODE_OPTIONS}
+                      onChange={(mode) => {
+                        if (mode === VatMode.NONE) {
+                          form.setFieldValue("taxRateId", undefined);
+                        }
+                      }}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    className={styles.field}
+                    label="อัตรา VAT"
                     name="taxRateId"
+                    rules={[
+                      {
+                        validator: async (_, value) => {
+                          if (
+                            resolveVatMode(form.getFieldValue("vatMode")) ===
+                            VatMode.NONE
+                          ) {
+                            return;
+                          }
+                          if (!value) {
+                            throw new Error("ต้องเลือกอัตรา VAT");
+                          }
+                        },
+                      },
+                    ]}
                   >
                     <Select
                       allowClear
                       showSearch
                       optionFilterProp="label"
                       placeholder="เลือกภาษี"
+                      disabled={resolveVatMode(watchedVatMode) === VatMode.NONE}
                       options={taxRates.map((t) => ({
                         value: t.id,
                         label: `${t.code} — ${t.name} (${t.rate}%)`,
@@ -442,7 +500,7 @@ export default function PurchaseOrderCreateFromPrPage({
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ส่วนลดหัวเอกสาร"
+                    label="ส่วนลดท้ายบิล"
                     name="discountAmount"
                   >
                     <InputNumber min={0} style={{ width: "100%" }} />
@@ -624,19 +682,23 @@ export default function PurchaseOrderCreateFromPrPage({
             </div>
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
-                <span>Subtotal</span>
+                <span>ยอดรวมก่อนส่วนลด</span>
                 <strong>{formatMoney(preview.subtotal)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>ส่วนลด</span>
+                <span>ส่วนลดท้ายบิล</span>
                 <strong>{formatMoney(preview.discount)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>VAT</span>
+                <span>ยอดหลังหักส่วนลด</span>
+                <strong>{formatMoney(preview.afterDiscount)}</strong>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>{vatAmountLabel(preview.vatRate)}</span>
                 <strong>{formatMoney(preview.vat)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>รวมทั้งสิ้น</span>
+                <span>ยอดสุทธิ</span>
                 <strong>{formatMoney(preview.total)}</strong>
               </div>
               <div className={styles.summaryRow}>

@@ -44,6 +44,11 @@ import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
+import {
+  resolveVatMode,
+  VAT_MODE_LABEL,
+  vatAmountLabel,
+} from "@/lib/money/vat-totals";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { SUPPLIER_PAYMENT_STATUS_LABEL } from "@/types/purchase-payments";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
@@ -275,14 +280,20 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       vendorName: data.creditor?.nameTh ?? "—",
       vendorCode: data.creditor?.creditorCode ?? "—",
       paymentTerm: data.paymentTerm?.name ?? "ไม่ระบุ",
+      vatModeLabel: VAT_MODE_LABEL[resolveVatMode(data.vatMode)],
       taxLabel: data.taxRate
         ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-        : "ไม่ระบุ",
+        : "ไม่คิด VAT",
+      vatRate: data.taxRate ? Number(data.taxRate.rate) : 0,
       prNo: data.purchaseRequest?.prNo ?? "—",
       createdBy: data.createdBy?.displayName ?? "—",
       remark: data.remark?.trim() || "",
       subtotalAmount: Number(data.subtotalAmount) || 0,
       discountAmount: Number(data.discountAmount) || 0,
+      afterDiscount: Math.max(
+        0,
+        Number(data.subtotalAmount) - Number(data.discountAmount),
+      ),
       vatAmount: Number(data.vatAmount) || 0,
       totalAmount: Number(data.totalAmount) || 0,
       items: (data.items ?? []).map((item, index) => ({
@@ -367,11 +378,17 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ภาษี</span>
+                <span className={styles.metaLabel}>รูปแบบ VAT</span>
+                <div className={styles.metaValue}>
+                  {VAT_MODE_LABEL[resolveVatMode(data.vatMode)]}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>อัตรา VAT</span>
                 <div className={styles.metaValue}>
                   {data.taxRate
                     ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-                    : "ไม่ระบุ"}
+                    : "ไม่คิด VAT"}
                 </div>
               </div>
             </div>
@@ -516,19 +533,32 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>Subtotal</span>
+              <span>ยอดรวมก่อนส่วนลด</span>
               <strong>{formatMoney(data.subtotalAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ส่วนลด</span>
+              <span>ส่วนลดท้ายบิล</span>
               <strong>{formatMoney(data.discountAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>VAT</span>
+              <span>ยอดหลังหักส่วนลด</span>
+              <strong>
+                {formatMoney(
+                  String(
+                    Math.max(
+                      0,
+                      Number(data.subtotalAmount) - Number(data.discountAmount),
+                    ),
+                  ),
+                )}
+              </strong>
+            </div>
+            <div className={styles.sideRow}>
+              <span>{vatAmountLabel(data.taxRate ? Number(data.taxRate.rate) : 0)}</span>
               <strong>{formatMoney(data.vatAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>รวมทั้งสิ้น</span>
+              <span>ยอดสุทธิ</span>
               <strong>{formatMoney(data.totalAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
