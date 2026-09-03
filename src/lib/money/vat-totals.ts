@@ -38,6 +38,35 @@ export type WithholdingTaxType =
 
 export const WITHHOLDING_TAX_TYPES = Object.values(WithholdingTaxType);
 
+export const WITHHOLDING_TAX_TYPE_LABEL: Record<WithholdingTaxType, string> = {
+  NONE: "ไม่ระบุ",
+  PCT_1: "1%",
+  PCT_3: "3%",
+  CUSTOM: "กำหนดเอง",
+};
+
+export const WITHHOLDING_TAX_TYPE_OPTIONS = WITHHOLDING_TAX_TYPES.map(
+  (value) => ({
+    value,
+    label: WITHHOLDING_TAX_TYPE_LABEL[value],
+  }),
+);
+
+export function withholdingTaxTypeLabel(
+  type?: string | null,
+  percent?: string | number | null,
+): string {
+  const resolved = resolveWithholdingTaxType(type);
+  if (resolved === WithholdingTaxType.NONE) {
+    return WITHHOLDING_TAX_TYPE_LABEL.NONE;
+  }
+  const pct = resolveWithholdingPercent(resolved, Number(percent ?? 0));
+  if (resolved === WithholdingTaxType.CUSTOM) {
+    return `${pct}%`;
+  }
+  return WITHHOLDING_TAX_TYPE_LABEL[resolved];
+}
+
 export type DocumentTotals = {
   subtotal: number;
   discount: number;

@@ -25,6 +25,11 @@ import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { useCreateSalesOrderFromQuotationMutation } from "@/hooks/sales-orders/useSalesOrderMutations";
 import AccessDenied from "@/components/auth/AccessDenied";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import {
+  resolveVatMode,
+  VAT_MODE_LABEL,
+  withholdingTaxTypeLabel,
+} from "@/lib/money/vat-totals";
 import { QUOTATION_MATRIX_ACTION_LABELS } from "@/lib/auth/quotation-matrix-labels";
 import {
   QUOTATION_FLOW_STEPS,
@@ -222,19 +227,16 @@ export default function QuotationDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>รูปแบบ VAT</span>
                 <div className={styles.metaValue}>
-                  {data.vatMode === "NONE"
-                    ? "ไม่คิด VAT"
-                    : data.vatMode === "INCLUSIVE"
-                      ? "รวม VAT"
-                      : "ไม่รวม VAT"}
+                  {VAT_MODE_LABEL[resolveVatMode(data.vatMode)]}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อัตรา VAT</span>
+                <span className={styles.metaLabel}>ภาษีหัก ณ ที่จ่าย</span>
                 <div className={styles.metaValue}>
-                  {data.taxRate
-                    ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-                    : "ไม่คิด VAT"}
+                  {withholdingTaxTypeLabel(
+                    data.withholdingTaxType,
+                    data.withholdingTaxPercent,
+                  )}
                 </div>
               </div>
               <div className={styles.metaItem}>

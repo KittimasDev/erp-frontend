@@ -37,7 +37,9 @@ import {
   useQuotationItemAvailabilityQuery,
   useQuotationQuery,
 } from "@/hooks/quotations/useQuotationsQuery";
+import { useCompanyProfileQuery } from "@/hooks/company-profile/useCompanyProfileQuery";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
+import { pickDefaultTaxRatePercent } from "@/lib/money/pick-default-tax-rate";
 import type { CreateQuotationBody } from "@/types/quotations";
 import { getStoredUser } from "@/lib/auth/session";
 import {
@@ -49,6 +51,7 @@ import {
   resolveWithholdingTaxType,
   VatMode,
   VAT_MODE_OPTIONS,
+  WITHHOLDING_TAX_TYPE_OPTIONS,
   WithholdingTaxType,
 } from "@/lib/money/vat-totals";
 
@@ -123,6 +126,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
   });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
   const taxRatesQuery = useTaxRatesQuery({ isActive: true });
+  const companyProfileQuery = useCompanyProfileQuery();
 
   const customers = customersQuery.data?.data ?? [];
   const items = itemsQuery.data?.data ?? [];
@@ -130,10 +134,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const { resolveUnitField } = useUnitFieldResolver(items);
   const paymentTerms = paymentTermsQuery.data?.data ?? [];
   const taxRates = taxRatesQuery.data?.data ?? [];
+  const defaultVatRate = companyProfileQuery.data?.data?.defaultVatRate;
 
   const watchedItems = Form.useWatch("items", form) ?? [];
   const watchedDiscount = Form.useWatch("discountAmount", form) ?? 0;
-  const watchedTaxId = Form.useWatch("taxRateId", form);
   const watchedVatMode = Form.useWatch("vatMode", form);
   const watchedWhtType = Form.useWatch("withholdingTaxType", form);
   const watchedWhtPercent = Form.useWatch("withholdingTaxPercent", form);
@@ -218,11 +222,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
     });
   }, [detailQuery.data, form, mode, router]);
 
-  const selectedTax = useMemo(
-    () => taxRates.find((tax) => tax.id === watchedTaxId),
-    [taxRates, watchedTaxId],
-  );
-
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === watchedCustomerId),
     [customers, watchedCustomerId],
@@ -240,9 +239,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
     const rate =
       vatMode === VatMode.NONE
         ? 0
-        : selectedTax
-          ? Number(selectedTax.rate) || 0
-          : 0;
+        : pickDefaultTaxRatePercent(taxRates, defaultVatRate);
     const totals = calcDocumentTotals(
       lineAmounts,
       Number(watchedDiscount) || 0,
@@ -263,7 +260,8 @@ export default function QuotationFormPage({ mode, id }: Props) {
   }, [
     watchedItems,
     watchedDiscount,
-    selectedTax,
+    taxRates,
+    defaultVatRate,
     watchedVatMode,
     watchedWhtType,
     watchedWhtPercent,
@@ -341,7 +339,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
       contactName: values.contactName?.trim() || undefined,
       paymentTermId: values.paymentTermId,
       vatMode,
-      taxRateId: vatMode === VatMode.NONE ? undefined : values.taxRateId,
       withholdingTaxType: values.withholdingTaxType,
       withholdingTaxPercent: resolveWithholdingPercent(
         values.withholdingTaxType,
@@ -527,62 +524,13 @@ export default function QuotationFormPage({ mode, id }: Props) {
                     />
                   </Form.Item>
                   <Form.Item name="vatMode" label="รูปแบบ VAT">
-                    <Select
-                      options={VAT_MODE_OPTIONS}
-                      onChange={(mode) => {
-                        if (mode === VatMode.NONE) {
-                          form.setFieldValue("taxRateId", undefined);
-                        }
-                      }}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    name="taxRateId"
-                    label="อัตรา VAT"
-                    extra="เลือกจาก master อัตราภาษี — ไม่ hardcode 7%"
-                    rules={[
-                      {
-                        validator: async (_, value) => {
-                          if (
-                            resolveVatMode(form.getFieldValue("vatMode")) ===
-                            VatMode.NONE
-                          ) {
-                            return;
-                          }
-                          if (!value) {
-                            throw new Error("ต้องเลือกอัตรา VAT");
-                          }
-                        },
-                      },
-                    ]}
-                  >
-                    <Select
-                      allowClear
-                      showSearch
-                      optionFilterProp="label"
-                      placeholder="เลือกอัตรา"
-                      disabled={resolveVatMode(watchedVatMode) === VatMode.NONE}
-                      options={taxRates.map((t) => ({
-                        value: t.id,
-                        label: `${t.code} — ${t.name} (${t.rate}%)`,
-                      }))}
-                    />
+                    <Select options={VAT_MODE_OPTIONS} />
                   </Form.Item>
                   <Form.Item
                     name="withholdingTaxType"
                     label="ภาษีหัก ณ ที่จ่าย"
                   >
-                    <Select
-                      options={[
-                        { value: WithholdingTaxType.NONE, label: "ไม่ระบุ" },
-                        { value: WithholdingTaxType.PCT_1, label: "1%" },
-                        { value: WithholdingTaxType.PCT_3, label: "3%" },
-                        {
-                          value: WithholdingTaxType.CUSTOM,
-                          label: "กำหนดเอง",
-                        },
-                      ]}
-                    />
+                    <Select options={WITHHOLDING_TAX_TYPE_OPTIONS} />
                   </Form.Item>
                   {watchedWhtType === WithholdingTaxType.CUSTOM ? (
                     <Form.Item

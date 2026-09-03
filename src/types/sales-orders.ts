@@ -101,6 +101,9 @@ export type SalesOrder = {
   taxRateId?: string;
   taxRate?: SalesOrderTaxRateSummary;
   vatMode?: string;
+  withholdingTaxType?: string;
+  withholdingTaxPercent?: string;
+  withholdingTaxAmount?: string;
   contactName?: string;
   paymentMethod?: string;
   paymentDueDate?: string;

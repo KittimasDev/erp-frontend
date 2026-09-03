@@ -69,6 +69,7 @@ import {
   VAT_MODE_LABEL,
   VAT_MODE_OPTIONS,
   vatAmountLabel,
+  withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
@@ -834,10 +835,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
           customerPoDate: headerDraft.customerPoDate || undefined,
           remark: sanitizeDocumentHtml(headerDraft.remark),
           vatMode: resolveVatMode(headerDraft.vatMode),
-          taxRateId:
-            resolveVatMode(headerDraft.vatMode) === VatMode.NONE
-              ? undefined
-              : headerDraft.taxRateId,
         },
       },
       { onSuccess: () => setSelectedPdfVersion("current") },
@@ -1700,10 +1697,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
                         setHeaderDraft((prev) => ({
                           ...prev,
                           vatMode: value,
-                          taxRateId:
-                            value === VatMode.NONE
-                              ? undefined
-                              : prev.taxRateId,
                         }))
                       }
                     />
@@ -1714,35 +1707,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อัตรา VAT</span>
+                <span className={styles.metaLabel}>ภาษีหัก ณ ที่จ่าย</span>
                 <div className={styles.metaValue}>
-                  {canEditHeader ? (
-                    <Select
-                      aria-label="อัตรา VAT"
-                      allowClear
-                      showSearch
-                      optionFilterProp="label"
-                      placeholder="เลือกอัตรา"
-                      style={{ width: "100%" }}
-                      disabled={
-                        resolveVatMode(headerDraft.vatMode) === VatMode.NONE
-                      }
-                      value={headerDraft.taxRateId}
-                      options={taxRates.map((row) => ({
-                        value: row.id,
-                        label: `${row.code} — ${row.name} (${row.rate}%)`,
-                      }))}
-                      onChange={(value) =>
-                        setHeaderDraft((prev) => ({
-                          ...prev,
-                          taxRateId: value,
-                        }))
-                      }
-                    />
-                  ) : data.taxRate ? (
-                    `${data.taxRate.name} (${data.taxRate.rate}%)`
-                  ) : (
-                    "ไม่คิด VAT"
+                  {withholdingTaxTypeLabel(
+                    data.withholdingTaxType,
+                    data.withholdingTaxPercent,
                   )}
                 </div>
               </div>
@@ -2630,14 +2599,18 @@ export default function SalesOrderDetailPage({ id }: Props) {
             </div>
             <div className={styles.sideRow}>
               <span>
-                {vatLabel(
-                  data,
-                  taxRates.find((row) => row.id === headerDraft.taxRateId)
-                    ?.rate ?? data.taxRate?.rate,
-                )}
+                {vatLabel(data, data.taxRate?.rate)}
               </span>
               <strong>{formatMoney(data.vatAmount)}</strong>
             </div>
+            {Number(data.withholdingTaxPercent) > 0 ? (
+              <div className={styles.sideRow}>
+                <span>
+                  ภาษีหัก ณ ที่จ่าย {data.withholdingTaxPercent}%
+                </span>
+                <strong>{formatMoney(data.withholdingTaxAmount)}</strong>
+              </div>
+            ) : null}
             <div className={styles.sideRow}>
               <span>ยอดสุทธิ</span>
               <strong>{formatMoney(data.totalAmount)}</strong>
