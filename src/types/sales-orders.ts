@@ -39,6 +39,31 @@ export type SalesOrderCustomerSummary = {
   creditLimit?: string;
 };
 
+export type SalesOrderPaymentTermSummary = {
+  id: string;
+  code: string;
+  name: string;
+  creditDays?: number;
+};
+
+export type SalesOrderTaxRateSummary = {
+  id: string;
+  code: string;
+  name: string;
+  rate: number;
+};
+
+export type SalesOrderPaymentMethod = "CASH" | "TRANSFER" | "CHEQUE";
+
+export const SALES_ORDER_PAYMENT_METHOD_LABEL: Record<
+  SalesOrderPaymentMethod,
+  string
+> = {
+  CASH: "เงินสด",
+  TRANSFER: "โอนเงิน",
+  CHEQUE: "เช็ค",
+};
+
 export type SalesOrderUserSummary = {
   id: string;
   username: string;
@@ -72,7 +97,12 @@ export type SalesOrder = {
   customerId: string;
   customer?: SalesOrderCustomerSummary;
   paymentTermId?: string;
+  paymentTerm?: SalesOrderPaymentTermSummary;
   taxRateId?: string;
+  taxRate?: SalesOrderTaxRateSummary;
+  contactName?: string;
+  paymentMethod?: string;
+  paymentDueDate?: string;
   status: SalesOrderStatus | string;
   requestedDeliveryDate?: string;
   deliveryStatus?: string;
@@ -82,6 +112,8 @@ export type SalesOrder = {
   totalAmount: string;
   remark?: string;
   customerPoNo?: string;
+  customerPoDate?: string;
+  revisedAt?: string;
   createdById?: string;
   createdBy?: SalesOrderUserSummary;
   confirmedById?: string;
@@ -108,7 +140,15 @@ export type UpdateSalesOrderCustomerPoBody = {
   customerPoNo: string;
 };
 
-/** แก้จำนวน / ราคา / ส่วนลด รายบรรทัด — ส่งเฉพาะบรรทัดที่เปลี่ยนก็ได้ */
+export type UpdateSalesOrderHeaderBody = {
+  contactName?: string;
+  paymentMethod?: SalesOrderPaymentMethod;
+  paymentDueDate?: string;
+  customerPoDate?: string;
+  remark?: string;
+};
+
+/** แก้จำนวน / ส่วนลด รายบรรทัด — ราคาต่อหน่วยล็อกตาม QT */
 export type UpdateSalesOrderItemLineBody = {
   id: string;
   quantity?: number;
@@ -251,30 +291,50 @@ export type SalesOrderListApiResponse = {
 
 export type SalesOrderPdfSnapshotChangeSource =
   | "UPDATE_ITEMS"
-  | "UPDATE_CUSTOMER_PO";
+  | "UPDATE_CUSTOMER_PO"
+  | "UPDATE_HEADER"
+  | "RESCHEDULE"
+  | "CANCEL_ROUND"
+  | "CANCEL";
+
+export type SalesOrderPdfSnapshotLine = {
+  no: number;
+  itemCode: string;
+  itemName: string;
+  unit: string;
+  qty: number;
+  unitPrice: number;
+  discountAmount: number;
+  amount: number;
+};
 
 export type SalesOrderPdfSnapshotPayload = {
   soNo: string;
   soDate: string;
   customerName: string;
   customerCode: string;
+  customerTaxId?: string;
+  customerAddress?: string;
+  customerPhone?: string;
+  contactName?: string;
   customerPoNo: string;
+  customerPoDate?: string;
   quotationNo: string;
+  paymentMethod?: string;
+  paymentDueDate?: string;
   requestedDeliveryDate: string;
   remark: string;
+  taxRatePercent?: number;
+  revisedAt?: string;
   subtotalAmount: number;
   discountAmount: number;
   vatAmount: number;
   totalAmount: number;
-  items: Array<{
-    no: number;
-    itemCode: string;
-    itemName: string;
-    unit: string;
-    qty: number;
-    unitPrice: number;
-    discountAmount: number;
-    amount: number;
+  items: SalesOrderPdfSnapshotLine[];
+  rounds?: Array<{
+    roundNo: number;
+    deliveryDate: string;
+    items: SalesOrderPdfSnapshotLine[];
   }>;
   preparedBy?: {
     id?: string;

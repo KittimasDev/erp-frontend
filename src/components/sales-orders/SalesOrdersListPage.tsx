@@ -14,6 +14,7 @@ import {
   resolveSalesOrderProgress,
   SALES_ORDER_FLOW_STEPS,
 } from "@/lib/sales/sales-order-progress";
+import { salesOrderRevisionStamp } from "@/lib/datetime/thai-buddhist-date";
 import type { SalesOrder } from "@/types/sales-orders";
 import {
   SALES_ORDER_STATUS_LABEL,
@@ -159,7 +160,16 @@ export default function SalesOrdersListPage() {
       {
         title: "เลขที่",
         dataIndex: "soNo",
-        render: (value: string) => <span className={styles.prNo}>{value}</span>,
+        render: (_value: string, row) => (
+          <div className={styles.soNoCell}>
+            <span className={styles.prNo}>{row.soNo}</span>
+            {salesOrderRevisionStamp(row.revisedAt) ? (
+              <span className={styles.revisionStamp}>
+                {salesOrderRevisionStamp(row.revisedAt)}
+              </span>
+            ) : null}
+          </div>
+        ),
       },
       {
         title: "วันที่",
@@ -238,7 +248,7 @@ export default function SalesOrdersListPage() {
           <ShoppingCartOutlined />
         </div>
         <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Sales Order</p>
+          <p className={styles.eyebrow}>ขาย · ใบสั่งขาย</p>
           <h1 className={styles.pageTitle}>ใบสั่งขาย</h1>
           {/* สร้างจาก SALES_ORDER_FLOW_STEPS ไม่ hardcode — เดิมเขียน 6 ขั้น
               ค้างไว้ ไม่ตรงกับแถบความคืบหน้าที่เหลือ 5 ขั้นหลังถอดขั้นตรวจสต๊อก */}

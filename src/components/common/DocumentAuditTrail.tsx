@@ -29,6 +29,8 @@ function actionLabel(action: string) {
       return "แก้รายการ/ยอด";
     case "UPDATE_CUSTOMER_PO":
       return "แก้เลข PO ลูกค้า";
+    case "UPDATE_HEADER":
+      return "แก้หัวเอกสาร/การชำระ";
     case "RESCHEDULE":
       return "เลื่อนกำหนดส่ง";
     case "DELETE":
@@ -46,6 +48,7 @@ function actionColor(action: string) {
     case "UPDATE":
     case "UPDATE_ITEMS":
     case "UPDATE_CUSTOMER_PO":
+    case "UPDATE_HEADER":
     case "RESCHEDULE":
       return "blue";
     case "CANCEL":

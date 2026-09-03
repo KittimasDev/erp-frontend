@@ -268,6 +268,36 @@ export function basePdfStyles() {
         font-weight: 500;
         letter-spacing: 0.01em;
       }
+      .info-section-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+      }
+      .meta-revision {
+        margin-top: 2px;
+        font-size: 11px;
+        font-weight: 400;
+        color: #6b7280;
+      }
+      .draft-banner {
+        margin: 0 0 12px;
+        padding: 8px 12px;
+        border: 1px dashed #c4a35a;
+        border-radius: 8px;
+        background: #fffbeb;
+        color: #92400e;
+        font-size: 11px;
+      }
+      .round-heading {
+        margin: 12px 0 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #374151;
+      }
+      .round-block:first-child .round-heading {
+        margin-top: 0;
+      }
       .items-table {
         width: 100%;
         border-collapse: collapse;
@@ -307,6 +337,9 @@ export function basePdfStyles() {
         grid-template-columns: 1fr 260px;
         border: 1.2px solid #9ca3af;
         border-top: 0;
+      }
+      .totals-row-separated {
+        border-top: 1.2px solid #9ca3af;
       }
       .totals-spacer { border-right: 1.2px solid #9ca3af; }
       .totals-box { padding: 10px 14px; background: #fafafa; }
@@ -573,24 +606,60 @@ export type SalesSignatureSlot =
       signatureDataUrl?: string | null;
     };
 
+export type SalesCommercialPdfInfoRow = {
+  label: string;
+  value: string;
+  full?: boolean;
+  emphasis?: boolean;
+};
+
+export type SalesCommercialPdfItemGroup = {
+  heading?: string;
+  items: SalesLinePdfItem[];
+};
+
+export type SalesCommercialPdfTotalsLine = {
+  label: string;
+  value: number;
+  grand?: boolean;
+};
+
+export type SalesCommercialPdfColumnLabels = {
+  no?: string;
+  code?: string;
+  name?: string;
+  unit?: string;
+  qty?: string;
+  price?: string;
+  disc?: string;
+  amount?: string;
+  extra?: string;
+};
+
 export type SalesCommercialPdfData = {
   pageId: string;
   titleTh: string;
-  titleEn: string;
+  /** ไม่ส่ง = ไม่พิมพ์บรรทัดอังกฤษใต้ชื่อเอกสาร */
+  titleEn?: string;
   docNo: string;
   docDate: string;
-  infoRows: Array<{
-    label: string;
-    value: string;
-    full?: boolean;
-    emphasis?: boolean;
+  /** ป้ายใต้เลขที่ เช่น ฉบับแก้ไข วันที่ … */
+  revisionLabel?: string;
+  draftBanner?: string;
+  infoRows: SalesCommercialPdfInfoRow[];
+  infoSections?: Array<{
+    title?: string;
+    rows: SalesCommercialPdfInfoRow[];
   }>;
   items: SalesLinePdfItem[];
+  itemGroups?: SalesCommercialPdfItemGroup[];
+  columnLabels?: SalesCommercialPdfColumnLabels;
   withPrices: boolean;
   subtotalAmount?: number;
   discountAmount?: number;
   vatAmount?: number;
   totalAmount?: number;
+  totalsLines?: SalesCommercialPdfTotalsLine[];
   remark?: string;
   signatures?: [SalesSignatureSlot, SalesSignatureSlot, SalesSignatureSlot];
 };
@@ -600,10 +669,41 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
   await ensureCompanyInfo();
 
   const priceCols = data.withPrices;
-  const rows = data.items
-    .map((item) => {
-      if (priceCols) {
+  const labels: Required<SalesCommercialPdfColumnLabels> = {
+    no: data.columnLabels?.no ?? "#",
+    code: data.columnLabels?.code ?? "รหัส",
+    name: data.columnLabels?.name ?? "รายการ",
+    unit: data.columnLabels?.unit ?? "หน่วย",
+    qty: data.columnLabels?.qty ?? "จำนวน",
+    price: data.columnLabels?.price ?? "ราคา",
+    disc: data.columnLabels?.disc ?? "ส่วนลด",
+    amount: data.columnLabels?.amount ?? "จำนวนเงิน",
+    extra: data.columnLabels?.extra ?? "หมายเหตุ",
+  };
+
+  const renderInfoRows = (rows: SalesCommercialPdfInfoRow[]) =>
+    rows
+      .map((row) => {
+        const classes = [
+          "info-row",
+          row.full ? "info-row-full" : "",
+          row.emphasis ? "info-row-emphasis" : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
         return `
+      <div class="${classes}">
+        <span class="label">${escapeHtml(row.label)}</span>
+        <span class="value">${escapeHtml(row.value)}</span>
+      </div>`;
+      })
+      .join("");
+
+  const renderItemRows = (items: SalesLinePdfItem[]) =>
+    items
+      .map((item) => {
+        if (priceCols) {
+          return `
           <tr class="data-row">
             <td class="text-center col-no">${item.no}</td>
             <td class="text-center col-code">${escapeHtml(item.itemCode)}</td>
@@ -614,8 +714,8 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
             <td class="text-right col-disc">${formatMoney(item.discountAmount ?? 0)}</td>
             <td class="text-right col-amount">${formatMoney(item.amount ?? 0)}</td>
           </tr>`;
-      }
-      return `
+        }
+        return `
         <tr class="data-row">
           <td class="text-center col-no">${item.no}</td>
           <td class="text-center col-code">${escapeHtml(item.itemCode)}</td>
@@ -624,51 +724,81 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
           <td class="text-right col-qty">${formatQty(item.qty)}</td>
           ${item.extra != null ? `<td class="text-center col-extra">${escapeHtml(item.extra)}</td>` : ""}
         </tr>`;
-    })
-    .join("");
+      })
+      .join("");
 
-  const colCount = priceCols ? 8 : data.items.some((i) => i.extra != null) ? 6 : 5;
-  const emptyRows = Array.from({ length: Math.max(0, 5 - data.items.length) })
-    .map(
-      () =>
-        `<tr class="empty-row">${Array.from({ length: colCount })
-          .map(() => "<td>&nbsp;</td>")
-          .join("")}</tr>`,
-    )
-    .join("");
+  const groups: SalesCommercialPdfItemGroup[] =
+    data.itemGroups && data.itemGroups.length > 0
+      ? data.itemGroups
+      : [{ items: data.items }];
+  const grouped = Boolean(data.itemGroups && data.itemGroups.length > 0);
+  const hasExtra = groups.some((group) =>
+    group.items.some((item) => item.extra != null),
+  );
+  const colCount = priceCols ? 8 : hasExtra ? 6 : 5;
 
-  const infoHtml = data.infoRows
-    .map((row) => {
-      const classes = [
-        "info-row",
-        row.full ? "info-row-full" : "",
-        row.emphasis ? "info-row-emphasis" : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
+  const headerCells = priceCols
+    ? `<th class="col-no">${escapeHtml(labels.no)}</th><th class="col-code">${escapeHtml(labels.code)}</th><th class="col-name">${escapeHtml(labels.name)}</th><th class="col-unit">${escapeHtml(labels.unit)}</th><th class="col-qty">${escapeHtml(labels.qty)}</th><th class="col-price">${escapeHtml(labels.price)}</th><th class="col-disc">${escapeHtml(labels.disc)}</th><th class="col-amount">${escapeHtml(labels.amount)}</th>`
+    : hasExtra
+      ? `<th class="col-no">${escapeHtml(labels.no)}</th><th class="col-code">${escapeHtml(labels.code)}</th><th class="col-name">${escapeHtml(labels.name)}</th><th class="col-unit">${escapeHtml(labels.unit)}</th><th class="col-qty">${escapeHtml(labels.qty)}</th><th class="col-extra">${escapeHtml(labels.extra)}</th>`
+      : `<th class="col-no">${escapeHtml(labels.no)}</th><th class="col-code">${escapeHtml(labels.code)}</th><th class="col-name">${escapeHtml(labels.name)}</th><th class="col-unit">${escapeHtml(labels.unit)}</th><th class="col-qty">${escapeHtml(labels.qty)}</th>`;
+
+  const tablesHtml = groups
+    .map((group, groupIndex) => {
+      const pad =
+        !grouped && groupIndex === 0
+          ? Array.from({ length: Math.max(0, 5 - group.items.length) })
+              .map(
+                () =>
+                  `<tr class="empty-row">${Array.from({ length: colCount })
+                    .map(() => "<td>&nbsp;</td>")
+                    .join("")}</tr>`,
+              )
+              .join("")
+          : "";
       return `
-      <div class="${classes}">
-        <span class="label">${escapeHtml(row.label)}</span>
-        <span class="value">${escapeHtml(row.value)}</span>
+      <div class="round-block">
+        ${group.heading ? `<div class="round-heading">${escapeHtml(group.heading)}</div>` : ""}
+        <table class="items-table">
+          <thead><tr>${headerCells}</tr></thead>
+          <tbody>${renderItemRows(group.items)}${pad}</tbody>
+        </table>
       </div>`;
     })
     .join("");
 
-  const headerCells = priceCols
-    ? `<th class="col-no">#</th><th class="col-code">รหัส</th><th class="col-name">รายการ</th><th class="col-unit">หน่วย</th><th class="col-qty">จำนวน</th><th class="col-price">ราคา</th><th class="col-disc">ส่วนลด</th><th class="col-amount">จำนวนเงิน</th>`
-    : data.items.some((i) => i.extra != null)
-      ? `<th class="col-no">#</th><th class="col-code">รหัส</th><th class="col-name">รายการ</th><th class="col-unit">หน่วย</th><th class="col-qty">จำนวน</th><th class="col-extra">หมายเหตุ</th>`
-      : `<th class="col-no">#</th><th class="col-code">รหัส</th><th class="col-name">รายการ</th><th class="col-unit">หน่วย</th><th class="col-qty">จำนวน</th>`;
+  const infoSections =
+    data.infoSections && data.infoSections.length > 0
+      ? data.infoSections
+      : [{ rows: data.infoRows }];
+  const infoCardsHtml = infoSections
+    .map(
+      (section) => `
+      <div class="info-card">
+        ${section.title ? `<div class="info-section-title">${escapeHtml(section.title)}</div>` : ""}
+        <div class="info-grid">${renderInfoRows(section.rows)}</div>
+      </div>`,
+    )
+    .join("");
 
+  const defaultTotals: SalesCommercialPdfTotalsLine[] = [
+    { label: "ยอดรวม", value: data.subtotalAmount ?? 0 },
+    { label: "ส่วนลด", value: data.discountAmount ?? 0 },
+    { label: "ภาษีมูลค่าเพิ่ม", value: data.vatAmount ?? 0 },
+    { label: "ยอดสุทธิ", value: data.totalAmount ?? 0, grand: true },
+  ];
+  const totalsLines = data.totalsLines ?? defaultTotals;
   const totalsHtml = priceCols
     ? `
-    <div class="totals-row">
+    <div class="totals-row${grouped ? " totals-row-separated" : ""}">
       <div class="totals-spacer"></div>
       <div class="totals-box">
-        <div class="total-line"><span>ยอดรวม</span><strong>${formatMoney(data.subtotalAmount ?? 0)}</strong></div>
-        <div class="total-line"><span>ส่วนลด</span><strong>${formatMoney(data.discountAmount ?? 0)}</strong></div>
-        <div class="total-line"><span>ภาษีมูลค่าเพิ่ม</span><strong>${formatMoney(data.vatAmount ?? 0)}</strong></div>
-        <div class="total-line total-line-grand"><span>ยอดสุทธิ</span><strong>${formatMoney(data.totalAmount ?? 0)}</strong></div>
+        ${totalsLines
+          .map(
+            (line) =>
+              `<div class="total-line${line.grand ? " total-line-grand" : ""}"><span>${escapeHtml(line.label)}</span><strong>${formatMoney(line.value)}</strong></div>`,
+          )
+          .join("")}
       </div>
     </div>`
     : "";
@@ -715,23 +845,22 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
       ${companyHeaderHtml()}
       <div class="title-block">
         <div class="title">${escapeHtml(data.titleTh)}</div>
-        <div class="title-sub">${escapeHtml(data.titleEn)}</div>
+        ${data.titleEn ? `<div class="title-sub">${escapeHtml(data.titleEn)}</div>` : ""}
       </div>
+      ${data.draftBanner ? `<div class="draft-banner">${escapeHtml(data.draftBanner)}</div>` : ""}
       <div class="meta-bar">
         <div class="meta-item">
           <span class="meta-label">เลขที่เอกสาร</span>
           <strong class="meta-value">${escapeHtml(data.docNo)}</strong>
+          ${data.revisionLabel ? `<div class="meta-revision">${escapeHtml(data.revisionLabel)}</div>` : ""}
         </div>
         <div class="meta-item">
           <span class="meta-label">วันที่</span>
           <strong class="meta-value">${escapeHtml(data.docDate)}</strong>
         </div>
       </div>
-      <div class="info-card"><div class="info-grid">${infoHtml}</div></div>
-      <table class="items-table">
-        <thead><tr>${headerCells}</tr></thead>
-        <tbody>${rows}${emptyRows}</tbody>
-      </table>
+      ${infoCardsHtml}
+      ${tablesHtml}
       ${totalsHtml}
       ${remarkHtml}
       ${bankHtml}

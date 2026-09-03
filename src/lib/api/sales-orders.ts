@@ -19,6 +19,7 @@ import type {
   SalesOrderStockVerificationApiResponse,
   StockVerificationPendingListApiResponse,
   UpdateSalesOrderCustomerPoBody,
+  UpdateSalesOrderHeaderBody,
   UpdateSalesOrderItemsBody,
   SalesOrderPdfSnapshotListApiResponse,
 } from "@/types/sales-orders";
@@ -122,6 +123,18 @@ export function updateSalesOrderCustomerPo(
     `/api/sales-orders/${id}/customer-po`,
     { method: "PATCH", token, body },
   );
+}
+
+export function updateSalesOrderHeader(
+  token: string,
+  id: string,
+  body: UpdateSalesOrderHeaderBody,
+) {
+  return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/header`, {
+    method: "PATCH",
+    token,
+    body,
+  });
 }
 
 /** แก้จำนวน / ราคา / ส่วนลด ของรายการสินค้า (ก่อนยืนยันใบสั่งขายเท่านั้น) */

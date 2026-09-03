@@ -1,0 +1,33 @@
+import { ERP_TIMEZONE } from "./erp-timezone";
+
+function toDate(value?: string | Date | null): Date | null {
+  if (!value) return null;
+  const raw = typeof value === "string" ? value.trim() : value.toISOString();
+  if (!raw) return null;
+  const normalized = /([zZ]|[+-]\d{2}:?\d{2})$/.test(raw) ? raw : `${raw}Z`;
+  const d = new Date(normalized);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** 24 สิงหาคม 2569 — ปีพุทธศักราช ตามโซนเวลาไทย */
+export function formatThaiBuddhistDate(
+  value?: string | Date | null,
+  fallback = "",
+): string {
+  const d = toDate(value);
+  if (!d) return fallback;
+  return new Intl.DateTimeFormat("th-TH", {
+    timeZone: ERP_TIMEZONE,
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(d);
+}
+
+/** ป้ายใต้เลข SO เมื่อเคยแก้เนื้อหาเอกสาร — ไม่มี revisedAt = ใบต้นฉบับ */
+export function salesOrderRevisionStamp(
+  revisedAt?: string | Date | null,
+): string | null {
+  const date = formatThaiBuddhistDate(revisedAt);
+  return date ? `ฉบับแก้ไข วันที่ ${date}` : null;
+}

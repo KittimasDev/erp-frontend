@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -50,6 +50,7 @@ import {
   useConfirmSalesOrderMutation,
   useDeleteSalesOrderAttachmentMutation,
   useUpdateSalesOrderCustomerPoMutation,
+  useUpdateSalesOrderHeaderMutation,
   useUpdateSalesOrderItemsMutation,
   useUploadSalesOrderAttachmentMutation,
 } from "@/hooks/sales-orders/useSalesOrderMutations";
@@ -63,6 +64,8 @@ import {
 import { useProductionRequestsQuery, useEligibleSalesOrderQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import { useCreateProductionRequestMutation } from "@/hooks/production-requests/useProductionRequestMutations";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
+import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
+import type { DeliverySchedule } from "@/types/delivery-schedules";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
@@ -78,12 +81,18 @@ import { stockVerificationLineTag } from "@/lib/sales/stock-verification-line-ta
 import {
   canCancelSalesOrder,
   resolveSalesOrderProgress,
+  salesOrderDeliveryStatusLabel,
 } from "@/lib/sales/sales-order-progress";
-import type { DocumentAttachment } from "@/types/document-attachments";
 import {
+  ATTACHMENT_GROUP_CUSTOMER_PO,
+  type DocumentAttachment,
+} from "@/types/document-attachments";
+import {
+  SALES_ORDER_PAYMENT_METHOD_LABEL,
   SALES_ORDER_STATUS_LABEL,
   isPreConfirmSalesOrderStatus,
   type SalesOrder,
+  type SalesOrderPaymentMethod,
   type SalesOrderPdfSnapshotPayload,
   type SalesOrderReservationLine,
   type SalesOrderStatus,
@@ -144,24 +153,175 @@ function formatQty(value?: string | number) {
 }
 
 function formatMoney(value?: string) {
-  const n = Number(value ?? 0);
-  if (Number.isNaN(n)) return value ?? "—";
-  return n.toLocaleString("th-TH", {
+  const amount = Number(value ?? 0);
+  if (!Number.isFinite(amount)) return "0.00";
+  return amount.toLocaleString("th-TH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 }
 
-function buildSalesOrderPdfDataFromOrder(order: SalesOrder): SalesOrderPdfData {
+function vatLabel(order: SalesOrder): string {
+  const rate = order.taxRate?.rate;
+  if (typeof rate === "number" && Number.isFinite(rate)) {
+    return `ภาษีมูลค่าเพิ่ม ${rate}%`;
+  }
+  return "ภาษีมูลค่าเพิ่ม 7%";
+}
+
+const PAYMENT_METHOD_OPTIONS = (
+  Object.keys(SALES_ORDER_PAYMENT_METHOD_LABEL) as SalesOrderPaymentMethod[]
+).map((value) => ({
+  value,
+  label: SALES_ORDER_PAYMENT_METHOD_LABEL[value],
+}));
+
+type SalesOrderHeaderDraft = {
+  contactName: string;
+  paymentMethod?: SalesOrderPaymentMethod;
+  paymentDueDate: string;
+  customerPoDate: string;
+  remark: string;
+};
+
+type SalesOrderItemDraft = {
+  quantity: number;
+  unitPrice: number;
+  discountAmount: number;
+};
+
+function lineAmount(qty: number, price: number, discount: number) {
+  return Math.max(0, Number((qty * price - discount).toFixed(2)));
+}
+
+function headerTotalsFromAmounts(
+  lineAmounts: number[],
+  headerDiscount: number,
+  taxRatePercent: number,
+) {
+  const subtotal = Number(
+    lineAmounts.reduce((sum, amount) => sum + amount, 0).toFixed(2),
+  );
+  const discount = Math.min(headerDiscount, subtotal);
+  const taxable = Math.max(0, subtotal - discount);
+  const vat = Number(((taxable * taxRatePercent) / 100).toFixed(2));
+  const total = Number((taxable + vat).toFixed(2));
+  return { subtotal, discount, vat, total };
+}
+
+function buildSalesOrderPdfDataFromOrder(
+  order: SalesOrder,
+  options?: {
+    schedules?: DeliverySchedule[];
+    headerDraft?: SalesOrderHeaderDraft;
+    itemDrafts?: Record<string, SalesOrderItemDraft> | null;
+  },
+): SalesOrderPdfData {
+  const header = options?.headerDraft;
+  const drafts = options?.itemDrafts ?? null;
+  const taxRate =
+    typeof order.taxRate?.rate === "number" && Number.isFinite(order.taxRate.rate)
+      ? order.taxRate.rate
+      : 7;
+
+  const items = (order.items ?? []).map((item, index) => {
+    const draft = drafts?.[item.id];
+    const qty = draft?.quantity ?? (Number(item.quantity) || 0);
+    const price = draft?.unitPrice ?? (Number(item.unitPrice) || 0);
+    const discount = draft?.discountAmount ?? (Number(item.discountAmount) || 0);
+    return {
+      no: index + 1,
+      itemCode: item.itemCode ?? "—",
+      itemName: item.itemNameTh ?? item.description ?? "—",
+      unit: item.unitCode ?? "—",
+      qty,
+      unitPrice: price,
+      discountAmount: discount,
+      amount: lineAmount(qty, price, discount),
+    };
+  });
+
+  const money = drafts
+    ? headerTotalsFromAmounts(
+        items.map((item) => item.amount),
+        Number(order.discountAmount) || 0,
+        taxRate,
+      )
+    : {
+        subtotal: Number(order.subtotalAmount) || 0,
+        discount: Number(order.discountAmount) || 0,
+        vat: Number(order.vatAmount) || 0,
+        total: Number(order.totalAmount) || 0,
+      };
+
+  const activeRounds = (options?.schedules ?? [])
+    .filter((schedule) => schedule.status !== "CANCELLED")
+    .slice()
+    .sort((a, b) => a.roundNo - b.roundNo);
+
+  const rounds = activeRounds.map((schedule) => ({
+    roundNo: schedule.roundNo,
+    deliveryDate: schedule.deliveryDate,
+    items: (schedule.items ?? [])
+      .slice()
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((line, index) => {
+        const draft = drafts?.[line.salesOrderItemId];
+        const sameItemLines = activeRounds.reduce(
+          (count, round) =>
+            count +
+            (round.items ?? []).filter(
+              (row) => row.salesOrderItemId === line.salesOrderItemId,
+            ).length,
+          0,
+        );
+        const qty =
+          draft && sameItemLines === 1
+            ? draft.quantity
+            : Number(line.quantity) || 0;
+        const price = draft?.unitPrice ?? (Number(line.unitPrice) || 0);
+        const discount =
+          draft && sameItemLines === 1
+            ? draft.discountAmount
+            : Number(line.discountAmount) || 0;
+        return {
+          no: index + 1,
+          itemCode: line.itemCode ?? "—",
+          itemName: line.itemNameTh ?? line.description ?? "—",
+          unit: line.unitCode ?? "—",
+          qty,
+          unitPrice: price,
+          discountAmount: discount,
+          amount: lineAmount(qty, price, discount),
+        };
+      }),
+  }));
+
   return {
     soNo: order.soNo,
     soDate: formatDate(order.soDate),
     customerName: order.customer?.nameTh ?? "—",
     customerCode: order.customer?.customerCode ?? "—",
+    customerTaxId: order.customer?.taxId,
+    customerAddress: order.customer?.address,
+    customerPhone: order.customer?.contactPhone,
+    contactName:
+      header?.contactName ??
+      order.contactName ??
+      order.customer?.contactName ??
+      "—",
     customerPoNo: order.customerPoNo?.trim() || "—",
+    customerPoDate: formatDate(header?.customerPoDate || order.customerPoDate),
     quotationNo: order.salesQuotationNo ?? "—",
+    paymentMethod: header?.paymentMethod ?? order.paymentMethod,
+    paymentDueDate: formatDate(
+      header?.paymentDueDate || order.paymentDueDate,
+    ),
     requestedDeliveryDate: formatDate(order.requestedDeliveryDate),
-    remark: order.remark?.trim() || "",
+    remark: (header?.remark ?? order.remark)?.trim() || "",
+    taxRatePercent: taxRate,
+    revisedAt: order.revisedAt,
+    isDraftPreview: Boolean(drafts),
     preparedBy: {
       id: order.createdBy?.id,
       name: order.createdBy?.displayName,
@@ -172,20 +332,12 @@ function buildSalesOrderPdfDataFromOrder(order: SalesOrder): SalesOrderPdfData {
           name: order.confirmedBy.displayName,
         }
       : undefined,
-    subtotalAmount: Number(order.subtotalAmount) || 0,
-    discountAmount: Number(order.discountAmount) || 0,
-    vatAmount: Number(order.vatAmount) || 0,
-    totalAmount: Number(order.totalAmount) || 0,
-    items: (order.items ?? []).map((item, index) => ({
-      no: index + 1,
-      itemCode: item.itemCode ?? "—",
-      itemName: item.itemNameTh ?? item.description ?? "—",
-      unit: item.unitCode ?? "—",
-      qty: Number(item.quantity) || 0,
-      unitPrice: Number(item.unitPrice) || 0,
-      discountAmount: Number(item.discountAmount) || 0,
-      amount: Number(item.amount) || 0,
-    })),
+    subtotalAmount: money.subtotal,
+    discountAmount: money.discount,
+    vatAmount: money.vat,
+    totalAmount: money.total,
+    items,
+    rounds,
   };
 }
 
@@ -197,15 +349,25 @@ function mapSnapshotPayloadToPdfData(
     soDate: formatDate(payload.soDate),
     customerName: payload.customerName,
     customerCode: payload.customerCode,
+    customerTaxId: payload.customerTaxId,
+    customerAddress: payload.customerAddress,
+    customerPhone: payload.customerPhone,
+    contactName: payload.contactName,
     customerPoNo: payload.customerPoNo,
+    customerPoDate: formatDate(payload.customerPoDate),
     quotationNo: payload.quotationNo,
+    paymentMethod: payload.paymentMethod,
+    paymentDueDate: formatDate(payload.paymentDueDate),
     requestedDeliveryDate: formatDate(payload.requestedDeliveryDate),
     remark: payload.remark,
+    taxRatePercent: payload.taxRatePercent,
+    revisedAt: payload.revisedAt,
     subtotalAmount: payload.subtotalAmount,
     discountAmount: payload.discountAmount,
     vatAmount: payload.vatAmount,
     totalAmount: payload.totalAmount,
     items: payload.items,
+    rounds: payload.rounds,
     preparedBy: payload.preparedBy
       ? { id: payload.preparedBy.id, name: payload.preparedBy.name }
       : undefined,
@@ -316,8 +478,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const uploadAttachmentMutation = useUploadSalesOrderAttachmentMutation();
   const deleteAttachmentMutation = useDeleteSalesOrderAttachmentMutation();
   const updateCustomerPoMutation = useUpdateSalesOrderCustomerPoMutation();
+  const updateHeaderMutation = useUpdateSalesOrderHeaderMutation();
   const updateItemsMutation = useUpdateSalesOrderItemsMutation();
-  // แก้จำนวน/ราคา/ส่วนลด — null = ยังไม่เข้าโหมดแก้ไข
+  // แก้จำนวน/ส่วนลด — ราคาต่อหน่วยล็อกตาม QT; null = ยังไม่เข้าโหมดแก้ไข
   const [itemDrafts, setItemDrafts] = useState<Record<
     string,
     { quantity: number; unitPrice: number; discountAmount: number }
@@ -336,6 +499,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
   >("current");
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewIsImage, setPreviewIsImage] = useState(false);
+  const [headerDraft, setHeaderDraft] = useState<SalesOrderHeaderDraft>({
+    contactName: "",
+    paymentDueDate: "",
+    customerPoDate: "",
+    remark: "",
+  });
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const productionRequestActions = useScreenActionPermissions(
@@ -347,6 +516,33 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const pickingActions = useScreenActionPermissions("PICKINGS");
   const packingActions = useScreenActionPermissions("PACKINGS");
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+
+  useEffect(() => {
+    if (!data) {
+      return;
+    }
+    const method = data.paymentMethod as SalesOrderPaymentMethod | undefined;
+    setHeaderDraft({
+      contactName: data.contactName ?? data.customer?.contactName ?? "",
+      paymentMethod:
+        method && method in SALES_ORDER_PAYMENT_METHOD_LABEL
+          ? method
+          : undefined,
+      paymentDueDate: data.paymentDueDate ?? "",
+      customerPoDate: data.customerPoDate ?? "",
+      remark: data.remark ?? "",
+    });
+  }, [
+    data,
+    data?.id,
+    data?.updatedAt,
+    data?.contactName,
+    data?.paymentMethod,
+    data?.paymentDueDate,
+    data?.customerPoDate,
+    data?.remark,
+    data?.customer?.contactName,
+  ]);
 
   const stockVerification = stockVerificationQuery.data?.data;
   const reservationStatus = reservationQuery.data?.data;
@@ -501,6 +697,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     uploadAttachmentMutation.isPending ||
     deleteAttachmentMutation.isPending ||
     updateCustomerPoMutation.isPending ||
+    updateHeaderMutation.isPending ||
     updateItemsMutation.isPending;
   // ส่ง deliveryStatus ไปด้วย — หลังยืนยัน so.status ค้างที่ CONFIRMED ตลอด
   // ความคืบหน้าจริงอยู่ที่ delivery_status ที่สรุปจากทุกรอบ
@@ -555,14 +752,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
         if (!draft) return false;
         return (
           Math.abs(draft.quantity - Number(item.quantity)) > 0.0005 ||
-          Math.abs(draft.unitPrice - Number(item.unitPrice)) > 0.00005 ||
           Math.abs(draft.discountAmount - Number(item.discountAmount)) > 0.005
         );
       })
       .map((item) => ({
         id: item.id,
         quantity: itemDrafts[item.id].quantity,
-        unitPrice: itemDrafts[item.id].unitPrice,
         discountAmount: itemDrafts[item.id].discountAmount,
       }));
 
@@ -572,13 +767,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
       return;
     }
 
-    const invalid = changed.find(
-      (line) =>
+    const invalid = changed.find((line) => {
+      const unitPrice = Number(
+        data.items.find((item) => item.id === line.id)?.unitPrice ?? 0,
+      );
+      return (
         line.quantity <= 0 ||
-        line.unitPrice < 0 ||
         line.discountAmount < 0 ||
-        line.discountAmount > line.quantity * line.unitPrice + 0.005,
-    );
+        line.discountAmount > line.quantity * unitPrice + 0.005
+      );
+    });
     if (invalid) {
       message.error(
         "ตรวจค่าอีกครั้ง — จำนวนต้องมากกว่า 0 และส่วนลดต้องไม่เกินยอดของรายการ",
@@ -588,6 +786,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
     await updateItemsMutation.mutateAsync({ id: data.id, body: { items: changed } });
     setItemDrafts(null);
+    setSelectedPdfVersion("current");
   };
 
   const openCustomerPoModal = (initial?: string) => {
@@ -703,7 +902,53 @@ export default function SalesOrderDetailPage({ id }: Props) {
     isPreConfirm && reservationReady && !hasShortage && !allLinesReserved;
   const showReserveCta = stockReadyForReserve && canWrite;
 
-  const showConfirmCta = isPreConfirm && canConfirm && isFullyScheduled;
+  const showConfirmCta =
+    isPreConfirm && canConfirm && isFullyScheduled && !isEditingItems;
+  const hasCustomerPo = Boolean(data.customerPoNo?.trim());
+  const hasEvidenceFile = attachments.some(
+    (file) => file.attachmentGroup === ATTACHMENT_GROUP_CUSTOMER_PO,
+  );
+  const evidenceReady = hasCustomerPo || hasEvidenceFile;
+  const confirmBlocked =
+    reservationQuery.isLoading ||
+    attachmentsQuery.isLoading ||
+    uploadAttachmentMutation.isPending ||
+    !evidenceReady;
+
+  const tryConfirmSalesOrder = () => {
+    if (uploadAttachmentMutation.isPending) {
+      message.warning("รออัปโหลดไฟล์ให้สำเร็จก่อนยืนยันใบสั่งขาย");
+      return;
+    }
+    if (!evidenceReady) {
+      message.warning(
+        "กรณีไม่มีเลข PO ลูกค้า ต้องแนบไฟล์ยืนยันอย่างน้อย 1 ไฟล์",
+      );
+      return;
+    }
+    if (isEditingItems) {
+      message.warning("บันทึกรายการสินค้าก่อน แล้วยืนยันใบสั่งขายแยกต่างหาก");
+      return;
+    }
+    confirmMutation.mutate(data.id);
+  };
+
+  const canEditHeader = isPreConfirm && canWrite;
+  const saveHeader = () => {
+    updateHeaderMutation.mutate(
+      {
+        id: data.id,
+        body: {
+          contactName: headerDraft.contactName,
+          paymentMethod: headerDraft.paymentMethod,
+          paymentDueDate: headerDraft.paymentDueDate || undefined,
+          customerPoDate: headerDraft.customerPoDate || undefined,
+          remark: headerDraft.remark,
+        },
+      },
+      { onSuccess: () => setSelectedPdfVersion("current") },
+    );
+  };
   /**
    * ขอผลิตจากหน้าใบสั่งขายได้ด้วยสิทธิ์แก้ไข SO — ไม่ต้องมีสิทธิ์หน้าจอใบขอผลิต
    * (backend เปิด SALES_ORDERS.EDIT ให้ POST /production-requests ด้วย)
@@ -735,25 +980,31 @@ export default function SalesOrderDetailPage({ id }: Props) {
       "มีใบบรรจุร่างแล้ว — ต้องยืนยันใบบรรจุก่อนสร้างใบส่งสินค้า";
   }
 
-  const printPdf = async () => {
+  const printLivePdf = async () => {
+    const { generateSalesOrderPdf } = await import(
+      "@/utils/generateSalesOrderPdf"
+    );
+    const pdfData = buildSalesOrderPdfDataFromOrder(data, {
+      schedules: schedulesForGate.data ?? [],
+      headerDraft,
+      itemDrafts,
+    });
+    await generateSalesOrderPdf(pdfData);
+  };
+
+  const printSnapshotPdf = async () => {
     const { generateSalesOrderPdf } = await import(
       "@/utils/generateSalesOrderPdf"
     );
     const pdfSnapshots = pdfSnapshotsQuery.data?.data?.items ?? [];
-    let pdfData: SalesOrderPdfData;
-    if (selectedPdfVersion === "current") {
-      pdfData = buildSalesOrderPdfDataFromOrder(data);
-    } else {
-      const snapshot = pdfSnapshots.find(
-        (entry) => entry.id === selectedPdfVersion,
-      );
-      if (!snapshot) {
-        message.warning("ไม่พบเวอร์ชัน PDF ที่เลือก");
-        return;
-      }
-      pdfData = mapSnapshotPayloadToPdfData(snapshot.payload);
+    const snapshot = pdfSnapshots.find(
+      (entry) => entry.id === selectedPdfVersion,
+    );
+    if (!snapshot) {
+      message.warning("ไม่พบฉบับเก่าที่เลือก");
+      return;
     }
-    await generateSalesOrderPdf(pdfData);
+    await generateSalesOrderPdf(mapSnapshotPayloadToPdfData(snapshot.payload));
   };
 
   const pdfSnapshots = pdfSnapshotsQuery.data?.data?.items ?? [];
@@ -1199,15 +1450,27 @@ export default function SalesOrderDetailPage({ id }: Props) {
       <Button
         className={styles.primaryBtn}
         type="primary"
+        htmlType="button"
         icon={<CheckOutlined />}
-        loading={busy}
-        disabled={reservationQuery.isLoading}
-        onClick={() => confirmMutation.mutate(data.id)}
+        loading={confirmMutation.isPending}
+        disabled={confirmBlocked}
+        onClick={tryConfirmSalesOrder}
       >
         ยืนยันใบสั่งขาย
       </Button>
     );
   }
+
+  const pdfPreviewBlock = (
+    <Button
+      className={styles.secondaryBtn}
+      htmlType="button"
+      icon={<FilePdfOutlined />}
+      onClick={() => void printLivePdf()}
+    >
+      ตัวอย่างเอกสาร
+    </Button>
+  );
 
   return (
     <div className={styles.page}>
@@ -1216,13 +1479,21 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <ShoppingCartOutlined />
         </div>
         <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Sales Order</p>
+          <p className={styles.eyebrow}>ขาย · ใบสั่งขาย</p>
           <h1 className={styles.pageTitle}>{data.soNo}</h1>
+          {salesOrderRevisionStamp(data.revisedAt) ? (
+            <p className={styles.revisionStamp}>
+              {salesOrderRevisionStamp(data.revisedAt)}
+            </p>
+          ) : null}
           <p className={styles.pageSubtitle}>
             {data.customer
               ? `${data.customer.customerCode} — ${data.customer.nameTh}`
               : "—"}{" "}
             · {formatDate(data.soDate)} · {formatMoney(data.totalAmount)} บาท
+            {data.deliveryStatus
+              ? ` · ${salesOrderDeliveryStatusLabel(data.status, data.deliveryStatus)}`
+              : ""}
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -1233,29 +1504,35 @@ export default function SalesOrderDetailPage({ id }: Props) {
             กลับ
           </Button>
           {pdfSnapshots.length > 0 ? (
-            <Space.Compact>
+            <Space wrap>
               <Select
-                aria-label="เลือกเวอร์ชัน PDF"
-                value={selectedPdfVersion}
-                onChange={setSelectedPdfVersion}
+                aria-label="ประวัติฉบับเก่า"
+                allowClear
+                placeholder="ประวัติฉบับเก่า"
+                value={
+                  selectedPdfVersion === "current"
+                    ? undefined
+                    : selectedPdfVersion
+                }
+                onChange={(value) =>
+                  setSelectedPdfVersion(value ?? "current")
+                }
                 style={{ minWidth: 220 }}
-                options={[
-                  { value: "current", label: "ล่าสุด (ปัจจุบัน)" },
-                  ...pdfSnapshots.map((snapshot) => ({
-                    value: snapshot.id,
-                    label: `Version ${snapshot.versionNo} — ${dayjs(snapshot.createdAt).format("DD/MM/YYYY HH:mm")}`,
-                  })),
-                ]}
+                options={pdfSnapshots.map((snapshot) => ({
+                  value: snapshot.id,
+                  label: `ฉบับที่ ${snapshot.versionNo} — ${dayjs(snapshot.createdAt).format("DD/MM/YYYY HH:mm")}`,
+                }))}
               />
-              <Button icon={<FilePdfOutlined />} onClick={() => void printPdf()}>
-                พิมพ์ PDF
-              </Button>
-            </Space.Compact>
-          ) : (
-            <Button icon={<FilePdfOutlined />} onClick={() => void printPdf()}>
-              พิมพ์ PDF
-            </Button>
-          )}
+              {selectedPdfVersion !== "current" ? (
+                <Button
+                  htmlType="button"
+                  onClick={() => void printSnapshotPdf()}
+                >
+                  พิมพ์ฉบับเก่า
+                </Button>
+              ) : null}
+            </Space>
+          ) : null}
           {isPreConfirm ? (
             <>
               {preConfirmHeaderButton}
@@ -1307,49 +1584,31 @@ export default function SalesOrderDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลใบสั่งขาย</h2>
-            </div>
-            <div className={styles.metaGrid}>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
-                <div className={styles.metaValue}>{data.soNo}</div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่</span>
-                <div className={styles.metaValue}>{formatDate(data.soDate)}</div>
-              </div>
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>สถานะจัดส่ง</span>
-                <div className={styles.metaValue}>
-                  {data.deliveryStatus ?? "NOT_STARTED"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.section}>
-            <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>ข้อมูลลูกค้า</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>ลูกค้า</span>
                 <div className={styles.metaValue}>
-                  {data.customer
-                    ? `${data.customer.customerCode} — ${data.customer.nameTh}`
-                    : "—"}
+                  {data.customer?.nameTh ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขผู้เสียภาษี</span>
+                <span className={styles.metaLabel}>รหัสลูกค้า</span>
+                <div className={styles.metaValue}>
+                  {data.customer?.customerCode ?? "—"}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>เลขที่ผู้เสียภาษี</span>
                 <div className={styles.metaValue}>
                   {data.customer?.taxId ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้ติดต่อ</span>
+                <span className={styles.metaLabel}>ที่อยู่</span>
                 <div className={styles.metaValue}>
-                  {data.customer?.contactName ?? "—"}
+                  {data.customer?.address ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -1359,17 +1618,170 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อีเมล</span>
+                <span className={styles.metaLabel}>ผู้ติดต่อ</span>
                 <div className={styles.metaValue}>
-                  {data.customer?.email ?? "—"}
+                  {canEditHeader ? (
+                    <Input
+                      aria-label="ผู้ติดต่อ"
+                      value={headerDraft.contactName}
+                      maxLength={255}
+                      placeholder="ดึงจาก master ลูกค้า แก้ได้บนใบนี้"
+                      onChange={(e) =>
+                        setHeaderDraft((prev) => ({
+                          ...prev,
+                          contactName: e.target.value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    (data.contactName ?? data.customer?.contactName ?? "—")
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+              {canEditHeader ? (
+                <Button
+                  size="small"
+                  type="primary"
+                  loading={updateHeaderMutation.isPending}
+                  disabled={busy}
+                  onClick={saveHeader}
+                >
+                  บันทึก
+                </Button>
+              ) : null}
+            </div>
+            <div className={styles.metaGrid}>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>เลขที่ PO</span>
+                <div className={styles.metaValue}>
+                  {canUploadEvidence ? (
+                    <div className={styles.poField}>
+                      <strong>
+                        {data.customerPoNo?.trim() || "ยังไม่มีเลข PO"}
+                      </strong>
+                      <Button
+                        type="link"
+                        size="small"
+                        onClick={() => openCustomerPoModal(data.customerPoNo)}
+                      >
+                        {data.customerPoNo?.trim() ? "แก้ไข" : "ระบุเลข"}
+                      </Button>
+                    </div>
+                  ) : (
+                    (data.customerPoNo?.trim() || "—")
+                  )}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ที่อยู่</span>
+                <span className={styles.metaLabel}>วันที่เอกสาร PO</span>
                 <div className={styles.metaValue}>
-                  {data.customer?.address ?? "—"}
+                  {canEditHeader ? (
+                    <DatePicker
+                      aria-label="วันที่เอกสาร PO"
+                      format="DD/MM/YYYY"
+                      style={{ width: "100%" }}
+                      value={
+                        headerDraft.customerPoDate
+                          ? dayjs(headerDraft.customerPoDate)
+                          : null
+                      }
+                      onChange={(value) =>
+                        setHeaderDraft((prev) => ({
+                          ...prev,
+                          customerPoDate: value
+                            ? value.format("YYYY-MM-DD")
+                            : "",
+                        }))
+                      }
+                    />
+                  ) : (
+                    formatDate(data.customerPoDate)
+                  )}
                 </div>
               </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>อ้างอิง QT</span>
+                <div className={styles.metaValue}>
+                  {data.salesQuotationId ? (
+                    <Link href={`/quotations/${data.salesQuotationId}`}>
+                      {data.salesQuotationNo ?? data.salesQuotationId}
+                    </Link>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>วิธีการชำระเงิน</span>
+                <div className={styles.metaValue}>
+                  {canEditHeader ? (
+                    <Select
+                      aria-label="วิธีการชำระเงิน"
+                      allowClear
+                      placeholder="เลือกวิธีชำระ"
+                      style={{ width: "100%" }}
+                      options={PAYMENT_METHOD_OPTIONS}
+                      value={headerDraft.paymentMethod}
+                      onChange={(value) =>
+                        setHeaderDraft((prev) => ({
+                          ...prev,
+                          paymentMethod: value,
+                        }))
+                      }
+                    />
+                  ) : (
+                    (headerDraft.paymentMethod
+                      ? SALES_ORDER_PAYMENT_METHOD_LABEL[
+                          headerDraft.paymentMethod
+                        ]
+                      : null) ??
+                    (data.paymentMethod
+                      ? (SALES_ORDER_PAYMENT_METHOD_LABEL[
+                          data.paymentMethod as SalesOrderPaymentMethod
+                        ] ?? data.paymentMethod)
+                      : "—")
+                  )}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>ครบกำหนดชำระ</span>
+                <div className={styles.metaValue}>
+                  {canEditHeader ? (
+                    <DatePicker
+                      aria-label="ครบกำหนดชำระ"
+                      format="DD/MM/YYYY"
+                      style={{ width: "100%" }}
+                      value={
+                        headerDraft.paymentDueDate
+                          ? dayjs(headerDraft.paymentDueDate)
+                          : null
+                      }
+                      onChange={(value) =>
+                        setHeaderDraft((prev) => ({
+                          ...prev,
+                          paymentDueDate: value
+                            ? value.format("YYYY-MM-DD")
+                            : "",
+                        }))
+                      }
+                    />
+                  ) : (
+                    formatDate(data.paymentDueDate)
+                  )}
+                </div>
+              </div>
+              {data.paymentTerm?.name ? (
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>เงื่อนไขชำระ</span>
+                  <div className={styles.metaValue}>{data.paymentTerm.name}</div>
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -1380,8 +1792,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   <PaperClipOutlined /> หลักฐานยืนยันคำสั่งซื้อ
                 </h2>
                 <p className={styles.sectionHint}>
-                  อัปโหลดไฟล์ PO / เอกสารยืนยันจากลูกค้า แล้วระบุเลข PO
-                  เพื่ออ้างอิงบนใบสั่งขาย
+                  มีเลข PO หรือแนบไฟล์ยืนยันอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย
+                  — กรณีไม่มีเลข PO ต้องแนบไฟล์ยืนยันอื่น
                 </p>
               </div>
               {canUploadEvidence ? (
@@ -1438,12 +1850,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
                 {data.customerPoNo?.trim() ? (
                   <div className={styles.poBadge}>
-                    <span className={styles.poBadgeEyebrow}>Customer PO</span>
+                    <span className={styles.poBadgeEyebrow}>เลขที่ PO</span>
                     <strong>{data.customerPoNo.trim()}</strong>
                   </div>
                 ) : (
                   <div className={styles.evidenceEmptyWarn}>
-                    ยังไม่มีเลข PO — อัปโหลดไฟล์แล้วระบบจะให้กรอก
+                    ยังไม่มีเลข PO — ต้องแนบไฟล์ยืนยันอื่นก่อนยืนยันใบสั่งขาย
                   </div>
                 )}
               </div>
@@ -1810,10 +2222,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 <div className={styles.productionContinueRow}>
                   <Button
                     type="primary"
+                    htmlType="button"
                     icon={<CheckOutlined />}
-                    loading={busy}
-                    disabled={reservationQuery.isLoading}
-                    onClick={() => confirmMutation.mutate(data.id)}
+                    loading={confirmMutation.isPending}
+                    disabled={confirmBlocked}
+                    onClick={tryConfirmSalesOrder}
                   >
                     ยืนยันใบสั่งขาย
                   </Button>
@@ -1821,6 +2234,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     จัดรอบครบแล้ว — กดยืนยันได้
                     {allLinesReserved
                       ? " ของถูกจองไว้แล้ว ยืนยันใบไม่จองซ้ำ"
+                      : ""}
+                    {!evidenceReady
+                      ? " · กรณีไม่มีเลข PO ต้องแนบไฟล์ยืนยันก่อน"
                       : ""}
                   </span>
                 </div>
@@ -1942,11 +2358,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     <Button
                       size="small"
                       type="primary"
-                      icon={<CheckOutlined />}
+                      htmlType="button"
                       loading={updateItemsMutation.isPending}
                       onClick={() => void saveItemDrafts()}
                     >
-                      บันทึก
+                      บันทึกรายการ
                     </Button>
                     <Button
                       size="small"
@@ -1971,8 +2387,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             </div>
             {isEditingItems ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                แก้จำนวน ราคา และส่วนลดได้ก่อนยืนยันใบสั่งขาย — บันทึกแล้วระบบ
-                คำนวณยอดรวม/VAT ใหม่ และจองสต๊อกให้ตามจำนวนที่แก้
+                แก้จำนวนและส่วนลดได้ก่อนยืนยัน — ราคา/หน่วยล็อกตามใบเสนอราคา
               </p>
             ) : null}
             {isPreConfirm && canWrite && allLinesReserved ? (
@@ -2027,25 +2442,19 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                   quantity: Number(value ?? 0),
                                 })
                               }
+                              onPressEnter={(event) => {
+                                event.preventDefault();
+                                void saveItemDrafts();
+                              }}
                             />
                           </label>
                           <label style={{ fontSize: 12 }}>
                             <span style={{ display: "block", color: "#8a9199" }}>
                               ราคา/หน่วย
                             </span>
-                            <InputNumber
-                              size="small"
-                              min={0}
-                              step={1}
-                              precision={4}
-                              style={{ width: 130 }}
-                              value={itemDrafts[item.id].unitPrice}
-                              onChange={(value) =>
-                                patchItemDraft(item.id, {
-                                  unitPrice: Number(value ?? 0),
-                                })
-                              }
-                            />
+                            <div className={styles.itemCode} style={{ marginTop: 4 }}>
+                              {formatMoney(String(itemDrafts[item.id].unitPrice))}
+                            </div>
                           </label>
                           <label style={{ fontSize: 12 }}>
                             <span style={{ display: "block", color: "#8a9199" }}>
@@ -2063,6 +2472,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                   discountAmount: Number(value ?? 0),
                                 })
                               }
+                              onPressEnter={(event) => {
+                                event.preventDefault();
+                                void saveItemDrafts();
+                              }}
                             />
                           </label>
                         </div>
@@ -2117,63 +2530,159 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       ) : null}
                     </div>
                     <div className={styles.itemQty}>
-                      {isEditingItems && itemDrafts?.[item.id] ? (
-                        <strong>
-                          {formatMoney(
-                            String(
-                              Math.max(
-                                0,
-                                itemDrafts[item.id].quantity *
-                                  itemDrafts[item.id].unitPrice -
-                                  itemDrafts[item.id].discountAmount,
-                              ),
-                            ),
-                          )}
-                        </strong>
-                      ) : isPreConfirm && reservationLine ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "flex-end",
-                            gap: 8,
-                          }}
-                        >
-                          {/* ถอดปุ่ม จอง / ยกเลิกจอง ด้วยมือออกแล้ว —
-                              จองตอนสร้างใบ · เปิดใบจ่ายยกแถวเดิมมาใช้ ไม่จองซ้ำ */}
-                          {reservationLineTag(reservationLine)}
-                          {hasUnplannedShortage &&
-                          canIssueProductionRequest &&
-                          productionRequestLine ? (
-                            <Button
-                              size="small"
-                              type="primary"
-                              icon={<ProfileOutlined />}
-                              loading={
-                                createProductionRequestMutation.isPending
-                              }
-                              disabled={busy || eligibleSoQuery.isLoading}
-                              onClick={() =>
-                                openProductionRequestModal({
-                                  kind: "line",
-                                  salesOrderItemId: item.id,
-                                  itemCode: item.itemCode,
-                                })
-                              }
-                            >
-                              ออกใบขอผลิต
-                            </Button>
-                          ) : null}
-                          <strong>{formatMoney(item.amount)}</strong>
-                        </div>
-                      ) : (
-                        <strong>{formatMoney(item.amount)}</strong>
-                      )}
+                      {(() => {
+                        const qty = isEditingItems && itemDrafts?.[item.id]
+                          ? itemDrafts[item.id].quantity
+                          : Number(item.quantity) || 0;
+                        const price = Number(item.unitPrice) || 0;
+                        const discount =
+                          isEditingItems && itemDrafts?.[item.id]
+                            ? itemDrafts[item.id].discountAmount
+                            : Number(item.discountAmount) || 0;
+                        const gross = qty * price;
+                        const net = Math.max(0, gross - discount);
+                        return (
+                          <div className={styles.itemTotals}>
+                            {isPreConfirm && reservationLine
+                              ? reservationLineTag(reservationLine)
+                              : null}
+                            {hasUnplannedShortage &&
+                            canIssueProductionRequest &&
+                            productionRequestLine ? (
+                              <Button
+                                size="small"
+                                type="primary"
+                                icon={<ProfileOutlined />}
+                                loading={
+                                  createProductionRequestMutation.isPending
+                                }
+                                disabled={busy || eligibleSoQuery.isLoading}
+                                onClick={() =>
+                                  openProductionRequestModal({
+                                    kind: "line",
+                                    salesOrderItemId: item.id,
+                                    itemCode: item.itemCode,
+                                  })
+                                }
+                              >
+                                ออกใบขอผลิต
+                              </Button>
+                            ) : null}
+                            <div className={styles.itemTotalRow}>
+                              <span>ราคารวม</span>
+                              <strong>{formatMoney(String(gross))}</strong>
+                            </div>
+                            <div className={styles.itemTotalRow}>
+                              <span>ส่วนลด</span>
+                              <strong>{formatMoney(String(discount))}</strong>
+                            </div>
+                            <div className={styles.itemTotalRow}>
+                              <span>ราคาหลังหักส่วนลด</span>
+                              <strong>{formatMoney(String(net))}</strong>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {(() => {
+              const commercialRounds = (schedulesForGate.data ?? [])
+                .filter((schedule) => schedule.status !== "CANCELLED")
+                .slice()
+                .sort((a, b) => a.roundNo - b.roundNo);
+              if (commercialRounds.length === 0) {
+                return (
+                  <p className={styles.sectionHint} style={{ marginTop: 16 }}>
+                    ยังไม่มีรอบจัดส่ง — ตารางแยกรอบจะขึ้นเมื่อจัดรอบแล้ว
+                  </p>
+                );
+              }
+              return (
+                <div className={styles.roundTables}>
+                  <h3 className={styles.roundTablesTitle}>รายการแยกตามรอบ</h3>
+                  {commercialRounds.map((schedule) => (
+                    <div key={schedule.id} className={styles.roundTableBlock}>
+                      <h4 className={styles.roundTableHeading}>
+                        รอบที่ {schedule.roundNo} —{" "}
+                        {formatThaiBuddhistDate(
+                          schedule.deliveryDate,
+                          formatDate(schedule.deliveryDate),
+                        )}
+                      </h4>
+                      <div className={styles.roundTableWrap}>
+                        <table className={styles.roundTable}>
+                          <thead>
+                            <tr>
+                              <th>ลำดับ</th>
+                              <th>รหัสสินค้า</th>
+                              <th>รายการสินค้า</th>
+                              <th>หน่วย</th>
+                              <th>จำนวน</th>
+                              <th>ราคาต่อหน่วย</th>
+                              <th>ส่วนลด</th>
+                              <th>จำนวนเงิน</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(schedule.items ?? [])
+                              .slice()
+                              .sort((a, b) => a.sortOrder - b.sortOrder)
+                              .map((line, index) => (
+                                <tr key={line.id}>
+                                  <td>{index + 1}</td>
+                                  <td>{line.itemCode ?? "—"}</td>
+                                  <td>
+                                    {line.itemNameTh ?? line.description ?? "—"}
+                                  </td>
+                                  <td>{line.unitCode ?? "—"}</td>
+                                  <td className={styles.roundNum}>
+                                    {formatQty(line.quantity)}
+                                  </td>
+                                  <td className={styles.roundNum}>
+                                    {formatMoney(line.unitPrice)}
+                                  </td>
+                                  <td className={styles.roundNum}>
+                                    {formatMoney(line.discountAmount)}
+                                  </td>
+                                  <td className={styles.roundNum}>
+                                    {formatMoney(line.amount)}
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+
+          <div className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+            </div>
+            {canEditHeader ? (
+              <Input.TextArea
+                aria-label="หมายเหตุ"
+                rows={3}
+                value={headerDraft.remark}
+                placeholder="หมายเหตุบนใบสั่งขาย"
+                onChange={(e) =>
+                  setHeaderDraft((prev) => ({
+                    ...prev,
+                    remark: e.target.value,
+                  }))
+                }
+              />
+            ) : (
+              <p className={styles.textBlock}>{data.remark?.trim() || "—"}</p>
+            )}
           </div>
 
           <div className={styles.section}>
@@ -2191,15 +2700,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
               deliveryStatus={data.deliveryStatus}
             />
           </div>
-
-          {data.remark ? (
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
-              </div>
-              <p className={styles.textBlock}>{data.remark}</p>
-            </div>
-          ) : null}
 
           <div className={styles.section}>
             <DocumentAuditTrail documentId={data.id} />
@@ -2254,19 +2754,29 @@ export default function SalesOrderDetailPage({ id }: Props) {
               </>
             ) : null}
             <div className={styles.sideRow}>
-              <span>Subtotal</span>
+              <span>ยอดรวมก่อนส่วนลด</span>
               <strong>{formatMoney(data.subtotalAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>Discount</span>
+              <span>ส่วนลดท้ายบิล</span>
               <strong>{formatMoney(data.discountAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>VAT</span>
+              <span>ยอดหลังหักส่วนลด</span>
+              <strong>
+                {formatMoney(
+                  String(
+                    Number(data.subtotalAmount) - Number(data.discountAmount),
+                  ),
+                )}
+              </strong>
+            </div>
+            <div className={styles.sideRow}>
+              <span>{vatLabel(data)}</span>
               <strong>{formatMoney(data.vatAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>Total</span>
+              <span>ยอดสุทธิ</span>
               <strong>{formatMoney(data.totalAmount)}</strong>
             </div>
           </div>
@@ -2301,14 +2811,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   <Button
                     className={styles.primaryBtn}
                     type="primary"
+                    htmlType="button"
                     icon={<CheckOutlined />}
-                    loading={busy}
-                    disabled={reservationQuery.isLoading}
-                    onClick={() => confirmMutation.mutate(data.id)}
+                    loading={confirmMutation.isPending}
+                    disabled={confirmBlocked}
+                    onClick={tryConfirmSalesOrder}
                   >
                     ยืนยันใบสั่งขาย
                   </Button>
                 ) : null}
+                {pdfPreviewBlock}
                 {cancelButton}
               </>
             ) : null}
@@ -2316,6 +2828,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             {!isPreConfirm ? (
               <>
                 {nextStepButton}
+                {pdfPreviewBlock}
                 {cancelButton}
               </>
             ) : null}

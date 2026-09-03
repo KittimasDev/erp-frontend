@@ -1,5 +1,6 @@
 import type { QueryClient } from "@tanstack/react-query";
 
+import { deliverySchedulesQueryKey } from "@/hooks/delivery-schedules/useDeliverySchedulesQuery";
 import { salesTrackingQueryKey } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 
 import { salesOrdersQueryKey } from "./useSalesOrdersQuery";
@@ -17,5 +18,6 @@ export async function invalidateSalesOrderFlowQueries(
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: salesOrdersQueryKey }),
     queryClient.invalidateQueries({ queryKey: salesTrackingQueryKey }),
+    queryClient.invalidateQueries({ queryKey: deliverySchedulesQueryKey }),
   ]);
 }

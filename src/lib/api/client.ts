@@ -123,9 +123,11 @@ export async function apiDownloadBlob(
 
   const blob = await response.blob();
   const disposition = response.headers.get("Content-Disposition");
-  const match = disposition?.match(/filename\*?=(?:UTF-8''|")?([^\";]+)"?/i);
-  const filename = match?.[1]
-    ? decodeURIComponent(match[1].replace(/"/g, ""))
+  const utf8Name = disposition?.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+  const asciiName = disposition?.match(/filename="?([^";]+)"?/i)?.[1];
+  const rawName = utf8Name ?? asciiName;
+  const filename = rawName
+    ? decodeURIComponent(rawName.replace(/"/g, ""))
     : undefined;
 
   return { blob, filename };

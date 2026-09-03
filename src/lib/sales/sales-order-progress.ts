@@ -1,5 +1,6 @@
 import {
   SALES_ORDER_STATUS_LABEL,
+  isPreConfirmSalesOrderStatus,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 
@@ -37,7 +38,28 @@ export type SalesOrderProgress = {
 export type SalesOrderDeliveryStatus =
   | "NOT_STARTED"
   | "PARTIALLY_DELIVERED"
-  | "DELIVERED";
+  | "DELIVERED"
+  | "CANCELLED";
+
+/** ป้ายสถานะจัดส่งบนหน้าใบสั่งขาย — อัตโนมัติจากรอบ ไม่ใช่ dropdown */
+export function salesOrderDeliveryStatusLabel(
+  status?: string,
+  deliveryStatus?: string,
+): string {
+  if (status === "CANCELLED" || deliveryStatus === "CANCELLED") {
+    return "ยกเลิก";
+  }
+  if (isPreConfirmSalesOrderStatus(status)) {
+    return "—";
+  }
+  if (deliveryStatus === "DELIVERED") {
+    return "ส่งแล้ว";
+  }
+  if (deliveryStatus === "PARTIALLY_DELIVERED") {
+    return "กำลังจัดส่ง";
+  }
+  return "รอจัดส่ง";
+}
 
 /** map สถานะ SO → ชื่อขั้นใน timeline เอกสาร (ใช้ไฮไลต์การ์ด) */
 export function resolveActiveTimelineStepName(

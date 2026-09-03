@@ -8,6 +8,7 @@ import {
   confirmSalesOrder,
   createSalesOrderFromQuotation,
   updateSalesOrderCustomerPo,
+  updateSalesOrderHeader,
   updateSalesOrderItems,
 } from "@/lib/api/sales-orders";
 import {
@@ -23,6 +24,7 @@ import {
 import type {
   CreateSalesOrderFromQuotationBody,
   UpdateSalesOrderCustomerPoBody,
+  UpdateSalesOrderHeaderBody,
   UpdateSalesOrderItemsBody,
 } from "@/types/sales-orders";
 
@@ -218,6 +220,33 @@ export function useUpdateSalesOrderCustomerPoMutation() {
         error instanceof ApiError
           ? error.message
           : "บันทึกเลข PO ลูกค้าไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useUpdateSalesOrderHeaderMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "header"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body: UpdateSalesOrderHeaderBody;
+    }) => updateSalesOrderHeader(getAccessToken(), id, body),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || "บันทึกหัวเอกสารสำเร็จ");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "บันทึกหัวเอกสารไม่สำเร็จ",
       );
     },
   });
