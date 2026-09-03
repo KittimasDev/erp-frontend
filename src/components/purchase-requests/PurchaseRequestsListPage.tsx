@@ -38,6 +38,7 @@ import {
   type PurchaseRequestStatus,
 } from "@/types/purchase-requests";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
+import { formatErpDate } from "@/lib/datetime/erp-timezone";
 import styles from "./PurchaseRequestsListPage.module.css";
 
 /** ร่าง กับ ที่ถูกส่งกลับแก้ไข แก้ไข/ส่งอนุมัติ ได้เหมือนกัน — ตรงกับ guard ฝั่ง backend */
@@ -165,6 +166,13 @@ export default function PurchaseRequestsListPage() {
             }
           />
         ),
+      },
+      {
+        title: "วันออกเอกสาร",
+        dataIndex: "createdAt",
+        key: "createdAt",
+        width: 130,
+        render: (value: string) => formatErpDate(value),
       },
       {
         title: "วันที่ขอซื้อ",
