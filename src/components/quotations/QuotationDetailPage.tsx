@@ -24,6 +24,7 @@ import {
 import { useQuotationQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { useCreateSalesOrderFromQuotationMutation } from "@/hooks/sales-orders/useSalesOrderMutations";
 import AccessDenied from "@/components/auth/AccessDenied";
+import DocumentHtmlView from "@/components/common/DocumentHtmlView";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   resolveVatMode,
@@ -31,6 +32,7 @@ import {
   withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
 import { QUOTATION_MATRIX_ACTION_LABELS } from "@/lib/auth/quotation-matrix-labels";
+import { documentHtmlIsEmpty } from "@/lib/html/sanitize-document-html";
 import {
   QUOTATION_FLOW_STEPS,
   resolveQuotationFlow,
@@ -130,7 +132,7 @@ export default function QuotationDetailPage({ id }: Props) {
       contactName: data.contactName,
       paymentTerm: data.paymentTerm?.name ?? "—",
       validUntil: formatDate(data.validUntil),
-      remark: data.remark?.trim() || "",
+      remark: data.remark || "",
       preparedBy: {
         id: data.createdBy?.id,
         name: data.createdBy?.displayName,
@@ -279,14 +281,14 @@ export default function QuotationDetailPage({ id }: Props) {
             </div>
           </div>
 
-          {data.remark ? (
+          {documentHtmlIsEmpty(data.remark) ? null : (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>หมายเหตุเอกสาร</h2>
               </div>
-              <p className={styles.textBlock}>{data.remark}</p>
+              <DocumentHtmlView html={data.remark} />
             </div>
-          ) : null}
+          )}
         </section>
 
         <aside className={styles.sideCard}>

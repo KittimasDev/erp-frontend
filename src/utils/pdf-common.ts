@@ -375,6 +375,62 @@ export function basePdfStyles() {
         margin: 0 0 4px;
         padding-left: 18px;
       }
+      .info-row .value h1,
+      .remark-box h1 {
+        margin: 0 0 6px;
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.3;
+      }
+      .info-row .value h2,
+      .remark-box h2 {
+        margin: 0 0 6px;
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+      .info-row .value ul[data-task],
+      .remark-box ul[data-task] {
+        list-style: none;
+        padding-left: 2px;
+      }
+      .info-row .value ul[data-task] li,
+      .remark-box ul[data-task] li {
+        position: relative;
+        padding-left: 16px;
+      }
+      .info-row .value ul[data-task] li::before,
+      .remark-box ul[data-task] li::before {
+        content: "☐";
+        position: absolute;
+        left: 0;
+      }
+      .info-row .value ul[data-task] li[data-checked="true"]::before,
+      .remark-box ul[data-task] li[data-checked="true"]::before {
+        content: "☑";
+      }
+      .info-row .value s,
+      .info-row .value strike,
+      .info-row .value del,
+      .remark-box s,
+      .remark-box strike,
+      .remark-box del {
+        text-decoration: line-through;
+      }
+      .info-row .value pre,
+      .remark-box pre {
+        margin: 0 0 6px;
+        padding: 6px 8px;
+        background: #f3f4f6;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11px;
+        white-space: pre-wrap;
+      }
+      .info-row .value code,
+      .remark-box code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 11px;
+      }
       .remark-box {
         margin-top: 14px;
         border: 1.2px solid #e5e7eb;

@@ -79,6 +79,7 @@ export async function generateSalesQuotationPdf(data: SalesQuotationPdfData) {
     totalAmount: data.totalAmount,
     totalsLines: quotationTotalsLines(data),
     remark: data.remark,
+    remarkIsHtml: true,
     signatures: [
       {
         title: "ผู้เสนอราคา",

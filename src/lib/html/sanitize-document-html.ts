@@ -6,9 +6,16 @@ const ALLOWED_TAGS = new Set([
   "EM",
   "I",
   "U",
+  "S",
+  "STRIKE",
+  "DEL",
+  "H1",
+  "H2",
   "UL",
   "OL",
   "LI",
+  "PRE",
+  "CODE",
 ]);
 
 function htmlTextContent(html: string): string {
@@ -32,6 +39,38 @@ function unwrapElement(el: Element) {
     parent.insertBefore(el.firstChild, el);
   }
   el.remove();
+}
+
+const TEXT_ALIGN = new Set(["left", "center", "right", "justify"]);
+
+function safeTextAlign(el: Element): string | null {
+  const fromAlign = el.getAttribute("align")?.trim().toLowerCase();
+  const style = el.getAttribute("style") ?? "";
+  const match = style.match(
+    /(?:^|;)\s*text-align\s*:\s*(left|center|right|justify)\s*(?:;|$)/i,
+  );
+  const value = (match?.[1] ?? fromAlign)?.toLowerCase();
+  return value && TEXT_ALIGN.has(value) ? value : null;
+}
+
+function keepAllowedAttributes(el: Element) {
+  const tag = el.tagName.toUpperCase();
+  const isTaskList = tag === "UL" && el.hasAttribute("data-task");
+  const isCheckedItem =
+    tag === "LI" && el.getAttribute("data-checked") === "true";
+  const textAlign = safeTextAlign(el);
+  for (const attr of Array.from(el.attributes)) {
+    el.removeAttribute(attr.name);
+  }
+  if (isTaskList) {
+    el.setAttribute("data-task", "");
+  }
+  if (isCheckedItem) {
+    el.setAttribute("data-checked", "true");
+  }
+  if (textAlign) {
+    el.setAttribute("style", `text-align: ${textAlign}`);
+  }
 }
 
 function cleanNode(node: Element) {
@@ -61,8 +100,12 @@ function cleanNode(node: Element) {
       continue;
     }
 
-    if (tag === "DIV") {
+    if (tag === "DIV" && node.tagName.toUpperCase() !== "PRE") {
       const p = el.ownerDocument.createElement("p");
+      const textAlign = safeTextAlign(el);
+      if (textAlign) {
+        p.setAttribute("style", `text-align: ${textAlign}`);
+      }
       while (el.firstChild) {
         p.appendChild(el.firstChild);
       }
@@ -79,15 +122,13 @@ function cleanNode(node: Element) {
       continue;
     }
 
-    for (const attr of Array.from(el.attributes)) {
-      el.removeAttribute(attr.name);
-    }
+    keepAllowedAttributes(el);
     cleanNode(el);
     child = next;
   }
 }
 
-/** ตัดแท็ก/แอตทริบิวต์ที่ไม่ใช่ตัวหนา เอียง ขีดเส้นใต้ รายการ — ใช้ทั้งหน้าจอและ PDF */
+/** ตัดแท็ก/แอตทริบิวต์ที่ไม่ใช่ตัวหนา เอียง หัวข้อ รายการ โค้ด — ใช้ทั้งหน้าจอและ PDF */
 export function sanitizeDocumentHtml(input?: string | null): string {
   if (!input?.trim()) {
     return "";

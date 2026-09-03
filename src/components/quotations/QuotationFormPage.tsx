@@ -23,6 +23,7 @@ import {
 import dayjs from "dayjs";
 
 import AccessDenied from "@/components/auth/AccessDenied";
+import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
 import QuickCreateCustomerModal from "@/components/masters/customers/QuickCreateCustomerModal";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
@@ -40,6 +41,7 @@ import {
 import { useCompanyProfileQuery } from "@/hooks/company-profile/useCompanyProfileQuery";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { pickDefaultTaxRatePercent } from "@/lib/money/pick-default-tax-rate";
+import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { CreateQuotationBody } from "@/types/quotations";
 import { getStoredUser } from "@/lib/auth/session";
 import {
@@ -186,6 +188,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
         vatMode: VatMode.EXCLUSIVE,
         withholdingTaxType: WithholdingTaxType.NONE,
         withholdingTaxPercent: 0,
+        remark: "",
         items: [{ discountAmount: 0 }],
       });
       return;
@@ -292,7 +295,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
       validUntil: values.validUntil
         ? values.validUntil.format("DD/MM/YYYY")
         : "—",
-      remark: values.remark?.trim() || "",
+      remark: sanitizeDocumentHtml(values.remark) || "",
       preparedBy: { id: stored?.id, name: preparedByName },
       draftBanner: mode === "create" ? "ตัวอย่างเอกสารร่าง" : undefined,
       subtotalAmount: preview.subtotal,
@@ -348,7 +351,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
         ? values.validUntil.format("YYYY-MM-DD")
         : undefined,
       discountAmount: values.discountAmount ?? 0,
-      remark: values.remark?.trim() || undefined,
+      remark: sanitizeDocumentHtml(values.remark) || undefined,
       items: values.items.map((line) => ({
         itemId: line.itemId as string,
         unitId: line.unitId as string,
@@ -713,8 +716,8 @@ export default function QuotationFormPage({ mode, id }: Props) {
               <div className={styles.sectionBlock}>
                 <Typography.Title level={5}>หมายเหตุเอกสาร</Typography.Title>
                 <Form.Item name="remark" style={{ marginBottom: 0 }}>
-                  <Input.TextArea
-                    rows={6}
+                  <DocumentHtmlEditor
+                    ariaLabel="หมายเหตุเอกสาร"
                     placeholder="รายละเอียดเพิ่มเติมบนใบเสนอราคา"
                   />
                 </Form.Item>
