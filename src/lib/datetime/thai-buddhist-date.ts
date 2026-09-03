@@ -24,10 +24,19 @@ export function formatThaiBuddhistDate(
   }).format(d);
 }
 
-/** ป้ายใต้เลข SO เมื่อเคยแก้เนื้อหาเอกสาร — ไม่มี revisedAt = ใบต้นฉบับ */
+/**
+ * ป้ายใต้เลข SO เมื่อแก้หลังยืนยัน (เลื่อนวันส่ง / ยกเลิก)
+ * แก้หัวเอกสารก่อนยืนยันไม่นับเป็นฉบับแก้ไข
+ */
 export function salesOrderRevisionStamp(
   revisedAt?: string | Date | null,
+  confirmedAt?: string | Date | null,
 ): string | null {
-  const date = formatThaiBuddhistDate(revisedAt);
+  const revised = toDate(revisedAt);
+  const confirmed = toDate(confirmedAt);
+  if (!revised || !confirmed || revised.getTime() <= confirmed.getTime()) {
+    return null;
+  }
+  const date = formatThaiBuddhistDate(revised);
   return date ? `ฉบับแก้ไข วันที่ ${date}` : null;
 }

@@ -175,7 +175,7 @@ export function useDeleteSalesOrderAttachmentMutation() {
   });
 }
 
-/** แก้จำนวน / ราคา / ส่วนลด รายการสินค้าในใบสั่งขาย (ก่อนยืนยัน) */
+/** รายการสินค้าล็อกตามใบเสนอราคา — API คืน 400 ถ้าเรียก */
 export function useUpdateSalesOrderItemsMutation() {
   const { message } = App.useApp();
   const invalidate = useInvalidateSalesOrders();

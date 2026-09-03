@@ -8,7 +8,6 @@ import {
   Button,
   DatePicker,
   Input,
-  InputNumber,
   Modal,
   Progress,
   Select,
@@ -26,7 +25,6 @@ import {
   CloseOutlined,
   DeleteOutlined,
   DownloadOutlined,
-  EditOutlined,
   EyeOutlined,
   FilePdfOutlined,
   FileTextOutlined,
@@ -41,6 +39,8 @@ import {
 import dayjs from "dayjs";
 
 import AccessDenied from "@/components/auth/AccessDenied";
+import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
+import DocumentHtmlView from "@/components/common/DocumentHtmlView";
 import { useDeliverySchedulesQuery } from "@/hooks/delivery-schedules/useDeliverySchedulesQuery";
 import DeliverySchedulesSection from "./DeliverySchedulesSection";
 import DocumentAuditTrail from "@/components/common/DocumentAuditTrail";
@@ -51,7 +51,6 @@ import {
   useDeleteSalesOrderAttachmentMutation,
   useUpdateSalesOrderCustomerPoMutation,
   useUpdateSalesOrderHeaderMutation,
-  useUpdateSalesOrderItemsMutation,
   useUploadSalesOrderAttachmentMutation,
 } from "@/hooks/sales-orders/useSalesOrderMutations";
 import {
@@ -65,7 +64,6 @@ import { useProductionRequestsQuery, useEligibleSalesOrderQuery } from "@/hooks/
 import { useCreateProductionRequestMutation } from "@/hooks/production-requests/useProductionRequestMutations";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import {
-  calcDocumentTotals,
   resolveVatMode,
   VatMode,
   VAT_MODE_LABEL,
@@ -74,6 +72,7 @@ import {
 } from "@/lib/money/vat-totals";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
+import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { DeliverySchedule } from "@/types/delivery-schedules";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -192,34 +191,8 @@ type SalesOrderHeaderDraft = {
   taxRateId?: string;
 };
 
-type SalesOrderItemDraft = {
-  quantity: number;
-  unitPrice: number;
-  discountAmount: number;
-};
-
 function lineAmount(qty: number, price: number, discount: number) {
   return Math.max(0, Number((qty * price - discount).toFixed(2)));
-}
-
-function headerTotalsFromAmounts(
-  lineAmounts: number[],
-  headerDiscount: number,
-  taxRatePercent: number,
-  vatMode?: string,
-) {
-  const totals = calcDocumentTotals(
-    lineAmounts,
-    headerDiscount,
-    resolveVatMode(vatMode),
-    taxRatePercent,
-  );
-  return {
-    subtotal: totals.subtotal,
-    discount: totals.discount,
-    vat: totals.vat,
-    total: totals.total,
-  };
 }
 
 function buildSalesOrderPdfDataFromOrder(
@@ -227,12 +200,10 @@ function buildSalesOrderPdfDataFromOrder(
   options?: {
     schedules?: DeliverySchedule[];
     headerDraft?: SalesOrderHeaderDraft;
-    itemDrafts?: Record<string, SalesOrderItemDraft> | null;
     taxRates?: Array<{ id: string; rate: number | string }>;
   },
 ): SalesOrderPdfData {
   const header = options?.headerDraft;
-  const drafts = options?.itemDrafts ?? null;
   const vatMode = resolveVatMode(header?.vatMode ?? order.vatMode);
   const taxRateId = header?.taxRateId ?? order.taxRateId;
   const selectedRate = options?.taxRates?.find((row) => row.id === taxRateId);
@@ -242,10 +213,9 @@ function buildSalesOrderPdfDataFromOrder(
       : Number(selectedRate?.rate ?? order.taxRate?.rate ?? 0) || 0;
 
   const items = (order.items ?? []).map((item, index) => {
-    const draft = drafts?.[item.id];
-    const qty = draft?.quantity ?? (Number(item.quantity) || 0);
-    const price = draft?.unitPrice ?? (Number(item.unitPrice) || 0);
-    const discount = draft?.discountAmount ?? (Number(item.discountAmount) || 0);
+    const qty = Number(item.quantity) || 0;
+    const price = Number(item.unitPrice) || 0;
+    const discount = Number(item.discountAmount) || 0;
     return {
       no: index + 1,
       itemCode: item.itemCode ?? "—",
@@ -258,19 +228,12 @@ function buildSalesOrderPdfDataFromOrder(
     };
   });
 
-  const money = drafts
-    ? headerTotalsFromAmounts(
-        items.map((item) => item.amount),
-        Number(order.discountAmount) || 0,
-        taxRate,
-        vatMode,
-      )
-    : {
-        subtotal: Number(order.subtotalAmount) || 0,
-        discount: Number(order.discountAmount) || 0,
-        vat: Number(order.vatAmount) || 0,
-        total: Number(order.totalAmount) || 0,
-      };
+  const money = {
+    subtotal: Number(order.subtotalAmount) || 0,
+    discount: Number(order.discountAmount) || 0,
+    vat: Number(order.vatAmount) || 0,
+    total: Number(order.totalAmount) || 0,
+  };
 
   const activeRounds = (options?.schedules ?? [])
     .filter((schedule) => schedule.status !== "CANCELLED")
@@ -284,24 +247,9 @@ function buildSalesOrderPdfDataFromOrder(
       .slice()
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((line, index) => {
-        const draft = drafts?.[line.salesOrderItemId];
-        const sameItemLines = activeRounds.reduce(
-          (count, round) =>
-            count +
-            (round.items ?? []).filter(
-              (row) => row.salesOrderItemId === line.salesOrderItemId,
-            ).length,
-          0,
-        );
-        const qty =
-          draft && sameItemLines === 1
-            ? draft.quantity
-            : Number(line.quantity) || 0;
-        const price = draft?.unitPrice ?? (Number(line.unitPrice) || 0);
-        const discount =
-          draft && sameItemLines === 1
-            ? draft.discountAmount
-            : Number(line.discountAmount) || 0;
+        const qty = Number(line.quantity) || 0;
+        const price = Number(line.unitPrice) || 0;
+        const discount = Number(line.discountAmount) || 0;
         return {
           no: index + 1,
           itemCode: line.itemCode ?? "—",
@@ -335,11 +283,12 @@ function buildSalesOrderPdfDataFromOrder(
     paymentDueDate: formatDate(
       header?.paymentDueDate || order.paymentDueDate,
     ),
+    paymentTerm: order.paymentTerm?.name,
     requestedDeliveryDate: formatDate(order.requestedDeliveryDate),
     remark: (header?.remark ?? order.remark)?.trim() || "",
     taxRatePercent: taxRate,
     revisedAt: order.revisedAt,
-    isDraftPreview: Boolean(drafts),
+    confirmedAt: order.confirmedAt,
     preparedBy: {
       id: order.createdBy?.id,
       name: order.createdBy?.displayName,
@@ -361,6 +310,7 @@ function buildSalesOrderPdfDataFromOrder(
 
 function mapSnapshotPayloadToPdfData(
   payload: SalesOrderPdfSnapshotPayload,
+  confirmedAt?: string,
 ): SalesOrderPdfData {
   return {
     soNo: payload.soNo,
@@ -376,10 +326,12 @@ function mapSnapshotPayloadToPdfData(
     quotationNo: payload.quotationNo,
     paymentMethod: payload.paymentMethod,
     paymentDueDate: formatDate(payload.paymentDueDate),
+    paymentTerm: payload.paymentTerm,
     requestedDeliveryDate: formatDate(payload.requestedDeliveryDate),
     remark: payload.remark,
     taxRatePercent: payload.taxRatePercent,
     revisedAt: payload.revisedAt,
+    confirmedAt,
     subtotalAmount: payload.subtotalAmount,
     discountAmount: payload.discountAmount,
     vatAmount: payload.vatAmount,
@@ -497,14 +449,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const deleteAttachmentMutation = useDeleteSalesOrderAttachmentMutation();
   const updateCustomerPoMutation = useUpdateSalesOrderCustomerPoMutation();
   const updateHeaderMutation = useUpdateSalesOrderHeaderMutation();
-  const updateItemsMutation = useUpdateSalesOrderItemsMutation();
   const taxRatesQuery = useTaxRatesQuery({ isActive: true });
   const taxRates = taxRatesQuery.data?.data ?? [];
-  // แก้จำนวน/ส่วนลด — ราคาต่อหน่วยล็อกตาม QT; null = ยังไม่เข้าโหมดแก้ไข
-  const [itemDrafts, setItemDrafts] = useState<Record<
-    string,
-    { quantity: number; unitPrice: number; discountAmount: number }
-  > | null>(null);
   const [pendingProductionRequest, setPendingProductionRequest] =
     useState<PendingProductionRequest | null>(null);
   const [productionRequiredDate, setProductionRequiredDate] =
@@ -592,6 +538,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const attachments = attachmentsQuery.data?.data ?? [];
   const canUploadEvidence =
     canWrite && data?.status !== "CANCELLED";
+  const canDeleteEvidence = isPreConfirm && canWrite;
   const canFulfill =
     salesOrderActions.canEdit ||
     salesOrderActions.canApprove ||
@@ -722,8 +669,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     uploadAttachmentMutation.isPending ||
     deleteAttachmentMutation.isPending ||
     updateCustomerPoMutation.isPending ||
-    updateHeaderMutation.isPending ||
-    updateItemsMutation.isPending;
+    updateHeaderMutation.isPending;
   // ส่ง deliveryStatus ไปด้วย — หลังยืนยัน so.status ค้างที่ CONFIRMED ตลอด
   // ความคืบหน้าจริงอยู่ที่ delivery_status ที่สรุปจากทุกรอบ
   const progress = resolveSalesOrderProgress(
@@ -735,84 +681,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
         round.roundStatus !== "DELIVERED" && round.roundStatus !== "CANCELLED",
     )?.roundStatus,
   );
-
-  const canEditItems = isPreConfirm && canWrite;
-  const isEditingItems = itemDrafts !== null;
-
-  const startEditItems = () => {
-    setItemDrafts(
-      Object.fromEntries(
-        data.items.map((item) => [
-          item.id,
-          {
-            quantity: Number(item.quantity) || 0,
-            unitPrice: Number(item.unitPrice) || 0,
-            discountAmount: Number(item.discountAmount) || 0,
-          },
-        ]),
-      ),
-    );
-  };
-
-  const patchItemDraft = (
-    itemId: string,
-    patch: Partial<{
-      quantity: number;
-      unitPrice: number;
-      discountAmount: number;
-    }>,
-  ) => {
-    setItemDrafts((prev) =>
-      prev ? { ...prev, [itemId]: { ...prev[itemId], ...patch } } : prev,
-    );
-  };
-
-  const saveItemDrafts = async () => {
-    if (!itemDrafts) return;
-
-    // ส่งเฉพาะบรรทัดที่ค่าเปลี่ยนจริง
-    const changed = data.items
-      .filter((item) => {
-        const draft = itemDrafts[item.id];
-        if (!draft) return false;
-        return (
-          Math.abs(draft.quantity - Number(item.quantity)) > 0.0005 ||
-          Math.abs(draft.discountAmount - Number(item.discountAmount)) > 0.005
-        );
-      })
-      .map((item) => ({
-        id: item.id,
-        quantity: itemDrafts[item.id].quantity,
-        discountAmount: itemDrafts[item.id].discountAmount,
-      }));
-
-    if (!changed.length) {
-      setItemDrafts(null);
-      message.info("ไม่มีรายการที่เปลี่ยนแปลง");
-      return;
-    }
-
-    const invalid = changed.find((line) => {
-      const unitPrice = Number(
-        data.items.find((item) => item.id === line.id)?.unitPrice ?? 0,
-      );
-      return (
-        line.quantity <= 0 ||
-        line.discountAmount < 0 ||
-        line.discountAmount > line.quantity * unitPrice + 0.005
-      );
-    });
-    if (invalid) {
-      message.error(
-        "ตรวจค่าอีกครั้ง — จำนวนต้องมากกว่า 0 และส่วนลดต้องไม่เกินยอดของรายการ",
-      );
-      return;
-    }
-
-    await updateItemsMutation.mutateAsync({ id: data.id, body: { items: changed } });
-    setItemDrafts(null);
-    setSelectedPdfVersion("current");
-  };
 
   const openCustomerPoModal = (initial?: string) => {
     setPoDraft((initial ?? data.customerPoNo ?? "").trim());
@@ -928,7 +796,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const showReserveCta = stockReadyForReserve && canWrite;
 
   const showConfirmCta =
-    isPreConfirm && canConfirm && isFullyScheduled && !isEditingItems;
+    isPreConfirm && canConfirm && isFullyScheduled;
   const hasCustomerPo = Boolean(data.customerPoNo?.trim());
   const hasEvidenceFile = attachments.some(
     (file) => file.attachmentGroup === ATTACHMENT_GROUP_CUSTOMER_PO,
@@ -951,10 +819,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
       );
       return;
     }
-    if (isEditingItems) {
-      message.warning("บันทึกรายการสินค้าก่อน แล้วยืนยันใบสั่งขายแยกต่างหาก");
-      return;
-    }
     confirmMutation.mutate(data.id);
   };
 
@@ -968,7 +832,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           paymentMethod: headerDraft.paymentMethod,
           paymentDueDate: headerDraft.paymentDueDate || undefined,
           customerPoDate: headerDraft.customerPoDate || undefined,
-          remark: headerDraft.remark,
+          remark: sanitizeDocumentHtml(headerDraft.remark),
           vatMode: resolveVatMode(headerDraft.vatMode),
           taxRateId:
             resolveVatMode(headerDraft.vatMode) === VatMode.NONE
@@ -1017,7 +881,6 @@ export default function SalesOrderDetailPage({ id }: Props) {
     const pdfData = buildSalesOrderPdfDataFromOrder(data, {
       schedules: schedulesForGate.data ?? [],
       headerDraft,
-      itemDrafts,
       taxRates,
     });
     await generateSalesOrderPdf(pdfData);
@@ -1035,7 +898,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
       message.warning("ไม่พบฉบับเก่าที่เลือก");
       return;
     }
-    await generateSalesOrderPdf(mapSnapshotPayloadToPdfData(snapshot.payload));
+    await generateSalesOrderPdf(
+      mapSnapshotPayloadToPdfData(snapshot.payload, data.confirmedAt),
+    );
   };
 
   const pdfSnapshots = pdfSnapshotsQuery.data?.data?.items ?? [];
@@ -1512,9 +1377,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
         <div className={styles.headerContent}>
           <p className={styles.eyebrow}>ขาย · ใบสั่งขาย</p>
           <h1 className={styles.pageTitle}>{data.soNo}</h1>
-          {salesOrderRevisionStamp(data.revisedAt) ? (
+          {salesOrderRevisionStamp(data.revisedAt, data.confirmedAt) ? (
             <p className={styles.revisionStamp}>
-              {salesOrderRevisionStamp(data.revisedAt)}
+              {salesOrderRevisionStamp(data.revisedAt, data.confirmedAt)}
             </p>
           ) : null}
           <p className={styles.pageSubtitle}>
@@ -1522,7 +1387,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               ? `${data.customer.customerCode} — ${data.customer.nameTh}`
               : "—"}{" "}
             · {formatDate(data.soDate)} · {formatMoney(data.totalAmount)} บาท
-            {data.deliveryStatus
+            {!isPreConfirm
               ? ` · ${salesOrderDeliveryStatusLabel(data.status, data.deliveryStatus)}`
               : ""}
           </p>
@@ -1688,6 +1553,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
               ) : null}
             </div>
             <div className={styles.metaGrid}>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>สถานะจัดส่ง</span>
+                <div className={styles.metaValue}>
+                  {salesOrderDeliveryStatusLabel(
+                    data.status,
+                    data.deliveryStatus,
+                  )}
+                </div>
+              </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>เลขที่ PO</span>
                 <div className={styles.metaValue}>
@@ -2019,7 +1893,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                         >
                           ดาวน์โหลด
                         </Button>
-                        {canUploadEvidence ? (
+                        {canDeleteEvidence ? (
                           <Button
                             size="small"
                             danger
@@ -2442,44 +2316,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
-              {canEditItems ? (
-                isEditingItems ? (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Button
-                      size="small"
-                      type="primary"
-                      htmlType="button"
-                      loading={updateItemsMutation.isPending}
-                      onClick={() => void saveItemDrafts()}
-                    >
-                      บันทึกรายการ
-                    </Button>
-                    <Button
-                      size="small"
-                      icon={<CloseOutlined />}
-                      disabled={updateItemsMutation.isPending}
-                      onClick={() => setItemDrafts(null)}
-                    >
-                      ยกเลิก
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    size="small"
-                    icon={<EditOutlined />}
-                    disabled={busy}
-                    onClick={startEditItems}
-                  >
-                    แก้ไขรายการ
-                  </Button>
-                )
-              ) : null}
             </div>
-            {isEditingItems ? (
-              <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                แก้จำนวนและส่วนลดได้ก่อนยืนยัน — ราคา/หน่วยล็อกตามใบเสนอราคา
-              </p>
-            ) : null}
             {isPreConfirm && canWrite && allLinesReserved ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
                 ของถูกจองตอนสร้างใบสั่งขาย — ยกเลิกใบก่อนยืนยันเพื่อคืนสต๊อก
@@ -2507,78 +2344,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           ? `${item.itemCode} — ${item.itemNameTh ?? ""}`
                           : (item.itemNameTh ?? "—")}
                       </p>
-                      {isEditingItems && itemDrafts?.[item.id] ? (
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 12,
-                            margin: "6px 0",
-                          }}
-                        >
-                          <label style={{ fontSize: 12 }}>
-                            <span style={{ display: "block", color: "#8a9199" }}>
-                              จำนวน ({item.unitCode ?? "หน่วย"})
-                            </span>
-                            <InputNumber
-                              size="small"
-                              min={0.001}
-                              step={1}
-                              precision={3}
-                              style={{ width: 130 }}
-                              value={itemDrafts[item.id].quantity}
-                              onChange={(value) =>
-                                patchItemDraft(item.id, {
-                                  quantity: Number(value ?? 0),
-                                })
-                              }
-                              onPressEnter={(event) => {
-                                event.preventDefault();
-                                void saveItemDrafts();
-                              }}
-                            />
-                          </label>
-                          <label style={{ fontSize: 12 }}>
-                            <span style={{ display: "block", color: "#8a9199" }}>
-                              ราคา/หน่วย
-                            </span>
-                            <div className={styles.itemCode} style={{ marginTop: 4 }}>
-                              {formatMoney(String(itemDrafts[item.id].unitPrice))}
-                            </div>
-                          </label>
-                          <label style={{ fontSize: 12 }}>
-                            <span style={{ display: "block", color: "#8a9199" }}>
-                              ส่วนลด
-                            </span>
-                            <InputNumber
-                              size="small"
-                              min={0}
-                              step={1}
-                              precision={2}
-                              style={{ width: 130 }}
-                              value={itemDrafts[item.id].discountAmount}
-                              onChange={(value) =>
-                                patchItemDraft(item.id, {
-                                  discountAmount: Number(value ?? 0),
-                                })
-                              }
-                              onPressEnter={(event) => {
-                                event.preventDefault();
-                                void saveItemDrafts();
-                              }}
-                            />
-                          </label>
-                        </div>
-                      ) : (
-                        <p className={styles.itemCode}>
-                          {Number(item.quantity).toLocaleString("th-TH")}{" "}
-                          {item.unitCode ?? ""} · ราคา{" "}
-                          {formatMoney(item.unitPrice)}
-                          {Number(item.discountAmount) > 0
-                            ? ` · ส่วนลด ${formatMoney(item.discountAmount)}`
-                            : ""}
-                        </p>
-                      )}
+                      <p className={styles.itemCode}>
+                        {Number(item.quantity).toLocaleString("th-TH")}{" "}
+                        {item.unitCode ?? ""} · ราคา{" "}
+                        {formatMoney(item.unitPrice)}
+                        {Number(item.discountAmount) > 0
+                          ? ` · ส่วนลด ${formatMoney(item.discountAmount)}`
+                          : ""}
+                      </p>
                       {isPreConfirm && reservationLine ? (
                         <p className={styles.itemCode}>
                           ต้องการ{" "}
@@ -2621,14 +2394,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     </div>
                     <div className={styles.itemQty}>
                       {(() => {
-                        const qty = isEditingItems && itemDrafts?.[item.id]
-                          ? itemDrafts[item.id].quantity
-                          : Number(item.quantity) || 0;
+                        const qty = Number(item.quantity) || 0;
                         const price = Number(item.unitPrice) || 0;
-                        const discount =
-                          isEditingItems && itemDrafts?.[item.id]
-                            ? itemDrafts[item.id].discountAmount
-                            : Number(item.discountAmount) || 0;
+                        const discount = Number(item.discountAmount) || 0;
                         const gross = qty * price;
                         const net = Math.max(0, gross - discount);
                         return (
@@ -2755,32 +2523,31 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+              <h2 className={styles.sectionTitle}>หมายเหตุเอกสาร</h2>
             </div>
             {canEditHeader ? (
-              <Input.TextArea
-                aria-label="หมายเหตุ"
-                rows={3}
+              <DocumentHtmlEditor
+                ariaLabel="หมายเหตุเอกสาร"
+                placeholder="รายละเอียดเพิ่มเติมบนใบสั่งขาย"
                 value={headerDraft.remark}
-                placeholder="หมายเหตุบนใบสั่งขาย"
-                onChange={(e) =>
+                onChange={(html) =>
                   setHeaderDraft((prev) => ({
                     ...prev,
-                    remark: e.target.value,
+                    remark: html,
                   }))
                 }
               />
             ) : (
-              <p className={styles.textBlock}>{data.remark?.trim() || "—"}</p>
+              <DocumentHtmlView html={data.remark} />
             )}
           </div>
 
           <div className={styles.section}>
             {/*
-              canWrite ไม่ใช่ canEditItems — canEditItems จำกัดที่ก่อนยืนยัน
-              ซึ่งจะทำให้ปุ่มเลื่อน/ยกเลิกรอบหายไปตอนใบยืนยันแล้ว คือตอนที่
-              ต้องใช้พอดี · การคุมสถานะอยู่ในแผงเองแล้วทีละปุ่มตามสถานะรอบ
-              และ backend คุมซ้ำอีกชั้น (SCHEDULABLE_SO_STATUSES มี CONFIRMED)
+              canWrite ไม่ใช่สิทธิ์แก้รายการ — รายการล็อกตามใบเสนอราคา
+              ปุ่มเลื่อน/ยกเลิกรอบยังต้องโชว์หลังยืนยัน · การคุมสถานะอยู่ในแผงเอง
+              ทีละปุ่มตามสถานะรอบ และ backend คุมซ้ำอีกชั้น
+              (SCHEDULABLE_SO_STATUSES มี CONFIRMED)
             */}
             <DeliverySchedulesSection
               salesOrderId={data.id}

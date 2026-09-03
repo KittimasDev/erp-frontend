@@ -163,9 +163,9 @@ export default function SalesOrdersListPage() {
         render: (_value: string, row) => (
           <div className={styles.soNoCell}>
             <span className={styles.prNo}>{row.soNo}</span>
-            {salesOrderRevisionStamp(row.revisedAt) ? (
+            {salesOrderRevisionStamp(row.revisedAt, row.confirmedAt) ? (
               <span className={styles.revisionStamp}>
-                {salesOrderRevisionStamp(row.revisedAt)}
+                {salesOrderRevisionStamp(row.revisedAt, row.confirmedAt)}
               </span>
             ) : null}
           </div>

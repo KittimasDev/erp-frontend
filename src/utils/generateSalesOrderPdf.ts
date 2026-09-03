@@ -1,4 +1,5 @@
 import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
+import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import { getUserSignatureDataUrl } from "@/lib/user/user-signature";
 import {
   SALES_ORDER_PAYMENT_METHOD_LABEL,
@@ -30,10 +31,12 @@ export type SalesOrderPdfData = {
   quotationNo: string;
   paymentMethod?: string;
   paymentDueDate?: string;
+  paymentTerm?: string;
   requestedDeliveryDate: string;
   remark: string;
   taxRatePercent?: number;
   revisedAt?: string;
+  confirmedAt?: string;
   subtotalAmount: number;
   discountAmount: number;
   vatAmount: number;
@@ -76,6 +79,7 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
     0,
     Number((data.subtotalAmount - data.discountAmount).toFixed(2)),
   );
+  const remarkHtml = sanitizeDocumentHtml(data.remark);
 
   const itemGroups =
     data.rounds && data.rounds.length > 0
@@ -90,7 +94,8 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
     titleTh: "ใบสั่งขาย",
     docNo: data.soNo,
     docDate: data.soDate,
-    revisionLabel: salesOrderRevisionStamp(data.revisedAt) ?? undefined,
+    revisionLabel:
+      salesOrderRevisionStamp(data.revisedAt, data.confirmedAt) ?? undefined,
     draftBanner: data.isDraftPreview
       ? "ตัวอย่างจากข้อมูลปัจจุบัน รวมส่วนที่กำลังแก้ไขยังไม่ได้บันทึก"
       : undefined,
@@ -125,7 +130,14 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
           },
           { label: "อ้างอิง QT", value: data.quotationNo },
           { label: "วิธีการชำระเงิน", value: paymentMethodLabel(data.paymentMethod) },
+          { label: "เงื่อนไขการชำระ", value: data.paymentTerm || "—" },
           { label: "ครบกำหนดชำระ", value: data.paymentDueDate || "—" },
+          {
+            label: "เงื่อนไขเอกสาร",
+            value: remarkHtml || "—",
+            full: true,
+            html: Boolean(remarkHtml),
+          },
         ],
       },
     ],
@@ -153,7 +165,9 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
       { label: vatRate && vatRate > 0 ? `ภาษีมูลค่าเพิ่ม ${vatRate}%` : "ภาษีมูลค่าเพิ่ม", value: data.vatAmount },
       { label: "ยอดสุทธิ", value: data.totalAmount, grand: true },
     ],
-    remark: data.remark,
+    remark: remarkHtml,
+    remarkLabel: "เงื่อนไขเอกสาร",
+    remarkIsHtml: true,
     signatures: [
       {
         title: "ผู้จัดทำ",

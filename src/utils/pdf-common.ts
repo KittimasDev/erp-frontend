@@ -6,6 +6,7 @@ import {
   formatTaxId,
   getCompanyInfoSnapshot,
 } from "@/lib/company/company-info";
+import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import { reportUserError } from "@/lib/ui/toast-bridge";
 
 /**
@@ -359,13 +360,28 @@ export function basePdfStyles() {
         font-size: 13px;
         font-weight: 500;
       }
+      .info-row .value p,
+      .remark-box p {
+        margin: 0 0 4px;
+      }
+      .info-row .value p:last-child,
+      .remark-box p:last-child {
+        margin-bottom: 0;
+      }
+      .info-row .value ul,
+      .info-row .value ol,
+      .remark-box ul,
+      .remark-box ol {
+        margin: 0 0 4px;
+        padding-left: 18px;
+      }
       .remark-box {
         margin-top: 14px;
         border: 1.2px solid #e5e7eb;
         background: #fcfcfd;
         padding: 12px 14px;
         display: grid;
-        grid-template-columns: 70px 1fr;
+        grid-template-columns: 110px 1fr;
         gap: 8px;
       }
       .signature-box {
@@ -611,6 +627,8 @@ export type SalesCommercialPdfInfoRow = {
   value: string;
   full?: boolean;
   emphasis?: boolean;
+  /** ค่าเป็น HTML ที่ต้อง sanitize ก่อนใส่ — ค่าเริ่มต้น escape เป็นข้อความ */
+  html?: boolean;
 };
 
 export type SalesCommercialPdfItemGroup = {
@@ -661,6 +679,9 @@ export type SalesCommercialPdfData = {
   totalAmount?: number;
   totalsLines?: SalesCommercialPdfTotalsLine[];
   remark?: string;
+  remarkLabel?: string;
+  /** หมายเหตุเป็น HTML (ใบสั่งขาย) — เอกสารอื่นยังเป็นข้อความธรรมดา */
+  remarkIsHtml?: boolean;
   signatures?: [SalesSignatureSlot, SalesSignatureSlot, SalesSignatureSlot];
 };
 
@@ -694,7 +715,9 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
         return `
       <div class="${classes}">
         <span class="label">${escapeHtml(row.label)}</span>
-        <span class="value">${escapeHtml(row.value)}</span>
+        <span class="value">${
+          row.html ? sanitizeDocumentHtml(row.value) || "—" : escapeHtml(row.value)
+        }</span>
       </div>`;
       })
       .join("");
@@ -809,8 +832,13 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
     ? `<div class="bank-box"><strong>ชำระเงินที่</strong><div>${bankLine}</div></div>`
     : "";
 
-  const remarkHtml = data.remark
-    ? `<div class="remark-box"><strong>หมายเหตุ</strong><div>${escapeHtml(data.remark)}</div></div>`
+  const remarkBody = data.remarkIsHtml
+    ? sanitizeDocumentHtml(data.remark)
+    : data.remark
+      ? escapeHtml(data.remark)
+      : "";
+  const remarkHtml = remarkBody
+    ? `<div class="remark-box"><strong>${escapeHtml(data.remarkLabel || "หมายเหตุ")}</strong><div>${remarkBody}</div></div>`
     : "";
 
   const sigs: SalesSignatureSlot[] = data.signatures ?? [

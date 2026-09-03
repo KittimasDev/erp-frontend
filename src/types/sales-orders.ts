@@ -325,6 +325,7 @@ export type SalesOrderPdfSnapshotPayload = {
   quotationNo: string;
   paymentMethod?: string;
   paymentDueDate?: string;
+  paymentTerm?: string;
   requestedDeliveryDate: string;
   remark: string;
   taxRatePercent?: number;
