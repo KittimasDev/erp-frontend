@@ -7,6 +7,9 @@ import {
   cancelSalesOrder,
   confirmSalesOrder,
   createSalesOrderFromQuotation,
+  releaseSalesOrderLineReservation,
+  reserveAllEligibleSalesOrderLines,
+  reserveSalesOrderLine,
   updateSalesOrderCustomerPo,
   updateSalesOrderHeader,
   updateSalesOrderItems,
@@ -102,15 +105,67 @@ export function useCancelSalesOrderMutation() {
   });
 }
 
-/*
- * ถอด 4 hook ออกแล้ว (2026-08-26): useConfirmStockVerificationMutation,
- * useReserveSalesOrderLineMutation, useReleaseSalesOrderLineMutation,
- * useReserveAllEligibleSalesOrderLinesMutation (+ helper useReservationMutation)
- *
- * ทั้งหมดยิง endpoint ที่ถูกถอดออกฝั่ง backend แล้ว — การจองด้วยมือระดับ
- * ใบสั่งขายทำให้จองซ้ำกับการจองระดับรอบ (สั่ง 2 กลายเป็นจองไว้ 4)
- * ของถูกจองตอนสร้างใบสั่งขาย — เปิดใบจ่ายยกแถวเดิมมาใช้ ไม่จองซ้ำ
- */
+export function useReleaseSalesOrderLineMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "release-reservation"],
+    mutationFn: ({ id, itemId }: { id: string; itemId: string }) =>
+      releaseSalesOrderLineReservation(getAccessToken(), id, itemId),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || "ยกเลิกการจองสต๊อกแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError
+          ? error.message
+          : "ยกเลิกการจองสต๊อกไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useReserveSalesOrderLineMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "reserve-line"],
+    mutationFn: ({ id, itemId }: { id: string; itemId: string }) =>
+      reserveSalesOrderLine(getAccessToken(), id, itemId),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || "จองสต๊อกแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "จองสต๊อกไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useReserveAllEligibleSalesOrderLinesMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateSalesOrders();
+
+  return useMutation({
+    mutationKey: [...salesOrdersQueryKey, "reserve-all-eligible"],
+    mutationFn: (id: string) =>
+      reserveAllEligibleSalesOrderLines(getAccessToken(), id),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || "จองสต๊อกที่พร้อมใช้แล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "จองสต๊อกไม่สำเร็จ",
+      );
+    },
+  });
+}
 
 export function useUploadSalesOrderAttachmentMutation() {
   const { message } = App.useApp();

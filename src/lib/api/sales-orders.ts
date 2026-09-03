@@ -1,15 +1,5 @@
 import { apiFetch } from "./client";
 import type {
-/*
- * ถอด confirmStockVerification / reserveSalesOrderLine /
- * releaseSalesOrderLineReservation / reserveAllEligibleSalesOrderLines ออกแล้ว (2026-08-26)
- * — endpoint ฝั่ง backend ถูกถอดไปด้วย
- *
- * การจองด้วยมือระดับใบสั่งขายทำให้จองซ้ำกับการจองระดับรอบจัดส่ง
- * (สั่ง 2 กลายเป็นจองไว้ 4) และการยืนยันผลตรวจสต๊อกไม่มีผลอะไรแล้ว
- * ของถูกจองตอนสร้างใบสั่งขาย — เปิดใบจ่ายยกแถวเดิมมาใช้ ไม่จองซ้ำ
- */
-
   CreateSalesOrderFromQuotationBody,
   SalesOrderApiResponse,
   SalesOrderAvailableWarehouseListApiResponse,
@@ -154,6 +144,36 @@ export function getSalesOrderReservationStatus(token: string, id: string) {
   return apiFetch<SalesOrderReservationStatusApiResponse>(
     `/api/sales-orders/${id}/reservation-status`,
     { method: "GET", token },
+  );
+}
+
+/** ปล่อยจองต่อบรรทัด — ร่าง / รอยืนยันเท่านั้น */
+export function releaseSalesOrderLineReservation(
+  token: string,
+  id: string,
+  itemId: string,
+) {
+  return apiFetch<SalesOrderReservationStatusApiResponse>(
+    `/api/sales-orders/${id}/items/${itemId}/release-reservation`,
+    { method: "POST", token },
+  );
+}
+
+export function reserveSalesOrderLine(
+  token: string,
+  id: string,
+  itemId: string,
+) {
+  return apiFetch<SalesOrderReservationStatusApiResponse>(
+    `/api/sales-orders/${id}/items/${itemId}/reserve`,
+    { method: "POST", token },
+  );
+}
+
+export function reserveAllEligibleSalesOrderLines(token: string, id: string) {
+  return apiFetch<SalesOrderReservationStatusApiResponse>(
+    `/api/sales-orders/${id}/reserve-all-eligible`,
+    { method: "POST", token },
   );
 }
 

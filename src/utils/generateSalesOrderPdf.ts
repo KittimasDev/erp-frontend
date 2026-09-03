@@ -132,12 +132,12 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
           { label: "วิธีการชำระเงิน", value: paymentMethodLabel(data.paymentMethod) },
           { label: "เงื่อนไขการชำระ", value: data.paymentTerm || "—" },
           { label: "ครบกำหนดชำระ", value: data.paymentDueDate || "—" },
-          {
-            label: "เงื่อนไขเอกสาร",
-            value: remarkHtml || "—",
-            full: true,
-            html: Boolean(remarkHtml),
-          },
+          // {
+          //   label: "เงื่อนไขเอกสาร",
+          //   value: remarkHtml || "—",
+          //   full: true,
+          //   html: Boolean(remarkHtml),
+          // },
         ],
       },
     ],
@@ -166,7 +166,7 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
       { label: "ยอดสุทธิ", value: data.totalAmount, grand: true },
     ],
     remark: remarkHtml,
-    remarkLabel: "เงื่อนไขเอกสาร",
+    remarkLabel: "หมายเหตุ",
     remarkIsHtml: true,
     signatures: [
       {

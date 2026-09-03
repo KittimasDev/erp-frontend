@@ -284,11 +284,12 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     cancelMutation.isPending ||
     uploadMutation.isPending;
 
-  const printPdf = async () => {
+  const buildPurchaseOrderPdf = async () => {
     const { generatePurchaseOrderPdf } = await import(
       "@/utils/generatePurchaseOrderPdf"
     );
-    generatePurchaseOrderPdf({
+    // ต้อง await + catch — ไม่งั้นสร้าง PDF พังแล้วเงียบสนิท ผู้ใช้กดปุ่มแล้วไม่มีอะไรเกิดขึ้น
+    await generatePurchaseOrderPdf({
       poNo: data.poNo,
       poDate: formatDate(data.poDate),
       vendorName: data.creditor?.nameTh ?? "—",
@@ -334,6 +335,18 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
         amount: Number(item.amount) || 0,
       })),
     });
+  };
+
+  const printPdf = async () => {
+    try {
+      await buildPurchaseOrderPdf();
+    } catch (error) {
+      message.error(
+        error instanceof Error
+          ? `สร้าง PDF ไม่สำเร็จ: ${error.message}`
+          : "สร้าง PDF ไม่สำเร็จ",
+      );
+    }
   };
 
   return (

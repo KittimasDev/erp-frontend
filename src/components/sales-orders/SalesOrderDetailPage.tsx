@@ -49,6 +49,9 @@ import {
   useCancelSalesOrderMutation,
   useConfirmSalesOrderMutation,
   useDeleteSalesOrderAttachmentMutation,
+  useReleaseSalesOrderLineMutation,
+  useReserveAllEligibleSalesOrderLinesMutation,
+  useReserveSalesOrderLineMutation,
   useUpdateSalesOrderCustomerPoMutation,
   useUpdateSalesOrderHeaderMutation,
   useUploadSalesOrderAttachmentMutation,
@@ -444,6 +447,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const pdfSnapshotsQuery = useSalesOrderPdfSnapshotsQuery(id);
   const confirmMutation = useConfirmSalesOrderMutation();
   const cancelMutation = useCancelSalesOrderMutation();
+  const releaseReservationMutation = useReleaseSalesOrderLineMutation();
+  const reserveLineMutation = useReserveSalesOrderLineMutation();
+  const reserveAllEligibleMutation =
+    useReserveAllEligibleSalesOrderLinesMutation();
   const createProductionRequestMutation = useCreateProductionRequestMutation();
   const attachmentsQuery = useSalesOrderAttachmentsQuery(id);
   const uploadAttachmentMutation = useUploadSalesOrderAttachmentMutation();
@@ -666,6 +673,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const busy =
     confirmMutation.isPending ||
     cancelMutation.isPending ||
+    releaseReservationMutation.isPending ||
+    reserveLineMutation.isPending ||
+    reserveAllEligibleMutation.isPending ||
     createProductionRequestMutation.isPending ||
     uploadAttachmentMutation.isPending ||
     deleteAttachmentMutation.isPending ||
@@ -798,11 +808,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
   const showConfirmCta =
     isPreConfirm && canConfirm && isFullyScheduled;
-  const hasCustomerPo = Boolean(data.customerPoNo?.trim());
   const hasEvidenceFile = attachments.some(
     (file) => file.attachmentGroup === ATTACHMENT_GROUP_CUSTOMER_PO,
   );
-  const evidenceReady = hasCustomerPo || hasEvidenceFile;
+  const evidenceReady = hasEvidenceFile;
   const confirmBlocked =
     reservationQuery.isLoading ||
     attachmentsQuery.isLoading ||
@@ -816,7 +825,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
     }
     if (!evidenceReady) {
       message.warning(
-        "กรณีไม่มีเลข PO ลูกค้า ต้องแนบไฟล์ยืนยันอย่างน้อย 1 ไฟล์",
+        "ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย",
       );
       return;
     }
@@ -1469,7 +1478,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
         <div
           className={`${styles.reserveActionBanner} ${styles.reserveActionBannerReady}`}
         >
-          จองสต๊อกแล้ว — ยกเลิกใบได้ก่อนยืนยันเพื่อคืนของ
+          จองสต๊อกแล้ว — ยกเลิกการจองรายการเพื่อคืนของ หรือยกเลิกทั้งใบ
         </div>
       ) : null}
 
@@ -1725,8 +1734,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   <PaperClipOutlined /> หลักฐานยืนยันคำสั่งซื้อ
                 </h2>
                 <p className={styles.sectionHint}>
-                  มีเลข PO หรือแนบไฟล์ยืนยันอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย
-                  — กรณีไม่มีเลข PO ต้องแนบไฟล์ยืนยันอื่น
+                  ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย
+                  — เลข PO กรอกได้ตามเดิมแต่ไม่แทนไฟล์แนบ
                 </p>
               </div>
               {canUploadEvidence ? (
@@ -1788,7 +1797,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   </div>
                 ) : (
                   <div className={styles.evidenceEmptyWarn}>
-                    ยังไม่มีเลข PO — ต้องแนบไฟล์ยืนยันอื่นก่อนยืนยันใบสั่งขาย
+                    ยังไม่มีเลข PO — ระบุได้ตามต้องการ แต่ต้องอัปโหลดไฟล์หลักฐานก่อนยืนยันใบสั่งขาย
                   </div>
                 )}
               </div>
@@ -1814,8 +1823,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   <div>
                     <strong>ยังไม่มีไฟล์หลักฐาน</strong>
                     <span>
+                      ต้องอัปโหลดอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย —
                       รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB
-                      อัปโหลดได้หลายไฟล์
                     </span>
                   </div>
                 </div>
@@ -1910,8 +1919,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       ? "สต๊อกไม่พอ — มีใบขอผลิตแล้ว ติดตามของเข้าคลังได้จากเอกสารนั้น · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ"
                       : "สต๊อกไม่พอ — เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ ขอแค่จัดรอบจัดส่งให้ครบ"
                     : allLinesReserved
-                      ? "จองสต๊อกแล้ว — ยกเลิกใบได้ก่อนยืนยันเพื่อคืนของ"
-                      : "ของพอจะถูกจองตอนสร้างใบ ถ้าไม่พอจองเท่าที่มี"
+                      ? "จองสต๊อกแล้ว — ยกเลิกการจองรายการเพื่อคืนของ หรือยกเลิกทั้งใบ"
+                      : "ของพอจะถูกจองตอนสร้างใบ ถ้าปล่อยจองแล้วให้จองใหม่ก่อนเดินต่อ"
                   : "เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย"}
               </span>
             </div>
@@ -2146,8 +2155,27 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
               {showReserveCta ? (
                 <div className={styles.productionContinueRow}>
+                  <Button
+                    type="primary"
+                    htmlType="button"
+                    icon={<ShoppingCartOutlined />}
+                    loading={reserveAllEligibleMutation.isPending}
+                    disabled={busy}
+                    onClick={() =>
+                      modal.confirm({
+                        title: "ยืนยันจองสต๊อกทุกรายการที่ยังไม่จอง?",
+                        content:
+                          "จองของพร้อมใช้ให้ทุกรายการที่ยังจองไม่ครบ — ของไม่พอจะข้ามรายการนั้น",
+                        okText: "จองทุกรายการที่ยังไม่จอง",
+                        onOk: () =>
+                          reserveAllEligibleMutation.mutateAsync(data.id),
+                      })
+                    }
+                  >
+                    จองทุกรายการที่ยังไม่จอง
+                  </Button>
                   <span className={styles.sectionHint}>
-                    ของในคลังพอแล้ว — จัดรอบจัดส่งให้ครบแล้วยืนยันใบสั่งขาย
+                    ของในคลังพอแล้ว — จองกลับได้หลังยกเลิกการจอง แล้วจัดรอบครบเพื่อยืนยันใบ
                   </span>
                 </div>
               ) : null}
@@ -2169,7 +2197,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       ? " ของถูกจองไว้แล้ว ยืนยันใบไม่จองซ้ำ"
                       : ""}
                     {!evidenceReady
-                      ? " · กรณีไม่มีเลข PO ต้องแนบไฟล์ยืนยันก่อน"
+                      ? " · ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยัน"
                       : ""}
                   </span>
                 </div>
@@ -2288,7 +2316,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
             </div>
             {isPreConfirm && canWrite && allLinesReserved ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                ของถูกจองตอนสร้างใบสั่งขาย — ยกเลิกใบก่อนยืนยันเพื่อคืนสต๊อก
+                ของถูกจองแล้ว — ยกเลิกการจองรายการเพื่อคืนสต๊อก หรือจองใหม่ได้ก่อนยืนยัน
+              </p>
+            ) : null}
+            {showReserveCta ? (
+              <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
+                ของพร้อมใช้ — กดจองสต๊อกต่อรายการ หรือจองทุกรายการที่ยังไม่จอง
               </p>
             ) : null}
             {isPreConfirm && hasUnplannedShortage ? (
@@ -2373,6 +2406,66 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             {isPreConfirm && reservationLine
                               ? reservationLineTag(reservationLine)
                               : null}
+                            {isPreConfirm &&
+                            canWrite &&
+                            reservationLine?.canReserve ? (
+                              <Button
+                                size="small"
+                                type="primary"
+                                icon={<ShoppingCartOutlined />}
+                                loading={
+                                  reserveLineMutation.isPending &&
+                                  reserveLineMutation.variables?.itemId ===
+                                    item.id
+                                }
+                                disabled={busy}
+                                onClick={() =>
+                                  modal.confirm({
+                                    title: "ยืนยันจองสต๊อก?",
+                                    content:
+                                      "กันของในคลังให้รายการนี้ตามจำนวนที่สั่ง",
+                                    okText: "จองสต๊อก",
+                                    onOk: () =>
+                                      reserveLineMutation.mutateAsync({
+                                        id: data.id,
+                                        itemId: item.id,
+                                      }),
+                                  })
+                                }
+                              >
+                                จองสต๊อก
+                              </Button>
+                            ) : null}
+                            {isPreConfirm &&
+                            canWrite &&
+                            reservationLine?.canRelease ? (
+                              <Button
+                                size="small"
+                                danger
+                                loading={
+                                  releaseReservationMutation.isPending &&
+                                  releaseReservationMutation.variables
+                                    ?.itemId === item.id
+                                }
+                                disabled={busy}
+                                onClick={() =>
+                                  modal.confirm({
+                                    title: "ยืนยันยกเลิกการจองสต๊อก?",
+                                    content:
+                                      "คืนสต๊อกที่จองของรายการนี้เข้าคลัง",
+                                    okText: "ยกเลิกการจอง",
+                                    okButtonProps: { danger: true },
+                                    onOk: () =>
+                                      releaseReservationMutation.mutateAsync({
+                                        id: data.id,
+                                        itemId: item.id,
+                                      }),
+                                  })
+                                }
+                              >
+                                ยกเลิกการจอง
+                              </Button>
+                            ) : null}
                             {hasUnplannedShortage &&
                             canIssueProductionRequest &&
                             productionRequestLine ? (

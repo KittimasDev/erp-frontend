@@ -601,18 +601,30 @@ export const PDF_PAGE_HEIGHT_PX = 1123;
 export async function openMultiPagePdfFromHtml(
   pageId: string,
   pagesHtml: string[],
+  options?: {
+    /** ความกว้าง wrapper — เอกสารที่หน้ากว้างไม่ใช่ 794px ต้องส่งค่าของตัวเอง */
+    wrapperWidth?: string;
+    /**
+     * แนบ `basePdfStyles()` ให้หรือไม่ — เอกสารที่มี `<style>` ของตัวเองต้องส่ง
+     * `false` ไม่งั้นคลาสชื่อซ้ำ (`.logo` `.info-card` `.info-grid` `.title`)
+     * จะทับกันจนเลย์เอาต์เพี้ยน
+     */
+    includeBaseStyles?: boolean;
+  },
 ) {
   if (pagesHtml.length === 0) {
     throw new Error("PDF has no pages to render");
   }
 
+  const { wrapperWidth = "794px", includeBaseStyles = true } = options ?? {};
+
   const wrapper = document.createElement("div");
   wrapper.style.position = "fixed";
   wrapper.style.left = "-99999px";
   wrapper.style.top = "0";
-  wrapper.style.width = "794px";
+  wrapper.style.width = wrapperWidth;
   wrapper.style.background = "#fff";
-  wrapper.innerHTML = `${basePdfStyles()}${pagesHtml.join("")}`;
+  wrapper.innerHTML = `${includeBaseStyles ? basePdfStyles() : ""}${pagesHtml.join("")}`;
   document.body.appendChild(wrapper);
 
   try {

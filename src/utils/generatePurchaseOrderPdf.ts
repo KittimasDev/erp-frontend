@@ -2,9 +2,11 @@ import {
   companyIdentityLinesHtml,
   companyLogoUrl,
   ensureCompanyInfo,
+  escapeHtml,
+  formatMoney,
+  formatQty,
+  openMultiPagePdfFromHtml,
 } from "./pdf-common";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
 type PurchaseOrderPdfItem = {
   no: number;
@@ -43,31 +45,27 @@ export type PurchaseOrderPdfData = {
   items: PurchaseOrderPdfItem[];
 };
 
+const PAGE_ID = "purchase-order-pdf";
+
+/** A4 ที่ความกว้าง 594px — ต้องตรึงทั้งคู่ ไม่งั้นแคปทีละหน้าแล้วสัดส่วนเพี้ยน */
+const PAGE_WIDTH = 594;
+const PAGE_HEIGHT = 842;
+const PAGE_PAD_TOP = 34;
+const PAGE_PAD_BOTTOM = 36;
+const CONTENT_HEIGHT = PAGE_HEIGHT - PAGE_PAD_TOP - PAGE_PAD_BOTTOM;
+
+/** `.table` กิน margin-top 14px + เส้นขอบบนล่างอีกด้านละ 1px */
+const TABLE_CHROME = 16;
+
+/** เผื่อกันฟอนต์ไทยดันความสูงเกินค่าที่วัดได้เศษหนึ่ง */
+const SAFETY = 8;
+
+/** กันวนไม่รู้จบถ้าคำนวณพลาดจนบล็อกไม่มีวันลงหน้าได้ */
+const MAX_PAGES = 200;
+
 function dash(value?: string) {
   const text = value?.trim();
   return text ? text : "—";
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-function formatQty(value: number) {
-  return value.toLocaleString("th-TH", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 3,
-  });
-}
-
-function formatMoney(value: number) {
-  return value.toLocaleString("th-TH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 }
 
 function infoRow(label: string, value?: string, valueClass = "") {
@@ -75,28 +73,10 @@ function infoRow(label: string, value?: string, valueClass = "") {
   return `<div class="label">${escapeHtml(label)}</div><div class="value${extra}">${escapeHtml(dash(value))}</div>`;
 }
 
-function createPdfHtml(data: PurchaseOrderPdfData) {
-  const rows = data.items
-    .map(
-      (item) => `
-        <div class="tr tbody">
-          <div class="cell center">${item.no}</div>
-          <div class="cell center">${escapeHtml(item.itemCode)}</div>
-          <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
-          <div class="cell center">${escapeHtml(item.unit)}</div>
-          <div class="cell center">${formatQty(item.qty)}</div>
-          <div class="cell right">${formatMoney(item.unitPrice)}</div>
-          <div class="cell right">${formatMoney(item.discountAmount)}</div>
-          <div class="cell right">${formatMoney(item.amount)}</div>
-        </div>
-      `,
-    )
-    .join("");
+/* ---------- ชิ้นส่วน HTML — แยกเป็นก้อนเพราะตัวจัดหน้าต้องวัดทีละก้อน ---------- */
 
-  const remarkText = dash(data.remark);
-
+function headHtml() {
   return `
-    <div id="purchase-order-pdf" class="page">
       <div class="topbar">
         <img src="${companyLogoUrl()}" class="logo" alt="" crossorigin="anonymous" />
         <div class="company">${companyIdentityLinesHtml({
@@ -105,9 +85,11 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
         })}
         </div>
       </div>
+      <div class="rule"></div>`;
+}
 
-      <div class="rule"></div>
-
+function firstBlockHtml(data: PurchaseOrderPdfData) {
+  return `
       <div class="headrow">
         <div class="titlebox">
           <div class="title-th">ใบสั่งซื้อ</div>
@@ -151,9 +133,20 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
             ${infoRow("หมายเหตุ / Remarks:", data.remark, "value-clamp")}
           </div>
         </section>
-      </div>
+      </div>`;
+}
 
-      <div class="table">
+/** หัวหน้าถัดไป — คนอ่านต้องรู้ว่ากระดาษแผ่นนี้เป็นของใบสั่งซื้อใบไหน */
+function contStripHtml(data: PurchaseOrderPdfData) {
+  return `
+      <div class="cont-strip">
+        <span class="cont-title">ใบสั่งซื้อ / Purchase Order</span>
+        <span class="cont-no">เลขที่ ${escapeHtml(data.poNo)} · ${escapeHtml(data.poDate)}</span>
+      </div>`;
+}
+
+function theadHtml() {
+  return `
         <div class="tr thead">
           <div class="cell center">ลำดับ</div>
           <div class="cell center">รหัสสินค้า</div>
@@ -163,10 +156,25 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
           <div class="cell right">ราคาต่อหน่วย</div>
           <div class="cell right">ส่วนลด</div>
           <div class="cell right">จำนวนเงิน</div>
-        </div>
-        ${rows}
-      </div>
+        </div>`;
+}
 
+function rowHtml(item: PurchaseOrderPdfItem) {
+  return `
+        <div class="tr tbody">
+          <div class="cell center">${item.no}</div>
+          <div class="cell center">${escapeHtml(item.itemCode)}</div>
+          <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
+          <div class="cell center">${escapeHtml(item.unit)}</div>
+          <div class="cell center">${formatQty(item.qty)}</div>
+          <div class="cell right">${formatMoney(item.unitPrice)}</div>
+          <div class="cell right">${formatMoney(item.discountAmount)}</div>
+          <div class="cell right">${formatMoney(item.amount)}</div>
+        </div>`;
+}
+
+function totalsHtml(data: PurchaseOrderPdfData) {
+  return `
       <div class="totals">
         <div class="tot-row">
           <div class="k">ยอดรวมก่อนส่วนลด:</div>
@@ -195,12 +203,21 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
           <div class="k">ยอดสุทธิที่ต้องชำระ:</div>
           <div class="v">${formatMoney(data.totalAmount)}</div>
         </div>
-      </div>
+      </div>`;
+}
 
+function noteHeadHtml() {
+  return `
       <div class="note-rule"></div>
-      <div class="note-title">หมายเหตุ :</div>
-      <div class="note-value">${escapeHtml(remarkText)}</div>
+      <div class="note-title">หมายเหตุ :</div>`;
+}
 
+function noteChunkHtml(text: string) {
+  return `<div class="note-value">${escapeHtml(text)}</div>`;
+}
+
+function pageEndHtml() {
+  return `
       <div class="page-end">
         <div class="signatures">
           <div class="sig">
@@ -214,11 +231,21 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
             <div class="date">วันที่ ___/___/___</div>
           </div>
         </div>
+      </div>`;
+}
 
-        <div class="footer">เอกสารออกจากระบบ ERP - SMT</div>
-      </div>
-    </div>
-  `;
+/**
+ * แถบล่างสุดของทุกหน้า
+ *
+ * `pinned` = หน้านี้ไม่มีบล็อกลายเซ็น จึงต้องดันตัวเองลงล่างด้วย `margin-top: auto`
+ * หน้าที่มีลายเซ็นห้าม pinned เพราะ auto สองตัวจะแบ่งที่ว่างกันจนเกิดช่องโหว่กลางหน้า
+ */
+function footBarHtml(pageIndex: number, pageCount: number, pinned: boolean) {
+  return `
+      <div class="po-foot${pinned ? " pinned" : ""}">
+        <span>เอกสารออกจากระบบ ERP - SMT</span>
+        <span>หน้า ${pageIndex + 1} / ${pageCount}</span>
+      </div>`;
 }
 
 function createStyle() {
@@ -228,11 +255,16 @@ function createStyle() {
 
       * { box-sizing: border-box; }
 
+      /*
+        ตรึงความสูงตายตัว ไม่ใช่ min-height — ตัวจัดหน้าคำนวณมาแล้วว่าอะไรลงหน้าไหน
+        overflow: hidden กันเนื้อหาที่เกินคาดล้นไปปนกับหน้าถัดไปตอนแคปภาพ
+      */
       .page {
-        width: 594px;
-        min-height: 842px;
+        width: ${PAGE_WIDTH}px;
+        height: ${PAGE_HEIGHT}px;
+        overflow: hidden;
         background: #fff;
-        padding: 34px 23px 36px;
+        padding: ${PAGE_PAD_TOP}px 23px ${PAGE_PAD_BOTTOM}px;
         position: relative;
         color: #7A7A7A;
         font-family: "Sarabun", Tahoma, sans-serif;
@@ -240,10 +272,36 @@ function createStyle() {
         flex-direction: column;
       }
 
+      /* หน้าจำลองสำหรับวัดความสูง — ต้องยืดได้ และห้ามมี margin auto มาดันตำแหน่ง */
+      .page.probe {
+        height: auto;
+        overflow: visible;
+      }
+
+      /*
+        เอา margin-top: auto ออกเฉพาะตัวที่ใช้มันดันตัวเองลงล่าง
+        ห้ามล้าง .po-foot ตัวธรรมดา ไม่งั้น margin 18px ของมันจะไม่ถูกนับเป็นงบ
+        แล้วหน้าที่เนื้อหาพอดี ๆ จะล้นออกไปสิบกว่าพิกเซล
+      */
+      .page.probe .page-end,
+      .page.probe .po-foot.pinned {
+        margin-top: 0;
+      }
+
+      /* หมุดวัดตำแหน่ง สูงศูนย์ ไม่รบกวนเลย์เอาต์ */
+      .pm {
+        display: block;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        flex-shrink: 0;
+      }
+
       .topbar {
         display: flex;
         align-items: flex-start;
         gap: 12px;
+        flex-shrink: 0;
       }
 
       .logo {
@@ -284,12 +342,14 @@ function createStyle() {
         height: 1px;
         background: #D8DCE0;
         margin: 14px 0;
+        flex-shrink: 0;
       }
 
       .headrow {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
+        flex-shrink: 0;
       }
 
       .titlebox {
@@ -324,6 +384,9 @@ function createStyle() {
         padding: 9px 10px 8px;
       }
 
+      .docbox > div + div {
+        border-left: 1px solid #D8DCE0;
+      }
 
       .doclabel {
         font-size: 7px;
@@ -337,10 +400,30 @@ function createStyle() {
         font-weight: 700;
       }
 
+      .cont-strip {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+
+      .cont-title {
+        font-size: 11px;
+        color: #78b64c;
+        font-weight: 700;
+      }
+
+      .cont-no {
+        font-size: 8px;
+        color: #343434;
+        font-weight: 700;
+      }
+
       .section-rule {
         height: 1px;
         background: #D8DCE0;
         margin: 14px 0;
+        flex-shrink: 0;
       }
 
       .info-wrap {
@@ -382,8 +465,11 @@ function createStyle() {
         min-width: 0;
       }
 
-      .value-clamp,
-      .note-value {
+      /*
+        การ์ดข้อมูลการสั่งซื้อเป็นตารางสองคอลัมน์ที่ไหลข้ามหน้าไม่ได้ จึงยังตัดสามบรรทัด
+        ข้อความเต็มไปโผล่ที่บล็อก "หมายเหตุ :" ท้ายเอกสาร ไม่มีข้อมูลหาย
+      */
+      .value-clamp {
         display: -webkit-box;
         -webkit-box-orient: vertical;
         -webkit-line-clamp: 3;
@@ -491,18 +577,24 @@ function createStyle() {
         height: 1px;
         background: #D8DCE0;
         margin: 14px 0;
+        flex-shrink: 0;
       }
 
       .note-title {
         font-size: 7.5px;
         color: #343434;
         margin-bottom: 3px;
+        flex-shrink: 0;
       }
 
+      /* ไม่ตัดข้อความทิ้งแล้ว — ยาวเกินหน้าให้ตัวจัดหน้าหั่นไหลไปหน้าถัดไปแทน */
       .note-value {
         font-size: 8px;
         color: #7A7A7A;
+        line-height: 1.35;
+        white-space: pre-wrap;
         word-break: break-word;
+        overflow-wrap: anywhere;
         flex-shrink: 0;
       }
 
@@ -536,14 +628,332 @@ function createStyle() {
         color: #7A7A7A;
       }
 
-      .footer {
-        margin-top: 28px;
-        text-align: center;
+      .po-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-top: 10px;
+        padding-top: 6px;
         font-size: 6.8px;
         color: #7A7A7A;
+        flex-shrink: 0;
+      }
+
+      .po-foot.pinned {
+        margin-top: auto;
       }
     </style>
   `;
+}
+
+/* ---------- วัดความสูงจริง ---------- */
+
+type Metrics = {
+  head: number;
+  first: number;
+  cont: number;
+  thead: number;
+  rows: number[];
+  totals: number;
+  noteHead: number;
+  paragraphs: number[];
+  pageEnd: number;
+  foot: number;
+  noteLine: number;
+};
+
+type Probe = {
+  root: HTMLElement;
+  /** ช่องวัดข้อความหมายเหตุระหว่างหาจุดตัด */
+  scratch: HTMLElement;
+  metrics: Metrics;
+};
+
+/** แตกหมายเหตุตามการขึ้นบรรทัดของผู้ใช้ — บรรทัดว่างยังนับเป็นบรรทัดว่างจริง */
+function splitParagraphs(remark: string) {
+  return remark.replace(/\r\n?/g, "\n").split("\n");
+}
+
+/**
+ * วัดทุกก้อนในรอบเดียว
+ *
+ * ใช้หมุดสูงศูนย์คั่นระหว่างก้อนแล้วอ่านส่วนต่างของ `offsetTop` — ได้ความสูงรวม
+ * margin มาด้วย ซึ่ง `getBoundingClientRect()` ให้ไม่ได้ และก้อนอย่าง `.totals`
+ * กับ `.rule` มี margin ที่กินที่จริงบนหน้ากระดาษ
+ */
+function buildProbe(data: PurchaseOrderPdfData, paragraphs: string[]): Probe {
+  const root = document.createElement("div");
+  root.style.position = "fixed";
+  root.style.left = "-99999px";
+  root.style.top = "0";
+  root.style.width = `${PAGE_WIDTH}px`;
+  root.style.background = "#fff";
+
+  const mark = (id: number) => `<span class="pm" data-pm="${id}"></span>`;
+
+  root.innerHTML = `
+    ${createStyle()}
+    <div class="page probe" id="po-probe">
+      ${mark(0)}${headHtml()}
+      ${mark(1)}${firstBlockHtml(data)}
+      ${mark(2)}${contStripHtml(data)}
+      ${mark(3)}${totalsHtml(data)}
+      ${mark(4)}${noteHeadHtml()}
+      ${mark(5)}${pageEndHtml()}
+      ${mark(6)}${footBarHtml(0, 1, false)}
+      ${mark(7)}
+      <div class="table" id="po-probe-table">
+        ${theadHtml()}${data.items.map(rowHtml).join("")}
+      </div>
+      <div id="po-probe-notes">
+        ${paragraphs.map((text) => noteChunkHtml(text)).join("")}
+      </div>
+      <div class="note-value" id="po-probe-scratch"></div>
+    </div>
+  `;
+
+  document.body.appendChild(root);
+
+  const marks = Array.from(root.querySelectorAll<HTMLElement>(".pm")).sort(
+    (a, b) => Number(a.dataset.pm) - Number(b.dataset.pm),
+  );
+  const span = (from: number, to: number) =>
+    marks[to].offsetTop - marks[from].offsetTop;
+
+  const table = root.querySelector<HTMLElement>("#po-probe-table")!;
+  const notes = root.querySelector<HTMLElement>("#po-probe-notes")!;
+  const scratch = root.querySelector<HTMLElement>("#po-probe-scratch")!;
+
+  const height = (el: Element) => el.getBoundingClientRect().height;
+
+  scratch.textContent = "หมายเหตุ";
+  const noteLine = height(scratch);
+  scratch.textContent = "";
+
+  return {
+    root,
+    scratch,
+    metrics: {
+      head: span(0, 1),
+      first: span(1, 2),
+      cont: span(2, 3),
+      totals: span(3, 4),
+      noteHead: span(4, 5),
+      pageEnd: span(5, 6),
+      foot: span(6, 7),
+      thead: height(table.querySelector(".tr.thead")!),
+      rows: Array.from(table.querySelectorAll(".tr.tbody")).map(height),
+      paragraphs: Array.from(notes.children).map(height),
+      noteLine,
+    },
+  };
+}
+
+/**
+ * หาส่วนหน้าของข้อความที่ยาวที่สุดที่ยังสูงไม่เกินงบ
+ *
+ * ตัดตรงช่องว่างถ้ามีอยู่ไม่ไกลจากจุดตัด ไม่งั้นตัดกลางคำ — ภาษาไทยไม่เว้นวรรค
+ * ระหว่างคำอยู่แล้ว การตัดตามตัวอักษรจึงเป็นทางปกติ ไม่ใช่ทางสำรอง
+ */
+function fitTextChunk(
+  scratch: HTMLElement,
+  text: string,
+  budget: number,
+): [chunk: string, rest: string] {
+  const measure = (value: string) => {
+    scratch.textContent = value;
+    return scratch.getBoundingClientRect().height;
+  };
+
+  if (measure(text) <= budget) {
+    return [text, ""];
+  }
+
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (measure(text.slice(0, mid)) <= budget) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  if (lo <= 0) {
+    return ["", text];
+  }
+
+  let cut = lo;
+  const space = text.lastIndexOf(" ", lo);
+  if (space > lo * 0.5) {
+    cut = space;
+  }
+
+  const chunk = text.slice(0, cut);
+  if (!chunk.trim()) {
+    return ["", text];
+  }
+  return [chunk, text.slice(cut).replace(/^ +/, "")];
+}
+
+/* ---------- จัดหน้า ---------- */
+
+type PageDraft = {
+  index: number;
+  used: number;
+  rows: string[];
+  tail: string[];
+  hasTable: boolean;
+  hasPageEnd: boolean;
+};
+
+function buildPages(
+  data: PurchaseOrderPdfData,
+  probe: Probe,
+  paragraphs: string[],
+): string[] {
+  const m = probe.metrics;
+  const pages: PageDraft[] = [];
+
+  const newPage = () => {
+    const page: PageDraft = {
+      index: pages.length,
+      used: 0,
+      rows: [],
+      tail: [],
+      hasTable: false,
+      hasPageEnd: false,
+    };
+    pages.push(page);
+    return page;
+  };
+
+  let page = newPage();
+
+  /** ที่ว่างของหน้า หลังหักหัวและแถบล่างที่ต้องมีทุกหน้า */
+  const capacity = (p: PageDraft) =>
+    CONTENT_HEIGHT -
+    m.head -
+    m.foot -
+    (p.index === 0 ? m.first : m.cont) -
+    SAFETY;
+
+  const free = () => capacity(page) - page.used;
+
+  const nextPage = () => {
+    if (pages.length >= MAX_PAGES) {
+      throw new Error(
+        `ใบสั่งซื้อ ${data.poNo}: จัดหน้าเกิน ${MAX_PAGES} หน้า — เนื้อหายาวผิดปกติ`,
+      );
+    }
+    page = newPage();
+  };
+
+  // 1) แถวสินค้า — ตัดได้ระหว่างแถวเท่านั้น ขึ้นหน้าใหม่ต้องมีหัวตารางซ้ำ
+  for (let i = 0; i < data.items.length; i += 1) {
+    const rowHeight = m.rows[i] ?? 0;
+    const tableCost = page.hasTable ? 0 : m.thead + TABLE_CHROME;
+
+    if (page.used > 0 && tableCost + rowHeight > free()) {
+      nextPage();
+    }
+    if (!page.hasTable) {
+      page.used += m.thead + TABLE_CHROME;
+      page.hasTable = true;
+    }
+    page.rows.push(rowHtml(data.items[i]));
+    page.used += rowHeight;
+  }
+
+  // 2) ยอดรวม — ยกทั้งก้อน ห้ามตัดครึ่ง
+  if (page.used > 0 && m.totals > free()) {
+    nextPage();
+  }
+  page.tail.push(totalsHtml(data));
+  page.used += m.totals;
+
+  // 3) หมายเหตุ — หัวข้อต้องมีอย่างน้อยหนึ่งบรรทัดตามหลัง ไม่งั้นยกไปหน้าใหม่
+  if (page.used > 0 && m.noteHead + m.noteLine > free()) {
+    nextPage();
+  }
+  page.tail.push(noteHeadHtml());
+  page.used += m.noteHead;
+
+  for (let i = 0; i < paragraphs.length; i += 1) {
+    let rest = paragraphs[i];
+    let restHeight = m.paragraphs[i] ?? 0;
+
+    // บรรทัดว่างที่ผู้ใช้เคาะไว้ยังต้องกินที่หนึ่งบรรทัด
+    if (rest === "") {
+      if (page.used > 0 && restHeight > free()) {
+        nextPage();
+      }
+      page.tail.push(noteChunkHtml(""));
+      page.used += restHeight;
+      continue;
+    }
+
+    while (rest !== "") {
+      if (restHeight <= free()) {
+        page.tail.push(noteChunkHtml(rest));
+        page.used += restHeight;
+        break;
+      }
+
+      const [chunk, remainder] = fitTextChunk(probe.scratch, rest, free());
+
+      if (chunk === "") {
+        // หน้านี้ไม่เหลือที่แม้แต่บรรทัดเดียว
+        if (page.used === 0) {
+          // หน้าเปล่ายังใส่ไม่ลง = คำนวณเพี้ยน ใส่ทั้งก้อนดีกว่าวนไม่รู้จบ
+          page.tail.push(noteChunkHtml(rest));
+          page.used += restHeight;
+          break;
+        }
+        nextPage();
+        continue;
+      }
+
+      page.tail.push(noteChunkHtml(chunk));
+      page.used = capacity(page);
+      rest = remainder;
+      if (rest === "") {
+        break;
+      }
+
+      nextPage();
+      probe.scratch.textContent = rest;
+      restHeight = probe.scratch.getBoundingClientRect().height;
+    }
+  }
+
+  // 4) ลายเซ็น — ก้อนเดียวจบ อยู่หน้าสุดท้ายเสมอ
+  if (page.used > 0 && m.pageEnd > free()) {
+    nextPage();
+  }
+  page.tail.push(pageEndHtml());
+  page.hasPageEnd = true;
+
+  const pageCount = pages.length;
+
+  return pages.map((draft) => {
+    const tableBlock = draft.hasTable
+      ? `<div class="table">${theadHtml()}${draft.rows.join("")}</div>`
+      : "";
+
+    const body = `
+    <div id="${PAGE_ID}-${draft.index}" class="page">
+      ${headHtml()}
+      ${draft.index === 0 ? firstBlockHtml(data) : contStripHtml(data)}
+      ${tableBlock}
+      ${draft.tail.join("")}
+      ${footBarHtml(draft.index, pageCount, !draft.hasPageEnd)}
+    </div>`;
+
+    // สไตล์แนบไปกับหน้าแรก ทุกหน้าอยู่ wrapper เดียวกันจึงใช้ร่วมกันได้
+    return draft.index === 0 ? `${createStyle()}${body}` : body;
+  });
 }
 
 async function waitForSarabun() {
@@ -557,83 +967,29 @@ async function waitForSarabun() {
   await Promise.race([loaded, timeout]);
 }
 
-async function waitForLogo(wrapper: HTMLElement) {
-  const logo = wrapper.querySelector(".logo") as HTMLImageElement | null;
-  if (!logo) return;
+/** ประกอบหน้าทั้งหมด — แยกออกมาเพื่อเปิดดูใน harness ได้โดยไม่ต้องสร้าง PDF */
+export async function buildPurchaseOrderPagesHtml(data: PurchaseOrderPdfData) {
+  // ต้องรอฟอนต์ก่อนวัด — Sarabun สูงกว่า fallback ถ้าวัดก่อนโหลดเสร็จหน้าจะล้น
+  await waitForSarabun();
 
-  if (logo.complete && logo.naturalWidth > 0) return;
+  const paragraphs = splitParagraphs(dash(data.remark));
+  const probe = buildProbe(data, paragraphs);
 
-  await new Promise<void>((resolve) => {
-    const done = () => resolve();
-    logo.onload = done;
-    logo.onerror = done;
-    setTimeout(done, 3000);
-  });
+  try {
+    return buildPages(data, probe, paragraphs);
+  } finally {
+    document.body.removeChild(probe.root);
+  }
 }
 
 export async function generatePurchaseOrderPdf(data: PurchaseOrderPdfData) {
   // ต้องได้ข้อมูลบริษัทก่อนประกอบ HTML — ไม่มีค่า hardcode สำรองแล้ว
   await ensureCompanyInfo();
 
-  const wrapper = document.createElement("div");
+  const pagesHtml = await buildPurchaseOrderPagesHtml(data);
 
-  wrapper.style.position = "fixed";
-  wrapper.style.left = "-99999px";
-  wrapper.style.top = "0";
-  wrapper.style.width = "594px";
-  wrapper.style.background = "#fff";
-  wrapper.style.fontFamily = '"Sarabun", Tahoma, sans-serif';
-
-  wrapper.innerHTML = `
-    ${createStyle()}
-    ${createPdfHtml(data)}
-  `;
-
-  document.body.appendChild(wrapper);
-
-  const target = wrapper.querySelector("#purchase-order-pdf") as HTMLElement;
-  await waitForSarabun();
-  await waitForLogo(wrapper);
-
-  const canvas = await html2canvas(target, {
-    scale: 2,
-    useCORS: true,
-    allowTaint: false,
-    backgroundColor: "#ffffff",
-    logging: false,
+  await openMultiPagePdfFromHtml(PAGE_ID, pagesHtml, {
+    wrapperWidth: `${PAGE_WIDTH}px`,
+    includeBaseStyles: false,
   });
-
-  const imgData = canvas.toDataURL("image/png");
-
-  const pdf = new jsPDF({
-    orientation: "portrait",
-    unit: "mm",
-    format: "a4",
-  });
-
-  const pageWidth = 210;
-  const pageHeight = 297;
-  const imgWidth = pageWidth;
-  const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-  // ถ้าพอดีหน้าเดียว ไม่สร้างหน้าสองจากเศษพิกเซล
-  if (imgHeight <= pageHeight + 1) {
-    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-  } else {
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    while (heightLeft > 2) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-    }
-  }
-
-  window.open(pdf.output("bloburl"), "_blank");
-  document.body.removeChild(wrapper);
 }
