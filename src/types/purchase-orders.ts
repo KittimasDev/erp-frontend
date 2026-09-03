@@ -26,6 +26,10 @@ export type PurchaseOrderCreditorSummary = {
   id: string;
   creditorCode: string;
   nameTh: string;
+  taxId?: string;
+  address?: string;
+  contactName?: string;
+  contactPhone?: string;
 };
 
 export type PurchaseOrderPaymentTermSummary = {
@@ -51,6 +55,8 @@ export type PurchaseOrderUserSummary = {
   id: string;
   username: string;
   displayName: string;
+  phone?: string;
+  departmentName?: string;
 };
 
 export type PurchaseOrderItem = {
@@ -89,6 +95,10 @@ export type PurchaseOrder = {
   taxRateId?: string;
   taxRate?: PurchaseOrderTaxRateSummary;
   vatMode?: string;
+  expectedDeliveryDate?: string;
+  paymentMethod?: string;
+  withholdingTaxType?: string;
+  withholdingTaxPercent?: string;
   status: PurchaseOrderStatus;
   paymentStatus?: string;
   subtotalAmount: string;
@@ -138,6 +148,10 @@ export type CreatePurchaseOrderFromPrBody = {
   paymentTermId?: string;
   taxRateId?: string;
   vatMode?: string;
+  expectedDeliveryDate?: string;
+  paymentMethod?: string;
+  withholdingTaxType?: string;
+  withholdingTaxPercent?: number;
   discountAmount?: number;
   remark?: string;
   items: CreatePurchaseOrderItemFromPrBody[];
@@ -161,6 +175,10 @@ export type UpdatePurchaseOrderBody = {
   paymentTermId?: string | null;
   taxRateId?: string | null;
   vatMode?: string;
+  expectedDeliveryDate?: string | null;
+  paymentMethod?: string | null;
+  withholdingTaxType?: string;
+  withholdingTaxPercent?: number;
   discountAmount?: number;
   remark?: string;
   items?: UpdatePurchaseOrderItemBody[];

@@ -48,8 +48,10 @@ import {
   resolveVatMode,
   VAT_MODE_LABEL,
   vatAmountLabel,
+  withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
 import { SUPPLIER_PAYMENT_STATUS_LABEL } from "@/types/purchase-payments";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./PurchaseOrderDetailPage.module.css";
@@ -66,6 +68,18 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
   "image/png",
   "image/webp",
 ]);
+
+function formatCreatorContact(user?: {
+  displayName?: string;
+  departmentName?: string;
+}) {
+  const name = user?.displayName?.trim();
+  if (!name) {
+    return "—";
+  }
+  const department = user?.departmentName?.trim();
+  return department ? `${name} (${department})` : name;
+}
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -279,14 +293,27 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       poDate: formatDate(data.poDate),
       vendorName: data.creditor?.nameTh ?? "—",
       vendorCode: data.creditor?.creditorCode ?? "—",
+      vendorTaxId: data.creditor?.taxId ?? "—",
+      vendorAddress: data.creditor?.address ?? "—",
+      vendorPhone: data.creditor?.contactPhone ?? "—",
+      vendorContact: data.creditor?.contactName ?? "—",
       paymentTerm: data.paymentTerm?.name ?? "ไม่ระบุ",
-      vatModeLabel: VAT_MODE_LABEL[resolveVatMode(data.vatMode)],
-      taxLabel: data.taxRate
-        ? `${data.taxRate.name} (${data.taxRate.rate}%)`
+      taxRateLabel: data.taxRate
+        ? `${data.taxRate.rate}%`
         : "ไม่คิด VAT",
       vatRate: data.taxRate ? Number(data.taxRate.rate) : 0,
-      prNo: data.purchaseRequest?.prNo ?? "—",
-      createdBy: data.createdBy?.displayName ?? "—",
+      withholdingTaxLabel: withholdingTaxTypeLabel(
+        data.withholdingTaxType,
+        data.withholdingTaxPercent,
+      ),
+      paymentMethodLabel:
+        (data.paymentMethod &&
+          (SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
+            data.paymentMethod)) ||
+        "—",
+      createdBy: formatCreatorContact(data.createdBy),
+      createdByPhone: data.createdBy?.phone ?? "—",
+      expectedDeliveryDate: formatDate(data.expectedDeliveryDate),
       remark: data.remark?.trim() || "",
       subtotalAmount: Number(data.subtotalAmount) || 0,
       discountAmount: Number(data.discountAmount) || 0,
@@ -389,6 +416,42 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                   {data.taxRate
                     ? `${data.taxRate.name} (${data.taxRate.rate}%)`
                     : "ไม่คิด VAT"}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>ภาษีหัก ณ ที่จ่าย</span>
+                <div className={styles.metaValue}>
+                  {withholdingTaxTypeLabel(
+                    data.withholdingTaxType,
+                    data.withholdingTaxPercent,
+                  )}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>วิธีการชำระเงิน</span>
+                <div className={styles.metaValue}>
+                  {data.paymentMethod
+                    ? (SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
+                      data.paymentMethod)
+                    : "—"}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>วันที่ส่งมอบ</span>
+                <div className={styles.metaValue}>
+                  {formatDate(data.expectedDeliveryDate)}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>ผู้จัดทำ</span>
+                <div className={styles.metaValue}>
+                  {formatCreatorContact(data.createdBy)}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>เบอร์โทรผู้จัดทำ</span>
+                <div className={styles.metaValue}>
+                  {data.createdBy?.phone || "—"}
                 </div>
               </div>
             </div>

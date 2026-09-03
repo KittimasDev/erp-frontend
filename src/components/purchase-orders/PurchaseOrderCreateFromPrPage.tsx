@@ -35,10 +35,14 @@ import {
   calcDocumentTotals,
   calcLineAmount,
   resolveVatMode,
+  resolveWithholdingPercent,
   VatMode,
   VAT_MODE_OPTIONS,
   vatAmountLabel,
+  WITHHOLDING_TAX_TYPE_OPTIONS,
+  WithholdingTaxType,
 } from "@/lib/money/vat-totals";
+import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
 import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
 import {
   getScreenActionPermissions,
@@ -67,10 +71,18 @@ type FormValues = {
   paymentTermId?: string;
   vatMode: VatMode;
   taxRateId?: string;
+  expectedDeliveryDate?: dayjs.Dayjs;
+  paymentMethod?: string;
+  withholdingTaxType: WithholdingTaxType;
+  withholdingTaxPercent?: number;
   discountAmount?: number;
   remark?: string;
   items: LineValues[];
 };
+
+const PAYMENT_METHOD_OPTIONS = Object.entries(SUPPLIER_PAYMENT_METHOD_LABEL).map(
+  ([value, label]) => ({ value, label }),
+);
 
 type Props = {
   purchaseRequestId: string;
@@ -156,6 +168,7 @@ export default function PurchaseOrderCreateFromPrPage({
   const watchedDiscount = Form.useWatch("discountAmount", form) ?? 0;
   const watchedTaxId = Form.useWatch("taxRateId", form);
   const watchedVatMode = Form.useWatch("vatMode", form);
+  const watchedWhtType = Form.useWatch("withholdingTaxType", form);
 
   const lineMetaByPrItemId = useMemo(() => {
     const map = new Map<
@@ -180,6 +193,8 @@ export default function PurchaseOrderCreateFromPrPage({
     form.setFieldsValue({
       poDate: dayjs(),
       vatMode: VatMode.EXCLUSIVE,
+      withholdingTaxType: WithholdingTaxType.NONE,
+      withholdingTaxPercent: 0,
       discountAmount: 0,
       remark: pr.remark,
       items: (pr.items ?? []).map((item) => ({
@@ -328,6 +343,15 @@ export default function PurchaseOrderCreateFromPrPage({
             resolveVatMode(values.vatMode) === VatMode.NONE
               ? undefined
               : values.taxRateId,
+          expectedDeliveryDate: values.expectedDeliveryDate
+            ? values.expectedDeliveryDate.format("YYYY-MM-DD")
+            : undefined,
+          paymentMethod: values.paymentMethod || undefined,
+          withholdingTaxType: values.withholdingTaxType,
+          withholdingTaxPercent: resolveWithholdingPercent(
+            values.withholdingTaxType,
+            values.withholdingTaxPercent,
+          ),
           discountAmount: values.discountAmount ?? 0,
           remark: values.remark?.trim() || undefined,
           items: values.items.map((item) => ({
@@ -402,7 +426,10 @@ export default function PurchaseOrderCreateFromPrPage({
         layout="vertical"
         onFinish={onFinish}
         disabled={saving}
-        initialValues={{ vatMode: VatMode.EXCLUSIVE }}
+        initialValues={{
+          vatMode: VatMode.EXCLUSIVE,
+          withholdingTaxType: WithholdingTaxType.NONE,
+        }}
       >
         <div className={styles.layout}>
           <section className={styles.formCard}>
@@ -497,6 +524,40 @@ export default function PurchaseOrderCreateFromPrPage({
                         label: `${t.code} — ${t.name} (${t.rate}%)`,
                       }))}
                     />
+                  </Form.Item>
+                  <Form.Item
+                    className={styles.field}
+                    label="ภาษีหัก ณ ที่จ่าย"
+                    name="withholdingTaxType"
+                  >
+                    <Select options={WITHHOLDING_TAX_TYPE_OPTIONS} />
+                  </Form.Item>
+                  {watchedWhtType === WithholdingTaxType.CUSTOM ? (
+                    <Form.Item
+                      className={styles.field}
+                      label="อัตราหัก ณ ที่จ่าย (%)"
+                      name="withholdingTaxPercent"
+                    >
+                      <InputNumber min={0} max={100} style={{ width: "100%" }} />
+                    </Form.Item>
+                  ) : null}
+                  <Form.Item
+                    className={styles.field}
+                    label="วิธีการชำระเงิน"
+                    name="paymentMethod"
+                  >
+                    <Select
+                      allowClear
+                      placeholder="ถ้ามี"
+                      options={PAYMENT_METHOD_OPTIONS}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    className={styles.field}
+                    label="วันที่ส่งมอบ"
+                    name="expectedDeliveryDate"
+                  >
+                    <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}

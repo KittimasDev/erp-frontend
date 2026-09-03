@@ -1,5 +1,4 @@
 import {
-  companyBrandName,
   companyIdentityLinesHtml,
   companyLogoUrl,
   ensureCompanyInfo,
@@ -23,12 +22,18 @@ export type PurchaseOrderPdfData = {
   poDate: string;
   vendorName: string;
   vendorCode: string;
+  vendorTaxId: string;
+  vendorAddress: string;
+  vendorPhone: string;
+  vendorContact: string;
   paymentTerm: string;
-  vatModeLabel?: string;
-  taxLabel: string;
+  taxRateLabel: string;
   vatRate?: number;
-  prNo: string;
+  withholdingTaxLabel: string;
+  paymentMethodLabel: string;
   createdBy: string;
+  createdByPhone: string;
+  expectedDeliveryDate: string;
   remark: string;
   subtotalAmount: number;
   discountAmount: number;
@@ -38,6 +43,10 @@ export type PurchaseOrderPdfData = {
   items: PurchaseOrderPdfItem[];
 };
 
+function dash(value?: string) {
+  const text = value?.trim();
+  return text ? text : "—";
+}
 
 function escapeHtml(value: string) {
   return value
@@ -61,187 +70,152 @@ function formatMoney(value: number) {
   });
 }
 
+function infoRow(label: string, value?: string, valueClass = "") {
+  const extra = valueClass ? ` ${valueClass}` : "";
+  return `<div class="label">${escapeHtml(label)}</div><div class="value${extra}">${escapeHtml(dash(value))}</div>`;
+}
+
 function createPdfHtml(data: PurchaseOrderPdfData) {
   const rows = data.items
     .map(
       (item) => `
-        <tr class="data-row">
-          <td class="text-center col-no">${item.no}</td>
-          <td class="text-center col-code">${escapeHtml(item.itemCode)}</td>
-          <td class="col-name">${escapeHtml(item.itemName)}</td>
-          <td class="text-center col-unit">${escapeHtml(item.unit)}</td>
-          <td class="text-right col-qty">${formatQty(item.qty)}</td>
-          <td class="text-right col-price">${formatMoney(item.unitPrice)}</td>
-          <td class="text-right col-disc">${formatMoney(item.discountAmount)}</td>
-          <td class="text-right col-amount">${formatMoney(item.amount)}</td>
-        </tr>
+        <div class="tr tbody">
+          <div class="cell center">${item.no}</div>
+          <div class="cell center">${escapeHtml(item.itemCode)}</div>
+          <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
+          <div class="cell center">${escapeHtml(item.unit)}</div>
+          <div class="cell center">${formatQty(item.qty)}</div>
+          <div class="cell right">${formatMoney(item.unitPrice)}</div>
+          <div class="cell right">${formatMoney(item.discountAmount)}</div>
+          <div class="cell right">${formatMoney(item.amount)}</div>
+        </div>
       `,
     )
     .join("");
 
-  const emptyRows = Array.from({
-    length: Math.max(0, 5 - data.items.length),
-  })
-    .map(
-      () => `
-        <tr class="empty-row">
-          <td>&nbsp;</td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-          <td></td>
-        </tr>
-      `,
-    )
-    .join("");
-
-  const remarkBlock = data.remark
-    ? `
-      <div class="remark-box">
-        <span class="label">หมายเหตุ</span>
-        <span class="value">${escapeHtml(data.remark)}</span>
-      </div>
-    `
-    : "";
+  const remarkText = dash(data.remark);
 
   return `
-    <div id="purchase-order-pdf" class="pdf-page">
-      <div class="header">
-        <div class="logo-box">
-          <img src="${companyLogoUrl()}" class="logo" crossorigin="anonymous" />
-        </div>
-        <div class="company">${companyIdentityLinesHtml()}
-        </div>
-      </div>
-
-      <div class="header-rule"></div>
-
-      <div class="title-block">
-        <div class="title">ใบสั่งซื้อ</div>
-        <div class="title-sub">PURCHASE ORDER</div>
-      </div>
-
-      <div class="meta-bar">
-        <div class="meta-item">
-          <span class="meta-label">เลขที่เอกสาร</span>
-          <strong class="meta-value">${escapeHtml(data.poNo)}</strong>
+    <div id="purchase-order-pdf" class="page">
+      <div class="topbar">
+        <img src="${companyLogoUrl()}" class="logo" alt="" crossorigin="anonymous" />
+        <div class="company">${companyIdentityLinesHtml({
+          phoneLabel: "เบอร์ติดต่อ",
+          taxIdStyle: "grouped",
+        })}
         </div>
       </div>
 
-      <div class="info-card">
-        <div class="info-grid">
-          <div class="info-row">
-            <span class="label">ผู้ขาย / เจ้าหนี้</span>
-            <span class="value">${escapeHtml(data.vendorName)}</span>
+      <div class="rule"></div>
+
+      <div class="headrow">
+        <div class="titlebox">
+          <div class="title-th">ใบสั่งซื้อ</div>
+          <div class="title-en">Purchase Order</div>
+        </div>
+        <div class="docbox">
+          <div>
+            <div class="doclabel">เลขที่เอกสาร</div>
+            <div class="docval">${escapeHtml(data.poNo)}</div>
           </div>
-          <div class="info-row">
-            <span class="label">วันที่เอกสาร</span>
-            <span class="value">${escapeHtml(data.poDate)}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">รหัสผู้ขาย</span>
-            <span class="value">${escapeHtml(data.vendorCode)}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">อ้างอิง PR</span>
-            <span class="value">${escapeHtml(data.prNo)}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">เงื่อนไขชำระเงิน</span>
-            <span class="value">${escapeHtml(data.paymentTerm)}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">รูปแบบ VAT</span>
-            <span class="value">${escapeHtml(data.vatModeLabel || "—")}</span>
-          </div>
-          <div class="info-row">
-            <span class="label">อัตรา VAT</span>
-            <span class="value">${escapeHtml(data.taxLabel)}</span>
-          </div>
-          <div class="info-row info-row-full">
-            <span class="label">ผู้จัดทำ</span>
-            <span class="value">${escapeHtml(data.createdBy)}</span>
+          <div>
+            <div class="doclabel">วันที่ออกเอกสาร</div>
+            <div class="docval">${escapeHtml(data.poDate)}</div>
           </div>
         </div>
       </div>
 
-      <table class="items-table">
-        <thead>
-          <tr>
-            <th class="col-no">ลำดับ</th>
-            <th class="col-code">รหัสสินค้า</th>
-            <th class="col-name">รายการ</th>
-            <th class="col-unit">หน่วย</th>
-            <th class="col-qty">จำนวน</th>
-            <th class="col-price">ราคา/หน่วย</th>
-            <th class="col-disc">ส่วนลด</th>
-            <th class="col-amount">จำนวนเงิน</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-          ${emptyRows}
-        </tbody>
-      </table>
+      <div class="section-rule"></div>
 
-      <div class="totals-row">
-        <div class="totals-spacer"></div>
-        <div class="totals-box">
-          <div class="total-line">
-            <span>ยอดรวมก่อนส่วนลด</span>
-            <strong>${formatMoney(data.subtotalAmount)}</strong>
+      <div class="info-wrap">
+        <section class="info-card">
+          <div class="card-title">ข้อมูลผู้ขาย</div>
+          <div class="info-grid">
+            ${infoRow("ลูกค้า :", data.vendorName)}
+            ${infoRow("รหัสลูกค้า:", data.vendorCode)}
+            ${infoRow("เลขผู้เสียภาษี :", data.vendorTaxId)}
+            ${infoRow("ที่อยู่ :", data.vendorAddress)}
+            ${infoRow("เบอร์โทร :", data.vendorPhone)}
+            ${infoRow("ผู้ติดต่อ :", data.vendorContact)}
           </div>
-          <div class="total-line">
-            <span>ส่วนลดท้ายบิล</span>
-            <strong>${formatMoney(data.discountAmount)}</strong>
+        </section>
+
+        <section class="info-card">
+          <div class="card-title">ข้อมูลการสั่งซื้อ</div>
+          <div class="info-grid">
+            ${infoRow("เงื่อนไขการชำระเงิน:", data.paymentTerm)}
+            ${infoRow("วิธีชำระเงิน / Payment:", data.paymentMethodLabel)}
+            ${infoRow("ผู้ติดต่อ / Contact:", data.createdBy)}
+            ${infoRow("เบอร์โทร / Phone:", data.createdByPhone)}
+            ${infoRow("วันที่ส่งของ:", data.expectedDeliveryDate)}
+            ${infoRow("หมายเหตุ / Remarks:", data.remark, "value-clamp")}
           </div>
-          <div class="total-line">
-            <span>ยอดหลังหักส่วนลด</span>
-            <strong>${formatMoney(
-              data.afterDiscount ??
-                Math.max(0, data.subtotalAmount - data.discountAmount),
-            )}</strong>
-          </div>
-          <div class="total-line">
-            <span>${
-              data.vatRate && data.vatRate > 0
-                ? `ภาษีมูลค่าเพิ่ม ${data.vatRate}%`
-                : "ภาษีมูลค่าเพิ่ม"
-            }</span>
-            <strong>${formatMoney(data.vatAmount)}</strong>
-          </div>
-          <div class="total-line total-line-grand">
-            <span>ยอดสุทธิ</span>
-            <strong>${formatMoney(data.totalAmount)}</strong>
-          </div>
+        </section>
+      </div>
+
+      <div class="table">
+        <div class="tr thead">
+          <div class="cell center">ลำดับ</div>
+          <div class="cell center">รหัสสินค้า</div>
+          <div class="cell cell-name">รายการสินค้า / Description</div>
+          <div class="cell center">หน่วย</div>
+          <div class="cell center">จำนวน</div>
+          <div class="cell right">ราคาต่อหน่วย</div>
+          <div class="cell right">ส่วนลด</div>
+          <div class="cell right">จำนวนเงิน</div>
+        </div>
+        ${rows}
+      </div>
+
+      <div class="totals">
+        <div class="tot-row">
+          <div class="k">ยอดรวมก่อนส่วนลด:</div>
+          <div class="v">${formatMoney(data.subtotalAmount)}</div>
+        </div>
+        <div class="tot-row">
+          <div class="k">ส่วนลดท้ายบิล:</div>
+          <div class="v">${formatMoney(data.discountAmount)}</div>
+        </div>
+        <div class="tot-row">
+          <div class="k">ยอดหลังหักส่วนลด:</div>
+          <div class="v">${formatMoney(
+            data.afterDiscount ??
+              Math.max(0, data.subtotalAmount - data.discountAmount),
+          )}</div>
+        </div>
+        <div class="tot-row">
+          <div class="k">${
+            data.vatRate && data.vatRate > 0
+              ? `ภาษีมูลค่าเพิ่ม ${data.vatRate}%:`
+              : "ภาษีมูลค่าเพิ่ม:"
+          }</div>
+          <div class="v">${formatMoney(data.vatAmount)}</div>
+        </div>
+        <div class="tot-row grand">
+          <div class="k">ยอดสุทธิที่ต้องชำระ:</div>
+          <div class="v">${formatMoney(data.totalAmount)}</div>
         </div>
       </div>
 
-      ${remarkBlock}
+      <div class="note-rule"></div>
+      <div class="note-title">หมายเหตุ :</div>
+      <div class="note-value">${escapeHtml(remarkText)}</div>
 
-      <div class="signature-box">
-        <div class="signature">
-          <div class="sig-title">ผู้จัดทำ</div>
-          <div class="sig-line"></div>
-          <div class="sig-date">วันที่ _____ / _____ / _____</div>
+      <div class="page-end">
+        <div class="signatures">
+          <div class="sig">
+            <div>ผู้จัดทำ (Prepared By)</div>
+            <div class="line"></div>
+            <div class="date">วันที่ ___/___/___</div>
+          </div>
+          <div class="sig">
+            <div>ผู้อนุมัติ / (Approved By)</div>
+            <div class="line"></div>
+            <div class="date">วันที่ ___/___/___</div>
+          </div>
         </div>
-        <div class="signature">
-          <div class="sig-title">ผู้อนุมัติ</div>
-          <div class="sig-line"></div>
-          <div class="sig-date">วันที่ _____ / _____ / _____</div>
-        </div>
-        <div class="signature">
-          <div class="sig-title">ผู้ขาย / รับทราบ</div>
-          <div class="sig-line"></div>
-          <div class="sig-date">วันที่ _____ / _____ / _____</div>
-        </div>
-      </div>
 
-      <div class="footer-note">
-        เอกสารนี้สร้างจากระบบ ERP · ${escapeHtml(companyBrandName())} · ใช้สำหรับสั่งซื้อสินค้า/บริการ
+        <div class="footer">เอกสารออกจากระบบ ERP - SMT</div>
       </div>
     </div>
   `;
@@ -250,301 +224,337 @@ function createPdfHtml(data: PurchaseOrderPdfData) {
 function createStyle() {
   return `
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap");
+
       * { box-sizing: border-box; }
 
-      body {
-        margin: 0;
-        font-family: Tahoma, "Noto Sans Thai", Arial, sans-serif;
-        color: #1f2937;
-        background: #ffffff;
-      }
-
-      .pdf-page {
-        width: 794px;
-        padding: 28px 30px 32px;
-        background: #ffffff;
-        color: #1f2937;
-        font-size: 12px;
-      }
-
-      .header {
-        display: grid;
-        grid-template-columns: 168px 1fr;
-        align-items: center;
-        gap: 14px;
-      }
-
-      .logo-box {
+      .page {
+        width: 594px;
+        min-height: 842px;
+        background: #fff;
+        padding: 34px 23px 36px;
+        position: relative;
+        color: #7A7A7A;
+        font-family: "Sarabun", Tahoma, sans-serif;
         display: flex;
-        align-items: center;
+        flex-direction: column;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
       }
 
       .logo {
-        width: 168px;
-        height: auto;
-        max-height: 72px;
+        width: auto;
+        height: 56px;
+        max-width: 120px;
         object-fit: contain;
+        object-position: left top;
         display: block;
+        flex: 0 0 auto;
+        margin-top: -10px;
       }
 
       .company {
-        text-align: center;
-        padding-right: 40px;
+        line-height: 1.26;
       }
 
       .company-name {
-        font-size: 19px;
-        font-weight: 500;
-        color: #111827;
-        margin-bottom: 6px;
-        letter-spacing: 0.2px;
+        font-size: 15px;
+        margin: 0 0 4px;
+        font-weight: 700;
+        color: #343434;
       }
 
       .company-address {
-        font-size: 11px;
-        line-height: 1.5;
-        color: #4b5563;
-        font-weight: 500;
+        font-size: 7.4px;
+        margin: 0;
+        color: #7A7A7A;
+        font-weight: 400;
+        line-height: 1.26;
       }
 
-      .header-rule {
-        margin-top: 14px;
-        height: 3px;
-        background: linear-gradient(90deg, #7cb82f 0%, #f0b429 55%, #7cb82f 100%);
-      }
-
-      .title-block {
-        text-align: center;
-        margin-top: 18px;
-      }
-
-      .title {
-        font-size: 24px;
-        font-weight: 500;
-        color: #111827;
-        letter-spacing: 1px;
-      }
-
-      .title-sub {
+      .company-address + .company-address {
         margin-top: 3px;
-        font-size: 11px;
-        color: #6b7280;
-        letter-spacing: 0.8px;
       }
 
-      .meta-bar {
-        margin-top: 16px;
+      .rule {
+        height: 1px;
+        background: #D8DCE0;
+        margin: 14px 0;
+      }
+
+      .headrow {
         display: flex;
-        justify-content: flex-end;
+        align-items: flex-start;
+        justify-content: space-between;
       }
 
-      .meta-item {
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-        border: 1.2px solid #d1d5db;
-        background: #f9fafb;
-        padding: 8px 14px;
-        min-width: 240px;
-        border-radius: 2px;
+      .titlebox {
+        margin-left: 111px;
+        margin-top: -2px;
       }
 
-      .meta-label {
-        font-size: 11px;
-        color: #6b7280;
-        font-weight: 500;
+      .title-th {
+        font-size: 24px;
+        color: #78b64c;
+        font-weight: 700;
+        line-height: 1;
       }
 
-      .meta-value {
-        font-size: 13px;
-        color: #111827;
-        font-weight: 500;
+      .title-en {
+        font-size: 10px;
+        color: #AA9F97;
+        margin-top: 7px;
+        text-align: center;
+      }
+
+      .docbox {
+        width: 233px;
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .docbox > div {
+        padding: 9px 10px 8px;
+      }
+
+
+      .doclabel {
+        font-size: 7px;
+        color: #343434;
+        margin-bottom: 5px;
+      }
+
+      .docval {
+        font-size: 10px;
+        color: #343434;
+        font-weight: 700;
+      }
+
+      .section-rule {
+        height: 1px;
+        background: #D8DCE0;
+        margin: 14px 0;
+      }
+
+      .info-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        flex-shrink: 0;
       }
 
       .info-card {
-        margin-top: 16px;
-        border: 1.2px solid #e5e7eb;
-        background: #fcfcfd;
-        padding: 14px 16px;
-        border-radius: 2px;
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        padding: 10px 10px 9px;
+        min-height: 121px;
+      }
+
+      .card-title {
+        font-size: 8.5px;
+        color: #343434;
+        font-weight: 700;
+        margin-bottom: 8px;
       }
 
       .info-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px 28px;
-      }
-
-      .info-row {
-        display: grid;
-        grid-template-columns: 110px 1fr;
-        gap: 8px;
-        align-items: start;
-      }
-
-      .info-row-full {
-        grid-column: 1 / -1;
+        grid-template-columns: 70px 1fr;
+        row-gap: 6px;
       }
 
       .label {
-        font-size: 11px;
-        color: #6b7280;
-        font-weight: 500;
+        font-size: 7px;
+        color: #7A7A7A;
       }
 
       .value {
-        font-size: 12px;
-        color: #111827;
-        font-weight: 500;
-        line-height: 1.4;
+        font-size: 7.2px;
+        color: #7A7A7A;
+        word-break: break-word;
+        min-width: 0;
       }
 
-      .items-table {
+      .value-clamp,
+      .note-value {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        overflow: hidden;
+        max-height: 32px;
+        line-height: 1.35;
+        white-space: pre-wrap;
+      }
+
+      .table {
         width: 100%;
-        border-collapse: collapse;
-        margin-top: 18px;
-        table-layout: fixed;
-        font-size: 11px;
+        margin-top: 14px;
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        overflow: hidden;
+        flex-shrink: 0;
       }
 
-      .items-table th,
-      .items-table td {
-        border: 1.2px solid #9ca3af;
-        padding: 7px 6px;
-        vertical-align: middle;
+      .tr {
+        display: grid;
+        width: 100%;
+        grid-template-columns: 34px 60px 1fr 40px 42px 78px 50px 64px;
+        align-items: center;
+      }
+
+      .cell-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .thead {
+        background: #ececeb;
+        min-height: 33px;
+        font-size: 7.6px;
+        color: #343434;
+        font-weight: 700;
+      }
+
+      .tbody {
+        min-height: 31px;
+        font-size: 7.5px;
+        color: #7A7A7A;
+        border-top: 1px solid #D8DCE0;
+      }
+
+      .cell {
+        padding: 8px 7px;
+      }
+
+      .thead .cell {
+        padding: 10px 4px 9px;
         white-space: nowrap;
       }
 
-      .items-table th {
-        background: #f3f4f6;
-        text-align: center;
-        font-weight: 500;
-        color: #111827;
-        height: 34px;
+      .center { text-align: center; }
+      .right {
+        text-align: right;
+        white-space: nowrap;
       }
 
-      .items-table tbody tr.data-row td {
-        height: 30px;
+      .totals {
+        width: 229px;
+        margin-left: auto;
+        margin-top: 20px;
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        padding: 10px 8px 9px;
+        flex-shrink: 0;
       }
 
-      .items-table tbody tr.empty-row td {
-        height: 30px;
-        color: transparent;
-      }
-
-      .col-no { width: 42px; }
-      .col-code {
-        width: 110px;
-        font-size: 10px;
-        letter-spacing: -0.1px;
-      }
-      .col-name {
-        width: auto;
-        white-space: normal;
-        word-break: break-word;
-      }
-      .col-unit { width: 56px; }
-      .col-qty { width: 62px; }
-      .col-price { width: 78px; }
-      .col-disc { width: 68px; }
-      .col-amount { width: 82px; }
-
-      .text-center { text-align: center; }
-      .text-right { text-align: right; }
-
-      .totals-row {
+      .tot-row {
         display: grid;
-        grid-template-columns: 1fr 260px;
-        border: 1.2px solid #9ca3af;
-        border-top: 0;
+        grid-template-columns: 1fr 78px;
+        min-height: 18px;
+        align-items: center;
+        font-size: 7.5px;
       }
 
-      .totals-spacer {
-        border-right: 1.2px solid #9ca3af;
-        background: #fff;
+      .tot-row .k { color: #343434; }
+      .tot-row .v {
+        text-align: right;
+        color: #7A7A7A;
+        font-weight: 700;
       }
 
-      .totals-box {
-        padding: 10px 14px;
-        background: #fafafa;
-      }
-
-      .total-line {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 4px 0;
-        font-size: 12px;
-        color: #374151;
-      }
-
-      .total-line strong {
-        font-weight: 500;
-        color: #111827;
-      }
-
-      .total-line-grand {
+      .grand {
         margin-top: 4px;
-        padding-top: 8px;
-        border-top: 1px solid #d1d5db;
-        font-size: 13px;
-        font-weight: 500;
-        color: #111827;
+        background: #f2f8ec;
+        border-radius: 4px;
+        padding: 6px 7px;
+        font-size: 8px;
       }
 
-      .remark-box {
-        margin-top: 14px;
-        border: 1.2px solid #e5e7eb;
-        background: #fcfcfd;
-        padding: 12px 14px;
+      .grand .k {
+        color: #343434;
+        font-weight: 700;
+      }
+
+      .grand .v {
+        color: #73b645;
+        font-weight: 700;
+      }
+
+      .note-rule {
+        height: 1px;
+        background: #D8DCE0;
+        margin: 14px 0;
+      }
+
+      .note-title {
+        font-size: 7.5px;
+        color: #343434;
+        margin-bottom: 3px;
+      }
+
+      .note-value {
+        font-size: 8px;
+        color: #7A7A7A;
+        word-break: break-word;
+        flex-shrink: 0;
+      }
+
+      .page-end {
+        margin-top: auto;
+        flex-shrink: 0;
+      }
+
+      .signatures {
         display: grid;
-        grid-template-columns: 70px 1fr;
-        gap: 8px;
+        grid-template-columns: 1fr 1fr;
+        gap: 74px;
+        margin-top: 24px;
+        padding: 0 66px;
       }
 
-      .signature-box {
-        margin-top: 16px;
-        border: 1.2px solid #9ca3af;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        min-height: 120px;
-      }
-
-      .signature {
-        padding: 16px 18px 14px;
-        border-right: 1.2px solid #9ca3af;
-      }
-
-      .signature:last-child {
-        border-right: 0;
-      }
-
-      .sig-title {
-        font-size: 12px;
-        font-weight: 500;
-        color: #111827;
-        margin-bottom: 36px;
-      }
-
-      .sig-line {
-        border-bottom: 1px dashed #6b7280;
-        margin-bottom: 10px;
-      }
-
-      .sig-date {
-        font-size: 11px;
-        color: #4b5563;
-        font-weight: 500;
-      }
-
-      .footer-note {
-        margin-top: 14px;
+      .sig {
         text-align: center;
-        font-size: 10px;
-        color: #9ca3af;
+        color: #7A7A7A;
+        font-size: 6.7px;
+      }
+
+      .sig .line {
+        width: 122px;
+        border-bottom: 1px dotted #D8DCE0;
+        margin: 24px auto 10px;
+      }
+
+      .sig .date {
+        margin-top: 0;
+        color: #7A7A7A;
+      }
+
+      .footer {
+        margin-top: 28px;
+        text-align: center;
+        font-size: 6.8px;
+        color: #7A7A7A;
       }
     </style>
   `;
+}
+
+async function waitForSarabun() {
+  const timeout = new Promise<void>((resolve) => {
+    setTimeout(resolve, 2500);
+  });
+  const loaded = Promise.all([
+    document.fonts.load('400 12px "Sarabun"'),
+    document.fonts.load('700 12px "Sarabun"'),
+  ]).then(() => undefined);
+  await Promise.race([loaded, timeout]);
 }
 
 async function waitForLogo(wrapper: HTMLElement) {
@@ -570,8 +580,9 @@ export async function generatePurchaseOrderPdf(data: PurchaseOrderPdfData) {
   wrapper.style.position = "fixed";
   wrapper.style.left = "-99999px";
   wrapper.style.top = "0";
-  wrapper.style.width = "794px";
+  wrapper.style.width = "594px";
   wrapper.style.background = "#fff";
+  wrapper.style.fontFamily = '"Sarabun", Tahoma, sans-serif';
 
   wrapper.innerHTML = `
     ${createStyle()}
@@ -581,6 +592,7 @@ export async function generatePurchaseOrderPdf(data: PurchaseOrderPdfData) {
   document.body.appendChild(wrapper);
 
   const target = wrapper.querySelector("#purchase-order-pdf") as HTMLElement;
+  await waitForSarabun();
   await waitForLogo(wrapper);
 
   const canvas = await html2canvas(target, {
