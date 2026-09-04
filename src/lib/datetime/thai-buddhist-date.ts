@@ -25,18 +25,26 @@ export function formatThaiBuddhistDate(
 }
 
 /**
- * ป้ายใต้เลข SO เมื่อแก้หลังยืนยัน (เลื่อนวันส่ง / ยกเลิก)
- * แก้หัวเอกสารก่อนยืนยันไม่นับเป็นฉบับแก้ไข
+ * ป้ายเลขฉบับใต้เลข SO
+ *
+ * ร่างเป็น "ฉบับ 0" ตลอด แก้กี่ครั้งก็ไม่ขยับ · ยืนยันแล้วเป็น "ฉบับ 1"
+ * แล้วบวกทีละหนึ่งทุกครั้งที่แก้รอบจัดส่ง โดยต่อท้ายด้วยวันที่แก้ล่าสุด
+ *
+ * คืนค่าเสมอ ไม่คืน `null` เหมือนเดิม เพราะตอนร่างก็ต้องเห็น "ฉบับ 0"
+ *
+ * ตัดสินว่าจะโชว์วันที่จากตัวเลขฉบับ ไม่ใช่จากการเทียบ `revisedAt > confirmedAt`
+ * แบบเดิม เพราะใบเก่าจำนวนมากยืนยันไปแล้วแต่ `confirmed_at` ว่าง เทียบไม่ได้
+ * ฉบับตั้งแต่ 2 ขึ้นไปแปลว่าแก้รอบหลังยืนยันมาแล้วแน่นอน
  */
 export function salesOrderRevisionStamp(
+  revisionNo?: number | null,
   revisedAt?: string | Date | null,
-  confirmedAt?: string | Date | null,
-): string | null {
-  const revised = toDate(revisedAt);
-  const confirmed = toDate(confirmedAt);
-  if (!revised || !confirmed || revised.getTime() <= confirmed.getTime()) {
-    return null;
-  }
-  const date = formatThaiBuddhistDate(revised);
-  return date ? `ฉบับแก้ไข วันที่ ${date}` : null;
+): string {
+  const parsed = Number(revisionNo ?? 0);
+  const revision = Number.isFinite(parsed) ? parsed : 0;
+  const label = `ฉบับ ${revision}`;
+
+  if (revision < 2) return label;
+  const date = formatThaiBuddhistDate(revisedAt);
+  return date ? `${label} · แก้ไข ${date}` : label;
 }

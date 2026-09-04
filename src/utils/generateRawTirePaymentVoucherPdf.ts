@@ -8,19 +8,56 @@ import {
 } from "./pdf-common";
 
 import type { PaymentContext } from "@/types/raw-tire-payment";
-import { PAYMENT_METHOD_LABELS } from "@/types/raw-tire-purchase-receipt";
+import type { ReceiptDetail } from "@/types/raw-tire-purchase-receipt";
+import {
+  formatDeductionDisplayName,
+  PAYMENT_METHOD_LABELS,
+} from "@/types/raw-tire-purchase-receipt";
+
+type VoucherPdfItem = {
+  no: number;
+  code: string;
+  name: string;
+  weightKg: string;
+  pricePerKg: string;
+  amount: string;
+  description: string;
+};
+
+type VoucherPdfDeduction = {
+  no: number;
+  name: string;
+  weightKg: string;
+  pricePerKg: string;
+  amount: string;
+};
 
 export type RawTirePaymentVoucherPdfData = {
   voucherNo: string;
   voucherDate: string;
   receiptNo: string;
+  /** วันที่ของใบรับซื้อ — คนละตัวกับวันที่จ่ายเงิน */
+  receiptDate: string;
   sellerCode: string;
   sellerName: string;
   paymentMethod: string;
+  /** วันที่จ่ายเงินจริง ถ้าไม่มีค่อยถอยไปใช้วันที่ใบสำคัญจ่าย */
+  paymentDate: string;
   bankInfo: string;
   transactionRef: string;
+  /** ยอดสุทธิที่ต้องจ่าย */
   amount: string;
+  subtotalAmount: string;
+  deductionAmount: string;
+  /**
+   * รายการรับซื้อ — ว่างได้ถ้าผู้เรียกไม่ได้ส่ง `ReceiptDetail` มา
+   * (endpoint `/payment` คืนแค่ยอดสรุป ไม่มีรายการ)
+   */
+  items: VoucherPdfItem[];
+  deductions: VoucherPdfDeduction[];
   remark: string;
+  /** หมายเหตุที่ติดมากับใบรับซื้อ คนละช่องกับหมายเหตุการจ่าย */
+  receiptRemark: string;
 };
 
 const PAGE_ID = "raw-tire-payment-voucher-pdf";
@@ -57,6 +94,28 @@ function formatMoney(value: string | number) {
   });
 }
 
+function formatWeight(value: string | number) {
+  const n = Number(value);
+  if (Number.isNaN(n)) {
+    return String(value);
+  }
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  });
+}
+
+function formatPrice(value: string | number) {
+  const n = Number(value);
+  if (Number.isNaN(n)) {
+    return String(value);
+  }
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  });
+}
+
 function formatDate(value?: string) {
   if (!value) {
     return "-";
@@ -68,8 +127,14 @@ function formatDate(value?: string) {
   return date.toLocaleDateString("th-TH");
 }
 
+/**
+ * `receipt` เป็น optional เพราะ endpoint `/payment` คืนแค่ยอดสรุป ไม่มีรายการ
+ * ผู้เรียกที่มี `ReceiptDetail` อยู่แล้วส่งเข้ามาได้เพื่อให้พิมพ์ตารางรายการรับซื้อ
+ * ไม่ส่งมาก็ยังพิมพ์ได้ ยอดรวมยังถูกเพราะดึงจากยอดสรุปของ context
+ */
 export function mapPaymentContextToPdfData(
   context: PaymentContext,
+  receipt?: ReceiptDetail | null,
 ): RawTirePaymentVoucherPdfData {
   const payment = context.payment;
   const voucher = context.voucher;
@@ -79,10 +144,33 @@ export function mapPaymentContextToPdfData(
       ? `${payment.bankName} · ${payment.accountNo}${payment.accountName ? ` · ${payment.accountName}` : ""}`
       : "-";
 
+  const items: VoucherPdfItem[] = (receipt?.items ?? []).map((item, index) => ({
+    no: index + 1,
+    code: item.classificationCode || "-",
+    name: item.classificationName || item.description || "-",
+    weightKg: formatWeight(item.weightKg),
+    pricePerKg: formatPrice(item.pricePerKg),
+    amount: formatMoney(item.amount),
+    description: item.description || "",
+  }));
+
+  const deductions: VoucherPdfDeduction[] = (receipt?.deductions ?? []).map(
+    (row, index) => ({
+      no: items.length + index + 1,
+      name: formatDeductionDisplayName(row),
+      weightKg: formatWeight(row.deductionWeightKg),
+      pricePerKg: row.deductionPricePerKg
+        ? formatPrice(row.deductionPricePerKg)
+        : "-",
+      amount: formatMoney(row.deductionAmount),
+    }),
+  );
+
   return {
     voucherNo: voucher?.voucherNo || "-",
     voucherDate: formatDate(payment?.paymentDate ?? voucher?.voucherDate),
     receiptNo: context.receipt.receiptNo,
+    receiptDate: formatDate(receipt?.receiptDate ?? context.receipt.receiptDate),
     sellerCode: context.seller.sellerCode,
     sellerName: context.seller.sellerName,
     paymentMethod: payment?.paymentMethod
@@ -91,12 +179,22 @@ export function mapPaymentContextToPdfData(
         ? (PAYMENT_METHOD_LABELS[voucher.paymentMethod] ??
           voucher.paymentMethod)
         : "-",
+    paymentDate: formatDate(payment?.paymentDate ?? voucher?.voucherDate),
     bankInfo,
     transactionRef: payment?.transactionRef || "-",
     amount: formatMoney(
       payment?.amount ?? voucher?.totalAmount ?? context.receipt.totalAmount,
     ),
+    subtotalAmount: formatMoney(
+      receipt?.subtotalAmount ?? context.receipt.subtotalAmount,
+    ),
+    deductionAmount: formatMoney(
+      receipt?.deductionAmount ?? context.receipt.deductionAmount,
+    ),
+    items,
+    deductions,
     remark: payment?.remark || voucher?.remark || "",
+    receiptRemark: receipt?.remark?.trim() || "",
   };
 }
 
@@ -145,19 +243,31 @@ function firstBlockHtml(data: RawTirePaymentVoucherPdfData) {
           <div class="info-grid">
             ${infoRow("ชื่อผู้ขาย :", data.sellerName)}
             ${infoRow("รหัสผู้ขาย :", data.sellerCode)}
-            ${infoRow("ใบรับซื้อ :", data.receiptNo)}
           </div>
         </section>
 
         <section class="info-card">
-          <div class="card-title">รายละเอียดการจ่าย</div>
+          <div class="card-title">เอกสารอ้างอิง</div>
           <div class="info-grid">
-            ${infoRow("วิธีจ่าย :", data.paymentMethod)}
-            ${infoRow("เลขอ้างอิง :", data.transactionRef)}
-            ${infoRow("บัญชีรับโอน :", data.bankInfo)}
+            ${infoRow("เลขที่ใบรับซื้อยาง :", data.receiptNo)}
+            ${infoRow("วันที่ใบรับซื้อ :", data.receiptDate)}
+          </div>
+        </section>
+
+        <section class="info-card">
+          <div class="card-title">ข้อมูลการชำระเงิน</div>
+          <div class="info-grid compact">
+            ${infoRow("วิธีการชำระ :", data.paymentMethod)}
+            ${infoRow("วันที่ชำระ :", data.paymentDate)}
+            ${infoRow("เลขที่อ้างอิง :", data.transactionRef)}
+            ${infoRow("บัญชีที่จ่าย :", data.bankInfo)}
           </div>
         </section>
       </div>`;
+}
+
+function blockTitleHtml() {
+  return `<div class="block-title">ข้อมูลการรับซื้อ</div>`;
 }
 
 /** หัวหน้าถัดไป — คนอ่านต้องรู้ว่ากระดาษแผ่นนี้เป็นของใบสำคัญจ่ายใบไหน */
@@ -169,42 +279,90 @@ function contStripHtml(data: RawTirePaymentVoucherPdfData) {
       </div>`;
 }
 
-/** กล่องยอดเงินเด่น — จัดสีตาม PO แล้ว ไม่ใช้เขียวมรกตของเดิม */
-function heroHtml(data: RawTirePaymentVoucherPdfData) {
-  return `
-      <div class="hero">
-        <div class="hero-label">จำนวนเงินที่จ่าย</div>
-        <div class="hero-value">${escapeHtml(data.amount)} <span>บาท</span></div>
-      </div>`;
-}
-
 function theadHtml() {
   return `
         <div class="tr thead">
           <div class="cell center">ลำดับ</div>
-          <div class="cell center">รหัส</div>
+          <div class="cell center">รหัสสินค้า</div>
           <div class="cell cell-name">รายการ</div>
-          <div class="cell center">หน่วย</div>
-          <div class="cell right">จำนวนเงิน</div>
+          <div class="cell right">น้ำหนัก (กก.)</div>
+          <div class="cell right">ราคา/กก.</div>
+          <div class="cell right">จำนวนเงิน (บาท)</div>
         </div>`;
 }
 
-function rowHtml(data: RawTirePaymentVoucherPdfData) {
+function itemRowHtml(item: VoucherPdfItem) {
+  return `
+        <div class="tr tbody">
+          <div class="cell center">${item.no}</div>
+          <div class="cell center">${escapeHtml(item.code)}</div>
+          <div class="cell cell-name">
+            <div>${escapeHtml(item.name)}</div>
+            ${
+              item.description
+                ? `<div class="sub-line">${escapeHtml(item.description)}</div>`
+                : ""
+            }
+          </div>
+          <div class="cell right">${escapeHtml(item.weightKg)}</div>
+          <div class="cell right">${escapeHtml(item.pricePerKg)}</div>
+          <div class="cell right">${escapeHtml(item.amount)}</div>
+        </div>`;
+}
+
+/** แถวรายการหัก — เลขลำดับต่อจากรายการรับซื้อ และยอดเป็นค่าติดลบ */
+function deductionRowHtml(row: VoucherPdfDeduction) {
+  return `
+        <div class="tr tbody">
+          <div class="cell center">${row.no}</div>
+          <div class="cell center"><span class="badge-warn">หัก</span></div>
+          <div class="cell cell-name">${escapeHtml(row.name)}</div>
+          <div class="cell right">${escapeHtml(row.weightKg)}</div>
+          <div class="cell right">${escapeHtml(row.pricePerKg)}</div>
+          <div class="cell right warn-text">-${escapeHtml(row.amount)}</div>
+        </div>`;
+}
+
+/**
+ * ไม่ได้ส่ง `ReceiptDetail` มา ก็ยังต้องพิมพ์ได้ — ถอยไปใช้แถวสรุปแถวเดียว
+ * แบบเดิม ยอดรวมยังถูกเพราะมาจากยอดสรุปของ context
+ */
+function fallbackRowHtml(data: RawTirePaymentVoucherPdfData) {
   return `
         <div class="tr tbody">
           <div class="cell center">1</div>
           <div class="cell center">PAY</div>
           <div class="cell cell-name">จ่ายค่าซื้อยางตามใบรับซื้อ ${escapeHtml(data.receiptNo)}</div>
-          <div class="cell center">บาท</div>
+          <div class="cell right">—</div>
+          <div class="cell right">—</div>
           <div class="cell right">${escapeHtml(data.amount)}</div>
         </div>`;
+}
+
+/** รายการรับซื้อกับรายการหักอยู่ตารางเดียวกัน เลขลำดับไหลต่อเนื่อง */
+function allRowsHtml(data: RawTirePaymentVoucherPdfData) {
+  if (data.items.length === 0 && data.deductions.length === 0) {
+    return [fallbackRowHtml(data)];
+  }
+  return [
+    ...data.items.map(itemRowHtml),
+    ...data.deductions.map(deductionRowHtml),
+  ];
 }
 
 function totalsHtml(data: RawTirePaymentVoucherPdfData) {
   return `
       <div class="totals">
+        <div class="tot-row">
+          <div class="k">ยอดก่อนหัก:</div>
+          <div class="v">${escapeHtml(data.subtotalAmount)}</div>
+        </div>
+        <div class="tot-row">
+          <div class="k">ยอดหักรวม:</div>
+          <div class="v warn-text">${escapeHtml(data.deductionAmount)}</div>
+        </div>
         <div class="tot-row grand">
-          <div class="k">ยอดจ่ายสุทธิ:</div>
+          <div class="k">ยอดสุทธิที่ต้องจ่าย:</div>
           <div class="v">${escapeHtml(data.amount)}</div>
         </div>
       </div>`;
@@ -214,6 +372,11 @@ function noteHeadHtml() {
   return `
       <div class="note-rule"></div>
       <div class="note-title">หมายเหตุ :</div>`;
+}
+
+/** หมายเหตุที่ติดมากับใบรับซื้อ — แยกหัวข้อให้เห็นชัดว่าคนละแหล่งกับหมายเหตุการจ่าย */
+function receiptNoteHeadHtml() {
+  return `<div class="note-title note-title-sub">หมายเหตุจากใบรับซื้อ :</div>`;
 }
 
 function noteChunkHtml(text: string) {
@@ -350,7 +513,7 @@ function createStyle() {
       .rule {
         height: 1px;
         background: #D8DCE0;
-        margin: 14px 0;
+        margin: 8px 0;
         flex-shrink: 0;
       }
 
@@ -390,7 +553,7 @@ function createStyle() {
       }
 
       .docbox > div {
-        padding: 9px 10px 8px;
+        padding: 7px 10px 6px;
       }
 
       .docbox > div + div {
@@ -431,13 +594,13 @@ function createStyle() {
       .section-rule {
         height: 1px;
         background: #D8DCE0;
-        margin: 14px 0;
+        margin: 8px 0;
         flex-shrink: 0;
       }
 
       .info-wrap {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(3, 1fr);
         gap: 14px;
         flex-shrink: 0;
       }
@@ -445,21 +608,26 @@ function createStyle() {
       .info-card {
         border: 1px solid #D8DCE0;
         border-radius: 5px;
-        padding: 10px 10px 9px;
-        min-height: 78px;
+        padding: 9px 10px 8px;
       }
 
       .card-title {
         font-size: 8.5px;
         color: #343434;
         font-weight: 700;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
 
       .info-grid {
         display: grid;
         grid-template-columns: 70px 1fr;
-        row-gap: 6px;
+        row-gap: 5px;
+      }
+
+      /* การ์ดที่สามแคบกว่าเพื่อน ป้ายต้องสั้นลงให้ค่าได้ที่กว้างขึ้น */
+      .info-grid.compact {
+        grid-template-columns: 55px 1fr;
+        row-gap: 5px;
       }
 
       .label {
@@ -474,36 +642,6 @@ function createStyle() {
         min-width: 0;
       }
 
-      /* กล่องยอดเงินเด่น — โทนเดียวกับแถวยอดสุทธิของ PO */
-      .hero {
-        margin-top: 14px;
-        border: 1px solid #D8DCE0;
-        border-radius: 5px;
-        background: #f2f8ec;
-        padding: 12px 14px;
-        text-align: center;
-        flex-shrink: 0;
-      }
-
-      .hero-label {
-        font-size: 8px;
-        color: #343434;
-        font-weight: 700;
-        margin-bottom: 5px;
-      }
-
-      .hero-value {
-        font-size: 21px;
-        color: #73b645;
-        font-weight: 700;
-        line-height: 1.1;
-      }
-
-      .hero-value span {
-        font-size: 10px;
-        font-weight: 700;
-      }
-
       .table {
         width: 100%;
         margin-top: 14px;
@@ -516,7 +654,7 @@ function createStyle() {
       .tr {
         display: grid;
         width: 100%;
-        grid-template-columns: 34px 60px 1fr 60px 96px;
+        grid-template-columns: 34px 74px 1fr 74px 74px 80px;
         align-items: center;
       }
 
@@ -525,23 +663,59 @@ function createStyle() {
         overflow-wrap: anywhere;
       }
 
+      .sub-line {
+        margin-top: 2px;
+        font-size: 6.5px;
+        color: #78b64c;
+      }
+
+      /* โทนเตือนสำหรับรายการหัก — คุมโทนเดียวกับใบอื่น ไม่ใช้ส้มสด */
+      .badge-warn {
+        display: inline-block;
+        border-radius: 3px;
+        padding: 1px 5px;
+        background: #fdf6e8;
+        color: #b0821f;
+        font-size: 6.5px;
+        font-weight: 700;
+      }
+
+      .warn-text { color: #b0821f; }
+
+      /* หัวข้อบล็อกที่ไม่ได้อยู่ในการ์ด เช่น "ข้อมูลการรับซื้อ" */
+      .block-title {
+        margin-top: 10px;
+        font-size: 8.5px;
+        font-weight: 700;
+        color: #343434;
+        flex-shrink: 0;
+      }
+
+      .block-title + .table {
+        margin-top: 4px;
+      }
+
+      .note-title-sub {
+        margin-top: 8px;
+      }
+
       .thead {
         background: #ececeb;
-        min-height: 33px;
+        min-height: 26px;
         font-size: 7.6px;
         color: #343434;
         font-weight: 700;
       }
 
       .tbody {
-        min-height: 31px;
+        min-height: 24px;
         font-size: 7.5px;
         color: #7A7A7A;
         border-top: 1px solid #D8DCE0;
       }
 
       .cell {
-        padding: 8px 7px;
+        padding: 5px 6px;
       }
 
       .thead .cell {
@@ -558,23 +732,32 @@ function createStyle() {
       .totals {
         width: 229px;
         margin-left: auto;
-        margin-top: 20px;
+        margin-top: 12px;
         border: 1px solid #D8DCE0;
         border-radius: 5px;
-        padding: 10px 8px 9px;
+        padding: 7px 8px 6px;
         flex-shrink: 0;
       }
 
       .tot-row {
         display: grid;
         grid-template-columns: 1fr 78px;
-        min-height: 18px;
+        min-height: 15px;
         align-items: center;
         font-size: 7.5px;
+        line-height: 1;
+      }
+
+      .tot-row .k,
+      .tot-row .v {
+        display: flex;
+        align-items: center;
+        line-height: 1;
       }
 
       .tot-row .k { color: #343434; }
       .tot-row .v {
+        justify-content: flex-end;
         text-align: right;
         color: #7A7A7A;
         font-weight: 700;
@@ -583,8 +766,13 @@ function createStyle() {
       .grand {
         background: #f2f8ec;
         border-radius: 4px;
-        padding: 6px 7px;
+        padding: 4px 7px 9px;
         font-size: 8px;
+      }
+
+      .grand .k,
+      .grand .v {
+        transform: translateY(-2px);
       }
 
       .grand .k {
@@ -600,7 +788,7 @@ function createStyle() {
       .note-rule {
         height: 1px;
         background: #D8DCE0;
-        margin: 14px 0;
+        margin: 8px 0;
         flex-shrink: 0;
       }
 
@@ -631,7 +819,7 @@ function createStyle() {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 24px;
-        margin-top: 24px;
+        margin-top: 14px;
         padding: 0 20px;
       }
 
@@ -644,7 +832,7 @@ function createStyle() {
       .sig .line {
         width: 122px;
         border-bottom: 1px dotted #D8DCE0;
-        margin: 24px auto 10px;
+        margin: 14px auto 6px;
       }
 
       .sig .date {
@@ -656,8 +844,8 @@ function createStyle() {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
-        margin-top: 10px;
-        padding-top: 6px;
+        margin-top: 6px;
+        padding-top: 4px;
         font-size: 6.8px;
         color: #7A7A7A;
         flex-shrink: 0;
@@ -676,12 +864,14 @@ type Metrics = {
   head: number;
   first: number;
   cont: number;
-  hero: number;
+  blockTitle: number;
   thead: number;
   rows: number[];
   totals: number;
   noteHead: number;
   paragraphs: number[];
+  receiptNoteHead: number;
+  receiptParagraphs: number[];
   pageEnd: number;
   foot: number;
   noteLine: number;
@@ -708,6 +898,7 @@ function splitParagraphs(remark: string) {
 function buildProbe(
   data: RawTirePaymentVoucherPdfData,
   paragraphs: string[],
+  receiptParagraphs: string[],
 ): Probe {
   const root = document.createElement("div");
   root.style.position = "fixed";
@@ -724,17 +915,21 @@ function buildProbe(
       ${mark(0)}${headHtml()}
       ${mark(1)}${firstBlockHtml(data)}
       ${mark(2)}${contStripHtml(data)}
-      ${mark(3)}${heroHtml(data)}
+      ${mark(3)}${blockTitleHtml()}
       ${mark(4)}${totalsHtml(data)}
       ${mark(5)}${noteHeadHtml()}
-      ${mark(6)}${pageEndHtml()}
-      ${mark(7)}${footBarHtml(0, 1, false)}
-      ${mark(8)}
+      ${mark(6)}${receiptNoteHeadHtml()}
+      ${mark(7)}${pageEndHtml()}
+      ${mark(8)}${footBarHtml(0, 1, false)}
+      ${mark(9)}
       <div class="table" id="rv-probe-table">
-        ${theadHtml()}${rowHtml(data)}
+        ${theadHtml()}${allRowsHtml(data).join("")}
       </div>
       <div id="rv-probe-notes">
         ${paragraphs.map((text) => noteChunkHtml(text)).join("")}
+      </div>
+      <div id="rv-probe-receipt-notes">
+        ${receiptParagraphs.map((text) => noteChunkHtml(text)).join("")}
       </div>
       <div class="note-value" id="rv-probe-scratch"></div>
     </div>
@@ -750,6 +945,9 @@ function buildProbe(
 
   const table = root.querySelector<HTMLElement>("#rv-probe-table")!;
   const notes = root.querySelector<HTMLElement>("#rv-probe-notes")!;
+  const receiptNotes = root.querySelector<HTMLElement>(
+    "#rv-probe-receipt-notes",
+  )!;
   const scratch = root.querySelector<HTMLElement>("#rv-probe-scratch")!;
 
   const height = (el: Element) => el.getBoundingClientRect().height;
@@ -765,14 +963,16 @@ function buildProbe(
       head: span(0, 1),
       first: span(1, 2),
       cont: span(2, 3),
-      hero: span(3, 4),
+      blockTitle: span(3, 4),
       totals: span(4, 5),
       noteHead: span(5, 6),
-      pageEnd: span(6, 7),
-      foot: span(7, 8),
+      receiptNoteHead: span(6, 7),
+      pageEnd: span(7, 8),
+      foot: span(8, 9),
       thead: height(table.querySelector(".tr.thead")!),
       rows: Array.from(table.querySelectorAll(".tr.tbody")).map(height),
       paragraphs: Array.from(notes.children).map(height),
+      receiptParagraphs: Array.from(receiptNotes.children).map(height),
       noteLine,
     },
   };
@@ -833,7 +1033,7 @@ type PageDraft = {
   used: number;
   rows: string[];
   tail: string[];
-  hasHero: boolean;
+  hasBlockTitle: boolean;
   hasTable: boolean;
   hasPageEnd: boolean;
 };
@@ -842,6 +1042,7 @@ function buildPages(
   data: RawTirePaymentVoucherPdfData,
   probe: Probe,
   paragraphs: string[],
+  receiptParagraphs: string[],
 ): string[] {
   const m = probe.metrics;
   const pages: PageDraft[] = [];
@@ -852,7 +1053,7 @@ function buildPages(
       used: 0,
       rows: [],
       tail: [],
-      hasHero: false,
+      hasBlockTitle: false,
       hasTable: false,
       hasPageEnd: false,
     };
@@ -881,18 +1082,23 @@ function buildPages(
     page = newPage();
   };
 
-  // 1) กล่องยอดเงิน — อยู่หน้าแรกเสมอ
-  page.hasHero = true;
-  page.used += m.hero;
+  // 1) รายการรับซื้อ + รายการหัก — ตัดได้ระหว่างแถวเท่านั้น หัวตารางซ้ำทุกหน้า
+  const rows = allRowsHtml(data);
+  // หัวข้อ "ข้อมูลการรับซื้อ" ขึ้นครั้งเดียวตรงที่ตารางเริ่ม ไม่ซ้ำตอนขึ้นหน้าใหม่
+  let titlePlaced = false;
 
-  // 2) รายการจ่าย
-  const rows = [rowHtml(data)];
   for (let i = 0; i < rows.length; i += 1) {
     const rowHeight = m.rows[i] ?? 0;
+    const titleCost = titlePlaced ? 0 : m.blockTitle;
     const tableCost = page.hasTable ? 0 : m.thead + TABLE_CHROME;
 
-    if (page.used > 0 && tableCost + rowHeight > free()) {
+    if (page.used > 0 && titleCost + tableCost + rowHeight > free()) {
       nextPage();
+    }
+    if (!titlePlaced) {
+      page.hasBlockTitle = true;
+      page.used += m.blockTitle;
+      titlePlaced = true;
     }
     if (!page.hasTable) {
       page.used += m.thead + TABLE_CHROME;
@@ -902,66 +1108,80 @@ function buildPages(
     page.used += rowHeight;
   }
 
-  // 3) ยอดรวม — ยกทั้งก้อน ห้ามตัดครึ่ง
+  // 2) ยอดรวม — ยกทั้งก้อน ห้ามตัดครึ่ง
   if (page.used > 0 && m.totals > free()) {
     nextPage();
   }
   page.tail.push(totalsHtml(data));
   page.used += m.totals;
 
-  // 4) หมายเหตุ — หัวข้อต้องมีอย่างน้อยหนึ่งบรรทัดตามหลัง ไม่งั้นยกไปหน้าใหม่
+  /** วางย่อหน้าหมายเหตุลงหน้า หั่นข้ามหน้าได้ — ใช้ร่วมกันทั้งสองชุด */
+  const packParagraphs = (texts: string[], heights: number[]) => {
+    for (let i = 0; i < texts.length; i += 1) {
+      let rest = texts[i];
+      let restHeight = heights[i] ?? 0;
+
+      // บรรทัดว่างที่ผู้ใช้เคาะไว้ยังต้องกินที่หนึ่งบรรทัด
+      if (rest === "") {
+        if (page.used > 0 && restHeight > free()) {
+          nextPage();
+        }
+        page.tail.push(noteChunkHtml(""));
+        page.used += restHeight;
+        continue;
+      }
+
+      while (rest !== "") {
+        if (restHeight <= free()) {
+          page.tail.push(noteChunkHtml(rest));
+          page.used += restHeight;
+          break;
+        }
+
+        const [chunk, remainder] = fitTextChunk(probe.scratch, rest, free());
+
+        if (chunk === "") {
+          // หน้านี้ไม่เหลือที่แม้แต่บรรทัดเดียว
+          if (page.used === 0) {
+            // หน้าเปล่ายังใส่ไม่ลง = คำนวณเพี้ยน ใส่ทั้งก้อนดีกว่าวนไม่รู้จบ
+            page.tail.push(noteChunkHtml(rest));
+            page.used += restHeight;
+            break;
+          }
+          nextPage();
+          continue;
+        }
+
+        page.tail.push(noteChunkHtml(chunk));
+        page.used = capacity(page);
+        rest = remainder;
+        if (rest === "") {
+          break;
+        }
+
+        nextPage();
+        probe.scratch.textContent = rest;
+        restHeight = probe.scratch.getBoundingClientRect().height;
+      }
+    }
+  };
+
+  // 3) หมายเหตุการจ่าย — หัวข้อต้องมีอย่างน้อยหนึ่งบรรทัดตามหลัง ไม่งั้นยกไปหน้าใหม่
   if (page.used > 0 && m.noteHead + m.noteLine > free()) {
     nextPage();
   }
   page.tail.push(noteHeadHtml());
   page.used += m.noteHead;
+  packParagraphs(paragraphs, m.paragraphs);
 
-  for (let i = 0; i < paragraphs.length; i += 1) {
-    let rest = paragraphs[i];
-    let restHeight = m.paragraphs[i] ?? 0;
-
-    // บรรทัดว่างที่ผู้ใช้เคาะไว้ยังต้องกินที่หนึ่งบรรทัด
-    if (rest === "") {
-      if (page.used > 0 && restHeight > free()) {
-        nextPage();
-      }
-      page.tail.push(noteChunkHtml(""));
-      page.used += restHeight;
-      continue;
-    }
-
-    while (rest !== "") {
-      if (restHeight <= free()) {
-        page.tail.push(noteChunkHtml(rest));
-        page.used += restHeight;
-        break;
-      }
-
-      const [chunk, remainder] = fitTextChunk(probe.scratch, rest, free());
-
-      if (chunk === "") {
-        // หน้านี้ไม่เหลือที่แม้แต่บรรทัดเดียว
-        if (page.used === 0) {
-          // หน้าเปล่ายังใส่ไม่ลง = คำนวณเพี้ยน ใส่ทั้งก้อนดีกว่าวนไม่รู้จบ
-          page.tail.push(noteChunkHtml(rest));
-          page.used += restHeight;
-          break;
-        }
-        nextPage();
-        continue;
-      }
-
-      page.tail.push(noteChunkHtml(chunk));
-      page.used = capacity(page);
-      rest = remainder;
-      if (rest === "") {
-        break;
-      }
-
+  // 4) หมายเหตุจากใบรับซื้อ — มีเฉพาะตอนใบรับซื้อกรอกไว้
+  if (receiptParagraphs.length > 0) {
+    if (page.used > 0 && m.receiptNoteHead + m.noteLine > free()) {
       nextPage();
-      probe.scratch.textContent = rest;
-      restHeight = probe.scratch.getBoundingClientRect().height;
     }
+    page.tail.push(receiptNoteHeadHtml());
+    page.used += m.receiptNoteHead;
+    packParagraphs(receiptParagraphs, m.receiptParagraphs);
   }
 
   // 5) ลายเซ็น — ก้อนเดียวจบ อยู่หน้าสุดท้ายเสมอ
@@ -982,7 +1202,7 @@ function buildPages(
     <div id="${PAGE_ID}-${draft.index}" class="page">
       ${headHtml()}
       ${draft.index === 0 ? firstBlockHtml(data) : contStripHtml(data)}
-      ${draft.hasHero ? heroHtml(data) : ""}
+      ${draft.hasBlockTitle ? blockTitleHtml() : ""}
       ${tableBlock}
       ${draft.tail.join("")}
       ${footBarHtml(draft.index, pageCount, !draft.hasPageEnd)}
@@ -1012,10 +1232,14 @@ export async function buildRawTirePaymentVoucherPagesHtml(
   await waitForSarabun();
 
   const paragraphs = splitParagraphs(dash(data.remark));
-  const probe = buildProbe(data, paragraphs);
+  // ใบรับซื้อไม่ได้กรอกหมายเหตุไว้ ก็ไม่ต้องขึ้นหัวข้อนี้เลย
+  const receiptParagraphs = data.receiptRemark
+    ? splitParagraphs(data.receiptRemark)
+    : [];
+  const probe = buildProbe(data, paragraphs, receiptParagraphs);
 
   try {
-    return buildPages(data, probe, paragraphs);
+    return buildPages(data, probe, paragraphs, receiptParagraphs);
   } finally {
     document.body.removeChild(probe.root);
   }

@@ -90,17 +90,27 @@ export function getSalesOrderAvailableWarehouses(token: string, id: string) {
   );
 }
 
-export function confirmSalesOrder(token: string, id: string) {
+export function confirmSalesOrder(
+  token: string,
+  id: string,
+  expectedVersion: number,
+) {
   return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/confirm`, {
     method: "POST",
     token,
+    ifMatch: expectedVersion,
   });
 }
 
-export function cancelSalesOrder(token: string, id: string) {
+export function cancelSalesOrder(
+  token: string,
+  id: string,
+  expectedVersion: number,
+) {
   return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/cancel`, {
     method: "POST",
     token,
+    ifMatch: expectedVersion,
   });
 }
 
@@ -108,10 +118,11 @@ export function updateSalesOrderCustomerPo(
   token: string,
   id: string,
   body: UpdateSalesOrderCustomerPoBody,
+  expectedVersion: number,
 ) {
   return apiFetch<SalesOrderApiResponse>(
     `/api/sales-orders/${id}/customer-po`,
-    { method: "PATCH", token, body },
+    { method: "PATCH", token, body, ifMatch: expectedVersion },
   );
 }
 
@@ -119,11 +130,13 @@ export function updateSalesOrderHeader(
   token: string,
   id: string,
   body: UpdateSalesOrderHeaderBody,
+  expectedVersion: number,
 ) {
   return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/header`, {
     method: "PATCH",
     token,
     body,
+    ifMatch: expectedVersion,
   });
 }
 

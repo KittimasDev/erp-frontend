@@ -28,7 +28,7 @@ import DocumentHtmlView from "@/components/common/DocumentHtmlView";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   resolveVatMode,
-  VAT_MODE_LABEL,
+  VatMode,
   withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
 import { QUOTATION_MATRIX_ACTION_LABELS } from "@/lib/auth/quotation-matrix-labels";
@@ -54,6 +54,17 @@ function formatMoney(value?: string | number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+const QUOTATION_VAT_MODE_LABEL: Record<VatMode, string> = {
+  [VatMode.NONE]: "ไม่คิดภาษีมูลค่าเพิ่ม",
+  [VatMode.EXCLUSIVE]: "ไม่รวมในราคา",
+  [VatMode.INCLUSIVE]: "รวมในราคา",
+};
+
+function displayDash(value?: string | null) {
+  const text = value?.trim();
+  return text ? text : "—";
 }
 
 function flowStatusClass(tone: QuotationFlowTone, status: string) {
@@ -129,14 +140,22 @@ export default function QuotationDetailPage({ id }: Props) {
       quotationDate: formatDate(data.quotationDate),
       customerName: data.customer?.nameTh ?? "—",
       customerCode: data.customer?.customerCode ?? "—",
+      customerTaxId: data.customer?.taxId,
+      customerAddress: data.customer?.address,
+      customerPhone: data.customer?.contactPhone,
       contactName: data.contactName,
       paymentTerm: data.paymentTerm?.name ?? "—",
+      taxRateLabel: data.taxRate
+        ? `${data.taxRate.name} (${data.taxRate.rate}%)`
+        : undefined,
+      withholdingTaxType: data.withholdingTaxType,
       validUntil: formatDate(data.validUntil),
       remark: data.remark || "",
       preparedBy: {
         id: data.createdBy?.id,
         name: data.createdBy?.displayName,
       },
+      preparedByPhone: data.preparedByPhone,
       subtotalAmount: Number(data.subtotalAmount) || 0,
       discountAmount: Number(data.discountAmount) || 0,
       afterDiscount: Math.max(
@@ -168,7 +187,7 @@ export default function QuotationDetailPage({ id }: Props) {
           <FileTextOutlined />
         </div>
         <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Quotation</p>
+          <p className={styles.eyebrow}>ใบเสนอราคา</p>
           <h1 className={styles.pageTitle}>{data.quotationNo}</h1>
           <p className={styles.pageSubtitle}>
             {data.customer
@@ -209,27 +228,65 @@ export default function QuotationDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ยืนราคาถึงวันที่</span>
+                <span className={styles.metaLabel}>ลูกค้า</span>
                 <div className={styles.metaValue}>
-                  {formatDate(data.validUntil)}
+                  {displayDash(data.customer?.nameTh)}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>รหัสลูกค้า</span>
+                <div className={styles.metaValue}>
+                  {displayDash(data.customer?.customerCode)}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>เลขที่ผู้เสียภาษี</span>
+                <div className={styles.metaValue}>
+                  {displayDash(data.customer?.taxId)}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>เบอร์โทร</span>
+                <div className={styles.metaValue}>
+                  {displayDash(data.customer?.contactPhone)}
+                </div>
+              </div>
+              <div className={`${styles.metaItem} ${styles.metaItemWide}`}>
+                <span className={styles.metaLabel}>ที่อยู่</span>
+                <div className={styles.metaValue}>
+                  {displayDash(data.customer?.address)}
                 </div>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>ผู้ติดต่อ</span>
                 <div className={styles.metaValue}>
-                  {data.contactName?.trim() || "—"}
+                  {displayDash(data.contactName)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เงื่อนไขชำระ</span>
+                <span className={styles.metaLabel}>วันหมดอายุ</span>
+                <div className={styles.metaValue}>
+                  {formatDate(data.validUntil)}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>เงื่อนไขการชำระเงิน</span>
                 <div className={styles.metaValue}>
                   {data.paymentTerm?.name ?? "ไม่ระบุ"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>รูปแบบ VAT</span>
+                <span className={styles.metaLabel}>อัตราภาษี</span>
                 <div className={styles.metaValue}>
-                  {VAT_MODE_LABEL[resolveVatMode(data.vatMode)]}
+                  {data.taxRate
+                    ? `${data.taxRate.name} (${data.taxRate.rate}%)`
+                    : "—"}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>รูปแบบภาษีมูลค่าเพิ่ม</span>
+                <div className={styles.metaValue}>
+                  {QUOTATION_VAT_MODE_LABEL[resolveVatMode(data.vatMode)]}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -244,7 +301,13 @@ export default function QuotationDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>ผู้เสนอราคา</span>
                 <div className={styles.metaValue}>
-                  {data.createdBy?.displayName ?? "—"}
+                  {displayDash(data.createdBy?.displayName)}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>เบอร์โทรผู้เสนอราคา</span>
+                <div className={styles.metaValue}>
+                  {displayDash(data.preparedByPhone)}
                 </div>
               </div>
             </div>
@@ -284,7 +347,7 @@ export default function QuotationDetailPage({ id }: Props) {
           {documentHtmlIsEmpty(data.remark) ? null : (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุเอกสาร</h2>
+                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
               </div>
               <DocumentHtmlView html={data.remark} />
             </div>
@@ -344,6 +407,7 @@ export default function QuotationDetailPage({ id }: Props) {
                 )}
               </strong>
             </div>
+            <p className={styles.sideHint}>ฐานก่อนคำนวณภาษีมูลค่าเพิ่ม</p>
             <div className={styles.sideRow}>
               <span>
                 {data.taxRate?.rate

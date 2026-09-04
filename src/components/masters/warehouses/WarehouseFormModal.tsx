@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { Form, Input, Modal, Switch } from "antd";
+import { useEffect, useRef, type MutableRefObject } from "react";
+import { Form, Input, Modal, Switch, type FormInstance } from "antd";
 
 import type { CreateWarehouseRequest, Warehouse } from "@/types/warehouses";
 import styles from "@/components/masters/shared/master-page.module.css";
@@ -25,75 +25,54 @@ type WarehouseFormModalProps = {
   onSubmit: (values: CreateWarehouseRequest) => void;
 };
 
-export default function WarehouseFormModal({
-  open,
+function getInitialValues(
+  mode: "create" | "edit",
+  initialWarehouse?: Warehouse | null,
+): WarehouseFormValues {
+  if (mode === "edit" && initialWarehouse) {
+    return {
+      code: initialWarehouse.warehouseCode,
+      name: initialWarehouse.warehouseName,
+      warehouseGroup: initialWarehouse.warehouseGroup,
+      description: initialWarehouse.description,
+      allowNegativeStock: initialWarehouse.allowNegativeStock,
+      isQcRequired: initialWarehouse.isQcRequired,
+      isActive: initialWarehouse.isActive,
+    };
+  }
+
+  return {
+    code: "",
+    name: "",
+    warehouseGroup: "",
+    description: "",
+    allowNegativeStock: false,
+    isQcRequired: false,
+    isActive: true,
+  };
+}
+
+function WarehouseFormBody({
   mode,
   initialWarehouse,
-  confirmLoading = false,
-  onCancel,
-  onSubmit,
-}: WarehouseFormModalProps) {
+  formRef,
+}: {
+  mode: "create" | "edit";
+  initialWarehouse?: Warehouse | null;
+  formRef: MutableRefObject<FormInstance<WarehouseFormValues> | null>;
+}) {
   const [form] = Form.useForm<WarehouseFormValues>();
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    if (mode === "edit" && initialWarehouse) {
-      form.setFieldsValue({
-        code: initialWarehouse.warehouseCode,
-        name: initialWarehouse.warehouseName,
-        warehouseGroup: initialWarehouse.warehouseGroup,
-        description: initialWarehouse.description,
-        allowNegativeStock: initialWarehouse.allowNegativeStock,
-        isQcRequired: initialWarehouse.isQcRequired,
-        isActive: initialWarehouse.isActive,
-      });
-      return;
-    }
-
-    form.setFieldsValue({
-      code: "",
-      name: "",
-      warehouseGroup: "",
-      description: "",
-      allowNegativeStock: false,
-      isQcRequired: false,
-      isActive: true,
-    });
-  }, [open, mode, initialWarehouse, form]);
-
-  const handleOk = async () => {
-    const values = await form.validateFields();
-
-    onSubmit({
-      code: values.code.trim(),
-      name: values.name.trim(),
-      warehouseGroup: values.warehouseGroup?.trim() || undefined,
-      description: values.description?.trim() || undefined,
-      allowNegativeStock: values.allowNegativeStock,
-      isQcRequired: values.isQcRequired,
-      isActive: values.isActive,
-    });
-  };
-
   const isCreateMode = mode === "create";
 
+  useEffect(() => {
+    formRef.current = form;
+    return () => {
+      formRef.current = null;
+    };
+  }, [form, formRef]);
+
   return (
-    <Modal
-      className={styles.masterModal}
-      title={null}
-      open={open}
-      onCancel={onCancel}
-      onOk={handleOk}
-      confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
-      destroyOnHidden
-      width={560}
-      centered
-    >
+    <>
       <div className={styles.modalHeader}>
         <div className={styles.modalIcon}>{isCreateMode ? "+" : "✎"}</div>
 
@@ -117,6 +96,8 @@ export default function WarehouseFormModal({
         layout="vertical"
         requiredMark="optional"
         className={styles.form}
+        initialValues={getInitialValues(mode, initialWarehouse)}
+        preserve={false}
       >
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
@@ -228,6 +209,57 @@ export default function WarehouseFormModal({
           </Form.Item>
         </div>
       </Form>
+    </>
+  );
+}
+
+export default function WarehouseFormModal({
+  open,
+  mode,
+  initialWarehouse,
+  confirmLoading = false,
+  onCancel,
+  onSubmit,
+}: WarehouseFormModalProps) {
+  const formRef = useRef<FormInstance<WarehouseFormValues> | null>(null);
+  const isCreateMode = mode === "create";
+
+  const handleOk = async () => {
+    const values = await formRef.current?.validateFields();
+    if (!values) {
+      return;
+    }
+
+    onSubmit({
+      code: values.code.trim(),
+      name: values.name.trim(),
+      warehouseGroup: values.warehouseGroup?.trim() || undefined,
+      description: values.description?.trim() || undefined,
+      allowNegativeStock: values.allowNegativeStock,
+      isQcRequired: values.isQcRequired,
+      isActive: values.isActive,
+    });
+  };
+
+  return (
+    <Modal
+      className={styles.masterModal}
+      title={null}
+      open={open}
+      onCancel={onCancel}
+      onOk={handleOk}
+      confirmLoading={confirmLoading}
+      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
+      cancelText="ยกเลิก"
+      destroyOnHidden
+      width={560}
+      centered
+    >
+      <WarehouseFormBody
+        mode={mode}
+        initialWarehouse={initialWarehouse}
+        formRef={formRef}
+      />
     </Modal>
   );
 }

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -76,6 +83,9 @@ import {
 } from "@/lib/money/vat-totals";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
+import { useQueryClient } from "@tanstack/react-query";
+import { useStaleDocumentPrompt } from "@/hooks/common/useStaleDocumentPrompt";
+import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { DeliverySchedule } from "@/types/delivery-schedules";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
@@ -293,6 +303,7 @@ function buildSalesOrderPdfDataFromOrder(
     taxRatePercent: taxRate,
     revisedAt: order.revisedAt,
     confirmedAt: order.confirmedAt,
+    revisionNo: order.revisionNo,
     preparedBy: {
       id: order.createdBy?.id,
       name: order.createdBy?.displayName,
@@ -336,6 +347,7 @@ function mapSnapshotPayloadToPdfData(
     taxRatePercent: payload.taxRatePercent,
     revisedAt: payload.revisedAt,
     confirmedAt,
+    revisionNo: payload.revisionNo,
     subtotalAmount: payload.subtotalAmount,
     discountAmount: payload.discountAmount,
     vatAmount: payload.vatAmount,
@@ -426,6 +438,7 @@ function buildProductionRequestLine(
 export default function SalesOrderDetailPage({ id }: Props) {
   const router = useRouter();
   const { modal, message } = App.useApp();
+  const queryClient = useQueryClient();
   const query = useSalesOrderQuery(id);
   const data = query.data?.data;
   const isPreConfirm = isPreConfirmSalesOrderStatus(data?.status);
@@ -480,6 +493,35 @@ export default function SalesOrderDetailPage({ id }: Props) {
     remark: "",
     vatMode: VatMode.EXCLUSIVE,
   });
+  /**
+   * เลขรุ่นเอกสารที่ผู้ใช้เห็น "ตอนเริ่มแก้" — ไม่ใช่ตอนกดบันทึก
+   *
+   * อ่านจาก cache ตอนกดบันทึกไม่ได้ เพราะค่านั้นจะตรงกับ server เสมอ
+   * (query นี้ตั้ง staleTime 0 + refetch ตอนกลับมาโฟกัส) แล้วการตรวจชนจะไร้ผล
+   * ตั้งครั้งแรกที่ผู้ใช้แตะฟอร์ม ล้างเมื่อบันทึกสำเร็จหรือโหลดใหม่
+   */
+  const headerBaselineVersionRef = useRef<number | null>(null);
+  const promptStaleDocument = useStaleDocumentPrompt();
+  const reloadSalesOrder = useCallback(async () => {
+    headerBaselineVersionRef.current = null;
+    await invalidateSalesOrderFlowQueries(queryClient);
+  }, [queryClient]);
+  /**
+   * แก้ค่าในฟอร์มหัวเอกสาร พร้อมจำเลขรุ่นที่เห็นตอนเริ่มแก้
+   *
+   * ห่อไว้ตัวเดียวแทนที่จะไปเติมที่ onChange ทีละช่อง — ช่องที่เพิ่มมาทีหลัง
+   * จะได้ไม่หลุดการจำเลขรุ่นไปเงียบ ๆ
+   */
+  const patchHeaderDraft = useCallback(
+    (updater: (prev: SalesOrderHeaderDraft) => SalesOrderHeaderDraft) => {
+      if (headerBaselineVersionRef.current === null && data) {
+        headerBaselineVersionRef.current = data.editVersion;
+      }
+      setHeaderDraft(updater);
+    },
+    [data],
+  );
+
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const productionRequestActions = useScreenActionPermissions(
@@ -762,10 +804,17 @@ export default function SalesOrderDetailPage({ id }: Props) {
       return;
     }
     updateCustomerPoMutation.mutate(
-      { id: data.id, body: { customerPoNo: value } },
+      {
+        id: data.id,
+        body: { customerPoNo: value },
+        expectedVersion: data.editVersion,
+      },
       {
         onSuccess: () => {
           setPoModalOpen(false);
+        },
+        onError: (error) => {
+          promptStaleDocument(error, reloadSalesOrder);
         },
       },
     );
@@ -829,7 +878,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
       );
       return;
     }
-    confirmMutation.mutate(data.id);
+    confirmMutation.mutate(
+      { id: data.id, expectedVersion: data.editVersion },
+      { onError: (error) => promptStaleDocument(error, reloadSalesOrder) },
+    );
   };
 
   const canEditHeader = isPreConfirm && canWrite;
@@ -837,6 +889,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
     updateHeaderMutation.mutate(
       {
         id: data.id,
+        // เลขรุ่น ณ ตอนที่เริ่มแก้ ไม่ใช่ค่าสดจาก cache — ถ้ายังไม่แตะฟอร์มเลย
+        // ก็ใช้ค่าปัจจุบันได้ เพราะไม่มีอะไรจะทับใคร
+        expectedVersion: headerBaselineVersionRef.current ?? data.editVersion,
         body: {
           contactName: headerDraft.contactName,
           paymentMethod: headerDraft.paymentMethod,
@@ -846,7 +901,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
           vatMode: resolveVatMode(headerDraft.vatMode),
         },
       },
-      { onSuccess: () => setSelectedPdfVersion("current") },
+      {
+        onSuccess: () => {
+          headerBaselineVersionRef.current = null;
+          setSelectedPdfVersion("current");
+        },
+        onError: (error) => promptStaleDocument(error, reloadSalesOrder),
+      },
     );
   };
   /**
@@ -1028,7 +1089,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
               : "ยกเลิกใบสั่งขาย และคืนสต๊อกที่จองไว้ (ถ้ายังไม่ได้จ่ายออกคลัง)",
             okText: "ยกเลิกใบสั่งขาย",
             okButtonProps: { danger: true },
-            onOk: () => cancelMutation.mutateAsync(data.id),
+            onOk: () =>
+              cancelMutation
+                .mutateAsync({
+                  id: data.id,
+                  expectedVersion: data.editVersion,
+                })
+                .catch((error: unknown) => {
+                  promptStaleDocument(error, reloadSalesOrder);
+                }),
           })
         }
       >
@@ -1383,11 +1452,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
         <div className={styles.headerContent}>
           <p className={styles.eyebrow}>ขาย · ใบสั่งขาย</p>
           <h1 className={styles.pageTitle}>{data.soNo}</h1>
-          {salesOrderRevisionStamp(data.revisedAt, data.confirmedAt) ? (
-            <p className={styles.revisionStamp}>
-              {salesOrderRevisionStamp(data.revisedAt, data.confirmedAt)}
-            </p>
-          ) : null}
+          <p className={styles.revisionStamp}>
+            {salesOrderRevisionStamp(data.revisionNo, data.revisedAt)}
+          </p>
           <p className={styles.pageSubtitle}>
             {data.customer
               ? `${data.customer.customerCode} — ${data.customer.nameTh}`
@@ -1529,7 +1596,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       maxLength={255}
                       placeholder="ดึงจาก master ลูกค้า แก้ได้บนใบนี้"
                       onChange={(e) =>
-                        setHeaderDraft((prev) => ({
+                        patchHeaderDraft((prev) => ({
                           ...prev,
                           contactName: e.target.value,
                         }))
@@ -1603,7 +1670,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           : null
                       }
                       onChange={(value) =>
-                        setHeaderDraft((prev) => ({
+                        patchHeaderDraft((prev) => ({
                           ...prev,
                           customerPoDate: value
                             ? value.format("YYYY-MM-DD")
@@ -1640,7 +1707,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       options={PAYMENT_METHOD_OPTIONS}
                       value={headerDraft.paymentMethod}
                       onChange={(value) =>
-                        setHeaderDraft((prev) => ({
+                        patchHeaderDraft((prev) => ({
                           ...prev,
                           paymentMethod: value,
                         }))
@@ -1674,7 +1741,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           : null
                       }
                       onChange={(value) =>
-                        setHeaderDraft((prev) => ({
+                        patchHeaderDraft((prev) => ({
                           ...prev,
                           paymentDueDate: value
                             ? value.format("YYYY-MM-DD")
@@ -1703,7 +1770,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       options={VAT_MODE_OPTIONS}
                       value={resolveVatMode(headerDraft.vatMode)}
                       onChange={(value) =>
-                        setHeaderDraft((prev) => ({
+                        patchHeaderDraft((prev) => ({
                           ...prev,
                           vatMode: value,
                         }))
@@ -2593,7 +2660,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 placeholder="รายละเอียดเพิ่มเติมบนใบสั่งขาย"
                 value={headerDraft.remark}
                 onChange={(html) =>
-                  setHeaderDraft((prev) => ({
+                  patchHeaderDraft((prev) => ({
                     ...prev,
                     remark: html,
                   }))
@@ -2616,6 +2683,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               salesOrderItems={data.items ?? []}
               canEdit={canWrite}
               salesOrderStatus={data.status}
+              salesOrderEditVersion={data.editVersion}
               deliveryStatus={data.deliveryStatus}
             />
           </div>

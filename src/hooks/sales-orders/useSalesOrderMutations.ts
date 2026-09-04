@@ -18,6 +18,7 @@ import {
   deleteDocumentAttachment,
   uploadDocumentAttachment,
 } from "@/lib/api/document-attachments";
+import { isStaleDocumentConflict } from "@/lib/api/conflict";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
 import {
@@ -73,12 +74,19 @@ export function useConfirmSalesOrderMutation() {
 
   return useMutation({
     mutationKey: [...salesOrdersQueryKey, "confirm"],
-    mutationFn: (id: string) => confirmSalesOrder(getAccessToken(), id),
+    mutationFn: ({
+      id,
+      expectedVersion,
+    }: {
+      id: string;
+      expectedVersion: number;
+    }) => confirmSalesOrder(getAccessToken(), id, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
       message.success(res.message || "ยืนยันใบสั่งขายสำเร็จ");
     },
     onError: (error: Error) => {
+      if (isStaleDocumentConflict(error)) return;
       message.error(
         error instanceof ApiError ? error.message : "ยืนยันใบสั่งขายไม่สำเร็จ",
       );
@@ -92,12 +100,19 @@ export function useCancelSalesOrderMutation() {
 
   return useMutation({
     mutationKey: [...salesOrdersQueryKey, "cancel"],
-    mutationFn: (id: string) => cancelSalesOrder(getAccessToken(), id),
+    mutationFn: ({
+      id,
+      expectedVersion,
+    }: {
+      id: string;
+      expectedVersion: number;
+    }) => cancelSalesOrder(getAccessToken(), id, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
       message.success(res.message || "ยกเลิกใบสั่งขายสำเร็จ");
     },
     onError: (error: Error) => {
+      if (isStaleDocumentConflict(error)) return;
       message.error(
         error instanceof ApiError ? error.message : "ยกเลิกใบสั่งขายไม่สำเร็จ",
       );
@@ -262,15 +277,18 @@ export function useUpdateSalesOrderCustomerPoMutation() {
     mutationFn: ({
       id,
       body,
+      expectedVersion,
     }: {
       id: string;
       body: UpdateSalesOrderCustomerPoBody;
-    }) => updateSalesOrderCustomerPo(getAccessToken(), id, body),
+      expectedVersion: number;
+    }) => updateSalesOrderCustomerPo(getAccessToken(), id, body, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
       message.success(res.message || "บันทึกเลข PO ลูกค้าสำเร็จ");
     },
     onError: (error: Error) => {
+      if (isStaleDocumentConflict(error)) return;
       message.error(
         error instanceof ApiError
           ? error.message
@@ -289,15 +307,19 @@ export function useUpdateSalesOrderHeaderMutation() {
     mutationFn: ({
       id,
       body,
+      expectedVersion,
     }: {
       id: string;
       body: UpdateSalesOrderHeaderBody;
-    }) => updateSalesOrderHeader(getAccessToken(), id, body),
+      expectedVersion: number;
+    }) => updateSalesOrderHeader(getAccessToken(), id, body, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
       message.success(res.message || "บันทึกหัวเอกสารสำเร็จ");
     },
     onError: (error: Error) => {
+      // 409 มีกล่องยืนยันของตัวเองที่หน้าจอ — ไม่ต้องมี toast ซ้อน
+      if (isStaleDocumentConflict(error)) return;
       message.error(
         error instanceof ApiError
           ? error.message

@@ -118,6 +118,13 @@ export type SalesOrder = {
   customerPoNo?: string;
   customerPoDate?: string;
   revisedAt?: string;
+  /** เลขฉบับเอกสาร — ร่าง = 0, ยืนยัน = 1, แก้รอบจัดส่งเพิ่มทีละ 1 */
+  revisionNo: number;
+  /**
+   * เลขรุ่นกันบันทึกทับกัน — ส่งกลับไปทาง If-Match ตอนแก้เอกสาร
+   * ผู้ใช้ไม่เห็นตัวเลขนี้ ไม่ใช่เลขฉบับ (ดู revisionNo)
+   */
+  editVersion: number;
   createdById?: string;
   createdBy?: SalesOrderUserSummary;
   confirmedById?: string;
@@ -333,6 +340,8 @@ export type SalesOrderPdfSnapshotPayload = {
   remark: string;
   taxRatePercent?: number;
   revisedAt?: string;
+  /** เลขฉบับ ณ ตอนที่เก็บ snapshot — คือเลขก่อนถูกดันขึ้น */
+  revisionNo?: number;
   subtotalAmount: number;
   discountAmount: number;
   vatAmount: number;

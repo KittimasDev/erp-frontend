@@ -33,6 +33,10 @@ import {
   useRescheduleDeliveryScheduleMutation,
   useUpdateDeliveryScheduleMutation,
 } from "@/hooks/delivery-schedules/useDeliverySchedulesQuery";
+import {
+  isStaleDocumentConflict,
+  staleDocumentMessage,
+} from "@/lib/api/conflict";
 import { ApiError } from "@/lib/api/client";
 import {
   DELIVERY_SCHEDULE_STATUS_COLOR,
@@ -84,11 +88,17 @@ export default function DeliverySchedulesSection({
   salesOrderItems,
   canEdit,
   salesOrderStatus,
+  salesOrderEditVersion,
   deliveryStatus,
 }: {
   salesOrderId: string;
   salesOrderItems: SalesOrderItem[];
   canEdit: boolean;
+  /**
+   * เลขรุ่นของใบสั่งขาย — ใช้กับ "เพิ่มรอบ" เท่านั้น
+   * (ยังไม่มีรอบให้เทียบ และจำนวนตั้งต้นในกล่องมาจากยอดคงเหลือระดับทั้งใบ)
+   */
+  salesOrderEditVersion: number;
   /** ต้องรู้เพื่อบอกล่วงหน้าว่าการยกเลิกรอบจะลดจำนวน/ยอดเงินหรือไม่ */
   salesOrderStatus: string;
   /** สรุปจากทุกรอบ — ส่งครบแล้วห้ามเพิ่มรอบ */
@@ -108,6 +118,15 @@ export default function DeliverySchedulesSection({
   const [deliveryDate, setDeliveryDate] = useState<dayjs.Dayjs | null>(null);
   const [remark, setRemark] = useState("");
   const [draftLines, setDraftLines] = useState<DraftLine[]>([]);
+  /**
+   * เลขรุ่นที่กล่องนี้เปิดค้างไว้ตอนแรก — ใช้ตรวจว่ามีคนแก้ทับหรือยัง
+   *
+   * กล่องพวกนี้ seed ค่าตอนเปิดครั้งเดียว ไม่มี effect sync กลับ ค่าที่ผู้ใช้
+   * เห็นจึงเป็นของ ณ วินาทีที่เปิด · ถ้าไม่จำเลขรุ่นไว้ การกดบันทึกจะเอาค่าเก่า
+   * ไปทับสิ่งที่คนอื่นเพิ่งแก้
+   */
+  const [openedVersion, setOpenedVersion] = useState<number>(0);
+  const [staleWarning, setStaleWarning] = useState<string | null>(null);
 
   // ── เลื่อนกำหนดส่ง ─────────────────────────────────────────────────────────
   const [rescheduleTarget, setRescheduleTarget] =
@@ -178,8 +197,76 @@ export default function DeliverySchedulesSection({
   );
   const fullyScheduled = totalUnscheduled <= EPS;
 
+  /** รอบที่กล่องไหนสักกล่องเปิดค้างอยู่ — ใช้เทียบว่าเลขรุ่นขยับไปหรือยัง */
+  const openTarget = editing ?? rescheduleTarget ?? cancelTarget;
+  const liveVersion = openTarget
+    ? schedules.find((row) => row.id === openTarget.id)?.editVersion
+    : modalOpen
+      ? salesOrderEditVersion
+      : undefined;
+
+  /*
+    เตือน *ก่อน* ผู้ใช้กดบันทึก ไม่ใช่รอให้ 409 เด้งกลับมา
+    ตัวนี้ยังแก้กับดักอีกอย่างด้วย: ด่านเช็คจำนวนเกินฝั่งหน้าจออ่าน scheduledByItem
+    จากข้อมูลสด ขณะที่กล่องถือค่าตอนเปิด — ฐานเทียบจึงขยับใต้เท้าผู้ใช้ได้
+
+    คำนวณตอน render ไม่ผ่าน useEffect + setState — มันเป็นค่าที่ derive ได้ตรง ๆ
+    จากข้อมูลที่มีอยู่แล้ว การยัดลง state จะได้ render ซ้อนฟรี ๆ
+  */
+  const versionDrifted =
+    liveVersion !== undefined && liveVersion !== openedVersion;
+  const staleMessage =
+    staleWarning ??
+    (versionDrifted
+      ? "มีคนอื่นแก้ข้อมูลนี้ระหว่างที่คุณเปิดกล่องค้างไว้ — โหลดค่าล่าสุดก่อนบันทึก"
+      : null);
+
+  /** โหลดค่าล่าสุดแล้วเปิดกล่องเดิมซ้ำ — reseed ทุกฟิลด์และเลขรุ่นในทางเดียว */
+  async function reloadOpenModal() {
+    const refreshed = await schedulesQuery.refetch();
+    const rows = refreshed.data ?? [];
+    setStaleWarning(null);
+    if (editing) {
+      const fresh = rows.find((row) => row.id === editing.id);
+      if (fresh) openEdit(fresh);
+      else setModalOpen(false);
+      return;
+    }
+    if (rescheduleTarget) {
+      const fresh = rows.find((row) => row.id === rescheduleTarget.id);
+      if (fresh) openReschedule(fresh);
+      else setRescheduleTarget(null);
+      return;
+    }
+    if (cancelTarget) {
+      const fresh = rows.find((row) => row.id === cancelTarget.id);
+      if (fresh) openCancel(fresh);
+      else setCancelTarget(null);
+      return;
+    }
+    // กล่อง "เพิ่มรอบ" — จำนวนตั้งต้นคำนวณจาก schedules ที่เพิ่งโหลดมาใหม่
+    openCreate();
+  }
+
+  const staleAlert = staleMessage ? (
+    <Alert
+      type="warning"
+      showIcon
+      style={{ marginBottom: 12 }}
+      message="ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น"
+      description={staleMessage}
+      action={
+        <Button size="small" onClick={() => void reloadOpenModal()}>
+          โหลดค่าล่าสุด
+        </Button>
+      }
+    />
+  ) : null;
+
   function openCreate() {
     setEditing(null);
+    setOpenedVersion(salesOrderEditVersion);
+    setStaleWarning(null);
     setDeliveryDate(null);
     setRemark("");
     // ตั้งค่าตั้งต้นเป็น "ที่เหลือทั้งหมด" — เคสที่พบบ่อยสุดคือส่งรอบเดียวจบ
@@ -197,6 +284,8 @@ export default function DeliverySchedulesSection({
 
   function openEdit(schedule: DeliverySchedule) {
     setEditing(schedule);
+    setOpenedVersion(schedule.editVersion);
+    setStaleWarning(null);
     setDeliveryDate(dayjs(schedule.deliveryDate));
     setRemark(schedule.remark ?? "");
     setDraftLines(
@@ -252,14 +341,26 @@ export default function DeliverySchedulesSection({
 
     try {
       if (editing) {
-        await updateMutation.mutateAsync({ id: editing.id, body });
+        await updateMutation.mutateAsync({
+          id: editing.id,
+          body,
+          expectedVersion: openedVersion,
+        });
         message.success("แก้ไขรอบจัดส่งแล้ว");
       } else {
-        await createMutation.mutateAsync(body);
+        await createMutation.mutateAsync({
+          body,
+          expectedVersion: openedVersion,
+        });
         message.success("เพิ่มรอบจัดส่งแล้ว");
       }
       setModalOpen(false);
     } catch (error) {
+      // ชนกับคนอื่น → คากล่องไว้ ไม่ปิดทิ้ง ผู้ใช้จะได้ไม่ต้องกรอกใหม่ทั้งชุด
+      if (isStaleDocumentConflict(error)) {
+        setStaleWarning(staleDocumentMessage(error));
+        return;
+      }
       message.error(
         error instanceof ApiError ? error.message : "บันทึกไม่สำเร็จ",
       );
@@ -268,6 +369,8 @@ export default function DeliverySchedulesSection({
 
   function openReschedule(schedule: DeliverySchedule) {
     setRescheduleTarget(schedule);
+    setOpenedVersion(schedule.editVersion);
+    setStaleWarning(null);
     setNewDeliveryDate(dayjs(schedule.deliveryDate));
     setRescheduleReason("");
     setCascadeDates(true);
@@ -297,12 +400,17 @@ export default function DeliverySchedulesSection({
           reason: rescheduleReason.trim(),
           cascadeToDocuments: cascadeDates,
         },
+        expectedVersion: openedVersion,
       });
       message.success(
         `เลื่อนกำหนดส่งรอบ ${rescheduleTarget.roundNo} เป็น ${newDeliveryDate.format("DD/MM/YYYY")} แล้ว`,
       );
       setRescheduleTarget(null);
     } catch (error) {
+      if (isStaleDocumentConflict(error)) {
+        setStaleWarning(staleDocumentMessage(error));
+        return;
+      }
       message.error(
         error instanceof ApiError ? error.message : "เลื่อนกำหนดส่งไม่สำเร็จ",
       );
@@ -311,6 +419,8 @@ export default function DeliverySchedulesSection({
 
   function openCancel(schedule: DeliverySchedule) {
     setCancelTarget(schedule);
+    setOpenedVersion(schedule.editVersion);
+    setStaleWarning(null);
     setCancelReason("");
     setInvoiceWarning(null);
     setAcknowledgeInvoice(false);
@@ -330,10 +440,15 @@ export default function DeliverySchedulesSection({
           reason: cancelReason.trim(),
           acknowledgeInvoice: acknowledgeInvoice || undefined,
         },
+        expectedVersion: openedVersion,
       });
       message.success(`ยกเลิกรอบ ${cancelTarget.roundNo} แล้ว`);
       setCancelTarget(null);
     } catch (error) {
+      if (isStaleDocumentConflict(error)) {
+        setStaleWarning(staleDocumentMessage(error));
+        return;
+      }
       const detail =
         error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ";
       /*
@@ -590,6 +705,7 @@ export default function DeliverySchedulesSection({
         width={720}
         destroyOnHidden
       >
+        {staleAlert}
         <Form layout="vertical">
           <Form.Item label="วันที่จัดส่ง" required>
             <DatePicker
@@ -691,6 +807,7 @@ export default function DeliverySchedulesSection({
         width={560}
         destroyOnHidden
       >
+        {staleAlert}
         <Alert
           type="info"
           showIcon
@@ -759,6 +876,7 @@ export default function DeliverySchedulesSection({
         width={620}
         destroyOnHidden
       >
+        {staleAlert}
         {/*
           สรุปผลกระทบก่อนกด — รอบก่อนคนกดยกเลิกแล้วตกใจว่ายอดเงินเปลี่ยน
           เพราะไม่มีใครบอกล่วงหน้า

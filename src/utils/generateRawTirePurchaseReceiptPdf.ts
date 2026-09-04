@@ -201,6 +201,7 @@ function firstBlockHtml(data: RawTirePurchaseReceiptPdfData) {
             ${infoRow("รหัสผู้ขาย :", data.sellerCode)}
             ${infoRow("ผู้ติดต่อ :", data.contactName)}
             ${infoRow("เบอร์โทร :", data.phone)}
+            ${infoRow("บัญชีธนาคาร :", "ยังไม่รู้เอามาจากไหน")}
           </div>
         </section>
 
@@ -208,7 +209,6 @@ function firstBlockHtml(data: RawTirePurchaseReceiptPdfData) {
           <div class="card-title">รถ / น้ำหนัก</div>
           <div class="info-grid">
             ${infoRow("ทะเบียนรถ :", data.truckLicensePlate)}
-            ${infoRow("คนขับ :", data.driverName)}
             ${infoRow("น้ำหนักเข้า :", `${data.grossWeightKg} กก.`)}
             ${infoRow("น้ำหนักออก :", `${data.tareWeightKg} กก.`)}
           </div>
@@ -299,11 +299,6 @@ function pageEndHtml() {
         <div class="signatures">
           <div class="sig">
             <div>ผู้จัดทำ (Prepared By)</div>
-            <div class="line"></div>
-            <div class="date">วันที่ ___/___/___</div>
-          </div>
-          <div class="sig">
-            <div>ผู้ตรวจสอบ (Checked By)</div>
             <div class="line"></div>
             <div class="date">วันที่ ___/___/___</div>
           </div>
@@ -547,17 +542,27 @@ function createStyle() {
         min-width: 0;
       }
 
-      /* แถบน้ำหนักสุทธิในการ์ด — ใช้ภาษาเดียวกับแถวยอดสุทธิของตารางยอดรวม */
+      /* แถบน้ำหนักสุทธิในการ์ด — ใช้ภาษาเดียวกับแถวยอดสุทธิของตารางยอดรวม
+         padding ล่างมากกว่าบน + line-height: 1 เพราะ Sarabun จองที่วรรณยุกต์ด้านบน ทำให้ตัวอักษรดูชิดล่าง */
       .callout {
         margin-top: 8px;
         background: #f2f8ec;
         border-radius: 4px;
-        padding: 6px 7px;
+        padding: 4px 7px 9px;
         display: flex;
-        align-items: baseline;
+        align-items: center;
         justify-content: space-between;
         font-size: 7.5px;
+        line-height: 1;
         color: #343434;
+      }
+
+      .callout span,
+      .callout strong {
+        display: flex;
+        align-items: center;
+        line-height: 1;
+        transform: translateY(-2px);
       }
 
       .callout strong {
@@ -652,10 +657,19 @@ function createStyle() {
         min-height: 18px;
         align-items: center;
         font-size: 7.5px;
+        line-height: 1;
+      }
+
+      .tot-row .k,
+      .tot-row .v {
+        display: flex;
+        align-items: center;
+        line-height: 1;
       }
 
       .tot-row .k { color: #343434; }
       .tot-row .v {
+        justify-content: flex-end;
         text-align: right;
         color: #7A7A7A;
         font-weight: 700;
@@ -665,8 +679,13 @@ function createStyle() {
         margin-top: 4px;
         background: #f2f8ec;
         border-radius: 4px;
-        padding: 6px 7px;
+        padding: 4px 7px 9px;
         font-size: 8px;
+      }
+
+      .grand .k,
+      .grand .v {
+        transform: translateY(-2px);
       }
 
       .grand .k {
@@ -686,7 +705,7 @@ function createStyle() {
 
       .signatures {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 24px;
         margin-top: 24px;
         padding: 0 20px;

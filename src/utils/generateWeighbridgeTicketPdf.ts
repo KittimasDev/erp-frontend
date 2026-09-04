@@ -234,7 +234,7 @@ function firstBlockHtml(data: WeighbridgeTicketPdfData) {
       <div class="headrow">
         <div class="titlebox">
           <div class="title-th">ตั๋วชั่ง</div>
-          <div class="title-en">Weighbridge Ticket · ${escapeHtml(data.ticketType)}</div>
+          <div class="title-en">Weighbridge Ticket</div>
         </div>
         <div class="docbox docbox-3">
           <div>
@@ -699,9 +699,10 @@ function createStyle() {
       }
 
       .weight-cell {
-        padding: 8px 6px 9px;
+        padding: 7px 6px 9px;
         text-align: center;
         border-right: 1px solid #D8DCE0;
+        line-height: 1;
       }
 
       .weight-cell:last-child { border-right: none; }
@@ -710,6 +711,7 @@ function createStyle() {
       .weight-label {
         font-size: 7px;
         color: #7A7A7A;
+        line-height: 1;
       }
 
       .weight-value {
@@ -717,6 +719,13 @@ function createStyle() {
         font-size: 13px;
         font-weight: 700;
         color: #343434;
+        line-height: 1;
+      }
+
+      .weight-cell.highlight .weight-label,
+      .weight-cell.highlight .weight-value,
+      .weight-cell.highlight .weight-unit {
+        transform: translateY(-2px);
       }
 
       .weight-cell.highlight .weight-value { color: #73b645; }
@@ -725,6 +734,7 @@ function createStyle() {
         margin-top: 2px;
         font-size: 6.5px;
         color: #7A7A7A;
+        line-height: 1;
       }
 
       .table {
@@ -819,10 +829,19 @@ function createStyle() {
         min-height: 18px;
         align-items: center;
         font-size: 7.5px;
+        line-height: 1;
+      }
+
+      .tot-row .k,
+      .tot-row .v {
+        display: flex;
+        align-items: center;
+        line-height: 1;
       }
 
       .tot-row .k { color: #343434; }
       .tot-row .v {
+        justify-content: flex-end;
         text-align: right;
         color: #7A7A7A;
         font-weight: 700;
@@ -832,8 +851,13 @@ function createStyle() {
         margin-top: 4px;
         background: #f2f8ec;
         border-radius: 4px;
-        padding: 6px 7px;
+        padding: 4px 7px 9px;
         font-size: 8px;
+      }
+
+      .grand .k,
+      .grand .v {
+        transform: translateY(-2px);
       }
 
       .grand .k {
@@ -1243,7 +1267,7 @@ function buildPages(
 function contStripHtml(data: WeighbridgeTicketPdfData) {
   return `
       <div class="cont-strip">
-        <span class="cont-title">ตั๋วชั่ง / Weighbridge Ticket</span>
+        <span class="cont-title">ตั๋วชั่ง</span>
         <span class="cont-no">เลขที่ ${escapeHtml(data.ticketNo)} · ${escapeHtml(dash(data.receiptNo))}</span>
       </div>`;
 }

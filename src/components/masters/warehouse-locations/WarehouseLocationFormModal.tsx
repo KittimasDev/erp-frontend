@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
-import { Form, Input, Modal, Select, Switch } from "antd";
+import { useEffect, useRef, type MutableRefObject } from "react";
+import { Form, Input, Modal, Select, Switch, type FormInstance } from "antd";
 
 import type {
   CreateWarehouseLocationRequest,
@@ -15,7 +15,7 @@ type WarehouseOption = {
 };
 
 type WarehouseLocationFormValues = {
-  warehouseId: string;
+  warehouseId?: string;
   code: string;
   name: string;
   description?: string;
@@ -33,71 +33,54 @@ type WarehouseLocationFormModalProps = {
   onSubmit: (values: CreateWarehouseLocationRequest) => void;
 };
 
-export default function WarehouseLocationFormModal({
-  open,
+function getInitialValues(
+  mode: "create" | "edit",
+  initialLocation?: WarehouseLocation | null,
+): WarehouseLocationFormValues {
+  if (mode === "edit" && initialLocation) {
+    return {
+      warehouseId: initialLocation.warehouseId,
+      code: initialLocation.locationCode,
+      name: initialLocation.locationName,
+      description: initialLocation.description,
+      isActive: initialLocation.isActive,
+    };
+  }
+
+  return {
+    warehouseId: undefined,
+    code: "",
+    name: "",
+    description: "",
+    isActive: true,
+  };
+}
+
+function WarehouseLocationFormBody({
   mode,
   initialLocation,
   warehouseOptions,
-  warehousesLoading = false,
-  confirmLoading = false,
-  onCancel,
-  onSubmit,
-}: WarehouseLocationFormModalProps) {
+  warehousesLoading,
+  formRef,
+}: {
+  mode: "create" | "edit";
+  initialLocation?: WarehouseLocation | null;
+  warehouseOptions: WarehouseOption[];
+  warehousesLoading: boolean;
+  formRef: MutableRefObject<FormInstance<WarehouseLocationFormValues> | null>;
+}) {
   const [form] = Form.useForm<WarehouseLocationFormValues>();
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    if (mode === "edit" && initialLocation) {
-      form.setFieldsValue({
-        warehouseId: initialLocation.warehouseId,
-        code: initialLocation.locationCode,
-        name: initialLocation.locationName,
-        description: initialLocation.description,
-        isActive: initialLocation.isActive,
-      });
-      return;
-    }
-
-    form.setFieldsValue({
-      warehouseId: undefined,
-      code: "",
-      name: "",
-      description: "",
-      isActive: true,
-    });
-  }, [open, mode, initialLocation, form]);
-
-  const handleOk = async () => {
-    const values = await form.validateFields();
-
-    onSubmit({
-      warehouseId: values.warehouseId,
-      code: values.code.trim(),
-      name: values.name.trim(),
-      description: values.description?.trim() || undefined,
-      isActive: values.isActive,
-    });
-  };
-
   const isCreateMode = mode === "create";
 
+  useEffect(() => {
+    formRef.current = form;
+    return () => {
+      formRef.current = null;
+    };
+  }, [form, formRef]);
+
   return (
-    <Modal
-      className={styles.masterModal}
-      title={null}
-      open={open}
-      onCancel={onCancel}
-      onOk={handleOk}
-      confirmLoading={confirmLoading}
-      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
-      cancelText="ยกเลิก"
-      destroyOnHidden
-      width={560}
-      centered
-    >
+    <>
       <div className={styles.modalHeader}>
         <div className={styles.modalIcon}>{isCreateMode ? "+" : "✎"}</div>
 
@@ -125,6 +108,8 @@ export default function WarehouseLocationFormModal({
         layout="vertical"
         requiredMark="optional"
         className={styles.form}
+        initialValues={getInitialValues(mode, initialLocation)}
+        preserve={false}
       >
         <div className={styles.sectionTitle}>
           <span className={styles.sectionLine} />
@@ -207,6 +192,61 @@ export default function WarehouseLocationFormModal({
           </Form.Item>
         </div>
       </Form>
+    </>
+  );
+}
+
+export default function WarehouseLocationFormModal({
+  open,
+  mode,
+  initialLocation,
+  warehouseOptions,
+  warehousesLoading = false,
+  confirmLoading = false,
+  onCancel,
+  onSubmit,
+}: WarehouseLocationFormModalProps) {
+  const formRef = useRef<FormInstance<WarehouseLocationFormValues> | null>(
+    null,
+  );
+  const isCreateMode = mode === "create";
+
+  const handleOk = async () => {
+    const values = await formRef.current?.validateFields();
+    if (!values?.warehouseId) {
+      return;
+    }
+
+    onSubmit({
+      warehouseId: values.warehouseId,
+      code: values.code.trim(),
+      name: values.name.trim(),
+      description: values.description?.trim() || undefined,
+      isActive: values.isActive,
+    });
+  };
+
+  return (
+    <Modal
+      className={styles.masterModal}
+      title={null}
+      open={open}
+      onCancel={onCancel}
+      onOk={handleOk}
+      confirmLoading={confirmLoading}
+      okText={isCreateMode ? "บันทึก" : "อัปเดต"}
+      cancelText="ยกเลิก"
+      destroyOnHidden
+      width={560}
+      centered
+    >
+      <WarehouseLocationFormBody
+        mode={mode}
+        initialLocation={initialLocation}
+        warehouseOptions={warehouseOptions}
+        warehousesLoading={warehousesLoading}
+        formRef={formRef}
+      />
     </Modal>
   );
 }

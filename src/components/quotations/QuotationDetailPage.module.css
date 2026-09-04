@@ -155,6 +155,10 @@
   gap: 4px;
 }
 
+.metaItemWide {
+  grid-column: 1 / -1;
+}
+
 .metaLabel {
   color: var(--pr-muted);
   font-size: 11px;
@@ -371,6 +375,12 @@
 .sideRows {
   display: grid;
   gap: 10px;
+}
+
+.sideHint {
+  margin: -4px 0 2px;
+  color: var(--pr-muted);
+  font-size: 11px;
 }
 
 .sideRow {

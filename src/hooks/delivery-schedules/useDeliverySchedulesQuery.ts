@@ -15,6 +15,7 @@ import {
   updateDeliverySchedule,
 } from "@/lib/api/delivery-schedules";
 import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
+import { SALES_ORDER_LIVE_QUERY_OPTIONS } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 import { salesOrdersQueryKey } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import type {
   CancelDeliveryScheduleBody,
@@ -33,10 +34,17 @@ export function deliveryScheduleStockStatusQueryKey(scheduleId: string) {
   return [...deliverySchedulesQueryKey, "stock-status", scheduleId] as const;
 }
 
+/**
+ * รายการรอบจัดส่ง — สดเท่ากับหัวใบสั่งขายที่แสดงอยู่หน้าเดียวกัน
+ *
+ * เดิมตกไปใช้ค่า global (stale 30 วิ) ขณะที่หัวใบข้าง ๆ ตั้ง staleTime 0
+ * ความไม่เข้ากันนั้นทำให้ผู้ใช้เห็นหัวใบสด แต่รายการรอบเป็นของเมื่อครู่
+ */
 export function useDeliverySchedulesQuery(salesOrderId?: string) {
   return useQuery({
     queryKey: deliverySchedulesBySalesOrderQueryKey(salesOrderId ?? ""),
     enabled: Boolean(salesOrderId) && hasAccessToken(),
+    ...SALES_ORDER_LIVE_QUERY_OPTIONS,
     queryFn: async () => {
       const res = await getDeliverySchedules(
         getAccessToken() ?? "",
@@ -64,6 +72,7 @@ export function useDeliveryScheduleStockStatusQuery(
       Boolean(scheduleId) && hasAccessToken() && options?.enabled !== false,
     staleTime: 0,
     refetchOnWindowFocus: true,
+    refetchOnMount: "always",
     queryFn: async () => {
       const res = await getDeliveryScheduleStockStatus(
         getAccessToken() ?? "",
@@ -96,11 +105,16 @@ function useInvalidateSchedules(salesOrderId?: string) {
 export function useCreateDeliveryScheduleMutation(salesOrderId?: string) {
   const invalidate = useInvalidateSchedules(salesOrderId);
   return useMutation({
-    mutationFn: async (body: CreateDeliveryScheduleBody) => {
+    mutationFn: async (params: {
+      body: CreateDeliveryScheduleBody;
+      /** เลขรุ่นของใบสั่งขาย ณ ตอนที่ผู้ใช้เปิดกล่อง */
+      expectedVersion: number;
+    }) => {
       const res = await createDeliverySchedule(
         getAccessToken() ?? "",
         salesOrderId!,
-        body,
+        params.body,
+        params.expectedVersion,
       );
       return res.data;
     },
@@ -114,11 +128,13 @@ export function useUpdateDeliveryScheduleMutation(salesOrderId?: string) {
     mutationFn: async (params: {
       id: string;
       body: UpdateDeliveryScheduleBody;
+      expectedVersion: number;
     }) => {
       const res = await updateDeliverySchedule(
         getAccessToken() ?? "",
         params.id,
         params.body,
+        params.expectedVersion,
       );
       return res.data;
     },
@@ -136,11 +152,13 @@ export function useRescheduleDeliveryScheduleMutation(salesOrderId?: string) {
     mutationFn: async (params: {
       id: string;
       body: RescheduleDeliveryScheduleBody;
+      expectedVersion: number;
     }) => {
       const res = await rescheduleDeliverySchedule(
         getAccessToken() ?? "",
         params.id,
         params.body,
+        params.expectedVersion,
       );
       return res.data;
     },
@@ -155,11 +173,13 @@ export function useCancelDeliveryScheduleMutation(salesOrderId?: string) {
     mutationFn: async (params: {
       id: string;
       body: CancelDeliveryScheduleBody;
+      expectedVersion: number;
     }) => {
       const res = await cancelDeliverySchedule(
         getAccessToken() ?? "",
         params.id,
         params.body,
+        params.expectedVersion,
       );
       return res.data;
     },

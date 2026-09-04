@@ -40,7 +40,7 @@ import {
 } from "@/hooks/quotations/useQuotationsQuery";
 import { useCompanyProfileQuery } from "@/hooks/company-profile/useCompanyProfileQuery";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
-import { pickDefaultTaxRatePercent } from "@/lib/money/pick-default-tax-rate";
+import { pickDefaultTaxRateId, pickDefaultTaxRatePercent } from "@/lib/money/pick-default-tax-rate";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { CreateQuotationBody } from "@/types/quotations";
 import { getStoredUser } from "@/lib/auth/session";
@@ -52,7 +52,6 @@ import {
   resolveWithholdingPercent,
   resolveWithholdingTaxType,
   VatMode,
-  VAT_MODE_OPTIONS,
   WITHHOLDING_TAX_TYPE_OPTIONS,
   WithholdingTaxType,
 } from "@/lib/money/vat-totals";
@@ -72,6 +71,7 @@ type FormValues = {
   quotationDate: dayjs.Dayjs;
   customerId: string;
   contactName?: string;
+  preparedByPhone?: string;
   paymentTermId?: string;
   vatMode: VatMode;
   taxRateId?: string;
@@ -101,6 +101,17 @@ function formatQty(value: number) {
     maximumFractionDigits: 3,
   });
 }
+
+function displayDash(value?: string | null) {
+  const text = value?.trim();
+  return text ? text : "—";
+}
+
+const QUOTATION_VAT_MODE_OPTIONS = [
+  { value: VatMode.NONE, label: "ไม่คิดภาษีมูลค่าเพิ่ม" },
+  { value: VatMode.EXCLUSIVE, label: "ไม่รวมในราคา" },
+  { value: VatMode.INCLUSIVE, label: "รวมในราคา" },
+];
 
 export default function QuotationFormPage({ mode, id }: Props) {
   const router = useRouter();
@@ -145,6 +156,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const watchedWhtType = Form.useWatch("withholdingTaxType", form);
   const watchedWhtPercent = Form.useWatch("withholdingTaxPercent", form);
   const watchedCustomerId = Form.useWatch("customerId", form);
+  const watchedTaxRateId = Form.useWatch("taxRateId", form);
   const preparedByName =
     getStoredUser()?.displayName?.trim() ||
     getStoredUser()?.username ||
@@ -207,6 +219,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
       quotationDate: dayjs(data.quotationDate),
       customerId: data.customerId,
       contactName: data.contactName,
+      preparedByPhone: data.preparedByPhone,
       paymentTermId: data.paymentTermId,
       vatMode: resolveVatMode(data.vatMode),
       taxRateId: data.taxRateId,
@@ -226,6 +239,19 @@ export default function QuotationFormPage({ mode, id }: Props) {
     });
   }, [detailQuery.data, form, mode, router]);
 
+  useEffect(() => {
+    if (mode !== "create") {
+      return;
+    }
+    if (form.getFieldValue("taxRateId")) {
+      return;
+    }
+    const taxRateId = pickDefaultTaxRateId(taxRates, defaultVatRate);
+    if (taxRateId) {
+      form.setFieldValue("taxRateId", taxRateId);
+    }
+  }, [defaultVatRate, form, mode, taxRates]);
+
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === watchedCustomerId),
     [customers, watchedCustomerId],
@@ -243,7 +269,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
     const rate =
       vatMode === VatMode.NONE
         ? 0
-        : pickDefaultTaxRatePercent(taxRates, defaultVatRate);
+        : Number(
+            taxRates.find((row) => row.id === watchedTaxRateId)?.rate ??
+              pickDefaultTaxRatePercent(taxRates, defaultVatRate),
+          );
     const totals = calcDocumentTotals(
       lineAmounts,
       Number(watchedDiscount) || 0,
@@ -266,6 +295,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
     watchedDiscount,
     taxRates,
     defaultVatRate,
+    watchedTaxRateId,
     watchedVatMode,
     watchedWhtType,
     watchedWhtPercent,
@@ -279,6 +309,9 @@ export default function QuotationFormPage({ mode, id }: Props) {
       "@/utils/generateSalesQuotationPdf"
     );
     const stored = getStoredUser();
+    const selectedTaxRate = taxRates.find(
+      (rate) => rate.id === values.taxRateId,
+    );
     await generateSalesQuotationPdf({
       quotationNo:
         mode === "edit" && detailQuery.data?.data?.quotationNo
@@ -289,15 +322,23 @@ export default function QuotationFormPage({ mode, id }: Props) {
         : "—",
       customerName: selectedCustomer?.nameTh ?? "—",
       customerCode: selectedCustomer?.customerCode ?? "—",
+      customerTaxId: selectedCustomer?.taxId,
+      customerAddress: selectedCustomer?.address,
+      customerPhone: selectedCustomer?.contactPhone,
       contactName: values.contactName?.trim() || "—",
       paymentTerm:
         paymentTerms.find((term) => term.id === values.paymentTermId)?.name ??
         "—",
+      taxRateLabel: selectedTaxRate
+        ? `${selectedTaxRate.name} (${Number(selectedTaxRate.rate)}%)`
+        : undefined,
+      withholdingTaxType: values.withholdingTaxType,
       validUntil: values.validUntil
         ? values.validUntil.format("DD/MM/YYYY")
         : "—",
       remark: sanitizeDocumentHtml(values.remark) || "",
       preparedBy: { id: stored?.id, name: preparedByName },
+      preparedByPhone: values.preparedByPhone,
       draftBanner: mode === "create" ? "ตัวอย่างเอกสารร่าง" : undefined,
       subtotalAmount: preview.subtotal,
       discountAmount: preview.discount,
@@ -352,8 +393,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
       quotationDate: values.quotationDate.format("YYYY-MM-DD"),
       customerId: values.customerId,
       contactName: values.contactName?.trim() || undefined,
+      preparedByPhone: values.preparedByPhone?.trim() || undefined,
       paymentTermId: values.paymentTermId,
       vatMode,
+      taxRateId: values.taxRateId,
       withholdingTaxType: values.withholdingTaxType,
       withholdingTaxPercent: resolveWithholdingPercent(
         values.withholdingTaxType,
@@ -407,7 +450,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
           <FileTextOutlined />
         </div>
         <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Quotation</p>
+          <p className={styles.eyebrow}>ใบเสนอราคา</p>
           <h1 className={styles.pageTitle}>
             {mode === "create" ? "สร้างใบเสนอราคา" : "แก้ไขใบเสนอราคา"}
           </h1>
@@ -441,7 +484,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
           >
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
-                <Typography.Title level={5}>ข้อมูลหัวเอกสาร</Typography.Title>
+                <Typography.Title level={5}>ข้อมูลลูกค้า</Typography.Title>
                 <div className={styles.formGrid}>
                   <Form.Item label="ลูกค้า" required>
                     <div className={styles.customerField}>
@@ -453,7 +496,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                         <Select
                           showSearch
                           optionFilterProp="label"
-                          placeholder="เลือกจาก Master ลูกค้า"
+                          placeholder="เลือกลูกค้า"
                           loading={customersQuery.isLoading}
                           notFoundContent={
                             customersQuery.isLoading
@@ -510,12 +553,45 @@ export default function QuotationFormPage({ mode, id }: Props) {
                       ) : null}
                     </div>
                   </Form.Item>
+                  <Form.Item label="รหัสลูกค้า">
+                    <Input
+                      disabled
+                      value={displayDash(selectedCustomer?.customerCode)}
+                    />
+                  </Form.Item>
+                  <Form.Item label="เลขที่ผู้เสียภาษี">
+                    <Input
+                      disabled
+                      value={displayDash(selectedCustomer?.taxId)}
+                    />
+                  </Form.Item>
+                  <Form.Item label="เบอร์โทร">
+                    <Input
+                      disabled
+                      value={displayDash(selectedCustomer?.contactPhone)}
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    className={styles.formGridFull}
+                    label="ที่อยู่"
+                  >
+                    <Input.TextArea
+                      disabled
+                      rows={2}
+                      value={displayDash(selectedCustomer?.address)}
+                    />
+                  </Form.Item>
                   <Form.Item name="contactName" label="ผู้ติดต่อ">
                     <Input placeholder="ดึงจากข้อมูลลูกค้า แล้วแก้ได้" />
                   </Form.Item>
-                  <Form.Item label="ผู้เสนอราคา">
-                    <Input value={preparedByName} disabled />
-                  </Form.Item>
+                </div>
+              </div>
+
+              <div className={styles.sectionBlock}>
+                <Typography.Title level={5}>
+                  การชำระเงินและการจัดส่ง
+                </Typography.Title>
+                <div className={styles.formGrid}>
                   <Form.Item
                     name="quotationDate"
                     label="วันที่เอกสาร"
@@ -523,10 +599,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   >
                     <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
                   </Form.Item>
-                  <Form.Item name="validUntil" label="ยืนราคาถึงวันที่">
+                  <Form.Item name="validUntil" label="วันหมดอายุ">
                     <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
                   </Form.Item>
-                  <Form.Item name="paymentTermId" label="เงื่อนไขชำระ">
+                  <Form.Item name="paymentTermId" label="เงื่อนไขการชำระเงิน">
                     <Select
                       allowClear
                       showSearch
@@ -538,8 +614,21 @@ export default function QuotationFormPage({ mode, id }: Props) {
                       }))}
                     />
                   </Form.Item>
-                  <Form.Item name="vatMode" label="รูปแบบ VAT">
-                    <Select options={VAT_MODE_OPTIONS} />
+                  <Form.Item name="taxRateId" label="อัตราภาษี">
+                    <Select
+                      allowClear
+                      showSearch
+                      optionFilterProp="label"
+                      placeholder="เลือกอัตราภาษี"
+                      loading={taxRatesQuery.isLoading}
+                      options={taxRates.map((rate) => ({
+                        value: rate.id,
+                        label: `${rate.name} (${Number(rate.rate)}%)`,
+                      }))}
+                    />
+                  </Form.Item>
+                  <Form.Item name="vatMode" label="รูปแบบภาษีมูลค่าเพิ่ม">
+                    <Select options={QUOTATION_VAT_MODE_OPTIONS} />
                   </Form.Item>
                   <Form.Item
                     name="withholdingTaxType"
@@ -557,6 +646,23 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   ) : null}
                   <Form.Item name="discountAmount" label="ส่วนลดท้ายบิล">
                     <InputNumber min={0} style={{ width: "100%" }} />
+                  </Form.Item>
+                  <Form.Item label="ผู้เสนอราคา">
+                    <Input value={preparedByName} disabled />
+                  </Form.Item>
+                  <Form.Item name="preparedByPhone" label="เบอร์โทรผู้เสนอราคา">
+                    <Input placeholder="เช่น 0812345678" />
+                  </Form.Item>
+                  <Form.Item
+                    className={styles.formGridFull}
+                    name="remark"
+                    label="หมายเหตุ"
+                    style={{ marginBottom: 0 }}
+                  >
+                    <DocumentHtmlEditor
+                      ariaLabel="หมายเหตุ"
+                      placeholder="รายละเอียดเพิ่มเติมบนใบเสนอราคา"
+                    />
                   </Form.Item>
                 </div>
               </div>
@@ -724,16 +830,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   )}
                 </Form.List>
               </div>
-
-              <div className={styles.sectionBlock}>
-                <Typography.Title level={5}>หมายเหตุเอกสาร</Typography.Title>
-                <Form.Item name="remark" style={{ marginBottom: 0 }}>
-                  <DocumentHtmlEditor
-                    ariaLabel="หมายเหตุเอกสาร"
-                    placeholder="รายละเอียดเพิ่มเติมบนใบเสนอราคา"
-                  />
-                </Form.Item>
-              </div>
             </div>
 
             <div className={styles.footerBar}>
@@ -763,7 +859,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   className={styles.primaryBtn}
                   loading={saving}
                 >
-                  บันทึก DRAFT
+                  บันทึกร่าง
                 </Button>
               </div>
             </div>
@@ -771,8 +867,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
         </section>
 
         <aside className={styles.summaryCard}>
-          <div className={styles.summaryEyebrow}>SUMMARY</div>
-          <h3 className={styles.summaryTitle}>สรุปยอด</h3>
+          <h3 className={styles.summaryTitle}>สรุปยอดเงิน</h3>
           <p className={styles.summaryLead}>
             {selectedCustomer
               ? `${selectedCustomer.customerCode} — ${selectedCustomer.nameTh}`
@@ -791,6 +886,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
               <span>ยอดหลังหักส่วนลด</span>
               <strong>{formatMoney(preview.afterDiscount)}</strong>
             </div>
+            <p className={styles.summaryHint}>ฐานก่อนคำนวณภาษีมูลค่าเพิ่ม</p>
             <div className={styles.summaryRow}>
               <span>
                 {preview.vatRate > 0

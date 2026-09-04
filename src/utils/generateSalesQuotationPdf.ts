@@ -1,4 +1,5 @@
 import { getUserSignatureDataUrl } from "@/lib/user/user-signature";
+import { withholdingTaxTypeLabel } from "@/lib/money/vat-totals";
 
 import {
   generateSalesCommercialPdf,
@@ -11,8 +12,13 @@ export type SalesQuotationPdfData = {
   quotationDate: string;
   customerName: string;
   customerCode: string;
+  customerTaxId?: string;
+  customerAddress?: string;
+  customerPhone?: string;
   contactName?: string;
   paymentTerm: string;
+  taxRateLabel?: string;
+  withholdingLabel?: string;
   validUntil: string;
   remark: string;
   subtotalAmount: number;
@@ -22,11 +28,18 @@ export type SalesQuotationPdfData = {
   vatRate?: number;
   withholdingAmount?: number;
   withholdingPercent?: number;
+  withholdingTaxType?: string;
   totalAmount: number;
   items: SalesLinePdfItem[];
   preparedBy?: { id?: string; name?: string };
+  preparedByPhone?: string;
   draftBanner?: string;
 };
+
+function dash(value?: string) {
+  const text = value?.trim();
+  return text ? text : "—";
+}
 
 function quotationTotalsLines(
   data: SalesQuotationPdfData,
@@ -56,23 +69,49 @@ function quotationTotalsLines(
 
 export async function generateSalesQuotationPdf(data: SalesQuotationPdfData) {
   const preparedSignature = await getUserSignatureDataUrl(data.preparedBy?.id);
+  const withholdingLabel =
+    data.withholdingLabel?.trim() ||
+    withholdingTaxTypeLabel(data.withholdingTaxType, data.withholdingPercent);
+  const taxRateLabel =
+    data.taxRateLabel?.trim() ||
+    (typeof data.vatRate === "number" && data.vatRate > 0
+      ? `ภาษีมูลค่าเพิ่ม ${data.vatRate}%`
+      : "—");
 
   await generateSalesCommercialPdf({
     pageId: "sales-quotation-pdf",
     titleTh: "ใบเสนอราคา",
-    titleEn: "SALES QUOTATION",
     docNo: data.quotationNo,
     docDate: data.quotationDate,
     draftBanner: data.draftBanner,
-    infoRows: [
-      { label: "ลูกค้า", value: data.customerName },
-      { label: "รหัสลูกค้า", value: data.customerCode },
-      { label: "ผู้ติดต่อ", value: data.contactName || "—" },
-      { label: "เงื่อนไขชำระ", value: data.paymentTerm },
-      { label: "ยืนราคาถึงวันที่", value: data.validUntil },
+    infoRows: [],
+    infoSections: [
+      {
+        title: "ข้อมูลลูกค้า",
+        rows: [
+          { label: "ลูกค้า", value: dash(data.customerName) },
+          { label: "รหัสลูกค้า", value: dash(data.customerCode) },
+          { label: "เลขที่ผู้เสียภาษี", value: dash(data.customerTaxId) },
+          { label: "ที่อยู่", value: dash(data.customerAddress) },
+          { label: "เบอร์โทร", value: dash(data.customerPhone) },
+          { label: "ผู้ติดต่อ", value: dash(data.contactName) },
+        ],
+      },
+      {
+        title: "การชำระเงินและการจัดส่ง",
+        rows: [
+          { label: "เงื่อนไขการชำระเงิน", value: dash(data.paymentTerm) },
+          { label: "อัตราภาษี", value: dash(taxRateLabel) },
+          { label: "ภาษีหัก ณ ที่จ่าย", value: dash(withholdingLabel) },
+          { label: "วันหมดอายุ", value: dash(data.validUntil) },
+          { label: "ผู้เสนอราคา", value: dash(data.preparedBy?.name) },
+          { label: "เบอร์โทรผู้เสนอราคา", value: dash(data.preparedByPhone) },
+        ],
+      },
     ],
     items: data.items,
     withPrices: true,
+    columnLabels: { no: "ลำดับ" },
     subtotalAmount: data.subtotalAmount,
     discountAmount: data.discountAmount,
     vatAmount: data.vatAmount,

@@ -34,12 +34,18 @@ import {
   useActivateCustomerMutation,
   useDeactivateCustomerMutation,
 } from "@/hooks/customers/useActivateDeactivateCustomerMutation";
+import { useCreateCustomerMutation } from "@/hooks/customers/useCreateCustomerMutation";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { CUSTOMER_TYPES } from "@/types/customers";
-import type { Customer, CustomerQueryParams } from "@/types/customers";
+import type {
+  CreateCustomerRequest,
+  Customer,
+  CustomerQueryParams,
+} from "@/types/customers";
 
 import styles from "@/components/masters/shared/master-page.module.css";
 import pageStyles from "./customers-page.module.css";
+import CustomerFormModal from "./CustomerFormModal";
 
 const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   DOMESTIC: "ในประเทศ",
@@ -143,6 +149,7 @@ export default function CustomersPage() {
   }
 
   const customersQuery = useCustomersQuery(filters);
+  const createMutation = useCreateCustomerMutation();
   const activateMutation = useActivateCustomerMutation();
   const deactivateMutation = useDeactivateCustomerMutation();
 
@@ -177,6 +184,25 @@ export default function CustomersPage() {
 
   const summaryCardClass = `${styles.summaryCard} ${pageStyles.summaryCard}`;
 
+  const [createOpen, setCreateOpen] = useState(
+    () => searchParams.get("create") === "1",
+  );
+
+  const closeCreate = () => {
+    setCreateOpen(false);
+    if (searchParams.get("create") !== "1") {
+      return;
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("create");
+    const query = next.toString();
+    window.history.replaceState(
+      null,
+      "",
+      query ? `${pathname}?${query}` : pathname,
+    );
+  };
+
   const applyFiltersToUrl = (values: CustomerFilterFormValues) => {
     const next = buildSearchFromForm(values);
     const query = next.toString();
@@ -190,6 +216,12 @@ export default function CustomersPage() {
   const handleClearFilters = () => {
     form.resetFields();
     router.replace(pathname);
+  };
+
+  const handleCreate = (values: CreateCustomerRequest) => {
+    createMutation.mutate(values, {
+      onSuccess: closeCreate,
+    });
   };
 
   const columns: ColumnsType<Customer> = [
@@ -370,7 +402,7 @@ export default function CustomersPage() {
               size="large"
               className={`${styles.createButton} ${pageStyles.createButton}`}
               icon={<PlusOutlined />}
-              onClick={() => router.push("/customers/create")}
+              onClick={() => setCreateOpen(true)}
             >
               เพิ่มลูกค้า
             </Button>
@@ -577,6 +609,14 @@ export default function CustomersPage() {
           )}
         </div>
       </section>
+
+      <CustomerFormModal
+        open={createOpen}
+        mode="create"
+        confirmLoading={createMutation.isPending}
+        onCancel={closeCreate}
+        onSubmit={handleCreate}
+      />
     </MasterPageGate>
   );
 }

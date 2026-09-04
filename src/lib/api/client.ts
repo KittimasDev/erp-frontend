@@ -16,13 +16,18 @@ type ApiFetchOptions = Omit<RequestInit, "body"> & {
   token?: string | null;
   /** Skip auto-redirect on 401 (e.g. login request) */
   skipAuthRedirect?: boolean;
+  /**
+   * เลขรุ่นเอกสารที่ผู้ใช้เห็นตอนเริ่มแก้ — ส่งเป็น header `If-Match`
+   * ไม่ตรงกับของจริงบน server จะได้ 409 แทนที่จะบันทึกทับงานคนอื่นเงียบ ๆ
+   */
+  ifMatch?: number | string | null;
 };
 
 export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  const { body, token, headers, skipAuthRedirect, ...rest } = options;
+  const { body, token, headers, skipAuthRedirect, ifMatch, ...rest } = options;
 
   const isFormData =
     typeof FormData !== "undefined" && body instanceof FormData;
@@ -35,6 +40,9 @@ export async function apiFetch<T>(
         ? { "Content-Type": "application/json" }
         : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(ifMatch !== undefined && ifMatch !== null
+        ? { "If-Match": `"${ifMatch}"` }
+        : {}),
       ...headers,
     },
     body:

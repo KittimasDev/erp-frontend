@@ -17,6 +17,9 @@ export type QuotationCustomerSummary = {
   id: string;
   customerCode: string;
   nameTh: string;
+  taxId?: string;
+  address?: string;
+  contactPhone?: string;
 };
 
 export type QuotationPaymentTermSummary = {
@@ -66,6 +69,7 @@ export type Quotation = {
   taxRate?: QuotationTaxRateSummary;
   vatMode?: string;
   contactName?: string;
+  preparedByPhone?: string;
   withholdingTaxType?: string;
   withholdingTaxPercent?: string;
   withholdingTaxAmount?: string;
@@ -107,6 +111,7 @@ export type CreateQuotationBody = {
   quotationDate: string;
   customerId: string;
   contactName?: string;
+  preparedByPhone?: string;
   paymentTermId?: string;
   vatMode?: string;
   taxRateId?: string;

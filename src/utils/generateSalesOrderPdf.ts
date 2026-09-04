@@ -37,6 +37,8 @@ export type SalesOrderPdfData = {
   taxRatePercent?: number;
   revisedAt?: string;
   confirmedAt?: string;
+  /** เลขฉบับเอกสาร — ฉบับเก่าพิมพ์เลขของตัวเอง ไม่ใช่เลขปัจจุบัน */
+  revisionNo?: number;
   subtotalAmount: number;
   discountAmount: number;
   vatAmount: number;
@@ -95,7 +97,7 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
     docNo: data.soNo,
     docDate: data.soDate,
     revisionLabel:
-      salesOrderRevisionStamp(data.revisedAt, data.confirmedAt) ?? undefined,
+      salesOrderRevisionStamp(data.revisionNo, data.revisedAt),
     draftBanner: data.isDraftPreview
       ? "ตัวอย่างจากข้อมูลปัจจุบัน รวมส่วนที่กำลังแก้ไขยังไม่ได้บันทึก"
       : undefined,

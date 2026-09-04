@@ -38,6 +38,7 @@ import {
   useUploadPaymentSlipMutation,
 } from "@/hooks/raw-tire-payment/usePaymentMutations";
 import { useRawTirePaymentQuery } from "@/hooks/raw-tire-payment/useRawTirePaymentQuery";
+import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
 import { downloadRawTirePurchasePaymentSlip } from "@/lib/api/raw-tire-purchase-receipts";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -120,6 +121,13 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
 
   const paymentQuery = useRawTirePaymentQuery(receiptId);
   const context = paymentQuery.data?.data;
+  /*
+    endpoint /payment คืน receipt มาเป็นยอดสรุป ไม่มีรายการรับซื้อ
+    ใบสำคัญจ่ายต้องพิมพ์ตารางรายการด้วย จึงดึงรายละเอียดใบรับซื้อมาอีกชุด
+    ยังไม่โหลดเสร็จก็พิมพ์ได้ ตารางจะถอยไปเป็นแถวสรุปแถวเดียว
+  */
+  const receiptQuery = useRawTirePurchaseReceiptQuery(receiptId);
+  const receipt = receiptQuery.data?.data ?? null;
   const payMutation = usePayReceiptMutation(receiptId);
   const uploadSlipMutation = useUploadPaymentSlipMutation(receiptId);
 
@@ -217,7 +225,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
       const { generateRawTirePaymentVoucherPdf, mapPaymentContextToPdfData } =
         await import("@/utils/generateRawTirePaymentVoucherPdf");
       await generateRawTirePaymentVoucherPdf(
-        mapPaymentContextToPdfData(context),
+        mapPaymentContextToPdfData(context, receipt),
       );
     } finally {
       setIsPrinting(false);

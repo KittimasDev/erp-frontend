@@ -703,7 +703,8 @@ export default function ReceivingTicketClassifyWeighPanel({
       const { generateRawTirePaymentVoucherPdf, mapPaymentContextToPdfData } =
         await import("@/utils/generateRawTirePaymentVoucherPdf");
       await generateRawTirePaymentVoucherPdf(
-        mapPaymentContextToPdfData(paymentContext),
+        // ส่ง receipt เข้าไปด้วย ใบสำคัญจ่ายจะได้พิมพ์ตารางรายการรับซื้อ
+        mapPaymentContextToPdfData(paymentContext, receipt),
       );
     } catch (error) {
       message.error(

@@ -540,10 +540,19 @@ function createStyle() {
         min-height: 18px;
         align-items: center;
         font-size: 7.5px;
+        line-height: 1;
+      }
+
+      .tot-row .k,
+      .tot-row .v {
+        display: flex;
+        align-items: center;
+        line-height: 1;
       }
 
       .tot-row .k { color: #343434; }
       .tot-row .v {
+        justify-content: flex-end;
         text-align: right;
         color: #7A7A7A;
         font-weight: 700;
@@ -553,8 +562,13 @@ function createStyle() {
         margin-top: 4px;
         background: #f2f8ec;
         border-radius: 4px;
-        padding: 6px 7px;
+        padding: 4px 7px 9px;
         font-size: 8px;
+      }
+
+      .grand .k,
+      .grand .v {
+        transform: translateY(-2px);
       }
 
       .grand .k {

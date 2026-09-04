@@ -30,13 +30,16 @@ import {
   useActivateWarehouseMutation,
   useDeactivateWarehouseMutation,
 } from "@/hooks/warehouses/useActivateDeactivateWarehouseMutation";
+import { useCreateWarehouseMutation } from "@/hooks/warehouses/useCreateWarehouseMutation";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type {
+  CreateWarehouseRequest,
   Warehouse,
   WarehouseQueryParams,
 } from "@/types/warehouses";
 
 import styles from "@/components/masters/shared/master-page.module.css";
+import WarehouseFormModal from "./WarehouseFormModal";
 
 type WarehouseFilterFormValues = {
   code?: string;
@@ -188,12 +191,31 @@ export default function WarehousesPage() {
   }
 
   const warehousesQuery = useWarehousesQuery(filters);
+  const createMutation = useCreateWarehouseMutation();
   const activateMutation = useActivateWarehouseMutation();
   const deactivateMutation = useDeactivateWarehouseMutation();
 
   const warehouses = warehousesQuery.data?.data ?? [];
   const activeCount = warehouses.filter((item) => item.isActive).length;
   const inactiveCount = warehouses.filter((item) => !item.isActive).length;
+  const [createOpen, setCreateOpen] = useState(
+    () => searchParams.get("create") === "1",
+  );
+
+  const closeCreate = () => {
+    setCreateOpen(false);
+    if (searchParams.get("create") !== "1") {
+      return;
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("create");
+    const query = next.toString();
+    window.history.replaceState(
+      null,
+      "",
+      query ? `${pathname}?${query}` : pathname,
+    );
+  };
 
   const applyFiltersToUrl = (values: WarehouseFilterFormValues) => {
     const next = buildSearchFromForm(values);
@@ -208,6 +230,12 @@ export default function WarehousesPage() {
   const handleClearFilters = () => {
     form.resetFields();
     router.replace(pathname);
+  };
+
+  const handleCreate = (values: CreateWarehouseRequest) => {
+    createMutation.mutate(values, {
+      onSuccess: closeCreate,
+    });
   };
 
   const columns: ColumnsType<Warehouse> = [
@@ -367,7 +395,7 @@ export default function WarehousesPage() {
           size="large"
           className={styles.createButton}
           icon={<PlusOutlined />}
-          onClick={() => router.push("/warehouses/create")}
+          onClick={() => setCreateOpen(true)}
         >
           เพิ่มคลังสินค้า
         </Button>
@@ -563,6 +591,14 @@ export default function WarehousesPage() {
           />
         )}
       </div>
+
+      <WarehouseFormModal
+        open={createOpen}
+        mode="create"
+        confirmLoading={createMutation.isPending}
+        onCancel={closeCreate}
+        onSubmit={handleCreate}
+      />
       </section>
     </MasterPageGate>
   );

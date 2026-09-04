@@ -30,14 +30,17 @@ import {
   useActivateWarehouseLocationMutation,
   useDeactivateWarehouseLocationMutation,
 } from "@/hooks/warehouse-locations/useActivateDeactivateWarehouseLocationMutation";
+import { useCreateWarehouseLocationMutation } from "@/hooks/warehouse-locations/useCreateWarehouseLocationMutation";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type {
+  CreateWarehouseLocationRequest,
   WarehouseLocation,
   WarehouseLocationQueryParams,
 } from "@/types/warehouse-locations";
 
 import styles from "@/components/masters/shared/master-page.module.css";
+import WarehouseLocationFormModal from "./WarehouseLocationFormModal";
 
 type WarehouseLocationFilterFormValues = {
   warehouseId?: string;
@@ -161,6 +164,7 @@ export default function WarehouseLocationsPage() {
 
   const warehousesQuery = useWarehousesQuery();
   const locationsQuery = useWarehouseLocationsQuery(filters);
+  const createMutation = useCreateWarehouseLocationMutation();
   const activateMutation = useActivateWarehouseLocationMutation();
   const deactivateMutation = useDeactivateWarehouseLocationMutation();
 
@@ -188,6 +192,24 @@ export default function WarehouseLocationsPage() {
   const locations = locationsQuery.data?.data ?? [];
   const activeCount = locations.filter((item) => item.isActive).length;
   const inactiveCount = locations.filter((item) => !item.isActive).length;
+  const [createOpen, setCreateOpen] = useState(
+    () => searchParams.get("create") === "1",
+  );
+
+  const closeCreate = () => {
+    setCreateOpen(false);
+    if (searchParams.get("create") !== "1") {
+      return;
+    }
+    const next = new URLSearchParams(searchParams.toString());
+    next.delete("create");
+    const query = next.toString();
+    window.history.replaceState(
+      null,
+      "",
+      query ? `${pathname}?${query}` : pathname,
+    );
+  };
 
   const applyFiltersToUrl = (values: WarehouseLocationFilterFormValues) => {
     const next = buildSearchFromForm(values);
@@ -202,6 +224,12 @@ export default function WarehouseLocationsPage() {
   const handleClearFilters = () => {
     form.resetFields();
     router.replace(pathname);
+  };
+
+  const handleCreate = (values: CreateWarehouseLocationRequest) => {
+    createMutation.mutate(values, {
+      onSuccess: closeCreate,
+    });
   };
 
   const columns: ColumnsType<WarehouseLocation> = [
@@ -351,7 +379,7 @@ export default function WarehouseLocationsPage() {
           size="large"
           className={styles.createButton}
           icon={<PlusOutlined />}
-          onClick={() => router.push("/warehouse-locations/create")}
+          onClick={() => setCreateOpen(true)}
         >
           เพิ่มตำแหน่งจัดเก็บ
         </Button>
@@ -528,6 +556,16 @@ export default function WarehouseLocationsPage() {
           />
         )}
       </div>
+
+      <WarehouseLocationFormModal
+        open={createOpen}
+        mode="create"
+        warehouseOptions={warehouseOptions}
+        warehousesLoading={warehousesQuery.isLoading}
+        confirmLoading={createMutation.isPending}
+        onCancel={closeCreate}
+        onSubmit={handleCreate}
+      />
       </section>
     </MasterPageGate>
   );

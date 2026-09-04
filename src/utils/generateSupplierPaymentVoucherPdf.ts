@@ -510,9 +510,10 @@ function createStyle() {
         border: 1px solid #D8DCE0;
         border-radius: 5px;
         background: #f2f8ec;
-        padding: 12px 14px;
+        padding: 10px 14px 14px;
         text-align: center;
         flex-shrink: 0;
+        line-height: 1;
       }
 
       .hero-label {
@@ -520,13 +521,16 @@ function createStyle() {
         color: #343434;
         font-weight: 700;
         margin-bottom: 5px;
+        line-height: 1;
+        transform: translateY(-2px);
       }
 
       .hero-value {
         font-size: 21px;
         color: #73b645;
         font-weight: 700;
-        line-height: 1.1;
+        line-height: 1;
+        transform: translateY(-2px);
       }
 
       .hero-value span {
@@ -539,6 +543,8 @@ function createStyle() {
         font-size: 7.5px;
         font-weight: 700;
         color: #343434;
+        line-height: 1;
+        transform: translateY(-2px);
       }
 
       .table {

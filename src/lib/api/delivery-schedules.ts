@@ -20,10 +20,12 @@ export function createDeliverySchedule(
   token: string,
   salesOrderId: string,
   body: CreateDeliveryScheduleBody,
+  /** เลขรุ่นของ *ใบสั่งขาย* — ยังไม่มีรอบให้เทียบ และจำนวนตั้งต้นมาจากยอดทั้งใบ */
+  expectedVersion: number,
 ) {
   return apiFetch<DeliveryScheduleApiResponse>(
     `/api/sales-orders/${salesOrderId}/delivery-schedules`,
-    { method: "POST", token, body },
+    { method: "POST", token, body, ifMatch: expectedVersion },
   );
 }
 
@@ -49,10 +51,12 @@ export function updateDeliverySchedule(
   token: string,
   id: string,
   body: UpdateDeliveryScheduleBody,
+  /** เลขรุ่นของรอบนี้ — แก้รอบอื่นพร้อมกันไม่ชนกัน */
+  expectedVersion: number,
 ) {
   return apiFetch<DeliveryScheduleApiResponse>(
     `/api/sales-orders/delivery-schedules/${id}`,
-    { method: "PATCH", token, body },
+    { method: "PATCH", token, body, ifMatch: expectedVersion },
   );
 }
 
@@ -64,10 +68,11 @@ export function rescheduleDeliverySchedule(
   token: string,
   id: string,
   body: RescheduleDeliveryScheduleBody,
+  expectedVersion: number,
 ) {
   return apiFetch<DeliveryScheduleApiResponse>(
     `/api/sales-orders/delivery-schedules/${id}/reschedule`,
-    { method: "POST", token, body },
+    { method: "POST", token, body, ifMatch: expectedVersion },
   );
 }
 
@@ -76,9 +81,10 @@ export function cancelDeliverySchedule(
   token: string,
   id: string,
   body: CancelDeliveryScheduleBody,
+  expectedVersion: number,
 ) {
   return apiFetch<DeliveryScheduleApiResponse>(
     `/api/sales-orders/delivery-schedules/${id}/cancel`,
-    { method: "POST", token, body },
+    { method: "POST", token, body, ifMatch: expectedVersion },
   );
 }
