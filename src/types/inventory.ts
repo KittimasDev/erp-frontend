@@ -45,6 +45,7 @@ export type StockBalanceQueryParams = {
   itemId?: string;
   itemCategoryId?: string;
   itemCategoryCode?: string;
+  isFinishedGood?: boolean;
   q?: string;
   hasStock?: boolean;
 };
@@ -137,6 +138,7 @@ export type StockMovementQueryParams = {
   from?: string;
   to?: string;
   itemCategoryCode?: string;
+  isFinishedGood?: boolean;
   q?: string;
 };
 
@@ -192,6 +194,7 @@ export type InventoryLotQueryParams = {
   itemId?: string;
   status?: string;
   itemCategoryCode?: string;
+  isFinishedGood?: boolean;
   q?: string;
   hasStock?: boolean;
   nearExpiry?: boolean;

@@ -3,6 +3,8 @@
  * Stored in sessionStorage so a tab keeps context until home / logout.
  */
 
+import { isFgInventoryScope } from "@/components/inventory/inventory-page-copy";
+
 export const PORTAL_MODULE_STORAGE_KEY = "erp_active_portal_module";
 
 export const PORTAL_MODULE_UPDATED_EVENT = "erp-portal-module-updated";
@@ -123,14 +125,7 @@ export function clearActivePortalModule() {
   setActivePortalModule(null);
 }
 
-/**
- * Infer module from current path when session has no active module
- * (e.g. deep link / refresh on an inner page).
- */
-/**
- * หน้าคลังที่ RM กับ FG ใช้ร่วมกัน — แยกกันด้วย `itemCategoryCode` บน query เท่านั้น
- * ดูแต่ path จะตกเป็นคลังวัตถุดิบเสมอ (tile "คลังสำเร็จรูป" เคยพาไปผิดโมดูลเพราะเหตุนี้)
- */
+/** หน้าคลังที่ RM กับ FG ใช้ร่วมกัน — แยกด้วย isFinishedGood บน query */
 const SHARED_INVENTORY_PATHS = [
   "/inventory/stock-balances",
   "/inventory/lots",
@@ -139,14 +134,14 @@ const SHARED_INVENTORY_PATHS = [
 
 export function inferPortalModuleFromPathname(
   pathname: string,
-  itemCategoryCode?: string | null,
+  searchParams?: { get(name: string): string | null } | null,
 ): PortalModuleKey | null {
   if (!pathname || pathname === "/") {
     return null;
   }
 
   if (
-    itemCategoryCode?.trim() === "FINISHED_GOODS" &&
+    isFgInventoryScope(searchParams) &&
     SHARED_INVENTORY_PATHS.some((path) => pathname.startsWith(path))
   ) {
     return "fg-warehouse";
@@ -281,13 +276,13 @@ export function inferPortalModuleFromPathname(
 
 export function resolveActivePortalModule(
   pathname: string,
-  itemCategoryCode?: string | null,
+  searchParams?: { get(name: string): string | null } | null,
 ): PortalModuleKey | null {
   if (pathname === "/") {
     return null;
   }
   return (
-    inferPortalModuleFromPathname(pathname, itemCategoryCode) ??
+    inferPortalModuleFromPathname(pathname, searchParams) ??
     getActivePortalModule()
   );
 }
@@ -295,13 +290,13 @@ export function resolveActivePortalModule(
 /** Keep sessionStorage aligned when the user navigates across portal modules. */
 export function syncActivePortalModuleFromPathname(
   pathname: string,
-  itemCategoryCode?: string | null,
+  searchParams?: { get(name: string): string | null } | null,
 ) {
   if (pathname === "/") {
     clearActivePortalModule();
     return;
   }
-  const inferred = inferPortalModuleFromPathname(pathname, itemCategoryCode);
+  const inferred = inferPortalModuleFromPathname(pathname, searchParams);
   if (!inferred || inferred === getActivePortalModule()) {
     return;
   }

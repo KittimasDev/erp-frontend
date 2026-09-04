@@ -19,7 +19,10 @@ export type Item = {
   isStockItem: boolean;
   isIssueItem: boolean;
   isSalesItem: boolean;
+  isFinishedGood: boolean;
   minimumStockQty: string;
+  /** ราคาขายต่อหน่วย (ก่อน VAT) — null/undefined = ยังไม่กำหนด */
+  sellingPrice?: string;
   requiresLotControl: boolean;
   requiresQc: boolean;
   requiresExpiryDate: boolean;
@@ -42,6 +45,7 @@ export type ItemQueryParams = {
   isPurchaseItem?: boolean;
   isStockItem?: boolean;
   isSalesItem?: boolean;
+  isFinishedGood?: boolean;
 };
 
 export type CreateItemRequest = {
@@ -55,7 +59,10 @@ export type CreateItemRequest = {
   isStockItem?: boolean;
   isIssueItem?: boolean;
   isSalesItem?: boolean;
+  isFinishedGood?: boolean;
   minimumStockQty?: number;
+  /** บังคับส่งเมื่อ isSalesItem = true — backend ปฏิเสธถ้าไม่มี */
+  sellingPrice?: number;
   requiresLotControl?: boolean;
   requiresQc?: boolean;
   requiresExpiryDate?: boolean;

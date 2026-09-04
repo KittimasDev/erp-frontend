@@ -288,6 +288,7 @@ export function PlanLineRow({
   removable,
   stockItemsOnly = false,
   itemCategoryCode,
+  isFinishedGood,
   unitCtx,
 }: {
   row: PlanRow;
@@ -296,8 +297,10 @@ export function PlanLineRow({
   onRemove: () => void;
   removable: boolean;
   stockItemsOnly?: boolean;
-  /** กรองหมวดสินค้า เช่น FINISHED_GOODS สำหรับผลผลิต */
+  /** กรองหมวดสินค้า เช่น RAW_MATERIAL สำหรับวัตถุดิบ */
   itemCategoryCode?: string;
+  /** กรองสินค้าสำเร็จรูป สำหรับผลผลิต */
+  isFinishedGood?: boolean;
   /** ก้อนกฎแปลงหน่วย — parent สร้างครั้งเดียวแล้วส่งลงมา เพื่อให้ graphCache ถูกแชร์ */
   unitCtx: UnitOptionContext & { isLoading: boolean };
 }) {
@@ -305,6 +308,7 @@ export function PlanLineRow({
     isActive: true,
     ...(stockItemsOnly ? { isStockItem: true } : {}),
     ...(itemCategoryCode ? { itemCategoryCode } : {}),
+    ...(isFinishedGood !== undefined ? { isFinishedGood } : {}),
   });
 
   const itemList = itemsQuery.data?.data ?? [];
@@ -719,7 +723,7 @@ export default function ProductionOrderCreatePage() {
                 row={row}
                 index={index}
                 removable={outputRows.length > 1}
-                itemCategoryCode="FINISHED_GOODS"
+                isFinishedGood
                 unitCtx={unitCtx}
                 onChange={(next) =>
                   setOutputRows((prev) =>

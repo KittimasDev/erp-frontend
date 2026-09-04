@@ -753,10 +753,704 @@ export type SalesCommercialPdfData = {
   signatures?: [SalesSignatureSlot, SalesSignatureSlot, SalesSignatureSlot];
 };
 
-export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
-  // ต้องได้ข้อมูลบริษัทก่อนประกอบ HTML — ไม่มีค่า hardcode สำรองแล้ว
-  await ensureCompanyInfo();
+/* ---------- เอกสารกลุ่มขาย — ใช้ design เดียวกับใบสั่งซื้อ ---------- */
 
+/** A4 ที่ความกว้าง 594px — ต้องตรึงทั้งคู่ ไม่งั้นแคปทีละหน้าแล้วสัดส่วนเพี้ยน */
+const SALES_PAGE_WIDTH = 594;
+const SALES_PAGE_HEIGHT = 842;
+const SALES_PAD_TOP = 34;
+const SALES_PAD_BOTTOM = 36;
+const SALES_CONTENT_HEIGHT =
+  SALES_PAGE_HEIGHT - SALES_PAD_TOP - SALES_PAD_BOTTOM;
+
+/** `.table` กิน margin-top 14px + เส้นขอบบนล่างอีกด้านละ 1px */
+const SALES_TABLE_CHROME = 16;
+
+/** เผื่อกันฟอนต์ไทยดันความสูงเกินค่าที่วัดได้เศษหนึ่ง */
+const SALES_SAFETY = 8;
+
+/** กันวนไม่รู้จบถ้าคำนวณพลาดจนบล็อกไม่มีวันลงหน้าได้ */
+const SALES_MAX_PAGES = 200;
+
+function salesDash(value?: string) {
+  const text = value?.trim();
+  return text ? text : "—";
+}
+
+function salesStyles() {
+  return `
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap");
+
+      * { box-sizing: border-box; }
+
+      /*
+        ตรึงความสูงตายตัว ไม่ใช่ min-height — ตัวจัดหน้าคำนวณมาแล้วว่าอะไรลงหน้าไหน
+        overflow: hidden กันเนื้อหาที่เกินคาดล้นไปปนกับหน้าถัดไปตอนแคปภาพ
+      */
+      .page {
+        width: ${SALES_PAGE_WIDTH}px;
+        height: ${SALES_PAGE_HEIGHT}px;
+        overflow: hidden;
+        background: #fff;
+        padding: ${SALES_PAD_TOP}px 23px ${SALES_PAD_BOTTOM}px;
+        position: relative;
+        color: #7A7A7A;
+        font-family: "Sarabun", Tahoma, sans-serif;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* หน้าจำลองสำหรับวัดความสูง — ต้องยืดได้ และห้ามมี margin auto มาดันตำแหน่ง */
+      .page.probe {
+        height: auto;
+        overflow: visible;
+      }
+
+      /*
+        เอา margin-top: auto ออกเฉพาะตัวที่ใช้มันดันตัวเองลงล่าง
+        ห้ามล้าง .doc-foot ตัวธรรมดา ไม่งั้น margin ของมันจะไม่ถูกนับเป็นงบ
+        แล้วหน้าที่เนื้อหาพอดี ๆ จะล้นออกไปสิบกว่าพิกเซล
+      */
+      .page.probe .page-end,
+      .page.probe .doc-foot.pinned {
+        margin-top: 0;
+      }
+
+      /* หมุดวัดตำแหน่ง สูงศูนย์ ไม่รบกวนเลย์เอาต์ */
+      .pm {
+        display: block;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        flex-shrink: 0;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+
+      .logo {
+        width: auto;
+        height: 56px;
+        max-width: 120px;
+        object-fit: contain;
+        object-position: left top;
+        display: block;
+        flex: 0 0 auto;
+        margin-top: -10px;
+      }
+
+      .company {
+        line-height: 1.26;
+      }
+
+      .company-name {
+        font-size: 15px;
+        margin: 0 0 4px;
+        font-weight: 700;
+        color: #343434;
+      }
+
+      .company-address {
+        font-size: 7.4px;
+        margin: 0;
+        color: #7A7A7A;
+        font-weight: 400;
+        line-height: 1.26;
+      }
+
+      .company-address + .company-address {
+        margin-top: 3px;
+      }
+
+      .rule {
+        height: 1px;
+        background: #D8DCE0;
+        margin: 14px 0;
+        flex-shrink: 0;
+      }
+
+      .headrow {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+
+      .titlebox {
+        margin-left: 40px;
+        margin-top: -2px;
+      }
+
+      .title-th {
+        font-size: 24px;
+        color: #78b64c;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .title-en {
+        font-size: 10px;
+        color: #AA9F97;
+        margin-top: 7px;
+        text-align: center;
+      }
+
+      .docbox {
+        width: 233px;
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        overflow: hidden;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .docbox > div {
+        padding: 9px 10px 8px;
+      }
+
+      .docbox > div + div {
+        border-left: 1px solid #D8DCE0;
+      }
+
+      .doclabel {
+        font-size: 7px;
+        color: #343434;
+        margin-bottom: 5px;
+      }
+
+      .docval {
+        font-size: 10px;
+        color: #343434;
+        font-weight: 700;
+      }
+
+      .docrev {
+        margin-top: 3px;
+        font-size: 6.8px;
+        font-weight: 400;
+        color: #7A7A7A;
+      }
+
+      .cont-strip {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+
+      .cont-title {
+        font-size: 11px;
+        color: #78b64c;
+        font-weight: 700;
+      }
+
+      .cont-no {
+        font-size: 8px;
+        color: #343434;
+        font-weight: 700;
+      }
+
+      /* แถบเตือนว่ายังเป็นฉบับร่าง — โทนเดียวกับป้ายเตือนใบอื่น */
+      .draft-banner {
+        margin-top: 12px;
+        border: 1px dashed #e2c98a;
+        border-radius: 5px;
+        background: #fdf6e8;
+        color: #b0821f;
+        padding: 7px 10px;
+        font-size: 7.5px;
+        flex-shrink: 0;
+      }
+
+      .section-rule {
+        height: 1px;
+        background: #D8DCE0;
+        margin: 14px 0;
+        flex-shrink: 0;
+      }
+
+      .info-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        flex-shrink: 0;
+      }
+
+      /* มีการ์ดใบเดียวให้กินเต็มความกว้าง ไม่ต้องเหลือช่องว่างข้างขวา */
+      .info-wrap.single {
+        grid-template-columns: 1fr;
+      }
+
+      .info-card {
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        padding: 10px 10px 9px;
+      }
+
+      .card-title {
+        font-size: 8.5px;
+        color: #343434;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 78px 1fr;
+        row-gap: 6px;
+      }
+
+      .info-row {
+        display: contents;
+      }
+
+      .label {
+        font-size: 7px;
+        color: #7A7A7A;
+      }
+
+      .value {
+        font-size: 7.2px;
+        color: #7A7A7A;
+        word-break: break-word;
+        min-width: 0;
+      }
+
+      /* แถวที่ต้องเด่นกว่าเพื่อน เช่น กำหนดส่งของ */
+      .info-row-emphasis .label,
+      .info-row-emphasis .value {
+        color: #343434;
+        font-weight: 700;
+      }
+
+      .table {
+        width: 100%;
+        margin-top: 14px;
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .tr {
+        display: grid;
+        width: 100%;
+        align-items: center;
+      }
+
+      /* จำนวนคอลัมน์ต่างกันตามชนิดเอกสาร — มีราคา / ไม่มีราคาแต่มีหมายเหตุ / ไม่มีทั้งคู่ */
+      .tr.c8 {
+        grid-template-columns: 28px 56px 1fr 36px 44px 62px 50px 66px;
+      }
+
+      .tr.c6 {
+        grid-template-columns: 34px 70px 1fr 50px 56px 80px;
+      }
+
+      .tr.c5 {
+        grid-template-columns: 34px 80px 1fr 60px 70px;
+      }
+
+      .cell-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .thead {
+        background: #ececeb;
+        min-height: 33px;
+        font-size: 7.6px;
+        color: #343434;
+        font-weight: 700;
+      }
+
+      .tbody {
+        min-height: 31px;
+        font-size: 7.5px;
+        color: #7A7A7A;
+        border-top: 1px solid #D8DCE0;
+      }
+
+      .cell {
+        padding: 8px 7px;
+      }
+
+      .thead .cell {
+        padding: 10px 4px 9px;
+        white-space: nowrap;
+      }
+
+      .center { text-align: center; }
+      .right {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      /* หัวข้อกลุ่มรายการ เช่น รอบส่งของ */
+      .group-heading {
+        margin-top: 14px;
+        font-size: 8.5px;
+        font-weight: 700;
+        color: #343434;
+        flex-shrink: 0;
+      }
+
+      /* ตารางที่ตามหลังหัวข้อกลุ่มไม่ต้องเว้นซ้ำ */
+      .group-heading + .table {
+        margin-top: 6px;
+      }
+
+      .totals {
+        width: 229px;
+        margin-left: auto;
+        margin-top: 20px;
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        padding: 10px 8px 9px;
+        flex-shrink: 0;
+      }
+
+      .tot-row {
+        display: grid;
+        grid-template-columns: 1fr 78px;
+        min-height: 18px;
+        align-items: center;
+        font-size: 7.5px;
+      }
+
+      .tot-row .k { color: #343434; }
+      .tot-row .v {
+        text-align: right;
+        color: #7A7A7A;
+        font-weight: 700;
+      }
+
+      .grand {
+        margin-top: 4px;
+        background: #f2f8ec;
+        border-radius: 4px;
+        padding: 6px 7px;
+        font-size: 8px;
+      }
+
+      .grand .k {
+        color: #343434;
+        font-weight: 700;
+      }
+
+      .grand .v {
+        color: #73b645;
+        font-weight: 700;
+      }
+
+      .note-rule {
+        height: 1px;
+        background: #D8DCE0;
+        margin: 14px 0;
+        flex-shrink: 0;
+      }
+
+      .note-title {
+        font-size: 7.5px;
+        color: #343434;
+        margin-bottom: 3px;
+        flex-shrink: 0;
+      }
+
+      /* ไม่ตัดข้อความทิ้ง — ยาวเกินหน้าให้ตัวจัดหน้าหั่นไหลไปหน้าถัดไปแทน */
+      .note-value {
+        font-size: 8px;
+        color: #7A7A7A;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        flex-shrink: 0;
+      }
+
+      /*
+        หมายเหตุที่เป็น rich text (ใบสั่งขาย / ใบเสนอราคา) — ต้องคงรูปแบบที่ผู้ใช้
+        จัดไว้ ทั้งย่อหน้า หัวข้อ รายการ และ checkbox ไม่งั้นเนื้อหากลายเป็นข้อความก้อนเดียว
+      */
+      .note-html {
+        font-size: 8px;
+        color: #7A7A7A;
+        line-height: 1.4;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        flex-shrink: 0;
+      }
+
+      .note-html p { margin: 0 0 3px; }
+      .note-html p:last-child { margin-bottom: 0; }
+
+      .note-html ul,
+      .note-html ol {
+        margin: 0 0 3px;
+        padding-left: 13px;
+      }
+
+      .note-html h1 {
+        margin: 0 0 4px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #343434;
+        line-height: 1.3;
+      }
+
+      .note-html h2 {
+        margin: 0 0 4px;
+        font-size: 9.5px;
+        font-weight: 700;
+        color: #343434;
+        line-height: 1.35;
+      }
+
+      .note-html ul[data-task] {
+        list-style: none;
+        padding-left: 2px;
+      }
+
+      .note-html ul[data-task] li {
+        position: relative;
+        padding-left: 12px;
+      }
+
+      .note-html ul[data-task] li::before {
+        content: "☐";
+        position: absolute;
+        left: 0;
+      }
+
+      .note-html ul[data-task] li[data-checked="true"]::before {
+        content: "☑";
+      }
+
+      .note-html s,
+      .note-html strike,
+      .note-html del {
+        text-decoration: line-through;
+      }
+
+      .note-html pre {
+        margin: 0 0 4px;
+        padding: 5px 6px;
+        background: #f4f4f3;
+        border-radius: 4px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 7.5px;
+        white-space: pre-wrap;
+      }
+
+      .note-html code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 7.5px;
+      }
+
+      /* บัญชีธนาคารหลัก — เอกสารกลุ่มขายเท่านั้น */
+      .bank-box {
+        margin-top: 12px;
+        border: 1px solid #D8DCE0;
+        border-radius: 5px;
+        padding: 8px 10px;
+        display: grid;
+        grid-template-columns: 60px 1fr;
+        gap: 8px;
+        font-size: 7.5px;
+        color: #7A7A7A;
+        flex-shrink: 0;
+      }
+
+      .bank-box strong {
+        color: #343434;
+        font-weight: 700;
+      }
+
+      .page-end {
+        margin-top: auto;
+        flex-shrink: 0;
+      }
+
+      .signatures {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+        margin-top: 24px;
+        padding: 0 20px;
+      }
+
+      .sig {
+        text-align: center;
+        color: #7A7A7A;
+        font-size: 6.7px;
+      }
+
+      /*
+        สูงคงที่ไม่ว่าจะมีรูปลายเซ็นหรือไม่ — ให้เส้นเซ็นทุกช่องตรงแนวกัน
+        (ใบเสนอราคา / ใบสั่งขาย / ใบแจ้งหนี้ แนบรูปลายเซ็นผู้จัดทำมาจริง)
+      */
+      .sig .space {
+        height: 26px;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+
+      .sig .space img {
+        max-height: 26px;
+        max-width: 100%;
+        object-fit: contain;
+      }
+
+      .sig .line {
+        width: 122px;
+        border-bottom: 1px dotted #D8DCE0;
+        margin: 0 auto 6px;
+      }
+
+      .sig .name {
+        min-height: 9px;
+        color: #343434;
+        margin-bottom: 4px;
+      }
+
+      .sig .date {
+        margin-top: 0;
+        color: #7A7A7A;
+      }
+
+      .doc-foot {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-top: 10px;
+        padding-top: 6px;
+        font-size: 6.8px;
+        color: #7A7A7A;
+        flex-shrink: 0;
+      }
+
+      .doc-foot.pinned {
+        margin-top: auto;
+      }
+    </style>
+  `;
+}
+
+type SalesParts = {
+  head: string;
+  first: string;
+  cont: string;
+  thead: string;
+  /** หัวข้อกลุ่มกับแถวเรียงตามลำดับที่ต้องพิมพ์ */
+  flow: Array<{ kind: "heading" | "row"; html: string }>;
+  totals: string;
+  noteHead: string;
+  /** ชิ้นหมายเหตุ — ข้อความธรรมดาแตกตามบรรทัด, rich text แตกตาม element ชั้นบน */
+  noteChunks: string[];
+  /** หมายเหตุเป็น HTML หรือไม่ — ตัวข้อความธรรมดาเท่านั้นที่หั่นกลางชิ้นได้ */
+  noteIsHtml: boolean;
+  noteTexts: string[];
+  bank: string;
+  pageEnd: string;
+};
+
+/**
+ * แตกหมายเหตุ rich text ตาม element ชั้นบนสุด
+ *
+ * หั่นกลาง HTML ไม่ได้เหมือนข้อความธรรมดา จึงตัดตามขอบ element แทน
+ * รายการยาว ๆ (`ul`/`ol`) แตกต่อเป็นรายการย่อยทีละ `li` เพราะเป็นเคสที่ยาวเกินหน้าจริง
+ */
+function splitHtmlChunks(html: string): string[] {
+  const holder = document.createElement("div");
+  holder.innerHTML = html;
+
+  const chunks: string[] = [];
+  for (const node of Array.from(holder.childNodes)) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent ?? "";
+      if (text.trim()) chunks.push(`<p>${escapeHtml(text)}</p>`);
+      continue;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+    if ((tag === "ul" || tag === "ol") && el.children.length > 1) {
+      for (const li of Array.from(el.children)) {
+        const clone = el.cloneNode(false) as HTMLElement;
+        clone.appendChild(li.cloneNode(true));
+        chunks.push(clone.outerHTML);
+      }
+      continue;
+    }
+    chunks.push(el.outerHTML);
+  }
+
+  return chunks.length > 0 ? chunks : [`<p>${escapeHtml(salesDash(""))}</p>`];
+}
+
+/** แตกหมายเหตุตามการขึ้นบรรทัดของผู้ใช้ — บรรทัดว่างยังนับเป็นบรรทัดว่างจริง */
+function splitSalesParagraphs(remark: string) {
+  return remark.replace(/\r\n?/g, "\n").split("\n");
+}
+
+function salesNoteChunkHtml(content: string, isHtml: boolean) {
+  return isHtml
+    ? `<div class="note-html">${content}</div>`
+    : `<div class="note-value">${escapeHtml(content)}</div>`;
+}
+
+/**
+ * หาส่วนหน้าของข้อความที่ยาวที่สุดที่ยังสูงไม่เกินงบ
+ *
+ * ตัดตรงช่องว่างถ้ามีอยู่ไม่ไกลจากจุดตัด ไม่งั้นตัดกลางคำ — ภาษาไทยไม่เว้นวรรค
+ * ระหว่างคำอยู่แล้ว การตัดตามตัวอักษรจึงเป็นทางปกติ ไม่ใช่ทางสำรอง
+ */
+function salesFitTextChunk(
+  scratch: HTMLElement,
+  text: string,
+  budget: number,
+): [chunk: string, rest: string] {
+  const measure = (value: string) => {
+    scratch.textContent = value;
+    return scratch.getBoundingClientRect().height;
+  };
+
+  if (measure(text) <= budget) {
+    return [text, ""];
+  }
+
+  let lo = 0;
+  let hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (measure(text.slice(0, mid)) <= budget) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  if (lo <= 0) return ["", text];
+
+  let cut = lo;
+  const space = text.lastIndexOf(" ", lo);
+  if (space > lo * 0.5) cut = space;
+
+  const chunk = text.slice(0, cut);
+  if (!chunk.trim()) return ["", text];
+  return [chunk, text.slice(cut).replace(/^ +/, "")];
+}
+
+function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
   const priceCols = data.withPrices;
   const labels: Required<SalesCommercialPdfColumnLabels> = {
     no: data.columnLabels?.no ?? "#",
@@ -770,93 +1464,96 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
     extra: data.columnLabels?.extra ?? "หมายเหตุ",
   };
 
-  const renderInfoRows = (rows: SalesCommercialPdfInfoRow[]) =>
-    rows
-      .map((row) => {
-        const classes = [
-          "info-row",
-          row.full ? "info-row-full" : "",
-          row.emphasis ? "info-row-emphasis" : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
-        return `
-      <div class="${classes}">
-        <span class="label">${escapeHtml(row.label)}</span>
-        <span class="value">${
-          row.html ? sanitizeDocumentHtml(row.value) || "—" : escapeHtml(row.value)
-        }</span>
-      </div>`;
-      })
-      .join("");
-
-  const renderItemRows = (items: SalesLinePdfItem[]) =>
-    items
-      .map((item) => {
-        if (priceCols) {
-          return `
-          <tr class="data-row">
-            <td class="text-center col-no">${item.no}</td>
-            <td class="text-center col-code">${escapeHtml(item.itemCode)}</td>
-            <td class="col-name">${escapeHtml(item.itemName)}</td>
-            <td class="text-center col-unit">${escapeHtml(item.unit)}</td>
-            <td class="text-right col-qty">${formatQty(item.qty)}</td>
-            <td class="text-right col-price">${formatMoney(item.unitPrice ?? 0)}</td>
-            <td class="text-right col-disc">${formatMoney(item.discountAmount ?? 0)}</td>
-            <td class="text-right col-amount">${formatMoney(item.amount ?? 0)}</td>
-          </tr>`;
-        }
-        return `
-        <tr class="data-row">
-          <td class="text-center col-no">${item.no}</td>
-          <td class="text-center col-code">${escapeHtml(item.itemCode)}</td>
-          <td class="col-name">${escapeHtml(item.itemName)}</td>
-          <td class="text-center col-unit">${escapeHtml(item.unit)}</td>
-          <td class="text-right col-qty">${formatQty(item.qty)}</td>
-          ${item.extra != null ? `<td class="text-center col-extra">${escapeHtml(item.extra)}</td>` : ""}
-        </tr>`;
-      })
-      .join("");
-
   const groups: SalesCommercialPdfItemGroup[] =
     data.itemGroups && data.itemGroups.length > 0
       ? data.itemGroups
       : [{ items: data.items }];
-  const grouped = Boolean(data.itemGroups && data.itemGroups.length > 0);
   const hasExtra = groups.some((group) =>
     group.items.some((item) => item.extra != null),
   );
-  const colCount = priceCols ? 8 : hasExtra ? 6 : 5;
+  const colClass = priceCols ? "c8" : hasExtra ? "c6" : "c5";
 
-  const headerCells = priceCols
-    ? `<th class="col-no">${escapeHtml(labels.no)}</th><th class="col-code">${escapeHtml(labels.code)}</th><th class="col-name">${escapeHtml(labels.name)}</th><th class="col-unit">${escapeHtml(labels.unit)}</th><th class="col-qty">${escapeHtml(labels.qty)}</th><th class="col-price">${escapeHtml(labels.price)}</th><th class="col-disc">${escapeHtml(labels.disc)}</th><th class="col-amount">${escapeHtml(labels.amount)}</th>`
+  const thead = priceCols
+    ? `
+        <div class="tr thead ${colClass}">
+          <div class="cell center">${escapeHtml(labels.no)}</div>
+          <div class="cell center">${escapeHtml(labels.code)}</div>
+          <div class="cell cell-name">${escapeHtml(labels.name)}</div>
+          <div class="cell center">${escapeHtml(labels.unit)}</div>
+          <div class="cell right">${escapeHtml(labels.qty)}</div>
+          <div class="cell right">${escapeHtml(labels.price)}</div>
+          <div class="cell right">${escapeHtml(labels.disc)}</div>
+          <div class="cell right">${escapeHtml(labels.amount)}</div>
+        </div>`
     : hasExtra
-      ? `<th class="col-no">${escapeHtml(labels.no)}</th><th class="col-code">${escapeHtml(labels.code)}</th><th class="col-name">${escapeHtml(labels.name)}</th><th class="col-unit">${escapeHtml(labels.unit)}</th><th class="col-qty">${escapeHtml(labels.qty)}</th><th class="col-extra">${escapeHtml(labels.extra)}</th>`
-      : `<th class="col-no">${escapeHtml(labels.no)}</th><th class="col-code">${escapeHtml(labels.code)}</th><th class="col-name">${escapeHtml(labels.name)}</th><th class="col-unit">${escapeHtml(labels.unit)}</th><th class="col-qty">${escapeHtml(labels.qty)}</th>`;
+      ? `
+        <div class="tr thead ${colClass}">
+          <div class="cell center">${escapeHtml(labels.no)}</div>
+          <div class="cell center">${escapeHtml(labels.code)}</div>
+          <div class="cell cell-name">${escapeHtml(labels.name)}</div>
+          <div class="cell center">${escapeHtml(labels.unit)}</div>
+          <div class="cell right">${escapeHtml(labels.qty)}</div>
+          <div class="cell center">${escapeHtml(labels.extra)}</div>
+        </div>`
+      : `
+        <div class="tr thead ${colClass}">
+          <div class="cell center">${escapeHtml(labels.no)}</div>
+          <div class="cell center">${escapeHtml(labels.code)}</div>
+          <div class="cell cell-name">${escapeHtml(labels.name)}</div>
+          <div class="cell center">${escapeHtml(labels.unit)}</div>
+          <div class="cell right">${escapeHtml(labels.qty)}</div>
+        </div>`;
 
-  const tablesHtml = groups
-    .map((group, groupIndex) => {
-      const pad =
-        !grouped && groupIndex === 0
-          ? Array.from({ length: Math.max(0, 5 - group.items.length) })
-              .map(
-                () =>
-                  `<tr class="empty-row">${Array.from({ length: colCount })
-                    .map(() => "<td>&nbsp;</td>")
-                    .join("")}</tr>`,
-              )
-              .join("")
-          : "";
-      return `
-      <div class="round-block">
-        ${group.heading ? `<div class="round-heading">${escapeHtml(group.heading)}</div>` : ""}
-        <table class="items-table">
-          <thead><tr>${headerCells}</tr></thead>
-          <tbody>${renderItemRows(group.items)}${pad}</tbody>
-        </table>
-      </div>`;
-    })
-    .join("");
+  const rowHtml = (item: SalesLinePdfItem) =>
+    priceCols
+      ? `
+        <div class="tr tbody ${colClass}">
+          <div class="cell center">${item.no}</div>
+          <div class="cell center">${escapeHtml(item.itemCode)}</div>
+          <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
+          <div class="cell center">${escapeHtml(item.unit)}</div>
+          <div class="cell right">${formatQty(item.qty)}</div>
+          <div class="cell right">${formatMoney(item.unitPrice ?? 0)}</div>
+          <div class="cell right">${formatMoney(item.discountAmount ?? 0)}</div>
+          <div class="cell right">${formatMoney(item.amount ?? 0)}</div>
+        </div>`
+      : `
+        <div class="tr tbody ${colClass}">
+          <div class="cell center">${item.no}</div>
+          <div class="cell center">${escapeHtml(item.itemCode)}</div>
+          <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
+          <div class="cell center">${escapeHtml(item.unit)}</div>
+          <div class="cell right">${formatQty(item.qty)}</div>
+          ${hasExtra ? `<div class="cell center">${escapeHtml(item.extra ?? "—")}</div>` : ""}
+        </div>`;
+
+  const flow: SalesParts["flow"] = [];
+  for (const group of groups) {
+    if (group.heading) {
+      flow.push({
+        kind: "heading",
+        html: `<div class="group-heading">${escapeHtml(group.heading)}</div>`,
+      });
+    }
+    for (const item of group.items) {
+      flow.push({ kind: "row", html: rowHtml(item) });
+    }
+  }
+
+  const renderInfoRows = (rows: SalesCommercialPdfInfoRow[]) =>
+    rows
+      .map(
+        (row) => `
+            <div class="info-row${row.emphasis ? " info-row-emphasis" : ""}">
+              <div class="label">${escapeHtml(row.label)}</div>
+              <div class="value">${
+                row.html
+                  ? sanitizeDocumentHtml(row.value) || "—"
+                  : escapeHtml(salesDash(row.value))
+              }</div>
+            </div>`,
+      )
+      .join("");
 
   const infoSections =
     data.infoSections && data.infoSections.length > 0
@@ -865,12 +1562,54 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
   const infoCardsHtml = infoSections
     .map(
       (section) => `
-      <div class="info-card">
-        ${section.title ? `<div class="info-section-title">${escapeHtml(section.title)}</div>` : ""}
-        <div class="info-grid">${renderInfoRows(section.rows)}</div>
-      </div>`,
+        <section class="info-card">
+          ${section.title ? `<div class="card-title">${escapeHtml(section.title)}</div>` : ""}
+          <div class="info-grid">${renderInfoRows(section.rows)}</div>
+        </section>`,
     )
     .join("");
+
+  const head = `
+      <div class="topbar">
+        <img src="${companyLogoUrl()}" class="logo" alt="" crossorigin="anonymous" />
+        <div class="company">${companyIdentityLinesHtml()}
+        </div>
+      </div>
+      <div class="rule"></div>`;
+
+  const first = `
+      <div class="headrow">
+        <div class="titlebox">
+          <div class="title-th">${escapeHtml(data.titleTh)}</div>
+          ${data.titleEn ? `<div class="title-en">${escapeHtml(data.titleEn)}</div>` : ""}
+        </div>
+        <div class="docbox">
+          <div>
+            <div class="doclabel">เลขที่เอกสาร</div>
+            <div class="docval">${escapeHtml(data.docNo)}</div>
+            ${data.revisionLabel ? `<div class="docrev">${escapeHtml(data.revisionLabel)}</div>` : ""}
+          </div>
+          <div>
+            <div class="doclabel">วันที่</div>
+            <div class="docval">${escapeHtml(salesDash(data.docDate))}</div>
+          </div>
+        </div>
+      </div>
+      ${data.draftBanner ? `<div class="draft-banner">${escapeHtml(data.draftBanner)}</div>` : ""}
+
+      <div class="section-rule"></div>
+
+      <div class="info-wrap${infoSections.length === 1 ? " single" : ""}">
+        ${infoCardsHtml}
+      </div>`;
+
+  const cont = `
+      <div class="cont-strip">
+        <span class="cont-title">${escapeHtml(data.titleTh)}${
+          data.titleEn ? ` / ${escapeHtml(data.titleEn)}` : ""
+        }</span>
+        <span class="cont-no">เลขที่ ${escapeHtml(data.docNo)} · ${escapeHtml(salesDash(data.docDate))}</span>
+      </div>`;
 
   const defaultTotals: SalesCommercialPdfTotalsLine[] = [
     { label: "ยอดรวม", value: data.subtotalAmount ?? 0 },
@@ -879,34 +1618,38 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
     { label: "ยอดสุทธิ", value: data.totalAmount ?? 0, grand: true },
   ];
   const totalsLines = data.totalsLines ?? defaultTotals;
-  const totalsHtml = priceCols
+  const totals = priceCols
     ? `
-    <div class="totals-row${grouped ? " totals-row-separated" : ""}">
-      <div class="totals-spacer"></div>
-      <div class="totals-box">
+      <div class="totals">
         ${totalsLines
           .map(
-            (line) =>
-              `<div class="total-line${line.grand ? " total-line-grand" : ""}"><span>${escapeHtml(line.label)}</span><strong>${formatMoney(line.value)}</strong></div>`,
+            (line) => `
+        <div class="tot-row${line.grand ? " grand" : ""}">
+          <div class="k">${escapeHtml(line.label)}:</div>
+          <div class="v">${formatMoney(line.value)}</div>
+        </div>`,
           )
           .join("")}
-      </div>
-    </div>`
+      </div>`
     : "";
+
+  const noteIsHtml = Boolean(data.remarkIsHtml);
+  const remarkBody = noteIsHtml ? sanitizeDocumentHtml(data.remark) : "";
+  const noteTexts = noteIsHtml
+    ? splitHtmlChunks(remarkBody)
+    : splitSalesParagraphs(salesDash(data.remark));
+  const noteChunks = noteTexts.map((text) =>
+    salesNoteChunkHtml(text, noteIsHtml),
+  );
+
+  const noteHead = `
+      <div class="note-rule"></div>
+      <div class="note-title">${escapeHtml(data.remarkLabel || "หมายเหตุ")} :</div>`;
 
   // บัญชีธนาคารหลักจาก master ข้อมูลบริษัท — เอกสารกลุ่มขายเท่านั้น
   const bankLine = companyBankLineHtml();
-  const bankHtml = bankLine
+  const bank = bankLine
     ? `<div class="bank-box"><strong>ชำระเงินที่</strong><div>${bankLine}</div></div>`
-    : "";
-
-  const remarkBody = data.remarkIsHtml
-    ? sanitizeDocumentHtml(data.remark)
-    : data.remark
-      ? escapeHtml(data.remark)
-      : "";
-  const remarkHtml = remarkBody
-    ? `<div class="remark-box"><strong>${escapeHtml(data.remarkLabel || "หมายเหตุ")}</strong><div>${remarkBody}</div></div>`
     : "";
 
   const sigs: SalesSignatureSlot[] = data.signatures ?? [
@@ -914,56 +1657,393 @@ export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
     "ผู้ตรวจสอบ",
     "ผู้อนุมัติ",
   ];
-  const signatureHtml = `
-    <div class="signature-box">
-      ${sigs
-        .map((slot) => {
-          const { title, name, signatureDataUrl } =
-            typeof slot === "string" ? { title: slot } : slot;
-          return `
-        <div class="signature">
-          <div class="sig-title">${escapeHtml(title)}</div>
-          <div class="sig-space">${
-            signatureDataUrl
-              ? `<img src="${signatureDataUrl}" class="sig-image" alt="" />`
-              : ""
-          }</div>
-          <div class="sig-line"></div>
-          <div class="sig-name">${name ? escapeHtml(name) : "&nbsp;"}</div>
-          <div class="sig-date">วันที่ ....../....../..........</div>
-        </div>`;
-        })
-        .join("")}
-    </div>`;
+  const pageEnd = `
+      <div class="page-end">
+        <div class="signatures">
+          ${sigs
+            .map((slot) => {
+              const { title, name, signatureDataUrl } =
+                typeof slot === "string" ? { title: slot } : slot;
+              return `
+          <div class="sig">
+            <div>${escapeHtml(title)}</div>
+            <div class="space">${
+              signatureDataUrl ? `<img src="${signatureDataUrl}" alt="" />` : ""
+            }</div>
+            <div class="line"></div>
+            <div class="name">${name ? escapeHtml(name) : ""}</div>
+            <div class="date">วันที่ ___/___/___</div>
+          </div>`;
+            })
+            .join("")}
+        </div>
+      </div>`;
 
-  const html = `
-    <div id="${data.pageId}" class="pdf-page">
-      ${companyHeaderHtml()}
-      <div class="title-block">
-        <div class="title">${escapeHtml(data.titleTh)}</div>
-        ${data.titleEn ? `<div class="title-sub">${escapeHtml(data.titleEn)}</div>` : ""}
+  return {
+    head,
+    first,
+    cont,
+    thead,
+    flow,
+    totals,
+    noteHead,
+    noteChunks,
+    noteIsHtml,
+    noteTexts,
+    bank,
+    pageEnd,
+  };
+}
+
+/**
+ * แถบล่างสุดของทุกหน้า
+ *
+ * `pinned` = หน้านี้ไม่มีบล็อกลายเซ็น จึงต้องดันตัวเองลงล่างด้วย `margin-top: auto`
+ * หน้าที่มีลายเซ็นห้าม pinned เพราะ auto สองตัวจะแบ่งที่ว่างกันจนเกิดช่องโหว่กลางหน้า
+ */
+function salesFootBarHtml(
+  pageIndex: number,
+  pageCount: number,
+  pinned: boolean,
+) {
+  return `
+      <div class="doc-foot${pinned ? " pinned" : ""}">
+        <span>เอกสารออกจากระบบ ERP · ${escapeHtml(companyBrandName())}</span>
+        <span>หน้า ${pageIndex + 1} / ${pageCount}</span>
+      </div>`;
+}
+
+type SalesMetrics = {
+  head: number;
+  first: number;
+  cont: number;
+  thead: number;
+  flow: number[];
+  totals: number;
+  noteHead: number;
+  notes: number[];
+  bank: number;
+  pageEnd: number;
+  foot: number;
+  noteLine: number;
+};
+
+type SalesProbe = {
+  root: HTMLElement;
+  scratch: HTMLElement;
+  metrics: SalesMetrics;
+};
+
+/**
+ * วัดทุกก้อนในรอบเดียว
+ *
+ * ใช้หมุดสูงศูนย์คั่นระหว่างก้อนแล้วอ่านส่วนต่างของ `offsetTop` — ได้ความสูงรวม
+ * margin มาด้วย ซึ่ง `getBoundingClientRect()` ให้ไม่ได้
+ */
+function buildSalesProbe(parts: SalesParts): SalesProbe {
+  const root = document.createElement("div");
+  root.style.position = "fixed";
+  root.style.left = "-99999px";
+  root.style.top = "0";
+  root.style.width = `${SALES_PAGE_WIDTH}px`;
+  root.style.background = "#fff";
+
+  const mark = (id: number) => `<span class="pm" data-pm="${id}"></span>`;
+
+  root.innerHTML = `
+    ${salesStyles()}
+    <div class="page probe" id="sales-probe">
+      ${mark(0)}${parts.head}
+      ${mark(1)}${parts.first}
+      ${mark(2)}${parts.cont}
+      ${mark(3)}${parts.totals}
+      ${mark(4)}${parts.noteHead}
+      ${mark(5)}${parts.bank}
+      ${mark(6)}${parts.pageEnd}
+      ${mark(7)}${salesFootBarHtml(0, 1, false)}
+      ${mark(8)}
+      <div class="table" id="sales-probe-table">${parts.thead}</div>
+      <div id="sales-probe-flow">
+        ${parts.flow
+          .map(
+            (entry) =>
+              `<div class="${entry.kind === "row" ? "table" : ""}" data-k="${entry.kind}">${entry.html}</div>`,
+          )
+          .join("")}
       </div>
-      ${data.draftBanner ? `<div class="draft-banner">${escapeHtml(data.draftBanner)}</div>` : ""}
-      <div class="meta-bar">
-        <div class="meta-item">
-          <span class="meta-label">เลขที่เอกสาร</span>
-          <strong class="meta-value">${escapeHtml(data.docNo)}</strong>
-          ${data.revisionLabel ? `<div class="meta-revision">${escapeHtml(data.revisionLabel)}</div>` : ""}
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">วันที่</span>
-          <strong class="meta-value">${escapeHtml(data.docDate)}</strong>
-        </div>
-      </div>
-      ${infoCardsHtml}
-      ${tablesHtml}
-      ${totalsHtml}
-      ${remarkHtml}
-      ${bankHtml}
-      ${signatureHtml}
-      <div class="footer-note">เอกสารออกจากระบบ ERP · ${escapeHtml(companyBrandName())}</div>
+      <div id="sales-probe-notes">${parts.noteChunks.join("")}</div>
+      <div class="note-value" id="sales-probe-scratch"></div>
     </div>
   `;
 
-  await openPdfFromHtml(data.pageId, html);
+  document.body.appendChild(root);
+
+  const marks = Array.from(root.querySelectorAll<HTMLElement>(".pm")).sort(
+    (a, b) => Number(a.dataset.pm) - Number(b.dataset.pm),
+  );
+  const span = (from: number, to: number) =>
+    marks[to].offsetTop - marks[from].offsetTop;
+
+  const height = (el: Element) => el.getBoundingClientRect().height;
+  const table = root.querySelector<HTMLElement>("#sales-probe-table")!;
+  const flowHost = root.querySelector<HTMLElement>("#sales-probe-flow")!;
+  const notes = root.querySelector<HTMLElement>("#sales-probe-notes")!;
+  const scratch = root.querySelector<HTMLElement>("#sales-probe-scratch")!;
+
+  scratch.textContent = "หมายเหตุ";
+  const noteLine = height(scratch);
+  scratch.textContent = "";
+
+  // แถวอยู่ใน .table จำลองจึงติดกรอบมาด้วย หักออกให้เหลือความสูงแถวจริง
+  const flow = Array.from(flowHost.children).map((child, index) => {
+    const raw = height(child);
+    return parts.flow[index].kind === "row" ? raw - 2 : raw;
+  });
+
+  return {
+    root,
+    scratch,
+    metrics: {
+      head: span(0, 1),
+      first: span(1, 2),
+      cont: span(2, 3),
+      totals: span(3, 4),
+      noteHead: span(4, 5),
+      bank: span(5, 6),
+      pageEnd: span(6, 7),
+      foot: span(7, 8),
+      thead: height(table.querySelector(".tr.thead")!),
+      flow,
+      notes: Array.from(notes.children).map(height),
+      noteLine,
+    },
+  };
+}
+
+type SalesPageDraft = {
+  index: number;
+  used: number;
+  /** ชิ้นส่วนพื้นที่ตาราง เรียงตามลำดับ (หัวข้อกลุ่ม / ตาราง) */
+  body: string[];
+  tail: string[];
+  openTable: boolean;
+  hasPageEnd: boolean;
+};
+
+function buildSalesPages(
+  data: SalesCommercialPdfData,
+  parts: SalesParts,
+  probe: SalesProbe,
+): string[] {
+  const m = probe.metrics;
+  const pages: SalesPageDraft[] = [];
+
+  const newPage = () => {
+    const page: SalesPageDraft = {
+      index: pages.length,
+      used: 0,
+      body: [],
+      tail: [],
+      openTable: false,
+      hasPageEnd: false,
+    };
+    pages.push(page);
+    return page;
+  };
+
+  let page = newPage();
+
+  const capacity = (p: SalesPageDraft) =>
+    SALES_CONTENT_HEIGHT -
+    m.head -
+    m.foot -
+    (p.index === 0 ? m.first : m.cont) -
+    SALES_SAFETY;
+
+  const free = () => capacity(page) - page.used;
+
+  const nextPage = () => {
+    if (pages.length >= SALES_MAX_PAGES) {
+      throw new Error(
+        `${data.titleTh} ${data.docNo}: จัดหน้าเกิน ${SALES_MAX_PAGES} หน้า — เนื้อหายาวผิดปกติ`,
+      );
+    }
+    page = newPage();
+  };
+
+  /** เปิดตารางใหม่บนหน้าปัจจุบัน พร้อมหัวตาราง */
+  const openTable = () => {
+    page.body.push(`<div class="table">${parts.thead}`);
+    page.used += m.thead + SALES_TABLE_CHROME;
+    page.openTable = true;
+  };
+
+  const closeTable = () => {
+    if (page.openTable) {
+      page.body.push("</div>");
+      page.openTable = false;
+    }
+  };
+
+  // 1) หัวข้อกลุ่ม + แถวรายการ — ตัดได้ระหว่างแถวเท่านั้น หัวตารางซ้ำทุกหน้า
+  for (let i = 0; i < parts.flow.length; i += 1) {
+    const entry = parts.flow[i];
+    const h = m.flow[i] ?? 0;
+
+    if (entry.kind === "heading") {
+      // หัวข้อกลุ่มห้ามตกค้างท้ายหน้าโดยไม่มีแถวตามมา
+      const firstRow = m.flow[i + 1] ?? 0;
+      if (page.used > 0 && h + m.thead + SALES_TABLE_CHROME + firstRow > free()) {
+        closeTable();
+        nextPage();
+      }
+      closeTable();
+      page.body.push(entry.html);
+      page.used += h;
+      continue;
+    }
+
+    const tableCost = page.openTable ? 0 : m.thead + SALES_TABLE_CHROME;
+    if (page.used > 0 && tableCost + h > free()) {
+      closeTable();
+      nextPage();
+    }
+    if (!page.openTable) openTable();
+    page.body.push(entry.html);
+    page.used += h;
+  }
+  closeTable();
+
+  // 2) ยอดรวม — ยกทั้งก้อน ห้ามตัดครึ่ง (เอกสารที่ไม่มีราคาไม่มีบล็อกนี้)
+  if (parts.totals) {
+    if (page.used > 0 && m.totals > free()) nextPage();
+    page.tail.push(parts.totals);
+    page.used += m.totals;
+  }
+
+  // 3) หมายเหตุ — หัวข้อต้องมีอย่างน้อยหนึ่งบรรทัดตามหลัง ไม่งั้นยกไปหน้าใหม่
+  if (page.used > 0 && m.noteHead + m.noteLine > free()) nextPage();
+  page.tail.push(parts.noteHead);
+  page.used += m.noteHead;
+
+  for (let i = 0; i < parts.noteTexts.length; i += 1) {
+    const chunkHeight = m.notes[i] ?? 0;
+
+    // ชิ้น HTML หั่นกลางไม่ได้ ยกทั้งก้อน
+    if (parts.noteIsHtml) {
+      if (page.used > 0 && chunkHeight > free()) nextPage();
+      page.tail.push(parts.noteChunks[i]);
+      page.used += chunkHeight;
+      continue;
+    }
+
+    let rest = parts.noteTexts[i];
+    let restHeight = chunkHeight;
+
+    // บรรทัดว่างที่ผู้ใช้เคาะไว้ยังต้องกินที่หนึ่งบรรทัด
+    if (rest === "") {
+      if (page.used > 0 && restHeight > free()) nextPage();
+      page.tail.push(salesNoteChunkHtml("", false));
+      page.used += restHeight;
+      continue;
+    }
+
+    while (rest !== "") {
+      if (restHeight <= free()) {
+        page.tail.push(salesNoteChunkHtml(rest, false));
+        page.used += restHeight;
+        break;
+      }
+
+      const [chunk, remainder] = salesFitTextChunk(probe.scratch, rest, free());
+
+      if (chunk === "") {
+        // หน้าเปล่ายังใส่ไม่ลง = คำนวณเพี้ยน ใส่ทั้งก้อนดีกว่าวนไม่รู้จบ
+        if (page.used === 0) {
+          page.tail.push(salesNoteChunkHtml(rest, false));
+          page.used += restHeight;
+          break;
+        }
+        nextPage();
+        continue;
+      }
+
+      page.tail.push(salesNoteChunkHtml(chunk, false));
+      page.used = capacity(page);
+      rest = remainder;
+      if (rest === "") break;
+
+      nextPage();
+      probe.scratch.textContent = rest;
+      restHeight = probe.scratch.getBoundingClientRect().height;
+    }
+  }
+
+  // 4) บัญชีธนาคาร
+  if (parts.bank) {
+    if (page.used > 0 && m.bank > free()) nextPage();
+    page.tail.push(parts.bank);
+    page.used += m.bank;
+  }
+
+  // 5) ลายเซ็น — ก้อนเดียวจบ อยู่หน้าสุดท้ายเสมอ
+  if (page.used > 0 && m.pageEnd > free()) nextPage();
+  page.tail.push(parts.pageEnd);
+  page.hasPageEnd = true;
+
+  const pageCount = pages.length;
+
+  return pages.map((draft) => {
+    const body = `
+    <div id="${data.pageId}-${draft.index}" class="page">
+      ${parts.head}
+      ${draft.index === 0 ? parts.first : parts.cont}
+      ${draft.body.join("")}
+      ${draft.tail.join("")}
+      ${salesFootBarHtml(draft.index, pageCount, !draft.hasPageEnd)}
+    </div>`;
+
+    // สไตล์แนบไปกับหน้าแรก ทุกหน้าอยู่ wrapper เดียวกันจึงใช้ร่วมกันได้
+    return draft.index === 0 ? `${salesStyles()}${body}` : body;
+  });
+}
+
+async function waitForSarabun() {
+  const timeout = new Promise<void>((resolve) => {
+    setTimeout(resolve, 2500);
+  });
+  const loaded = Promise.all([
+    document.fonts.load('400 12px "Sarabun"'),
+    document.fonts.load('700 12px "Sarabun"'),
+  ]).then(() => undefined);
+  await Promise.race([loaded, timeout]);
+}
+
+/** ประกอบหน้าทั้งหมด — แยกออกมาเพื่อเปิดดูใน harness ได้โดยไม่ต้องสร้าง PDF */
+export async function buildSalesCommercialPagesHtml(
+  data: SalesCommercialPdfData,
+) {
+  // ต้องรอฟอนต์ก่อนวัด — Sarabun สูงกว่า fallback ถ้าวัดก่อนโหลดเสร็จหน้าจะล้น
+  await waitForSarabun();
+
+  const parts = buildSalesParts(data);
+  const probe = buildSalesProbe(parts);
+
+  try {
+    return buildSalesPages(data, parts, probe);
+  } finally {
+    document.body.removeChild(probe.root);
+  }
+}
+
+export async function generateSalesCommercialPdf(data: SalesCommercialPdfData) {
+  // ต้องได้ข้อมูลบริษัทก่อนประกอบ HTML — ไม่มีค่า hardcode สำรองแล้ว
+  await ensureCompanyInfo();
+
+  const pagesHtml = await buildSalesCommercialPagesHtml(data);
+
+  await openMultiPagePdfFromHtml(data.pageId, pagesHtml, {
+    wrapperWidth: `${SALES_PAGE_WIDTH}px`,
+    includeBaseStyles: false,
+  });
 }

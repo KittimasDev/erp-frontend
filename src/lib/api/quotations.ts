@@ -39,12 +39,10 @@ function buildQuotationsQuery(params?: QuotationQueryParams) {
 function buildQuotationItemAvailabilityQuery(
   params?: QuotationItemAvailabilityQueryParams,
 ) {
-  if (!params?.itemCategoryCode?.trim()) {
-    return "";
-  }
-
   const search = new URLSearchParams();
-  search.set("itemCategoryCode", params.itemCategoryCode.trim());
+  if (params?.isFinishedGood !== undefined && params.isFinishedGood !== null) {
+    search.set("isFinishedGood", String(params.isFinishedGood));
+  }
   const query = search.toString();
   return query ? `?${query}` : "";
 }

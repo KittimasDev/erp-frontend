@@ -25,7 +25,7 @@ import type {
   StockBalanceQueryParams,
   StockBalanceRow,
 } from "@/types/inventory";
-import { getInventoryPageScope } from "./inventory-page-copy";
+import { getInventoryPageScope, inventoryScopeApiFilter } from "./inventory-page-copy";
 import styles from "./StockBalancesPage.module.css";
 
 const StockBalanceItemDetailDrawer = dynamic(
@@ -47,8 +47,11 @@ function resolveView(raw: string | null): StockBalanceView {
   return raw === "detail" ? "detail" : "by-item";
 }
 
-function pageCopy(itemCategoryCode?: string) {
-  const scope = getInventoryPageScope(itemCategoryCode);
+function pageCopy(
+  searchParams: { get(name: string): string | null } | null,
+  itemCategoryCode?: string,
+) {
+  const scope = getInventoryPageScope(searchParams, itemCategoryCode);
   if (scope) {
     return {
       ...scope,
@@ -68,8 +71,8 @@ export default function StockBalancesPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const itemCategoryCode = searchParams.get("itemCategoryCode")?.trim() || undefined;
-  const copy = pageCopy(itemCategoryCode);
+  const scopeFilter = inventoryScopeApiFilter(searchParams);
+  const copy = pageCopy(searchParams, scopeFilter.itemCategoryCode);
   const activeView = useMemo(
     () => resolveView(searchParams.get("view")),
     [searchParams],
@@ -86,14 +89,18 @@ export default function StockBalancesPage() {
   });
   const [filters, setFilters] = useState<StockBalanceQueryParams>({
     hasStock: true,
-    itemCategoryCode,
+    ...scopeFilter,
   });
   const [selectedItem, setSelectedItem] = useState<StockBalanceByItemRow | null>(
     null,
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const queryParams = { ...filters, itemCategoryCode };
+  const queryParams = {
+    ...filters,
+    itemCategoryCode: scopeFilter.itemCategoryCode,
+    isFinishedGood: scopeFilter.isFinishedGood,
+  };
 
   const balancesByItemQuery = useStockBalancesByItemQuery(queryParams);
   const balancesQuery = useStockBalancesQuery(queryParams, {
@@ -328,13 +335,13 @@ export default function StockBalancesPage() {
       locationId: draft.locationId,
       q: draft.q.trim() || undefined,
       hasStock: draft.hasStock,
-      itemCategoryCode,
+      ...scopeFilter,
     });
   };
 
   const handleClear = () => {
     setDraft({ q: "", hasStock: true });
-    setFilters({ hasStock: true, itemCategoryCode });
+    setFilters({ hasStock: true, ...scopeFilter });
   };
 
   const filterBar = (

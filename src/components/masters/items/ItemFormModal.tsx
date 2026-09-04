@@ -9,6 +9,7 @@ import {
   Modal,
   Row,
   Select,
+  Space,
   Switch,
 } from "antd";
 
@@ -25,11 +26,13 @@ type ItemFormValues = {
   unitId: string;
   warehouseGroup?: string;
   minimumStockQty?: number | null;
+  sellingPrice?: number | null;
   defaultShelfLifeDays?: number | null;
   isPurchaseItem: boolean;
   isStockItem: boolean;
   isIssueItem: boolean;
   isSalesItem: boolean;
+  isFinishedGood: boolean;
   requiresLotControl: boolean;
   requiresQc: boolean;
   requiresExpiryDate: boolean;
@@ -46,6 +49,50 @@ type ItemFormModalProps = {
   onCancel: () => void;
   onSubmit: (values: CreateItemRequest) => void;
 };
+
+/** ป้ายกำกับคงเดิมทุกตัว แค่จัดเป็นกลุ่มให้กวาดตาหาได้เร็วขึ้น */
+type ToggleField = Extract<
+  keyof ItemFormValues,
+  | "isPurchaseItem"
+  | "isStockItem"
+  | "isIssueItem"
+  | "isSalesItem"
+  | "isFinishedGood"
+  | "requiresLotControl"
+  | "requiresQc"
+  | "requiresExpiryDate"
+  | "allowNegativeStock"
+  | "isQcRequired"
+>;
+
+/** กลุ่มที่ช่องราคาขายไปเกาะอยู่ด้วย */
+const SALES_GROUP_TITLE = "บทบาทของสินค้า";
+
+const TOGGLE_GROUPS: Array<{
+  title: string;
+  items: Array<[ToggleField, string]>;
+}> = [
+  {
+    title: "บทบาทของสินค้า",
+    items: [
+      ["isPurchaseItem", "ใช้จัดซื้อ"],
+      ["isStockItem", "คุมสต๊อก"],
+      ["isIssueItem", "เบิกได้"],
+      ["isSalesItem", "ขายได้"],
+      ["isFinishedGood", "สินค้าสำเร็จรูป"],
+    ],
+  },
+  {
+    title: "การควบคุมคุณภาพและสต๊อก",
+    items: [
+      ["requiresLotControl", "คุม Lot"],
+      ["requiresQc", "ต้อง QC"],
+      ["requiresExpiryDate", "มีวันหมดอายุ"],
+      ["allowNegativeStock", "ติดลบได้"],
+      ["isQcRequired", "เข้าคลังต้อง QC"],
+    ],
+  },
+];
 
 const WAREHOUSE_GROUP_OPTIONS = [
   { value: "RAW_MATERIAL", label: "RAW_MATERIAL" },
@@ -66,11 +113,18 @@ export default function ItemFormModal({
   onSubmit,
 }: ItemFormModalProps) {
   const [form] = Form.useForm<ItemFormValues>();
+  // ใช้ไฮไลต์การ์ดที่เปิดอยู่ ให้เห็นสถานะได้จากการกวาดตาครั้งเดียว
+  const watched = Form.useWatch<ItemFormValues>([], form);
   const categoriesQuery = useItemCategoriesQuery({ isActive: true });
   const unitsQuery = useUnitsQuery();
 
   const categories = categoriesQuery.data?.data ?? [];
   const units = (unitsQuery.data?.data ?? []).filter((unit) => unit.isActive);
+
+  // ใช้ต่อท้ายช่องราคาให้รู้ว่าราคานี้ต่อหน่วยอะไร
+  const selectedUnitLabel = watched?.unitId
+    ? `บาท / ${units.find((unit) => unit.id === watched.unitId)?.nameTh ?? "หน่วย"}`
+    : undefined;
 
   useEffect(() => {
     if (!open) {
@@ -86,11 +140,16 @@ export default function ItemFormModal({
         unitId: initialItem.unitId,
         warehouseGroup: initialItem.warehouseGroup,
         minimumStockQty: Number(initialItem.minimumStockQty || 0),
+        sellingPrice:
+          initialItem.sellingPrice != null
+            ? Number(initialItem.sellingPrice)
+            : undefined,
         defaultShelfLifeDays: initialItem.defaultShelfLifeDays,
         isPurchaseItem: initialItem.isPurchaseItem,
         isStockItem: initialItem.isStockItem,
         isIssueItem: initialItem.isIssueItem,
         isSalesItem: initialItem.isSalesItem,
+        isFinishedGood: initialItem.isFinishedGood,
         requiresLotControl: initialItem.requiresLotControl,
         requiresQc: initialItem.requiresQc,
         requiresExpiryDate: initialItem.requiresExpiryDate,
@@ -109,11 +168,13 @@ export default function ItemFormModal({
       unitId: undefined,
       warehouseGroup: undefined,
       minimumStockQty: 0,
+      sellingPrice: undefined,
       defaultShelfLifeDays: undefined,
       isPurchaseItem: true,
       isStockItem: true,
       isIssueItem: true,
       isSalesItem: false,
+      isFinishedGood: false,
       requiresLotControl: false,
       requiresQc: false,
       requiresExpiryDate: false,
@@ -134,6 +195,10 @@ export default function ItemFormModal({
       unitId: values.unitId,
       warehouseGroup: values.warehouseGroup || undefined,
       minimumStockQty: values.minimumStockQty ?? 0,
+      // ส่งเฉพาะตอนขายได้ ปิดแล้วไม่ต้องยัดราคาไปให้ backend
+      sellingPrice: values.isSalesItem
+        ? (values.sellingPrice ?? undefined)
+        : undefined,
       defaultShelfLifeDays:
         values.defaultShelfLifeDays === null ||
         values.defaultShelfLifeDays === undefined
@@ -143,6 +208,7 @@ export default function ItemFormModal({
       isStockItem: values.isStockItem,
       isIssueItem: values.isIssueItem,
       isSalesItem: values.isSalesItem,
+      isFinishedGood: values.isFinishedGood,
       requiresLotControl: values.requiresLotControl,
       requiresQc: values.requiresQc,
       requiresExpiryDate: values.requiresExpiryDate,
@@ -203,7 +269,7 @@ export default function ItemFormModal({
         </div>
 
         <Row gutter={16}>
-          <Col xs={24} sm={12}>
+          <Col xs={24} sm={8}>
             <Form.Item
               label="รหัสสินค้า"
               name="code"
@@ -215,22 +281,24 @@ export default function ItemFormModal({
               <Input size="large" placeholder="เช่น RM-001" autoComplete="off" />
             </Form.Item>
           </Col>
-        </Row>
 
-        <Form.Item
-          label="ชื่อสินค้า"
-          name="name"
-          rules={[
-            { required: true, message: "กรุณากรอกชื่อสินค้า" },
-            { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
-          ]}
-        >
-          <Input
-            size="large"
-            placeholder="เช่น ยางรถยนต์ใช้แล้ว"
-            autoComplete="off"
-          />
-        </Form.Item>
+          <Col xs={24} sm={16}>
+            <Form.Item
+              label="ชื่อสินค้า"
+              name="name"
+              rules={[
+                { required: true, message: "กรุณากรอกชื่อสินค้า" },
+                { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+              ]}
+            >
+              <Input
+                size="large"
+                placeholder="เช่น ยางรถยนต์ใช้แล้ว"
+                autoComplete="off"
+              />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Form.Item label="คำอธิบาย" name="description">
           <Input.TextArea
@@ -326,38 +394,75 @@ export default function ItemFormModal({
           </div>
         </div>
 
-        <Row gutter={[16, 12]}>
-          {(
-            [
-              ["isPurchaseItem", "ใช้จัดซื้อ"],
-              ["isStockItem", "คุมสต๊อก"],
-              ["isIssueItem", "เบิกได้"],
-              ["isSalesItem", "ขายได้"],
-              ["requiresLotControl", "คุม Lot"],
-              ["requiresQc", "ต้อง QC"],
-              ["requiresExpiryDate", "มีวันหมดอายุ"],
-              ["allowNegativeStock", "ติดลบได้"],
-              ["isQcRequired", "เข้าคลังต้อง QC"],
-            ] as const
-          ).map(([name, label]) => (
-            <Col xs={12} sm={8} key={name}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 8,
-                  marginBottom: 8,
-                }}
-              >
-                <span>{label}</span>
-                <Form.Item name={name} valuePropName="checked" noStyle>
-                  <Switch size="small" />
+        {TOGGLE_GROUPS.map((group) => (
+          <div className={styles.toggleGroup} key={group.title}>
+            <div className={styles.toggleGroupLabel}>{group.title}</div>
+
+            <div className={styles.toggleGrid}>
+              {group.items.map(([name, label]) => {
+                const checked = Boolean(watched?.[name]);
+
+                return (
+                  <div
+                    key={name}
+                    className={`${styles.toggleTile} ${
+                      checked ? styles.toggleTileOn : ""
+                    }`}
+                    // กดที่การ์ดทั้งใบได้ ไม่ต้องเล็งสวิตช์เล็ก ๆ
+                    onClick={() => form.setFieldValue(name, !checked)}
+                  >
+                    <span>{label}</span>
+
+                    {/* กันไม่ให้คลิกสวิตช์เด้งไปโดน onClick ของการ์ดซ้ำอีกรอบ */}
+                    <div
+                      onClick={(event) => event.stopPropagation()}
+                      style={{ display: "flex" }}
+                    >
+                      <Form.Item name={name} valuePropName="checked" noStyle>
+                        <Switch size="small" />
+                      </Form.Item>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/*
+              ราคาขายผูกกับสวิตช์ "ขายได้" จึงวางไว้ติดกันในกลุ่มเดียวกัน
+              ไม่ใช่ลอยอยู่คนละที่กับตัวที่คุมมัน
+            */}
+            {group.title === SALES_GROUP_TITLE && watched?.isSalesItem ? (
+              <div className={styles.inlineField}>
+                <Form.Item
+                  label="ราคาขาย (ก่อน VAT)"
+                  extra="ใช้เติมราคาให้อัตโนมัติเมื่อเลือกสินค้านี้ในใบเสนอราคา แก้ไขในเอกสารได้"
+                >
+                  <Space.Compact style={{ width: "100%" }}>
+                    <Form.Item
+                      name="sellingPrice"
+                      noStyle
+                      rules={[{ required: true, message: "กรุณากรอกราคาขาย" }]}
+                    >
+                      <InputNumber
+                        size="large"
+                        min={0}
+                        step={1}
+                        style={{ width: "100%" }}
+                        placeholder="เช่น 1250"
+                      />
+                    </Form.Item>
+                    <Input
+                      size="large"
+                      disabled
+                      value={selectedUnitLabel ?? "บาท / หน่วย"}
+                      style={{ width: 132 }}
+                    />
+                  </Space.Compact>
                 </Form.Item>
               </div>
-            </Col>
-          ))}
-        </Row>
+            ) : null}
+          </div>
+        ))}
 
         <div className={styles.statusBox}>
           <div className={styles.statusContent}>

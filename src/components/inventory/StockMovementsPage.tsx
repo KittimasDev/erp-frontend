@@ -30,7 +30,7 @@ import {
   resolveStockMovementTypeLabel,
   STOCK_MOVEMENT_TYPE_LABEL,
 } from "@/types/inventory";
-import { getInventoryPageScope } from "./inventory-page-copy";
+import { getInventoryPageScope, inventoryScopeApiFilter } from "./inventory-page-copy";
 import styles from "./StockMovementsPage.module.css";
 
 type DraftFilters = {
@@ -86,8 +86,11 @@ function movementTagColor(label: string): string | undefined {
   }
 }
 
-function pageCopy(itemCategoryCode?: string) {
-  const scope = getInventoryPageScope(itemCategoryCode);
+function pageCopy(
+  searchParams: { get(name: string): string | null } | null,
+  itemCategoryCode?: string,
+) {
+  const scope = getInventoryPageScope(searchParams, itemCategoryCode);
   if (scope) {
     return {
       ...scope,
@@ -104,18 +107,22 @@ function pageCopy(itemCategoryCode?: string) {
 
 export default function StockMovementsPage() {
   const searchParams = useSearchParams();
-  const itemCategoryCode = searchParams.get("itemCategoryCode")?.trim() || undefined;
-  const copy = pageCopy(itemCategoryCode);
+  const scopeFilter = inventoryScopeApiFilter(searchParams);
+  const copy = pageCopy(searchParams, scopeFilter.itemCategoryCode);
 
   const [draft, setDraft] = useState<DraftFilters>({
     q: "",
     range: null,
   });
   const [filters, setFilters] = useState<StockMovementQueryParams>({
-    itemCategoryCode,
+    ...scopeFilter,
   });
 
-  const movementsQuery = useStockMovementsQuery({ ...filters, itemCategoryCode });
+  const movementsQuery = useStockMovementsQuery({
+    ...filters,
+    itemCategoryCode: scopeFilter.itemCategoryCode,
+    isFinishedGood: scopeFilter.isFinishedGood,
+  });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const rows = useMemo(() => {
     const list = movementsQuery.data?.data ?? [];
@@ -302,13 +309,13 @@ export default function StockMovementsPage() {
       q: draft.q.trim() || undefined,
       from: draft.range?.[0]?.format("YYYY-MM-DD"),
       to: draft.range?.[1]?.format("YYYY-MM-DD"),
-      itemCategoryCode,
+      ...scopeFilter,
     });
   };
 
   const clearFilters = () => {
     setDraft({ q: "", range: null });
-    setFilters({ itemCategoryCode });
+    setFilters({ ...scopeFilter });
   };
 
   if (movementsQuery.isLoading && !movementsQuery.data) {

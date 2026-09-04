@@ -93,7 +93,7 @@ export default function ProductionOutputApprovalDetailPage({
   const stockMovementsHref = canViewStockMovements
     ? "/inventory/stock-movements"
     : canViewFgStockMovements
-      ? "/inventory/stock-movements?itemCategoryCode=FINISHED_GOODS"
+      ? "/inventory/stock-movements?isFinishedGood=true"
       : null;
   /** ฝั่งผลิตใช้ GET stock-requests (ไม่ต้องมีสิทธิ์อนุมัติคลัง) */
   const stockRequestQuery = useProductionOutputStockRequestQuery(

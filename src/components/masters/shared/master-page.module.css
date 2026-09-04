@@ -1,4 +1,10 @@
-:global(.mainLayout) {
+/*
+  Modal ของ antd ถูก portal ไปไว้ที่ `document.body` ซึ่งอยู่นอก `.mainLayout`
+  ตัวแปรจึงไม่ตกทอดลงไป ทำให้พื้นหัว modal หาย (ข้อความหัวเรื่องเป็นสีขาวบนพื้นขาว
+  = มองไม่เห็น) เส้นคั่นหมวดกับไอคอนก็หายไปด้วย — ต้องประกาศซ้ำที่ตัว modal เอง
+*/
+:global(.mainLayout),
+.masterModal {
   --unit-green: var(--brand-primary, #739816);
   --unit-green-dark: var(--brand-primary-hover, #627f13);
   --unit-green-soft: var(--brand-primary-soft, #f2f6e8);
@@ -565,14 +571,35 @@
 
 /* Modal */
 
-.masterModal :global(.ant-modal-content) {
+/*
+  antd v6 เปลี่ยนชื่อ element ในกล่อง modal จาก `.ant-modal-content` เป็น
+  `.ant-modal-container` (ดู @rc-component/dialog → Dialog/Content/Panel.js) และย้าย
+  padding ไปไว้ที่ตัวใหม่ด้วย — กฎเดิมที่ยิงไปที่ `.ant-modal-content` จึงไม่มีผลอะไรเลย
+  ทำให้หัว modal ถูก padding ของ antd ดันเข้ามาไม่ชนขอบ ห้ามเปลี่ยนกลับ
+
+  padding เป็น 0 ที่นี่ แล้วให้เนื้อหาข้างในถือ padding ของตัวเอง
+  (`.modalHeader` / `.form` / `.ant-modal-footer`) หัวสีเข้มจึงกินเต็มความกว้าง
+*/
+.masterModal :global(.ant-modal-container) {
   overflow: hidden;
   border-radius: 16px;
   padding: 0;
 }
 
+/*
+  ฟอร์ม master บางใบยาวเกินความสูงจอ ถ้าปล่อยให้ modal สูงตามเนื้อหา
+  ปุ่มบันทึกจะหลุดออกนอกจอ
+
+  ตัวที่เลื่อนคือ `.form` ไม่ใช่ `.ant-modal-body` — ถ้าให้ body เลื่อน scrollbar
+  จะกินความกว้าง 10px ทำให้หัวสีเข้มไปไม่ถึงขอบขวา พอย้ายมาเลื่อนที่ฟอร์มแทน
+  หัวก็กินเต็มความกว้างจริง และอยู่นิ่งเองโดยไม่ต้องพึ่ง sticky
+*/
 .masterModal :global(.ant-modal-body) {
   padding: 0;
+  max-height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .masterModal :global(.ant-modal-footer) {
@@ -581,7 +608,9 @@
   border-top: 1px solid var(--unit-border);
 }
 
+/* อยู่นอกพื้นที่ที่เลื่อน จึงค้างอยู่บนสุดเองโดยไม่ต้อง sticky */
 .modalHeader {
+  flex: none;
   display: flex;
   align-items: flex-start;
   gap: 16px;
@@ -591,6 +620,16 @@
     var(--unit-gray) 0%,
     var(--unit-gray-dark) 100%
   );
+}
+
+/* ปุ่มปิดลอยอยู่เหนือหัวสีเข้มตลอด จึงต้องเป็นสีอ่อน */
+.masterModal :global(.ant-modal-close) {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.masterModal :global(.ant-modal-close:hover) {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .modalIcon {
@@ -614,9 +653,13 @@
   min-width: 0;
 }
 
+/*
+  เขียวเข้มของแบรนด์อ่านไม่ออกบนหัวสีเทาเข้ม — ใช้สีขาวจาง ๆ แทน
+  แล้วปล่อยให้ไอคอนเขียวเป็นจุดเน้นจุดเดียวของหัว
+*/
 .modalHeaderContent .eyebrow {
   margin-bottom: 4px;
-  color: var(--unit-green-dark);
+  color: rgba(255, 255, 255, 0.62);
 }
 
 .modalHeaderContent h2 {
@@ -634,7 +677,23 @@
 }
 
 .form {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* min-height: 0 จำเป็นกับ flex item ที่ต้องเลื่อน ไม่งั้นมันจะยืดตามเนื้อหาแทน */
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px 24px 8px;
+}
+
+.form::-webkit-scrollbar {
+  width: 10px;
+}
+
+.form::-webkit-scrollbar-thumb {
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  background: #d3d5d9;
 }
 
 .sectionTitle {
@@ -670,6 +729,88 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 14px;
+}
+
+/*
+  สวิตช์เปิด/ปิดคุณสมบัติ — เดิมเป็น grid เปล่า ๆ ที่ดัน label ไปซ้ายสุดและสวิตช์ไปขวาสุด
+  ตาต้องกวาดข้ามช่องว่างกว้างเพื่อจับคู่ว่าอันไหนคู่กับอันไหน จึงเปลี่ยนเป็นการ์ดที่มี
+  ขอบชัดเจน และแบ่งเป็นกลุ่มย่อยตามความหมาย
+*/
+.toggleGroup {
+  margin-bottom: 18px;
+}
+
+/* ป้ายกลุ่มเป็นภาษาไทย จึงไม่ใส่ letter-spacing/uppercase ที่ทำให้อ่านยากขึ้น */
+.toggleGroupLabel {
+  margin-bottom: 9px;
+  color: var(--unit-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.toggleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.toggleTile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 13px;
+  border: 1px solid var(--unit-border);
+  border-radius: 11px;
+  background: #ffffff;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.toggleTile:hover {
+  border-color: var(--unit-border-dark);
+  background: #fcfcfb;
+}
+
+/* ติ๊กแล้วต้องเห็นได้จากการกวาดตาครั้งเดียวว่าอันไหนเปิดอยู่ */
+.toggleTileOn {
+  border-color: rgba(115, 152, 22, 0.35);
+  background: var(--unit-green-soft);
+}
+
+.toggleTileOn:hover {
+  border-color: rgba(115, 152, 22, 0.45);
+  background: var(--unit-green-soft);
+}
+
+.toggleTile span {
+  color: var(--unit-gray-dark);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.toggleTileOn span {
+  color: var(--unit-green-dark);
+  font-weight: 500;
+}
+
+/* ช่องกรอกที่โผล่มาตามเงื่อนไขของสวิตช์ในกลุ่มเดียวกัน */
+.inlineField {
+  max-width: 320px;
+  margin-top: 12px;
+  padding: 12px 14px 0;
+  border: 1px solid rgba(115, 152, 22, 0.3);
+  border-radius: 11px;
+  background: var(--unit-green-soft);
+}
+
+.inlineField :global(.ant-form-item) {
+  margin-bottom: 12px;
+}
+
+.inlineField :global(.ant-form-item-explain) {
+  font-size: 11px;
 }
 
 .statusBox {

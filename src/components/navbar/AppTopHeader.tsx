@@ -14,6 +14,7 @@ import {
 import { useStoredUser } from "@/hooks/auth/useStoredUser";
 import { initialsFromUser } from "@/lib/auth/session";
 import { hasAccessToken } from "@/lib/auth/token";
+import { isFgInventoryScope } from "@/components/inventory/inventory-page-copy";
 import type { AppNotification } from "@/types/notifications";
 
 import styles from "./AppTopHeader.module.css";
@@ -121,42 +122,45 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters", title: "Master Data" },
 ];
 
-function inventoryItemCategoryTitle(
+function inventoryScopeTitle(
   pathname: string,
-  itemCategoryCode: string | null,
+  searchParams: { get(name: string): string | null } | null,
 ): string | null {
-  const value = itemCategoryCode?.trim();
-  if (!value || value.includes(",")) {
+  const fgTitleMap: Record<string, string> = {
+    "/inventory/stock-balances": "ยอดคงเหลือสินค้าสำเร็จรูป",
+    "/inventory/lots": "Lot สินค้าสำเร็จรูป",
+    "/inventory/stock-movements": "ความเคลื่อนไหวสินค้าสำเร็จรูป",
+  };
+  if (isFgInventoryScope(searchParams)) {
+    return fgTitleMap[pathname] ?? null;
+  }
+
+  const itemCategoryCode = searchParams?.get("itemCategoryCode")?.trim();
+  if (!itemCategoryCode || itemCategoryCode.includes(",")) {
     return null;
   }
 
   const titleMap: Record<string, Record<string, string>> = {
     "/inventory/stock-balances": {
       RAW_MATERIAL: "ยอดคงเหลือวัตถุดิบ",
-      FINISHED_GOODS: "ยอดคงเหลือสินค้าสำเร็จรูป",
     },
     "/inventory/lots": {
       RAW_MATERIAL: "Lot วัตถุดิบ",
-      FINISHED_GOODS: "Lot สินค้าสำเร็จรูป",
     },
     "/inventory/stock-movements": {
       RAW_MATERIAL: "ความเคลื่อนไหววัตถุดิบ",
-      FINISHED_GOODS: "ความเคลื่อนไหวสินค้าสำเร็จรูป",
     },
   };
 
-  return titleMap[pathname]?.[value] ?? null;
+  return titleMap[pathname]?.[itemCategoryCode] ?? null;
 }
 
 function resolvePageTitle(
   pathname: string,
-  itemCategoryCode?: string | null,
+  searchParams: { get(name: string): string | null } | null,
   tab?: string | null,
 ) {
-  const categoryTitle = inventoryItemCategoryTitle(
-    pathname,
-    itemCategoryCode ?? null,
-  );
+  const categoryTitle = inventoryScopeTitle(pathname, searchParams);
   if (categoryTitle) {
     return categoryTitle;
   }
@@ -340,7 +344,6 @@ export default function AppTopHeader() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { notification } = App.useApp();
-  const itemCategoryCode = searchParams.get("itemCategoryCode");
   const usersTab = searchParams.get("tab");
   const isLoggedIn = hasAccessToken();
   const storedUser = useStoredUser();
@@ -349,8 +352,8 @@ export default function AppTopHeader() {
   const primedRef = useRef(false);
 
   const title = useMemo(
-    () => resolvePageTitle(pathname, itemCategoryCode, usersTab),
-    [pathname, itemCategoryCode, usersTab],
+    () => resolvePageTitle(pathname, searchParams, usersTab),
+    [pathname, searchParams, usersTab],
   );
   const todayLabel = useMemo(() => formatThaiDate(new Date()), []);
 

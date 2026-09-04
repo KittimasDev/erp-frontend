@@ -31,6 +31,7 @@ import {
 } from "@/lib/auth/portal-module";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
+import { isFgInventoryScope } from "@/components/inventory/inventory-page-copy";
 import {
   badgeLabelForMenuKey,
   useMenuBadgeCounts,
@@ -781,7 +782,7 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     key: "fg-stock-balances",
     screenCode: "FG_STOCK_BALANCES",
     label: "ยอดคงเหลือ FG",
-    href: "/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS",
+    href: "/inventory/stock-balances?isFinishedGood=true",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -794,7 +795,7 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     key: "fg-lots",
     screenCode: "FG_INVENTORY_LOTS",
     label: "Lot สินค้าสำเร็จรูป",
-    href: "/inventory/lots?itemCategoryCode=FINISHED_GOODS",
+    href: "/inventory/lots?isFinishedGood=true",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -866,7 +867,7 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     key: "fg-stock-movements",
     screenCode: "FG_STOCK_MOVEMENTS",
     label: "ความเคลื่อนไหว FG",
-    href: "/inventory/stock-movements?itemCategoryCode=FINISHED_GOODS",
+    href: "/inventory/stock-movements?isFinishedGood=true",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -1569,8 +1570,8 @@ function isReceivingStageMenu(item: MenuItem) {
   return item.href.startsWith("/receiving?");
 }
 
-function isItemCategoryCodeMenu(item: MenuItem) {
-  return item.href.includes("itemCategoryCode=");
+function isFgInventoryMenu(item: MenuItem) {
+  return item.href.includes("isFinishedGood=true");
 }
 
 function isActive(
@@ -1586,15 +1587,12 @@ function isActive(
     return searchParams?.get("stage") === stage;
   }
 
-  if (isItemCategoryCodeMenu(item)) {
+  if (isFgInventoryMenu(item)) {
     const path = hrefPathname(item.href);
     if (!matchesHref(pathname, path)) {
       return false;
     }
-    const expected = new URLSearchParams(item.href.split("?")[1]).get(
-      "itemCategoryCode",
-    );
-    return searchParams?.get("itemCategoryCode") === expected;
+    return isFgInventoryScope(searchParams);
   }
 
   if (item.href === "/receiving") {
@@ -1783,10 +1781,7 @@ export default function AppHeader({
   useEffect(() => {
     setUser(getStoredUser());
     setPermissionsTick((n) => n + 1);
-    syncActivePortalModuleFromPathname(
-      pathname,
-      searchParams?.get("itemCategoryCode"),
-    );
+    syncActivePortalModuleFromPathname(pathname, searchParams);
   }, [pathname, searchParams]);
 
   useEffect(() => {
@@ -1825,7 +1820,7 @@ export default function AppHeader({
   void permissionsTick;
   void portalTick;
   const activePortalModule: PortalModuleKey | null =
-    resolveActivePortalModule(pathname, searchParams?.get("itemCategoryCode"));
+    resolveActivePortalModule(pathname, searchParams);
   const showMenuGroup = (groupId: PortalMenuGroupId) =>
     portalModuleAllowsMenuGroup(activePortalModule, groupId);
 

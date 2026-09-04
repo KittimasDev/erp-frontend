@@ -46,6 +46,7 @@ export default function StockBalanceItemDetailDrawer({
           locationId: filters.locationId,
           hasStock: filters.hasStock,
           itemCategoryCode: filters.itemCategoryCode,
+          isFinishedGood: filters.isFinishedGood,
         }
       : undefined,
     { enabled: open && Boolean(item) },
@@ -258,9 +259,11 @@ export default function StockBalanceItemDetailDrawer({
           <div className={styles.drawerFooter}>
             <Link
               href={`/inventory/lots?itemId=${item.itemId}${
-                filters.itemCategoryCode
-                  ? `&itemCategoryCode=${encodeURIComponent(filters.itemCategoryCode)}`
-                  : ""
+                filters.isFinishedGood
+                  ? "&isFinishedGood=true"
+                  : filters.itemCategoryCode
+                    ? `&itemCategoryCode=${encodeURIComponent(filters.itemCategoryCode)}`
+                    : ""
               }`}
               className={styles.drawerLink}
             >

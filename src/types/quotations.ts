@@ -138,7 +138,7 @@ export type QuotationItemAvailabilityRow = {
 };
 
 export type QuotationItemAvailabilityQueryParams = {
-  itemCategoryCode?: string;
+  isFinishedGood?: boolean;
 };
 
 export type QuotationItemAvailabilityListApiResponse = {

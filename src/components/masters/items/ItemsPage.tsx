@@ -54,6 +54,7 @@ type ItemFilterFormValues = {
   isActive?: boolean | null;
   isPurchaseItem?: boolean | null;
   isStockItem?: boolean | null;
+  isFinishedGood?: boolean | null;
 };
 
 const FILTER_KEYS = [
@@ -65,6 +66,7 @@ const FILTER_KEYS = [
   "isActive",
   "isPurchaseItem",
   "isStockItem",
+  "isFinishedGood",
 ] as const;
 
 function parseFiltersFromSearch(
@@ -118,6 +120,13 @@ function parseFiltersFromSearch(
     params.isStockItem = false;
   }
 
+  const isFinishedGoodRaw = searchParams.get("isFinishedGood");
+  if (isFinishedGoodRaw === "true") {
+    params.isFinishedGood = true;
+  } else if (isFinishedGoodRaw === "false") {
+    params.isFinishedGood = false;
+  }
+
   return params;
 }
 
@@ -131,6 +140,7 @@ function toFormValues(params: ItemQueryParams): ItemFilterFormValues {
     isActive: params.isActive,
     isPurchaseItem: params.isPurchaseItem,
     isStockItem: params.isStockItem,
+    isFinishedGood: params.isFinishedGood,
   };
 }
 
@@ -167,6 +177,10 @@ function buildSearchFromForm(values: ItemFilterFormValues): URLSearchParams {
 
   if (values.isStockItem === true || values.isStockItem === false) {
     next.set("isStockItem", String(values.isStockItem));
+  }
+
+  if (values.isFinishedGood === true || values.isFinishedGood === false) {
+    next.set("isFinishedGood", String(values.isFinishedGood));
   }
 
   return next;
@@ -326,6 +340,21 @@ export default function ItemsPage() {
             : "-"}
         </span>
       ),
+    },
+    {
+      title: "สำเร็จรูป",
+      dataIndex: "isFinishedGood",
+      key: "isFinishedGood",
+      width: 110,
+      align: "center",
+      render: (isFinishedGood: boolean) =>
+        isFinishedGood ? (
+          <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
+            สำเร็จรูป
+          </Tag>
+        ) : (
+          <span className={styles.symbolText}>-</span>
+        ),
     },
     {
       title: "หน่วย",
@@ -581,6 +610,19 @@ export default function ItemsPage() {
               </Form.Item>
             </Col>
 
+            <Col xs={24} sm={12} lg={6}>
+              <Form.Item name="isFinishedGood" label="สินค้าสำเร็จรูป">
+                <Select
+                  allowClear
+                  placeholder="ทั้งหมด"
+                  options={[
+                    { value: true, label: "ใช่" },
+                    { value: false, label: "ไม่" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+
             <Col xs={24}>
               <Form.Item label=" " colon={false}>
                 <Space wrap>
@@ -644,7 +686,7 @@ export default function ItemsPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 1020 }}
+            scroll={{ x: 1130 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบสินค้าตามเงื่อนไขที่ค้นหา"

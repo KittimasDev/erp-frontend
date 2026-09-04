@@ -3,6 +3,8 @@
  * Longest prefix wins. Keep in sync with AppHeader menus + permission-seed routePath.
  */
 
+import { isFgInventoryScope } from "@/components/inventory/inventory-page-copy";
+
 type ScreenRouteRule = {
   /** Pathname prefix (no query). Match path === prefix or path.startsWith(prefix + "/") */
   prefix: string;
@@ -54,17 +56,17 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   // RM / FG inventory (query-sensitive first)
   {
     prefix: "/inventory/stock-balances",
-    query: { itemCategoryCode: "FINISHED_GOODS" },
+    query: { isFinishedGood: "true" },
     screenCodes: ["FG_STOCK_BALANCES"],
   },
   {
     prefix: "/inventory/lots",
-    query: { itemCategoryCode: "FINISHED_GOODS" },
+    query: { isFinishedGood: "true" },
     screenCodes: ["FG_INVENTORY_LOTS"],
   },
   {
     prefix: "/inventory/stock-movements",
-    query: { itemCategoryCode: "FINISHED_GOODS" },
+    query: { isFinishedGood: "true" },
     screenCodes: ["FG_STOCK_MOVEMENTS"],
   },
   { prefix: "/inventory/stock-balances", screenCodes: ["STOCK_BALANCES"] },
@@ -291,6 +293,9 @@ function queryMatches(
   if (!required) {
     return true;
   }
+  if (required.isFinishedGood === "true") {
+    return isFgInventoryScope(searchParams);
+  }
   if (!searchParams) {
     return false;
   }
@@ -355,7 +360,7 @@ export function resolveScreenCodesForPath(
       const fgSibling = SORTED_RULES.find(
         (r) =>
           r.prefix === rule.prefix &&
-          r.query?.itemCategoryCode === "FINISHED_GOODS",
+          r.query?.isFinishedGood === "true",
       );
       if (
         fgSibling &&
@@ -380,9 +385,9 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   FLOOR_SCALE_TICKETS: "/weighbridge/floor-scale-tickets",
   STOCK_POSTING_APPROVALS: "/warehouse/stock-posting-approvals",
   STOCK_BALANCES: "/inventory/stock-balances",
-  FG_STOCK_BALANCES: "/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS",
+  FG_STOCK_BALANCES: "/inventory/stock-balances?isFinishedGood=true",
   INVENTORY_LOTS: "/inventory/lots",
-  FG_INVENTORY_LOTS: "/inventory/lots?itemCategoryCode=FINISHED_GOODS",
+  FG_INVENTORY_LOTS: "/inventory/lots?isFinishedGood=true",
   MATERIAL_ISSUES: "/inventory/material-issues",
   CHEMICAL_ISSUES: "/inventory/chemical-issues",
   TIRE_PREP_ISSUES: "/inventory/tire-prep-issues",
@@ -394,7 +399,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   STOCK_ADJUSTMENTS: "/inventory/stock-adjustments",
   STOCK_MOVEMENTS: "/inventory/stock-movements",
   FG_STOCK_MOVEMENTS:
-    "/inventory/stock-movements?itemCategoryCode=FINISHED_GOODS",
+    "/inventory/stock-movements?isFinishedGood=true",
   GOODS_RECEIPTS: "/goods-receipts",
   WAREHOUSE_APPROVALS: "/warehouse/approvals",
   PRODUCTION_REQUESTS: "/production/production-requests",

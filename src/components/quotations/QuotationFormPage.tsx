@@ -121,10 +121,11 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const customersQuery = useCustomersQuery();
   const itemsQuery = useItemsQuery({
     isActive: true,
-    itemCategoryCode: "FINISHED_GOODS",
+    isFinishedGood: true,
+    isSalesItem: true,
   });
   const availabilityQuery = useQuotationItemAvailabilityQuery({
-    itemCategoryCode: "FINISHED_GOODS",
+    isFinishedGood: true,
   });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
   const taxRatesQuery = useTaxRatesQuery({ isActive: true });
@@ -329,6 +330,17 @@ export default function QuotationFormPage({ mode, id }: Props) {
     const item = items.find((row) => row.id === itemId);
     if (item?.unitId) {
       form.setFieldValue(["items", index, "unitId"], item.unitId);
+    }
+    /*
+      เติมราคาขายจาก master ให้ตอนเลือกสินค้า แล้วผู้ใช้แก้ทับได้ตามปกติ
+      ทำเฉพาะตอนเปลี่ยนสินค้าเท่านั้น จึงไม่ไปทับราคาที่พิมพ์ไว้เองหรือราคาเดิม
+      ของใบเสนอราคาที่เปิดขึ้นมาแก้
+    */
+    if (item?.sellingPrice != null) {
+      form.setFieldValue(
+        ["items", index, "unitPrice"],
+        Number(item.sellingPrice),
+      );
     }
   };
 
@@ -804,7 +816,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
               ? ` · มีสต๊อก ${itemSelectOptions.filter((row) => row.available > 1e-9).length} · ไม่มีสต๊อก ${itemSelectOptions.filter((row) => row.available <= 1e-9).length}`
               : ""}{" "}
             ·{" "}
-            <Link href="/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS">
+            <Link href="/inventory/stock-balances?isFinishedGood=true">
               ดูยอดคงเหลือ
             </Link>
             {" · "}

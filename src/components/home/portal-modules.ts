@@ -157,7 +157,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     code: "FG",
     label: "คลังสำเร็จรูป",
     description: "ยอด FG · ตรวจสต๊อก · จ่าย · บรรจุ · ส่ง",
-    href: "/inventory/stock-balances?itemCategoryCode=FINISHED_GOODS",
+    href: "/inventory/stock-balances?isFinishedGood=true",
     tone: "cyan",
     screenCodes: [
       "WAREHOUSE_APPROVALS",

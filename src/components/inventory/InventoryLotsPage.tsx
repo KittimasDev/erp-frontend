@@ -19,7 +19,7 @@ import type {
 import {
   LOT_EXPIRY_STATUS_LABEL,
 } from "@/types/inventory";
-import { getInventoryPageScope } from "./inventory-page-copy";
+import { getInventoryPageScope, inventoryScopeApiFilter } from "./inventory-page-copy";
 import styles from "./InventoryLotsPage.module.css";
 
 function formatQty(value?: string) {
@@ -89,8 +89,11 @@ function formatDaysUntilExpiry(days?: number) {
   return `เหลือ ${days} วัน`;
 }
 
-function pageCopy(itemCategoryCode?: string) {
-  const scope = getInventoryPageScope(itemCategoryCode);
+function pageCopy(
+  searchParams: { get(name: string): string | null } | null,
+  itemCategoryCode?: string,
+) {
+  const scope = getInventoryPageScope(searchParams, itemCategoryCode);
   if (scope) {
     return {
       ...scope,
@@ -107,8 +110,8 @@ function pageCopy(itemCategoryCode?: string) {
 
 export default function InventoryLotsPage() {
   const searchParams = useSearchParams();
-  const itemCategoryCode = searchParams.get("itemCategoryCode")?.trim() || undefined;
-  const copy = pageCopy(itemCategoryCode);
+  const scopeFilter = inventoryScopeApiFilter(searchParams);
+  const copy = pageCopy(searchParams, scopeFilter.itemCategoryCode);
 
   const [draft, setDraft] = useState<{
     warehouseId?: string;
@@ -124,10 +127,14 @@ export default function InventoryLotsPage() {
   });
   const [filters, setFilters] = useState<InventoryLotQueryParams>({
     hasStock: true,
-    itemCategoryCode,
+    ...scopeFilter,
   });
 
-  const lotsQuery = useInventoryLotsQuery({ ...filters, itemCategoryCode });
+  const lotsQuery = useInventoryLotsQuery({
+    ...filters,
+    itemCategoryCode: scopeFilter.itemCategoryCode,
+    isFinishedGood: scopeFilter.isFinishedGood,
+  });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const locationsQuery = useWarehouseLocationsQuery(
     draft.warehouseId
@@ -359,13 +366,13 @@ export default function InventoryLotsPage() {
       q: draft.q.trim() || undefined,
       hasStock: draft.hasStock,
       nearExpiry: draft.nearExpiry || undefined,
-      itemCategoryCode,
+      ...scopeFilter,
     });
   };
 
   const handleClear = () => {
     setDraft({ q: "", hasStock: true, nearExpiry: false });
-    setFilters({ hasStock: true, itemCategoryCode });
+    setFilters({ hasStock: true, ...scopeFilter });
   };
 
   return (
