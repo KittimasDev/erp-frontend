@@ -10,6 +10,7 @@ import {
   Input,
   InputNumber,
   Select,
+  Space,
   Tooltip,
 } from "antd";
 import { ArrowLeftOutlined, SaveOutlined } from "@ant-design/icons";
@@ -57,7 +58,7 @@ export default function StageRunCreatePage({
     เลือก lot จึงกรอกที่เหลือให้เองและ **ตัดเคสเลือกชุดที่ไม่มีของทิ้งไปเลย**
     ซึ่งเป็นสาเหตุที่ backend โยน "Lot มีสต๊อกไม่พอ" กลับมาบ่อยที่สุด
   */
-  const [inputLotId, setInputLotId] = useState<string | undefined>();
+  const [inputBalanceId, setInputBalanceId] = useState<string | undefined>();
   const [inputQty, setInputQty] = useState<number | null>(null);
 
   const [outputItemId, setOutputItemId] = useState<string | undefined>();
@@ -77,8 +78,8 @@ export default function StageRunCreatePage({
 
   const lots = useMemo(() => lotsQuery.data?.data ?? [], [lotsQuery.data]);
   const selectedLot = useMemo(
-    () => lots.find((lot) => lot.lotId === inputLotId),
-    [lots, inputLotId],
+    () => lots.find((lot) => lot.id === inputBalanceId),
+    [lots, inputBalanceId],
   );
 
   const unitCodeById = useMemo(() => {
@@ -108,9 +109,16 @@ export default function StageRunCreatePage({
       ? inputQty > Number(selectedLot.quantityAvailable)
       : false;
 
+  const inputUnitCode =
+    selectedLot?.unitCode ??
+    (selectedLot ? unitCodeById.get(selectedLot.unitId) : undefined);
+  const outputUnitCode = outputUnitId
+    ? unitCodeById.get(outputUnitId)
+    : undefined;
+
   const canSubmit =
     Boolean(stageType) &&
-    Boolean(inputLotId) &&
+    Boolean(inputBalanceId) &&
     Boolean(inputQty && inputQty > 0) &&
     Boolean(outputItemId) &&
     Boolean(outputWarehouseId) &&
@@ -218,8 +226,8 @@ export default function StageRunCreatePage({
                 allowClear
                 style={{ gridColumn: "span 2" }}
                 placeholder="เลือก Lot วัตถุดิบ"
-                value={inputLotId}
-                onChange={(value) => setInputLotId(value)}
+                value={inputBalanceId}
+                onChange={(value) => setInputBalanceId(value)}
                 loading={lotsQuery.isFetching}
                 filterOption={(input, option) =>
                   String(option?.label ?? "")
@@ -227,28 +235,28 @@ export default function StageRunCreatePage({
                     .includes(input.toLowerCase())
                 }
                 options={lots.map((lot) => ({
-                  value: lot.lotId,
+                  value: lot.id,
                   label:
                     `${lot.lotNo} · ${lot.itemCode} — ${lot.itemNameTh} · ` +
                     `${lot.warehouseCode}/${lot.locationCode} · ` +
                     `คงเหลือ ${fmtQty(lot.quantityAvailable)} ${lot.unitCode ?? ""}`,
                 }))}
               />
-              <InputNumber
-                style={{ width: "100%" }}
-                min={0.001}
-                step={0.001}
-                precision={3}
-                placeholder="จำนวนที่จะใช้"
-                value={inputQty}
-                onChange={setInputQty}
-                addonAfter={
-                  selectedLot?.unitCode ??
-                  (selectedLot ? unitCodeById.get(selectedLot.unitId) : "") ??
-                  ""
-                }
-                status={overLotStock ? "error" : undefined}
-              />
+              <Space.Compact style={{ width: "100%" }}>
+                <InputNumber
+                  style={{ width: "100%" }}
+                  min={0.001}
+                  step={0.001}
+                  precision={3}
+                  placeholder="จำนวนที่จะใช้"
+                  value={inputQty}
+                  onChange={setInputQty}
+                  status={overLotStock ? "error" : undefined}
+                />
+                {inputUnitCode ? (
+                  <Input style={{ width: 56 }} value={inputUnitCode} disabled />
+                ) : null}
+              </Space.Compact>
             </div>
             {overLotStock && selectedLot ? (
               <Alert
@@ -317,16 +325,20 @@ export default function StageRunCreatePage({
                   label: `${unit.code} — ${unit.nameTh ?? unit.code}`,
                 }))}
               />
-              <InputNumber
-                style={{ width: "100%" }}
-                min={0}
-                step={0.001}
-                precision={3}
-                placeholder="จำนวนผลผลิตตามแผน"
-                value={outputQty}
-                onChange={setOutputQty}
-                addonAfter={outputUnitId ? unitCodeById.get(outputUnitId) : ""}
-              />
+              <Space.Compact style={{ width: "100%" }}>
+                <InputNumber
+                  style={{ width: "100%" }}
+                  min={0}
+                  step={0.001}
+                  precision={3}
+                  placeholder="จำนวนผลผลิตตามแผน"
+                  value={outputQty}
+                  onChange={setOutputQty}
+                />
+                {outputUnitCode ? (
+                  <Input style={{ width: 56 }} value={outputUnitCode} disabled />
+                ) : null}
+              </Space.Compact>
               <Tooltip title="บันทึกไว้อ้างอิงเท่านั้น ระบบไม่รับเข้าสต๊อกให้อัตโนมัติ">
                 <InputNumber
                   style={{ width: "100%" }}
