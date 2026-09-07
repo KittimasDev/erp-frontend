@@ -32,6 +32,7 @@ import {
   CloseOutlined,
   DeleteOutlined,
   DownloadOutlined,
+  EditOutlined,
   EyeOutlined,
   FilePdfOutlined,
   FileTextOutlined,
@@ -60,6 +61,7 @@ import {
   useReserveAllEligibleSalesOrderLinesMutation,
   useReserveSalesOrderLineMutation,
   useUpdateSalesOrderCustomerPoMutation,
+  useUpdateSalesOrderItemsMutation,
   useUpdateSalesOrderHeaderMutation,
   useUploadSalesOrderAttachmentMutation,
 } from "@/hooks/sales-orders/useSalesOrderMutations";
@@ -85,6 +87,7 @@ import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStaleDocumentPrompt } from "@/hooks/common/useStaleDocumentPrompt";
+import SalesOrderItemsEditModal from "./SalesOrderItemsEditModal";
 import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { DeliverySchedule } from "@/types/delivery-schedules";
@@ -471,6 +474,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const uploadAttachmentMutation = useUploadSalesOrderAttachmentMutation();
   const deleteAttachmentMutation = useDeleteSalesOrderAttachmentMutation();
   const updateCustomerPoMutation = useUpdateSalesOrderCustomerPoMutation();
+  const updateItemsMutation = useUpdateSalesOrderItemsMutation();
+  const [itemsEditOpen, setItemsEditOpen] = useState(false);
   const updateHeaderMutation = useUpdateSalesOrderHeaderMutation();
   const taxRatesQuery = useTaxRatesQuery({ isActive: true });
   const taxRates = taxRatesQuery.data?.data ?? [];
@@ -1441,7 +1446,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       icon={<FilePdfOutlined />}
       onClick={() => void printLivePdf()}
     >
-      ตัวอย่างเอกสาร
+      {isPreConfirm ? "ตัวอย่างเอกสาร" : "พิมพ์เอกสาร"}
     </Button>
   );
 
@@ -2382,6 +2387,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
+              {/* แก้ได้เฉพาะก่อนยืนยัน — เงื่อนไขเดียวกับปุ่มจอง/ยกเลิกจองในส่วนนี้ */}
+              {isPreConfirm && canWrite ? (
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => setItemsEditOpen(true)}
+                >
+                  แก้ไขรายการ
+                </Button>
+              ) : null}
             </div>
             {isPreConfirm && canWrite && allLinesReserved ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
@@ -2689,6 +2704,24 @@ export default function SalesOrderDetailPage({ id }: Props) {
               deliveryStatus={data.deliveryStatus}
             />
           </div>
+
+          <SalesOrderItemsEditModal
+            open={itemsEditOpen}
+            order={data}
+            loading={updateItemsMutation.isPending}
+            onCancel={() => setItemsEditOpen(false)}
+            onSubmit={(body) =>
+              updateItemsMutation.mutate(
+                { id: data.id, body, expectedVersion: data.editVersion },
+                {
+                  onSuccess: () => setItemsEditOpen(false),
+                  // 409 = มีคนแก้ไปแล้ว ใช้กล่องเตือนตัวเดียวกับที่หน้านี้ใช้อยู่
+                  onError: (error) =>
+                    promptStaleDocument(error, reloadSalesOrder),
+                },
+              )
+            }
+          />
 
           <div className={styles.section}>
             <DocumentAuditTrail documentId={data.id} />

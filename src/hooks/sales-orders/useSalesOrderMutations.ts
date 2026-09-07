@@ -245,15 +245,22 @@ export function useDeleteSalesOrderAttachmentMutation() {
   });
 }
 
-/** รายการสินค้าล็อกตามใบเสนอราคา — API คืน 400 ถ้าเรียก */
+/** แก้รายการสินค้าได้เฉพาะตอนใบยังเป็นร่าง — ส่งชุดบรรทัดที่ต้องการทั้งหมด */
 export function useUpdateSalesOrderItemsMutation() {
   const { message } = App.useApp();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
     mutationKey: [...salesOrdersQueryKey, "update-items"],
-    mutationFn: ({ id, body }: { id: string; body: UpdateSalesOrderItemsBody }) =>
-      updateSalesOrderItems(getAccessToken(), id, body),
+    mutationFn: ({
+      id,
+      body,
+      expectedVersion,
+    }: {
+      id: string;
+      body: UpdateSalesOrderItemsBody;
+      expectedVersion: number;
+    }) => updateSalesOrderItems(getAccessToken(), id, body, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
       message.success(res.message || "บันทึกรายการสินค้าสำเร็จ");

@@ -140,16 +140,23 @@ export function updateSalesOrderHeader(
   });
 }
 
-/** แก้จำนวน / ราคา / ส่วนลด ของรายการสินค้า (ก่อนยืนยันใบสั่งขายเท่านั้น) */
+/**
+ * แก้รายการสินค้า — ก่อนยืนยันใบสั่งขายเท่านั้น
+ *
+ * `body.items` คือ **ชุดที่ต้องการทั้งหมด** บรรทัดเดิมที่ไม่ส่งกลับมาจะถูกลบ
+ * แก้จำนวน / ราคา / ส่วนลด และเพิ่มหรือลบบรรทัดได้
+ */
 export function updateSalesOrderItems(
   token: string,
   id: string,
   body: UpdateSalesOrderItemsBody,
+  expectedVersion: number,
 ) {
   return apiFetch<SalesOrderApiResponse>(`/api/sales-orders/${id}/items`, {
     method: "PATCH",
     token,
     body,
+    ifMatch: expectedVersion,
   });
 }
 

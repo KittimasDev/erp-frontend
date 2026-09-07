@@ -162,13 +162,19 @@ export type UpdateSalesOrderHeaderBody = {
 };
 
 /** แก้จำนวน / ส่วนลด รายบรรทัด — ราคาต่อหน่วยล็อกตาม QT */
+/** ไม่ส่ง `id` = บรรทัดใหม่ */
 export type UpdateSalesOrderItemLineBody = {
-  id: string;
-  quantity?: number;
-  unitPrice?: number;
+  id?: string;
+  itemId: string;
+  unitId: string;
+  quantity: number;
+  unitPrice: number;
   discountAmount?: number;
+  description?: string;
+  sortOrder?: number;
 };
 
+/** `items` คือชุดที่ต้องการทั้งหมด — บรรทัดเดิมที่ไม่ส่งกลับมาจะถูกลบ */
 export type UpdateSalesOrderItemsBody = {
   items: UpdateSalesOrderItemLineBody[];
   discountAmount?: number;

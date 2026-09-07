@@ -1,0 +1,128 @@
+.notice {
+  margin-bottom: 14px;
+  border-radius: 12px;
+}
+
+.lineCard {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.lineHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lineIndex {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: rgba(115, 152, 22, 0.16);
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* สินค้ากินสองช่อง ที่เหลือช่องละหนึ่ง — แถวเดียวจบบนจอกว้าง */
+.lineGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.fieldWide {
+  grid-column: span 2;
+}
+
+.lineAmount {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 24px;
+  text-align: right;
+}
+
+.lineAmount span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.lineAmount strong {
+  color: var(--erp-text, #2f343a);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.totals {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  padding: 12px 14px;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.totals > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.totals span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.totals strong {
+  color: var(--erp-text, #2f343a);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.totalsHint {
+  margin: 4px 0 0;
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .lineGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fieldWide {
+    grid-column: span 2;
+  }
+  .lineAmount {
+    padding-bottom: 0;
+    text-align: left;
+  }
+  .footerGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

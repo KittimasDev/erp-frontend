@@ -127,9 +127,11 @@ function firstBlockHtml(data: PurchaseOrderPdfData) {
           <div class="info-grid">
             ${infoRow("เงื่อนไขการชำระเงิน:", data.paymentTerm)}
             ${infoRow("วิธีชำระเงิน / Payment:", data.paymentMethodLabel)}
+            ${infoRow("อัตราภาษี:", data.taxRateLabel)}
+            ${infoRow("ภาษีหัก ณ ที่จ่าย:", data.withholdingTaxLabel)}
             ${infoRow("ผู้ติดต่อ / Contact:", data.createdBy)}
             ${infoRow("เบอร์โทร / Phone:", data.createdByPhone)}
-            ${infoRow("วันที่ส่งของ:", data.expectedDeliveryDate)}
+            ${infoRow("วันที่ส่งมอบ:", data.expectedDeliveryDate)}
             ${infoRow("หมายเหตุ / Remarks:", data.remark, "value-clamp")}
           </div>
         </section>
@@ -200,7 +202,7 @@ function totalsHtml(data: PurchaseOrderPdfData) {
           <div class="v">${formatMoney(data.vatAmount)}</div>
         </div>
         <div class="tot-row grand">
-          <div class="k">ยอดสุทธิที่ต้องชำระ:</div>
+          <div class="k">ยอดสุทธิ:</div>
           <div class="v">${formatMoney(data.totalAmount)}</div>
         </div>
       </div>`;
