@@ -38,6 +38,8 @@ import {
 } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import DocumentHtmlView from "@/components/common/DocumentHtmlView";
+import { documentHtmlIsEmpty } from "@/lib/html/sanitize-document-html";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
@@ -523,14 +525,14 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             </div>
           </div>
 
-          {data.remark ? (
+          {documentHtmlIsEmpty(data.remark) ? null : (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
               </div>
-              <p className={styles.textBlock}>{data.remark}</p>
+              <DocumentHtmlView html={data.remark} />
             </div>
-          ) : null}
+          )}
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>

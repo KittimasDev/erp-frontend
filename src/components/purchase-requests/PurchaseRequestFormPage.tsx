@@ -30,6 +30,8 @@ import {
 } from "@/hooks/purchase-requests/usePurchaseRequestMutations";
 import { usePurchaseRequestQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
+import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
+import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { CreatePurchaseRequestBody } from "@/types/purchase-requests";
 import styles from "./PurchaseRequestFormPage.module.css";
 
@@ -169,7 +171,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
       purchaseRequestTypeId: values.purchaseRequestTypeId,
       departmentId: values.departmentId,
       objective: values.objective?.trim() || undefined,
-      remark: values.remark?.trim() || undefined,
+      remark: sanitizeDocumentHtml(values.remark) || undefined,
       items: (values.items ?? []).map((item, index) => ({
         itemId: item.itemId as string,
         unitId: item.unitId as string,
@@ -455,10 +457,14 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                 <div className={styles.sectionHead}>
                   <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
                 </div>
-                <Form.Item className={styles.field} name="remark">
-                  <Input.TextArea
-                    rows={3}
-                    placeholder="หมายเหตุหัวเอกสาร (ถ้ามี)"
+                <Form.Item
+                  className={styles.field}
+                  name="remark"
+                  style={{ marginBottom: 0 }}
+                >
+                  <DocumentHtmlEditor
+                    ariaLabel="หมายเหตุ"
+                    placeholder="รายละเอียดเพิ่มเติมบนใบขอซื้อ"
                   />
                 </Form.Item>
               </div>

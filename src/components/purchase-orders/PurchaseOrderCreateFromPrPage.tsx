@@ -25,6 +25,7 @@ import {
 import dayjs from "dayjs";
 
 import AccessDenied from "@/components/auth/AccessDenied";
+import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
 import { useVendorsQuery } from "@/hooks/vendors/useVendorsQuery";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
 import { useCreatePurchaseOrderFromPrMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
@@ -51,6 +52,7 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { getAccessToken } from "@/lib/auth/token";
+import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import {
   ATTACHMENT_GROUP_QUOTATION,
   DOCUMENT_TYPE_PO,
@@ -346,7 +348,7 @@ export default function PurchaseOrderCreateFromPrPage({
             values.withholdingTaxPercent,
           ),
           discountAmount: values.discountAmount ?? 0,
-          remark: values.remark?.trim() || undefined,
+          remark: sanitizeDocumentHtml(values.remark) || undefined,
           items: values.items.map((item) => ({
             purchaseRequestItemId: item.purchaseRequestItemId,
             unitPrice: Number(item.unitPrice),
@@ -528,8 +530,12 @@ export default function PurchaseOrderCreateFromPrPage({
                     className={`${styles.field} ${styles.formGridFull}`}
                     label="หมายเหตุ"
                     name="remark"
+                    style={{ marginBottom: 0 }}
                   >
-                    <Input.TextArea rows={2} />
+                    <DocumentHtmlEditor
+                      ariaLabel="หมายเหตุ"
+                      placeholder="รายละเอียดเพิ่มเติมบนใบสั่งซื้อ"
+                    />
                   </Form.Item>
                 </div>
               </div>

@@ -29,6 +29,8 @@ import {
   WithholdingTaxType,
 } from "@/lib/money/vat-totals";
 import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
+import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
+import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import styles from "./PurchaseOrderFormPage.module.css";
 
 type LineValues = {
@@ -152,7 +154,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
           values.withholdingTaxPercent,
         ),
         discountAmount: values.discountAmount ?? 0,
-        remark: values.remark?.trim() || undefined,
+        remark: sanitizeDocumentHtml(values.remark) || undefined,
         items: values.items.map((item, index) => ({
           id: item.id,
           purchaseRequestItemId: item.purchaseRequestItemId,
@@ -287,8 +289,12 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                     className={`${styles.field} ${styles.formGridFull}`}
                     label="หมายเหตุ"
                     name="remark"
+                    style={{ marginBottom: 0 }}
                   >
-                    <Input.TextArea rows={2} />
+                    <DocumentHtmlEditor
+                      ariaLabel="หมายเหตุ"
+                      placeholder="รายละเอียดเพิ่มเติมบนใบสั่งซื้อ"
+                    />
                   </Form.Item>
                 </div>
               </div>

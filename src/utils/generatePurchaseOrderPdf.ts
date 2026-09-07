@@ -7,6 +7,7 @@ import {
   formatQty,
   openMultiPagePdfFromHtml,
 } from "./pdf-common";
+import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 
 type PurchaseOrderPdfItem = {
   no: number;
@@ -132,7 +133,6 @@ function firstBlockHtml(data: PurchaseOrderPdfData) {
             ${infoRow("ผู้ติดต่อ / Contact:", data.createdBy)}
             ${infoRow("เบอร์โทร / Phone:", data.createdByPhone)}
             ${infoRow("วันที่ส่งมอบ:", data.expectedDeliveryDate)}
-            ${infoRow("หมายเหตุ / Remarks:", data.remark, "value-clamp")}
           </div>
         </section>
       </div>`;
@@ -214,8 +214,8 @@ function noteHeadHtml() {
       <div class="note-title">หมายเหตุ :</div>`;
 }
 
-function noteChunkHtml(text: string) {
-  return `<div class="note-value">${escapeHtml(text)}</div>`;
+function noteChunkHtml(html: string) {
+  return `<div class="note-html">${html}</div>`;
 }
 
 function pageEndHtml() {
@@ -614,6 +614,81 @@ function createStyle() {
         flex-shrink: 0;
       }
 
+      .note-html {
+        font-size: 8px;
+        color: #7A7A7A;
+        line-height: 1.4;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        flex-shrink: 0;
+      }
+
+      .note-html p { margin: 0 0 3px; }
+      .note-html p:last-child { margin-bottom: 0; }
+
+      .note-html ul,
+      .note-html ol {
+        margin: 0 0 3px;
+        padding-left: 13px;
+      }
+
+      .note-html h1 {
+        margin: 0 0 4px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #343434;
+        line-height: 1.3;
+      }
+
+      .note-html h2 {
+        margin: 0 0 4px;
+        font-size: 9.5px;
+        font-weight: 700;
+        color: #343434;
+        line-height: 1.35;
+      }
+
+      .note-html ul[data-task] {
+        list-style: none;
+        padding-left: 2px;
+      }
+
+      .note-html ul[data-task] li {
+        position: relative;
+        padding-left: 12px;
+      }
+
+      .note-html ul[data-task] li::before {
+        content: "☐";
+        position: absolute;
+        left: 0;
+      }
+
+      .note-html ul[data-task] li[data-checked="true"]::before {
+        content: "☑";
+      }
+
+      .note-html s,
+      .note-html strike,
+      .note-html del {
+        text-decoration: line-through;
+      }
+
+      .note-html pre {
+        margin: 0 0 4px;
+        padding: 5px 6px;
+        background: #f4f4f3;
+        border-radius: 4px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 7.5px;
+        white-space: pre-wrap;
+      }
+
+      .note-html code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 7.5px;
+      }
+
       .page-end {
         margin-top: auto;
         flex-shrink: 0;
@@ -685,9 +760,34 @@ type Probe = {
   metrics: Metrics;
 };
 
-/** แตกหมายเหตุตามการขึ้นบรรทัดของผู้ใช้ — บรรทัดว่างยังนับเป็นบรรทัดว่างจริง */
-function splitParagraphs(remark: string) {
-  return remark.replace(/\r\n?/g, "\n").split("\n");
+/** แตกหมายเหตุ rich text ตาม element ชั้นบนสุด — หั่นกลาง HTML ไม่ได้ */
+function splitNoteHtmlChunks(html: string): string[] {
+  const holder = document.createElement("div");
+  holder.innerHTML = html;
+
+  const chunks: string[] = [];
+  for (const node of Array.from(holder.childNodes)) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent ?? "";
+      if (text.trim()) chunks.push(`<p>${escapeHtml(text)}</p>`);
+      continue;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) continue;
+
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+    if ((tag === "ul" || tag === "ol") && el.children.length > 1) {
+      for (const li of Array.from(el.children)) {
+        const clone = el.cloneNode(false) as HTMLElement;
+        clone.appendChild(li.cloneNode(true));
+        chunks.push(clone.outerHTML);
+      }
+      continue;
+    }
+    chunks.push(el.outerHTML);
+  }
+
+  return chunks.length > 0 ? chunks : [`<p>${escapeHtml("—")}</p>`];
 }
 
 /**
@@ -697,7 +797,7 @@ function splitParagraphs(remark: string) {
  * margin มาด้วย ซึ่ง `getBoundingClientRect()` ให้ไม่ได้ และก้อนอย่าง `.totals`
  * กับ `.rule` มี margin ที่กินที่จริงบนหน้ากระดาษ
  */
-function buildProbe(data: PurchaseOrderPdfData, paragraphs: string[]): Probe {
+function buildProbe(data: PurchaseOrderPdfData, chunks: string[]): Probe {
   const root = document.createElement("div");
   root.style.position = "fixed";
   root.style.left = "-99999px";
@@ -722,7 +822,7 @@ function buildProbe(data: PurchaseOrderPdfData, paragraphs: string[]): Probe {
         ${theadHtml()}${data.items.map(rowHtml).join("")}
       </div>
       <div id="po-probe-notes">
-        ${paragraphs.map((text) => noteChunkHtml(text)).join("")}
+        ${chunks.map((html) => noteChunkHtml(html)).join("")}
       </div>
       <div class="note-value" id="po-probe-scratch"></div>
     </div>
@@ -765,54 +865,6 @@ function buildProbe(data: PurchaseOrderPdfData, paragraphs: string[]): Probe {
   };
 }
 
-/**
- * หาส่วนหน้าของข้อความที่ยาวที่สุดที่ยังสูงไม่เกินงบ
- *
- * ตัดตรงช่องว่างถ้ามีอยู่ไม่ไกลจากจุดตัด ไม่งั้นตัดกลางคำ — ภาษาไทยไม่เว้นวรรค
- * ระหว่างคำอยู่แล้ว การตัดตามตัวอักษรจึงเป็นทางปกติ ไม่ใช่ทางสำรอง
- */
-function fitTextChunk(
-  scratch: HTMLElement,
-  text: string,
-  budget: number,
-): [chunk: string, rest: string] {
-  const measure = (value: string) => {
-    scratch.textContent = value;
-    return scratch.getBoundingClientRect().height;
-  };
-
-  if (measure(text) <= budget) {
-    return [text, ""];
-  }
-
-  let lo = 0;
-  let hi = text.length;
-  while (lo < hi) {
-    const mid = Math.ceil((lo + hi) / 2);
-    if (measure(text.slice(0, mid)) <= budget) {
-      lo = mid;
-    } else {
-      hi = mid - 1;
-    }
-  }
-
-  if (lo <= 0) {
-    return ["", text];
-  }
-
-  let cut = lo;
-  const space = text.lastIndexOf(" ", lo);
-  if (space > lo * 0.5) {
-    cut = space;
-  }
-
-  const chunk = text.slice(0, cut);
-  if (!chunk.trim()) {
-    return ["", text];
-  }
-  return [chunk, text.slice(cut).replace(/^ +/, "")];
-}
-
 /* ---------- จัดหน้า ---------- */
 
 type PageDraft = {
@@ -827,7 +879,7 @@ type PageDraft = {
 function buildPages(
   data: PurchaseOrderPdfData,
   probe: Probe,
-  paragraphs: string[],
+  chunks: string[],
 ): string[] {
   const m = probe.metrics;
   const pages: PageDraft[] = [];
@@ -896,52 +948,13 @@ function buildPages(
   page.tail.push(noteHeadHtml());
   page.used += m.noteHead;
 
-  for (let i = 0; i < paragraphs.length; i += 1) {
-    let rest = paragraphs[i];
-    let restHeight = m.paragraphs[i] ?? 0;
-
-    // บรรทัดว่างที่ผู้ใช้เคาะไว้ยังต้องกินที่หนึ่งบรรทัด
-    if (rest === "") {
-      if (page.used > 0 && restHeight > free()) {
-        nextPage();
-      }
-      page.tail.push(noteChunkHtml(""));
-      page.used += restHeight;
-      continue;
-    }
-
-    while (rest !== "") {
-      if (restHeight <= free()) {
-        page.tail.push(noteChunkHtml(rest));
-        page.used += restHeight;
-        break;
-      }
-
-      const [chunk, remainder] = fitTextChunk(probe.scratch, rest, free());
-
-      if (chunk === "") {
-        // หน้านี้ไม่เหลือที่แม้แต่บรรทัดเดียว
-        if (page.used === 0) {
-          // หน้าเปล่ายังใส่ไม่ลง = คำนวณเพี้ยน ใส่ทั้งก้อนดีกว่าวนไม่รู้จบ
-          page.tail.push(noteChunkHtml(rest));
-          page.used += restHeight;
-          break;
-        }
-        nextPage();
-        continue;
-      }
-
-      page.tail.push(noteChunkHtml(chunk));
-      page.used = capacity(page);
-      rest = remainder;
-      if (rest === "") {
-        break;
-      }
-
+  for (let i = 0; i < chunks.length; i += 1) {
+    const chunkHeight = m.paragraphs[i] ?? 0;
+    if (page.used > 0 && chunkHeight > free()) {
       nextPage();
-      probe.scratch.textContent = rest;
-      restHeight = probe.scratch.getBoundingClientRect().height;
     }
+    page.tail.push(noteChunkHtml(chunks[i]));
+    page.used += chunkHeight;
   }
 
   // 4) ลายเซ็น — ก้อนเดียวจบ อยู่หน้าสุดท้ายเสมอ
@@ -988,11 +1001,13 @@ export async function buildPurchaseOrderPagesHtml(data: PurchaseOrderPdfData) {
   // ต้องรอฟอนต์ก่อนวัด — Sarabun สูงกว่า fallback ถ้าวัดก่อนโหลดเสร็จหน้าจะล้น
   await waitForSarabun();
 
-  const paragraphs = splitParagraphs(dash(data.remark));
-  const probe = buildProbe(data, paragraphs);
+  const remarkHtml =
+    sanitizeDocumentHtml(data.remark) || `<p>${escapeHtml("—")}</p>`;
+  const chunks = splitNoteHtmlChunks(remarkHtml);
+  const probe = buildProbe(data, chunks);
 
   try {
-    return buildPages(data, probe, paragraphs);
+    return buildPages(data, probe, chunks);
   } finally {
     document.body.removeChild(probe.root);
   }

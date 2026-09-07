@@ -239,6 +239,11 @@ export type ProductionOrderSummary = {
    */
   quantitiesComparable: boolean;
   unitCodes: string[];
+  /** `EXCEEDS_INPUT` = ผลผลิตมากกว่าวัตถุดิบ เป็นไปไม่ได้ทางกายภาพ */
+  massBalanceStatus: string;
+  /** false = ห้ามเอาตัวเลข Yield ของใบนี้ไปเฉลี่ยรวม */
+  yieldTrustworthy: boolean;
+  massBalanceWarning?: string;
 };
 
 export type StartProductionOrderInputLineBody = {

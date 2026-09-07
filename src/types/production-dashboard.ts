@@ -14,8 +14,10 @@ export type ProductionDashboardKpi = {
    * (เตาให้น้ำมันเป็นลิตร ผงคาร์บอนเป็นกิโล — ไม่มีตารางแปลงไหนรวมเป็นตัวเลขเดียวได้)
    */
   averageYieldPercent: number | null;
-  /** จำนวนใบที่ถูกตัดออกจากค่าเฉลี่ยเพราะผสมหน่วย — ต้องโชว์ ไม่ใช่ซ่อน */
+  /** จำนวนใบที่ถูกตัดออกจากค่าเฉลี่ยทั้งหมด (ผสมหน่วย + ตัวเลขเป็นไปไม่ได้) */
   yieldExcludedOrders: number;
+  /** ในจำนวนนั้น กี่ใบที่ผลผลิตมากกว่าวัตถุดิบ — พวกนี้ต้องมีคนไปแก้ข้อมูล */
+  yieldImpossibleOrders: number;
   totalDowntimeHours: number;
   openDowntimeCount: number;
 };

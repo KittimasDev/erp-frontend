@@ -80,7 +80,7 @@ export default function ProductionOrderYieldCard({
           type="warning"
           showIcon
           className={styles.unitWarning}
-          message="ตัวเลข Yield เทียบไม่ได้ — ใบนี้มีหลายหน่วย"
+          title="ตัวเลข Yield เทียบไม่ได้ — ใบนี้มีหลายหน่วย"
           description={
             `พบหน่วย ${summary.unitCodes.join(" · ")} ในใบเดียวกัน ` +
             "ยอดรวมและเปอร์เซ็นต์ด้านล่างเกิดจากการบวกข้ามหน่วย ใช้ดูแนวโน้มได้แต่อย่าใช้ตัดสินใจ " +
@@ -88,6 +88,22 @@ export default function ProductionOrderYieldCard({
           }
         />
       )}
+
+      {/*
+        ผลผลิตมากกว่าวัตถุดิบที่ใส่เข้าไปเป็นไปไม่ได้ (กฎอนุรักษ์มวล) — ขึ้นสีแดง
+        ไม่ใช่สีเหลือง เพราะไม่ใช่ "ระวัง" แต่คือ "ตัวเลขนี้ผิดแน่ ๆ ต้องไปแก้"
+        ใบแบบนี้ถูกตัดออกจากค่าเฉลี่ยบนแดชบอร์ดแล้ว
+      */}
+      {summary.massBalanceStatus === "EXCEEDS_INPUT" &&
+      summary.massBalanceWarning ? (
+        <Alert
+          type="error"
+          showIcon
+          className={styles.unitWarning}
+          title="ตัวเลขเป็นไปไม่ได้ — ผลผลิตมากกว่าวัตถุดิบ"
+          description={summary.massBalanceWarning}
+        />
+      ) : null}
 
       <div className={styles.yieldTop}>
         <div className={styles.gauge}>
