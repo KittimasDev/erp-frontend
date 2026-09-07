@@ -442,7 +442,7 @@ export default function StockBalancesPage() {
           <Alert
             type="error"
             showIcon
-            message={
+            title={
               pageError instanceof Error
                 ? pageError.message
                 : "โหลดข้อมูลไม่สำเร็จ"

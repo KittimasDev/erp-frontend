@@ -253,7 +253,7 @@ export default function DeliverySchedulesSection({
       type="warning"
       showIcon
       style={{ marginBottom: 12 }}
-      message="ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น"
+      title="ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น"
       description={staleMessage}
       action={
         <Button size="small" onClick={() => void reloadOpenModal()}>

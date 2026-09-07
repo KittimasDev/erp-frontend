@@ -68,7 +68,7 @@ function CompleteModalBody(props: Omit<CompleteModalProps, "open">) {
         className={styles.formSectionHint}
         type="warning"
         showIcon
-        message={`จะรับ ${fmtQty(value)} ${props.outputUnit} เข้า ${props.warehouseName} พร้อมสร้าง Lot ใหม่ — ย้อนกลับไม่ได้`}
+        title={`จะรับ ${fmtQty(value)} ${props.outputUnit} เข้า ${props.warehouseName} พร้อมสร้าง Lot ใหม่ — ย้อนกลับไม่ได้`}
       />
 
       <div className={styles.infoGrid}>
@@ -188,7 +188,7 @@ function CancelModalBody(props: Omit<CancelModalProps, "open">) {
           className={styles.formSectionHint}
           type="warning"
           showIcon
-          message="วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าสต๊อก"
+          title="วัตถุดิบที่ตัดไปแล้วจะไม่ถูกคืนเข้าสต๊อก"
           description="ของเข้าเครื่องไปแล้ว ถ้ามีของเหลือจริงให้เปิดใบปรับปรุงสต๊อกโดยชั่งของจริงและมีคนอนุมัติ"
         />
       ) : null}

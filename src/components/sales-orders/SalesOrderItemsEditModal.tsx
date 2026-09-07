@@ -170,7 +170,7 @@ export default function SalesOrderItemsEditModal(props: Props) {
         className={styles.notice}
         type="info"
         showIcon
-        message="แก้ได้เฉพาะตอนใบยังไม่ยืนยัน และไม่ทำให้เลขฉบับเปลี่ยน"
+        title="แก้ได้เฉพาะตอนใบยังไม่ยืนยัน และไม่ทำให้เลขฉบับเปลี่ยน"
         description="ระบบจะปรับรอบจัดส่ง คืนการจองสต๊อก แล้วคิดยอดใหม่ให้อัตโนมัติ · บรรทัดที่ลบออกจะถูกเอาออกจากรอบจัดส่งด้วย"
       />
 

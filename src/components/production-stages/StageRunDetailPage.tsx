@@ -230,7 +230,7 @@ export default function StageRunDetailPage({
           <Alert
             type="warning"
             showIcon
-            message="รอบนี้ถูกยกเลิก"
+            title="รอบนี้ถูกยกเลิก"
             description={run.cancelReason}
           />
         ) : null}

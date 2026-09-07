@@ -176,7 +176,7 @@ export default function StageRunCreatePage({
           <Alert
             type="warning"
             showIcon
-            message="ไม่มีสิทธิ์สร้างรอบการทำงานในหน้าจอนี้"
+            title="ไม่มีสิทธิ์สร้างรอบการทำงานในหน้าจอนี้"
           />
         )}
 
@@ -254,7 +254,7 @@ export default function StageRunCreatePage({
               <Alert
                 type="error"
                 showIcon
-                message={`Lot นี้คงเหลือ ${fmtQty(selectedLot.quantityAvailable)} ${selectedLot.unitCode ?? ""} — ใส่จำนวนเกินของที่มีจริง`}
+                title={`Lot นี้คงเหลือ ${fmtQty(selectedLot.quantityAvailable)} ${selectedLot.unitCode ?? ""} — ใส่จำนวนเกินของที่มีจริง`}
               />
             ) : null}
           </div>

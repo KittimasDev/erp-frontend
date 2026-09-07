@@ -120,7 +120,7 @@ export default function RawTireWarehouseReceiptSlipPage({
           <Alert
             type="warning"
             showIcon
-            message="ยังไม่มีใบรับสินค้าเข้าคลัง"
+            title="ยังไม่มีใบรับสินค้าเข้าคลัง"
             description="เอกสารนี้จะแสดงหลังอนุมัติรับยางดิบเข้าคลังแล้ว"
           />
           <Link href={`/receiving/receipts/${receiptId}`}>กลับใบรับซื้อ</Link>

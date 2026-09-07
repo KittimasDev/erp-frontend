@@ -1482,9 +1482,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
           {pdfSnapshots.length > 0 ? (
             <Space wrap>
               <Select
-                aria-label="ประวัติฉบับเก่า"
+                aria-label="ประวัติ PDF"
                 allowClear
-                placeholder="ประวัติฉบับเก่า"
+                placeholder="ประวัติ PDF"
                 value={
                   selectedPdfVersion === "current"
                     ? undefined
@@ -1496,7 +1496,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 style={{ minWidth: 220 }}
                 options={pdfSnapshots.map((snapshot) => ({
                   value: snapshot.id,
-                  label: `ฉบับที่ ${snapshot.versionNo} — ${dayjs(snapshot.createdAt).format("DD/MM/YYYY HH:mm")}`,
+                  label: `ประวัติครั้งที่ ${snapshot.versionNo} — ${dayjs(snapshot.createdAt).format("DD/MM/YYYY HH:mm")}`,
                 }))}
               />
               {selectedPdfVersion !== "current" ? (
@@ -1504,7 +1504,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   htmlType="button"
                   onClick={() => void printSnapshotPdf()}
                 >
-                  พิมพ์ฉบับเก่า
+                  พิมพ์ประวัติ
                 </Button>
               ) : null}
             </Space>

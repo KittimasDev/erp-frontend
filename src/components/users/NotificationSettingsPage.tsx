@@ -278,7 +278,7 @@ export default function NotificationSettingsPage({
               type="warning"
               showIcon
               style={{ marginBottom: 16 }}
-              message="ยังไม่มีบทบาทที่รับแจ้งเตือน"
+              title="ยังไม่มีบทบาทที่รับแจ้งเตือน"
               description="เปิดสวิตช์บทบาทของบัญชีที่ควรอนุมัติ แล้วกดบันทึก — ระบบจะยิงแจ้งเตือนตามบทบาทที่เปิดไว้ที่นี่เท่านั้น"
             />
           ) : null}
@@ -323,7 +323,7 @@ export default function NotificationSettingsPage({
             type="error"
             showIcon
             style={{ marginBottom: 16 }}
-            message="โหลดรายการไม่สำเร็จ"
+            title="โหลดรายการไม่สำเร็จ"
             description={eventsError}
             action={
               <Button size="small" onClick={() => void eventsQuery.refetch()}>
