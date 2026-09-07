@@ -38,9 +38,6 @@ import {
   useQuotationItemAvailabilityQuery,
   useQuotationQuery,
 } from "@/hooks/quotations/useQuotationsQuery";
-import { useCompanyProfileQuery } from "@/hooks/company-profile/useCompanyProfileQuery";
-import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
-import { pickDefaultTaxRateId, pickDefaultTaxRatePercent } from "@/lib/money/pick-default-tax-rate";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { CreateQuotationBody } from "@/types/quotations";
 import { getStoredUser } from "@/lib/auth/session";
@@ -48,9 +45,11 @@ import {
   calcDocumentTotals,
   calcLineAmount,
   calcWithholdingAmount,
+  resolveDocumentVatPercent,
   resolveVatMode,
   resolveWithholdingPercent,
   resolveWithholdingTaxType,
+  vatAmountLabel,
   VatMode,
   WITHHOLDING_TAX_TYPE_OPTIONS,
   WithholdingTaxType,
@@ -74,7 +73,6 @@ type FormValues = {
   preparedByPhone?: string;
   paymentTermId?: string;
   vatMode: VatMode;
-  taxRateId?: string;
   withholdingTaxType: WithholdingTaxType;
   withholdingTaxPercent?: number;
   validUntil?: dayjs.Dayjs | null;
@@ -139,16 +137,12 @@ export default function QuotationFormPage({ mode, id }: Props) {
     isFinishedGood: true,
   });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
-  const taxRatesQuery = useTaxRatesQuery({ isActive: true });
-  const companyProfileQuery = useCompanyProfileQuery();
 
   const customers = customersQuery.data?.data ?? [];
   const items = itemsQuery.data?.data ?? [];
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
   const { resolveUnitField } = useUnitFieldResolver(items);
   const paymentTerms = paymentTermsQuery.data?.data ?? [];
-  const taxRates = taxRatesQuery.data?.data ?? [];
-  const defaultVatRate = companyProfileQuery.data?.data?.defaultVatRate;
 
   const watchedItems = Form.useWatch("items", form) ?? [];
   const watchedDiscount = Form.useWatch("discountAmount", form) ?? 0;
@@ -156,7 +150,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const watchedWhtType = Form.useWatch("withholdingTaxType", form);
   const watchedWhtPercent = Form.useWatch("withholdingTaxPercent", form);
   const watchedCustomerId = Form.useWatch("customerId", form);
-  const watchedTaxRateId = Form.useWatch("taxRateId", form);
   const preparedByName =
     getStoredUser()?.displayName?.trim() ||
     getStoredUser()?.username ||
@@ -222,7 +215,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
       preparedByPhone: data.preparedByPhone,
       paymentTermId: data.paymentTermId,
       vatMode: resolveVatMode(data.vatMode),
-      taxRateId: data.taxRateId,
       withholdingTaxType: resolveWithholdingTaxType(data.withholdingTaxType),
       withholdingTaxPercent: Number(data.withholdingTaxPercent) || 0,
       validUntil: data.validUntil ? dayjs(data.validUntil) : null,
@@ -239,19 +231,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
     });
   }, [detailQuery.data, form, mode, router]);
 
-  useEffect(() => {
-    if (mode !== "create") {
-      return;
-    }
-    if (form.getFieldValue("taxRateId")) {
-      return;
-    }
-    const taxRateId = pickDefaultTaxRateId(taxRates, defaultVatRate);
-    if (taxRateId) {
-      form.setFieldValue("taxRateId", taxRateId);
-    }
-  }, [defaultVatRate, form, mode, taxRates]);
-
   const selectedCustomer = useMemo(
     () => customers.find((c) => c.id === watchedCustomerId),
     [customers, watchedCustomerId],
@@ -266,13 +245,12 @@ export default function QuotationFormPage({ mode, id }: Props) {
         Number(line?.discountAmount) || 0,
       ),
     );
-    const rate =
-      vatMode === VatMode.NONE
-        ? 0
-        : Number(
-            taxRates.find((row) => row.id === watchedTaxRateId)?.rate ??
-              pickDefaultTaxRatePercent(taxRates, defaultVatRate),
-          );
+    // อัตรา VAT = อัตราหัก ณ ที่จ่ายของใบนี้ (ดู resolveDocumentVatPercent)
+    const rate = resolveDocumentVatPercent({
+      vatMode,
+      withholdingTaxType: watchedWhtType,
+      withholdingTaxPercent: watchedWhtPercent,
+    });
     const totals = calcDocumentTotals(
       lineAmounts,
       Number(watchedDiscount) || 0,
@@ -293,9 +271,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
   }, [
     watchedItems,
     watchedDiscount,
-    taxRates,
-    defaultVatRate,
-    watchedTaxRateId,
     watchedVatMode,
     watchedWhtType,
     watchedWhtPercent,
@@ -309,9 +284,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
       "@/utils/generateSalesQuotationPdf"
     );
     const stored = getStoredUser();
-    const selectedTaxRate = taxRates.find(
-      (rate) => rate.id === values.taxRateId,
-    );
     await generateSalesQuotationPdf({
       quotationNo:
         mode === "edit" && detailQuery.data?.data?.quotationNo
@@ -329,9 +301,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
       paymentTerm:
         paymentTerms.find((term) => term.id === values.paymentTermId)?.name ??
         "—",
-      taxRateLabel: selectedTaxRate
-        ? `${selectedTaxRate.name} (${Number(selectedTaxRate.rate)}%)`
-        : undefined,
+      taxRateLabel: vatAmountLabel(preview.vatRate),
       withholdingTaxType: values.withholdingTaxType,
       validUntil: values.validUntil
         ? values.validUntil.format("DD/MM/YYYY")
@@ -396,7 +366,6 @@ export default function QuotationFormPage({ mode, id }: Props) {
       preparedByPhone: values.preparedByPhone?.trim() || undefined,
       paymentTermId: values.paymentTermId,
       vatMode,
-      taxRateId: values.taxRateId,
       withholdingTaxType: values.withholdingTaxType,
       withholdingTaxPercent: resolveWithholdingPercent(
         values.withholdingTaxType,
@@ -614,19 +583,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
                       }))}
                     />
                   </Form.Item>
-                  <Form.Item name="taxRateId" label="อัตราภาษี">
-                    <Select
-                      allowClear
-                      showSearch
-                      optionFilterProp="label"
-                      placeholder="เลือกอัตราภาษี"
-                      loading={taxRatesQuery.isLoading}
-                      options={taxRates.map((rate) => ({
-                        value: rate.id,
-                        label: `${rate.name} (${Number(rate.rate)}%)`,
-                      }))}
-                    />
-                  </Form.Item>
+                  {/*
+                    ไม่มีช่อง "อัตราภาษี" แล้ว — อัตรา VAT มาจากช่องหัก ณ ที่จ่าย
+                    (ดู resolveDocumentVatPercent)
+                  */}
                   <Form.Item name="vatMode" label="รูปแบบภาษีมูลค่าเพิ่ม">
                     <Select options={QUOTATION_VAT_MODE_OPTIONS} />
                   </Form.Item>

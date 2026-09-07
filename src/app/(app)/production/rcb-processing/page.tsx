@@ -1,9 +1,8 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import StageRunsListPage from "@/components/production-stages/StageRunsListPage";
+import { RCB_MODULE } from "@/components/production-stages/stage-modules";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage module="การผลิต" title="กระบวนการผลิต rCB" />
-  );
+  return <StageRunsListPage config={RCB_MODULE} />;
 }

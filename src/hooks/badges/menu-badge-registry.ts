@@ -3,7 +3,11 @@
 import type { UseQueryOptions } from "@tanstack/react-query";
 
 import { PORTAL_MODULES } from "@/components/home/portal-modules";
+import { pendingChemicalIssuesCountOptions } from "@/hooks/chemical-issues/useChemicalIssuesQuery";
 import { readyPackingsForDeliveryCountOptions } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
+import { pendingLabReviewsCountOptions } from "@/hooks/laboratory/useLaboratoryQuery";
+import { pendingLeaveApprovalsCountOptions } from "@/hooks/leave/useLeaveQueries";
+import { pendingOvertimeApprovalsCountOptions } from "@/hooks/overtime/useOvertimeQueries";
 import { readyPickingsForPackingCountOptions } from "@/hooks/packings/usePackingsQuery";
 import { readySalesOrdersForPickingCountOptions } from "@/hooks/pickings/usePickingsQuery";
 import {
@@ -23,7 +27,10 @@ import {
 } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import { pendingSalesInvoicesCountOptions } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { pendingStockVerificationCountOptions } from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { pendingStockControlCountOptions } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
+import { pendingStockIssuesCountOptions } from "@/hooks/stock-issues/useStockIssuesQuery";
 import { pendingStockPostingApprovalsCountOptions } from "@/hooks/stock-posting/useStockPostingQueries";
+import { pendingStockTransfersCountOptions } from "@/hooks/stock-transfers/useStockTransfersQuery";
 
 /**
  * ทะเบียนกลางของ badge จำนวนคิวงานค้าง — แหล่งเดียวที่ทั้ง sidebar (AppHeader)
@@ -252,6 +259,101 @@ export const MENU_BADGE_REGISTRY: readonly MenuBadgeEntry[] = [
     label: "รอจ่ายเงิน Supplier",
     options: (ctx) =>
       pendingPurchasePaymentsCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+
+  // ─── คลังวัตถุดิบ ─────────────────────────────────────────────────────────
+  // เอกสารกลุ่มนี้ไม่มีขั้น "ส่งอนุมัติ" แยก (ยกเว้นใบปรับปรุงสต๊อก)
+  // สร้างแล้วรออนุมัติเลย และอนุมัติ = ตัดสต๊อกจริง จึงเป็นคิวที่ต้องเคลียร์
+  {
+    menuKey: "inventory-issues",
+    screenCode: "INVENTORY_ISSUES",
+    kind: "approval",
+    label: "ใบเบิกของออกจากคลังรออนุมัติ",
+    options: (ctx) =>
+      pendingStockIssuesCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+  {
+    menuKey: "chemical-issues",
+    screenCode: "CHEMICAL_ISSUES",
+    kind: "approval",
+    label: "ใบเบิกจ่ายสารเคมีรออนุมัติ",
+    options: (ctx) =>
+      pendingChemicalIssuesCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+  {
+    menuKey: "rm-stock-transfers",
+    screenCode: "STOCK_TRANSFERS",
+    kind: "approval",
+    label: "ใบโอนย้ายสินค้ารออนุมัติ",
+    options: (ctx) =>
+      pendingStockTransfersCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+  {
+    // เมนูเดียวรวมสองหน้า (ใบปรับปรุง + ใบตรวจนับ) — badge รวมยอดทั้งคู่
+    menuKey: "rm-stock-control",
+    screenCode: "STOCK_CONTROL",
+    kind: "approval",
+    label: "ใบปรับปรุง/ตรวจนับสต๊อกรออนุมัติ",
+    options: (ctx) =>
+      pendingStockControlCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+
+  // ─── ห้องปฏิบัติการ ───────────────────────────────────────────────────────
+  {
+    menuKey: "lab-samples",
+    screenCode: "LAB_SAMPLES",
+    kind: "approval",
+    label: "ผลตรวจ LAB รออนุมัติ",
+    options: (ctx) =>
+      pendingLabReviewsCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+
+  // ─── ทรัพยากรบุคคล ───────────────────────────────────────────────────────
+  // มีแจ้งเตือน "รออนุมัติ" มาตั้งแต่แรกแต่ไม่เคยมี badge — คนอนุมัติต้องเปิด
+  // หน้าไปดูเองว่ามีคิวไหม
+  {
+    menuKey: "hrm-overtime",
+    screenCode: "HRM_OVERTIME",
+    kind: "approval",
+    label: "คำขอ OT รออนุมัติ",
+    options: (ctx) =>
+      pendingOvertimeApprovalsCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+  {
+    menuKey: "hrm-leave",
+    screenCode: "HRM_LEAVE",
+    kind: "approval",
+    label: "คำขอลางานรออนุมัติ",
+    options: (ctx) =>
+      pendingLeaveApprovalsCountOptions(ctx) as UseQueryOptions<
         unknown,
         Error,
         number

@@ -27,7 +27,9 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import DocumentHtmlView from "@/components/common/DocumentHtmlView";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
+  resolveDocumentVatPercent,
   resolveVatMode,
+  vatAmountLabel,
   VatMode,
   withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
@@ -93,6 +95,11 @@ export default function QuotationDetailPage({ id }: Props) {
   const createSalesOrderMutation = useCreateSalesOrderFromQuotationMutation();
 
   const data = query.data?.data;
+  /*
+    อัตรา VAT ของใบนี้ = อัตราหัก ณ ที่จ่าย (ดู resolveDocumentVatPercent)
+    ไม่ได้อ่านจาก data.taxRate อีกแล้ว
+  */
+  const vatPercent = resolveDocumentVatPercent(data ?? {});
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const canView = quotationActions.canView;
@@ -145,9 +152,7 @@ export default function QuotationDetailPage({ id }: Props) {
       customerPhone: data.customer?.contactPhone,
       contactName: data.contactName,
       paymentTerm: data.paymentTerm?.name ?? "—",
-      taxRateLabel: data.taxRate
-        ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-        : undefined,
+      taxRateLabel: vatAmountLabel(vatPercent),
       withholdingTaxType: data.withholdingTaxType,
       validUntil: formatDate(data.validUntil),
       remark: data.remark || "",
@@ -163,7 +168,7 @@ export default function QuotationDetailPage({ id }: Props) {
         Number(data.subtotalAmount) - Number(data.discountAmount),
       ),
       vatAmount: Number(data.vatAmount) || 0,
-      vatRate: data.taxRate?.rate,
+      vatRate: vatPercent,
       withholdingAmount: Number(data.withholdingTaxAmount) || 0,
       withholdingPercent: Number(data.withholdingTaxPercent) || 0,
       totalAmount: Number(data.totalAmount) || 0,
@@ -278,9 +283,7 @@ export default function QuotationDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>อัตราภาษี</span>
                 <div className={styles.metaValue}>
-                  {data.taxRate
-                    ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-                    : "—"}
+                  {vatPercent > 0 ? `${vatPercent}%` : "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -410,9 +413,7 @@ export default function QuotationDetailPage({ id }: Props) {
             <p className={styles.sideHint}>ฐานก่อนคำนวณภาษีมูลค่าเพิ่ม</p>
             <div className={styles.sideRow}>
               <span>
-                {data.taxRate?.rate
-                  ? `ภาษีมูลค่าเพิ่ม ${data.taxRate.rate}%`
-                  : "ภาษีมูลค่าเพิ่ม"}
+                {vatAmountLabel(vatPercent)}
               </span>
               <strong>{formatMoney(data.vatAmount)}</strong>
             </div>

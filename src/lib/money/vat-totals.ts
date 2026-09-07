@@ -185,3 +185,34 @@ export function calcDocumentTotals(
     total: roundMoney(afterDiscount + vat),
   };
 }
+
+/**
+ * อัตรา VAT ของใบสั่งซื้อและใบเสนอราคา = **อัตราภาษีหัก ณ ที่จ่ายของเอกสารนั้น**
+ *
+ * **ตั้งใจให้เป็นแบบนี้ ไม่ใช่บั๊ก — อย่าแก้กลับ** เจ้าของระบบสั่งไว้ (2026-09-07)
+ * หลังได้รับแจ้งแล้วว่าตามกฎหมาย VAT (7%) กับภาษีหัก ณ ที่จ่าย (1-3%) เป็นคนละภาษี
+ * คนละอัตรา และตัวอย่างที่ยืนยันกันคือ ใบ 100,000 หัก ณ ที่จ่าย 3% จะได้ VAT 3,000
+ * ไม่ใช่ 7,000
+ *
+ * ใช้เฉพาะสองเอกสารนี้ — **ใบสั่งขาย / ใบแจ้งหนี้ ยังคิดจาก master `tax_rates` ตามเดิม**
+ * จึงส่งอัตราเข้า `calcDocumentTotals()` ต่างกัน ไม่ได้เปลี่ยนสูตรข้างใน
+ *
+
+ * เทสต์อยู่ฝั่ง backend ที่ `common/money/vat-totals.spec.ts` — ไฟล์นี้เป็นสำเนา
+ * ตามแบบเดิมของโปรเจกต แก้ที่ไหนต้องแก้อีกที่ให้ตรงกันเสมอ
+ *
+ * `vatMode === NONE` ชนะเสมอ — เลือกไม่คิด VAT แล้วต้องไม่มี VAT ไม่ว่าหัก ณ ที่จ่ายเท่าไร
+ */
+export function resolveDocumentVatPercent(input: {
+  vatMode?: string | null;
+  withholdingTaxType?: string | null;
+  withholdingTaxPercent?: number | string | null;
+}): number {
+  if (resolveVatMode(input.vatMode) === VatMode.NONE) {
+    return 0;
+  }
+  return resolveWithholdingPercent(
+    input.withholdingTaxType,
+    toNum(input.withholdingTaxPercent),
+  );
+}

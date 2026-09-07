@@ -245,14 +245,14 @@ export default function ProductionOutputPendingTicketsPage() {
                 okText="ยกเลิกใบ"
                 cancelText="ปิด"
                 okButtonProps={{ danger: true }}
-                onConfirm={() => cancelMutation.mutate(row.id)}
+                onConfirm={() => cancelMutation.mutate({ id: row.id })}
               >
                 <Button
                   danger
                   size="small"
                   loading={
                     cancelMutation.isPending &&
-                    cancelMutation.variables === row.id
+                    cancelMutation.variables?.id === row.id
                   }
                 >
                   ยกเลิกใบสั่งผลิต

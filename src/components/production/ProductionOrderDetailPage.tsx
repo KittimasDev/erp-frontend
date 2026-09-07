@@ -34,8 +34,8 @@ import {
   useAllocateProductionOrderOutputMutation,
   useCancelProductionOrderMutation,
   useCompleteProductionOrderMutation,
-  useEndProductionOrderDowntimeMutation,
-  useRecordProductionOrderDowntimeMutation,
+  usePauseProductionOrderMutation,
+  useResumeProductionOrderMutation,
   useStartProductionOrderMutation,
 } from "@/hooks/production-orders/useProductionOrderMutations";
 import {
@@ -48,6 +48,8 @@ import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
+  PRODUCTION_DOWNTIME_CATEGORY_LABEL,
+  PRODUCTION_DOWNTIME_UNCATEGORIZED_LABEL,
   PRODUCTION_ORDER_STATUS_LABEL,
   PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL,
   ProductionOrderPlanLineType,
@@ -60,6 +62,12 @@ import {
 import type { CreateProductionOutputStockRequestFromOrderBody } from "@/types/production-output-stock-request";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import ProductionOrderStartModal from "./ProductionOrderStartModal";
+import ProductionOrderYieldCard from "./ProductionOrderYieldCard";
+import {
+  ProductionOrderCancelModal,
+  ProductionOrderPauseModal,
+} from "./ProductionOrderRunControlModals";
 import styles from "./ProductionOrderDetailPage.module.css";
 
 type Props = {
@@ -78,6 +86,7 @@ function fmtDate(value?: string) {
 
 export default function ProductionOrderDetailPage({ orderId }: Props) {
   const router = useRouter();
+  const [startOpen, setStartOpen] = useState(false);
   const { message } = App.useApp();
   const orderActions = useScreenActionPermissions("PRODUCTION_ORDERS");
   const outputActions = useScreenActionPermissions(
@@ -103,8 +112,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const startMutation = useStartProductionOrderMutation();
   const cancelMutation = useCancelProductionOrderMutation();
   const completeMutation = useCompleteProductionOrderMutation();
-  const downtimeStartMutation = useRecordProductionOrderDowntimeMutation();
-  const downtimeEndMutation = useEndProductionOrderDowntimeMutation();
+  const pauseMutation = usePauseProductionOrderMutation();
+  const resumeMutation = useResumeProductionOrderMutation();
   const logMutation = useAddProductionOrderLogMutation();
   const allocateMutation = useAllocateProductionOrderOutputMutation();
 
@@ -126,8 +135,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
       actualQty: number;
     }[]
   >([]);
-  const [downtimeOpen, setDowntimeOpen] = useState(false);
-  const [downtimeReason, setDowntimeReason] = useState("");
+  const [pauseOpen, setPauseOpen] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [logNote, setLogNote] = useState("");
   const [requestOpen, setRequestOpen] = useState(false);
@@ -165,8 +174,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
   const isDraft = order?.status === ProductionOrderStatus.DRAFT;
   const isInProgress = order?.status === ProductionOrderStatus.IN_PROGRESS;
+  const isPaused = order?.status === ProductionOrderStatus.PAUSED;
   const isCompleted = order?.status === ProductionOrderStatus.COMPLETED;
-  const openDowntime = order?.downtimes.find((d) => !d.endAt);
+  /** กำลังผลิตหรือหยุดชั่วคราว = ตัดสต๊อกไปแล้ว ยกเลิกได้แต่ต้องมีเหตุผล+ลายเซ็น */
+  const isRunning = isInProgress || isPaused;
 
   const summary = summaryQuery.data?.data;
 
@@ -372,34 +383,24 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
           <>
             <div className={styles.actionBar}>
               {isDraft && canOperate ? (
-                <Popconfirm
-                  title="เริ่มผลิต?"
-                  description="ระบบจะตัดวัตถุดิบตาม Lot ที่เลือกไว้ทันที"
-                  okText="เริ่มผลิต"
-                  cancelText="ยกเลิก"
-                  onConfirm={() => startMutation.mutate(orderId)}
+                <Button
+                  type="primary"
+                  icon={<PlayCircleOutlined />}
+                  loading={startMutation.isPending}
+                  onClick={() => setStartOpen(true)}
                 >
-                  <Button
-                    type="primary"
-                    icon={<PlayCircleOutlined />}
-                    loading={startMutation.isPending}
-                  >
-                    เริ่มผลิต
-                  </Button>
-                </Popconfirm>
+                  เริ่มผลิต
+                </Button>
               ) : null}
 
               {isDraft && canOperate ? (
-                <Popconfirm
-                  title="ยกเลิกใบสั่งผลิต?"
-                  okText="ยกเลิก"
-                  cancelText="ปิด"
-                  onConfirm={() => cancelMutation.mutate(orderId)}
+                <Button
+                  danger
+                  loading={cancelMutation.isPending}
+                  onClick={() => setCancelOpen(true)}
                 >
-                  <Button danger loading={cancelMutation.isPending}>
-                    ยกเลิกใบสั่งผลิต
-                  </Button>
-                </Popconfirm>
+                  ยกเลิกใบสั่งผลิต
+                </Button>
               ) : null}
 
               {isCompleted &&
@@ -407,18 +408,24 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               !(relatedRequestsQuery.data?.data ?? []).some(
                 (r) => r.status === "APPROVED",
               ) ? (
-                <Popconfirm
-                  title="ยกเลิกใบสั่งผลิตที่เสร็จแล้ว?"
-                  description="ใช้เมื่อไม่มีของจะรับเข้าคลัง — ไม่คืนวัตถุดิบที่ตัดตอนเริ่มผลิต · คำขอรออนุมัติ (ถ้ามี) จะถูกยกเลิกและหลุดจากคิวคลัง"
-                  okText="ยกเลิกใบ"
-                  cancelText="ปิด"
-                  okButtonProps={{ danger: true }}
-                  onConfirm={() => cancelMutation.mutate(orderId)}
+                <Button
+                  danger
+                  loading={cancelMutation.isPending}
+                  onClick={() => setCancelOpen(true)}
                 >
-                  <Button danger loading={cancelMutation.isPending}>
-                    ยกเลิกใบสั่งผลิต
-                  </Button>
-                </Popconfirm>
+                  ยกเลิกใบสั่งผลิต
+                </Button>
+              ) : null}
+
+              {/* เตาพังกลางคัน — เดิมเส้นทางนี้ถูกบล็อกสนิท ใบค้าง IN_PROGRESS ตลอดกาล */}
+              {isRunning && canOperate ? (
+                <Button
+                  danger
+                  loading={cancelMutation.isPending}
+                  onClick={() => setCancelOpen(true)}
+                >
+                  ยกเลิกกลางคัน
+                </Button>
               ) : null}
 
               {isInProgress && canOperate ? (
@@ -431,35 +438,30 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 </Button>
               ) : null}
 
-              {isInProgress && canOperate && !openDowntime ? (
+              {isInProgress && canOperate ? (
                 <Button
                   icon={<PauseCircleOutlined />}
-                  onClick={() => setDowntimeOpen(true)}
+                  onClick={() => setPauseOpen(true)}
                 >
-                  บันทึก Downtime
+                  หยุดเดินเครื่องชั่วคราว
                 </Button>
               ) : null}
 
-              {isInProgress && canOperate && openDowntime ? (
+              {isPaused && canOperate ? (
                 <Popconfirm
-                  title="ปิดรายการ Downtime นี้?"
-                  okText="ปิด Downtime"
-                  cancelText="ยกเลิก"
-                  onConfirm={() =>
-                    downtimeEndMutation.mutate({
-                      id: orderId,
-                      downtimeId: openDowntime.id,
-                      body: {},
-                    })
-                  }
+                  title="กลับมาเดินเครื่อง?"
+                  description="ระบบจะปิดรายการ Downtime ที่เปิดค้างอยู่ให้อัตโนมัติ"
+                  okText="กลับมาเดินเครื่อง"
+                  cancelText="ปิด"
+                  onConfirm={() => resumeMutation.mutate({ id: orderId })}
                 >
-                  <Button loading={downtimeEndMutation.isPending}>
-                    ปิด Downtime ที่เปิดค้างอยู่
+                  <Button type="primary" loading={resumeMutation.isPending}>
+                    กลับมาเดินเครื่อง
                   </Button>
                 </Popconfirm>
               ) : null}
 
-              {isInProgress && canOperate ? (
+              {isRunning && canOperate ? (
                 <Button onClick={() => setLogOpen(true)}>
                   บันทึกค่าระหว่างผลิต
                 </Button>
@@ -521,117 +523,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               </div>
             </div>
 
-            {summary ? (
-              <div className={styles.section}>
-                <div className={styles.sectionHead}>
-                  <h3>เปรียบเทียบ Yield / Mass Balance</h3>
-                </div>
-                <div className={styles.yieldGrid}>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>วัตถุดิบ (แผน)</span>
-                    <span className={styles.infoValue}>
-                      {fmt(summary.totalPlannedInputQty)}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>วัตถุดิบ (ตัดจริง)</span>
-                    <span className={styles.infoValue}>{fmt(summary.totalInputQty)}</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>ผลผลิต (แผน)</span>
-                    <span className={styles.infoValue}>
-                      {fmt(summary.totalPlannedOutputQty)}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>ผลผลิต (เข้าคลังแล้ว)</span>
-                    <span className={styles.infoValue}>{fmt(summary.totalOutputQty)}</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Yield แผน</span>
-                    <span className={styles.infoValue}>
-                      {summary.plannedYieldPercent}%
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Yield จริง</span>
-                    <span className={styles.infoValue}>{summary.yieldPercent}%</span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>ของเสีย (แผน)</span>
-                    <span className={styles.infoValue}>
-                      {fmt(summary.totalPlannedWasteQty)}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>ของเสีย (จริง · ไม่เข้าคลัง)</span>
-                    <span className={styles.infoValue}>
-                      {fmt(summary.totalActualWasteQty)}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Mass balance</span>
-                    <span className={styles.infoValue}>
-                      {fmt(summary.massBalanceDiff)}
-                    </span>
-                  </div>
-                  <div className={styles.infoItem}>
-                    <span className={styles.infoLabel}>Downtime รวม</span>
-                    <span className={styles.infoValue}>
-                      {summary.totalDowntimeHours} ชม.
-                    </span>
-                  </div>
-                </div>
-                {summary.yieldCompareByItem.length > 0 ? (
-                  <Table
-                    className={masterStyles.dataTable}
-                    rowKey="itemId"
-                    size="small"
-                    pagination={false}
-                    style={{ marginTop: 16 }}
-                    dataSource={summary.yieldCompareByItem}
-                    columns={[
-                      {
-                        title: "ผลผลิต",
-                        key: "item",
-                        render: (_, row) =>
-                          row.itemCode
-                            ? `${row.itemCode} — ${row.itemNameTh ?? ""}`
-                            : row.itemId,
-                      },
-                      {
-                        title: "แผน",
-                        key: "planned",
-                        align: "right",
-                        render: (_, row) =>
-                          `${fmt(row.plannedQty)} ${row.unitCode ?? ""}`,
-                      },
-                      {
-                        title: "จริง (เข้าคลัง)",
-                        key: "actual",
-                        align: "right",
-                        render: (_, row) =>
-                          `${fmt(row.actualQty)} ${row.unitCode ?? ""}`,
-                      },
-                      {
-                        title: "Yield แผน",
-                        dataIndex: "plannedYieldPercent",
-                        key: "plannedYieldPercent",
-                        align: "right",
-                        render: (v: number) => `${v}%`,
-                      },
-                      {
-                        title: "Yield จริง",
-                        dataIndex: "actualYieldPercent",
-                        key: "actualYieldPercent",
-                        align: "right",
-                        render: (v: number) => `${v}%`,
-                      },
-                    ]}
-                  />
-                ) : null}
-              </div>
-            ) : null}
+            {summary ? <ProductionOrderYieldCard summary={summary} /> : null}
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
@@ -782,6 +674,16 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     dataIndex: "endAt",
                     key: "endAt",
                     render: (v?: string) => (v ? fmtDate(v) : "ยังไม่ปิด"),
+                  },
+                  {
+                    title: "หมวด",
+                    dataIndex: "category",
+                    key: "category",
+                    // แถวที่บันทึกก่อนมีหมวดจะว่าง — backfill ไม่ได้ ต้องโชว์ตามจริง
+                    render: (v?: string) =>
+                      v
+                        ? PRODUCTION_DOWNTIME_CATEGORY_LABEL[v] ?? v
+                        : PRODUCTION_DOWNTIME_UNCATEGORIZED_LABEL,
                   },
                   { title: "เหตุผล", dataIndex: "reason", key: "reason" },
                   {
@@ -1188,38 +1090,31 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
           ) : null}
         </Modal>
 
-        <Modal
-          title="บันทึก Downtime"
-          open={downtimeOpen}
-          onCancel={() => setDowntimeOpen(false)}
-          okText="บันทึก"
-          okButtonProps={{ disabled: !downtimeReason.trim() }}
-          confirmLoading={downtimeStartMutation.isPending}
-          onOk={() =>
-            downtimeStartMutation.mutate(
-              {
-                id: orderId,
-                body: {
-                  startAt: new Date().toISOString(),
-                  reason: downtimeReason.trim(),
-                },
-              },
-              {
-                onSuccess: () => {
-                  setDowntimeOpen(false);
-                  setDowntimeReason("");
-                },
-              },
+        <ProductionOrderPauseModal
+          open={pauseOpen}
+          loading={pauseMutation.isPending}
+          onCancel={() => setPauseOpen(false)}
+          onConfirm={(body) =>
+            pauseMutation.mutate(
+              { id: orderId, body },
+              { onSuccess: () => setPauseOpen(false) },
             )
           }
-        >
-          <Input.TextArea
-            rows={3}
-            value={downtimeReason}
-            onChange={(e) => setDowntimeReason(e.target.value)}
-            placeholder="เหตุผลที่หยุดเดินเครื่อง"
-          />
-        </Modal>
+        />
+
+        <ProductionOrderCancelModal
+          open={cancelOpen}
+          loading={cancelMutation.isPending}
+          started={isRunning}
+          orderNo={order?.orderNo}
+          onCancel={() => setCancelOpen(false)}
+          onConfirm={(body) =>
+            cancelMutation.mutate(
+              { id: orderId, body },
+              { onSuccess: () => setCancelOpen(false) },
+            )
+          }
+        />
 
         <Modal
           title="บันทึกค่าระหว่างผลิต"
@@ -1360,6 +1255,22 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             </Form.Item>
           </Form>
         </Modal>
+
+        {order ? (
+          <ProductionOrderStartModal
+            open={startOpen}
+            order={order}
+            loading={startMutation.isPending}
+            onCancel={() => setStartOpen(false)}
+            onConfirm={(body) =>
+              startMutation.mutate(
+                { id: orderId, body },
+                // ปิดกล่องเฉพาะตอนสำเร็จ — ของไม่พอต้องเห็นตัวเลขที่กรอกอยู่
+                { onSuccess: () => setStartOpen(false) },
+              )
+            }
+          />
+        ) : null}
       </section>
     </MasterPageGate>
   );

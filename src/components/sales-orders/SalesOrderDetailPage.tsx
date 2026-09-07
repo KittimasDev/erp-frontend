@@ -291,7 +291,9 @@ function buildSalesOrderPdfDataFromOrder(
       order.customer?.contactName ??
       "—",
     customerPoNo: order.customerPoNo?.trim() || "—",
-    customerPoDate: formatDate(header?.customerPoDate || order.customerPoDate),
+    customerPoDate: formatDate(
+      header?.customerPoDate || order.customerPoDate,
+    ),
     quotationNo: order.salesQuotationNo ?? "—",
     paymentMethod: header?.paymentMethod ?? order.paymentMethod,
     paymentDueDate: formatDate(
@@ -336,7 +338,7 @@ function mapSnapshotPayloadToPdfData(
     customerAddress: payload.customerAddress,
     customerPhone: payload.customerPhone,
     contactName: payload.contactName,
-    customerPoNo: payload.customerPoNo,
+    customerPoNo: payload.customerPoNo?.trim() || "—",
     customerPoDate: formatDate(payload.customerPoDate),
     quotationNo: payload.quotationNo,
     paymentMethod: payload.paymentMethod,

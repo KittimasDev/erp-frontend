@@ -116,6 +116,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["PRODUCTION_REQUESTS"],
   },
   {
+    prefix: "/production/dashboard",
+    screenCodes: ["PRODUCTION_DASHBOARD"],
+  },
+  {
     prefix: "/production/production-orders",
     screenCodes: ["PRODUCTION_ORDERS"],
   },
@@ -403,6 +407,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   GOODS_RECEIPTS: "/goods-receipts",
   WAREHOUSE_APPROVALS: "/warehouse/approvals",
   PRODUCTION_REQUESTS: "/production/production-requests",
+  PRODUCTION_DASHBOARD: "/production/dashboard",
   PRODUCTION_ORDERS: "/production/production-orders",
   PRODUCTION_OUTPUT_STOCK_REQUESTS:
     "/receiving/production-output/stock-requests",

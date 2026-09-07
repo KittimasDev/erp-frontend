@@ -122,7 +122,7 @@ export async function generateSalesOrderPdf(data: SalesOrderPdfData) {
         title: "ข้อมูลเอกสาร",
         rows: [
           {
-            label: "เลขที่ PO",
+            label: "เลข PO ลูกค้า",
             value: data.customerPoNo,
             emphasis: true,
           },

@@ -1005,10 +1005,10 @@ function salesStyles() {
         row-gap: 6px;
       }
 
-      .info-row {
-        display: contents;
-      }
-
+      /*
+        label/value เป็นลูกของกริดตรง ๆ — ห้ามห่อ display:contents
+        html2canvas 1.4 ไม่วาดลูกของ contents จึงเหลือกรอบการ์ดแต่ค่าในช่องหาย
+      */
       .label {
         font-size: 7px;
         color: #7A7A7A;
@@ -1021,11 +1021,15 @@ function salesStyles() {
         min-width: 0;
       }
 
-      /* แถวที่ต้องเด่นกว่าเพื่อน เช่น กำหนดส่งของ */
-      .info-row-emphasis .label,
-      .info-row-emphasis .value {
+      .label.emphasis,
+      .value.emphasis {
         color: #343434;
         font-weight: 700;
+      }
+
+      .label.full,
+      .value.full {
+        grid-column: 1 / -1;
       }
 
       .table {
@@ -1556,17 +1560,21 @@ function buildSalesParts(data: SalesCommercialPdfData): SalesParts {
 
   const renderInfoRows = (rows: SalesCommercialPdfInfoRow[]) =>
     rows
-      .map(
-        (row) => `
-            <div class="info-row${row.emphasis ? " info-row-emphasis" : ""}">
-              <div class="label">${escapeHtml(row.label)}</div>
-              <div class="value">${
-                row.html
-                  ? sanitizeDocumentHtml(row.value) || "—"
-                  : escapeHtml(salesDash(row.value))
-              }</div>
-            </div>`,
-      )
+      .map((row) => {
+        const extras = [
+          row.emphasis ? "emphasis" : "",
+          row.full ? "full" : "",
+        ]
+          .filter(Boolean)
+          .map((token) => ` ${token}`)
+          .join("");
+        const valueHtml = row.html
+          ? sanitizeDocumentHtml(row.value) || "—"
+          : escapeHtml(salesDash(row.value));
+        return `
+            <div class="label${extras}">${escapeHtml(row.label)}</div>
+            <div class="value${extras}">${valueHtml}</div>`;
+      })
       .join("");
 
   const infoSections =

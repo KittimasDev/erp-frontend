@@ -701,6 +701,24 @@ const productionMenus: MenuItem[] = [
     ],
   },
   {
+    /*
+      วางในกลุ่มการผลิต ไม่ใช่ dashboardMenus — 2 ใน 3 ของกลุ่มนั้นยังเป็น stub
+      การเอาหน้าจริงไปวางที่นั่นคือฝังมันไว้กับลิงก์ตาย และห่างจากคนที่อยู่ใน
+      กลุ่มการผลิตทั้งวัน · มีแบบอย่างแล้วคือ PROCUREMENT_TRACKING
+    */
+    key: "production-dashboard",
+    screenCode: "PRODUCTION_DASHBOARD",
+    label: "แดชบอร์ดการผลิต",
+    href: "/production/dashboard",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "production-orders",
     screenCode: "PRODUCTION_ORDERS",
     label: "ใบสั่งผลิต (Pyrolysis)",
@@ -748,6 +766,7 @@ const productionMenus: MenuItem[] = [
     screenCode: "TIRE_PREP_STAGES",
     label: "ขั้นตอนเตรียมยาง",
     href: "/production/tire-prep-stages",
+    matchHrefs: ["/production/tire-prep-stages", "/production/tire-prep-stages/create"],
     icon: <IconWarehouse />,
     roles: [ROLE.PRODUCTION_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
   },
@@ -756,6 +775,7 @@ const productionMenus: MenuItem[] = [
     screenCode: "RCB_PROCESSING",
     label: "กระบวนการผลิต rCB",
     href: "/production/rcb-processing",
+    matchHrefs: ["/production/rcb-processing", "/production/rcb-processing/create"],
     icon: <IconWarehouse />,
     roles: [ROLE.PRODUCTION_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
   },

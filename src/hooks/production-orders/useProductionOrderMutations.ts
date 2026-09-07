@@ -13,18 +13,24 @@ import {
   consolidatedCreateProductionOrder,
   createProductionOrder,
   endProductionOrderDowntime,
+  pauseProductionOrder,
   recordProductionOrderDowntime,
+  resumeProductionOrder,
   startProductionOrder,
 } from "@/lib/api/production-orders";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   AllocateProductionOrderOutputBody,
   BulkCreateProductionOrdersBody,
+  CancelProductionOrderBody,
   CompleteProductionOrderBody,
   CreateProductionOrderBody,
   CreateProductionOrderLogBody,
   EndDowntimeBody,
+  PauseProductionOrderBody,
   RecordDowntimeBody,
+  ResumeProductionOrderBody,
+  StartProductionOrderBody,
 } from "@/types/production-order";
 import { productionRequestsQueryKey } from "../production-requests/useProductionRequestQueries";
 import {
@@ -152,7 +158,8 @@ export function useCancelProductionOrderMutation() {
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "cancel"],
-    mutationFn: (id: string) => cancelProductionOrder(getAccessToken(), id),
+    mutationFn: ({ id, body }: { id: string; body?: CancelProductionOrderBody }) =>
+      cancelProductionOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
       message.success(response.message || "ยกเลิกใบสั่งผลิตแล้ว");
@@ -171,7 +178,13 @@ export function useStartProductionOrderMutation() {
 
   return useMutation({
     mutationKey: [...productionOrdersQueryKey, "start"],
-    mutationFn: (id: string) => startProductionOrder(getAccessToken(), id),
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body?: StartProductionOrderBody;
+    }) => startProductionOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await invalidate();
       message.success(response.message || "เริ่มผลิตสำเร็จแล้ว");
@@ -204,6 +217,51 @@ export function useCompleteProductionOrderMutation() {
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError ? error.message : "ยืนยันเสร็จสิ้นไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function usePauseProductionOrderMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "pause"],
+    mutationFn: ({ id, body }: { id: string; body: PauseProductionOrderBody }) =>
+      pauseProductionOrder(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "หยุดเดินเครื่องชั่วคราวแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "หยุดเดินเครื่องไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+export function useResumeProductionOrderMutation() {
+  const invalidate = useInvalidateProductionOrders();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...productionOrdersQueryKey, "resume"],
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: string;
+      body?: ResumeProductionOrderBody;
+    }) => resumeProductionOrder(getAccessToken(), id, body),
+    onSuccess: async (response) => {
+      await invalidate();
+      message.success(response.message || "กลับมาเดินเครื่องแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "กลับมาเดินเครื่องไม่สำเร็จ",
       );
     },
   });

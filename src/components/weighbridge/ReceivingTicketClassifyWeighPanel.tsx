@@ -18,7 +18,6 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 
-import { useRawTirePaymentQuery } from "@/hooks/raw-tire-payment/useRawTirePaymentQuery";
 import { useRawTirePriceRulesQuery } from "@/hooks/raw-tire-price-rules/useRawTirePriceRulesQuery";
 import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
@@ -206,14 +205,10 @@ export default function ReceivingTicketClassifyWeighPanel({
 }: Props) {
   const router = useRouter();
   const { message } = App.useApp();
-  const [printingDoc, setPrintingDoc] = useState<"receipt" | "payment" | null>(
-    null,
-  );
+  const [printingDoc, setPrintingDoc] = useState<"receipt" | null>(null);
   const classificationsQuery = useTireClassificationsQuery({ isActive: true });
   const receiptQuery = useRawTirePurchaseReceiptQuery(ticket.receiptId ?? "");
-  const paymentQuery = useRawTirePaymentQuery(ticket.receiptId ?? "");
   const receipt = receiptQuery.data?.data ?? null;
-  const paymentContext = paymentQuery.data?.data ?? null;
   const effectiveOn = toEffectiveDate(ticket.createdAt);
   const priceRulesQuery = useRawTirePriceRulesQuery({
     isActive: true,
@@ -693,28 +688,6 @@ export default function ReceivingTicketClassifyWeighPanel({
     }
   };
 
-  const handlePrintPayment = async () => {
-    if (!paymentContext?.voucher) {
-      message.warning("ยังไม่มีใบสำคัญจ่าย ให้กดออกใบจ่ายเงินก่อน");
-      return;
-    }
-    setPrintingDoc("payment");
-    try {
-      const { generateRawTirePaymentVoucherPdf, mapPaymentContextToPdfData } =
-        await import("@/utils/generateRawTirePaymentVoucherPdf");
-      await generateRawTirePaymentVoucherPdf(
-        // ส่ง receipt เข้าไปด้วย ใบสำคัญจ่ายจะได้พิมพ์ตารางรายการรับซื้อ
-        mapPaymentContextToPdfData(paymentContext, receipt),
-      );
-    } catch (error) {
-      message.error(
-        error instanceof Error ? error.message : "พิมพ์ใบสำคัญจ่ายไม่สำเร็จ",
-      );
-    } finally {
-      setPrintingDoc(null);
-    }
-  };
-
   return (
     <div
       className={[
@@ -782,13 +755,21 @@ export default function ReceivingTicketClassifyWeighPanel({
               </div>
             </div>
 
-            <div className={styles.classifyDocGrid}>
-              <div className={styles.classifyDocCard}>
-                <p className={styles.classifyEyebrow}>เอกสาร 1</p>
-                <h4>ใบรับซื้อ</h4>
-                <p>{ticket.receiptNo || receipt?.receiptNo || "รอโหลดเลขที่"}</p>
-                <div className={styles.classifyDocActions}>
+            {/*
+              แถวเอกสารของขั้นนี้ — เดิมเป็นการ์ดใหญ่สองใบใน grid 3 คอลัมน์ (ช่องที่สามว่าง)
+              ใบสำคัญจ่ายย้ายไปอยู่กับ Step 2 ที่เป็นเจ้าของเอกสารนั้นแล้ว
+            */}
+            <div className={styles.stepDocList}>
+              <div className={styles.stepDocRow}>
+                <div className={styles.stepDocMain}>
+                  <span className={styles.stepDocLabel}>ใบรับซื้อ</span>
+                  <span className={styles.stepDocValue}>
+                    {ticket.receiptNo || receipt?.receiptNo || "รอโหลดเลขที่"}
+                  </span>
+                </div>
+                <div className={styles.stepDocActions}>
                   <Button
+                    size="small"
                     type="primary"
                     icon={<PrinterOutlined />}
                     loading={printingDoc === "receipt" || receiptQuery.isLoading}
@@ -799,43 +780,12 @@ export default function ReceivingTicketClassifyWeighPanel({
                   </Button>
                   {ticket.receiptId ? (
                     <Button
+                      size="small"
                       onClick={() =>
                         router.push(`/receiving/receipts/${ticket.receiptId}`)
                       }
                     >
                       เปิด
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-              <div className={styles.classifyDocCard}>
-                <p className={styles.classifyEyebrow}>เอกสาร 2</p>
-                <h4>ใบสำคัญจ่าย</h4>
-                <p>
-                  {paymentContext?.voucher?.voucherNo ||
-                    "ยังไม่ออก — จ่ายเงินแล้วจึงพิมพ์ได้"}
-                </p>
-                <div className={styles.classifyDocActions}>
-                  {paymentContext?.voucher ? (
-                    <Button
-                      type="primary"
-                      icon={<PrinterOutlined />}
-                      loading={printingDoc === "payment"}
-                      onClick={() => void handlePrintPayment()}
-                    >
-                      พิมพ์
-                    </Button>
-                  ) : null}
-                  {ticket.receiptId ? (
-                    <Button
-                      type={paymentContext?.voucher ? "default" : "primary"}
-                      onClick={() =>
-                        router.push(
-                          `/receiving/receipts/${ticket.receiptId}/payment`,
-                        )
-                      }
-                    >
-                      {paymentContext?.voucher ? "เปิด" : "ออกใบสำคัญจ่าย"}
                     </Button>
                   ) : null}
                 </div>

@@ -17,7 +17,6 @@ import dayjs from "dayjs";
 
 import { useVendorsQuery } from "@/hooks/vendors/useVendorsQuery";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
-import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useUpdatePurchaseOrderMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import {
@@ -50,7 +49,6 @@ type FormValues = {
   creditorId: string;
   paymentTermId?: string;
   vatMode: VatMode;
-  taxRateId?: string;
   expectedDeliveryDate?: dayjs.Dayjs | null;
   paymentMethod?: string;
   withholdingTaxType: WithholdingTaxType;
@@ -74,15 +72,12 @@ export default function PurchaseOrderEditPage({ id }: Props) {
 
   const vendorsQuery = useVendorsQuery({ isActive: true });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
-  const taxRatesQuery = useTaxRatesQuery({ isActive: true });
 
   const vendors = vendorsQuery.data?.data ?? [];
   const paymentTerms = paymentTermsQuery.data?.data ?? [];
-  const taxRates = taxRatesQuery.data?.data ?? [];
   const data = detailQuery.data?.data;
 
   const watchedItems = Form.useWatch("items", form) ?? [];
-  const watchedVatMode = Form.useWatch("vatMode", form);
   const watchedWhtType = Form.useWatch("withholdingTaxType", form);
 
   useEffect(() => {
@@ -97,7 +92,6 @@ export default function PurchaseOrderEditPage({ id }: Props) {
       creditorId: data.creditorId,
       paymentTermId: data.paymentTermId,
       vatMode: resolveVatMode(data.vatMode),
-      taxRateId: data.taxRateId,
       expectedDeliveryDate: data.expectedDeliveryDate
         ? dayjs(data.expectedDeliveryDate)
         : null,
@@ -148,10 +142,6 @@ export default function PurchaseOrderEditPage({ id }: Props) {
         creditorId: values.creditorId,
         paymentTermId: values.paymentTermId ?? null,
         vatMode: resolveVatMode(values.vatMode),
-        taxRateId:
-          resolveVatMode(values.vatMode) === VatMode.NONE
-            ? null
-            : (values.taxRateId ?? null),
         expectedDeliveryDate: values.expectedDeliveryDate
           ? values.expectedDeliveryDate.format("YYYY-MM-DD")
           : null,
@@ -241,50 +231,16 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                       }))}
                     />
                   </Form.Item>
+                  {/*
+                    ไม่มีช่อง "อัตรา VAT" แล้ว — อัตรามาจากช่องหัก ณ ที่จ่ายข้างล่าง
+                    (ดู resolveDocumentVatPercent)
+                  */}
                   <Form.Item
                     className={styles.field}
                     label="รูปแบบ VAT"
                     name="vatMode"
                   >
-                    <Select
-                      options={VAT_MODE_OPTIONS}
-                      onChange={(mode) => {
-                        if (mode === VatMode.NONE) {
-                          form.setFieldValue("taxRateId", undefined);
-                        }
-                      }}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    className={styles.field}
-                    label="อัตรา VAT"
-                    name="taxRateId"
-                    rules={[
-                      {
-                        validator: async (_, value) => {
-                          if (
-                            resolveVatMode(form.getFieldValue("vatMode")) ===
-                            VatMode.NONE
-                          ) {
-                            return;
-                          }
-                          if (!value) {
-                            throw new Error("ต้องเลือกอัตรา VAT");
-                          }
-                        },
-                      },
-                    ]}
-                  >
-                    <Select
-                      allowClear
-                      showSearch
-                      optionFilterProp="label"
-                      disabled={resolveVatMode(watchedVatMode) === VatMode.NONE}
-                      options={taxRates.map((t) => ({
-                        value: t.id,
-                        label: `${t.code} — ${t.name} (${t.rate}%)`,
-                      }))}
-                    />
+                    <Select options={VAT_MODE_OPTIONS} />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}

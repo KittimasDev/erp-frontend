@@ -27,7 +27,6 @@ import dayjs from "dayjs";
 import AccessDenied from "@/components/auth/AccessDenied";
 import { useVendorsQuery } from "@/hooks/vendors/useVendorsQuery";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
-import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useCreatePurchaseOrderFromPrMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import { usePurchaseOrderByPrQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchaseRequestQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
@@ -37,6 +36,7 @@ import {
   resolveVatMode,
   resolveWithholdingPercent,
   VatMode,
+  resolveDocumentVatPercent,
   VAT_MODE_OPTIONS,
   vatAmountLabel,
   WITHHOLDING_TAX_TYPE_OPTIONS,
@@ -70,7 +70,6 @@ type FormValues = {
   creditorId: string;
   paymentTermId?: string;
   vatMode: VatMode;
-  taxRateId?: string;
   expectedDeliveryDate?: dayjs.Dayjs;
   paymentMethod?: string;
   withholdingTaxType: WithholdingTaxType;
@@ -155,20 +154,18 @@ export default function PurchaseOrderCreateFromPrPage({
 
   const vendorsQuery = useVendorsQuery({ isActive: true });
   const paymentTermsQuery = usePaymentTermsQuery({ isActive: true });
-  const taxRatesQuery = useTaxRatesQuery({ isActive: true });
 
   const vendors = vendorsQuery.data?.data ?? [];
   const paymentTerms = paymentTermsQuery.data?.data ?? [];
-  const taxRates = taxRatesQuery.data?.data ?? [];
 
   const pr = prQuery.data?.data;
   const existingPo = existingPoQuery.data?.data;
 
   const watchedItems = Form.useWatch("items", form) ?? [];
   const watchedDiscount = Form.useWatch("discountAmount", form) ?? 0;
-  const watchedTaxId = Form.useWatch("taxRateId", form);
   const watchedVatMode = Form.useWatch("vatMode", form);
   const watchedWhtType = Form.useWatch("withholdingTaxType", form);
+  const watchedWhtPercent = Form.useWatch("withholdingTaxPercent", form);
 
   const lineMetaByPrItemId = useMemo(() => {
     const map = new Map<
@@ -213,11 +210,6 @@ export default function PurchaseOrderCreateFromPrPage({
     }
   }, [existingPo, router]);
 
-  const selectedTax = useMemo(
-    () => taxRates.find((tax) => tax.id === watchedTaxId),
-    [taxRates, watchedTaxId],
-  );
-
   const preview = useMemo(() => {
     const lineAmounts = watchedItems.map((line, index) => {
       const prItemId =
@@ -229,8 +221,12 @@ export default function PurchaseOrderCreateFromPrPage({
       return calcLineAmount(qty, price, disc);
     });
     const vatMode = resolveVatMode(watchedVatMode);
-    const rate =
-      vatMode === VatMode.NONE ? 0 : Number(selectedTax?.rate ?? 0);
+    // อัตรา VAT = อัตราหัก ณ ที่จ่ายของใบนี้ (ดู resolveDocumentVatPercent)
+    const rate = resolveDocumentVatPercent({
+      vatMode,
+      withholdingTaxType: watchedWhtType,
+      withholdingTaxPercent: watchedWhtPercent,
+    });
     return {
       ...calcDocumentTotals(
         lineAmounts,
@@ -243,8 +239,9 @@ export default function PurchaseOrderCreateFromPrPage({
   }, [
     watchedDiscount,
     watchedItems,
-    selectedTax,
     watchedVatMode,
+    watchedWhtType,
+    watchedWhtPercent,
     lineMetaByPrItemId,
     pr?.items,
   ]);
@@ -339,10 +336,6 @@ export default function PurchaseOrderCreateFromPrPage({
           creditorId: values.creditorId,
           paymentTermId: values.paymentTermId,
           vatMode: resolveVatMode(values.vatMode),
-          taxRateId:
-            resolveVatMode(values.vatMode) === VatMode.NONE
-              ? undefined
-              : values.taxRateId,
           expectedDeliveryDate: values.expectedDeliveryDate
             ? values.expectedDeliveryDate.format("YYYY-MM-DD")
             : undefined,
@@ -479,51 +472,16 @@ export default function PurchaseOrderCreateFromPrPage({
                       }))}
                     />
                   </Form.Item>
+                  {/*
+                    ไม่มีช่อง "อัตรา VAT" แล้ว — อัตรามาจากช่องหัก ณ ที่จ่ายข้างล่าง
+                    (ดู resolveDocumentVatPercent)
+                  */}
                   <Form.Item
                     className={styles.field}
                     label="รูปแบบ VAT"
                     name="vatMode"
                   >
-                    <Select
-                      options={VAT_MODE_OPTIONS}
-                      onChange={(mode) => {
-                        if (mode === VatMode.NONE) {
-                          form.setFieldValue("taxRateId", undefined);
-                        }
-                      }}
-                    />
-                  </Form.Item>
-                  <Form.Item
-                    className={styles.field}
-                    label="อัตรา VAT"
-                    name="taxRateId"
-                    rules={[
-                      {
-                        validator: async (_, value) => {
-                          if (
-                            resolveVatMode(form.getFieldValue("vatMode")) ===
-                            VatMode.NONE
-                          ) {
-                            return;
-                          }
-                          if (!value) {
-                            throw new Error("ต้องเลือกอัตรา VAT");
-                          }
-                        },
-                      },
-                    ]}
-                  >
-                    <Select
-                      allowClear
-                      showSearch
-                      optionFilterProp="label"
-                      placeholder="เลือกภาษี"
-                      disabled={resolveVatMode(watchedVatMode) === VatMode.NONE}
-                      options={taxRates.map((t) => ({
-                        value: t.id,
-                        label: `${t.code} — ${t.name} (${t.rate}%)`,
-                      }))}
-                    />
+                    <Select options={VAT_MODE_OPTIONS} />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}

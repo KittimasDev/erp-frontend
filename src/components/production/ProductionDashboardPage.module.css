@@ -1,0 +1,287 @@
+:root {
+  --pd-green: var(--erp-green, #8ab933);
+  --pd-green-dark: var(--erp-green-dark, #6f9720);
+  --pd-text: var(--erp-text, #2f343a);
+  --pd-muted: var(--erp-muted, #8a9199);
+  --pd-border: #e8eaed;
+}
+
+.page {
+  display: grid;
+  gap: 18px;
+  padding-bottom: 8px;
+}
+
+.pageHeader {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  padding: 18px 22px;
+  border: 1px solid var(--pd-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
+}
+
+.pageHeader::after {
+  content: "";
+  position: absolute;
+  width: 160px;
+  height: 160px;
+  right: -60px;
+  bottom: -100px;
+  border-radius: 50%;
+  background: var(--pd-green);
+  opacity: 0.12;
+}
+
+.headerAccent {
+  position: relative;
+  z-index: 1;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    #8CA527 0%,
+    var(--pd-green) 58%,
+    var(--pd-green-dark) 100%
+  );
+  box-shadow: 0 10px 22px rgba(115, 152, 22, 0.28);
+  font-size: 20px;
+}
+
+.headerContent {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--pd-green-dark);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--pd-text);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.pageSubtitle {
+  margin: 4px 0 0;
+  color: var(--pd-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--pd-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.filterField {
+  display: grid;
+  gap: 6px;
+}
+
+.filterField span {
+  color: var(--pd-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  min-height: 96px;
+  padding: 16px 18px;
+  border: 1px solid var(--pd-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.summaryCard span {
+  display: block;
+  color: var(--pd-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.summaryCard strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--pd-text);
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 500;
+}
+
+.summaryCardAccent strong {
+  color: var(--pd-green-dark);
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.chartCard {
+  padding: 18px 20px 12px;
+  border: 1px solid var(--pd-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.chartHeader {
+  margin-bottom: 12px;
+}
+
+.chartHeader h3 {
+  margin: 0;
+  color: var(--pd-text);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.chartHeader p {
+  margin: 4px 0 0;
+  color: var(--pd-muted);
+  font-size: 13px;
+}
+
+.chartBody {
+  width: 100%;
+  height: 260px;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--pd-muted);
+  font-size: 14px;
+}
+
+.tableCard {
+  padding: 18px 20px 12px;
+  border: 1px solid var(--pd-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.05);
+}
+
+/* 14 แถวเต็มความกว้าง — เตี้ยกว่านี้ป้ายขั้นตอนจะทับกัน */
+.stageChartBody {
+  width: 100%;
+  height: 460px;
+}
+
+.cellStack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cellMuted {
+  color: var(--pd-muted);
+  font-size: 12px;
+}
+
+.linkButton {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--pd-green-dark);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+.warnValue {
+  color: #d48806;
+}
+
+.overdueText {
+  color: #cf1322;
+  font-size: 12px;
+}
+
+/* ขอบซ้ายสีเหลืองอำพัน — สถานะหยุดต้องอ่านออกโดยไม่ต้องอ่านคอลัมน์สถานะ */
+.pausedRow > td:first-child {
+  box-shadow: inset 3px 0 0 #f9bb0c;
+}
+
+.reasonList,
+.batchList {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.reasonList li,
+.batchList li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--pd-border);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.reasonList strong,
+.batchList strong {
+  color: var(--pd-text);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.batchList {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1100px) {
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .chartsGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

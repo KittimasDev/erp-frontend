@@ -1,6 +1,7 @@
 export const ProductionOrderStatus = {
   DRAFT: "DRAFT",
   IN_PROGRESS: "IN_PROGRESS",
+  PAUSED: "PAUSED",
   COMPLETED: "COMPLETED",
   CANCELLED: "CANCELLED",
 } as const;
@@ -11,9 +12,33 @@ export type ProductionOrderStatusValue =
 export const PRODUCTION_ORDER_STATUS_LABEL: Record<string, string> = {
   DRAFT: "ยังไม่เริ่มผลิต",
   IN_PROGRESS: "กำลังผลิต",
+  PAUSED: "หยุดชั่วคราว",
   COMPLETED: "เสร็จสิ้น",
   CANCELLED: "ยกเลิก",
 };
+
+/** ใบที่ยังเดินอยู่ — กำลังผลิตหรือหยุดชั่วคราว */
+export const PRODUCTION_ORDER_RUNNING_STATUSES: readonly string[] = [
+  ProductionOrderStatus.IN_PROGRESS,
+  ProductionOrderStatus.PAUSED,
+];
+
+/**
+ * หมวดสาเหตุการหยุดเดินเครื่อง — ต้องตรงกับ
+ * `backend/.../constants/production-order-downtime.constants.ts`
+ */
+export const PRODUCTION_DOWNTIME_CATEGORY_LABEL: Record<string, string> = {
+  EQUIPMENT_FAILURE: "เครื่องจักรขัดข้อง",
+  MAINTENANCE: "ซ่อมบำรุง",
+  MATERIAL_SHORTAGE: "วัตถุดิบไม่พอ",
+  UTILITY_OUTAGE: "ไฟฟ้า/น้ำ/ลมขัดข้อง",
+  QC_HOLD: "รอผลตรวจคุณภาพ",
+  SHIFT_CHANGE: "เปลี่ยนกะ",
+  OTHER: "อื่น ๆ",
+};
+
+/** แถวเก่าที่บันทึกไว้ก่อนมีหมวด — backfill ไม่ได้ ต้องโชว์ตามจริง */
+export const PRODUCTION_DOWNTIME_UNCATEGORIZED_LABEL = "ไม่ระบุประเภท";
 
 export const ProductionOrderPlanLineType = {
   OUTPUT: "OUTPUT",
@@ -71,6 +96,8 @@ export type ProductionOrderDowntime = {
   startAt: string;
   endAt?: string;
   reason: string;
+  /** NULL ในแถวที่บันทึกก่อนมีหมวด — โชว์เป็น "ไม่ระบุประเภท" */
+  category?: string;
   recordedById?: string;
   recordedByName?: string;
 };
@@ -197,6 +224,33 @@ export type ProductionOrderSummary = {
   actualCycleHours?: number;
   cycleTargetHours: string;
   totalDowntimeHours: number;
+  /** ชั่วโมงของ Downtime ที่ยังเปิดค้าง — เดิม backend นับแถวที่ยังไม่ปิดเป็น 0 */
+  openDowntimeHours: number;
+  openDowntimeCount: number;
+  /** เวลาที่ผ่านไปตั้งแต่เริ่มผลิต — มีค่าตั้งแต่ยังผลิตไม่เสร็จ */
+  elapsedHours?: number;
+  netRunHours?: number;
+  cycleProgressPercent?: number;
+  isOverdue: boolean;
+  /**
+   * ยอดรวมใช้หน่วยเดียวกันหรือไม่ — `false` แปลว่า yield/mass balance
+   * เกิดจากการบวกข้ามหน่วย (เช่น น้ำมันเป็นลิตร ผงคาร์บอนเป็นกิโล)
+   * หน้าจอต้องขึ้นคำเตือนแทนการโชว์ % เฉย ๆ
+   */
+  quantitiesComparable: boolean;
+  unitCodes: string[];
+};
+
+export type StartProductionOrderInputLineBody = {
+  inputItemId: string;
+  /** 0 = วางแผนไว้แต่ไม่ได้ใช้บรรทัดนี้ (ไม่ตัดสต๊อก) */
+  actualQty: number;
+  remark?: string;
+};
+
+/** ไม่ส่ง inputLines = ตัดตามแผนทุกบรรทัด (พฤติกรรมเดิม) */
+export type StartProductionOrderBody = {
+  inputLines?: StartProductionOrderInputLineBody[];
 };
 
 export type CreateProductionOrderInputItemBody = {
@@ -265,12 +319,32 @@ export type CompleteProductionOrderBody = {
 };
 
 export type RecordDowntimeBody = {
-  startAt: string;
+  /** ไม่ส่ง = ใช้เวลาปัจจุบันฝั่ง server */
+  startAt?: string;
   reason: string;
+  category?: string;
 };
 
 export type EndDowntimeBody = {
   endAt?: string;
+};
+
+/** หยุดเดินเครื่อง — เปิดแถว Downtime พร้อมกันในทรานแซกชันเดียว */
+export type PauseProductionOrderBody = RecordDowntimeBody;
+
+/** กลับมาเดินเครื่อง — ปิดแถว Downtime ที่เปิดค้างให้อัตโนมัติ */
+export type ResumeProductionOrderBody = {
+  endAt?: string;
+};
+
+/**
+ * ยกเลิกใบสั่งผลิต — เหตุผลกับลายเซ็นบังคับเมื่อใบเดินอยู่แล้ว (กำลังผลิต/หยุดชั่วคราว)
+ * ใบร่างส่ง body เปล่าได้
+ */
+export type CancelProductionOrderBody = {
+  /** ชื่อฟิลด์ตรงกับ `CancelProductionOrderDto.cancelReason` ฝั่ง backend */
+  cancelReason?: string;
+  signature?: { typedName: string };
 };
 
 export type CreateProductionOrderLogBody = {

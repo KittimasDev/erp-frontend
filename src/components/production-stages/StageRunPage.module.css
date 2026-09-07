@@ -1,0 +1,206 @@
+/*
+  ใช้กับทั้งสามหน้าของขั้นตอนการผลิต (list / create / detail)
+  สีและรัศมีขอบตามชุดเดียวกับหน้า master อื่น ๆ (--unit-*)
+*/
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.summaryCardAccent {
+  border-color: var(--unit-green, #8ab933);
+}
+
+.summaryLabel {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.summaryValue {
+  color: var(--unit-gray-dark);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* สองบรรทัดในเซลล์เดียว — บรรทัดล่างเป็นรายละเอียดรอง */
+.cellStack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cellMuted {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+/* ── ฟอร์มสร้าง / หน้ารายละเอียด ─────────────────────────────────────────── */
+
+.formCard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 22px;
+  border: 1px solid var(--unit-border);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
+}
+
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #fbfcfa;
+}
+
+.formSectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.formSectionHead h4 {
+  margin: 0;
+  color: var(--unit-gray-dark);
+  font-size: 15px;
+}
+
+.formSectionHint {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* แสดง yield ที่คำนวณสดจากตัวเลขที่กำลังกรอก */
+.yieldPreview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px dashed var(--unit-border);
+  border-radius: 12px;
+  color: var(--unit-muted);
+  font-size: 13px;
+}
+
+.yieldPreviewValue {
+  color: var(--unit-gray-dark);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.infoLabel {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.infoValue {
+  color: var(--unit-gray-dark);
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.actionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.detailSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detailSection h3 {
+  margin: 0;
+  color: var(--unit-gray-dark);
+  font-size: 16px;
+}
+
+.yieldCard {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--unit-border);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.yieldCardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.yieldCardLabel {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .summaryRow,
+  .formGrid,
+  .infoGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .summaryRow,
+  .formGrid,
+  .infoGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .yieldCard {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

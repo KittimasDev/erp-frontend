@@ -21,6 +21,8 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 const STATUS_COLOR: Record<string, string> = {
   DRAFT: "default",
   IN_PROGRESS: "processing",
+  // เหลืองอำพัน — สถานะหยุดต้องอ่านออกจากสีก่อนอ่านข้อความ
+  PAUSED: "warning",
   COMPLETED: "success",
   CANCELLED: "error",
 };
@@ -130,13 +132,13 @@ export default function ProductionOrdersListPage() {
             okText="ยกเลิกใบ"
             cancelText="ปิด"
             okButtonProps={{ danger: true }}
-            onConfirm={() => cancelMutation.mutate(row.id)}
+            onConfirm={() => cancelMutation.mutate({ id: row.id })}
           >
             <Button
               danger
               size="small"
               loading={
-                cancelMutation.isPending && cancelMutation.variables === row.id
+                cancelMutation.isPending && cancelMutation.variables?.id === row.id
               }
             >
               ยกเลิก

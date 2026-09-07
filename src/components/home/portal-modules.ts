@@ -136,6 +136,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     href: "/production/production-requests",
     tone: "teal",
     screenCodes: [
+      "PRODUCTION_DASHBOARD",
       "PRODUCTION_REQUESTS",
       "PRODUCTION_ORDERS",
       "PRODUCTION_OUTPUT_STOCK_REQUESTS",

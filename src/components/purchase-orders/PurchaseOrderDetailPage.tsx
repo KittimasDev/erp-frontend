@@ -47,6 +47,7 @@ import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import {
   resolveVatMode,
   VAT_MODE_LABEL,
+  resolveDocumentVatPercent,
   vatAmountLabel,
   withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
@@ -149,6 +150,11 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const [previewIsImage, setPreviewIsImage] = useState(false);
 
   const data = query.data?.data;
+  /*
+    อัตรา VAT ของใบนี้ = อัตราหัก ณ ที่จ่าย (ดู resolveDocumentVatPercent)
+    ไม่ได้อ่านจาก data.taxRate อีกแล้ว ใบใหม่จะไม่มีค่านั้นและใบเก่าก็ไม่ใช่ตัวที่ใช้คิด
+  */
+  const vatPercent = resolveDocumentVatPercent(data ?? {});
   const attachments = attachmentsQuery.data?.data ?? [];
   // Matrix เป็นตัวตัดสินอย่างเดียว — ไม่ OR role ทับ ไม่งั้นคนที่ไม่ได้ติ๊กสิทธิ์ก็ยังกดได้
   // (admin `*` และโหมด legacy คืน all-true จาก getScreenActionPermissions อยู่แล้ว)
@@ -299,10 +305,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       vendorPhone: data.creditor?.contactPhone ?? "—",
       vendorContact: data.creditor?.contactName ?? "—",
       paymentTerm: data.paymentTerm?.name ?? "ไม่ระบุ",
-      taxRateLabel: data.taxRate
-        ? `${data.taxRate.rate}%`
-        : "ไม่คิด VAT",
-      vatRate: data.taxRate ? Number(data.taxRate.rate) : 0,
+      taxRateLabel: vatPercent > 0 ? `${vatPercent}%` : "ไม่คิด VAT",
+      vatRate: vatPercent,
       withholdingTaxLabel: withholdingTaxTypeLabel(
         data.withholdingTaxType,
         data.withholdingTaxPercent,
@@ -426,9 +430,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>อัตรา VAT</span>
                 <div className={styles.metaValue}>
-                  {data.taxRate
-                    ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-                    : "ไม่คิด VAT"}
+                  {vatPercent > 0 ? `${vatPercent}%` : "ไม่คิด VAT"}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -630,7 +632,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </strong>
             </div>
             <div className={styles.sideRow}>
-              <span>{vatAmountLabel(data.taxRate ? Number(data.taxRate.rate) : 0)}</span>
+              <span>{vatAmountLabel(vatPercent)}</span>
               <strong>{formatMoney(data.vatAmount)}</strong>
             </div>
             <div className={styles.sideRow}>

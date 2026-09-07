@@ -1,0 +1,119 @@
+/*
+  ใช้ตัวแปรสีชุดเดียวกับหน้ารายละเอียดใบสั่งผลิต (--unit-*) เพื่อให้การ์ดนี้
+  กลมกลืนเมื่อถูกวางแทรกอยู่ในหน้านั้น
+*/
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionHead h3 {
+  margin: 0;
+  color: var(--unit-gray-dark);
+  font-size: 16px;
+}
+
+.unitWarning {
+  border-radius: 12px;
+}
+
+/* เกจอยู่ซ้าย ตัวเลขอยู่ขวา — จอแคบซ้อนกันแทน */
+.yieldTop {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.gauge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.gaugeValue {
+  color: var(--unit-gray-dark);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* ยังไม่มีผลผลิตเข้าคลัง ≠ ผลิตแล้วได้ของน้อย — ต้องอ่านออกว่าคนละเรื่อง */
+.gaugeEmpty {
+  display: inline-block;
+  max-width: 96px;
+  color: var(--unit-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.gaugeCaption {
+  color: var(--unit-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.yieldGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.infoLabel {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.infoValue {
+  color: var(--unit-gray-dark);
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.infoHint {
+  color: #d48806;
+  font-size: 11px;
+}
+
+.chartBody {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 8px 4px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+@media (max-width: 1100px) {
+  .yieldGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .yieldTop {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -26,7 +26,11 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/inventory/dashboard", title: "ภาพรวมคลังสินค้า" },
   { href: "/receiving/dashboard", title: "ภาพรวมรับซื้อยาง" },
   { href: "/weighbridge/floor-scale-tickets", title: "ชั่งน้ำหนัก Floor Scale" },
+  // เรียงจากเจาะจงไปกว้าง — รายการนี้จับแบบ prefix ถ้าเอาตัวกว้างขึ้นก่อน
+  // หน้า create/detail จะได้ชื่อของหน้ารายการแทน
+  { href: "/production/tire-prep-stages/create", title: "สร้างรอบเตรียมยาง" },
   { href: "/production/tire-prep-stages", title: "ขั้นตอนเตรียมยาง" },
+  { href: "/production/rcb-processing/create", title: "สร้างรอบผลิต rCB" },
   { href: "/production/rcb-processing", title: "กระบวนการผลิต rCB" },
   { href: "/inventory/tire-prep-issues", title: "เบิกยางเข้ากระบวนการเตรียมยาง" },
   { href: "/hrm/employees", title: "ข้อมูลพนักงาน" },
@@ -43,7 +47,10 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/oil-tank-farm/transfers", title: "โอนย้ายน้ำมันระหว่างถัง" },
   { href: "/oil-tank-farm/dispatches", title: "จ่ายน้ำมันออกจากถัง" },
   { href: "/production/production-requests", title: "ใบขอผลิต (จากใบสั่งขาย)" },
+  { href: "/production/dashboard", title: "แดชบอร์ดการผลิต" },
   { href: "/production/production-orders", title: "ใบสั่งผลิต (Pyrolysis)" },
+  { href: "/production/tire-prep-stages", title: "ขั้นตอนเตรียมยาง" },
+  { href: "/production/rcb-processing", title: "กระบวนการแปรรูป rCB" },
   { href: "/reports/ar-aging", title: "รายงานลูกหนี้คงค้าง" },
   { href: "/reports/sales-invoices", title: "รายงานใบแจ้งหนี้" },
   { href: "/reports/sales-payments", title: "รายงานรับชำระเงิน" },

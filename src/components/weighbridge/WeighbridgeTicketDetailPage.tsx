@@ -95,6 +95,14 @@ function formatDateTime(value?: string) {
   return new Date(value).toLocaleString("th-TH");
 }
 
+/** วันที่อย่างเดียว — ใช้ต่อท้ายเลขที่เอกสารในแถวเอกสารของแต่ละขั้น */
+function formatDateOnly(value?: string) {
+  if (!value) {
+    return "-";
+  }
+  return new Date(value).toLocaleDateString("th-TH");
+}
+
 function isPaymentPaid(view: PaymentView) {
   return (
     view.paymentStatus === "PAID" || view.flowState === "PAYMENT_PAID"
@@ -190,8 +198,36 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const seller = sellerQuery.data?.data;
 
   const paymentQuery = useRawTirePaymentQuery(ticket?.receiptId ?? "");
+  const paymentContext = paymentQuery.data?.data ?? null;
   const paymentReceipt = paymentQuery.data?.data?.receipt;
   const paymentVoucher = paymentQuery.data?.data?.voucher;
+  const [printingVoucher, setPrintingVoucher] = useState(false);
+
+  /*
+    ย้ายมาจาก Step 1 พร้อมการ์ดใบสำคัญจ่าย — เอกสารใบนี้เป็นผลลัพธ์ของ Step 2
+    lib pdf ต้อง dynamic import เท่านั้น (กฎใน .cursor/rules/erp.mdc)
+  */
+  const handlePrintVoucher = async () => {
+    if (!paymentContext?.voucher) {
+      message.warning("ยังไม่มีใบสำคัญจ่าย ให้กดออกใบจ่ายเงินก่อน");
+      return;
+    }
+    setPrintingVoucher(true);
+    try {
+      const { generateRawTirePaymentVoucherPdf, mapPaymentContextToPdfData } =
+        await import("@/utils/generateRawTirePaymentVoucherPdf");
+      await generateRawTirePaymentVoucherPdf(
+        // ส่ง receipt เข้าไปด้วย ใบสำคัญจ่ายจะได้พิมพ์ตารางรายการรับซื้อ
+        mapPaymentContextToPdfData(paymentContext, receipt),
+      );
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "พิมพ์ใบสำคัญจ่ายไม่สำเร็จ",
+      );
+    } finally {
+      setPrintingVoucher(false);
+    }
+  };
 
   const paymentView = useMemo<PaymentView | null>(() => {
     if (!ticket) {
@@ -611,21 +647,58 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     </div>
                   </div>
 
-                  {paid ? (
-                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
-                      <Button
-                        type="primary"
-                        className={styles.submitButton}
-                        onClick={() =>
-                          router.push(
-                            `/receiving/receipts/${ticket.receiptId}/payment`,
-                          )
-                        }
-                      >
-                        ดูใบสำคัญจ่าย
-                      </Button>
+                  {/*
+                    เอกสารของขั้นนี้ — ย้ายมาจาก Step 1 ซึ่งเดิมถือการ์ดใบสำคัญจ่ายไว้
+                    ทั้งที่เอกสารใบนี้เกิดจาก Step 2 · ตอนยังไม่ออกใบก็ยังโชว์แถวไว้แบบจาง
+                    ให้รู้ว่าขั้นนี้ต้องได้อะไรออกมา
+                  */}
+                  <div className={styles.stepDocList}>
+                    <div
+                      className={[
+                        styles.stepDocRow,
+                        paymentVoucher ? "" : styles.stepDocRowMuted,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <div className={styles.stepDocMain}>
+                        <span className={styles.stepDocLabel}>ใบสำคัญจ่าย</span>
+                        <span className={styles.stepDocValue}>
+                          {paymentVoucher?.voucherNo ?? "ยังไม่ออก — กดปุ่มด้านล่างเพื่อออกใบจ่ายเงิน"}
+                          {paymentVoucher?.voucherDate ? (
+                            <span className={styles.stepDocMeta}>
+                              ลว. {formatDateOnly(paymentVoucher.voucherDate)}
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                      {paymentVoucher ? (
+                        <div className={styles.stepDocActions}>
+                          <Button
+                            size="small"
+                            type="primary"
+                            icon={<PrinterOutlined />}
+                            loading={printingVoucher}
+                            onClick={() => void handlePrintVoucher()}
+                          >
+                            พิมพ์
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              router.push(
+                                `/receiving/receipts/${ticket.receiptId}/payment`,
+                              )
+                            }
+                          >
+                            เปิด
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
-                  ) : readyToPay ? (
+                  </div>
+
+                  {paid ? null : readyToPay ? (
                     <div className={styles.weighActions} style={{ marginTop: 16 }}>
                       <Button
                         type="primary"

@@ -1,12 +1,14 @@
 import { apiFetch } from "./client";
 import type {
-  AllocateProductionOrderOutputBody,
   AllocateProductionOrderOutputApiResponse,
+  AllocateProductionOrderOutputBody,
   BulkCreateProductionOrdersBody,
   CompleteProductionOrderBody,
   CreateProductionOrderBody,
   CreateProductionOrderLogBody,
+  CancelProductionOrderBody,
   EndDowntimeBody,
+  PauseProductionOrderBody,
   ProductionOrderApiResponse,
   ProductionOrderBulkCreateApiResponse,
   ProductionOrderConsolidatedCreateApiResponse,
@@ -14,6 +16,8 @@ import type {
   ProductionOrderSummaryApiResponse,
   QueryProductionOrdersParams,
   RecordDowntimeBody,
+  ResumeProductionOrderBody,
+  StartProductionOrderBody,
 } from "@/types/production-order";
 
 function buildQuery(params?: QueryProductionOrdersParams) {
@@ -101,17 +105,47 @@ export function allocateProductionOrderOutput(
   );
 }
 
-export function cancelProductionOrder(token: string, id: string) {
+export function cancelProductionOrder(
+  token: string,
+  id: string,
+  body?: CancelProductionOrderBody,
+) {
   return apiFetch<ProductionOrderApiResponse>(
     `/api/production/production-orders/${id}/cancel`,
-    { method: "POST", token },
+    { method: "POST", token, body },
   );
 }
 
-export function startProductionOrder(token: string, id: string) {
+export function pauseProductionOrder(
+  token: string,
+  id: string,
+  body: PauseProductionOrderBody,
+) {
+  return apiFetch<ProductionOrderApiResponse>(
+    `/api/production/production-orders/${id}/pause`,
+    { method: "POST", token, body },
+  );
+}
+
+export function resumeProductionOrder(
+  token: string,
+  id: string,
+  body?: ResumeProductionOrderBody,
+) {
+  return apiFetch<ProductionOrderApiResponse>(
+    `/api/production/production-orders/${id}/resume`,
+    { method: "POST", token, body },
+  );
+}
+
+export function startProductionOrder(
+  token: string,
+  id: string,
+  body?: StartProductionOrderBody,
+) {
   return apiFetch<ProductionOrderApiResponse>(
     `/api/production/production-orders/${id}/start`,
-    { method: "POST", token },
+    { method: "POST", token, body },
   );
 }
 

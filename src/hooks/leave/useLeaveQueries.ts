@@ -2,11 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { canAccessBadgeScreen } from "@/hooks/badges/badge-access";
 import {
   getLeaveRequests,
   getLeaveSummary,
   getMyLeaveRequests,
 } from "@/lib/api/leave";
+import { pendingCountQueryOptions } from "@/lib/query/count-query";
 import { getAccessToken } from "@/lib/auth/token";
 import type { LeaveQueryParams, LeaveSummaryParams } from "@/types/leave";
 
@@ -39,5 +41,22 @@ export function useLeaveSummaryQuery(params: LeaveSummaryParams = {}) {
   return useQuery({
     queryKey: leaveSummaryQueryKey(params),
     queryFn: () => getLeaveSummary(getAccessToken(), params),
+  });
+}
+
+/** คิวคำขอลางานที่รออนุมัติ สำหรับ badge — อ่านจาก summary เหมือนฝั่ง OT */
+export const pendingLeaveApprovalsCountQueryKey = [
+  "leave",
+  "pending-approvals",
+  "count",
+] as const;
+
+export function pendingLeaveApprovalsCountOptions(ctx?: { enabled?: boolean }) {
+  return pendingCountQueryOptions({
+    queryKey: pendingLeaveApprovalsCountQueryKey,
+    queryFn: () => getLeaveSummary(getAccessToken(), {}),
+    select: (res) => res?.data?.pendingCount ?? 0,
+    canAccess: () => canAccessBadgeScreen("HRM_LEAVE"),
+    enabled: ctx?.enabled,
   });
 }
