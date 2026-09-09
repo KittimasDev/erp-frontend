@@ -143,6 +143,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "PENDING_PRODUCTION_OUTPUT",
       "TIRE_PREP_STAGES",
       "RCB_PROCESSING",
+      "MATERIAL_CONVERSIONS",
     ],
     roles: [
       RoleCode.SALES_OFFICER,
@@ -336,6 +337,8 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "WAREHOUSE_LOCATIONS",
       "MASTERS_UNITS",
       "MASTERS_UNIT_CONVERSIONS",
+      "MATERIAL_CONVERSION_ROUTES",
+      "PRODUCTION_FORMULAS",
       "MASTERS_SELLERS",
       "MASTERS_SELLER_TYPES",
       "MASTERS_WEIGHBRIDGE_SCALES",

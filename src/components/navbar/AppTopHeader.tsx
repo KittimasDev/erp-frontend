@@ -28,10 +28,33 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/weighbridge/floor-scale-tickets", title: "ชั่งน้ำหนัก Floor Scale" },
   // เรียงจากเจาะจงไปกว้าง — รายการนี้จับแบบ prefix ถ้าเอาตัวกว้างขึ้นก่อน
   // หน้า create/detail จะได้ชื่อของหน้ารายการแทน
+  // หน้ารายละเอียด/สร้างของเมนูเดิมยังเป็นหน้าจริง — ชื่อจึงต้องคงไว้
+  // (หน้ารายการของทั้งสองกลายเป็น redirect ไป "ใบแปรสภาพวัตถุดิบ" แล้ว)
   { href: "/production/tire-prep-stages/create", title: "สร้างรอบเตรียมยาง" },
-  { href: "/production/tire-prep-stages", title: "ขั้นตอนเตรียมยาง" },
+  { href: "/production/tire-prep-stages", title: "ขั้นตอนเตรียมยาง (ย้ายแล้ว)" },
   { href: "/production/rcb-processing/create", title: "สร้างรอบผลิต rCB" },
-  { href: "/production/rcb-processing", title: "กระบวนการผลิต rCB" },
+  { href: "/production/rcb-processing", title: "กระบวนการผลิต rCB (ย้ายแล้ว)" },
+  {
+    href: "/production/material-conversions/jobs/create",
+    title: "เปิดใบงานแปรสภาพตามเส้นทาง",
+  },
+  {
+    href: "/production/material-conversions/jobs",
+    title: "ใบงานแปรสภาพตามเส้นทาง",
+  },
+  {
+    href: "/production/material-conversions/create",
+    title: "สร้างใบแปรสภาพวัตถุดิบ",
+  },
+  { href: "/production/material-conversions", title: "ใบแปรสภาพวัตถุดิบ" },
+  {
+    href: "/masters/production-formulas",
+    title: "สูตรการผลิต",
+  },
+  {
+    href: "/masters/material-conversion-routes",
+    title: "เส้นทางแปรสภาพวัตถุดิบ",
+  },
   { href: "/inventory/tire-prep-issues", title: "เบิกยางเข้ากระบวนการเตรียมยาง" },
   { href: "/hrm/employees", title: "ข้อมูลพนักงาน" },
   { href: "/hrm/shifts", title: "ตารางกะการทำงาน" },
@@ -50,7 +73,8 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/production/dashboard", title: "แดชบอร์ดการผลิต" },
   { href: "/production/production-orders", title: "ใบสั่งผลิต (Pyrolysis)" },
   { href: "/production/tire-prep-stages", title: "ขั้นตอนเตรียมยาง" },
-  { href: "/production/rcb-processing", title: "กระบวนการแปรรูป rCB" },
+  { href: "/production/rcb-processing", title: "กระบวนการผลิต rCB" },
+  { href: "/production/material-conversions", title: "ใบแปรสภาพวัตถุดิบ" },
   { href: "/reports/ar-aging", title: "รายงานลูกหนี้คงค้าง" },
   { href: "/reports/sales-invoices", title: "รายงานใบแจ้งหนี้" },
   { href: "/reports/sales-payments", title: "รายงานรับชำระเงิน" },

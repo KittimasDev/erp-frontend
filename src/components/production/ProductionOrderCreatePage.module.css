@@ -250,3 +250,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+/*
+  บล็อกวางแผน — สองคอลัมน์เฉพาะตรงนี้ (การ์ดสูตรซ้าย / กล่องวางแผน+ใบขอผลิตขวา)
+  ตามภาพต้นแบบ · ส่วนที่เหลือของฟอร์มยังเต็มความกว้าง จึงไม่ต้องรื้อ layout ทั้งหน้า
+*/
+.planningGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.planningMain {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 960px) {
+  .planningGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

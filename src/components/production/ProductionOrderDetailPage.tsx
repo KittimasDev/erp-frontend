@@ -64,6 +64,7 @@ import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ProductionOrderStartModal from "./ProductionOrderStartModal";
 import ProductionOrderYieldCard from "./ProductionOrderYieldCard";
+import ProductionOrderFormulaModal from "./ProductionOrderFormulaModal";
 import {
   ProductionOrderCancelModal,
   ProductionOrderPauseModal,
@@ -140,6 +141,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const [logOpen, setLogOpen] = useState(false);
   const [logNote, setLogNote] = useState("");
   const [requestOpen, setRequestOpen] = useState(false);
+  const [formulaOpen, setFormulaOpen] = useState(false);
   const [selectedReceiveItemIds, setSelectedReceiveItemIds] = useState<
     string[]
   >([]);
@@ -488,6 +490,25 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Batch</span>
                 <span className={styles.infoValue}>{order.batchNo || "-"}</span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>สูตรที่ใช้</span>
+                <span className={styles.infoValue}>
+                  {order.productionFormulaCode ?? "กรอกเอง (ไม่ได้ใช้สูตร)"}
+                  {/*
+                    ปุ่มขึ้นทุกใบ แม้ใบที่กรอกมือ — คนดูใบมักอยากเทียบกับสูตรมาตรฐาน
+                    ว่ารอบนี้ใส่ต่างจากสูตรตรงไหน ซึ่งเป็นคำถามที่เกิดกับใบที่กรอกมือ
+                    มากกว่าใบที่คิดจากสูตรเสียอีก
+                  */}
+                  <Button
+                    size="small"
+                    type="link"
+                    style={{ paddingInline: 4 }}
+                    onClick={() => setFormulaOpen(true)}
+                  >
+                    ดูสูตร
+                  </Button>
+                </span>
               </div>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>Cycle เป้าหมาย</span>
@@ -1142,6 +1163,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             placeholder="เช่น อุณหภูมิเตา 450°C ตรงตามแผน"
           />
         </Modal>
+
+        <ProductionOrderFormulaModal
+          open={formulaOpen}
+          onClose={() => setFormulaOpen(false)}
+          formulaId={order?.productionFormulaId}
+          versionUsed={order?.productionFormulaVersionNo}
+          targetQty={order?.formulaTargetQty}
+          driverItemId={order?.formulaDriverItemId}
+        />
 
         <Modal
           title="ขอรับผลผลิตเข้าคลัง"

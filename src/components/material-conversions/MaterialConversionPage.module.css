@@ -1,0 +1,664 @@
+/*
+  แถบสรุป — เดิมเป็นการ์ด 4 ใบเท่ากันที่เขียน "(ในหน้านี้)" ซ้ำสามรอบ
+  ตอนนี้บอกขอบเขตครั้งเดียวที่หัวแถบ แล้วให้ตัวเลขอยู่รวมกันเป็นชุด
+*/
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.summaryGroup {
+  display: flex;
+  flex: 1 1 420px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.summaryGroupLabel {
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.summaryStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.summaryStat {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+
+.summaryDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translateY(-2px);
+}
+
+.summaryStatLabel {
+  color: var(--erp-muted, #8a9199);
+  font-size: 13px;
+}
+
+.summaryStatValue {
+  color: var(--erp-text, #2f343a);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.summaryTotal {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 132px;
+  padding: 12px 18px;
+  border: 1px solid rgba(115, 152, 22, 0.28);
+  border-radius: 14px;
+  background: rgba(115, 152, 22, 0.06);
+}
+
+.summaryTotalLabel {
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.summaryTotalValue {
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+/* ป้ายเอกสารจากเมนูเดิม — ต้องไม่หน้าตาเหมือน codeBadge ของเลขที่เอกสาร */
+.legacyChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border: 1px dashed #d4d8dd;
+  border-radius: 999px;
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+/* Yield — ให้มีน้ำหนักสายตา ไม่ใช่ตัวเลขลอย */
+.yieldPill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(115, 152, 22, 0.1);
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.yieldPillBad {
+  background: rgba(207, 19, 34, 0.09);
+  color: #cf1322;
+}
+
+.yieldPillMuted {
+  background: #f3f4f6;
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.outputChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* แถวของเสีย/แถวรอง ใช้จุดนำหน้าแทนการเขียนคำว่า "ของเสีย" ซ้ำทุกแถว */
+.subNote {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px 0;
+}
+
+.filterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 18px 14px;
+}
+
+.filterToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--erp-text, #2f343a);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.cellStack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.35;
+}
+
+.cellMuted {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.notice {
+  margin-bottom: 14px;
+  border-radius: 12px;
+}
+
+.formCard {
+  padding: 18px 20px;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.formSection {
+  margin-bottom: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f2f4f6;
+}
+
+.formSection:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.formSectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.formSectionHead h4 {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.formSectionHint {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* บรรทัดวัตถุดิบ/ผลผลิต — การ์ดต่อบรรทัดแบบเดียวกับใบเสนอราคา */
+.lineList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lineCard {
+  padding: 12px 14px;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.lineCardWaste {
+  border-color: rgba(150, 150, 150, 0.35);
+  background: #f5f5f5;
+}
+
+.lineCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.lineCardTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--erp-text, #2f343a);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.lineGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.lineGridWide {
+  grid-column: span 2;
+}
+
+.addLineButton {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.actionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.detailSection {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.detailSection h3 {
+  margin: 0 0 12px;
+  color: var(--erp-text, #2f343a);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid #f2f4f6;
+  border-radius: 10px;
+  background: #fafbfc;
+}
+
+.infoLabel {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.infoValue {
+  color: var(--erp-text, #2f343a);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* แถบสมดุลมวล — เข้า / ออก / ของเสีย / ส่วนที่อธิบายไม่ได้ */
+.balanceRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.balanceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.balanceCardStrong {
+  border-color: rgba(115, 152, 22, 0.28);
+  background: rgba(115, 152, 22, 0.06);
+}
+
+.balanceLabel {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.balanceValue {
+  color: var(--erp-text, #2f343a);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.balanceHint {
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+}
+
+.modalLineRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #eef0f3;
+  border-radius: 10px;
+  background: #fafbfc;
+}
+
+.modalLineRow + .modalLineRow {
+  margin-top: 8px;
+}
+
+.modalLineRowWaste {
+  border-color: rgba(150, 150, 150, 0.35);
+  background: #f5f5f5;
+}
+
+.modalLineName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.modalLineName strong {
+  overflow: hidden;
+  color: var(--erp-text, #2f343a);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .formGrid,
+  .lineGrid,
+  .infoGrid,
+  .balanceRow,
+  .filterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .lineGridWide {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .formGrid,
+  .lineGrid,
+  .infoGrid,
+  .balanceRow,
+  .filterGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* จอแคบ — ยอดรวมลงมาอยู่ใต้แถบสรุปเต็มความกว้าง */
+  .summaryTotal {
+    flex: 1 1 100%;
+  }
+  .lineGridWide {
+    grid-column: span 1;
+  }
+  .modalLineRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ─── ใบงานแปรสภาพตามเส้นทาง ───────────────────────────────────────────────
+   หัวใบเป็นการ์ดเดียวที่ตอบสามคำถามพร้อมกัน: ใบไหน · Batch อะไร · เดินถึงไหน */
+
+.jobHero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 16px;
+  padding: 16px 20px;
+  border: 1px solid #eef0f3;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.jobHeroMain {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.jobHeroTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.jobHeroTitle h2 {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+/* Batch ต้องอ่านออกจากอีกฝั่งห้อง — เป็นคีย์ที่ร้อยงานทั้งสายเข้าด้วยกัน */
+.jobBatch {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 18px;
+  border: 1px solid rgba(115, 152, 22, 0.28);
+  border-radius: 12px;
+  background: rgba(115, 152, 22, 0.06);
+}
+
+.jobBatchLabel {
+  color: var(--erp-muted, #8a9199);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.jobBatchValue {
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.jobProgress {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.jobProgressLabel {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.jobProgressCount {
+  color: var(--erp-text, #2f343a);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.jobHeroActions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ─── ไทม์ไลน์ขั้นตอน ─────────────────────────────────────────────────────
+   การ์ดละขั้นเรียงตามลำดับในเส้นทาง มีเส้นต่อระหว่างการ์ดให้เห็นว่าเป็นสายเดียวกัน */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timelineRow {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.timelineRail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timelineDot {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #e3e6ea;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--erp-muted, #8a9199);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.timelineDotDone {
+  border-color: rgba(115, 152, 22, 0.4);
+  background: rgba(115, 152, 22, 0.1);
+  color: var(--erp-green-dark, #6f9720);
+}
+
+.timelineDotActive {
+  border-color: #1677ff;
+  background: rgba(22, 119, 255, 0.1);
+  color: #1677ff;
+}
+
+.timelineLine {
+  flex: 1 1 auto;
+  width: 2px;
+  min-height: 12px;
+  background: #eef0f3;
+}
+
+.stepCard {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  background: #fff;
+}
+
+/* ขั้นที่ยังไม่ถึงต้องจางลง ไม่ใช่หายไป — ผู้ใช้ต้องเห็นว่าเหลืออีกกี่ขั้น */
+.stepCardIdle {
+  border-style: dashed;
+  background: #fafbfc;
+}
+
+.stepCardDone {
+  border-color: rgba(115, 152, 22, 0.22);
+  background: rgba(115, 152, 22, 0.03);
+}
+
+.stepHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.stepTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.stepActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stepMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.drawerBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.drawerFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .timelineRow {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .jobBatch,
+  .jobProgress {
+    flex: 1 1 100%;
+  }
+}

@@ -1,0 +1,159 @@
+.panel {
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border-radius: 8px;
+  background: var(--ant-color-bg-container, #fff);
+  padding: 12px;
+}
+
+.panelTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 10px;
+}
+
+.panelHeader .panelTitle {
+  margin-bottom: 0;
+}
+
+/*
+  การ์ดยาวได้ไม่จำกัดตามจำนวนสูตร — จำกัดความสูงแล้วเลื่อนในตัวเอง
+  ไม่งั้นคอลัมน์ซ้ายจะดันหน้าให้ยาวกว่าฟอร์มฝั่งขวามาก
+*/
+.cardScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 560px;
+  overflow-y: auto;
+}
+
+.card {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  cursor: pointer;
+  border: 1px solid var(--ant-color-border, #d9d9d9);
+  border-radius: 6px;
+  background: var(--ant-color-bg-container, #fff);
+  padding: 10px 12px;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.card:hover:not(:disabled) {
+  border-color: var(--ant-color-primary, #1677ff);
+}
+
+.card:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.cardSelected {
+  border-color: var(--ant-color-primary, #1677ff);
+  box-shadow: 0 0 0 2px var(--ant-color-primary-bg, rgba(22, 119, 255, 0.12));
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cardName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.cardCode {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+  font-family: var(--font-geist-mono, monospace);
+}
+
+.batchLabel {
+  font-size: 0.78rem;
+  color: var(--ant-color-text-secondary, #595959);
+  margin-top: 4px;
+}
+
+.sectionLabel {
+  margin-top: 8px;
+  margin-bottom: 2px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ant-color-text-secondary, #595959);
+}
+
+.lineList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.82rem;
+}
+
+.lineList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.lineName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lineQty {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyLine {
+  font-size: 0.82rem;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+}
+
+.compactHint {
+  margin: 0 0 8px;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+  font-size: 0.78rem;
+}
+
+.emptyAction {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.modalRecipe {
+  min-width: 0;
+}

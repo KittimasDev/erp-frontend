@@ -150,6 +150,8 @@ export type InventoryLotBalanceRow = {
   qcStatus?: string;
   sourceDocumentType?: string;
   sourceDocumentNo?: string;
+  /** เลข Batch ที่ประทับตอนรับเข้า — ใช้รู้ว่า Lot นี้เป็นผลผลิตของงานสายไหน */
+  batchNo?: string;
   receivedDate?: string;
   itemId: string;
   itemCode: string;
@@ -198,6 +200,8 @@ export type InventoryLotQueryParams = {
   q?: string;
   hasStock?: boolean;
   nearExpiry?: boolean;
+  /** กรองเฉพาะ Lot ของ Batch นี้ — ฟอร์มใบแปรสภาพ **ไม่ใช้ตัวนี้** ดูที่ `batchNo` ของแต่ละแถวแทน */
+  batchNo?: string;
 };
 
 export type StockBalanceListApiResponse = {

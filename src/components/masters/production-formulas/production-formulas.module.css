@@ -1,0 +1,72 @@
+/* ข้อความรองในตารางสูตร — master-page.module.css ที่ใช้ร่วมกันไม่มีคลาสนี้ */
+.muted {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+/* กลุ่มบรรทัดในโมดัลตั้งสูตร — แยกวัตถุดิบ / ผลผลิต / ของเสีย ให้เห็นชัด */
+.lineGroup {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #eef0f3;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.lineGroupHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.lineGroupTitle {
+  color: var(--erp-text, #2f343a);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.lineGroupHint {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.lineRow {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 90px minmax(0, 1.2fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.lineRow + .lineRow {
+  margin-top: 8px;
+}
+
+.previewBox {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border: 1px solid #cfe0f5;
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.previewTitle {
+  margin-bottom: 8px;
+  color: var(--erp-text, #2f343a);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.previewGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@media (max-width: 900px) {
+  .lineRow {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}

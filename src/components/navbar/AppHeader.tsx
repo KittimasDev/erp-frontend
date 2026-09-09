@@ -762,20 +762,33 @@ const productionMenus: MenuItem[] = [
     ],
   },
   {
-    key: "tire-prep-stages",
-    screenCode: "TIRE_PREP_STAGES",
-    label: "ขั้นตอนเตรียมยาง",
-    href: "/production/tire-prep-stages",
-    matchHrefs: ["/production/tire-prep-stages", "/production/tire-prep-stages/create"],
-    icon: <IconWarehouse />,
-    roles: [ROLE.PRODUCTION_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
-  },
-  {
-    key: "rcb-processing",
-    screenCode: "RCB_PROCESSING",
-    label: "กระบวนการผลิต rCB",
-    href: "/production/rcb-processing",
-    matchHrefs: ["/production/rcb-processing", "/production/rcb-processing/create"],
+    /*
+      เมนูเดียวแทน "ขั้นตอนเตรียมยาง" กับ "กระบวนการผลิต rCB" (เฟส 3, 2026-09-07)
+
+      route เดิมทั้งสองกลายเป็นหน้า redirect มาที่นี่พร้อมตัวกรองเส้นทาง —
+      บุ๊กมาร์กเดิมยังใช้ได้ และ **API path เดิมกับ controller เดิมไม่ถูกแตะ**
+      · หน้ารายละเอียดและหน้าสร้างของเมนูเดิมยังเป็นหน้าจริง เพื่อให้เปิดเอกสารเก่าได้
+
+      `screenCodes` รับทั้งสามรหัสเพราะกฎ default-deny — role ที่ถูกติ๊กเฉพาะ
+      TIRE_PREP_STAGES หรือ RCB_PROCESSING ไว้ใน Permission Matrix ต้องไม่หลุดเมนูข้ามคืน
+    */
+    key: "material-conversions",
+    screenCodes: [
+      "MATERIAL_CONVERSIONS",
+      "TIRE_PREP_STAGES",
+      "RCB_PROCESSING",
+    ],
+    label: "ใบแปรสภาพวัตถุดิบ",
+    href: "/production/material-conversions",
+    matchHrefs: [
+      "/production/material-conversions",
+      "/production/material-conversions/create",
+      // ใบงานตามเส้นทางเป็นงานเดียวกัน อยู่ใต้เมนูเดิม ไม่เพิ่มเมนูใหม่
+      "/production/material-conversions/jobs",
+      "/production/material-conversions/jobs/create",
+      "/production/tire-prep-stages",
+      "/production/rcb-processing",
+    ],
     icon: <IconWarehouse />,
     roles: [ROLE.PRODUCTION_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
   },
@@ -1435,6 +1448,28 @@ const masterMenus: MenuItem[] = [
     href: "/masters/unit-conversions",
     icon: <IconUnit />,
     roles: [ROLE.PROCUREMENT_MANAGER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
+    /*
+      ตั้งสูตรผิดทำให้ทุกใบที่วางแผนด้วยสูตรนั้นผิดตาม จึงจำกัดเฉพาะฝ่ายผลิต
+      และหัวหน้าคลัง · สิทธิ์ **อ่าน** ถูกแจกกว้างกว่า (ดู permissions-seed)
+      เพราะหน้าสร้างใบสั่งผลิตต้องอ่านสูตรไปทำตัวเลือก
+    */
+    key: "production-formulas",
+    screenCode: "PRODUCTION_FORMULAS",
+    label: "สูตรการผลิต",
+    href: "/masters/production-formulas",
+    icon: <IconUnit />,
+    roles: [ROLE.PRODUCTION_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
+    // ตั้งสายงานผิดทำให้ทุกใบที่เปิดตามสายนั้นผิดตาม จึงจำกัดเฉพาะฝ่ายผลิตและหัวหน้าคลัง
+    key: "material-conversion-routes",
+    screenCode: "MATERIAL_CONVERSION_ROUTES",
+    label: "เส้นทางแปรสภาพวัตถุดิบ",
+    href: "/masters/material-conversion-routes",
+    icon: <IconUnit />,
+    roles: [ROLE.PRODUCTION_OFFICER, ROLE.WAREHOUSE_MANAGER],
   },
   {
     key: "warehouses",

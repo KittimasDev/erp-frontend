@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
+  App,
   Button,
   DatePicker,
   Input,
@@ -22,7 +23,26 @@ import {
 import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
-import { useCreateProductionOrderMutation } from "@/hooks/production-orders/useProductionOrderMutations";
+import { useProductionFormulasQuery } from "@/hooks/production-formulas/useProductionFormulaQueries";
+import {
+  describeMerge,
+  mergeFormulaInputRows,
+  mergeFormulaPlanRows,
+} from "@/lib/production/formulaRowMerge";
+import ProductionFormulaPlannerPanel, {
+  type FormulaPlanResult,
+} from "./ProductionFormulaPlannerPanel";
+import {
+  useConsolidatedCreateProductionOrderMutation,
+  useCreateProductionOrderMutation,
+} from "@/hooks/production-orders/useProductionOrderMutations";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import FormulaReferenceCards from "./FormulaReferenceCards";
+import ProductionRequestPickerModal from "./ProductionRequestPickerModal";
+import SelectedProductionRequestsCard, {
+  selectionKeyOf,
+  type SelectionLabel,
+} from "./SelectedProductionRequestsCard";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUnitOptionContext } from "@/hooks/unit-conversions/useUnitOptionContext";
 import {
@@ -35,6 +55,7 @@ import {
 } from "@/hooks/inventory/useInventoryQueries";
 import { useProductionRequestQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import type {
+  BulkCreateProductionOrderSelectionBody,
   CreateProductionOrderInputItemBody,
   CreateProductionOrderPlanLineBody,
 } from "@/types/production-order";
@@ -68,6 +89,18 @@ function Required() {
 }
 
 let rowKeySeq = 1;
+
+/**
+ * ออกเลข key ถัดไปให้แถว — **ต้องใช้ตัวนับเดียวกับ `emptyRow()`**
+ *
+ * ตัว merge จากสูตรอยู่ไฟล์อื่นแต่ห้ามออก key ด้วย `Date.now()`/`Math.random()`
+ * เพราะ key ชนกันแล้ว React จะสลับแถว และ `MaterialRow` แต่ละตัวถือ query
+ * ของ Lot อยู่ การ remount จะทำให้ตัวเลือก Lot ว่างไปหนึ่งจังหวะ
+ */
+export function nextRowKey(): number {
+  return rowKeySeq++;
+}
+
 export function emptyRow(): Row {
   return { key: rowKeySeq++ };
 }
@@ -89,10 +122,16 @@ export function MaterialRow({
   onRemove: () => void;
   removable: boolean;
 }) {
+  /*
+    เปิดหลายหมวด — ตรวจข้อมูลจริง 2026-09-08 พบว่าวัตถุดิบที่ **เคยเบิกเข้าผลิตจริง**
+    มาจาก 4 หมวด (RAW_MATERIAL, CHEMICAL, CONSUMABLE, FINISHED_GOODS) แต่เดิม
+    กรองเหลือ RAW_MATERIAL หมวดเดียวซึ่งมีสินค้าแค่ 2 ตัวทั้งฐานข้อมูล ·
+    สูตรที่มีสารเคมีจะเติมบรรทัดที่เลือกสินค้าไม่ได้เลยถ้าไม่เปิดหมวดนี้
+  */
   const itemsQuery = useItemsQuery({
     isActive: true,
     isStockItem: true,
-    itemCategoryCode: "RAW_MATERIAL",
+    itemCategoryCode: "RAW_MATERIAL,CHEMICAL,CONSUMABLE,PACKAGING",
   });
   // ยอดคงเหลือรวมต่อสินค้า — ใช้ปิดตัวเลือกที่ไม่มีของ (เลือกไปก็ไม่มี Lot ให้เลือกต่อ)
   const stockByItemQuery = useStockBalancesByItemQuery({ hasStock: true });
@@ -389,6 +428,7 @@ export function PlanLineRow({
 
 export default function ProductionOrderCreatePage() {
   const router = useRouter();
+  const { modal } = App.useApp();
   const searchParams = useSearchParams();
   const productionRequestId =
     searchParams.get("productionRequestId") ?? undefined;
@@ -426,6 +466,95 @@ export default function ProductionOrderCreatePage() {
       })),
     );
   }
+
+  // ─── วางแผนจากสูตรการผลิต ───────────────────────────────────────────────
+  const formulasQuery = useProductionFormulasQuery({ isActive: true });
+  const formulas = useMemo(
+    () => formulasQuery.data?.data ?? [],
+    [formulasQuery.data],
+  );
+  const [formulaId, setFormulaId] = useState<string | undefined>();
+  const [driverLineId, setDriverLineId] = useState<string | undefined>();
+  const [targetQty, setTargetQty] = useState<number | null>(null);
+  /** ที่มาของแผนที่ถูกเติมลงฟอร์มแล้ว — ส่งไปเก็บบนใบตอนบันทึก */
+  const [appliedPlan, setAppliedPlan] = useState<{
+    formulaId: string;
+    targetQty: number;
+    driverItemId: string;
+  } | null>(null);
+
+  // ─── ใบขอผลิตที่จะผลิตรอบนี้ ──────────────────────────────────────────────
+  const requestActions = useScreenActionPermissions("PRODUCTION_REQUESTS");
+  const consolidatedMutation = useConsolidatedCreateProductionOrderMutation();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selections, setSelections] = useState<
+    BulkCreateProductionOrderSelectionBody[]
+  >([]);
+  /*
+    ชื่อที่อ่านออกของแต่ละใบ — `selections` เก็บแค่ id ตาม DTO · เก็บ label คู่กันไว้
+    ตอนเลือก จะได้ไม่ต้องยิง planning-summary ซ้ำเพียงเพื่อวาดตารางสรุป
+  */
+  const [selectionLabels, setSelectionLabels] = useState<
+    Record<string, SelectionLabel>
+  >({});
+
+  /**
+   * เติมค่าจากสูตรลงแถว — **จับคู่ด้วยสินค้า ไม่ล้างทั้งชุด**
+   *
+   * ถามยืนยันก่อนเฉพาะเมื่อฟอร์มมีข้อมูลอยู่แล้ว · ฟอร์มว่างเปล่าเติมได้เลย
+   * ไม่ต้องกวนผู้ใช้ · คลัง/ตำแหน่ง/Lot ของแถวที่จับคู่ได้ไม่ถูกล้าง
+   */
+  const applyFormulaPlan = (plan: FormulaPlanResult) => {
+    const inputMerge = mergeFormulaInputRows(rows, plan.inputs, nextRowKey);
+    const outputMerge = mergeFormulaPlanRows(
+      outputRows,
+      plan.outputs,
+      nextRowKey,
+    );
+    const wasteMerge = mergeFormulaPlanRows(wasteRows, plan.wastes, nextRowKey);
+
+    const commit = () => {
+      setRows(inputMerge.rows as Row[]);
+      setOutputRows(outputMerge.rows as PlanRow[]);
+      setWasteRows(wasteMerge.rows as PlanRow[]);
+      setAppliedPlan({
+        formulaId: plan.formulaId,
+        targetQty: plan.targetQty,
+        driverItemId: plan.driverItemId,
+      });
+    };
+
+    const hasExistingData =
+      rows.some((row) => row.itemId) ||
+      outputRows.some((row) => row.itemId) ||
+      wasteRows.some((row) => row.itemId);
+
+    if (!hasExistingData) {
+      commit();
+      return;
+    }
+
+    modal.confirm({
+      title: "เติมค่าจากสูตรลงฟอร์ม",
+      okText: "เติมเลย",
+      cancelText: "ยกเลิก",
+      content: (
+        <div>
+          <p style={{ marginTop: 0 }}>
+            {describeMerge([
+              inputMerge.summary,
+              outputMerge.summary,
+              wasteMerge.summary,
+            ])}
+          </p>
+          <p style={{ color: "#8a9199", fontSize: 12, marginBottom: 0 }}>
+            คลัง ตำแหน่ง และ Lot ของแถวที่มีอยู่แล้วจะไม่ถูกล้าง
+          </p>
+        </div>
+      ),
+      onOk: commit,
+    });
+  };
 
   /**
    * รายการช่องที่ยังกรอกไม่ครบ — บอกเป็นข้อความว่าขาดอะไรตรงไหน
@@ -509,6 +638,52 @@ export default function ProductionOrderCreatePage() {
       })),
     ];
 
+    /*
+      ที่มาของแผน — เก็บไว้ให้ตอบได้ว่าทำไมใบนี้ประมาณการเท่านี้ แม้สูตรจะถูกแก้
+      ภายหลัง (backend เก็บเลขรุ่นของสูตรให้เองจาก id ที่ส่งไป)
+    */
+    const formulaProvenance = {
+      productionFormulaId: appliedPlan?.formulaId,
+      formulaTargetQty: appliedPlan?.targetQty,
+      formulaDriverItemId: appliedPlan?.driverItemId || undefined,
+    };
+
+    const goToOrder = {
+      onSuccess: (response: { data: { id: string } }) => {
+        router.push(`/production/production-orders/${response.data.id}`);
+      },
+    };
+
+    /*
+      สองเส้นทางบันทึกโดยตั้งใจ — ไม่ใช่โค้ดซ้ำ
+
+      เลือกใบขอผลิตจาก popup → `/consolidated` ซึ่งเขียน `production_order_source_lines`
+      ให้ครบทุกใบ และกันเปิดใบซ้ำให้ด้วย
+
+      ไม่ได้เลือก (รวมกรณีเข้ามาจากปุ่ม "เปิดใบสั่งผลิตจากใบขอผลิตนี้" ที่ส่ง
+      `?productionRequestId=` มา) → เส้นเดิมที่ผูกผ่านคอลัมน์หัวเอกสาร · เส้นเดิม
+      **ยอมให้เปิดใบสั่งผลิตใบที่สองจากใบขอผลิตเดิมได้** ซึ่งเส้นรวมไม่ยอม —
+      บังคับทุกอย่างไปเส้นรวมจะเป็นการเปลี่ยนกฎธุรกิจที่ไม่มีใครสั่ง
+    */
+    if (selections.length > 0) {
+      consolidatedMutation.mutate(
+        {
+          productionDate: productionDate.format("YYYY-MM-DD"),
+          batchNo: batchNo.trim() || undefined,
+          cycleTargetHours: cycleTargetHours ?? undefined,
+          plannedLaborHours: plannedLaborHours ?? undefined,
+          remark: remark.trim() || undefined,
+          ...formulaProvenance,
+          // ส่งแผนทั้งชุด (ผลผลิต + ของเสีย) เพื่อให้แผนของรอบชนะผลรวมของใบที่เลือก
+          sharedPlanLines: planLines,
+          inputItems,
+          selections,
+        },
+        goToOrder,
+      );
+      return;
+    }
+
     createMutation.mutate(
       {
         productionDate: productionDate.format("YYYY-MM-DD"),
@@ -517,14 +692,11 @@ export default function ProductionOrderCreatePage() {
         cycleTargetHours: cycleTargetHours ?? undefined,
         plannedLaborHours: plannedLaborHours ?? undefined,
         remark: remark.trim() || undefined,
+        ...formulaProvenance,
         planLines,
         inputItems,
       },
-      {
-        onSuccess: (response) => {
-          router.push(`/production/production-orders/${response.data.id}`);
-        },
-      },
+      goToOrder,
     );
   };
 
@@ -657,6 +829,73 @@ export default function ProductionOrderCreatePage() {
             />
           </div>
         </section>
+
+        {/*
+          บล็อกวางแผน — วางไว้เหนือส่วนวัตถุดิบ เพราะเป็นขั้นที่ทำก่อน
+          ซ้าย = การ์ดสูตรให้เทียบเห็นพร้อมกัน · ขวา = เลือกจำนวน เห็นประมาณการ
+          แล้วเลือกใบขอผลิตที่จะจัดสรรให้ · เฉพาะบล็อกนี้ที่เป็นสองคอลัมน์
+          ส่วนที่เหลือของฟอร์มยังเต็มความกว้างเหมือนเดิม
+        */}
+        <div className={styles.planningGrid}>
+          <FormulaReferenceCards
+            formulas={formulas}
+            loading={formulasQuery.isFetching}
+            selectedId={formulaId}
+            onSelect={(id) => {
+              setFormulaId(id);
+              // ตั้งตัวตั้งให้เหมือนตอนเลือกจาก dropdown — บรรทัดที่ติ๊กไว้ ไม่งั้นผลผลิตแรก
+              const next = formulas.find((formula) => formula.id === id);
+              const driver =
+                next?.lines.find((line) => line.isDefaultDriver) ??
+                next?.lines.find((line) => line.lineRole === "OUTPUT");
+              setDriverLineId(driver?.id);
+            }}
+          />
+
+          <div className={styles.planningMain}>
+            <ProductionFormulaPlannerPanel
+              formulas={formulas}
+              loading={formulasQuery.isFetching}
+              formulaId={formulaId}
+              onFormulaId={setFormulaId}
+              driverLineId={driverLineId}
+              onDriverLineId={setDriverLineId}
+              targetQty={targetQty}
+              onTargetQty={setTargetQty}
+              onApply={applyFormulaPlan}
+              applied={Boolean(
+                appliedPlan && appliedPlan.formulaId === formulaId,
+              )}
+            />
+
+            <section className={styles.formCard}>
+              <SelectedProductionRequestsCard
+                selections={selections}
+                labelByKey={selectionLabels}
+                canPick={requestActions.canView}
+                onOpenPicker={() => setPickerOpen(true)}
+                onRemove={(row) => {
+                  const key = selectionKeyOf(row);
+                  setSelections((prev) =>
+                    prev.filter((item) => selectionKeyOf(item) !== key),
+                  );
+                }}
+              />
+            </section>
+          </div>
+        </div>
+
+        <ProductionRequestPickerModal
+          open={pickerOpen}
+          selected={selections}
+          scopedToOwnRequests={!requestActions.canViewAll}
+          onCancel={() => setPickerOpen(false)}
+          onConfirm={({ selections: picked, labels }) => {
+            setSelections(picked);
+            setSelectionLabels(labels);
+            setPickerOpen(false);
+          }}
+        />
 
         <section className={styles.formCard}>
           <div className={styles.materialsHeader}>

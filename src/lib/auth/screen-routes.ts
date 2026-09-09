@@ -128,6 +128,23 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["TIRE_PREP_STAGES"],
   },
   { prefix: "/production/rcb-processing", screenCodes: ["RCB_PROCESSING"] },
+  {
+    // หน้าใหม่ยอมรับ screen code ของสองหน้าเดิมด้วย เพื่อไม่ให้ใครหลุดสิทธิ์ข้ามคืน
+    prefix: "/production/material-conversions",
+    screenCodes: [
+      "MATERIAL_CONVERSIONS",
+      "TIRE_PREP_STAGES",
+      "RCB_PROCESSING",
+    ],
+  },
+  {
+    prefix: "/masters/production-formulas",
+    screenCodes: ["PRODUCTION_FORMULAS"],
+  },
+  {
+    prefix: "/masters/material-conversion-routes",
+    screenCodes: ["MATERIAL_CONVERSION_ROUTES"],
+  },
 
   // FG ops — create-from-* อนุญาตเข้าด้วย screen ที่เกี่ยวข้องใน flow ขาย
   // (ยาวกว่า / มาก่อน rule ทั่วไปด้านล่าง)
@@ -415,6 +432,9 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   PRODUCTION_OUTPUT_APPROVALS: "/warehouse/production-output-approvals",
   TIRE_PREP_STAGES: "/production/tire-prep-stages",
   RCB_PROCESSING: "/production/rcb-processing",
+  MATERIAL_CONVERSIONS: "/production/material-conversions",
+  MATERIAL_CONVERSION_ROUTES: "/masters/material-conversion-routes",
+  PRODUCTION_FORMULAS: "/masters/production-formulas",
   PICKINGS: "/pickings",
   PACKINGS: "/packings",
   DISPATCH_ORDERS: "/dispatch-orders",

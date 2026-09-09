@@ -1,0 +1,654 @@
+"use client";
+
+import { useMemo } from "react";
+import { App, Button, Form, Input, InputNumber, Select, Tag } from "antd";
+import type { FormInstance, SelectProps } from "antd";
+import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+
+import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
+import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
+import type { MaterialConversionRouteStep } from "@/types/material-conversion";
+import {
+  OUTPUT_TYPE_COLOR,
+  OUTPUT_TYPE_LABEL,
+  OUTPUT_TYPES,
+  outputPostsToStock,
+} from "@/types/material-conversion";
+import styles from "./MaterialConversionPage.module.css";
+
+/**
+ * บรรทัดวัตถุดิบเข้า + ผลผลิตออก — ใช้ร่วมกันระหว่างหน้าสร้างเอกสารเดี่ยว
+ * กับลิ้นชักกรอกขั้นตอนในใบงานตามเส้นทาง
+ *
+ * ยกออกมาจาก `MaterialConversionCreatePage` ทั้งดุ้น **ไม่ได้เขียนใหม่** —
+ * หน้าสร้างเดิมจึงคง URL, DTO และพฤติกรรมทุกอย่างไว้เหมือนเดิม
+ *
+ * **วัตถุดิบยังเลือกด้วย Lot เหมือนเดิม** — ห้ามถอยกลับไปเป็นการเลือก
+ * สินค้า → คลัง → ตำแหน่ง → Lot สี่ชั้น เพราะ Lot ตัวเดียวบอกครบทุกอย่างอยู่แล้ว
+ * และเป็นสิ่งเดียวที่บอกได้ว่าของที่จะตัดมีอยู่จริงเท่าไหร่
+ */
+
+export type InputLineValues = {
+  /** id ของยอดคงเหลือราย Lot — บอกครบทั้งสินค้า คลัง ตำแหน่ง หน่วย */
+  balanceId?: string;
+  plannedQty?: number | null;
+  remark?: string;
+};
+
+export type OutputLineValues = {
+  outputType?: string;
+  itemId?: string;
+  unitId?: string;
+  warehouseId?: string;
+  locationId?: string;
+  plannedQty?: number | null;
+  remark?: string;
+};
+
+export const EMPTY_INPUT: InputLineValues = {};
+export const EMPTY_OUTPUT: OutputLineValues = { outputType: "MAIN" };
+
+/**
+ * master data ที่ทั้งสองหน้าต้องใช้ — React Query รวม request ให้เองตาม key
+ *
+ * @param highlightBatchNo เลข Batch ที่กำลังทำอยู่ · ส่งมาแล้ว Lot ที่มาจาก Batch
+ * เดียวกัน (คือผลผลิตของขั้นก่อนหน้าในสายเดียวกัน) จะถูก **ดันขึ้นไปอยู่บนสุด**
+ * ของรายการพร้อมหัวข้อกำกับ
+ *
+ * **ดันขึ้นบน ไม่ใช่กรองทิ้ง** — ระบบตรวจไม่ได้ว่าขั้นนี้ต้องใช้ของจากขั้นก่อนหน้าเสมอ
+ * (เติมสารเคมีใหม่เข้ามากลางสายก็มี) การกรองจะปิดทางเลือก Lot อื่นทั้งหมด ·
+ * และ **ไม่เลือกให้อัตโนมัติ** ตามที่ตกลงไว้ว่าไม่ต่อขั้นอัตโนมัติ
+ */
+export function useConversionLineData(highlightBatchNo?: string) {
+  const lotsQuery = useInventoryLotsQuery({ hasStock: true });
+  const itemsQuery = useItemsQuery();
+  const unitsQuery = useUnitsQuery();
+  const warehousesQuery = useWarehousesQuery();
+  const locationsQuery = useWarehouseLocationsQuery();
+
+  const lots = useMemo(() => lotsQuery.data?.data ?? [], [lotsQuery.data]);
+  const items = useMemo(() => itemsQuery.data?.data ?? [], [itemsQuery.data]);
+  const units = useMemo(() => unitsQuery.data?.data ?? [], [unitsQuery.data]);
+  const warehouses = useMemo(
+    () => warehousesQuery.data?.data ?? [],
+    [warehousesQuery.data],
+  );
+  const locations = useMemo(
+    () => locationsQuery.data?.data ?? [],
+    [locationsQuery.data],
+  );
+
+  const lotById = useMemo(
+    () => new Map(lots.map((lot) => [lot.id, lot] as const)),
+    [lots],
+  );
+  const itemById = useMemo(
+    () => new Map(items.map((item) => [item.id, item] as const)),
+    [items],
+  );
+  const unitCodeById = useMemo(
+    () => new Map(units.map((unit) => [unit.id, unit.code] as const)),
+    [units],
+  );
+
+  const itemOptions = useMemo(
+    () =>
+      items
+        .filter((item) => item.isActive && item.isStockItem)
+        .map((item) => ({
+          value: item.id,
+          label: `${item.itemCode} — ${item.itemNameTh}`,
+        })),
+    [items],
+  );
+
+  const lotOptions = useMemo<SelectProps["options"]>(() => {
+    const toOption = (lot: (typeof lots)[number]) => ({
+      value: lot.id,
+      label: `${lot.itemCode} — ${lot.itemNameTh} · ${lot.lotNo} · ${lot.warehouseName}/${lot.locationCode} · คงเหลือ ${Number(
+        lot.quantityAvailable,
+      ).toLocaleString("th-TH", { maximumFractionDigits: 3 })} ${lot.unitCode ?? ""}`,
+    });
+
+    const batch = highlightBatchNo?.trim();
+    if (!batch) {
+      return lots.map(toOption);
+    }
+
+    const sameBatch = lots.filter((lot) => lot.batchNo === batch);
+    /*
+      ไม่มี Lot ของ Batch นี้เลย → คืนรายการแบนเหมือนเดิมทุกประการ
+      ไม่ขึ้นหัวข้อกลุ่มให้รกโดยไม่ได้ช่วยอะไร (เป็นกรณีปกติของขั้นแรกสุด)
+    */
+    if (sameBatch.length === 0) {
+      return lots.map(toOption);
+    }
+
+    const others = lots.filter((lot) => lot.batchNo !== batch);
+    return [
+      {
+        label: `Lot จาก Batch ${batch} — ผลผลิตของขั้นก่อนหน้าในสายนี้`,
+        options: sameBatch.map(toOption),
+      },
+      { label: "Lot อื่นทั้งหมด", options: others.map(toOption) },
+    ];
+  }, [lots, highlightBatchNo]);
+
+  return {
+    lots,
+    items,
+    units,
+    warehouses,
+    locations,
+    lotById,
+    itemById,
+    unitCodeById,
+    itemOptions,
+    lotOptions,
+    lotsQuery,
+    itemsQuery,
+    isLoading: lotsQuery.isLoading || itemsQuery.isLoading,
+  };
+}
+
+export type ConversionLineData = ReturnType<typeof useConversionLineData>;
+
+/**
+ * แปลงค่าจากฟอร์มเป็น body ของ API
+ *
+ * คืน `{ error }` แทนการโยน เพราะทั้งสองหน้าต้องขึ้นข้อความเตือนเอง
+ * ในรูปแบบของตัวเอง (หน้าหนึ่งใช้ message อีกหน้าอยู่ในลิ้นชัก)
+ */
+export function buildRunLinesPayload(
+  values: { inputs?: InputLineValues[]; outputs?: OutputLineValues[] },
+  lotById: ConversionLineData["lotById"],
+):
+  | { error: string }
+  | {
+      inputs: Array<{
+        itemId: string;
+        warehouseId: string;
+        locationId: string;
+        lotId: string;
+        unitId: string;
+        plannedQty: number;
+        remark?: string;
+        sortOrder: number;
+      }>;
+      outputs: Array<{
+        outputType: string;
+        itemId: string;
+        unitId: string;
+        warehouseId?: string;
+        locationId?: string;
+        plannedQty: number;
+        remark?: string;
+        sortOrder: number;
+      }>;
+    } {
+  const inputs = (values.inputs ?? [])
+    .map((line, index) => {
+      const lot = line.balanceId ? lotById.get(line.balanceId) : undefined;
+      if (!lot) return null;
+      return {
+        itemId: lot.itemId,
+        warehouseId: lot.warehouseId,
+        locationId: lot.locationId,
+        lotId: lot.lotId,
+        unitId: lot.unitId,
+        plannedQty: Number(line.plannedQty ?? 0),
+        remark: line.remark?.trim() || undefined,
+        sortOrder: index,
+      };
+    })
+    .filter((line): line is NonNullable<typeof line> => line !== null);
+
+  if (inputs.length === 0) {
+    return { error: "เลือก Lot วัตถุดิบอย่างน้อย 1 บรรทัด" };
+  }
+
+  const outputs = (values.outputs ?? []).map((line, index) => {
+    const posts = outputPostsToStock(line.outputType);
+    return {
+      outputType: line.outputType as string,
+      itemId: line.itemId as string,
+      unitId: line.unitId as string,
+      warehouseId: posts ? line.warehouseId : undefined,
+      locationId: posts ? line.locationId : undefined,
+      plannedQty: Number(line.plannedQty ?? 0),
+      remark: line.remark?.trim() || undefined,
+      sortOrder: index,
+    };
+  });
+
+  if (!outputs.some((line) => line.outputType === "MAIN")) {
+    return { error: 'ต้องมีผลผลิตชนิด "ผลผลิตหลัก" อย่างน้อย 1 บรรทัด' };
+  }
+
+  return { inputs, outputs };
+}
+
+type Props = {
+  form: FormInstance;
+  data: ConversionLineData;
+  /** ขั้นตอนที่เลือก — ใช้ปุ่มเติมจำนวนตามสัดส่วนคาดหมาย */
+  selectedStep?: MaterialConversionRouteStep;
+  /** ค่าปัจจุบันของทั้งสอง list ที่หน้าแม่ watch ไว้แล้ว ส่งต่อมาไม่ต้อง watch ซ้ำ */
+  inputValues: InputLineValues[];
+  outputValues: OutputLineValues[];
+};
+
+export default function MaterialConversionRunLinesFields({
+  form,
+  data,
+  selectedStep,
+  inputValues,
+  outputValues,
+}: Props) {
+  const { message } = App.useApp();
+  const {
+    units,
+    warehouses,
+    locations,
+    lotById,
+    itemById,
+    unitCodeById,
+    itemOptions,
+    lotOptions,
+    lotsQuery,
+    itemsQuery,
+  } = data;
+
+  const totalPlannedInput = useMemo(
+    () =>
+      inputValues.reduce((acc, line) => acc + (Number(line?.plannedQty) || 0), 0),
+    [inputValues],
+  );
+
+  const applyTemplateRatios = () => {
+    if (!selectedStep) return;
+    const template = selectedStep.lines.filter(
+      (line) => line.lineRole === "OUTPUT" && line.expectedRatio,
+    );
+    if (template.length === 0 || totalPlannedInput <= 0) {
+      message.info(
+        "ขั้นตอนนี้ยังไม่ได้ตั้งสัดส่วนคาดหมาย หรือยังไม่ได้กรอกวัตถุดิบ",
+      );
+      return;
+    }
+    const current = (form.getFieldValue("outputs") ?? []) as OutputLineValues[];
+    form.setFieldsValue({
+      outputs: current.map((line) => {
+        const match = template.find(
+          (row) => row.itemId && row.itemId === line.itemId,
+        );
+        if (!match?.expectedRatio) return line;
+        return {
+          ...line,
+          plannedQty: Number(
+            (totalPlannedInput * Number(match.expectedRatio)).toFixed(3),
+          ),
+        };
+      }),
+    });
+    message.success("เติมจำนวนตามสัดส่วนคาดหมายแล้ว — แก้ได้ทุกบรรทัด");
+  };
+
+  const hasRatioTemplate = selectedStep?.lines.some(
+    (line) => line.lineRole === "OUTPUT" && line.expectedRatio,
+  );
+
+  return (
+    <>
+      {/* ─── วัตถุดิบเข้า ──────────────────────────────────────────────── */}
+      <div className={styles.formSection}>
+        <div className={styles.formSectionHead}>
+          <h4>วัตถุดิบเข้า</h4>
+          <span className={styles.formSectionHint}>
+            เลือก Lot แล้วระบบเติมคลัง ตำแหน่ง และหน่วยให้เอง
+          </span>
+        </div>
+        <Form.List
+          name="inputs"
+          rules={[
+            {
+              validator: async (_, value) => {
+                if (!value || value.length < 1) {
+                  return Promise.reject(
+                    new Error("เพิ่มวัตถุดิบอย่างน้อย 1 รายการ"),
+                  );
+                }
+              },
+            },
+          ]}
+        >
+          {(fields, { add, remove }, { errors }) => (
+            <div className={styles.lineList}>
+              {fields.map((field, index) => {
+                const line = inputValues[index];
+                const lot = line?.balanceId
+                  ? lotById.get(line.balanceId)
+                  : undefined;
+                const available = lot
+                  ? Number(lot.quantityAvailable)
+                  : undefined;
+                const overStock =
+                  available !== undefined &&
+                  Number(line?.plannedQty ?? 0) > available;
+
+                return (
+                  <div key={field.key} className={styles.lineCard}>
+                    <div className={styles.lineCardHeader}>
+                      <span className={styles.lineCardTitle}>
+                        วัตถุดิบที่ {index + 1}
+                      </span>
+                      {fields.length > 1 ? (
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => remove(field.name)}
+                        >
+                          ลบ
+                        </Button>
+                      ) : null}
+                    </div>
+                    <div className={styles.lineGrid}>
+                      <Form.Item
+                        className={styles.lineGridWide}
+                        name={[field.name, "balanceId"]}
+                        label="Lot วัตถุดิบ"
+                        rules={[{ required: true, message: "เลือก Lot" }]}
+                      >
+                        <Select
+                          showSearch
+                          optionFilterProp="label"
+                          placeholder="เลือก Lot ที่มีของ"
+                          loading={lotsQuery.isFetching}
+                          notFoundContent={
+                            lotsQuery.isFetching
+                              ? "กำลังโหลด..."
+                              : "ไม่พบ Lot ที่มีของคงเหลือ"
+                          }
+                          options={lotOptions}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        name={[field.name, "plannedQty"]}
+                        label={`จำนวน${lot?.unitCode ? ` (${lot.unitCode})` : ""}`}
+                        rules={[
+                          { required: true, message: "กรอกจำนวน" },
+                          {
+                            validator: async (_, value) => {
+                              if (
+                                value !== undefined &&
+                                value !== null &&
+                                value <= 0
+                              ) {
+                                return Promise.reject(
+                                  new Error("จำนวนต้องมากกว่า 0"),
+                                );
+                              }
+                            },
+                          },
+                        ]}
+                        validateStatus={overStock ? "error" : undefined}
+                        help={
+                          overStock
+                            ? `Lot นี้คงเหลือ ${available?.toLocaleString("th-TH", { maximumFractionDigits: 3 })}`
+                            : undefined
+                        }
+                        extra={
+                          available !== undefined && !overStock
+                            ? `คงเหลือ ${available.toLocaleString("th-TH", { maximumFractionDigits: 3 })}`
+                            : undefined
+                        }
+                      >
+                        <InputNumber
+                          style={{ width: "100%" }}
+                          min={0}
+                          precision={3}
+                          placeholder="0.000"
+                        />
+                      </Form.Item>
+                      <Form.Item name={[field.name, "remark"]} label="หมายเหตุ">
+                        <Input placeholder="เช่น ยางเปียก" maxLength={500} />
+                      </Form.Item>
+                    </div>
+                  </div>
+                );
+              })}
+              <Button
+                type="dashed"
+                className={styles.addLineButton}
+                icon={<PlusOutlined />}
+                onClick={() => add({ ...EMPTY_INPUT })}
+              >
+                เพิ่มวัตถุดิบ
+              </Button>
+              <Form.ErrorList errors={errors} />
+            </div>
+          )}
+        </Form.List>
+      </div>
+
+      {/* ─── ผลผลิตออก ────────────────────────────────────────────────── */}
+      <div className={styles.formSection}>
+        <div className={styles.formSectionHead}>
+          <h4>ผลผลิตออก</h4>
+          <span className={styles.formSectionHint}>
+            ของเสียบันทึกได้เพื่อคิดสมดุลมวล แต่ไม่เข้าสต๊อกและไม่ต้องระบุคลัง
+          </span>
+        </div>
+        {hasRatioTemplate ? (
+          <Button
+            size="small"
+            style={{ marginBottom: 10 }}
+            onClick={applyTemplateRatios}
+          >
+            เติมจำนวนตามสัดส่วนคาดหมายของขั้นตอนนี้
+          </Button>
+        ) : null}
+        <Form.List
+          name="outputs"
+          rules={[
+            {
+              validator: async (_, value) => {
+                if (!value || value.length < 1) {
+                  return Promise.reject(
+                    new Error("เพิ่มผลผลิตอย่างน้อย 1 รายการ"),
+                  );
+                }
+              },
+            },
+          ]}
+        >
+          {(fields, { add, remove }, { errors }) => (
+            <div className={styles.lineList}>
+              {fields.map((field, index) => {
+                const line = outputValues[index];
+                const posts = outputPostsToStock(line?.outputType);
+                // อ่านคลังจากค่าในฟอร์มโดยตรง ไม่เก็บ state ซ้ำ
+                const warehouseId = line?.warehouseId;
+                const lineLocations = warehouseId
+                  ? locations.filter((loc) => loc.warehouseId === warehouseId)
+                  : [];
+                const unitCode = line?.unitId
+                  ? unitCodeById.get(line.unitId)
+                  : undefined;
+
+                return (
+                  <div
+                    key={field.key}
+                    className={
+                      posts
+                        ? styles.lineCard
+                        : `${styles.lineCard} ${styles.lineCardWaste}`
+                    }
+                  >
+                    <div className={styles.lineCardHeader}>
+                      <span className={styles.lineCardTitle}>
+                        ผลผลิตที่ {index + 1}
+                        <Tag
+                          color={OUTPUT_TYPE_COLOR[line?.outputType ?? "MAIN"]}
+                        >
+                          {OUTPUT_TYPE_LABEL[line?.outputType ?? "MAIN"]}
+                        </Tag>
+                      </span>
+                      {fields.length > 1 ? (
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                          onClick={() => remove(field.name)}
+                        >
+                          ลบ
+                        </Button>
+                      ) : null}
+                    </div>
+                    <div className={styles.lineGrid}>
+                      <Form.Item
+                        name={[field.name, "outputType"]}
+                        label="ชนิดผลผลิต"
+                        rules={[{ required: true, message: "เลือกชนิด" }]}
+                      >
+                        <Select
+                          options={OUTPUT_TYPES.map((value) => ({
+                            value,
+                            label: OUTPUT_TYPE_LABEL[value],
+                          }))}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        className={styles.lineGridWide}
+                        name={[field.name, "itemId"]}
+                        label="สินค้า"
+                        rules={[{ required: true, message: "เลือกสินค้า" }]}
+                      >
+                        <Select
+                          showSearch
+                          optionFilterProp="label"
+                          placeholder="เลือกสินค้า"
+                          loading={itemsQuery.isFetching}
+                          options={itemOptions}
+                          onChange={(value: string) => {
+                            // หน่วยต้องเป็นหน่วยหลักของสินค้าเท่านั้น (backend บังคับ)
+                            const item = itemById.get(value);
+                            if (item) {
+                              const outputs = (form.getFieldValue("outputs") ??
+                                []) as OutputLineValues[];
+                              outputs[index] = {
+                                ...outputs[index],
+                                unitId: item.unitId,
+                              };
+                              form.setFieldsValue({ outputs });
+                            }
+                          }}
+                        />
+                      </Form.Item>
+                      <Form.Item
+                        name={[field.name, "unitId"]}
+                        label="หน่วยนับ"
+                        rules={[{ required: true, message: "เลือกหน่วย" }]}
+                        extra="ต้องเป็นหน่วยหลักของสินค้า"
+                      >
+                        <Select
+                          showSearch
+                          optionFilterProp="label"
+                          placeholder="หน่วยนับ"
+                          options={units.map((unit) => ({
+                            value: unit.id,
+                            label: unit.code,
+                          }))}
+                        />
+                      </Form.Item>
+                      {posts ? (
+                        <>
+                          <Form.Item
+                            name={[field.name, "warehouseId"]}
+                            label="คลังที่รับเข้า"
+                            rules={[{ required: true, message: "เลือกคลัง" }]}
+                          >
+                            <Select
+                              showSearch
+                              optionFilterProp="label"
+                              placeholder="เลือกคลัง"
+                              options={warehouses.map((wh) => ({
+                                value: wh.id,
+                                label: wh.warehouseName,
+                              }))}
+                              onChange={() => {
+                                // เปลี่ยนคลังแล้วตำแหน่งเดิมใช้ไม่ได้ ต้องล้าง
+                                const outputs = (form.getFieldValue("outputs") ??
+                                  []) as OutputLineValues[];
+                                outputs[index] = {
+                                  ...outputs[index],
+                                  locationId: undefined,
+                                };
+                                form.setFieldsValue({ outputs });
+                              }}
+                            />
+                          </Form.Item>
+                          <Form.Item
+                            name={[field.name, "locationId"]}
+                            label="ตำแหน่ง"
+                            rules={[{ required: true, message: "เลือกตำแหน่ง" }]}
+                          >
+                            <Select
+                              showSearch
+                              optionFilterProp="label"
+                              placeholder={
+                                warehouseId ? "เลือกตำแหน่ง" : "เลือกคลังก่อน"
+                              }
+                              disabled={!warehouseId}
+                              options={lineLocations.map((loc) => ({
+                                value: loc.id,
+                                label: `${loc.locationCode} — ${loc.locationName}`,
+                              }))}
+                            />
+                          </Form.Item>
+                        </>
+                      ) : null}
+                      <Form.Item
+                        name={[field.name, "plannedQty"]}
+                        label={`จำนวนตามแผน${unitCode ? ` (${unitCode})` : ""}`}
+                        rules={[{ required: true, message: "กรอกจำนวน" }]}
+                      >
+                        <InputNumber
+                          style={{ width: "100%" }}
+                          min={0}
+                          precision={3}
+                          placeholder="0.000"
+                        />
+                      </Form.Item>
+                      <Form.Item name={[field.name, "remark"]} label="หมายเหตุ">
+                        <Input
+                          placeholder="เช่น ลวดเหล็กที่แยกได้"
+                          maxLength={500}
+                        />
+                      </Form.Item>
+                    </div>
+                  </div>
+                );
+              })}
+              <Button
+                type="dashed"
+                className={styles.addLineButton}
+                icon={<PlusOutlined />}
+                onClick={() => add({ ...EMPTY_OUTPUT })}
+              >
+                เพิ่มผลผลิต
+              </Button>
+              <Form.ErrorList errors={errors} />
+            </div>
+          )}
+        </Form.List>
+      </div>
+    </>
+  );
+}

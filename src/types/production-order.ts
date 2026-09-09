@@ -115,6 +115,14 @@ export type ProductionOrder = {
   orderNo: string;
   productionRequestId?: string;
   productionRequestNo?: string;
+  /** สูตรที่ใช้วางแผนใบนี้ — ว่างคือกรอกมือ */
+  productionFormulaId?: string;
+  productionFormulaCode?: string;
+  productionFormulaNameTh?: string;
+  /** เลขรุ่นของสูตรตอนที่ใช้ — ตอบได้ว่าคิดมาจากสูตรรุ่นไหน */
+  productionFormulaVersionNo?: number;
+  formulaTargetQty?: string;
+  formulaDriverItemId?: string;
   salesOrderNo?: string;
   batchNo?: string;
   cycleTargetHours: string;
@@ -287,6 +295,10 @@ export type CreateProductionOrderBody = {
   plannedLaborHours?: number;
   planLines: CreateProductionOrderPlanLineBody[];
   inputItems: CreateProductionOrderInputItemBody[];
+  /** สูตรที่ใช้วางแผน — backend เก็บเลขรุ่นของสูตรให้เองจาก id นี้ */
+  productionFormulaId?: string;
+  formulaTargetQty?: number;
+  formulaDriverItemId?: string;
 };
 
 export type BulkCreateProductionOrderSelectionBody = {
@@ -305,9 +317,16 @@ export type BulkCreateProductionOrdersBody = {
   remark?: string;
   cycleTargetHours?: number;
   plannedLaborHours?: number;
+  /*
+    ส่ง OUTPUT มาที่นี่ = บอกแผนของทั้งรอบเอง (เช่นคิดจากสูตร) ซึ่งจะชนะผลรวมของ
+    `selections` · ส่งแต่ของเสีย = ระบบรวมผลผลิตจาก selections ให้เหมือนเดิม
+  */
   sharedPlanLines: CreateProductionOrderPlanLineBody[];
   inputItems: CreateProductionOrderInputItemBody[];
   selections: BulkCreateProductionOrderSelectionBody[];
+  productionFormulaId?: string;
+  formulaTargetQty?: number;
+  formulaDriverItemId?: string;
 };
 
 export type CompleteProductionOrderWasteLineBody = {
