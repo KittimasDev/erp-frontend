@@ -1,4 +1,67 @@
 /*
+  ปุ่มสร้างที่หัวหน้า — ปุ่มหลักคือใบงานตามเส้นทาง
+  ทางเอกสารเดี่ยวยังเปิดได้จากลูกศร โดยไม่เอา class createButton ไปแปะบน Compact
+  (จะยืดเต็มหัวการ์ดและไอคอน + ไปอยู่ปุ่มเมนู)
+*/
+.splitCreate {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: stretch;
+  height: 46px;
+  overflow: hidden;
+  border-radius: 13px;
+  box-shadow: 0 12px 24px rgba(115, 152, 22, 0.26);
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.splitCreate:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow: 0 15px 28px rgba(115, 152, 22, 0.32);
+}
+
+.splitCreateMain,
+.splitCreateMore {
+  height: 46px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: #ffffff !important;
+  background: linear-gradient(
+    135deg,
+    var(--unit-green, #739816) 0%,
+    var(--unit-green-dark, #627f13) 100%
+  ) !important;
+  box-shadow: none !important;
+  font-weight: 500;
+}
+
+.splitCreateMain {
+  padding-inline: 18px !important;
+}
+
+.splitCreateMore {
+  width: 44px;
+  min-width: 44px;
+  padding-inline: 0 !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.28) !important;
+}
+
+@media (max-width: 900px) {
+  .splitCreate {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .splitCreateMain {
+    flex: 1;
+  }
+}
+
+/*
   แถบสรุป — เดิมเป็นการ์ด 4 ใบเท่ากันที่เขียน "(ในหน้านี้)" ซ้ำสามรอบ
   ตอนนี้บอกขอบเขตครั้งเดียวที่หัวแถบ แล้วให้ตัวเลขอยู่รวมกันเป็นชุด
 */

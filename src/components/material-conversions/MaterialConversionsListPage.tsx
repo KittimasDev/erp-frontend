@@ -11,13 +11,12 @@ import {
   Progress,
   Segmented,
   Select,
-  Space,
   Switch,
   Table,
   Tag,
   Tooltip,
 } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { DownOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -433,13 +432,11 @@ export default function MaterialConversionsListPage() {
             </span>
           </div>
           {actions.canAdd ? (
-            /*
-              ปุ่มหลักคือใบงานตามเส้นทาง (ทางที่อยากให้ใช้) แต่เอกสารเดี่ยว
-              ยังเปิดได้จากเมนูย่อย — ผลักไปทางใหม่โดยไม่ปิดทางเก่า
-            */
-            <Space.Compact className={masterStyles.createButton} block>
+            <div className={styles.splitCreate}>
               <Button
                 type="primary"
+                className={styles.splitCreateMain}
+                icon={<PlusOutlined className={masterStyles.plusIcon} />}
                 onClick={() => router.push(`${ROUTE_BASE}/jobs/create`)}
               >
                 เปิดใบงานตามเส้นทาง
@@ -458,10 +455,12 @@ export default function MaterialConversionsListPage() {
               >
                 <Button
                   type="primary"
-                  icon={<PlusOutlined className={masterStyles.plusIcon} />}
+                  className={styles.splitCreateMore}
+                  aria-label="เมนูสร้างเอกสารอื่น"
+                  icon={<DownOutlined />}
                 />
               </Dropdown>
-            </Space.Compact>
+            </div>
           ) : null}
         </div>
 

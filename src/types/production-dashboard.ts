@@ -106,7 +106,7 @@ export type ProductionBatchProgress = {
 export type ProductionStageProgress = {
   from: string;
   to: string;
-  /** ครบ 14 ขั้นเสมอ รวมขั้นที่ยังไม่มีงาน — ช่องว่างคือสัญญาณ */
+  /** ขั้นตอนที่เปิดใช้งาน รวมขั้นที่ยังไม่มีงาน — ช่องว่างคือสัญญาณ */
   stages: ProductionStageProgressRow[];
   batches: ProductionBatchProgress[];
 };
