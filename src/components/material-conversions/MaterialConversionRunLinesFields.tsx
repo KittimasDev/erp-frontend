@@ -8,6 +8,7 @@ import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
+import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { MaterialConversionRouteStep } from "@/types/material-conversion";
@@ -165,6 +166,7 @@ export type ConversionLineData = ReturnType<typeof useConversionLineData>;
 export function buildRunLinesPayload(
   values: { inputs?: InputLineValues[]; outputs?: OutputLineValues[] },
   lotById: ConversionLineData["lotById"],
+  itemById: ConversionLineData["itemById"],
 ):
   | { error: string }
   | {
@@ -193,12 +195,14 @@ export function buildRunLinesPayload(
     .map((line, index) => {
       const lot = line.balanceId ? lotById.get(line.balanceId) : undefined;
       if (!lot) return null;
+      const item = itemById.get(lot.itemId);
       return {
         itemId: lot.itemId,
         warehouseId: lot.warehouseId,
         locationId: lot.locationId,
         lotId: lot.lotId,
-        unitId: lot.unitId,
+        // หน่วยหลักของสินค้า — Lot อาจบันทึกคนละหน่วย (เช่น KG ทั้งที่สินค้าเป็น G)
+        unitId: item?.unitId ?? lot.unitId,
         plannedQty: Number(line.plannedQty ?? 0),
         remark: line.remark?.trim() || undefined,
         sortOrder: index,
@@ -212,10 +216,11 @@ export function buildRunLinesPayload(
 
   const outputs = (values.outputs ?? []).map((line, index) => {
     const posts = outputPostsToStock(line.outputType);
+    const item = line.itemId ? itemById.get(line.itemId) : undefined;
     return {
       outputType: line.outputType as string,
       itemId: line.itemId as string,
-      unitId: line.unitId as string,
+      unitId: item?.unitId ?? (line.unitId as string),
       warehouseId: posts ? line.warehouseId : undefined,
       locationId: posts ? line.locationId : undefined,
       plannedQty: Number(line.plannedQty ?? 0),
@@ -250,7 +255,6 @@ export default function MaterialConversionRunLinesFields({
 }: Props) {
   const { message } = App.useApp();
   const {
-    units,
     warehouses,
     locations,
     lotById,
@@ -260,7 +264,9 @@ export default function MaterialConversionRunLinesFields({
     lotOptions,
     lotsQuery,
     itemsQuery,
+    items,
   } = data;
+  const { resolveUnitField } = useUnitFieldResolver(items);
 
   const totalPlannedInput = useMemo(
     () =>
@@ -308,7 +314,7 @@ export default function MaterialConversionRunLinesFields({
         <div className={styles.formSectionHead}>
           <h4>วัตถุดิบเข้า</h4>
           <span className={styles.formSectionHint}>
-            เลือก Lot แล้วระบบเติมคลัง ตำแหน่ง และหน่วยให้เอง
+            เลือก Lot แล้วระบบเติมคลัง ตำแหน่งให้เอง · หน่วยนับใช้หน่วยหลักของสินค้า
           </span>
         </div>
         <Form.List
@@ -332,6 +338,12 @@ export default function MaterialConversionRunLinesFields({
                 const lot = line?.balanceId
                   ? lotById.get(line.balanceId)
                   : undefined;
+                const item = lot ? itemById.get(lot.itemId) : undefined;
+                const itemUnitCode = item?.unitId
+                  ? unitCodeById.get(item.unitId)
+                  : undefined;
+                const lotUnitMismatch =
+                  Boolean(lot && item && lot.unitId !== item.unitId);
                 const available = lot
                   ? Number(lot.quantityAvailable)
                   : undefined;
@@ -379,7 +391,7 @@ export default function MaterialConversionRunLinesFields({
                       </Form.Item>
                       <Form.Item
                         name={[field.name, "plannedQty"]}
-                        label={`จำนวน${lot?.unitCode ? ` (${lot.unitCode})` : ""}`}
+                        label={`จำนวน${itemUnitCode ? ` (${itemUnitCode})` : lot?.unitCode ? ` (${lot.unitCode})` : ""}`}
                         rules={[
                           { required: true, message: "กรอกจำนวน" },
                           {
@@ -400,10 +412,12 @@ export default function MaterialConversionRunLinesFields({
                         help={
                           overStock
                             ? `Lot นี้คงเหลือ ${available?.toLocaleString("th-TH", { maximumFractionDigits: 3 })}`
-                            : undefined
+                            : lotUnitMismatch
+                              ? `สินค้านี้หน่วยหลักคือ ${itemUnitCode ?? "หน่วยหลัก"} — Lot บันทึกเป็น ${lot?.unitCode ?? "หน่วยอื่น"}`
+                              : undefined
                         }
                         extra={
-                          available !== undefined && !overStock
+                          available !== undefined && !overStock && !lotUnitMismatch
                             ? `คงเหลือ ${available.toLocaleString("th-TH", { maximumFractionDigits: 3 })}`
                             : undefined
                         }
@@ -559,12 +573,8 @@ export default function MaterialConversionRunLinesFields({
                       >
                         <Select
                           showSearch
-                          optionFilterProp="label"
-                          placeholder="หน่วยนับ"
-                          options={units.map((unit) => ({
-                            value: unit.id,
-                            label: unit.code,
-                          }))}
+                          optionFilterProp="title"
+                          {...resolveUnitField(line?.itemId, line?.unitId)}
                         />
                       </Form.Item>
                       {posts ? (

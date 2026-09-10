@@ -110,14 +110,18 @@ export default function MaterialConversionCreatePage() {
       outputs: template.map((line) => ({
         outputType: line.outputType ?? "MAIN",
         itemId: line.itemId ?? undefined,
-        unitId: line.unitId ?? undefined,
+        unitId: line.itemId
+          ? (lineData.itemById.get(line.itemId)?.unitId ??
+            line.unitId ??
+            undefined)
+          : (line.unitId ?? undefined),
         plannedQty: null,
       })),
     });
-  }, [selectedStep, form]);
+  }, [selectedStep, form, lineData.itemById]);
 
   const submit = (values: FormValues) => {
-    const payload = buildRunLinesPayload(values, lineData.lotById);
+    const payload = buildRunLinesPayload(values, lineData.lotById, lineData.itemById);
     if ("error" in payload) {
       message.warning(payload.error);
       return;

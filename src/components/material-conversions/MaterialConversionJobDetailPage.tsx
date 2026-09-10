@@ -78,6 +78,36 @@ function fmtDate(value?: string | null) {
   return day.isValid() ? day.format("DD/MM/YYYY") : value;
 }
 
+function fmtQty(value?: string | null) {
+  if (value === undefined || value === null || value === "") return "-";
+  const num = Number(value);
+  return Number.isNaN(num)
+    ? value
+    : num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+}
+
+function lineItemLabel(row: {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+}) {
+  if (row.itemCode) {
+    return `${row.itemCode} — ${row.itemNameTh ?? ""}`.trim();
+  }
+  return row.itemId;
+}
+
+function displayLineQty(
+  status: string,
+  plannedQty: string,
+  actualQty?: string | null,
+) {
+  if (status !== "DRAFT" && actualQty != null && actualQty !== "") {
+    return actualQty;
+  }
+  return plannedQty;
+}
+
 /**
  * หน้าใบงานแปรสภาพตามเส้นทาง — **พระเอกของฟีเจอร์นี้**
  *
@@ -639,6 +669,53 @@ function StepCard({
           </Tooltip>
         ) : null}
       </div>
+
+      {step.runId ? <StepRunLines runId={step.runId} /> : null}
+    </div>
+  );
+}
+
+function StepRunLines({ runId }: { runId: string }) {
+  const query = useMaterialConversionQuery(runId);
+  const run = query.data?.data;
+  if (!run) {
+    return null;
+  }
+
+  return (
+    <div className={styles.stepLines}>
+      <div className={styles.stepLineGroup}>
+        <span className={styles.stepLineLabel}>วัตถุดิบ</span>
+        {run.inputs.length === 0 ? (
+          <span className={styles.cellMuted}>ไม่มีบรรทัดวัตถุดิบ</span>
+        ) : (
+          run.inputs.map((line) => (
+            <span key={line.id} className={styles.stepLineItem}>
+              {lineItemLabel(line)}{" "}
+              {fmtQty(
+                displayLineQty(run.status, line.plannedQty, line.actualQty),
+              )}{" "}
+              {line.unitCode ?? ""}
+            </span>
+          ))
+        )}
+      </div>
+      <div className={styles.stepLineGroup}>
+        <span className={styles.stepLineLabel}>ผลผลิต</span>
+        {run.outputs.length === 0 ? (
+          <span className={styles.cellMuted}>ไม่มีบรรทัดผลผลิต</span>
+        ) : (
+          run.outputs.map((line) => (
+            <span key={line.id} className={styles.stepLineItem}>
+              {lineItemLabel(line)}{" "}
+              {fmtQty(
+                displayLineQty(run.status, line.plannedQty, line.actualQty),
+              )}{" "}
+              {line.unitCode ?? ""}
+            </span>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -687,13 +764,21 @@ function FillStepDrawerBody({
     return template.map((line) => ({
       outputType: line.outputType ?? "MAIN",
       itemId: line.itemId ?? undefined,
-      unitId: line.unitId ?? undefined,
+      unitId: line.itemId
+        ? (lineData.itemById.get(line.itemId)?.unitId ??
+          line.unitId ??
+          undefined)
+        : (line.unitId ?? undefined),
       plannedQty: null,
     }));
-  }, [routeStep]);
+  }, [routeStep, lineData.itemById]);
 
   const submit = (values: FillFormValues) => {
-    const payload = buildRunLinesPayload(values, lineData.lotById);
+    const payload = buildRunLinesPayload(
+      values,
+      lineData.lotById,
+      lineData.itemById,
+    );
     if ("error" in payload) {
       message.warning(payload.error);
       return;

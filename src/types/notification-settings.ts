@@ -3,6 +3,7 @@ export type NotificationEventSummary = {
   nameTh: string;
   descriptionTh: string;
   href: string;
+  menuGroup: string;
 };
 
 export type NotificationEventRoleRow = {

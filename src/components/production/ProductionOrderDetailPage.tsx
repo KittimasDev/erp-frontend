@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Alert,
   App,
   Button,
   Checkbox,
@@ -58,6 +59,7 @@ import {
 import {
   hasRequestableProductionOutput,
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
+  ProductionOutputRequestStatus,
 } from "@/types/production-output-stock-request";
 import type { CreateProductionOutputStockRequestFromOrderBody } from "@/types/production-output-stock-request";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
@@ -83,6 +85,31 @@ function fmt(value?: string) {
 
 function fmtDate(value?: string) {
   return value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "-";
+}
+
+function outputItemLabel(row: {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+}) {
+  if (row.itemCode) {
+    return `${row.itemCode} — ${row.itemNameTh ?? ""}`.trim();
+  }
+  return row.itemId;
+}
+
+function sumRequestQtyByItem(
+  requests: { itemId: string; status: string; quantity: string }[],
+  status: string,
+) {
+  const map = new Map<string, number>();
+  for (const row of requests) {
+    if (row.status !== status) {
+      continue;
+    }
+    map.set(row.itemId, (map.get(row.itemId) ?? 0) + Number(row.quantity));
+  }
+  return map;
 }
 
 export default function ProductionOrderDetailPage({ orderId }: Props) {
@@ -218,6 +245,23 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   );
 
   const sourceLines = order?.sourceLines ?? [];
+  const relatedOutputRequests = relatedRequestsQuery.data?.data;
+  const approvedQtyByItemId = useMemo(
+    () =>
+      sumRequestQtyByItem(
+        relatedOutputRequests ?? [],
+        ProductionOutputRequestStatus.APPROVED,
+      ),
+    [relatedOutputRequests],
+  );
+  const pendingQtyByItemId = useMemo(
+    () =>
+      sumRequestQtyByItem(
+        relatedOutputRequests ?? [],
+        ProductionOutputRequestStatus.PENDING_APPROVAL,
+      ),
+    [relatedOutputRequests],
+  );
   const linkedRequestNos = useMemo(() => {
     const nos = (order?.sourceLines ?? [])
       .map((line) => line.productionRequestNo)
@@ -240,9 +284,51 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
   const allocationSummary = order?.allocationSummary;
   const hasSourceLines = sourceLines.length > 0;
-  const unallocatedQty = Number(allocationSummary?.unallocatedQty ?? 0);
 
-  const handleToggleSourceLine = (lineId: string, remainingQty: number, checked: boolean) => {
+  const itemUnallocatedOf = (itemId: string, fulfilledQty: string) =>
+    Math.max((approvedQtyByItemId.get(itemId) ?? 0) - Number(fulfilledQty), 0);
+
+  const missingWarehouseLines = sourceLines.filter((line) => {
+    if (line.isFulfilled) {
+      return false;
+    }
+    const approved = approvedQtyByItemId.get(line.itemId) ?? 0;
+    const pending = pendingQtyByItemId.get(line.itemId) ?? 0;
+    return approved <= 0 && pending <= 0;
+  });
+  const pendingWarehouseLines = sourceLines.filter((line) => {
+    if (line.isFulfilled) {
+      return false;
+    }
+    const approved = approvedQtyByItemId.get(line.itemId) ?? 0;
+    const pending = pendingQtyByItemId.get(line.itemId) ?? 0;
+    return approved <= 0 && pending > 0;
+  });
+  const sourceItemIds = new Set(sourceLines.map((line) => line.itemId));
+  const otherReceivedItems = [...approvedQtyByItemId.entries()]
+    .filter(([itemId, qty]) => qty > 0 && !sourceItemIds.has(itemId))
+    .map(([itemId, qty]) => {
+      const request = (relatedOutputRequests ?? []).find(
+        (row) =>
+          row.itemId === itemId &&
+          row.status === ProductionOutputRequestStatus.APPROVED,
+      );
+      return {
+        qty,
+        label: request ? outputItemLabel(request) : itemId,
+      };
+    });
+  const showReceiveCta =
+    missingWarehouseLines.length > 0 &&
+    isCompleted &&
+    canRequestOutput &&
+    canStillRequestOutput;
+
+  const handleToggleSourceLine = (
+    lineId: string,
+    remainingQty: number,
+    checked: boolean,
+  ) => {
     setSelectedSourceLineIds((prev) =>
       checked ? [...prev, lineId] : prev.filter((id) => id !== lineId),
     );
@@ -256,10 +342,19 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
   const handleAllocateOutput = () => {
     const lines = selectedSourceLineIds
-      .map((sourceLineId) => ({
-        sourceLineId,
-        qtyToAllocate: allocationQtyByLineId[sourceLineId],
-      }))
+      .map((sourceLineId) => {
+        const row = sourceLines.find((line) => line.id === sourceLineId);
+        const requested = Number(allocationQtyByLineId[sourceLineId] ?? 0);
+        const remaining = Number(row?.remainingQty ?? 0);
+        const itemUnallocated = row
+          ? itemUnallocatedOf(row.itemId, row.fulfilledQty)
+          : 0;
+        const capped = Math.min(requested, remaining, itemUnallocated);
+        return {
+          sourceLineId,
+          qtyToAllocate: Math.round(capped * 1000) / 1000,
+        };
+      })
       .filter((line) => line.qtyToAllocate > 0);
     if (!lines.length) {
       return;
@@ -868,10 +963,9 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   <div>
                     <h3>จัดสรรผลผลิตด้วยตนเอง (กรณีระบบจัดให้ไม่ได้)</h3>
                     <p className={styles.sectionHint}>
-                      ปกติระบบจัดสรรและจองกลับให้ใบสั่งขายต้นทางอัตโนมัติตั้งแต่ตอน
-                      อนุมัติรับผลผลิตเข้าคลังแล้ว — ใช้ตรงนี้เฉพาะกรณีที่จัดให้ไม่ได้
-                      เช่น หน่วยนับไม่ตรงกับที่ขอผลิต หรือใบสั่งขายยืนยันไปแล้ว
-                      (ไม่เปลี่ยนสถานะ SO อัตโนมัติทั้งใบ)
+                      จัดสรรได้หลังรับผลผลิตเข้าคลังและหัวหน้าคลังอนุมัติแล้ว
+                      และเฉพาะสินค้าเดียวกันกับใบขอผลิต — ส่วนเกินหรือสินค้าที่ไม่มี PR
+                      อยู่ในคลังกลาง
                     </p>
                   </div>
                   <Button
@@ -884,10 +978,65 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   </Button>
                 </div>
 
+                {relatedRequestsQuery.isFetched &&
+                missingWarehouseLines.length > 0 ? (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    title="สินค้าที่ใบขอผลิตรอรับยังไม่ได้รับเข้าคลัง"
+                    description={
+                      <>
+                        ต้องกดขอรับผลผลิตแล้วให้หัวหน้าคลังอนุมัติก่อน ของถึงจะเข้าคลังและจัดสรรได้
+                        {otherReceivedItems.length > 0 ? (
+                          <>
+                            {" "}
+                            ของที่เข้าคลังแล้วคือ{" "}
+                            {otherReceivedItems
+                              .map(
+                                (item) =>
+                                  `${item.label} ${fmt(String(item.qty))}`,
+                              )
+                              .join(", ")}{" "}
+                            — คนละสินค้ากับที่ PR รอรับ (
+                            {[
+                              ...new Map(
+                                missingWarehouseLines.map((line) => [
+                                  line.itemId,
+                                  outputItemLabel(line),
+                                ]),
+                              ).values(),
+                            ].join(", ")}
+                            )
+                          </>
+                        ) : null}
+                      </>
+                    }
+                    action={
+                      showReceiveCta ? (
+                        <Button size="small" type="primary" onClick={openReceiveModal}>
+                          ขอรับผลผลิตเข้าคลัง
+                        </Button>
+                      ) : undefined
+                    }
+                  />
+                ) : null}
+
+                {relatedRequestsQuery.isFetched &&
+                pendingWarehouseLines.length > 0 ? (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title="มีคำขอรอคลังอนุมัติ — ของยังไม่เข้าคลัง"
+                    description="ดูตารางคำขอรับผลผลิตด้านบน จนกว่าคลังจะกดอนุมัติจึงจัดสรรให้ PR/SO ได้"
+                  />
+                ) : null}
+
                 {allocationSummary ? (
                   <div className={styles.infoGrid}>
                     <div className={styles.infoItem}>
-                      <span className={styles.infoLabel}>รับเข้าคลังแล้ว</span>
+                      <span className={styles.infoLabel}>
+                        รับเข้าคลังแล้ว (ทุกสินค้า)
+                      </span>
                       <span className={styles.infoValue}>
                         {fmt(allocationSummary.totalApprovedOutputQty)}
                       </span>
@@ -899,7 +1048,9 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       </span>
                     </div>
                     <div className={styles.infoItem}>
-                      <span className={styles.infoLabel}>คงเหลือจัดสรร</span>
+                      <span className={styles.infoLabel}>
+                        คงเหลือคลังกลาง (ทุกสินค้า)
+                      </span>
                       <span className={styles.infoValue}>
                         {fmt(allocationSummary.unallocatedQty)}
                       </span>
@@ -921,7 +1072,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       width: 48,
                       render: (_, row) => {
                         const remaining = Number(row.remainingQty);
-                        const disabled = row.isFulfilled || remaining <= 0 || unallocatedQty <= 0;
+                        const itemUnallocated = itemUnallocatedOf(
+                          row.itemId,
+                          row.fulfilledQty,
+                        );
+                        const disabled =
+                          row.isFulfilled ||
+                          remaining <= 0 ||
+                          itemUnallocated <= 0;
                         return (
                           <Checkbox
                             checked={selectedSourceLineIds.includes(row.id)}
@@ -929,7 +1087,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                             onChange={(event) =>
                               handleToggleSourceLine(
                                 row.id,
-                                remaining,
+                                Math.min(remaining, itemUnallocated),
                                 event.target.checked,
                               )
                             }
@@ -940,7 +1098,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     {
                       title: "ใบขอผลิต",
                       key: "pr",
-                      render: (_, row) => row.productionRequestNo ?? row.productionRequestId,
+                      render: (_, row) =>
+                        row.productionRequestNo ?? row.productionRequestId,
                     },
                     {
                       title: "ใบสั่งขาย",
@@ -948,11 +1107,42 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       render: (_, row) => row.salesOrderNo ?? row.salesOrderId,
                     },
                     {
+                      title: "สินค้า",
+                      key: "item",
+                      render: (_, row) => outputItemLabel(row),
+                    },
+                    {
                       title: "ต้องการ",
                       key: "allocated",
                       align: "right",
                       render: (_, row) =>
                         `${fmt(row.allocatedQty)} ${row.unitCode ?? ""}`,
+                    },
+                    {
+                      title: "รับเข้าคลังแล้ว",
+                      key: "received",
+                      align: "right",
+                      render: (_, row) => {
+                        const approved =
+                          approvedQtyByItemId.get(row.itemId) ?? 0;
+                        const pending =
+                          pendingQtyByItemId.get(row.itemId) ?? 0;
+                        return (
+                          <>
+                            <div>
+                              {fmt(String(approved))} {row.unitCode ?? ""}
+                            </div>
+                            {pending > 0 ? (
+                              <Typography.Text
+                                type="secondary"
+                                style={{ fontSize: 12 }}
+                              >
+                                รออนุมัติ {fmt(String(pending))}
+                              </Typography.Text>
+                            ) : null}
+                          </>
+                        );
+                      },
                     },
                     {
                       title: "จัดสรรแล้ว",
@@ -975,17 +1165,22 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       width: 140,
                       render: (_, row) => {
                         const remaining = Number(row.remainingQty);
+                        const itemUnallocated = itemUnallocatedOf(
+                          row.itemId,
+                          row.fulfilledQty,
+                        );
                         const selected = selectedSourceLineIds.includes(row.id);
                         if (!selected) {
                           return "-";
                         }
+                        const maxQty = Math.min(remaining, itemUnallocated);
                         return (
                           <InputNumber
                             min={0.001}
-                            max={Math.min(remaining, unallocatedQty)}
+                            max={maxQty}
                             step={0.001}
                             style={{ width: "100%" }}
-                            value={allocationQtyByLineId[row.id] ?? remaining}
+                            value={allocationQtyByLineId[row.id] ?? maxQty}
                             onChange={(value) =>
                               setAllocationQtyByLineId((prev) => ({
                                 ...prev,
@@ -999,14 +1194,26 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     {
                       title: "สถานะ",
                       key: "status",
-                      render: (_, row) =>
-                        row.isFulfilled ? (
-                          <Tag color="success" icon={<CheckOutlined />}>
-                            ครบแล้ว
-                          </Tag>
-                        ) : (
-                          <Tag color="processing">รอจัดสรร</Tag>
-                        ),
+                      render: (_, row) => {
+                        const approved =
+                          approvedQtyByItemId.get(row.itemId) ?? 0;
+                        const pending =
+                          pendingQtyByItemId.get(row.itemId) ?? 0;
+                        if (row.isFulfilled) {
+                          return (
+                            <Tag color="success" icon={<CheckOutlined />}>
+                              ครบแล้ว
+                            </Tag>
+                          );
+                        }
+                        if (approved <= 0 && pending > 0) {
+                          return <Tag color="warning">รอคลังอนุมัติ</Tag>;
+                        }
+                        if (approved <= 0) {
+                          return <Tag>ยังไม่ได้รับเข้าคลัง</Tag>;
+                        }
+                        return <Tag color="processing">รอจัดสรร</Tag>;
+                      },
                     },
                   ]}
                 />

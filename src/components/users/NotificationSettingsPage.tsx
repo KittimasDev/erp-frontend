@@ -2,11 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { App, Alert, Button, Space, Switch, Table, Tag, Typography } from "antd";
+import {
+  App,
+  Alert,
+  Button,
+  Collapse,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  Typography,
+} from "antd";
 import {
   ArrowLeftOutlined,
   BellOutlined,
   ExperimentOutlined,
+  ExportOutlined,
   SaveOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -23,6 +34,48 @@ import type {
   NotificationEventSummary,
 } from "@/types/notification-settings";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+
+const NOTIFICATION_MENU_GROUP_ORDER = [
+  "รับซื้อยาง",
+  "คลังวัตถุดิบ",
+  "การผลิต",
+  "คลังสินค้าสำเร็จรูป",
+  "ขายและจัดส่ง",
+  "จัดซื้อทั่วไป",
+  "ห้องปฏิบัติการ",
+  "ถังน้ำมัน",
+  "บุคคล",
+] as const;
+
+function groupEventsByMenu(events: NotificationEventSummary[]) {
+  const byGroup = new Map<string, NotificationEventSummary[]>();
+  for (const event of events) {
+    const group = event.menuGroup?.trim() || "อื่น ๆ";
+    const list = byGroup.get(group);
+    if (list) {
+      list.push(event);
+    } else {
+      byGroup.set(group, [event]);
+    }
+  }
+
+  const ordered: Array<{ group: string; events: NotificationEventSummary[] }> =
+    [];
+  const seen = new Set<string>();
+  for (const group of NOTIFICATION_MENU_GROUP_ORDER) {
+    const list = byGroup.get(group);
+    if (list?.length) {
+      ordered.push({ group, events: list });
+      seen.add(group);
+    }
+  }
+  for (const [group, list] of byGroup) {
+    if (!seen.has(group) && list.length) {
+      ordered.push({ group, events: list });
+    }
+  }
+  return ordered;
+}
 
 type NotificationSettingsPageProps = {
   embedded?: boolean;
@@ -166,11 +219,21 @@ export default function NotificationSettingsPage({
     },
     {
       title: "หน้าปลายทาง",
-      dataIndex: "href",
       key: "href",
-      width: 260,
-      render: (value: string) => (
-        <Typography.Text type="secondary">{value}</Typography.Text>
+      width: 140,
+      render: (_, row) => (
+        <Button
+          type="link"
+          size="small"
+          icon={<ExportOutlined />}
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(row.href);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          เปิดหน้านี้
+        </Button>
       ),
     },
   ];
@@ -251,6 +314,18 @@ export default function NotificationSettingsPage({
                 {detail?.descriptionTh ??
                   "เลือกบทบาทที่จะได้รับการแจ้งเตือนเมื่อมีรายการใหม่"}
               </Typography.Text>
+              {detail?.href ? (
+                <div>
+                  <Button
+                    type="link"
+                    icon={<ExportOutlined />}
+                    onClick={() => router.push(detail.href)}
+                    style={{ paddingInline: 0 }}
+                  >
+                    เปิดหน้านี้
+                  </Button>
+                </div>
+              ) : null}
             </div>
             <Space wrap>
               <Button
@@ -297,6 +372,7 @@ export default function NotificationSettingsPage({
   }
 
   const events = eventsQuery.data?.data ?? [];
+  const groupedEvents = useMemo(() => groupEventsByMenu(events), [events]);
   const eventsError =
     eventsQuery.error instanceof Error
       ? eventsQuery.error.message
@@ -333,18 +409,39 @@ export default function NotificationSettingsPage({
           />
         ) : null}
 
-        <Table
-          rowKey="code"
-          columns={eventColumns}
-          dataSource={events}
-          loading={eventsQuery.isFetching}
-          pagination={false}
-          onRow={(row) => ({
-            onClick: () => openEvent(row.code),
-            style: { cursor: "pointer" },
-          })}
-          locale={{ emptyText: "ยังไม่มีประเภทการแจ้งเตือน" }}
-        />
+        {groupedEvents.length === 0 ? (
+          <Typography.Text type="secondary">
+            ยังไม่มีประเภทการแจ้งเตือน
+          </Typography.Text>
+        ) : (
+          <Collapse
+            defaultActiveKey={groupedEvents.map((item) => item.group)}
+            items={groupedEvents.map((item) => ({
+              key: item.group,
+              label: (
+                <Space>
+                  <Typography.Text strong>{item.group}</Typography.Text>
+                  <Typography.Text type="secondary">
+                    ({item.events.length})
+                  </Typography.Text>
+                </Space>
+              ),
+              children: (
+                <Table
+                  rowKey="code"
+                  columns={eventColumns}
+                  dataSource={item.events}
+                  loading={eventsQuery.isFetching}
+                  pagination={false}
+                  onRow={(row) => ({
+                    onClick: () => openEvent(row.code),
+                    style: { cursor: "pointer" },
+                  })}
+                />
+              ),
+            }))}
+          />
+        )}
       </section>
     </MasterPageGate>
   );

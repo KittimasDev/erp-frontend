@@ -33,16 +33,19 @@ import {
   materialConversionRoutesKey,
   materialConversionsKey,
 } from "./useMaterialConversionQueries";
+import { materialConversionJobsKey } from "./useMaterialConversionJobs";
 
 /**
- * ล้าง cache ของเอกสาร **และของคลัง** เพราะเริ่มงาน/ปิดงานตัดและรับสต๊อกจริง
- * ไม่ล้างแล้วหน้าสต๊อกจะค้างตัวเลขเก่า
+ * ล้าง cache ของเอกสารขั้นตอน **และใบงาน** เพราะความคืบหน้าใบงานคิดจากเอกสาร
+ * ไม่ล้างใบงานแล้วการ์ดไทม์ไลน์จะค้าง NOT_STARTED ทั้งที่เพิ่งบันทึกเป็นร่าง
+ * ล้างสต๊อกด้วย เพราะเริ่มงาน/ปิดงานตัดและรับของจริง
  */
 function useInvalidateRuns() {
   const queryClient = useQueryClient();
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: materialConversionsKey }),
+      queryClient.invalidateQueries({ queryKey: materialConversionJobsKey }),
       queryClient.invalidateQueries({ queryKey: ["stock-balances"] }),
       queryClient.invalidateQueries({ queryKey: ["inventory-lots"] }),
     ]);

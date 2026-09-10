@@ -641,6 +641,28 @@
   margin-top: 8px;
 }
 
+.stepLines {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.stepLineGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepLineLabel {
+  color: var(--unit-muted, #8a9199);
+  font-size: 12px;
+}
+
+.stepLineItem {
+  color: var(--unit-gray-dark, #2f343a);
+  font-size: 13px;
+}
+
 .drawerBody {
   display: flex;
   flex-direction: column;
