@@ -49,6 +49,8 @@ const STATUS_FILTERS: {
   },
 ];
 
+const PAGE_SIZE = 10;
+
 function formatDate(value?: string) {
   if (!value) {
     return "-";
@@ -76,6 +78,7 @@ export default function StockPostingApprovalsPage() {
   const [status, setStatus] = useState<string>(
     StockPostingRequestStatus.PENDING_APPROVAL,
   );
+  const [page, setPage] = useState(1);
   const canApprove = useCanApproveStockPostingApprovals();
   const approvalsQuery = useStockPostingApprovalsQuery(status);
   const rows = approvalsQuery.data?.data ?? [];
@@ -107,6 +110,13 @@ export default function StockPostingApprovalsPage() {
 
   const columns: ColumnsType<StockPostingRequest> = useMemo(
     () => [
+      {
+        title: "#",
+        key: "index",
+        width: 56,
+        align: "center",
+        render: (_value, _row, index) => (page - 1) * PAGE_SIZE + index + 1,
+      },
       {
         title: "เลขที่คำขอ",
         dataIndex: "requestNo",
@@ -192,7 +202,7 @@ export default function StockPostingApprovalsPage() {
         ),
       },
     ],
-    [router],
+    [page, router],
   );
 
   return (
@@ -251,7 +261,10 @@ export default function StockPostingApprovalsPage() {
             ]
               .filter(Boolean)
               .join(" ")}
-            onClick={() => setStatus(StockPostingRequestStatus.APPROVED)}
+            onClick={() => {
+              setStatus(StockPostingRequestStatus.APPROVED);
+              setPage(1);
+            }}
           >
             <span>อนุมัติแล้ว</span>
             <strong>
@@ -271,7 +284,10 @@ export default function StockPostingApprovalsPage() {
             ]
               .filter(Boolean)
               .join(" ")}
-            onClick={() => setStatus(StockPostingRequestStatus.REJECTED)}
+            onClick={() => {
+              setStatus(StockPostingRequestStatus.REJECTED);
+              setPage(1);
+            }}
           >
             <span>ไม่อนุมัติ</span>
             <strong>
@@ -316,7 +332,10 @@ export default function StockPostingApprovalsPage() {
                       .filter(Boolean)
                       .join(" ")}
                     title={option.description}
-                    onClick={() => setStatus(option.key)}
+                    onClick={() => {
+                      setStatus(option.key);
+                      setPage(1);
+                    }}
                   >
                     <span>{option.label}</span>
                     <em>{statusCounts[option.key] ?? 0}</em>
@@ -350,9 +369,11 @@ export default function StockPostingApprovalsPage() {
             dataSource={rows}
             loading={approvalsQuery.isFetching}
             pagination={{
-              pageSize: 10,
+              current: page,
+              pageSize: PAGE_SIZE,
               showSizeChanger: false,
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              onChange: setPage,
             }}
             scroll={{ x: 980 }}
             locale={{ emptyText: "ไม่พบคำขอตามเงื่อนไขที่เลือก" }}
