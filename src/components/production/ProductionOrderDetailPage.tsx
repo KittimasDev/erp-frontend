@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   App,
@@ -14,6 +15,7 @@ import {
   Popconfirm,
   Select,
   Table,
+  Tabs,
   Tag,
   Typography,
 } from "antd";
@@ -73,6 +75,17 @@ import {
 } from "./ProductionOrderRunControlModals";
 import styles from "./ProductionOrderDetailPage.module.css";
 
+const ProductionOrderDataTab = dynamic(
+  () => import("./ProductionOrderDataTab"),
+  { ssr: false },
+);
+
+type DetailTab = "work" | "data";
+
+function resolveDetailTab(raw: string | null): DetailTab {
+  return raw === "data" ? "data" : "work";
+}
+
 type Props = {
   orderId: string;
 };
@@ -114,6 +127,22 @@ function sumRequestQtyByItem(
 
 export default function ProductionOrderDetailPage({ orderId }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTab = useMemo(
+    () => resolveDetailTab(searchParams.get("tab")),
+    [searchParams],
+  );
+  const setTab = (key: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (key === "work") {
+      next.delete("tab");
+    } else {
+      next.set("tab", key);
+    }
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
   const [startOpen, setStartOpen] = useState(false);
   const { message } = App.useApp();
   const orderActions = useScreenActionPermissions("PRODUCTION_ORDERS");
@@ -575,6 +604,17 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               ) : null}
             </div>
 
+            <Tabs
+              className={styles.tabs}
+              activeKey={activeTab}
+              onChange={setTab}
+              destroyOnHidden
+              items={[
+                {
+                  key: "work",
+                  label: "งาน",
+                  children: (
+                    <>
             <div className={styles.infoGrid}>
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>วันที่ผลิต</span>
@@ -1219,6 +1259,23 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 />
               </div>
             ) : null}
+                    </>
+                  ),
+                },
+                {
+                  key: "data",
+                  label: "ข้อมูล",
+                  children: (
+                    <ProductionOrderDataTab
+                      orderId={orderId}
+                      startedAt={order.startedAt}
+                      completedAt={order.completedAt}
+                      productionDate={order.productionDate}
+                    />
+                  ),
+                },
+              ]}
+            />
           </>
         ) : (
           <div className={masterStyles.errorBox}>ไม่พบใบสั่งผลิตที่ต้องการ</div>

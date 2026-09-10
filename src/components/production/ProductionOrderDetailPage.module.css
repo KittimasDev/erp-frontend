@@ -5,6 +5,10 @@
   margin-bottom: 4px;
 }
 
+.tabs {
+  min-width: 0;
+}
+
 .infoGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

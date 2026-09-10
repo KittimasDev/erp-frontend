@@ -14,6 +14,8 @@ import type {
   ProductionOrderConsolidatedCreateApiResponse,
   ProductionOrderListApiResponse,
   ProductionOrderSummaryApiResponse,
+  ProductionOrderOutputTrendApiResponse,
+  ProductionOrderOutputTrendParams,
   QueryProductionOrdersParams,
   RecordDowntimeBody,
   ResumeProductionOrderBody,
@@ -163,6 +165,22 @@ export function completeProductionOrder(
 export function getProductionOrderSummary(token: string, id: string) {
   return apiFetch<ProductionOrderSummaryApiResponse>(
     `/api/production/production-orders/${id}/summary`,
+    { method: "GET", token },
+  );
+}
+
+export function getProductionOrderOutputTrend(
+  token: string,
+  id: string,
+  params?: ProductionOrderOutputTrendParams,
+) {
+  const search = new URLSearchParams();
+  if (params?.from) search.set("from", params.from);
+  if (params?.to) search.set("to", params.to);
+  if (params?.bucket) search.set("bucket", params.bucket);
+  const query = search.toString();
+  return apiFetch<ProductionOrderOutputTrendApiResponse>(
+    `/api/production/production-orders/${id}/output-trend${query ? `?${query}` : ""}`,
     { method: "GET", token },
   );
 }

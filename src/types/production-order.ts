@@ -410,6 +410,62 @@ export type ProductionOrderSummaryApiResponse = {
   data: ProductionOrderSummary;
 };
 
+export const PRODUCTION_ORDER_OUTPUT_TREND_BUCKETS = ["DAY", "WEEK"] as const;
+export type ProductionOrderOutputTrendBucket =
+  (typeof PRODUCTION_ORDER_OUTPUT_TREND_BUCKETS)[number];
+
+export type ProductionOrderOutputTrendParams = {
+  from?: string;
+  to?: string;
+  bucket?: ProductionOrderOutputTrendBucket;
+};
+
+export type ProductionOrderOutputTrendByItem = {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitCode?: string;
+  qty: number;
+};
+
+export type ProductionOrderOutputTrendPoint = {
+  bucket: string;
+  actualOutputQty: number;
+  cumulativeOutputQty: number;
+  cumulativeYieldPercent: number | null;
+  plannedYieldPercent: number | null;
+  byItem: ProductionOrderOutputTrendByItem[];
+};
+
+export type ProductionOrderOutputTrendItem = {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitCode?: string;
+};
+
+export type ProductionOrderOutputTrend = {
+  productionOrderId: string;
+  from: string;
+  to: string;
+  bucket: string;
+  hasApprovedOutput: boolean;
+  totalInputQty: string;
+  quantitiesComparable: boolean;
+  unitCodes: string[];
+  massBalanceStatus: string;
+  yieldTrustworthy: boolean;
+  massBalanceWarning?: string;
+  items: ProductionOrderOutputTrendItem[];
+  points: ProductionOrderOutputTrendPoint[];
+};
+
+export type ProductionOrderOutputTrendApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: ProductionOrderOutputTrend;
+};
+
 export type ProductionOrderBulkCreateApiResponse = {
   statusCode?: number;
   message: string;

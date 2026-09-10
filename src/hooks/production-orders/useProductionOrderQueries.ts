@@ -6,9 +6,13 @@ import {
   getProductionOrder,
   getProductionOrders,
   getProductionOrderSummary,
+  getProductionOrderOutputTrend,
 } from "@/lib/api/production-orders";
 import { getAccessToken } from "@/lib/auth/token";
-import type { QueryProductionOrdersParams } from "@/types/production-order";
+import type {
+  ProductionOrderOutputTrendParams,
+  QueryProductionOrdersParams,
+} from "@/types/production-order";
 
 export const productionOrdersQueryKey = ["production-orders"] as const;
 
@@ -34,5 +38,18 @@ export function useProductionOrderSummaryQuery(id?: string) {
     queryKey: [...productionOrdersQueryKey, "summary", id],
     queryFn: () => getProductionOrderSummary(getAccessToken(), id as string),
     enabled: Boolean(id),
+  });
+}
+
+export function useProductionOrderOutputTrendQuery(
+  id?: string,
+  params?: ProductionOrderOutputTrendParams,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: [...productionOrdersQueryKey, "output-trend", id, params ?? {}],
+    queryFn: () =>
+      getProductionOrderOutputTrend(getAccessToken(), id as string, params),
+    enabled: Boolean(id) && (options?.enabled ?? true),
   });
 }
