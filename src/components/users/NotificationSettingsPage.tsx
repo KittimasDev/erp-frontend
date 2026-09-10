@@ -128,6 +128,15 @@ export default function NotificationSettingsPage({
     );
   }, [detail, draftEnabled]);
 
+  const events = eventsQuery.data?.data ?? [];
+  const groupedEvents = useMemo(() => groupEventsByMenu(events), [events]);
+  const eventsError =
+    eventsQuery.error instanceof Error
+      ? eventsQuery.error.message
+      : eventsQuery.isError
+        ? "โหลดรายการแจ้งเตือนไม่สำเร็จ"
+        : null;
+
   const openEvent = (code: string) => {
     const next = new URLSearchParams(searchParams.toString());
     next.set("tab", "notifications");
@@ -370,15 +379,6 @@ export default function NotificationSettingsPage({
       </MasterPageGate>
     );
   }
-
-  const events = eventsQuery.data?.data ?? [];
-  const groupedEvents = useMemo(() => groupEventsByMenu(events), [events]);
-  const eventsError =
-    eventsQuery.error instanceof Error
-      ? eventsQuery.error.message
-      : eventsQuery.isError
-        ? "โหลดรายการแจ้งเตือนไม่สำเร็จ"
-        : null;
 
   return (
     <MasterPageGate isLoading={eventsQuery.isLoading}>
