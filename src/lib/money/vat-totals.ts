@@ -26,6 +26,21 @@ export function vatAmountLabel(rate?: number | null): string {
   return "ภาษีมูลค่าเพิ่ม";
 }
 
+/** ป้ายแถวท้ายบิล PDF — ไม่คิด VAT ไม่ใส่ %, ไม่รวม/รวม ใส่ 7% */
+export function vatPdfLineLabel(
+  vatMode?: string | null,
+  rate?: number | null,
+): string {
+  if (resolveVatMode(vatMode) === VatMode.NONE) {
+    return "ภาษีมูลค่าเพิ่ม";
+  }
+  const pct =
+    typeof rate === "number" && Number.isFinite(rate) && rate > 0
+      ? rate
+      : STANDARD_VAT_PERCENT;
+  return `ภาษีมูลค่าเพิ่ม ${pct}%`;
+}
+
 /** เช่น "รวม VAT (7%)" — ไม่คิด VAT ไม่ต่อเปอร์เซ็นต์ */
 export function withVatPercentLabel(
   label: string,

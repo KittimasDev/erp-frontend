@@ -1,5 +1,9 @@
 import { getUserSignatureDataUrl } from "@/lib/user/user-signature";
-import { withholdingTaxTypeLabel } from "@/lib/money/vat-totals";
+import {
+  vatPdfLineLabel,
+  withholdingTaxTypeLabel,
+  type VatMode,
+} from "@/lib/money/vat-totals";
 
 import {
   generateSalesCommercialPdf,
@@ -18,6 +22,7 @@ export type SalesQuotationPdfData = {
   contactName?: string;
   paymentTerm: string;
   taxRateLabel?: string;
+  vatMode?: VatMode | string;
   withholdingLabel?: string;
   validUntil: string;
   remark: string;
@@ -47,10 +52,7 @@ function quotationTotalsLines(
   const afterDiscount =
     data.afterDiscount ??
     Math.max(0, data.subtotalAmount - data.discountAmount);
-  const vatLabel =
-    typeof data.vatRate === "number" && data.vatRate > 0
-      ? `ภาษีมูลค่าเพิ่ม ${data.vatRate}%`
-      : "ภาษีมูลค่าเพิ่ม";
+  const vatLabel = vatPdfLineLabel(data.vatMode, data.vatRate);
   const lines: SalesCommercialPdfTotalsLine[] = [
     { label: "ยอดรวมก่อนส่วนลด", value: data.subtotalAmount },
     { label: "ส่วนลดท้ายบิล", value: data.discountAmount },

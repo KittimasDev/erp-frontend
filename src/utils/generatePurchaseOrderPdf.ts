@@ -8,6 +8,10 @@ import {
   openMultiPagePdfFromHtml,
 } from "./pdf-common";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
+import {
+  vatPdfLineLabel,
+  type VatMode,
+} from "@/lib/money/vat-totals";
 
 type PurchaseOrderPdfItem = {
   no: number;
@@ -31,6 +35,7 @@ export type PurchaseOrderPdfData = {
   vendorContact: string;
   paymentTerm: string;
   taxRateLabel: string;
+  vatMode?: VatMode | string;
   vatRate?: number;
   withholdingTaxLabel: string;
   paymentMethodLabel: string;
@@ -194,11 +199,7 @@ function totalsHtml(data: PurchaseOrderPdfData) {
           )}</div>
         </div>
         <div class="tot-row">
-          <div class="k">${
-            data.vatRate && data.vatRate > 0
-              ? `ภาษีมูลค่าเพิ่ม ${data.vatRate}%:`
-              : "ภาษีมูลค่าเพิ่ม:"
-          }</div>
+          <div class="k">${vatPdfLineLabel(data.vatMode, data.vatRate)}:</div>
           <div class="v">${formatMoney(data.vatAmount)}</div>
         </div>
         <div class="tot-row grand">

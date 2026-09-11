@@ -307,6 +307,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
         )?.label ?? "—",
         preview.vatRate,
       ),
+      vatMode: resolveVatMode(values.vatMode),
       withholdingTaxType: values.withholdingTaxType,
       validUntil: values.validUntil
         ? values.validUntil.format("DD/MM/YYYY")

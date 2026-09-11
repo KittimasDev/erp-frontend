@@ -317,6 +317,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       vendorContact: data.creditor?.contactName ?? "—",
       paymentTerm: data.paymentTerm?.name ?? "ไม่ระบุ",
       taxRateLabel: withVatPercentLabel(VAT_MODE_LABEL[vatMode], vatPercent),
+      vatMode,
       vatRate: vatPercent,
       withholdingTaxLabel: withholdingTaxTypeLabel(
         data.withholdingTaxType,

@@ -176,6 +176,7 @@ export default function QuotationDetailPage({ id }: Props) {
         QUOTATION_VAT_MODE_LABEL[vatMode],
         vatPercent,
       ),
+      vatMode,
       withholdingTaxType: data.withholdingTaxType,
       validUntil: formatDate(data.validUntil),
       remark: data.remark || "",
