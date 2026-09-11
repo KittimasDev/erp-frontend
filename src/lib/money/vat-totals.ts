@@ -26,6 +26,17 @@ export function vatAmountLabel(rate?: number | null): string {
   return "ภาษีมูลค่าเพิ่ม";
 }
 
+/** เช่น "รวม VAT (7%)" — ไม่คิด VAT ไม่ต่อเปอร์เซ็นต์ */
+export function withVatPercentLabel(
+  label: string,
+  rate?: number | null,
+): string {
+  if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) {
+    return `${label} (${rate}%)`;
+  }
+  return label;
+}
+
 export const WithholdingTaxType = {
   NONE: "NONE",
   PCT_1: "PCT_1",
@@ -137,6 +148,9 @@ export function calcLineAmount(
   return Math.max(0, roundMoney(raw));
 }
 
+/** อัตรา VAT มาตรฐานของใบสั่งซื้อและใบเสนอราคา เมื่อรูปแบบไม่ใช่ไม่คิด VAT */
+export const STANDARD_VAT_PERCENT = 7;
+
 export function calcDocumentTotals(
   lineAmounts: number[],
   headerDiscount: number,
@@ -187,21 +201,17 @@ export function calcDocumentTotals(
 }
 
 /**
- * อัตรา VAT ของใบสั่งซื้อและใบเสนอราคา = **อัตราภาษีหัก ณ ที่จ่ายของเอกสารนั้น**
+ * อัตรา VAT ของใบสั่งซื้อและใบเสนอราคา = 7% เมื่อรูปแบบเป็นไม่รวม VAT / รวม VAT
  *
- * **ตั้งใจให้เป็นแบบนี้ ไม่ใช่บั๊ก — อย่าแก้กลับ** เจ้าของระบบสั่งไว้ (2026-09-07)
- * หลังได้รับแจ้งแล้วว่าตามกฎหมาย VAT (7%) กับภาษีหัก ณ ที่จ่าย (1-3%) เป็นคนละภาษี
- * คนละอัตรา และตัวอย่างที่ยืนยันกันคือ ใบ 100,000 หัก ณ ที่จ่าย 3% จะได้ VAT 3,000
- * ไม่ใช่ 7,000
+ * กติกาเดิม (2026-09-07) ที่ผูก VAT กับอัตราหัก ณ ที่จ่ายถูกแทนแล้ว (2026-09-11)
+ * หัก ณ ที่จ่ายยังเป็นคนละช่อง คนละภาษี — ไม่ได้กำหนด % VAT
  *
- * ใช้เฉพาะสองเอกสารนี้ — **ใบสั่งขาย / ใบแจ้งหนี้ ยังคิดจาก master `tax_rates` ตามเดิม**
- * จึงส่งอัตราเข้า `calcDocumentTotals()` ต่างกัน ไม่ได้เปลี่ยนสูตรข้างใน
+ * ใช้เฉพาะสองเอกสารนี้ — ใบสั่งขาย / ใบแจ้งหนี้ ยังคิดจาก master tax_rates ตามเดิม
  *
-
- * เทสต์อยู่ฝั่ง backend ที่ `common/money/vat-totals.spec.ts` — ไฟล์นี้เป็นสำเนา
+ * เทสต์อยู่ฝั่ง backend ที่ common/money/vat-totals.spec.ts — ไฟล์นี้เป็นสำเนา
  * ตามแบบเดิมของโปรเจกต แก้ที่ไหนต้องแก้อีกที่ให้ตรงกันเสมอ
  *
- * `vatMode === NONE` ชนะเสมอ — เลือกไม่คิด VAT แล้วต้องไม่มี VAT ไม่ว่าหัก ณ ที่จ่ายเท่าไร
+ * vatMode === NONE ชนะเสมอ — เลือกไม่คิด VAT แล้วต้องไม่มี VAT
  */
 export function resolveDocumentVatPercent(input: {
   vatMode?: string | null;
@@ -211,8 +221,5 @@ export function resolveDocumentVatPercent(input: {
   if (resolveVatMode(input.vatMode) === VatMode.NONE) {
     return 0;
   }
-  return resolveWithholdingPercent(
-    input.withholdingTaxType,
-    toNum(input.withholdingTaxPercent),
-  );
+  return STANDARD_VAT_PERCENT;
 }

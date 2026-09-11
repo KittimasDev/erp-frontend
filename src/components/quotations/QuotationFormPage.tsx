@@ -49,10 +49,10 @@ import {
   resolveVatMode,
   resolveWithholdingPercent,
   resolveWithholdingTaxType,
-  vatAmountLabel,
   VatMode,
   WITHHOLDING_TAX_TYPE_OPTIONS,
   WithholdingTaxType,
+  withVatPercentLabel,
 } from "@/lib/money/vat-totals";
 
 import styles from "./QuotationFormPage.module.css";
@@ -245,7 +245,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
         Number(line?.discountAmount) || 0,
       ),
     );
-    // อัตรา VAT = อัตราหัก ณ ที่จ่ายของใบนี้ (ดู resolveDocumentVatPercent)
+    // อัตรา VAT = 7% เมื่อรูปแบบไม่ใช่ไม่คิด VAT (ดู resolveDocumentVatPercent)
     const rate = resolveDocumentVatPercent({
       vatMode,
       withholdingTaxType: watchedWhtType,
@@ -301,7 +301,12 @@ export default function QuotationFormPage({ mode, id }: Props) {
       paymentTerm:
         paymentTerms.find((term) => term.id === values.paymentTermId)?.name ??
         "—",
-      taxRateLabel: vatAmountLabel(preview.vatRate),
+      taxRateLabel: withVatPercentLabel(
+        QUOTATION_VAT_MODE_OPTIONS.find(
+          (option) => option.value === resolveVatMode(values.vatMode),
+        )?.label ?? "—",
+        preview.vatRate,
+      ),
       withholdingTaxType: values.withholdingTaxType,
       validUntil: values.validUntil
         ? values.validUntil.format("DD/MM/YYYY")
@@ -584,7 +589,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                     />
                   </Form.Item>
                   {/*
-                    ไม่มีช่อง "อัตราภาษี" แล้ว — อัตรา VAT มาจากช่องหัก ณ ที่จ่าย
+                    ไม่มีช่อง "อัตราภาษี" — เมื่อคิด VAT บังคับ 7% ตามรูปแบบภาษีมูลค่าเพิ่ม
                     (ดู resolveDocumentVatPercent)
                   */}
                   <Form.Item name="vatMode" label="รูปแบบภาษีมูลค่าเพิ่ม">

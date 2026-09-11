@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Input, Modal, Spin, Upload } from "antd";
@@ -47,10 +47,12 @@ import { getAccessToken } from "@/lib/auth/token";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import {
+  calcDocumentTotals,
   resolveVatMode,
   VAT_MODE_LABEL,
   resolveDocumentVatPercent,
   vatAmountLabel,
+  withVatPercentLabel,
   withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
@@ -94,9 +96,9 @@ function formatDateTime(value?: string) {
   return dayjs(value).format("DD/MM/YYYY HH:mm");
 }
 
-function formatMoney(value?: string) {
+function formatMoney(value?: string | number) {
   const n = Number(value ?? 0);
-  if (Number.isNaN(n)) return value ?? "—";
+  if (Number.isNaN(n)) return String(value ?? "—");
   return n.toLocaleString("th-TH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -152,11 +154,18 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const [previewIsImage, setPreviewIsImage] = useState(false);
 
   const data = query.data?.data;
-  /*
-    อัตรา VAT ของใบนี้ = อัตราหัก ณ ที่จ่าย (ดู resolveDocumentVatPercent)
-    ไม่ได้อ่านจาก data.taxRate อีกแล้ว ใบใหม่จะไม่มีค่านั้นและใบเก่าก็ไม่ใช่ตัวที่ใช้คิด
-  */
-  const vatPercent = resolveDocumentVatPercent(data ?? {});
+  const vatMode = resolveVatMode(data?.vatMode);
+  const vatPercent = resolveDocumentVatPercent({ vatMode });
+  const totals = useMemo(
+    () =>
+      calcDocumentTotals(
+        (data?.items ?? []).map((item) => Number(item.amount) || 0),
+        Number(data?.discountAmount) || 0,
+        vatMode,
+        vatPercent,
+      ),
+    [data?.items, data?.discountAmount, vatMode, vatPercent],
+  );
   const attachments = attachmentsQuery.data?.data ?? [];
   // Matrix เป็นตัวตัดสินอย่างเดียว — ไม่ OR role ทับ ไม่งั้นคนที่ไม่ได้ติ๊กสิทธิ์ก็ยังกดได้
   // (admin `*` และโหมด legacy คืน all-true จาก getScreenActionPermissions อยู่แล้ว)
@@ -307,7 +316,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       vendorPhone: data.creditor?.contactPhone ?? "—",
       vendorContact: data.creditor?.contactName ?? "—",
       paymentTerm: data.paymentTerm?.name ?? "ไม่ระบุ",
-      taxRateLabel: vatPercent > 0 ? `${vatPercent}%` : "ไม่คิด VAT",
+      taxRateLabel: withVatPercentLabel(VAT_MODE_LABEL[vatMode], vatPercent),
       vatRate: vatPercent,
       withholdingTaxLabel: withholdingTaxTypeLabel(
         data.withholdingTaxType,
@@ -322,14 +331,11 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       createdByPhone: data.createdBy?.phone ?? "—",
       expectedDeliveryDate: formatDate(data.expectedDeliveryDate),
       remark: data.remark?.trim() || "",
-      subtotalAmount: Number(data.subtotalAmount) || 0,
-      discountAmount: Number(data.discountAmount) || 0,
-      afterDiscount: Math.max(
-        0,
-        Number(data.subtotalAmount) - Number(data.discountAmount),
-      ),
-      vatAmount: Number(data.vatAmount) || 0,
-      totalAmount: Number(data.totalAmount) || 0,
+      subtotalAmount: totals.subtotal,
+      discountAmount: totals.discount,
+      afterDiscount: totals.afterDiscount,
+      vatAmount: totals.vat,
+      totalAmount: totals.total,
       items: (data.items ?? []).map((item, index) => ({
         no: index + 1,
         itemCode: item.itemCode ?? "—",
@@ -426,7 +432,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>รูปแบบ VAT</span>
                 <div className={styles.metaValue}>
-                  {VAT_MODE_LABEL[resolveVatMode(data.vatMode)]}
+                  {withVatPercentLabel(
+                    VAT_MODE_LABEL[resolveVatMode(data.vatMode)],
+                    vatPercent,
+                  )}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -614,32 +623,23 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
               <span>ยอดรวมก่อนส่วนลด</span>
-              <strong>{formatMoney(data.subtotalAmount)}</strong>
+              <strong>{formatMoney(totals.subtotal)}</strong>
             </div>
             <div className={styles.sideRow}>
               <span>ส่วนลดท้ายบิล</span>
-              <strong>{formatMoney(data.discountAmount)}</strong>
+              <strong>{formatMoney(totals.discount)}</strong>
             </div>
             <div className={styles.sideRow}>
               <span>ยอดหลังหักส่วนลด</span>
-              <strong>
-                {formatMoney(
-                  String(
-                    Math.max(
-                      0,
-                      Number(data.subtotalAmount) - Number(data.discountAmount),
-                    ),
-                  ),
-                )}
-              </strong>
+              <strong>{formatMoney(totals.afterDiscount)}</strong>
             </div>
             <div className={styles.sideRow}>
               <span>{vatAmountLabel(vatPercent)}</span>
-              <strong>{formatMoney(data.vatAmount)}</strong>
+              <strong>{formatMoney(totals.vat)}</strong>
             </div>
             <div className={styles.sideRow}>
               <span>ยอดสุทธิ</span>
-              <strong>{formatMoney(data.totalAmount)}</strong>
+              <strong>{formatMoney(totals.total)}</strong>
             </div>
             <div className={styles.sideRow}>
               <span>ไฟล์แนบ</span>

@@ -128,7 +128,7 @@ function firstBlockHtml(data: PurchaseOrderPdfData) {
           <div class="info-grid">
             ${infoRow("เงื่อนไขการชำระเงิน:", data.paymentTerm)}
             ${infoRow("วิธีชำระเงิน / Payment:", data.paymentMethodLabel)}
-            ${infoRow("อัตราภาษี:", data.taxRateLabel)}
+            ${infoRow("รูปแบบ VAT:", data.taxRateLabel)}
             ${infoRow("ภาษีหัก ณ ที่จ่าย:", data.withholdingTaxLabel)}
             ${infoRow("ผู้ติดต่อ / Contact:", data.createdBy)}
             ${infoRow("เบอร์โทร / Phone:", data.createdByPhone)}

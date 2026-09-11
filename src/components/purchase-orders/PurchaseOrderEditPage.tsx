@@ -234,7 +234,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                     />
                   </Form.Item>
                   {/*
-                    ไม่มีช่อง "อัตรา VAT" แล้ว — อัตรามาจากช่องหัก ณ ที่จ่ายข้างล่าง
+                    ไม่มีช่อง "อัตรา VAT" — เมื่อคิด VAT บังคับ 7% ตามรูปแบบ VAT
                     (ดู resolveDocumentVatPercent)
                   */}
                   <Form.Item

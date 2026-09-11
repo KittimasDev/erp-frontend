@@ -223,7 +223,7 @@ export default function PurchaseOrderCreateFromPrPage({
       return calcLineAmount(qty, price, disc);
     });
     const vatMode = resolveVatMode(watchedVatMode);
-    // อัตรา VAT = อัตราหัก ณ ที่จ่ายของใบนี้ (ดู resolveDocumentVatPercent)
+    // อัตรา VAT = 7% เมื่อรูปแบบไม่ใช่ไม่คิด VAT (ดู resolveDocumentVatPercent)
     const rate = resolveDocumentVatPercent({
       vatMode,
       withholdingTaxType: watchedWhtType,
@@ -475,7 +475,7 @@ export default function PurchaseOrderCreateFromPrPage({
                     />
                   </Form.Item>
                   {/*
-                    ไม่มีช่อง "อัตรา VAT" แล้ว — อัตรามาจากช่องหัก ณ ที่จ่ายข้างล่าง
+                    ไม่มีช่อง "อัตรา VAT" — เมื่อคิด VAT บังคับ 7% ตามรูปแบบ VAT
                     (ดู resolveDocumentVatPercent)
                   */}
                   <Form.Item
