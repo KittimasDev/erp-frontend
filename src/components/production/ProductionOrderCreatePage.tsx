@@ -638,6 +638,19 @@ export default function ProductionOrderCreatePage() {
 
   const canSubmit = missingFields.length === 0;
 
+  /*
+    เลือกสูตรไว้แต่ยังไม่ได้กด "ใช้ค่านี้เป็นแผน"
+
+    ที่มาของสูตรถูกบันทึกลงใบตอนกดปุ่มนั้นเท่านั้น — ตั้งใจให้เป็นอย่างนั้น เพราะการกดปุ่ม
+    คือการยืนยันว่าจะเอาค่าจากสูตรมาทับแถวข้างล่าง · แต่คนที่เลือกสูตรแล้วพิมพ์เอง
+    จะได้ใบที่ "ไม่รู้จักสูตร" โดยไม่มีอะไรบอก แล้วไปงงทีหลังตอนเปิดดูว่าทำไมไม่มีสูตร
+
+    **เตือนอย่างเดียว ไม่บล็อก** — กรอกเองทั้งใบเป็นการใช้งานที่ถูกต้อง
+  */
+  const formulaPickedButNotApplied = Boolean(
+    formulaId && appliedPlan?.formulaId !== formulaId,
+  );
+
   const handleSubmit = () => {
     const inputItems: CreateProductionOrderInputItemBody[] = rows.map((r) => ({
       itemId: r.itemId as string,
@@ -1047,6 +1060,16 @@ export default function ProductionOrderCreatePage() {
               ))
             )}
           </div>
+          {formulaPickedButNotApplied ? (
+            <Alert
+              type="info"
+              showIcon
+              style={{ marginTop: 16 }}
+              title="เลือกสูตรไว้ แต่ยังไม่ได้กด “ใช้ค่านี้เป็นแผน”"
+              description="ใบนี้จะถูกบันทึกเป็นใบที่กรอกเอง ไม่ได้จำว่ามาจากสูตรไหน — ถ้าอยากให้ใบจำสูตรไว้ ให้กดปุ่มในกล่องวางแผนก่อนสร้าง · ถ้าตั้งใจกรอกเองก็สร้างต่อได้เลย"
+            />
+          ) : null}
+
           {canSubmit ? null : (
             <Alert
               type="warning"

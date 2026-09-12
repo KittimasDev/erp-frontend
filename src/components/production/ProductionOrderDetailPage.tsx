@@ -47,6 +47,7 @@ import {
 } from "@/hooks/production-output/useProductionOutputQueries";
 import { useCreateProductionOutputStockRequestFromOrderMutation } from "@/hooks/production-output/useProductionOutputMutations";
 import { useStockIssuesQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
+import { useStockMovementsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -62,6 +63,7 @@ import {
   hasRequestableProductionOutput,
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
   ProductionOutputRequestStatus,
+  REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
 } from "@/types/production-output-stock-request";
 import type { CreateProductionOutputStockRequestFromOrderBody } from "@/types/production-output-stock-request";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
@@ -168,6 +170,22 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     { productionOrderId: orderId },
     { enabled: Boolean(orderId) },
   );
+  /*
+    การตัดสต๊อกจริงตอนกดเริ่มผลิต **ไม่ได้ออกเอกสารเบิกของตัวเอง** — มันหักคลังตรง
+    แล้วทิ้งร่องรอยไว้เป็นแถวใน `stock_movements` ที่ใช้เลขใบสั่งผลิตแทนเลขใบเบิก
+
+    ตารางใบเบิกข้างล่างโชว์เฉพาะเอกสาร `SI-` ที่คนเปิดเองแล้ว tag กลับมา ซึ่งเป็น
+    คนละเส้นทาง · ถ้าไม่ดึง movement มาด้วย คนอ่านใบจะไม่มีทางเห็นเลยว่าใบนี้
+    ตัดสต๊อกอะไรไปจริง ๆ
+  */
+  const stockMovementsQuery = useStockMovementsQuery(
+    {
+      referenceDocType: REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
+      referenceDocId: orderId,
+    },
+    { enabled: Boolean(orderId) },
+  );
+
   const relatedMaterialIssuesQuery = useStockIssuesQuery({
     productionOrderId: orderId,
     limit: 100,
@@ -938,6 +956,67 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         เปิดใบเบิก
                       </Button>
                     ),
+                  },
+                ]}
+              />
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h3>สต๊อกที่ใบนี้ตัดจริง</h3>
+              </div>
+              <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+                ตอนกดเริ่มผลิต ระบบหักคลังตรงโดยไม่ออกเอกสารเบิก — นี่คือร่องรอย
+                ที่บันทึกไว้จริง ใช้เลขใบสั่งผลิตแทนเลขใบเบิก · ต่างจากตารางใบเบิก
+                ด้านบนซึ่งเป็นเอกสารที่คนเปิดเองแล้วผูกกลับมา
+              </Typography.Paragraph>
+              <Table
+                className={masterStyles.dataTable}
+                rowKey="id"
+                size="small"
+                loading={stockMovementsQuery.isFetching}
+                pagination={false}
+                style={{ marginBottom: 16 }}
+                dataSource={stockMovementsQuery.data?.data ?? []}
+                locale={{
+                  emptyText:
+                    "ยังไม่มีการตัดสต๊อก — สต๊อกจะขยับตอนกดเริ่มผลิตเท่านั้น",
+                }}
+                columns={[
+                  {
+                    title: "วันที่",
+                    dataIndex: "movementDate",
+                    key: "movementDate",
+                    width: 150,
+                    render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm"),
+                  },
+                  {
+                    title: "สินค้า",
+                    key: "item",
+                    render: (_, row) =>
+                      `${row.itemCode} — ${row.itemNameTh ?? ""}`,
+                  },
+                  {
+                    title: "คลัง / ตำแหน่ง",
+                    key: "place",
+                    render: (_, row) =>
+                      `${row.warehouseCode ?? "-"} / ${row.locationCode ?? "-"}`,
+                  },
+                  {
+                    title: "ตัดออก",
+                    key: "out",
+                    align: "right",
+                    width: 130,
+                    render: (_, row) =>
+                      `${fmt(row.quantityOut)} ${row.unitCode ?? ""}`,
+                  },
+                  {
+                    title: "คงเหลือหลังตัด",
+                    dataIndex: "balanceQuantityAfter",
+                    key: "balanceQuantityAfter",
+                    align: "right",
+                    width: 140,
+                    render: (v: string) => fmt(v),
                   },
                 ]}
               />

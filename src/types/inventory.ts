@@ -135,6 +135,13 @@ export type StockMovementQueryParams = {
   itemId?: string;
   movementType?: string;
   referenceDocType?: string;
+  /**
+   * เอกสารต้นทางของ movement — ใช้ดูว่าเอกสารใบหนึ่งทำให้สต๊อกขยับอะไรบ้าง
+   *
+   * จำเป็นกับใบสั่งผลิตเป็นพิเศษ เพราะการตัดสต๊อกตอนเริ่มผลิตไม่ได้ออกเอกสารเบิก
+   * ของตัวเอง ร่องรอยมีแค่แถวใน `stock_movements` ที่ใช้เลขใบสั่งผลิตแทนเลขใบเบิก
+   */
+  referenceDocId?: string;
   from?: string;
   to?: string;
   itemCategoryCode?: string;

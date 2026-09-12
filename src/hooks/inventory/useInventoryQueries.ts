@@ -65,10 +65,14 @@ export function useStockBalanceReservationsQuery(
   });
 }
 
-export function useStockMovementsQuery(params?: StockMovementQueryParams) {
+export function useStockMovementsQuery(
+  params?: StockMovementQueryParams,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: [...inventoryQueryKey, "stock-movements", params ?? {}],
     queryFn: () => getStockMovements(getAccessToken(), params),
+    enabled: options?.enabled ?? true,
   });
 }
 
