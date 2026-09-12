@@ -352,12 +352,14 @@ export default function ProductionOutputStockRequestCreatePage({
   const blockedItemIds = selectedProductionOrder?.blockedItemIds ?? [];
   const lastPrefillOrderIdRef = useRef<string | undefined>(undefined);
 
+  /*
+    ใช้ `productionOrderId` ไม่ใช่ `referenceDocType/Id` — เหตุผลเดียวกับหน้ารายละเอียด
+    ใบสั่งผลิต · ตัวกรอง `referenceDocId` ไม่ครอบคอลัมน์ FK `production_order_id`
+    ถ้านับคำขอเดิมได้ไม่ครบ หน้านี้จะคิดยอดคงเหลือสูงเกินจริงแล้วปล่อยให้ขอรับซ้ำ
+  */
   const productionOrderRequestsQuery = useProductionOutputStockRequestsQuery(
     selectedProductionOrderId
-      ? {
-          referenceDocType: REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
-          referenceDocId: selectedProductionOrderId,
-        }
+      ? { productionOrderId: selectedProductionOrderId }
       : undefined,
     { enabled: Boolean(selectedProductionOrderId) },
   );

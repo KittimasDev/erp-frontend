@@ -123,6 +123,14 @@ export type ProductionOutputStockRequestQueryParams = {
   warehouseId?: string;
   referenceDocType?: string;
   referenceDocId?: string;
+  /**
+   * คำขอที่ผูกกับใบสั่งผลิตนี้ — ครอบทั้ง 3 ทางที่ผูกกันได้ ตรงกับที่สูตร Yield ใช้นับ
+   *
+   * ใช้ตัวนี้แทน `referenceDocId` เมื่อต้องการคำขอของใบสั่งผลิตใบหนึ่ง ·
+   * `referenceDocId` ไม่ครอบคอลัมน์ FK `production_order_id` คำขอที่ผูกด้วย FK
+   * อย่างเดียวจึงหายไปจากรายการ ทั้งที่ถูกนับใน Yield แล้ว
+   */
+  productionOrderId?: string;
   q?: string;
 };
 

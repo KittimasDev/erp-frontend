@@ -157,8 +157,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const summaryQuery = useProductionOrderSummaryQuery(orderId);
   const order = detailQuery.data?.data;
 
+  /*
+    ใช้ `productionOrderId` ไม่ใช่ `referenceDocType/Id`
+
+    คำขอผูกกลับไปหาใบสั่งผลิตได้ 3 ทาง แต่ `referenceDocId` ครอบแค่ 2 —
+    คำขอที่ผูกด้วยคอลัมน์ FK อย่างเดียวจึงถูกนับใน Yield ด้านบนแต่ไม่โผล่ในตารางนี้
+    ทำให้ตัวเลขสองอันบนหน้าเดียวกันกระทบยอดกันไม่ลง
+  */
   const relatedRequestsQuery = useProductionOutputStockRequestsQuery(
-    { referenceDocType: "PRODUCTION_ORDER", referenceDocId: orderId },
+    { productionOrderId: orderId },
     { enabled: Boolean(orderId) },
   );
   const relatedMaterialIssuesQuery = useStockIssuesQuery({
