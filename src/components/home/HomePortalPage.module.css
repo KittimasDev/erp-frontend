@@ -6,7 +6,7 @@
 
 .hero {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 20px;
   padding: 28px 30px;
@@ -57,18 +57,7 @@
 
 .heroMeta {
   flex-shrink: 0;
-}
-
-.roleChip {
-  display: inline-flex;
-  align-items: center;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(115, 152, 22, 0.2);
-  color: #3f3f43;
-  font-size: 13px;
-  font-weight: 500;
+  align-self: stretch;
 }
 
 .grid {
@@ -223,6 +212,10 @@
     flex-direction: column;
     align-items: flex-start;
     padding: 22px 20px;
+  }
+
+  .heroMeta {
+    width: 100%;
   }
 
   .grid {

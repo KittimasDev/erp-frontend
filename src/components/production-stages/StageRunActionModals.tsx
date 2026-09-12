@@ -8,6 +8,7 @@ import type {
   CompleteStageRunBody,
   StageRun,
 } from "@/types/production-stage-run";
+import { OUTPUT_VARIANCE_WARN_PERCENT } from "@/lib/production/constants";
 import styles from "./StageRunPage.module.css";
 
 /**
@@ -19,9 +20,6 @@ import styles from "./StageRunPage.module.css";
  * ใช้ `destroyOnHidden` แล้วตั้งค่าเริ่มต้นใน `useState` ตอน mount (ไม่ใช้ effect
  * มา sync) สิ่งที่ผู้ใช้พิมพ์อยู่จึงไม่ถูกล้างเมื่อข้อมูลเบื้องหลัง refetch
  */
-
-/** ต่างจากแผนเกินเท่านี้ = เตือน ไม่ได้ห้าม คนหน้างานคือแหล่งความจริงของของจริง */
-const VARIANCE_WARN_PERCENT = 10;
 
 const CANCEL_REASON_MIN = 10;
 
@@ -53,7 +51,7 @@ function CompleteModalBody(props: Omit<CompleteModalProps, "open">) {
   const value = actual ?? 0;
   const variance = value - planned;
   const variancePercent = planned > 0 ? (variance / planned) * 100 : 0;
-  const bigVariance = Math.abs(variancePercent) >= VARIANCE_WARN_PERCENT;
+  const bigVariance = Math.abs(variancePercent) >= OUTPUT_VARIANCE_WARN_PERCENT;
 
   // เทียบได้เฉพาะตอนหน่วยเข้า/ออกเป็นหน่วยเดียวกัน — ดู yieldComparable จาก backend
   const consumed = Number(run.inputActualQty) || Number(run.inputQty) || 0;

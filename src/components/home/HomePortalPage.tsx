@@ -40,6 +40,7 @@ import {
   type PortalModuleDef,
   type PortalModuleTone,
 } from "./portal-modules";
+import TodayWorkCarousel from "./TodayWorkCarousel";
 import styles from "./HomePortalPage.module.css";
 
 const TONE_CLASS: Record<PortalModuleTone, string> = {
@@ -131,8 +132,6 @@ export default function HomePortalPage() {
   const badgeCounts = useMenuBadgeCounts({ enabled: mounted });
 
   const displayName = user?.displayName || user?.username || "ผู้ใช้งาน";
-  const roleLabel =
-    user?.roles?.[0]?.roleName ?? user?.roles?.[0]?.roleCode ?? "ERP";
 
   const openModule = (mod: PortalModuleDef) => {
     setActivePortalModule(mod.key as PortalModuleKey);
@@ -156,7 +155,7 @@ export default function HomePortalPage() {
           )}
         </div>
         <div className={styles.heroMeta}>
-          <span className={styles.roleChip}>{roleLabel}</span>
+          <TodayWorkCarousel counts={badgeCounts} />
         </div>
       </header>
 

@@ -14,12 +14,11 @@ import {
 
 import type { MaterialConversionRun } from "@/types/material-conversion";
 import { OUTPUT_TYPE_COLOR, OUTPUT_TYPE_LABEL } from "@/types/material-conversion";
+import { OUTPUT_VARIANCE_WARN_PERCENT } from "@/lib/production/constants";
 import styles from "./MaterialConversionPage.module.css";
 
 const { Text } = Typography;
 
-/** ต่างจากแผนเกินเท่านี้ต้องเตือน — ค่าเดียวกับ modal ปิดงานของรอบงานเดิม */
-const VARIANCE_WARN_PERCENT = 10;
 const CANCEL_REASON_MIN = 10;
 
 function fmtQty(value?: string | null) {
@@ -91,7 +90,7 @@ function StartModalBody({
     totalPlanned > 0
       ? Math.abs(((totalActual - totalPlanned) / totalPlanned) * 100)
       : 0;
-  const overVariance = variancePercent >= VARIANCE_WARN_PERCENT;
+  const overVariance = variancePercent >= OUTPUT_VARIANCE_WARN_PERCENT;
 
   return (
     <>

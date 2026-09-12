@@ -446,6 +446,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   MASTERS_CUSTOMERS: "/customers",
   QUOTATIONS: "/quotations",
   SALES_ORDERS: "/sales-orders",
+  SALES_ORDERS_IN_PRODUCTION: "/customers/sales-orders-in-production",
   SALES_STOCK_VERIFICATION: "/sales-orders/stock-verification",
   DELIVERY_ORDERS: "/delivery-orders",
   SALES_INVOICES: "/sales-invoices",

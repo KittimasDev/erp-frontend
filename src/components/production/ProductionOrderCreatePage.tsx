@@ -609,6 +609,33 @@ export default function ProductionOrderCreatePage() {
     }
   });
 
+  /*
+    ใบขอผลิตที่เลือกไว้ต้องมีสินค้าอยู่ในบรรทัดผลผลิตของใบนี้ด้วย
+
+    `resolvePlanningSelections()` ฝั่ง backend ตรวจแค่ว่าสินค้าตรงกับบรรทัดในใบขอผลิต
+    และจำนวนไม่เกินยอดค้าง — **ไม่ได้ตรวจว่าใบสั่งผลิตนี้ผลิตสินค้านั้นจริงไหม** ·
+    ถ้าปล่อยไว้จะสร้างใบที่จัดสรรน้ำมันให้ลูกค้า ทั้งที่แผนของใบไม่มีน้ำมันเลย
+    แล้ว `fulfilled_qty` ของ source line นั้นจะไม่มีวันขยับ กลายเป็นยอดค้างผีที่หาไม่เจอ
+  */
+  const plannedOutputItemIds = new Set(
+    outputRows.map((row) => row.itemId).filter(Boolean),
+  );
+  const unplannedSelections = selections.filter(
+    (selection) => !plannedOutputItemIds.has(selection.itemId),
+  );
+  if (unplannedSelections.length > 0) {
+    const names = unplannedSelections
+      .map(
+        (selection) =>
+          selectionLabels[selectionKeyOf(selection)]?.itemLabel ??
+          selection.itemId,
+      )
+      .join(" · ");
+    missingFields.push(
+      `ใบขอผลิตที่เลือกขอ ${names} แต่แผนผลผลิตของใบนี้ยังไม่มีสินค้านั้น — เพิ่มลงในผลผลิตที่คาดว่าจะได้ หรือเอาใบขอผลิตนั้นออก`,
+    );
+  }
+
   const canSubmit = missingFields.length === 0;
 
   const handleSubmit = () => {
