@@ -18,6 +18,27 @@ const ALLOWED_TAGS = new Set([
   "CODE",
 ]);
 
+/**
+ * หนีอักขระให้กลายเป็นข้อความล้วน — ใช้กับทางที่ไม่มี DOMParser
+ *
+ * ผลลัพธ์ของไฟล์นี้ถูกส่งเข้า `dangerouslySetInnerHTML` โดยตรง สิ่งที่คืนออกไป
+ * จึงต้องปลอดภัยทุกเส้นทาง ไม่ใช่เฉพาะเส้นทางหลัก
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * ดึงข้อความอ่านได้ออกจาก HTML — **ถอดรหัสเอนทิตี** จึงใช้ได้แค่สองอย่าง
+ * คือเช็คว่าว่างไหม กับเป็นวัตถุดิบให้ `escapeHtml` ต่อ
+ *
+ * ห้ามคืนค่าจากฟังก์ชันนี้เป็น HTML ตรง ๆ — `&lt;img onerror=...&gt;` ที่ถูกเก็บไว้
+ * แบบเข้ารหัสจะกลายเป็นแท็กจริงทันที
+ */
 function htmlTextContent(html: string): string {
   return html
     .replace(/<[^>]+>/g, " ")
@@ -133,8 +154,22 @@ export function sanitizeDocumentHtml(input?: string | null): string {
   if (!input?.trim()) {
     return "";
   }
+  /*
+    ไม่มี DOMParser = รันนอกเบราว์เซอร์ (SSR, สคริปต์ Node) — ตัดเหลือข้อความล้วน
+    แล้ว **หนีอักขระก่อนคืน**
+
+    ของเดิมคืนผลของ `htmlTextContent()` ตรง ๆ ซึ่งถอดรหัส `&lt;` กลับเป็น `<`
+    หลังจากตัดแท็กไปแล้ว · หมายเหตุที่เก็บไว้เป็น `&lt;img src=x onerror=...&gt;`
+    จึงออกมาเป็นแท็กจริงแล้ววิ่งเข้า `dangerouslySetInnerHTML`
+
+    วันนี้ยังยิงไม่ได้เพราะทุกหน้าดึงข้อมูลฝั่ง client และ PDF ก็สร้างในเบราว์เซอร์
+    (ทั้งสองที่มี DOMParser) ตอน SSR จึงไม่มีหมายเหตุให้ประมวลผล · แต่ทันทีที่มีคน
+    เพิ่มการดึงข้อมูลฝั่ง server หรือย้าย PDF ไปสร้างที่ Node มันจะกลายเป็น
+    stored XSS ทันทีโดยไม่มีอะไรเตือน
+  */
   if (typeof DOMParser === "undefined") {
-    return htmlTextContent(input);
+    const text = htmlTextContent(input);
+    return text ? `<p>${escapeHtml(text)}</p>` : "";
   }
 
   const doc = new DOMParser().parseFromString(input, "text/html");
