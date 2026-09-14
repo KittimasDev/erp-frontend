@@ -66,6 +66,18 @@ function round3(value: number) {
   return Math.round((value + Number.EPSILON) * 1000) / 1000;
 }
 
+/** สุทธิ = เข้า − ออก − หัก — ต้องเช็ค null ตรง ๆ เพราะ 0 เป็นค่าที่กรอกได้ ใช้ && จะกลายเป็น 0 ตลอด */
+function netFromInOut(
+  grossKg: number | null,
+  tareKg: number | null,
+  deductKg = 0,
+): number | null {
+  if (grossKg == null || tareKg == null) {
+    return null;
+  }
+  return Math.max(0, round3(grossKg - tareKg - deductKg));
+}
+
 /**
  * เปิดตั๋วใหม่จากรูปใบชั่ง
  *
@@ -124,11 +136,18 @@ export default function CreateTicketFromOcrModal({
   const [allowDuplicate, setAllowDuplicate] = useState(false);
 
   const [items, setItems] = useState<ItemRow[]>(() => {
+    const deductKg = result.deductions.reduce(
+      (sum, row) => sum + Number(row.deductionWeightKg ?? 0),
+      0,
+    );
+    const netKg =
+      netFromInOut(result.gross.value, result.tare.value, deductKg) ??
+      result.net.value;
     if (result.items.length > 0) {
       return result.items.map((item) => ({
         key: createClientId(),
         tireClassificationId: item.match?.tireClassificationId ?? "",
-        weightKg: item.weightKg,
+        weightKg: item.weightKg ?? netKg,
         pricePerKg: item.pricePerKg,
       }));
     }
@@ -138,7 +157,7 @@ export default function CreateTicketFromOcrModal({
         {
           key: createClientId(),
           tireClassificationId: "",
-          weightKg: result.net.value,
+          weightKg: netKg,
           pricePerKg: result.pricePerKg.value,
         },
       ];
@@ -200,10 +219,12 @@ export default function CreateTicketFromOcrModal({
     (sum, row) => sum + Number(row.deductionWeightKg ?? 0),
     0,
   );
-  const netWeightKg =
-    grossWeightKg && tareWeightKg
-      ? Math.max(0, round3(grossWeightKg - tareWeightKg - deductionWeight))
-      : 0;
+  const computedNetKg = netFromInOut(
+    grossWeightKg,
+    tareWeightKg,
+    deductionWeight,
+  );
+  const netWeightKg = computedNetKg ?? result.net.value;
 
   const itemsWithoutType = items.filter(
     (row) => !row.tireClassificationId && Number(row.weightKg ?? 0) > 0,
@@ -267,7 +288,7 @@ export default function CreateTicketFromOcrModal({
         .filter((row) => row.tireClassificationId)
         .map((row) => ({
           tireClassificationId: row.tireClassificationId,
-          weightKg: row.weightKg ?? undefined,
+          weightKg: row.weightKg ?? netWeightKg ?? undefined,
           pricePerKg: row.pricePerKg ?? undefined,
         })),
       deductions: deductions
@@ -522,13 +543,16 @@ export default function CreateTicketFromOcrModal({
               <div className={styles.ocrNetCard}>
                 <span className={styles.ocrNetLabel}>น้ำหนักสุทธิ</span>
                 <span className={styles.ocrNetValue}>
-                  {netWeightKg.toLocaleString("th-TH", {
-                    maximumFractionDigits: 3,
-                  })}
+                  {netWeightKg != null
+                    ? netWeightKg.toLocaleString("th-TH", {
+                        maximumFractionDigits: 3,
+                      })
+                    : "—"}
                 </span>
                 <span className={styles.ocrNetUnit}>กก.</span>
-                {result.net.value !== null &&
-                Math.abs(result.net.value - netWeightKg) > 1 ? (
+                {computedNetKg != null &&
+                result.net.value !== null &&
+                Math.abs(result.net.value - computedNetKg) > 1 ? (
                   <Tag color="orange">
                     บนใบระบุ{" "}
                     {result.net.value.toLocaleString("th-TH", {
@@ -585,7 +609,11 @@ export default function CreateTicketFromOcrModal({
                         min={0}
                         placeholder="กก."
                         aria-label={`น้ำหนักรายการยาง ${index + 1}`}
-                        value={row.weightKg ?? undefined}
+                        value={
+                          row.weightKg ??
+                          (items.length === 1 ? netWeightKg : null) ??
+                          undefined
+                        }
                         onChange={(value) =>
                           setItems((rows) =>
                             rows.map((item, i) =>
