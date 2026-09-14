@@ -44,18 +44,51 @@ const STORED_DEVICE_KEY = "weigh-ticket-ocr-camera-device-id";
 /** แนวกระดาษที่เลือกไว้ล่าสุด — หน้างานหนึ่งที่มักใช้ใบแบบเดียวซ้ำ ๆ */
 const STORED_ORIENTATION_KEY = "weigh-ticket-ocr-guide-orientation";
 
-type Orientation = "PORTRAIT" | "LANDSCAPE";
+type Orientation = "PORTRAIT" | "LANDSCAPE" | "TOP_STRIP";
 
-/** A4 = 210×297 มม. — ใบรับสินค้าที่ใช้จริงเป็นแนวตั้ง ส่วนใบชั่ง dot-matrix แบบแถบยาวเป็นแนวนอน */
+/**
+ * A4 = 210×297 มม. — ใบรับสินค้าที่ใช้จริงเป็นแนวตั้ง ส่วนใบชั่ง dot-matrix แบบแถบยาวเป็นแนวนอน
+ *
+ * `TOP_STRIP` = ครึ่งบนของ A4 แนวตั้ง (210×100 มม.) สำหรับใบที่ค่าสำคัญกระจุกอยู่ส่วนหัว
+ *
+ * ทำไมต้องมี: กรอบถูกย่อให้พอดี**ด้านที่แคบกว่า**ของเฟรมเสมอ กรอบแนวตั้งในเฟรม 16:9
+ * จึงใช้ความกว้างได้แค่ `frameH × 0.707` — บนเว็บแคม 1280×720 เหลือรูปจริงแค่ ~496×702
+ * แถบกว้างสัดส่วน 2.1 กินความกว้างได้เต็ม ได้ ~1248×594 คือพิกเซลมากกว่าเดิม 2.1 เท่า
+ * บนกล้องความละเอียดต่ำ การเลือกกรอบให้พอดีกับสิ่งที่จะอ่านจึงสำคัญกว่าอย่างอื่น
+ */
 const GUIDE_RATIO: Record<Orientation, number> = {
   PORTRAIT: 210 / 297,
   LANDSCAPE: 297 / 210,
+  TOP_STRIP: 210 / 100,
 };
+
+function readOrientation(): Orientation {
+  const stored = readStored(STORED_ORIENTATION_KEY);
+  return stored === "LANDSCAPE" || stored === "TOP_STRIP" ? stored : "PORTRAIT";
+}
 
 /** กรอบกินพื้นที่เฟรมเท่าไร — เหลือขอบไว้ให้เห็นว่ายังมีที่ว่างรอบใบ */
 const GUIDE_FILL = 0.92;
 /** ครอบตัดเผื่อออกนอกกรอบอีกนิด กันคนถ่ายจัดไม่พอดีแล้วตัวหนังสือริมใบหาย */
 const CROP_BLEED = 0.03;
+
+/**
+ * ความละเอียดสตรีมที่ขอจากกล้อง — ขอสูงไว้ เพราะเราทิ้งพิกเซลไปเยอะตอนครอบตัด
+ *
+ * กรอบ A4 แนวตั้งในเฟรมแนวนอนกินความกว้างได้แค่ `frameH × 0.707 × GUIDE_FILL` เท่านั้น
+ * ขอ 1920×1080 จะเหลือรูปจริงแค่ ~745×1053 ซึ่งเล็กกว่าใบตัวอย่างที่วัดได้ 8/8 (1063×1539)
+ * เกินครึ่งเมื่อคิดเป็นพื้นที่ — ตัวเลข dot-matrix เหลือเส้นละ 2-3 พิกเซล tesseract อ่านไม่ออก
+ * เคยเจอจริง: ถ่ายด้วย S22 แล้วอ่านไม่ได้เลย ทั้งที่กล้องถ่าย 50MP ได้
+ *
+ * ขอ 4K แทนจะได้รูปครอบแล้ว ~1489×2106 คือละเอียดกว่าใบตัวอย่างที่จูนมา
+ *
+ * ใช้ `ideal` ไม่ใช่ `exact` — กล้องที่ทำ 4K ไม่ได้ (เว็บแคมคอมส่วนใหญ่) จะคืนค่าที่ใกล้ที่สุด
+ * ให้เองโดยไม่ error ส่วน `MAX_EDGE_PX` ในขั้นเตรียมรูปเป็นเพดานกันไฟล์บวมอยู่แล้ว
+ */
+const CAPTURE_RESOLUTION = {
+  width: { ideal: 3840 },
+  height: { ideal: 2160 },
+} as const;
 
 type Rect = { x: number; y: number; width: number; height: number };
 
@@ -145,11 +178,7 @@ export default function CameraCaptureModal({
   const shotFileRef = useRef<File | null>(null);
 
   // อ่านค่าที่จำไว้ครั้งเดียวตอน mount — อ่านตอน render ผิดกฎ purity ของโปรเจกต
-  const [orientation, setOrientation] = useState<Orientation>(() =>
-    readStored(STORED_ORIENTATION_KEY) === "LANDSCAPE"
-      ? "LANDSCAPE"
-      : "PORTRAIT",
-  );
+  const [orientation, setOrientation] = useState<Orientation>(readOrientation);
   /** ขนาดภาพจริงจากกล้อง — รู้ตอน metadata มาถึง ไม่ใช่ตอนเปิดสตรีม */
   const [frame, setFrame] = useState<{ width: number; height: number } | null>(
     null,
@@ -174,8 +203,7 @@ export default function CameraCaptureModal({
               ...(wanted
                 ? { deviceId: { exact: wanted } }
                 : { facingMode: { ideal: "environment" } }),
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
+              ...CAPTURE_RESOLUTION,
             },
             audio: false,
           });
@@ -195,8 +223,7 @@ export default function CameraCaptureModal({
           media = await navigator.mediaDevices.getUserMedia({
             video: {
               facingMode: { ideal: "environment" },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
+              ...CAPTURE_RESOLUTION,
             },
             audio: false,
           });
@@ -383,6 +410,8 @@ export default function CameraCaptureModal({
             options={[
               { value: "PORTRAIT", label: "แนวตั้ง (A4)" },
               { value: "LANDSCAPE", label: "แนวนอน" },
+              // กล้องความละเอียดต่ำอ่านทั้งใบไม่ไหว — ถ่ายเฉพาะหัวใบให้ตัวหนังสือใหญ่ขึ้นแทน
+              { value: "TOP_STRIP", label: "เฉพาะส่วนบน" },
             ]}
             onChange={(value) => {
               setOrientation(value);

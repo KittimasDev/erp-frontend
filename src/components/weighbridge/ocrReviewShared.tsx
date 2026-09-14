@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { Alert, Empty, Tag, Tooltip } from "antd";
 import { ScanOutlined } from "@ant-design/icons";
+import dayjs, { type Dayjs } from "dayjs";
 
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 
@@ -50,6 +51,41 @@ export function formatDateTime(iso: string | null | undefined) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+/** แปลง ISO จาก OCR เป็นค่า DatePicker ตามนาฬิกาไทย ไม่พึ่ง timezone ของเบราว์เซอร์ */
+export function isoToDayjsInErpTz(iso: string | null | undefined): Dayjs | null {
+  if (!iso) {
+    return null;
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ERP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "00";
+  return dayjs(
+    `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}:${get("second")}`,
+  );
+}
+
+/** นาฬิกาที่ผู้ใช้เลือกใน DatePicker ถือเป็นเวลาไทย แล้วค่อยเก็บเป็น ISO */
+export function dayjsInErpTzToIso(value: Dayjs | null): string | null {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(`${value.format("YYYY-MM-DDTHH:mm:ss")}+07:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 /**

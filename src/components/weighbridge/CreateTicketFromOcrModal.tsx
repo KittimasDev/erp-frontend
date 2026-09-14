@@ -14,7 +14,6 @@ import {
   Typography,
 } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
 
 import { useSellersQuery } from "@/hooks/sellers/useSellersQuery";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
@@ -32,6 +31,8 @@ import { matchTruckByPlate } from "@/utils/licensePlate";
 
 import {
   formatMoney,
+  isoToDayjsInErpTz,
+  dayjsInErpTzToIso,
   OcrField,
   OcrModalHeader,
   OcrNotice,
@@ -490,10 +491,8 @@ export default function CreateTicketFromOcrModal({
                   showTime
                   style={{ width: "100%" }}
                   format="DD/MM/YYYY HH:mm"
-                  value={weighInAt ? dayjs(weighInAt) : null}
-                  onChange={(value) =>
-                    setWeighInAt(value ? value.toISOString() : null)
-                  }
+                  value={isoToDayjsInErpTz(weighInAt)}
+                  onChange={(value) => setWeighInAt(dayjsInErpTzToIso(value))}
                 />
               </OcrField>
 
@@ -514,10 +513,8 @@ export default function CreateTicketFromOcrModal({
                   showTime
                   style={{ width: "100%" }}
                   format="DD/MM/YYYY HH:mm"
-                  value={weighOutAt ? dayjs(weighOutAt) : null}
-                  onChange={(value) =>
-                    setWeighOutAt(value ? value.toISOString() : null)
-                  }
+                  value={isoToDayjsInErpTz(weighOutAt)}
+                  onChange={(value) => setWeighOutAt(dayjsInErpTzToIso(value))}
                 />
               </OcrField>
 

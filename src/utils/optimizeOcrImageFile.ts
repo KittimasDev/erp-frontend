@@ -10,6 +10,9 @@
  * **เคยลองแล้วแย่ลง อย่าทำซ้ำ** (วัดกับใบจริง ดู DEVELOPMENT.md หัวข้อ OCR)
  * — binarize แบบ Sauvola, ปรับคอนทราสต์ตามหน้าต่างรอบพิกเซล, และขยายภาพก่อนอ่าน
  * ทั้งสามอย่างทำให้ tesseract อ่านค่าสำคัญได้น้อยลงจริง ๆ ไม่ใช่แค่ช้าลง
+ *
+ * ใบแนวตั้งทั้งหน้าจะถูกตัดเหลือประมาณ 65% บน (หัวเอกสาร + ตารางชั่ง) ก่อนย่อและยืดคอนทราสต์
+ * เพราะภาพ CCTV ครึ่งล่างทำให้ PSM 6 อ่านได้ไม่ครบ — รูปที่ครอบตารางมาแล้วจะไม่ถูกตัดซ้ำ
  */
 
 import {
@@ -22,6 +25,37 @@ const MAX_EDGE_PX = 2400;
 const JPEG_QUALITY = 0.92;
 /** ตัดหัวท้าย histogram ทิ้งก่อนยืดคอนทราสต์ กันจุดด่างหรือแสงสะท้อนมาดึงช่วง */
 const CLIP_PERCENTILE = 0.02;
+
+/**
+ * ใบรับสินค้าแนวตั้งมีรูป CCTV ครึ่งล่าง — ตัดทิ้งก่อนอ่าน
+ * ค่าเดียวกับ `OCR_PORTRAIT_MIN_ASPECT` / `OCR_TEXT_REGION_HEIGHT_RATIO` ฝั่ง backend
+ * รูปที่ครอบตารางมาแล้ว (แนวนอน / TOP_STRIP) จะไม่ถูกตัดซ้ำ
+ */
+const PORTRAIT_MIN_ASPECT = 1.2;
+const TEXT_REGION_HEIGHT_RATIO = 0.65;
+
+/**
+ * กรอบต้นฉบับที่จะส่งให้ OCR — ครึ่งบนของใบแนวตั้ง หรือทั้งรูปถ้าไม่ใช่แนวตั้ง
+ *
+ * ตัดก่อนย่อ เพื่อให้เพดาน 2400px ไปอยู่ที่ตัวหนังสือ ไม่ไปเสียกับภาพกล้องวงจรปิด
+ */
+export function ocrSourceCrop(
+  width: number,
+  height: number,
+): { sx: number; sy: number; sw: number; sh: number } {
+  if (width <= 0 || height <= 0) {
+    return { sx: 0, sy: 0, sw: Math.max(1, width), sh: Math.max(1, height) };
+  }
+  if (height / width < PORTRAIT_MIN_ASPECT) {
+    return { sx: 0, sy: 0, sw: width, sh: height };
+  }
+  return {
+    sx: 0,
+    sy: 0,
+    sw: width,
+    sh: Math.max(1, Math.round(height * TEXT_REGION_HEIGHT_RATIO)),
+  };
+}
 
 /** จำนวนพิกเซลต่อแถบ — เล็กพอให้แต่ละแถบจบใน ~10-30ms เบราว์เซอร์จะได้แทรกการวาดจอได้ */
 const PIXELS_PER_CHUNK = 200_000;
@@ -139,10 +173,11 @@ export async function optimizeOcrImageFile(
 
   try {
     const img = await loadImageFromFile(file);
-    const longest = Math.max(img.naturalWidth, img.naturalHeight);
+    const crop = ocrSourceCrop(img.naturalWidth, img.naturalHeight);
+    const longest = Math.max(crop.sw, crop.sh);
     const scale = longest > MAX_EDGE_PX ? MAX_EDGE_PX / longest : 1;
-    const width = Math.max(1, Math.round(img.naturalWidth * scale));
-    const height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const width = Math.max(1, Math.round(crop.sw * scale));
+    const height = Math.max(1, Math.round(crop.sh * scale));
 
     const canvas = document.createElement("canvas");
     canvas.width = width;
@@ -157,7 +192,17 @@ export async function optimizeOcrImageFile(
     ctx.imageSmoothingQuality = "high";
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
+    ctx.drawImage(
+      img,
+      crop.sx,
+      crop.sy,
+      crop.sw,
+      crop.sh,
+      0,
+      0,
+      width,
+      height,
+    );
     onProgress?.(STAGE_WEIGHT.DECODE);
 
     const image = ctx.getImageData(0, 0, width, height);
