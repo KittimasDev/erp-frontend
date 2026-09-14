@@ -45,6 +45,11 @@ import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
 
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import T2900OutboundTicketsPanel from "@/components/weighbridge/T2900OutboundTicketsPanel";
+import { useScanWeighTicketOcrStandaloneMutation } from "@/hooks/weighbridge-tickets/useScanWeighTicketOcrStandaloneMutation";
+import type { WeighTicketOcrResult } from "@/types/weighbridge-ocr";
+
+import CreateTicketFromOcrModal from "./CreateTicketFromOcrModal";
+import WeighTicketOcrCaptureButton from "./WeighTicketOcrCaptureButton";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
 const { RangePicker } = DatePicker;
@@ -385,6 +390,9 @@ export default function WeighbridgeDashboardPage() {
   // SideSheet unmounts Form when closed — use local state instead of Form.useWatch
   const [sellerId, setSellerId] = useState<string | undefined>();
   const [truckId, setTruckId] = useState<string | undefined>();
+  const [ocrResult, setOcrResult] = useState<WeighTicketOcrResult | null>(null);
+  const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
+  const scanOcrMutation = useScanWeighTicketOcrStandaloneMutation();
 
   const stage = parseStage(searchParams.get("stage"));
   const tab = parseTab(searchParams.get("tab"));
@@ -946,6 +954,42 @@ export default function WeighbridgeDashboardPage() {
     },
   ];
 
+  // ปล่อย object URL ของรูปตัวอย่างเมื่อปิด popup หรือออกจากหน้า
+  useEffect(() => {
+    if (!ocrPreviewUrl) {
+      return;
+    }
+    return () => URL.revokeObjectURL(ocrPreviewUrl);
+  }, [ocrPreviewUrl]);
+
+  const closeOcrModal = () => {
+    setOcrResult(null);
+    setOcrPreviewUrl((previous) => {
+      if (previous) {
+        URL.revokeObjectURL(previous);
+      }
+      return null;
+    });
+  };
+
+  const handleScanFromDashboard = (file: File, previewUrl: string) => {
+    void (async () => {
+      try {
+        const data = await scanOcrMutation.mutateAsync(file);
+        setOcrPreviewUrl((previous) => {
+          if (previous) {
+            URL.revokeObjectURL(previous);
+          }
+          return previewUrl;
+        });
+        setOcrResult(data);
+      } catch {
+        // hook แจ้ง error ให้แล้ว แค่ทิ้งรูปตัวอย่างที่สร้างไว้
+        URL.revokeObjectURL(previewUrl);
+      }
+    })();
+  };
+
   return (
     <MasterPageGate
       isLoading={tab === "tickets" && dashboardQuery.isLoading}
@@ -1014,6 +1058,13 @@ export default function WeighbridgeDashboardPage() {
             >
               Dashboard
             </Button>
+            {tab === "tickets" ? (
+              <WeighTicketOcrCaptureButton
+                label="เปิดตั๋วจากรูปใบชั่ง"
+                pending={scanOcrMutation.isPending}
+                onScan={handleScanFromDashboard}
+              />
+            ) : null}
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -1664,6 +1715,17 @@ export default function WeighbridgeDashboardPage() {
           </Form>
         </div>
       </SideSheet>
+      {ocrResult ? (
+        <CreateTicketFromOcrModal
+          result={ocrResult}
+          previewUrl={ocrPreviewUrl}
+          onClose={closeOcrModal}
+          onCreated={(ticket) => {
+            closeOcrModal();
+            router.push(ticket.nextActionHref ?? `/receiving/${ticket.id}`);
+          }}
+        />
+      ) : null}
     </MasterPageGate>
   );
 }

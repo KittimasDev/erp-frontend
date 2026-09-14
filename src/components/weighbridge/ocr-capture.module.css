@@ -1,0 +1,570 @@
+/*
+  หน้าตาของงาน "อ่านใบชั่งจากรูป" ทั้งชุด — กล้อง, การ์ดโหลด, popup เปิดตั๋ว, popup เติมค่า
+
+  แยกออกมาจาก `WeighbridgeDashboardPage.module.css` เพราะ popup พวกนี้ถูกใช้จากสองหน้า
+  (หน้ารายการ `/receiving` และหน้าคัดแยก) การให้ทั้งคู่ import CSS ของหน้า dashboard
+  ทำให้แก้หน้าตา popup ทีไรต้องกลัวกระทบหน้า dashboard ทุกที
+*/
+
+/*
+  Modal ของ antd ถูก portal ไปไว้ที่ `document.body` ซึ่งอยู่นอก `.mainLayout`
+  ตัวแปรแบรนด์จึงไม่ตกทอดลงมา สีเลยเพี้ยนไปจากหน้าอื่นทั้งระบบ — ต้องประกาศซ้ำที่นี่
+  (เหตุผลเดียวกับ `masters/shared/master-page.module.css` ดูคอมเมนต์หัวไฟล์นั้นประกอบ)
+*/
+.ocrModal {
+  --unit-green: var(--brand-primary, #739816);
+  --unit-green-dark: var(--brand-primary-hover, #627f13);
+  --unit-green-soft: var(--brand-primary-soft, #f2f6e8);
+
+  --unit-gray: var(--brand-dark, #646468);
+  --unit-gray-dark: var(--brand-text, #3f3f43);
+  --unit-gray-soft: var(--brand-background, #f7f8f5);
+
+  --unit-text: var(--brand-text, #3f3f43);
+  --unit-muted: var(--brand-muted, #77777c);
+
+  --unit-border: var(--brand-border, #e1e2dd);
+  --unit-danger: #ef4444;
+  --unit-warn: #d46b08;
+}
+
+/* ── เปลือก modal ────────────────────────────────────────────────────────── */
+
+/*
+  antd v6 เปลี่ยนชื่อกล่องในของ modal เป็น `.ant-modal-container` และย้าย padding มาไว้ที่ตัวนี้
+  ยิงไป `.ant-modal-content` แบบเดิมจะไม่มีผลอะไรเลย — ห้ามเปลี่ยนกลับ
+  ตั้ง padding 0 แล้วให้หัว/เนื้อ/ท้ายถือ padding ของตัวเอง หัวสีเข้มจึงกินเต็มความกว้าง
+*/
+.ocrModal :global(.ant-modal-container) {
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 0;
+}
+
+.ocrModal :global(.ant-modal-body) {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 220px);
+  padding: 0;
+  overflow: hidden;
+}
+
+.ocrModal :global(.ant-modal-footer) {
+  margin: 0;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--unit-border);
+  background: #ffffff;
+}
+
+/* ปุ่มปิดลอยอยู่บนหัวสีเข้มตลอด จึงต้องเป็นสีอ่อน */
+.ocrModal :global(.ant-modal-close) {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* อยู่นอกพื้นที่ที่เลื่อน จึงค้างบนสุดเองโดยไม่ต้อง sticky */
+.modalHeader {
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 24px 18px;
+  background: linear-gradient(
+    135deg,
+    var(--unit-gray) 0%,
+    var(--unit-gray-dark) 100%
+  );
+}
+
+.modalIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.modalHeadText {
+  min-width: 0;
+}
+
+.modalEyebrow {
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+}
+
+.modalTitle {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.modalSubtitle {
+  display: block;
+  margin-top: 3px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+
+/* ── ตัวเนื้อ popup ──────────────────────────────────────────────────────── */
+
+.ocrLayout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 250px) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+  padding: 18px 24px 22px;
+  overflow-y: auto;
+  background: var(--unit-gray-soft);
+}
+
+.ocrPreview {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding: 12px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.ocrPreview img {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: var(--unit-gray-soft);
+}
+
+/* สรุปผลการอ่าน — ใช้สำนวน label/value เดียวกับ .ticketInfoRow ของหน้าตั๋ว */
+.ocrMetaRow {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.ocrMetaLabel {
+  color: var(--unit-muted);
+}
+
+.ocrMetaValue {
+  color: var(--unit-text);
+  word-break: break-word;
+}
+
+.ocrPanel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+/* ── การ์ดหมวด ───────────────────────────────────────────────────────────── */
+
+.ocrSection {
+  padding: 16px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.ocrSectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  color: var(--unit-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* แถบเขียวหน้าหัวข้อ — แพตเทิร์นเดียวกับ .sectionTitle/.sectionLine ของหน้าอื่น */
+.ocrSectionTitle::before {
+  content: "";
+  flex: none;
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--unit-green);
+}
+
+/*
+  ทุก control เริ่มที่ขอบซ้ายเดียวกันจริง ๆ เพราะเป็น grid ชุดเดียวทั้งการ์ด
+  ของเดิมเป็น <table> หลายตัวที่ความกว้างคอลัมน์ไม่ตรงกัน ขอบซ้ายเลยเหลื่อมกันไปหมด
+  และไม่มี border-bottom รายแถว — เส้นแนวนอน 20 กว่าเส้นคือต้นเหตุหลักของความลายตา
+*/
+.ocrField {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 12px;
+}
+
+.ocrFieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.ocrFieldWide {
+  grid-column: 1 / -1;
+}
+
+.ocrFieldHint {
+  grid-column: 2;
+  margin: -2px 0 0;
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.ocrFieldNote {
+  grid-column: 2;
+  margin: -2px 0 0;
+}
+
+/* ── ตารางรายการยาง / รายการหัก ──────────────────────────────────────────── */
+
+.ocrItemHead,
+.ocrItemRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px 112px 36px;
+  align-items: center;
+  gap: 8px;
+}
+
+.ocrDeductionHead,
+.ocrDeductionRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px 36px;
+  align-items: center;
+  gap: 8px;
+}
+
+.ocrItemHead,
+.ocrDeductionHead {
+  margin-bottom: 8px;
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.ocrItemRows {
+  display: grid;
+  gap: 8px;
+}
+
+/* แถวที่มีช่องติ๊กเลือกอยู่หน้าสุด (popup เติมค่าลงตั๋วที่เปิดอยู่) */
+.ocrCheckHead,
+.ocrCheckRow {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 108px 52px;
+  align-items: center;
+  gap: 8px;
+}
+
+.ocrCheckHead {
+  margin-bottom: 8px;
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.ocrItemFooter {
+  margin-top: 12px;
+}
+
+.ocrEmpty {
+  margin: 0;
+  color: var(--unit-muted);
+  font-size: 13px;
+}
+
+/*
+  แถวเทียบ "ค่าเดิม vs ค่าที่อ่านได้" ของ popup เติมค่า
+  ของเดิมเป็นตาราง 5 คอลัมน์ (ติ๊ก/ชื่อ/ค่าเดิม/ค่าใหม่/ความมั่นใจ) ซึ่งบนจอแคบอ่านไม่ได้เลย
+  ยุบเหลือสองคอลัมน์: ซ้ายคือติ๊กกับชื่อ ขวาคือค่าใหม่ตัวเด่นแล้วต่อท้ายด้วยค่าเดิมตัวจาง
+*/
+.ocrCompare {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.ocrCompareNew {
+  color: var(--unit-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ocrCompareOld {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+/* ── น้ำหนักสุทธิ ────────────────────────────────────────────────────────── */
+
+.ocrNetCard {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 2px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--unit-green-soft);
+}
+
+.ocrNetLabel {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+.ocrNetValue {
+  color: var(--unit-green-dark);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ocrNetUnit {
+  color: var(--unit-muted);
+  font-size: 12px;
+}
+
+/* ── กล่องเตือนใบเดียว ───────────────────────────────────────────────────── */
+
+/*
+  ของเดิม Alert ซ้อนกันได้ถึง 3 ใบ (ผลอ่านไม่ชัด + ไม่พบทะเบียน + ยังไม่เลือกประเภทยาง)
+  รวบเป็นใบเดียวที่มีรายการข้างในแทน — เหลือกรอบสีเดียวบนสุด ตาไม่ต้องกระโดด
+*/
+.ocrNoticeList {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.ocrNoticeList li + li {
+  margin-top: 2px;
+}
+
+/* ── กล้องถ่ายใบชั่ง ─────────────────────────────────────────────────────── */
+
+.cameraToolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+/*
+  เวทีกล้องมีสัดส่วนเท่าภาพจากกล้องเป๊ะ ๆ (`--video-ratio` ฉีดมาจาก JS)
+  ห้ามใช้ object-fit: contain แล้วปล่อยกล่องเป็นสัดส่วนอื่น — แถบดำที่ contain เติมให้
+  จะทำให้พิกัดบนจอกับพิกัดในวิดีโอไม่ตรงกัน แล้วกรอบที่วาดไว้กับที่ครอบตัดจริงจะคนละที่
+*/
+.cameraStage {
+  position: relative;
+  width: 100%;
+  max-width: calc(62vh * var(--video-ratio, 1.333));
+  aspect-ratio: var(--video-ratio, 1.333);
+  margin-inline: auto;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000000;
+}
+
+.cameraVideo,
+.cameraShot {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cameraShot {
+  position: absolute;
+  inset: 0;
+}
+
+/*
+  กรอบช่วยวางกระดาษ — ตำแหน่งและขนาดมาเป็น % จาก JS ตัวเดียวกับที่คำนวณกรอบครอบตัด
+  จงใจไม่คำนวณซ้ำใน CSS เพราะถ้าสองที่คิดไม่ตรงกัน คนถ่ายจะวางตามกรอบแล้วภาพโดนตัดผิดที่
+  box-shadow วงใหญ่ทำให้นอกกรอบมืดลงโดยไม่ต้องมี element ซ้อนอีกชั้น
+*/
+.captureGuide {
+  position: absolute;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 10px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.guideCorner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 0 solid var(--erp-green, #8ab933);
+}
+
+.guideCornerTl {
+  top: -2px;
+  left: -2px;
+  border-top-width: 4px;
+  border-left-width: 4px;
+  border-top-left-radius: 10px;
+}
+
+.guideCornerTr {
+  top: -2px;
+  right: -2px;
+  border-top-width: 4px;
+  border-right-width: 4px;
+  border-top-right-radius: 10px;
+}
+
+.guideCornerBl {
+  bottom: -2px;
+  left: -2px;
+  border-bottom-width: 4px;
+  border-left-width: 4px;
+  border-bottom-left-radius: 10px;
+}
+
+.guideCornerBr {
+  bottom: -2px;
+  right: -2px;
+  border-bottom-width: 4px;
+  border-right-width: 4px;
+  border-bottom-right-radius: 10px;
+}
+
+.guideHint {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.cameraOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+}
+
+.cameraFootnote {
+  display: block;
+  margin-top: 10px;
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+/* ── การ์ดบอกสถานะระหว่างอ่าน ───────────────────────────────────────────── */
+
+.scanCard {
+  padding: 6px 2px;
+  text-align: center;
+}
+
+.scanThumb {
+  width: 100%;
+  max-height: 170px;
+  object-fit: contain;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: var(--erp-bg, #f7f8f5);
+}
+
+.scanStage {
+  margin: 12px 0 6px;
+  font-weight: 500;
+}
+
+.scanElapsed {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.scanSlow {
+  margin: 8px 0 0;
+  color: #d46b08;
+  font-size: 12px;
+}
+
+/* ── จอแคบ ───────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .ocrLayout {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .ocrPreview {
+    position: static;
+  }
+
+  .ocrPreview img {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 720px) {
+  .ocrField {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .ocrFieldHint,
+  .ocrFieldNote {
+    grid-column: 1;
+  }
+
+  /* ราคาต่อกิโลตกลงไปแถวสอง ไม่งั้นช่องแคบจนกดตัวเลขไม่ถูก */
+  .ocrItemHead,
+  .ocrItemRow {
+    grid-template-columns: minmax(0, 1fr) 96px 36px;
+  }
+
+  .ocrCheckHead,
+  .ocrCheckRow {
+    grid-template-columns: 26px minmax(0, 1fr) 92px;
+  }
+
+  .ocrCheckFlag {
+    display: none;
+  }
+
+  .ocrItemHeadPrice {
+    display: none;
+  }
+
+  .ocrItemPrice {
+    grid-column: 1 / -1;
+  }
+
+  .cameraStage {
+    max-width: 100%;
+  }
+}

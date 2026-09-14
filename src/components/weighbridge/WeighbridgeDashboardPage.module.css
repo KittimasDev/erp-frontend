@@ -2396,3 +2396,15 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── อ่านใบชั่งจากรูป (OCR) ─────────────────────────────────────────────── */
+
+.weighBridgeHeadActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+/* หน้าตาของ popup อ่านใบชั่งย้ายไปอยู่ที่ `ocr-capture.module.css` เพราะถูกใช้จากหน้าคัดแยกด้วย */

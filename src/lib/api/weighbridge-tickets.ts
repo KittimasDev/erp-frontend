@@ -11,6 +11,7 @@ import type {
   WeighbridgeTicketDetailApiResponse,
   WeighTicketRequest,
 } from "@/types/weighbridge-tickets";
+import type { CreateTicketFromOcrRequest } from "@/types/weighbridge-ocr";
 
 export function getWeighbridgeDashboard(
   token: string,
@@ -77,6 +78,17 @@ export function createWeighbridgeTicket(
     token,
     body,
   });
+}
+
+/** เปิดตั๋วรับซื้อจากรูปใบชั่งที่ผู้ใช้ยืนยันค่าแล้ว */
+export function createWeighbridgeTicketFromOcr(
+  token: string,
+  body: CreateTicketFromOcrRequest,
+) {
+  return apiFetch<WeighbridgeTicketDetailApiResponse>(
+    "/api/weighbridge/tickets/from-ocr",
+    { method: "POST", token, body },
+  );
 }
 
 export function saveClassificationPlan(

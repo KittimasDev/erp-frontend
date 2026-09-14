@@ -7,7 +7,7 @@ const MAX_EDGE_PX = 1920;
 const JPEG_QUALITY = 0.84;
 const MIN_BYTES_TO_OPTIMIZE = 400 * 1024;
 
-function loadImageFromFile(file: File): Promise<HTMLImageElement> {
+export function loadImageFromFile(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -23,7 +23,7 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
   });
 }
 
-function canvasToBlob(
+export function canvasToBlob(
   canvas: HTMLCanvasElement,
   type: string,
   quality: number,
@@ -43,7 +43,7 @@ function canvasToBlob(
   });
 }
 
-function replaceExtension(name: string, ext: string) {
+export function replaceExtension(name: string, ext: string) {
   const base = name.replace(/\.[^.]+$/, "") || "payment-slip";
   return `${base}.${ext}`;
 }

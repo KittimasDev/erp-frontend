@@ -22,11 +22,18 @@ import { useRawTirePriceRulesQuery } from "@/hooks/raw-tire-price-rules/useRawTi
 import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
 import { useCompleteWeighAndReceiptMutation } from "@/hooks/weighbridge-tickets/useWeighTicketMutations";
+import { useScanWeighTicketOcrMutation } from "@/hooks/weighbridge-tickets/useScanWeighTicketOcrMutation";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { DEDUCTION_TYPE_LABELS } from "@/types/raw-tire-purchase-receipt";
 import type { RawTirePriceRule } from "@/types/raw-tire-price-rules";
 import type { WeighbridgeTicketDetail } from "@/types/weighbridge-tickets";
+import type {
+  OcrApplySelection,
+  WeighTicketOcrResult,
+} from "@/types/weighbridge-ocr";
 import { createClientId } from "@/utils/createClientId";
+import WeighTicketOcrCaptureButton from "./WeighTicketOcrCaptureButton";
+import WeighTicketOcrReviewModal from "./WeighTicketOcrReviewModal";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -226,6 +233,9 @@ export default function ReceivingTicketClassifyWeighPanel({
   const [tareWeightKg, setTareWeightKg] = useState<number | null>(null);
   const [isManual, setIsManual] = useState(true);
   const [reason, setReason] = useState("");
+  const [ocrResult, setOcrResult] = useState<WeighTicketOcrResult | null>(null);
+  const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
+  const scanOcrMutation = useScanWeighTicketOcrMutation(ticket.id);
 
   const receiptConfirmed =
     ticket.receiptStatus === "CONFIRMED" || ticket.receiptStatus === "APPROVED";
@@ -508,6 +518,104 @@ export default function ReceivingTicketClassifyWeighPanel({
     const others = round3(allocatedTireWeightKg - Number(currentWeight ?? 0));
     const max = round3(netWeightKg - others);
     return Math.max(0, max);
+  };
+
+  // ปล่อย object URL ของรูปตัวอย่างเมื่อปิด modal หรือออกจากหน้า
+  useEffect(() => {
+    if (!ocrPreviewUrl) {
+      return;
+    }
+    return () => URL.revokeObjectURL(ocrPreviewUrl);
+  }, [ocrPreviewUrl]);
+
+  const handleScanOcr = (file: File, previewUrl: string) => {
+    void (async () => {
+      try {
+        const data = await scanOcrMutation.mutateAsync(file);
+        setOcrPreviewUrl((previous) => {
+          if (previous) {
+            URL.revokeObjectURL(previous);
+          }
+          return previewUrl;
+        });
+        setOcrResult(data);
+      } catch {
+        // hook แจ้ง error ให้แล้ว แค่ทิ้งรูปตัวอย่างที่สร้างไว้
+        URL.revokeObjectURL(previewUrl);
+      }
+    })();
+  };
+
+  const closeOcrReview = () => {
+    setOcrResult(null);
+    setOcrPreviewUrl((previous) => {
+      if (previous) {
+        URL.revokeObjectURL(previous);
+      }
+      return null;
+    });
+  };
+
+  const handleApplyOcr = (selection: OcrApplySelection) => {
+    if (selection.grossWeightKg !== null) {
+      setGrossWeightKg(selection.grossWeightKg);
+    }
+    if (selection.tareWeightKg !== null) {
+      setTareWeightKg(selection.tareWeightKg);
+    }
+
+    if (selection.items.length > 0) {
+      setItems((previous) => {
+        const incoming = selection.items.map((item) =>
+          createItemRow({
+            tireClassificationId: item.tireClassificationId,
+            weightKg: item.weightKg,
+            pricePerKg: item.pricePerKg,
+            description: item.description,
+          }),
+        );
+        if (selection.itemsMode === "REPLACE") {
+          return incoming;
+        }
+        const kept = previous.filter(
+          (row) => row.tireClassificationId || Number(row.weightKg ?? 0) > 0,
+        );
+        return [...kept, ...incoming];
+      });
+    }
+
+    if (selection.deductions.length > 0) {
+      setDeductions((previous) => {
+        const incoming = selection.deductions.map((deduction) =>
+          createDeductionRow({
+            deductionType: deduction.deductionType,
+            description: deduction.description,
+            deductionWeightKg: deduction.deductionWeightKg,
+            deductionAmount: deduction.deductionAmount,
+          }),
+        );
+        if (selection.deductionsMode === "REPLACE") {
+          return incoming;
+        }
+        return [...previous, ...incoming];
+      });
+    }
+
+    // ค่าจาก OCR ไม่ได้มาจากตาชั่ง จึงต้องถือเป็นการกรอกเองเสมอ
+    // เพื่อให้ backend บันทึก weightSource = MANUAL และเปิดแถว manual override พร้อมเหตุผล
+    setIsManual(true);
+    setReason((previous) =>
+      previous.trim()
+        ? previous
+        : `กรอกจากรูปใบชั่ง (OCR) · ไฟล์แนบ ${ocrResult?.attachmentId ?? "-"} · ความเชื่อมั่น ${Math.round(
+            ocrResult?.meanConfidence ?? 0,
+          )}%`,
+    );
+
+    closeOcrReview();
+    message.success(
+      `เติมค่าจากรูปใบชั่งแล้ว ${selection.count} รายการ — ตรวจสอบให้ตรงกับใบจริงก่อนบันทึก`,
+    );
   };
 
   const handleComplete = () => {
@@ -800,16 +908,23 @@ export default function ReceivingTicketClassifyWeighPanel({
                   <p className={styles.classifyEyebrow}>ชั่งรถ</p>
                   <h4>น้ำหนักเข้า − ออก = สุทธิ</h4>
                 </div>
-                <label className={styles.weighManualToggle}>
-                  <span>กรอกเอง</span>
-                  <Switch
-                    checked={isManual}
-                    checkedChildren="ใช่"
-                    unCheckedChildren="ไม่"
+                <div className={styles.weighBridgeHeadActions}>
+                  <WeighTicketOcrCaptureButton
                     disabled={!formEditable}
-                    onChange={setIsManual}
+                    pending={scanOcrMutation.isPending}
+                    onScan={handleScanOcr}
                   />
-                </label>
+                  <label className={styles.weighManualToggle}>
+                    <span>กรอกเอง</span>
+                    <Switch
+                      checked={isManual}
+                      checkedChildren="ใช่"
+                      unCheckedChildren="ไม่"
+                      disabled={!formEditable}
+                      onChange={setIsManual}
+                    />
+                  </label>
+                </div>
               </div>
 
               <div className={styles.weighBridgeMath}>
@@ -1423,6 +1538,22 @@ export default function ReceivingTicketClassifyWeighPanel({
           </div>
         )}
       </div>
+
+      {ocrResult ? (
+        <WeighTicketOcrReviewModal
+          result={ocrResult}
+          previewUrl={ocrPreviewUrl}
+          classifications={classifications}
+          current={{
+            grossWeightKg,
+            tareWeightKg,
+            itemCount: items.filter((row) => row.tireClassificationId).length,
+            deductionCount: deductions.length,
+          }}
+          onApply={handleApplyOcr}
+          onClose={closeOcrReview}
+        />
+      ) : null}
     </div>
   );
 }
