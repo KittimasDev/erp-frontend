@@ -81,6 +81,40 @@
   line-height: 1.45;
 }
 
+.section {
+  display: grid;
+  gap: 10px;
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 2px;
+  padding-left: 2px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.sectionDesc {
+  margin: 0;
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.emptyState {
+  padding: 28px 22px;
+  border: 1px dashed var(--erp-border, rgba(0, 0, 0, 0.12));
+  border-radius: 14px;
+  background: #fff;
+  text-align: center;
+}
+
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -118,16 +152,52 @@
   background: #fafafa;
 }
 
+.hubCardIcon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--erp-green-dark, #6f9720);
+  background: rgba(115, 152, 22, 0.1);
+  font-size: 16px;
+}
+
+.hubCardDisabled .hubCardIcon {
+  color: var(--erp-muted, #8a9199);
+  background: rgba(0, 0, 0, 0.04);
+}
+
 .hubCardBody {
   min-width: 0;
+  flex: 1 1 auto;
   display: grid;
   gap: 6px;
 }
 
 .hubCardBody strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--erp-text, #2f343a);
   font-size: 15px;
   font-weight: 500;
+}
+
+.hubCardBadge {
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--erp-red, #cf1322);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .hubCardDesc {

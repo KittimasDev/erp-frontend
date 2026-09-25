@@ -225,6 +225,19 @@ export function OcrNotice({
   );
 }
 
+/**
+ * ใบนี้ใครเป็นคนอ่าน — ผู้ใช้ต้องรู้ว่าค่าที่เห็นมาจาก AI หรือตัวอ่านในเครื่อง
+ * ถ้า AI ใช้ไม่ได้แล้วถอยมา เหตุผลจะอยู่ใน `warnings` ซึ่งหน้าจอแสดงอยู่แล้ว
+ */
+export function engineLabel(engine: string): string {
+  if (!engine) {
+    return "ไม่ทราบ";
+  }
+  return engine.toLowerCase().startsWith("gemini")
+    ? `AI (${engine})`
+    : "Tesseract (ในเครื่อง)";
+}
+
 /** คอลัมน์ซ้ายของ popup — รูปที่ถ่ายมา กับสรุปว่าอ่านได้ดีแค่ไหน */
 export function OcrPreviewPane({
   previewUrl,

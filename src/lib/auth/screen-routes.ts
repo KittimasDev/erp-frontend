@@ -80,13 +80,45 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     prefix: "/inventory/tire-prep-issues",
     screenCodes: ["TIRE_PREP_ISSUES"],
   },
-  { prefix: "/inventory/issues", screenCodes: ["INVENTORY_ISSUES"] },
-  { prefix: "/inventory/stock-inquiry", screenCodes: ["STOCK_INQUIRY"] },
+  /*
+    หน้า hub 4 หน้าด้านล่าง (issues / stock-inquiry / stock-control / warehouse/approvals)
+    เป็นหน้าการ์ดนำทางล้วน ไม่มี query ไม่มีข้อมูล — ต้องรับ screenCode ของลูกด้วย
+    ไม่งั้นคนที่ได้สิทธิ์แค่หน้าลูกหน้าเดียวจะเห็นเมนู hub แต่กดเข้าไปโดน AccessDenied
+    ไม่ได้เปิดหน้าข้อมูลเพิ่ม: prefix ของหน้าลูกยาวกว่าและถูกจัดเรียงมาก่อน
+    อีกทั้งไม่มี route ไหนอยู่ใต้ prefix ของ hub เลย
+  */
+  {
+    prefix: "/inventory/issues",
+    screenCodes: [
+      "INVENTORY_ISSUES",
+      "MATERIAL_ISSUES",
+      "CHEMICAL_ISSUES",
+      "TIRE_PREP_ISSUES",
+    ],
+  },
+  {
+    // rule เดียวครอบทั้ง RM/FG — ห้ามแตกเป็น rule ที่มี query isFinishedGood
+    // เพราะตัวกัน fgSibling เทียบ screenCodes[0] ถ้าขึ้นต้นด้วย STOCK_INQUIRY
+    // เหมือนกันทั้งคู่ ตัวกันจะไม่ทำงาน
+    prefix: "/inventory/stock-inquiry",
+    screenCodes: [
+      "STOCK_INQUIRY",
+      "STOCK_BALANCES",
+      "INVENTORY_LOTS",
+      "STOCK_MOVEMENTS",
+      "FG_STOCK_BALANCES",
+      "FG_INVENTORY_LOTS",
+      "FG_STOCK_MOVEMENTS",
+    ],
+  },
   {
     prefix: "/inventory/stock-transfers",
     screenCodes: ["STOCK_TRANSFERS"],
   },
-  { prefix: "/inventory/stock-control", screenCodes: ["STOCK_CONTROL"] },
+  {
+    prefix: "/inventory/stock-control",
+    screenCodes: ["STOCK_CONTROL", "STOCK_COUNTS", "STOCK_ADJUSTMENTS"],
+  },
   { prefix: "/inventory/stock-counts", screenCodes: ["STOCK_COUNTS"] },
   {
     prefix: "/inventory/stock-adjustments",
@@ -100,7 +132,14 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     prefix: "/goods-receipts",
     screenCodes: ["GOODS_RECEIPTS"],
   },
-  { prefix: "/warehouse/approvals", screenCodes: ["WAREHOUSE_APPROVALS"] },
+  {
+    prefix: "/warehouse/approvals",
+    screenCodes: [
+      "WAREHOUSE_APPROVALS",
+      "STOCK_POSTING_APPROVALS",
+      "PRODUCTION_OUTPUT_APPROVALS",
+    ],
+  },
 
   // Production
   {
@@ -251,6 +290,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/settings/permissions", screenCodes: ["PERMISSIONS"] },
   { prefix: "/settings/roles", screenCodes: ["ROLES"] },
   { prefix: "/settings/audit-logs", screenCodes: ["AUDIT_LOGS"] },
+  { prefix: "/settings/ai-ocr", screenCodes: ["SETTINGS_AI_OCR"] },
   { prefix: "/case", screenCodes: ["TEMP_CASES"] },
   // ลิงก์เก่าของแท็บลายเซ็น — ต้องไม่ผูก screenCode ไม่งั้น non-admin จะโดน
   // AccessDenied ก่อนที่ UserManagementPage จะได้ redirect ไป /profile
@@ -478,6 +518,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   ROLES: "/settings/roles",
   PERMISSIONS: "/settings/permissions",
   AUDIT_LOGS: "/settings/audit-logs",
+  SETTINGS_AI_OCR: "/settings/ai-ocr",
   MASTERS_VENDORS: "/masters/vendors",
   MASTERS_ITEMS: "/masters/items",
   MASTERS_ITEM_CATEGORIES: "/masters/item-categories",

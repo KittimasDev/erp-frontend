@@ -1,9 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import WarehouseDashboardPage from "@/components/warehouse/WarehouseDashboardPage";
 
-export default function Page() {
-  return (
-    <ErpModulePlaceholderPage module="แดชบอร์ด" title="ภาพรวมคลังสินค้า" />
-  );
+export default function WarehouseDashboardRoutePage() {
+  return <WarehouseDashboardPage />;
 }

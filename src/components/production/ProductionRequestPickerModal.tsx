@@ -287,7 +287,7 @@ function PickerBody({
         <Alert
           type="info"
           showIcon
-          message="รายการอาจไม่ครบ"
+          title="รายการอาจไม่ครบ"
           description="บัญชีนี้ไม่มีสิทธิ์ดูใบขอผลิตทั้งหมด จึงเห็นเฉพาะใบที่ตัวเองเป็นผู้ขอ"
         />
       ) : null}
@@ -296,7 +296,7 @@ function PickerBody({
         <Alert
           type="error"
           showIcon
-          message="ดึงรายการใบขอผลิตไม่สำเร็จ"
+          title="ดึงรายการใบขอผลิตไม่สำเร็จ"
           description="ลองปิดแล้วเปิดใหม่อีกครั้ง หรือกรอกวัตถุดิบและผลผลิตเองโดยไม่ผูกใบขอผลิต"
         />
       ) : null}

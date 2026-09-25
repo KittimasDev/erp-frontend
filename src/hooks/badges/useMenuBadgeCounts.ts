@@ -80,6 +80,24 @@ export function badgeLabelForMenuKey(menuKey: string): string {
 }
 
 /**
+ * ป้ายกำกับของเมนู hub ที่รวม badge ของหลายเมนูลูก — กติกาเดียวกับ badge รวม
+ * ของกล่องหน้าแรก: มีงานที่ต้องทำเองปนอยู่ ใช้คำที่ครอบคลุมกว่า
+ */
+export function badgeLabelForMenuKeys(
+  menuKeys: readonly string[],
+): "รออนุมัติ" | "รอดำเนินการ" {
+  const entries = MENU_BADGE_REGISTRY.filter((row) =>
+    menuKeys.includes(row.menuKey),
+  );
+  if (entries.length === 0) {
+    return "รอดำเนินการ";
+  }
+  return entries.some((entry) => entry.kind === "action")
+    ? "รอดำเนินการ"
+    : "รออนุมัติ";
+}
+
+/**
  * ป้ายกำกับของ badge รวม — กล่องที่มีงานต้องทำเอง (ไม่ใช่แค่รออนุมัติ)
  * หรือมีทั้งสองแบบปนกัน ใช้ "รอดำเนินการ" ที่ครอบคลุมกว่า
  */

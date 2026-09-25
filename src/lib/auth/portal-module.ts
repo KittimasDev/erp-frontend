@@ -130,6 +130,7 @@ const SHARED_INVENTORY_PATHS = [
   "/inventory/stock-balances",
   "/inventory/lots",
   "/inventory/stock-movements",
+  "/inventory/stock-inquiry",
 ];
 
 export function inferPortalModuleFromPathname(
@@ -147,11 +148,18 @@ export function inferPortalModuleFromPathname(
     return "fg-warehouse";
   }
 
-  if (
-    pathname.startsWith("/dashboard") ||
-    pathname === "/inventory/dashboard" ||
-    pathname === "/receiving/dashboard"
-  ) {
+  /*
+    หน้าหลักคลังนั่งอยู่ใต้ /inventory แต่ถูก map เป็นกลุ่มแดชบอร์ด — เข้าจากกลุ่มคลัง
+    แล้วกลุ่มคลังหายทั้งกลุ่ม · ถ้ามาจากกลุ่มคลังอยู่แล้วให้คงกลุ่มนั้นไว้
+  */
+  if (pathname === "/inventory/dashboard") {
+    const current = getActivePortalModule();
+    return current === "rm-warehouse" || current === "fg-warehouse"
+      ? current
+      : "dashboard";
+  }
+
+  if (pathname.startsWith("/dashboard") || pathname === "/receiving/dashboard") {
     return "dashboard";
   }
   // ต้องเช็คก่อน `/receiving` ด้านล่าง ไม่งั้นถูกกลืนเป็นรับซื้อยางทั้งหมด
@@ -193,10 +201,7 @@ export function inferPortalModuleFromPathname(
     return "fg-warehouse";
   }
   if (pathname.startsWith("/inventory")) {
-    // /inventory/dashboard already handled above
-    if (pathname === "/inventory/dashboard") {
-      return "dashboard";
-    }
+    // /inventory/dashboard จัดการไปแล้วด้านบน
     return "rm-warehouse";
   }
   if (

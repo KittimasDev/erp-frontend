@@ -33,10 +33,11 @@ import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 import { isFgInventoryScope } from "@/components/inventory/inventory-page-copy";
 import {
-  badgeLabelForMenuKey,
+  badgeLabelForMenuKeys,
   useMenuBadgeCounts,
   type MenuBadgeCounts,
 } from "@/hooks/badges/useMenuBadgeCounts";
+import { MENU_BADGE_REGISTRY } from "@/hooks/badges/menu-badge-registry";
 
 import styles from "./AppHeader.module.css";
 
@@ -56,6 +57,8 @@ type MenuItem = {
   screenCodes?: string[];
   /** path อื่นที่ควร highlight เมนูนี้เมื่ออยู่บนหน้านั้น (เช่น hub children) */
   matchHrefs?: string[];
+  /** รวมยอด badge ของเมนูลูกที่ถูกยุบเข้า hub นี้ — ไม่ระบุ = ใช้ [key] */
+  badgeMenuKeys?: string[];
 };
 
 const ROLE = {
@@ -550,12 +553,18 @@ const rawTireMenus: MenuItem[] = [
   },
 ];
 
+/*
+  กลุ่มคลังเคยมี 11 + 9 เมนูเรียงแบน ๆ หลายอันเป็นลูกของหน้า hub ที่มีอยู่แล้ว
+  ยุบเหลือ hub + งานที่ทำบ่อย — หน้าลูกเข้าผ่านการ์ดในหน้า hub หรือหน้าหลักคลัง
+  hub ต้องถือ screenCodes และ roles ของลูกที่ยุบเข้ามาทั้งหมด ไม่งั้นคนที่มีสิทธิ์
+  เฉพาะหน้าลูกจะมองไม่เห็นทางเข้าเลย
+*/
 const rawMaterialWarehouseMenus: MenuItem[] = [
   {
-    key: "rm-stock-balances",
-    screenCode: "STOCK_BALANCES",
-    label: "ยอดคงเหลือวัตถุดิบ",
-    href: "/inventory/stock-balances",
+    key: "rm-warehouse-home",
+    screenCode: "WAREHOUSE_DASHBOARD",
+    label: "หน้าหลักคลัง",
+    href: "/inventory/dashboard",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -566,66 +575,53 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
     ],
   },
   {
-    key: "rm-lots",
-    screenCode: "INVENTORY_LOTS",
-    label: "Lot วัตถุดิบ",
-    href: "/inventory/lots",
-    icon: <IconWarehouse />,
+    key: "stock-inquiry",
+    label: "ตรวจสอบสต๊อก",
+    href: "/inventory/stock-inquiry",
+    icon: <IconStockCount />,
+    screenCodes: [
+      "STOCK_INQUIRY",
+      "STOCK_BALANCES",
+      "INVENTORY_LOTS",
+      "STOCK_MOVEMENTS",
+    ],
+    matchHrefs: [
+      "/inventory/stock-inquiry",
+      "/inventory/stock-balances",
+      "/inventory/lots",
+      "/inventory/stock-movements",
+    ],
     roles: [
       ROLE.WAREHOUSE_OFFICER,
       ROLE.WAREHOUSE_MANAGER,
       ROLE.PROCUREMENT_MANAGER,
       ROLE.ACCOUNTING_OFFICER,
       ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "rm-material-issues",
-    screenCode: "MATERIAL_ISSUES",
-    label: "เบิกวัตถุดิบจากคลัง",
-    href: "/inventory/material-issues",
-    icon: <IconMaterialIssue />,
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
-  },
-  {
-    key: "chemical-issues",
-    screenCode: "CHEMICAL_ISSUES",
-    label: "เบิกจ่ายสารเคมี",
-    href: "/inventory/chemical-issues",
-    icon: <IconChemical />,
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
-  },
-  {
-    key: "tire-prep-issues",
-    screenCode: "TIRE_PREP_ISSUES",
-    label: "เบิกยางเข้ากระบวนการเตรียมยาง",
-    href: "/inventory/tire-prep-issues",
-    icon: <IconMaterialIssue />,
-    roles: [
-      ROLE.PRODUCTION_OFFICER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
     ],
   },
   {
     key: "inventory-issues",
-    screenCode: "INVENTORY_ISSUES",
     label: "เบิกจ่ายสินค้า",
     href: "/inventory/issues",
     icon: <IconMaterialIssue />,
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
-  },
-  {
-    key: "stock-inquiry",
-    screenCode: "STOCK_INQUIRY",
-    label: "ตรวจสอบสต๊อก",
-    href: "/inventory/stock-inquiry",
-    icon: <IconStockCount />,
+    screenCodes: [
+      "INVENTORY_ISSUES",
+      "MATERIAL_ISSUES",
+      "CHEMICAL_ISSUES",
+      "TIRE_PREP_ISSUES",
+    ],
+    matchHrefs: [
+      "/inventory/issues",
+      "/inventory/material-issues",
+      "/inventory/chemical-issues",
+      "/inventory/tire-prep-issues",
+    ],
+    badgeMenuKeys: ["inventory-issues", "chemical-issues"],
+    // PRODUCTION_OFFICER มาจากเมนูเบิกยางเข้าเตรียมยางที่ยุบเข้ามา
     roles: [
       ROLE.WAREHOUSE_OFFICER,
       ROLE.WAREHOUSE_MANAGER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
+      ROLE.PRODUCTION_OFFICER,
       ROLE.EXECUTIVE,
     ],
   },
@@ -639,29 +635,16 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
   },
   {
     key: "rm-stock-control",
-    screenCode: "STOCK_CONTROL",
     label: "นับและปรับปรุงสต๊อกวัตถุดิบ",
     href: "/inventory/stock-control",
     icon: <IconStockCount />,
+    screenCodes: ["STOCK_CONTROL", "STOCK_COUNTS", "STOCK_ADJUSTMENTS"],
     matchHrefs: [
       "/inventory/stock-control",
       "/inventory/stock-counts",
       "/inventory/stock-adjustments",
     ],
     roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
-  },
-  {
-    key: "rm-stock-movements",
-    screenCode: "STOCK_MOVEMENTS",
-    label: "ความเคลื่อนไหววัตถุดิบ",
-    href: "/inventory/stock-movements",
-    icon: <IconWarehouse />,
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
   },
   {
     key: "goods-receipts",
@@ -796,26 +779,10 @@ const productionMenus: MenuItem[] = [
 
 const finishedGoodsWarehouseMenus: MenuItem[] = [
   {
-    key: "warehouse-approvals",
-    screenCode: "WAREHOUSE_APPROVALS",
-    label: "อนุมัติงานคลัง",
-    href: "/warehouse/approvals",
-    icon: <IconWarehouse />,
-    roles: [ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
-  },
-  {
-    key: "production-output-approvals",
-    screenCode: "PRODUCTION_OUTPUT_APPROVALS",
-    label: "อนุมัติรับผลผลิตเข้าคลัง",
-    href: "/warehouse/production-output-approvals",
-    icon: <IconWarehouse />,
-    roles: [ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
-  },
-  {
-    key: "fg-stock-balances",
-    screenCode: "FG_STOCK_BALANCES",
-    label: "ยอดคงเหลือ FG",
-    href: "/inventory/stock-balances?isFinishedGood=true",
+    key: "fg-warehouse-home",
+    screenCode: "WAREHOUSE_DASHBOARD",
+    label: "หน้าหลักคลัง",
+    href: "/inventory/dashboard",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -825,11 +792,39 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     ],
   },
   {
-    key: "fg-lots",
-    screenCode: "FG_INVENTORY_LOTS",
-    label: "Lot สินค้าสำเร็จรูป",
-    href: "/inventory/lots?isFinishedGood=true",
+    key: "warehouse-approvals",
+    label: "อนุมัติงานคลัง",
+    href: "/warehouse/approvals",
     icon: <IconWarehouse />,
+    screenCodes: ["WAREHOUSE_APPROVALS", "PRODUCTION_OUTPUT_APPROVALS"],
+    /*
+      ไม่ใส่ /warehouse/stock-posting-approvals — ความยาวเท่ากับเมนูของกลุ่มรับซื้อยาง
+      ซึ่งมาก่อนใน ALL_MENU_ITEMS และชนะตลอด ปล่อยให้เป็นของกลุ่มนั้นตามเดิม
+    */
+    matchHrefs: [
+      "/warehouse/approvals",
+      "/warehouse/production-output-approvals",
+    ],
+    badgeMenuKeys: ["production-output-approvals"],
+    roles: [ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
+  },
+  {
+    key: "fg-stock-inquiry",
+    label: "ตรวจสอบสต๊อก FG",
+    href: "/inventory/stock-inquiry?isFinishedGood=true",
+    icon: <IconStockCount />,
+    screenCodes: [
+      "STOCK_INQUIRY",
+      "FG_STOCK_BALANCES",
+      "FG_INVENTORY_LOTS",
+      "FG_STOCK_MOVEMENTS",
+    ],
+    matchHrefs: [
+      "/inventory/stock-inquiry",
+      "/inventory/stock-balances",
+      "/inventory/lots",
+      "/inventory/stock-movements",
+    ],
     roles: [
       ROLE.WAREHOUSE_OFFICER,
       ROLE.WAREHOUSE_MANAGER,
@@ -894,19 +889,6 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
       ROLE.WAREHOUSE_MANAGER,
       ROLE.EXECUTIVE,
       ROLE.ACCOUNTING_OFFICER,
-    ],
-  },
-  {
-    key: "fg-stock-movements",
-    screenCode: "FG_STOCK_MOVEMENTS",
-    label: "ความเคลื่อนไหว FG",
-    href: "/inventory/stock-movements?isFinishedGood=true",
-    icon: <IconWarehouse />,
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
     ],
   },
 ];
@@ -1363,6 +1345,16 @@ const settingMenus: MenuItem[] = [
     icon: <IconAuditLog />,
     adminOnly: true,
   },
+  {
+    // หน้านี้ถือ API key ของบริการภายนอก — โหมด legacy ให้เฉพาะ admin
+    // ส่วนโหมด Permission Matrix แจกสิทธิ์ให้ role อื่นได้ผ่าน SETTINGS_AI_OCR
+    key: "ai-ocr-settings",
+    screenCode: "SETTINGS_AI_OCR",
+    label: "ตั้งค่า AI อ่านเอกสาร",
+    href: "/settings/ai-ocr",
+    icon: <IconAuditLog />,
+    adminOnly: true,
+  },
 ];
 
 const masterMenus: MenuItem[] = [
@@ -1577,7 +1569,13 @@ const masterMenus: MenuItem[] = [
   },
 ];
 
+/*
+  ต้องครบทุกกลุ่มที่ render จริง — `resolveActiveMenuHref` สแกนเฉพาะ array นี้
+  เดิมตก dashboard / oil / maintenance / hrm เมนูพวกนั้นเลยไม่เคยไฮไลต์เลย
+  และ `/receiving/dashboard` ก็ไปจุดเมนู `/receiving` แทนเพราะไม่มีตัวเทียบที่ยาวกว่า
+*/
 const ALL_MENU_ITEMS = [
+  ...dashboardMenus,
   ...rawTireMenus,
   ...rawMaterialWarehouseMenus,
   ...productionMenus,
@@ -1585,11 +1583,36 @@ const ALL_MENU_ITEMS = [
   ...purchaseMenus,
   ...salesMenus,
   ...laboratoryMenus,
+  ...oilTankFarmMenus,
+  ...maintenanceMenus,
+  ...hrmMenus,
   ...financeMenus,
   ...reportMenus,
   ...settingMenus,
   ...masterMenus,
 ];
+
+/*
+  ยุบเมนูลูกเข้า hub แล้ว `menuKey` ใน MENU_BADGE_REGISTRY จะไม่ตรงกับ MenuItem.key
+  อีกต่อไป (เช่น chemical-issues) — ยอดค้างจะเงียบหายโดยไม่มีใครรู้
+  ตัวนี้จับกรณีนั้นตั้งแต่ตอน dev
+*/
+if (process.env.NODE_ENV !== "production") {
+  const renderedBadgeKeys = new Set(
+    ALL_MENU_ITEMS.flatMap((item) => [
+      item.key,
+      ...(item.badgeMenuKeys ?? []),
+    ]),
+  );
+  for (const entry of MENU_BADGE_REGISTRY) {
+    if (!entry.hidden && !renderedBadgeKeys.has(entry.menuKey)) {
+      console.error(
+        `[AppHeader] badge ${entry.menuKey} ไม่มีเมนูไหนแสดง — ยอดจะหาย ` +
+          `(ยุบเมนูแล้วอย่าลืมใส่ badgeMenuKeys ให้ hub)`,
+      );
+    }
+  }
+}
 
 function hrefPathname(href: string) {
   return href.split("?")[0];
@@ -1600,17 +1623,37 @@ function matchesHref(pathname: string, href: string) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
+/**
+ * หน้าที่คลังวัตถุดิบกับคลัง FG ใช้ path เดียวกัน แยกกันด้วย `isFinishedGood` บน query
+ * — ต้องกรองตาม scope ไม่งั้นสองกลุ่มสว่างพร้อมกัน
+ */
+const SHARED_RM_FG_PATHS = [
+  "/inventory/stock-balances",
+  "/inventory/lots",
+  "/inventory/stock-movements",
+  "/inventory/stock-inquiry",
+];
+
 /** เลือกเมนูที่ตรงที่สุด (match path ยาวที่สุด) รวม matchHrefs ของ hub */
-function resolveActiveMenuHref(pathname: string): string | null {
+function resolveActiveMenuHref(
+  pathname: string,
+  searchParams?: URLSearchParams,
+): string | null {
+  const fgScope = isFgInventoryScope(searchParams);
   let best: { href: string; matchLen: number } | null = null;
 
   for (const item of ALL_MENU_ITEMS) {
+    const itemIsFg = isFgInventoryMenu(item);
     const candidates =
       item.matchHrefs && item.matchHrefs.length > 0
         ? item.matchHrefs
         : [hrefPathname(item.href)];
 
     for (const candidate of candidates) {
+      // เอาเฉพาะฝั่งที่ตรงกับ scope บน URL — อีกฝั่งไม่ใช่เจ้าของหน้านี้
+      if (SHARED_RM_FG_PATHS.includes(candidate) && itemIsFg !== fgScope) {
+        continue;
+      }
       if (!matchesHref(pathname, candidate)) continue;
       if (!best || candidate.length > best.matchLen) {
         best = { href: item.href, matchLen: candidate.length };
@@ -1643,8 +1686,11 @@ function isActive(
   }
 
   if (isFgInventoryMenu(item)) {
-    const path = hrefPathname(item.href);
-    if (!matchesHref(pathname, path)) {
+    const candidates =
+      item.matchHrefs && item.matchHrefs.length > 0
+        ? item.matchHrefs
+        : [hrefPathname(item.href)];
+    if (!candidates.some((candidate) => matchesHref(pathname, candidate))) {
       return false;
     }
     return isFgInventoryScope(searchParams);
@@ -1661,12 +1707,12 @@ function isActive(
       !pathname.startsWith("/production/output-stock-requests") &&
       !pathname.startsWith("/receiving/pending-production-output")
     ) {
-      return resolveActiveMenuHref(pathname) === item.href;
+      return resolveActiveMenuHref(pathname, searchParams) === item.href;
     }
     return false;
   }
 
-  return resolveActiveMenuHref(pathname) === item.href;
+  return resolveActiveMenuHref(pathname, searchParams) === item.href;
 }
 
 function isMasterActive(pathname: string) {
@@ -1721,8 +1767,7 @@ function filterMenus(items: MenuItem[]) {
     }
     if (
       !PRODUCTION_OUTPUT_ENABLED &&
-      (item.key === "production-output-stock-requests" ||
-        item.key === "production-output-approvals")
+      item.key === "production-output-stock-requests"
     ) {
       return false;
     }
@@ -1743,8 +1788,14 @@ function renderMenuButton(
   badgeCounts?: MenuBadgeCounts,
 ) {
   const active = isActive(item, pathname, searchParams);
-  const raw = badgeCounts?.[item.key];
-  const count = typeof raw === "number" && raw > 0 ? raw : 0;
+  const badgeKeys = item.badgeMenuKeys?.length
+    ? item.badgeMenuKeys
+    : [item.key];
+  const raw = badgeKeys.reduce(
+    (sum, key) => sum + (badgeCounts?.[key] ?? 0),
+    0,
+  );
+  const count = raw > 0 ? raw : 0;
 
   return (
     <button
@@ -1759,7 +1810,7 @@ function renderMenuButton(
       {count > 0 ? (
         <span
           className={styles.menuBadge}
-          aria-label={`${count} รายการ${badgeLabelForMenuKey(item.key)}`}
+          aria-label={`${count} รายการ${badgeLabelForMenuKeys(badgeKeys)}`}
         >
           {count > 99 ? "99+" : count}
         </span>

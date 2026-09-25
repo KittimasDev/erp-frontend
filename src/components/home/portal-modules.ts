@@ -107,14 +107,16 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     description: "ยอดคงเหลือ · เบิก · โอน · นับ",
     href: "/inventory/stock-balances",
     tone: "green",
+    /* STOCK_INQUIRY มาก่อน — resolvePortalHref ไล่ตามลำดับนี้ กล่องหน้าแรก
+       จะได้เปิดเข้าหน้ารวม ไม่ใช่หน้าใบเดียว */
     screenCodes: [
+      "STOCK_INQUIRY",
       "STOCK_BALANCES",
       "INVENTORY_LOTS",
       "MATERIAL_ISSUES",
       "CHEMICAL_ISSUES",
       "TIRE_PREP_ISSUES",
       "INVENTORY_ISSUES",
-      "STOCK_INQUIRY",
       "STOCK_TRANSFERS",
       "STOCK_CONTROL",
       "STOCK_MOVEMENTS",
@@ -331,6 +333,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "USERS",
       "PERMISSIONS",
       "AUDIT_LOGS",
+      "SETTINGS_AI_OCR",
       "ROLES",
       "TEMP_CASES",
       "WAREHOUSES",

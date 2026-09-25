@@ -23,7 +23,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/", title: "Portal" },
   { href: "/case", title: "Case / Issue" },
   { href: "/dashboard/executive", title: "ภาพรวมผู้บริหาร" },
-  { href: "/inventory/dashboard", title: "ภาพรวมคลังสินค้า" },
+  { href: "/inventory/dashboard", title: "หน้าหลักคลัง" },
   { href: "/receiving/dashboard", title: "ภาพรวมรับซื้อยาง" },
   { href: "/weighbridge/floor-scale-tickets", title: "ชั่งน้ำหนัก Floor Scale" },
   // เรียงจากเจาะจงไปกว้าง — รายการนี้จับแบบ prefix ถ้าเอาตัวกว้างขึ้นก่อน
@@ -127,6 +127,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/users", title: "ผู้ใช้งาน" },
   { href: "/settings/roles", title: "Roles" },
   { href: "/settings/audit-logs", title: "Audit Log" },
+  { href: "/settings/ai-ocr", title: "ตั้งค่า AI อ่านเอกสาร" },
   { href: "/reports/procurement", title: "รายงานจัดซื้อ" },
   { href: "/reports/inventory", title: "รายงานคลัง" },
   { href: "/reports/receiving", title: "รายงานรับซื้อยาง" },
@@ -161,6 +162,7 @@ function inventoryScopeTitle(
     "/inventory/stock-balances": "ยอดคงเหลือสินค้าสำเร็จรูป",
     "/inventory/lots": "Lot สินค้าสำเร็จรูป",
     "/inventory/stock-movements": "ความเคลื่อนไหวสินค้าสำเร็จรูป",
+    "/inventory/stock-inquiry": "ตรวจสอบสต๊อกสินค้าสำเร็จรูป",
   };
   if (isFgInventoryScope(searchParams)) {
     return fgTitleMap[pathname] ?? null;

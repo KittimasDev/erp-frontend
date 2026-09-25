@@ -24,6 +24,7 @@ import {
   formatDateTime,
   formatMoney,
   formatWeight,
+  engineLabel,
   OcrField,
   OcrModalHeader,
   OcrNotice,
@@ -163,6 +164,7 @@ export default function WeighTicketOcrReviewModal({
   ];
 
   const previewRows = [
+    { label: "อ่านด้วย", value: engineLabel(result.engine) },
     { label: "ความเชื่อมั่น", value: `${Math.round(result.meanConfidence)}%` },
     {
       label: "ใช้เวลาอ่าน",

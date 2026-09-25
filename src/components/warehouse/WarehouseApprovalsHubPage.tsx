@@ -1,5 +1,7 @@
 "use client";
 
+import { CheckCircleOutlined, InboxOutlined } from "@ant-design/icons";
+
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
 import WarehouseHubPage from "@/components/warehouse/WarehouseHubPage";
 import type { WarehouseHubCard } from "@/components/warehouse/WarehouseHubPage";
@@ -11,6 +13,9 @@ export default function WarehouseApprovalsHubPage() {
       title: "อนุมัติรับสินค้าเข้าคลัง",
       description: "อนุมัติคำขอรับเข้าคลังจากใบรับซื้อยาง (Stock Posting)",
       href: "/warehouse/stock-posting-approvals",
+      icon: <InboxOutlined />,
+      screenCodes: ["STOCK_POSTING_APPROVALS"],
+      badgeMenuKeys: ["stock-posting-approvals"],
     },
   ];
 
@@ -20,6 +25,9 @@ export default function WarehouseApprovalsHubPage() {
       title: "อนุมัติรับผลผลิตเข้าคลัง",
       description: "อนุมัติคำขอรับผลผลิตเข้าคลังจากกระบวนการผลิต",
       href: "/warehouse/production-output-approvals",
+      icon: <CheckCircleOutlined />,
+      screenCodes: ["PRODUCTION_OUTPUT_APPROVALS"],
+      badgeMenuKeys: ["production-output-approvals"],
     });
   }
 
@@ -28,6 +36,7 @@ export default function WarehouseApprovalsHubPage() {
       eyebrow="WAREHOUSE · APPROVALS"
       title="อนุมัติงานคลัง"
       subtitle="รวมหน้ารออนุมัติของงานคลังไว้ที่เดียว"
+      icon={<CheckCircleOutlined />}
       cards={cards}
     />
   );
