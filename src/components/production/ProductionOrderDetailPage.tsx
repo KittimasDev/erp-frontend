@@ -8,6 +8,7 @@ import {
   App,
   Button,
   Checkbox,
+  DatePicker,
   Form,
   Input,
   InputNumber,
@@ -60,7 +61,7 @@ import {
   ProductionOrderStatus,
 } from "@/types/production-order";
 import {
-  hasRequestableProductionOutput,
+  canRequestMoreProductionOutput,
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
   ProductionOutputRequestStatus,
   REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
@@ -243,7 +244,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const blockedItemIds = readyOrder?.blockedItemIds ?? [];
   const canStillRequestOutput =
     !readyOrdersQuery.isSuccess ||
-    (readyOrder ? hasRequestableProductionOutput(readyOrder) : false);
+    (readyOrder ? canRequestMoreProductionOutput(readyOrder) : false);
 
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const selectedWarehouseId = Form.useWatch("warehouseId", requestForm);
@@ -261,6 +262,18 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const isCompleted = order?.status === ProductionOrderStatus.COMPLETED;
   /** กำลังผลิตหรือหยุดชั่วคราว = ตัดสต๊อกไปแล้ว ยกเลิกได้แต่ต้องมีเหตุผล+ลายเซ็น */
   const isRunning = isInProgress || isPaused;
+  /*
+    งานผลิตยาวหลายสิบวันต้องทยอยรับของเข้าคลังระหว่างทาง ไม่ใช่รอปิดงาน
+    ใบที่เริ่มผลิตแล้ว (ตัดวัตถุดิบไปแล้ว) จึงขอรับได้ — ตรงกับ guard ฝั่ง backend
+  */
+  const canReceiveOutput = isRunning || isCompleted;
+  /*
+    ครบตามแผน != ห้ามรับ — ใบที่ยังเดินเครื่องของจริงออกเกินแผนได้ จึงปลดล็อกให้ติ๊ก
+    และกรอกยอดเองได้ (ระบบยังไม่เติมให้) ส่วนใบที่ปิดงานแล้วถือว่าจบยอด บล็อกเหมือนเดิม
+  */
+  const lockedItemIds = isRunning ? [] : blockedItemIds;
+  /** ครบตามแผนแล้วแต่ยังรับต่อได้ — ต้องบอกให้เห็น ไม่งั้นคนกดจะนึกว่าจอค้าง */
+  const showOverPlanHint = isRunning && blockedItemIds.length > 0;
 
   const summary = summaryQuery.data?.data;
 
@@ -326,6 +339,45 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     return order?.productionRequestNo ? [order.productionRequestNo] : [];
   }, [order?.productionRequestNo, order?.sourceLines]);
 
+  /** ยอดที่ยังรับเข้าคลังได้ต่อสินค้า — มาจากคิว ready-orders ที่หักงวดก่อน ๆ ให้แล้ว */
+  const remainingByItemId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const item of readyOrder?.outputItems ?? []) {
+      map.set(item.itemId, Number(item.remainingQty));
+    }
+    return map;
+  }, [readyOrder]);
+
+  /* ประวัติเรียงใหม่สุดก่อน — ยึดวันที่รับเข้า ถ้าไม่มีค่อยใช้วันที่ยื่นคำขอ */
+  const outputHistoryRows = useMemo(() => {
+    const rows = [...(relatedRequestsQuery.data?.data ?? [])];
+    const at = (row: (typeof rows)[number]) =>
+      new Date(row.postingDate ?? row.requestedAt ?? row.createdAt ?? 0).getTime();
+    return rows.sort((a, b) => at(b) - at(a));
+  }, [relatedRequestsQuery.data]);
+
+  /** ยอดสะสมของใบนี้ — แยก "เข้าคลังแล้ว" กับ "รออนุมัติ" ให้เห็นว่าทำไมตัวเลขยังไม่ขยับ */
+  const outputHistorySummary = useMemo(() => {
+    if (!receiveLines.length) {
+      return null;
+    }
+    let approved = 0;
+    let pending = 0;
+    for (const row of outputHistoryRows) {
+      const qty = Number(row.quantity) || 0;
+      if (row.status === "APPROVED") {
+        approved += qty;
+      } else if (row.status === "PENDING_APPROVAL") {
+        pending += qty;
+      }
+    }
+    const planned = receiveLines.reduce(
+      (sum, line) => sum + (Number(line.plannedQty) || 0),
+      0,
+    );
+    return { approved, pending, planned };
+  }, [outputHistoryRows, receiveLines]);
+
   /**
    * ต้องอยู่หลัง hook ทุกตัว — ถ้า return ก่อน จำนวน hook ที่เรียกจะไม่เท่ากัน
    * ระหว่าง render แล้ว React จะโยน
@@ -374,7 +426,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     });
   const showReceiveCta =
     missingWarehouseLines.length > 0 &&
-    isCompleted &&
+    canReceiveOutput &&
     canRequestOutput &&
     canStillRequestOutput;
 
@@ -470,6 +522,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
       items,
       warehouseId: values.warehouseId,
       warehouseLocationId: values.warehouseLocationId,
+      /* งานยาวหลายสิบวัน วันที่ของออกจริงกับวันที่กรอกมักคนละวัน */
+      postingDate: values.postingDate
+        ? values.postingDate.format("YYYY-MM-DD")
+        : undefined,
       remark: values.remark || undefined,
     };
     createFromOrderMutation.mutate(
@@ -491,13 +547,20 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     const qtyByItemId: Record<string, number> = {};
     const selectable: string[] = [];
     for (const line of receiveLines) {
-      qtyByItemId[line.itemId] = Number(line.plannedQty);
+      /*
+        เติมยอดคงเหลือ ไม่ใช่แผนเต็ม — ทยอยรับเป็นงวดได้แล้ว ถ้าเติมแผนเต็มทุกครั้ง
+        คนกดจะรับเกินโดยไม่ตั้งใจตั้งแต่งวดที่สอง
+      */
+      const remaining = remainingByItemId.get(line.itemId);
+      qtyByItemId[line.itemId] =
+        remaining !== undefined ? remaining : Number(line.plannedQty);
       if (!blockedItemIds.includes(line.itemId)) {
         selectable.push(line.itemId);
       }
     }
     setReceiveQtyByItemId(qtyByItemId);
     setSelectedReceiveItemIds(selectable);
+    requestForm.setFieldValue("postingDate", dayjs());
     setRequestOpen(true);
   };
 
@@ -618,13 +681,16 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 </Button>
               ) : null}
 
-              {isCompleted && canRequestOutput && canStillRequestOutput ? (
+              {canReceiveOutput && canRequestOutput && canStillRequestOutput ? (
                 <Button
                   type="primary"
                   className={masterStyles.createButton}
                   onClick={openReceiveModal}
                 >
-                  ขอรับผลผลิตเข้าคลัง
+                  {/* ระหว่างผลิตเป็นการรับ "งวด" หนึ่ง ไม่ใช่ปิดยอดทั้งใบ */}
+                  {isCompleted
+                    ? "ขอรับผลผลิตเข้าคลัง"
+                    : "ขอรับผลผลิตเข้าคลัง (งวดนี้)"}
                 </Button>
               ) : null}
             </div>
@@ -1024,7 +1090,22 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>คำขอรับผลผลิตเข้าคลังจากใบสั่งผลิตนี้</h3>
+                <div>
+                  <h3>ประวัติการรับผลผลิตเข้าคลังของใบสั่งผลิตนี้</h3>
+                  <p className={styles.sectionHint}>
+                    ทุกงวดที่ขอรับเข้าคลัง เรียงใหม่สุดก่อน — ของจะเข้าคลังจริง
+                    เมื่อหัวหน้าคลังอนุมัติเท่านั้น
+                  </p>
+                </div>
+                {outputHistorySummary ? (
+                  <span className={styles.sectionHint}>
+                    เข้าคลังแล้วรวม {fmt(String(outputHistorySummary.approved))}
+                    {outputHistorySummary.pending > 0
+                      ? ` · รออนุมัติ ${fmt(String(outputHistorySummary.pending))}`
+                      : ""}
+                    {` จากแผน ${fmt(String(outputHistorySummary.planned))}`}
+                  </span>
+                ) : null}
               </div>
               <Table
                 className={masterStyles.dataTable}
@@ -1032,9 +1113,18 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 size="small"
                 loading={relatedRequestsQuery.isFetching}
                 pagination={false}
-                dataSource={relatedRequestsQuery.data?.data ?? []}
+                dataSource={outputHistoryRows}
                 locale={{ emptyText: "ยังไม่มีคำขอรับผลผลิต" }}
                 columns={[
+                  {
+                    title: "วันที่รับเข้า",
+                    key: "postingDate",
+                    width: 115,
+                    render: (_, row) =>
+                      row.postingDate
+                        ? dayjs(row.postingDate).format("DD/MM/YYYY")
+                        : "—",
+                  },
                   { title: "เลขที่คำขอ", dataIndex: "requestNo", key: "requestNo" },
                   {
                     title: "สินค้า",
@@ -1049,6 +1139,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     render: (_, row) => `${fmt(row.quantity)} ${row.unitCode ?? ""}`,
                   },
                   {
+                    title: "คลัง / ตำแหน่ง",
+                    key: "warehouse",
+                    render: (_, row) =>
+                      [row.warehouseCode, row.locationCode]
+                        .filter(Boolean)
+                        .join(" / ") || "—",
+                  },
+                  {
                     title: "Lot",
                     key: "lotNo",
                     render: (_, row) =>
@@ -1058,9 +1156,45 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     title: "สถานะ",
                     dataIndex: "status",
                     key: "status",
-                    render: (v: string) => (
-                      <Tag>{PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[v] ?? v}</Tag>
+                    render: (v: string, row) => (
+                      <>
+                        <Tag>
+                          {PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[v] ?? v}
+                        </Tag>
+                        {v === "REJECTED" && row.rejectReason ? (
+                          <div className={styles.sectionHint}>
+                            {row.rejectReason}
+                          </div>
+                        ) : null}
+                      </>
                     ),
+                  },
+                  {
+                    title: "ผู้ขอ / ผู้อนุมัติ",
+                    key: "people",
+                    render: (_, row) => (
+                      <div className={styles.sectionHint}>
+                        <div>
+                          ขอ: {row.requestedByName ?? "—"}
+                          {row.requestedAt
+                            ? ` · ${dayjs(row.requestedAt).format("DD/MM/YYYY HH:mm")}`
+                            : ""}
+                        </div>
+                        <div>
+                          อนุมัติ: {row.approvedByName ?? "—"}
+                          {row.approvedAt
+                            ? ` · ${dayjs(row.approvedAt).format("DD/MM/YYYY HH:mm")}`
+                            : ""}
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    title: "หมายเหตุ",
+                    dataIndex: "remark",
+                    key: "remark",
+                    ellipsis: true,
+                    render: (v?: string) => v || "—",
                   },
                   {
                     title: "",
@@ -1409,6 +1543,22 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             )
           }
         >
+          {/*
+            ปิดงานได้แม้ยังรับเข้าไม่ครบ — ของที่ผลิตได้จริงอยู่หน้าเครื่องแล้ว
+            แต่ต้องเห็นว่าเหลือเท่าไร และรู้ว่าปิดแล้วยังขอรับเพิ่มได้
+          */}
+          {outputHistorySummary &&
+          outputHistorySummary.approved < outputHistorySummary.planned ? (
+            <Alert
+              type="warning"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message={`ยังรับเข้าคลังไม่ครบแผน — เข้าคลังแล้ว ${fmt(
+                String(outputHistorySummary.approved),
+              )} จากแผน ${fmt(String(outputHistorySummary.planned))}`}
+              description="ปิดงานได้ตามปกติ และยังขอรับผลผลิตเข้าคลังเพิ่มได้หลังปิดงาน"
+            />
+          ) : null}
           <p>
             พิมพ์ <strong>done</strong> เพื่อยืนยันเสร็จสิ้นการผลิต
           </p>
@@ -1524,7 +1674,11 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
         />
 
         <Modal
-          title="ขอรับผลผลิตเข้าคลัง"
+          title={
+            isCompleted
+              ? "ขอรับผลผลิตเข้าคลัง"
+              : "ขอรับผลผลิตเข้าคลัง (งวดนี้)"
+          }
           open={requestOpen}
           onCancel={() => setRequestOpen(false)}
           okText="ส่งคำขอ"
@@ -1536,7 +1690,22 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
           <Typography.Paragraph type="secondary">
             อ้างอิงใบสั่งผลิต {order?.orderNo} — เลือกหลายรายการผลผลิตได้ในครั้งเดียว
             ระบบจะสร้างคำขอแยกตามสินค้า ยังไม่ POST สต๊อก รอ WAREHOUSE_MANAGER อนุมัติ
+            {isCompleted ? null : (
+              <>
+                {" "}
+                · ใบนี้ยังผลิตอยู่ รับเข้าได้เป็นงวด ส่วนที่เหลือขอเพิ่มภายหลังได้
+              </>
+            )}
           </Typography.Paragraph>
+          {showOverPlanHint ? (
+            <Alert
+              type="info"
+              showIcon
+              title="รับครบตามแผนแล้ว"
+              description="ถ้าของจริงออกมากกว่าแผน ติ๊กรายการแล้วกรอกจำนวนเองได้ ระบบไม่เติมยอดให้เพราะส่วนนี้นับเป็นผลผลิตเกินแผน"
+              style={{ marginBottom: 12 }}
+            />
+          ) : null}
           <Table
             rowKey="itemId"
             size="small"
@@ -1547,7 +1716,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               selectedRowKeys: selectedReceiveItemIds,
               onChange: (keys) => setSelectedReceiveItemIds(keys.map(String)),
               getCheckboxProps: (record) => ({
-                disabled: blockedItemIds.includes(record.itemId),
+                disabled: lockedItemIds.includes(record.itemId),
               }),
             }}
             columns={[
@@ -1575,6 +1744,17 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   `${fmt(row.actualQty ?? "0")} ${row.unitCode ?? ""}`,
               },
               {
+                title: "คงเหลือตามแผน",
+                key: "remainingQty",
+                align: "right",
+                render: (_, row) => {
+                  const remaining = remainingByItemId.get(row.itemId);
+                  return remaining === undefined
+                    ? "—"
+                    : `${fmt(String(remaining))} ${row.unitCode ?? ""}`;
+                },
+              },
+              {
                 title: "จำนวนรับเข้า",
                 key: "receiveQty",
                 width: 160,
@@ -1582,7 +1762,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   <InputNumber
                     min={0.001}
                     style={{ width: "100%" }}
-                    disabled={blockedItemIds.includes(row.itemId)}
+                    disabled={lockedItemIds.includes(row.itemId)}
                     value={receiveQtyByItemId[row.itemId]}
                     onChange={(value) =>
                       setReceiveQtyByItemId((prev) => ({
@@ -1593,9 +1773,36 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   />
                 ),
               },
+              {
+                title: "",
+                key: "overWarning",
+                width: 150,
+                render: (_, row) => {
+                  /* เกินแผนรับได้ แต่ต้องเห็นว่าเกิน — ของจริงเท่าไรก็ต้องเข้าคลังเท่านั้น */
+                  const remaining = remainingByItemId.get(row.itemId);
+                  const qty = Number(receiveQtyByItemId[row.itemId] ?? 0);
+                  if (remaining === undefined || qty <= remaining + 1e-9) {
+                    return null;
+                  }
+                  return (
+                    <Typography.Text type="warning" style={{ fontSize: 12 }}>
+                      เกินแผน {fmt(String(qty - remaining))}{" "}
+                      {row.unitCode ?? ""}
+                    </Typography.Text>
+                  );
+                },
+              },
             ]}
           />
           <Form form={requestForm} layout="vertical" style={{ marginTop: 16 }}>
+            <Form.Item
+              name="postingDate"
+              label="วันที่รับเข้า"
+              rules={[{ required: true, message: "กรุณาระบุวันที่รับเข้า" }]}
+              extra="วันที่ของออกจากเครื่องจริง — งานยาวหลายวันอาจไม่ใช่วันที่กรอก"
+            >
+              <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+            </Form.Item>
             <Form.Item
               name="warehouseId"
               label="คลังปลายทาง"

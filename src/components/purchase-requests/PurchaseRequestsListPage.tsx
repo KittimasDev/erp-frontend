@@ -152,20 +152,41 @@ export default function PurchaseRequestsListPage() {
         title: "เลขที่ใบขอซื้อ",
         dataIndex: "prNo",
         key: "prNo",
-        render: (value: string, row) => (
-          <DocNoWithFlowBadge
-            no={<span className={styles.prNo}>{value}</span>}
-            source={
-              row.linkedPurchaseOrder
-                ? {
-                    kind: "po",
-                    status: row.linkedPurchaseOrder.status,
-                    paymentStatus: row.linkedPurchaseOrder.paymentStatus,
-                  }
-                : { kind: "pr", status: row.status }
-            }
-          />
-        ),
+        render: (value: string, row) => {
+          /*
+            ใบขอซื้อใบเดียวแตกเป็นใบสั่งซื้อได้หลายใบตามเจ้าของสินค้า — สลับไปใช้
+            สถานะฝั่งใบสั่งซื้อได้ต่อเมื่อสั่งครบทุกรายการแล้วเท่านั้น ไม่งั้นใบที่
+            สั่งไป 2 จาก 5 จะดูเหมือนแปลงครบแล้วทั้งที่ยังค้างอยู่ในคิว
+          */
+          const items = row.items ?? [];
+          const orderedCount = items.filter(
+            (item) => item.orderedPurchaseOrder,
+          ).length;
+          const fullyOrdered =
+            items.length > 0 && orderedCount === items.length;
+
+          return (
+            <div className={styles.prNoCell}>
+              <DocNoWithFlowBadge
+                no={<span className={styles.prNo}>{value}</span>}
+                source={
+                  fullyOrdered && row.linkedPurchaseOrder
+                    ? {
+                        kind: "po",
+                        status: row.linkedPurchaseOrder.status,
+                        paymentStatus: row.linkedPurchaseOrder.paymentStatus,
+                      }
+                    : { kind: "pr", status: row.status }
+                }
+              />
+              {!fullyOrdered && orderedCount > 0 ? (
+                <span className={styles.partialNote}>
+                  สั่งซื้อแล้ว {orderedCount} / {items.length} รายการ
+                </span>
+              ) : null}
+            </div>
+          );
+        },
       },
       {
         title: "วันออกเอกสาร",

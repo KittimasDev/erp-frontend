@@ -589,24 +589,55 @@ export default function GoodsReceiptCreateFromPoPage({
                                   </strong>
                                 </Checkbox>
                               </Form.Item>
-                              <span className={styles.sectionHint}>
-                                สั่ง{" "}
-                                {formatQtyUnit(
-                                  meta?.orderedQty ?? 0,
-                                  meta?.unitLabel ?? "",
-                                )}{" "}
-                                · รับแล้ว{" "}
-                                {formatQtyUnit(
-                                  meta?.receivedQty ?? 0,
-                                  baseUnitLabel,
-                                )}{" "}
-                                · เหลือ{" "}
-                                {formatQtyWithBase({
-                                  qty: remaining,
-                                  unitLabel: meta?.unitLabel ?? "",
-                                  baseQty: remainingBase,
-                                  baseUnitLabel,
-                                })}
+                            </div>
+
+                            {/*
+                              แยกตัวเลขเป็นป้ายละค่า — ของเดิมต่อกันเป็นประโยคเดียว
+                              พอชื่อสินค้ายาวก็ตัดบรรทัดกลางตัวเลขจนอ่านไม่ออก
+                            */}
+                            <div className={styles.lineStats}>
+                              <span className={styles.lineStat}>
+                                <span className={styles.lineStatLabel}>
+                                  สั่ง
+                                </span>
+                                <span className={styles.lineStatValue}>
+                                  {formatQtyUnit(
+                                    meta?.orderedQty ?? 0,
+                                    meta?.unitLabel ?? "",
+                                  )}
+                                </span>
+                              </span>
+                              <span className={styles.lineStat}>
+                                <span className={styles.lineStatLabel}>
+                                  รับแล้ว
+                                </span>
+                                <span className={styles.lineStatValue}>
+                                  {formatQtyUnit(
+                                    meta?.receivedQty ?? 0,
+                                    baseUnitLabel,
+                                  )}
+                                </span>
+                              </span>
+                              <span
+                                className={`${styles.lineStat} ${
+                                  disabled
+                                    ? styles.lineStatEmpty
+                                    : styles.lineStatRemaining
+                                }`}
+                              >
+                                <span className={styles.lineStatLabel}>
+                                  คงเหลือ
+                                </span>
+                                <span className={styles.lineStatValue}>
+                                  {disabled
+                                    ? "รับครบแล้ว"
+                                    : formatQtyWithBase({
+                                        qty: remaining,
+                                        unitLabel: meta?.unitLabel ?? "",
+                                        baseQty: remainingBase,
+                                        baseUnitLabel,
+                                      })}
+                                </span>
                               </span>
                             </div>
                             <Form.Item
@@ -672,7 +703,7 @@ export default function GoodsReceiptCreateFromPoPage({
                                               </Button>
                                             ) : null}
                                           </div>
-                                          <div className={styles.lineGrid}>
+                                          <div className={styles.destGrid}>
                                             <Form.Item
                                               {...destRest}
                                               className={styles.field}
@@ -810,17 +841,51 @@ export default function GoodsReceiptCreateFromPoPage({
                                       >
                                         เพิ่มปลายทางคลัง
                                       </Button>
-                                      <span className={styles.sectionHint}>
-                                        รวมรับ{" "}
-                                        {formatQtyUnit(
-                                          destSumBase,
-                                          baseUnitLabel,
-                                        )}{" "}
-                                        / เหลือ{" "}
-                                        {formatQtyUnit(
-                                          remainingBase,
-                                          baseUnitLabel,
-                                        )}
+                                    </div>
+
+                                    {/*
+                                      ยอดรวมเทียบเพดาน — ตัวเลขนี้คือสิ่งที่ตัดสินว่า
+                                      กรอกครบหรือยัง เดิมพ่วงท้ายปุ่มเป็นข้อความสีจาง
+                                    */}
+                                    <div
+                                      className={`${styles.destSummary} ${
+                                        destSumBase >= remainingBase - 1e-9
+                                          ? styles.destSummaryDone
+                                          : ""
+                                      }`}
+                                    >
+                                      <span>
+                                        รวมที่กรอก{" "}
+                                        <span
+                                          className={styles.destSummaryValue}
+                                        >
+                                          {formatQtyUnit(
+                                            destSumBase,
+                                            baseUnitLabel,
+                                          )}
+                                        </span>{" "}
+                                        จากคงเหลือ{" "}
+                                        <span
+                                          className={styles.destSummaryValue}
+                                        >
+                                          {formatQtyUnit(
+                                            remainingBase,
+                                            baseUnitLabel,
+                                          )}
+                                        </span>
+                                      </span>
+                                      <span>
+                                        {destSumBase >= remainingBase - 1e-9
+                                          ? "กรอกครบตามยอดคงเหลือแล้ว"
+                                          : `ยังกรอกได้อีก ${formatQtyUnit(
+                                              roundQty(
+                                                Math.max(
+                                                  0,
+                                                  remainingBase - destSumBase,
+                                                ),
+                                              ),
+                                              baseUnitLabel,
+                                            )}`}
                                       </span>
                                     </div>
                                   </div>

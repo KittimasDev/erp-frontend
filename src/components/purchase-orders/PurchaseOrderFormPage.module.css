@@ -466,3 +466,61 @@
     flex: 1;
   }
 }
+
+.sourcePrHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 14px 0 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.sourcePrActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.selectionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f4f6f8;
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.selectionBar strong {
+  color: var(--pr-text);
+}
+
+.selectionWarn {
+  color: #cf1322;
+}
+
+.orderedNote {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--pr-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.sourcePrHead strong {
+  color: var(--pr-text);
+}

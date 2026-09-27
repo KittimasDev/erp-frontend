@@ -11,6 +11,6 @@ export default function Page({
 }) {
   const { purchaseRequestId } = use(params);
   return (
-    <PurchaseOrderCreateFromPrPage purchaseRequestId={purchaseRequestId} />
+    <PurchaseOrderCreateFromPrPage purchaseRequestIds={[purchaseRequestId]} />
   );
 }

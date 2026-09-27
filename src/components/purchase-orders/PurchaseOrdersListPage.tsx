@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Button,
+  Checkbox,
   DatePicker,
   Input,
   Pagination,
   Select,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -33,11 +35,55 @@ import {
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { PurchaseOrder } from "@/types/purchase-orders";
-import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
-import type { PurchaseRequest } from "@/types/purchase-requests";
+import {
+  listPurchaseRequests,
+  PURCHASE_ORDER_STATUS_LABEL,
+} from "@/types/purchase-orders";
+import type {
+  PurchaseRequest,
+  PurchaseRequestItem,
+} from "@/types/purchase-requests";
+import {
+  clearPurchaseOrderPrLineSelection,
+  savePurchaseOrderPrLineSelection,
+} from "@/types/purchase-order-pr-line-selection";
+import PendingPrItemsPanel, {
+  itemLabelOf,
+  openItemsOf,
+} from "./PendingPrItemsPanel";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./PurchaseOrdersListPage.module.css";
+
+/** จำนวนรายการที่ยังไม่ถูกสั่งซื้อในใบขอซื้อใบนั้น */
+function countOpenItems(pr: PurchaseRequest) {
+  return openItemsOf(pr).length;
+}
+
+/** บรรทัดใบขอซื้อที่ติ๊กไว้ — เก็บ snapshot เพราะตารางนี้มี pagination ของตัวเอง */
+type SelectedPrLine = {
+  prItemId: string;
+  prId: string;
+  prNo: string;
+  itemLabel: string;
+};
+
+type CheckState = { checked: boolean; indeterminate: boolean };
+
+/** สถานะติ๊กของกลุ่มบรรทัด — ครบ / บางส่วน / ไม่เลือก */
+function lineCheckState(
+  prItemIds: string[],
+  selected: Record<string, SelectedPrLine>,
+): CheckState {
+  if (!prItemIds.length) {
+    return { checked: false, indeterminate: false };
+  }
+  const picked = prItemIds.filter((id) => selected[id]).length;
+  return {
+    checked: picked === prItemIds.length,
+    indeterminate: picked > 0 && picked < prItemIds.length,
+  };
+}
 
 /** ร่าง กับ ที่ถูกส่งกลับแก้ไข ทำอย่างเดียวกันได้ทั้งคู่ — ให้ตรงกับ guard ฝั่ง backend */
 const PO_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
@@ -93,6 +139,26 @@ export default function PurchaseOrdersListPage() {
   const [limit, setLimit] = useState(10);
   const [pendingPage, setPendingPage] = useState(1);
   const pendingLimit = 10;
+  /*
+    ติ๊กเป็นราย "บรรทัด" ไม่ใช่ราย "ใบ" — ใบขอซื้อใบเดียวแตกเป็นใบสั่งซื้อได้หลายใบ
+    ตามเจ้าของสินค้า คีย์คือ purchaseRequestItemId และเก็บ snapshot ของชื่อ/เลขใบไว้ด้วย
+    เพราะตารางนี้มี pagination ของตัวเอง เปลี่ยนหน้าแล้วแถวต้นทางหลุดจาก dataSource
+    ส่วนรายการใบที่เลือกเป็นค่า derived ล้วน จึงไม่มีทาง desync กับบรรทัด
+  */
+  const [selectedLineById, setSelectedLineById] = useState<
+    Record<string, SelectedPrLine>
+  >({});
+  /*
+    การกางแถวคำนวณสด ไม่เก็บเป็น state ตัวเดียว — ใบที่สั่งไปบางส่วนกางให้เอง
+    (ผู้ใช้ต้องเห็นว่าเหลืออะไร) เว้นแต่ผู้ใช้หุบเอง ซึ่งจำไว้ใน userCollapsed
+    ทำแบบนี้เพื่อไม่ต้องมี effect คอยเขียน state ทับตอนข้อมูลมาใหม่
+  */
+  const [userExpandedPrIds, setUserExpandedPrIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [userCollapsedPrIds, setUserCollapsedPrIds] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const poActions = getScreenActionPermissions("PURCHASE_ORDERS");
   const legacyWrite =
@@ -113,18 +179,245 @@ export default function PurchaseOrdersListPage() {
     page: pendingPage,
     limit: pendingLimit,
   });
-  const pendingPrs = pendingQuery.data?.data.items ?? [];
+  /* identity ต้องนิ่ง — ถูกใช้เป็น dep ของ memo/callback หลายตัวด้านล่าง */
+  const pendingPrs = useMemo(
+    () => pendingQuery.data?.data.items ?? [],
+    [pendingQuery.data],
+  );
   const pendingTotal = pendingQuery.data?.data.total ?? 0;
+
+  /*
+    บรรทัดที่ติ๊กไว้แล้วถูกคนอื่นสั่งไปก่อน ต้องหลุดจากที่เลือกเอง ไม่งั้นกดสร้าง
+    แล้วเจอ 400 จาก backend โดยไม่รู้สาเหตุ — คำนวณสดแทนการเขียน state ทับใน effect
+    (รู้ได้เฉพาะใบที่อยู่ในหน้าปัจจุบัน ใบหน้าอื่นพึ่งด่านฝั่ง backend)
+  */
+  const orderedItemIds = useMemo(
+    () =>
+      new Set(
+        pendingPrs.flatMap((row) =>
+          (row.items ?? [])
+            .filter((item) => item.orderedPurchaseOrder)
+            .map((item) => item.id),
+        ),
+      ),
+    [pendingPrs],
+  );
+
+  const selectedLines = useMemo(
+    () =>
+      Object.values(selectedLineById).filter(
+        (line) => !orderedItemIds.has(line.prItemId),
+      ),
+    [selectedLineById, orderedItemIds],
+  );
+
+  /** จัดกลุ่มกลับเป็นใบ — ใช้ทั้งนับใบและสร้าง ?ids= */
+  const selectedLinesByPrId = useMemo(() => {
+    const map = new Map<string, SelectedPrLine[]>();
+    for (const line of selectedLines) {
+      const bucket = map.get(line.prId);
+      if (bucket) {
+        bucket.push(line);
+      } else {
+        map.set(line.prId, [line]);
+      }
+    }
+    return map;
+  }, [selectedLines]);
+
+  const selectedPrIds = useMemo(
+    () => [...selectedLinesByPrId.keys()],
+    [selectedLinesByPrId],
+  );
+
+  /** บรรทัดที่ยังสั่งได้ทั้งหมดของหน้าปัจจุบัน — ใช้กับ checkbox หัวตาราง */
+  const pageOpenItemIds = useMemo(
+    () => pendingPrs.flatMap((row) => openItemsOf(row).map((item) => item.id)),
+    [pendingPrs],
+  );
+
+  const toggleLine = useCallback(
+    (pr: PurchaseRequest, item: PurchaseRequestItem, next: boolean) => {
+      setSelectedLineById((prev) => {
+        const draft = { ...prev };
+        if (next) {
+          draft[item.id] = {
+            prItemId: item.id,
+            prId: pr.id,
+            prNo: pr.prNo,
+            itemLabel: itemLabelOf(item),
+          };
+        } else {
+          delete draft[item.id];
+        }
+        return draft;
+      });
+    },
+    [],
+  );
+
+  const setPrLines = useCallback((pr: PurchaseRequest, next: boolean) => {
+    setSelectedLineById((prev) => {
+      const draft = { ...prev };
+      for (const item of openItemsOf(pr)) {
+        if (next) {
+          draft[item.id] = {
+            prItemId: item.id,
+            prId: pr.id,
+            prNo: pr.prNo,
+            itemLabel: itemLabelOf(item),
+          };
+        } else {
+          delete draft[item.id];
+        }
+      }
+      return draft;
+    });
+  }, []);
+
+  const setPageLines = useCallback(
+    (next: boolean) => {
+      for (const row of pendingPrs) {
+        setPrLines(row, next);
+      }
+    },
+    [pendingPrs, setPrLines],
+  );
+
+  const expandedPrIds = useMemo(() => {
+    const keys = new Set(userExpandedPrIds);
+    for (const row of pendingPrs) {
+      const partlyOrdered = countOpenItems(row) < (row.items?.length ?? 0);
+      if (partlyOrdered && !userCollapsedPrIds.has(row.id)) {
+        keys.add(row.id);
+      }
+    }
+    return [...keys];
+  }, [pendingPrs, userExpandedPrIds, userCollapsedPrIds]);
+
+  const handleExpandedRowsChange = (keys: readonly React.Key[]) => {
+    const next = new Set(keys.map(String));
+    setUserExpandedPrIds(next);
+    /* จำเฉพาะใบที่ "เคยกางอยู่แล้วถูกหุบ" ไม่ใช่ทุกใบที่ไม่ได้กาง */
+    setUserCollapsedPrIds((prev) => {
+      const draft = new Set(prev);
+      for (const id of expandedPrIds) {
+        if (!next.has(id)) {
+          draft.add(id);
+        }
+      }
+      for (const id of next) {
+        draft.delete(id);
+      }
+      return draft;
+    });
+  };
+
+  /** มีใบที่ติ๊กไม่ครบทุกบรรทัดไหม — ใช้เตือนว่าของที่เหลือไม่ได้หายไปไหน */
+  const hasPartialPr = useMemo(
+    () =>
+      selectedPrIds.some((prId) => {
+        const row = pendingPrs.find((item) => item.id === prId);
+        return row
+          ? (selectedLinesByPrId.get(prId)?.length ?? 0) < countOpenItems(row)
+          : false;
+      }),
+    [selectedPrIds, selectedLinesByPrId, pendingPrs],
+  );
+
+  const handleCreateFromSelected = () => {
+    if (!selectedLines.length) {
+      return;
+    }
+
+    const allLinesSelected = selectedPrIds.every((prId) => {
+      const row = pendingPrs.find((item) => item.id === prId);
+      return row
+        ? (selectedLinesByPrId.get(prId)?.length ?? 0) === countOpenItems(row)
+        : false;
+    });
+
+    /* ใบเดียวและเลือกครบ = งานประจำวัน ให้เดินเส้นทางเดิมเป๊ะ URL ไม่เปลี่ยน */
+    if (selectedPrIds.length === 1 && allLinesSelected) {
+      clearPurchaseOrderPrLineSelection();
+      router.push(`/purchase-orders/create-from-pr/${selectedPrIds[0]}`);
+      return;
+    }
+
+    savePurchaseOrderPrLineSelection({
+      purchaseRequestIds: selectedPrIds,
+      purchaseRequestItemIds: selectedLines.map((line) => line.prItemId),
+    });
+    router.push(
+      `/purchase-orders/create-from-prs?ids=${selectedPrIds.join(",")}`,
+    );
+  };
+
+  /**
+   * เปิดฟอร์มสำหรับใบนี้ใบเดียว — ปุ่มในแถวหมายถึง "ใบนี้เท่านั้น" เสมอ
+   * ไม่ลากใบอื่นที่ติ๊กค้างไว้เข้ามา แต่ถ้าในใบนี้ติ๊กบางบรรทัดไว้ก็เคารพการติ๊กนั้น
+   */
+  const goCreateForPr = useCallback(
+    (row: PurchaseRequest) => {
+      const picked = selectedLinesByPrId.get(row.id) ?? [];
+      if (!picked.length || picked.length === countOpenItems(row)) {
+        clearPurchaseOrderPrLineSelection();
+        router.push(`/purchase-orders/create-from-pr/${row.id}`);
+        return;
+      }
+
+      savePurchaseOrderPrLineSelection({
+        purchaseRequestIds: [row.id],
+        purchaseRequestItemIds: picked.map((line) => line.prItemId),
+      });
+      router.push(`/purchase-orders/create-from-prs?ids=${row.id}`);
+    },
+    [selectedLinesByPrId, router],
+  );
 
   const pendingColumns: ColumnsType<PurchaseRequest> = useMemo(
     () => [
+      /* ไม่มีสิทธิ์สร้างใบสั่งซื้อก็ไม่ต้องมีช่องติ๊ก (แต่ยังกางดูสินค้าได้) */
+      ...(canCreatePo
+        ? [
+            {
+              key: "select",
+              width: 48,
+              align: "center" as const,
+              title: (
+                <Checkbox
+                  {...lineCheckState(pageOpenItemIds, selectedLineById)}
+                  disabled={!pageOpenItemIds.length}
+                  onChange={(event) => setPageLines(event.target.checked)}
+                  aria-label="เลือกทุกรายการในหน้านี้"
+                />
+              ),
+              render: (_v: unknown, row: PurchaseRequest) => {
+                const openIds = openItemsOf(row).map((item) => item.id);
+                return (
+                  /* กันดับเบิลคลิกที่ช่องติ๊กไปเด้งเปิดหน้าสร้าง */
+                  <span
+                    onClick={(event) => event.stopPropagation()}
+                    onDoubleClick={(event) => event.stopPropagation()}
+                  >
+                    <Checkbox
+                      {...lineCheckState(openIds, selectedLineById)}
+                      disabled={!openIds.length}
+                      onChange={(event) => setPrLines(row, event.target.checked)}
+                      aria-label={`เลือกทุกรายการของ ${row.prNo}`}
+                    />
+                  </span>
+                );
+              },
+            },
+          ]
+        : []),
       {
         title: "#",
         key: "no",
         width: 56,
         align: "center",
-        render: (_v, _r, index) =>
-          (pendingPage - 1) * pendingLimit + index + 1,
+        render: (_v, _r, index) => (pendingPage - 1) * pendingLimit + index + 1,
       },
       {
         title: "เลขที่ใบขอซื้อ",
@@ -159,15 +452,38 @@ export default function PurchaseOrdersListPage() {
       {
         title: "รายการ",
         key: "itemCount",
-        width: 90,
+        width: 120,
         align: "center",
-        render: (_v, row) => `${row.items?.length ?? 0} รายการ`,
+        /*
+          ใบขอซื้อใบเดียวแตกเป็นใบสั่งซื้อได้หลายใบตามเจ้าของสินค้า จึงต้องบอกว่า
+          เหลือกี่รายการ ไม่ใช่แค่จำนวนรายการทั้งใบ
+        */
+        render: (_v, row) => {
+          const total = row.items?.length ?? 0;
+          const open = countOpenItems(row);
+          const picked = selectedLinesByPrId.get(row.id)?.length ?? 0;
+          return (
+            <span className={styles.itemCountCell}>
+              <span>
+                {open === total ? `${total} รายการ` : `เหลือ ${open} / ${total}`}
+              </span>
+              {picked ? (
+                <span className={styles.itemCountPicked}>เลือก {picked}</span>
+              ) : null}
+            </span>
+          );
+        },
       },
       {
         title: "สถานะ",
         key: "status",
-        width: 120,
-        render: () => <Tag color="success">อนุมัติแล้ว</Tag>,
+        width: 140,
+        render: (_v, row) =>
+          countOpenItems(row) === (row.items?.length ?? 0) ? (
+            <Tag color="success">อนุมัติแล้ว</Tag>
+          ) : (
+            <Tag color="processing">สั่งซื้อบางส่วนแล้ว</Tag>
+          ),
       },
       {
         title: "จัดการ",
@@ -185,9 +501,7 @@ export default function PurchaseOrdersListPage() {
                   size="small"
                   className={styles.createPoBtn}
                   icon={<ShoppingCartOutlined />}
-                  onClick={() =>
-                    router.push(`/purchase-orders/create-from-pr/${row.id}`)
-                  }
+                  onClick={() => goCreateForPr(row)}
                 >
                   สร้างใบสั่งซื้อ
                 </Button>
@@ -205,7 +519,21 @@ export default function PurchaseOrdersListPage() {
         ),
       },
     ],
-    [canCreatePo, pendingPage, router],
+    /*
+      selectedLineById ต้องอยู่ใน deps — ไม่งั้นคอลัมน์ checkbox เป็นชุดเดิม
+      แล้วติ๊กไปก็ไม่อัปเดตหน้าจอ
+    */
+    [
+      canCreatePo,
+      pendingPage,
+      router,
+      selectedLineById,
+      selectedLinesByPrId,
+      pageOpenItemIds,
+      setPageLines,
+      setPrLines,
+      goCreateForPr,
+    ],
   );
 
   const columns: ColumnsType<PurchaseOrder> = useMemo(
@@ -249,7 +577,10 @@ export default function PurchaseOrdersListPage() {
         title: "อ้างอิง PR",
         key: "pr",
         width: 150,
-        render: (_v, row) => row.purchaseRequest?.prNo ?? "—",
+        render: (_v, row) => {
+          const prNos = listPurchaseRequests(row).map((pr) => pr.prNo);
+          return prNos.length ? prNos.join(", ") : "—";
+        },
       },
       {
         title: "ยอดรวม",
@@ -290,8 +621,7 @@ export default function PurchaseOrdersListPage() {
                   key: "edit",
                   icon: <EditOutlined />,
                   label: "แก้ไข",
-                  onClick: () =>
-                    router.push(`/purchase-orders/${row.id}/edit`),
+                  onClick: () => router.push(`/purchase-orders/${row.id}/edit`),
                 },
               canEditPo &&
                 PO_EDITABLE_STATUSES.includes(row.status) && {
@@ -340,6 +670,33 @@ export default function PurchaseOrdersListPage() {
             <ShoppingCartOutlined className={styles.pendingIcon} />
             ใบขอซื้อรอสร้างใบสั่งซื้อ <strong>{pendingTotal}</strong> รายการ
           </div>
+          {selectedLines.length ? (
+            <div className={styles.selectionActions}>
+              <span className={styles.selectionCount}>
+                เลือกไว้ <strong>{selectedLines.length}</strong> รายการ · จาก{" "}
+                <strong>{selectedPrIds.length}</strong> ใบ
+              </span>
+              {hasPartialPr ? (
+                <span className={styles.selectionHint}>
+                  (บางใบเลือกไม่ครบ — ที่เหลือยังอยู่ในคิว)
+                </span>
+              ) : null}
+              <Button size="small" onClick={() => setSelectedLineById({})}>
+                ล้างที่เลือก
+              </Button>
+              <Tooltip title="สร้างใบสั่งซื้อจากรายการที่ติ๊กไว้">
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<ShoppingCartOutlined />}
+                  disabled={!selectedLines.length}
+                  onClick={handleCreateFromSelected}
+                >
+                  สร้างใบสั่งซื้อจากที่เลือก ({selectedLines.length} รายการ)
+                </Button>
+              </Tooltip>
+            </div>
+          ) : null}
         </div>
 
         <Table
@@ -350,16 +707,29 @@ export default function PurchaseOrdersListPage() {
           pagination={false}
           className={`${styles.table} ${styles.pendingTable}`}
           scroll={{ x: 950 }}
+          expandable={{
+            /* คนที่ดูอย่างเดียวก็ควรกางดูสินค้าได้ จึงไม่ผูกกับสิทธิ์ */
+            expandedRowKeys: expandedPrIds,
+            onExpandedRowsChange: handleExpandedRowsChange,
+            rowExpandable: (row) => Boolean(row.items?.length),
+            expandedRowRender: (row) => (
+              <PendingPrItemsPanel
+                pr={row}
+                selectable={canCreatePo}
+                selectedItemIds={selectedLineById}
+                onToggleItem={toggleLine}
+              />
+            ),
+          }}
           locale={{
             emptyText: "ยังไม่มีใบขอซื้อที่อนุมัติแล้วรอสร้างใบสั่งซื้อ",
           }}
           onRow={(row) =>
             canCreatePo
               ? {
-                  onDoubleClick: () =>
-                    router.push(`/purchase-orders/create-from-pr/${row.id}`),
+                  onDoubleClick: () => goCreateForPr(row),
                   style: { cursor: "pointer" },
-                  title: "ดับเบิลคลิกเพื่อสร้างใบสั่งซื้อ",
+                  title: "ดับเบิลคลิกเพื่อสร้างใบสั่งซื้อจากใบนี้",
                 }
               : {}
           }
@@ -369,10 +739,8 @@ export default function PurchaseOrdersListPage() {
           <div className={styles.tableFooter}>
             <div className={styles.footerText}>
               แสดง{" "}
-              {pendingTotal === 0
-                ? 0
-                : (pendingPage - 1) * pendingLimit + 1}
-              –{Math.min(pendingPage * pendingLimit, pendingTotal)} จาก{" "}
+              {pendingTotal === 0 ? 0 : (pendingPage - 1) * pendingLimit + 1}–
+              {Math.min(pendingPage * pendingLimit, pendingTotal)} จาก{" "}
               {pendingTotal}
             </div>
             <Pagination

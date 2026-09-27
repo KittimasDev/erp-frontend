@@ -25,6 +25,7 @@ import dayjs from "dayjs";
 import AccessDenied from "@/components/auth/AccessDenied";
 import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
 import QuickCreateCustomerModal from "@/components/masters/customers/QuickCreateCustomerModal";
+import UnitPriceSourceHint from "@/components/quotations/UnitPriceSourceHint";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
@@ -120,6 +121,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
   const quotationActions = useScreenActionPermissions("QUOTATIONS");
   const customerActions = useScreenActionPermissions("MASTERS_CUSTOMERS");
+  const itemActions = useScreenActionPermissions("MASTERS_ITEMS");
   const canCreate = quotationActions.canAdd;
   const canEdit = quotationActions.canEdit;
   const canCreateCustomer = customerActions.canAdd;
@@ -660,6 +662,9 @@ export default function QuotationFormPage({ mode, id }: Props) {
                     <div className={styles.lineList}>
                       {fields.map((field, index) => {
                         const lineItemId = watchedItems[index]?.itemId;
+                        const lineItem = lineItemId
+                          ? items.find((row) => row.id === lineItemId)
+                          : undefined;
                         const availableTotal = lineItemId
                           ? (availableByItemId.get(lineItemId) ?? 0)
                           : 0;
@@ -754,6 +759,24 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                 rules={[
                                   { required: true, message: "กรอกราคา" },
                                 ]}
+                                extra={
+                                  <UnitPriceSourceHint
+                                    item={lineItem}
+                                    currentPrice={
+                                      watchedItems[index]?.unitPrice
+                                    }
+                                    canViewItemMaster={itemActions.canView}
+                                    onUseBasePrice={() => {
+                                      if (lineItem?.sellingPrice == null) {
+                                        return;
+                                      }
+                                      form.setFieldValue(
+                                        ["items", field.name, "unitPrice"],
+                                        Number(lineItem.sellingPrice),
+                                      );
+                                    }}
+                                  />
+                                }
                               >
                                 <InputNumber min={0} style={{ width: "100%" }} />
                               </Form.Item>

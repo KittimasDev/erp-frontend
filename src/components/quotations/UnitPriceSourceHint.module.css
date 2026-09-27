@@ -1,0 +1,76 @@
+.hintRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.hintTag {
+  cursor: pointer;
+  margin-inline-end: 0;
+  user-select: none;
+}
+
+.popoverBody {
+  width: 300px;
+  max-width: 100%;
+  color: var(--pr-text);
+  font-size: 12px;
+}
+
+.lead {
+  margin: 0 0 8px;
+  color: var(--pr-muted);
+  line-height: 1.5;
+}
+
+.detailList {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--pr-border);
+  border-radius: 8px;
+  background: #fafbfc;
+}
+
+.detailRow {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.detailRow dt {
+  color: var(--pr-muted);
+}
+
+.detailRow dd {
+  margin: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.diffUp {
+  color: #cf1322;
+}
+
+.diffDown {
+  color: #389e0d;
+}
+
+.note {
+  margin: 0 0 8px;
+  color: var(--pr-muted);
+  line-height: 1.5;
+}
+
+.resetButton {
+  margin-bottom: 8px;
+}
+
+.linkRow {
+  margin: 0;
+  color: var(--pr-muted);
+  line-height: 1.5;
+}

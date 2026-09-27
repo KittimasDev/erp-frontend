@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 
 import {
   getPendingPurchaseRequestApprovals,
@@ -84,8 +84,7 @@ export function usePendingPurchaseRequestApprovalsQuery(
 ) {
   return useQuery({
     queryKey: [...purchaseRequestsQueryKey, "approvals-pending", params ?? {}],
-    queryFn: () =>
-      getPendingPurchaseRequestApprovals(getAccessToken(), params),
+    queryFn: () => getPendingPurchaseRequestApprovals(getAccessToken(), params),
   });
 }
 
@@ -144,10 +143,26 @@ export function usePurchaseOrdersPendingFromPrCountQuery(options?: {
   return useQuery(purchaseOrdersPendingFromPrCountOptions(options));
 }
 
+function purchaseRequestQueryOptions(id: string) {
+  return {
+    queryKey: [...purchaseRequestsQueryKey, "detail", id],
+    queryFn: () => getPurchaseRequest(getAccessToken(), id),
+  };
+}
+
 export function usePurchaseRequestQuery(id?: string) {
   return useQuery({
-    queryKey: [...purchaseRequestsQueryKey, "detail", id],
-    queryFn: () => getPurchaseRequest(getAccessToken(), id as string),
+    ...purchaseRequestQueryOptions(id as string),
     enabled: Boolean(id),
+  });
+}
+
+/**
+ * โหลดใบขอซื้อหลายใบพร้อมกัน — ใช้ตอนรวมหลายใบเป็นใบสั่งซื้อใบเดียว
+ * ใช้ cache key เดียวกับ `usePurchaseRequestQuery` จึงไม่ยิงซ้ำถ้าเคยโหลดแล้ว
+ */
+export function usePurchaseRequestsQueries(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => purchaseRequestQueryOptions(id)),
   });
 }

@@ -54,7 +54,10 @@ import {
   REFERENCE_DOC_TYPE_WEIGHBRIDGE_TICKET,
   resolveProductionOutputTicketLock,
 } from "@/types/production-output-stock-request";
-import { PRODUCTION_ORDER_STATUS_LABEL } from "@/types/production-order";
+import {
+  PRODUCTION_ORDER_RUNNING_STATUSES,
+  PRODUCTION_ORDER_STATUS_LABEL,
+} from "@/types/production-order";
 import {
   clearProductionOutputTicketBatch,
   peekProductionOutputTicketBatch,
@@ -350,6 +353,14 @@ export default function ProductionOutputStockRequestCreatePage({
     [readyOrders, selectedProductionOrderId],
   );
   const blockedItemIds = selectedProductionOrder?.blockedItemIds ?? [];
+  /*
+    ครบตามแผน != ห้ามรับ — ใบที่ยังเดินเครื่องของจริงออกเกินแผนได้ ปลดล็อกให้เลือกและ
+    กรอกเองได้ (ไม่ prefill ให้) ส่วนใบที่ปิดงานแล้วถือว่าจบยอด บล็อกเหมือนเดิม
+  */
+  const orderIsRunning = PRODUCTION_ORDER_RUNNING_STATUSES.includes(
+    selectedProductionOrder?.status ?? "",
+  );
+  const lockedItemIds = orderIsRunning ? [] : blockedItemIds;
   const lastPrefillOrderIdRef = useRef<string | undefined>(undefined);
 
   /*
@@ -458,9 +469,9 @@ export default function ProductionOutputStockRequestCreatePage({
       items.map((item) => ({
         value: item.id,
         label: `${item.itemCode} — ${item.itemNameTh}`,
-        disabled: blockedItemIds.includes(item.id),
+        disabled: lockedItemIds.includes(item.id),
       })),
-    [items, blockedItemIds],
+    [items, lockedItemIds],
   );
 
   const productionOrderOptions = useMemo(
@@ -562,9 +573,9 @@ export default function ProductionOutputStockRequestCreatePage({
       return;
     }
 
-    if (selectedProductionOrder && blockedItemIds.length > 0) {
+    if (selectedProductionOrder && lockedItemIds.length > 0) {
       const duplicateItems = filledLines.filter((line) =>
-        blockedItemIds.includes(line.itemId as string),
+        lockedItemIds.includes(line.itemId as string),
       );
       if (duplicateItems.length > 0) {
         form.setFields(
@@ -575,7 +586,7 @@ export default function ProductionOutputStockRequestCreatePage({
               "itemId",
             ],
             errors: [
-              "สินค้านี้มีคำขอรออนุมัติหรืออนุมัติแล้วสำหรับใบสั่งผลิตนี้",
+              "สินค้านี้รับเข้าคลังครบตามแผนของใบสั่งผลิตนี้แล้ว",
             ],
           })),
         );
@@ -1080,7 +1091,7 @@ export default function ProductionOutputStockRequestCreatePage({
                         {isMultiTicket
                           ? `ตั๋วชั่ง ${batchTickets.length} ใบ — ใช้ร่วมทุกรายการผลผลิต (จำนวนด้านบนเป็นยอดรวม)`
                           : showProductionOrderRef
-                            ? "เลือกใบสั่งผลิตที่เสร็จสิ้นแล้ว หรือใส่เลขที่เอกสารอื่น (ถ้ามี)"
+                            ? "เลือกใบสั่งผลิตที่เริ่มผลิตแล้ว หรือใส่เลขที่เอกสารอื่น (ถ้ามี)"
                             : "ใส่เพิ่มได้ถ้ามี — ใช้ร่วมทุกรายการ"}
                       </span>
                     </div>
@@ -1132,7 +1143,7 @@ export default function ProductionOutputStockRequestCreatePage({
                           <Form.Item
                             name="productionOrderId"
                             label="ใบสั่งผลิต"
-                            extra="เฉพาะใบที่สถานะเสร็จสิ้น (COMPLETED)"
+                            extra="ใบที่เริ่มผลิตแล้ว — กำลังผลิต / หยุดชั่วคราว / เสร็จสิ้น"
                           >
                             <Select
                               size="large"
@@ -1205,7 +1216,10 @@ export default function ProductionOutputStockRequestCreatePage({
                               </span>
                               {blockedItemIds.length > 0 ? (
                                 <span className={styles.refOrderBlocked}>
-                                  มี {blockedItemIds.length} สินค้าที่ขอซ้ำไม่ได้
+                                  ครบตามแผนแล้ว {blockedItemIds.length} รายการ
+                                  {orderIsRunning
+                                    ? " — รับเพิ่มได้ นับเป็นส่วนเกินแผน"
+                                    : ""}
                                 </span>
                               ) : null}
                             </div>
@@ -1216,10 +1230,10 @@ export default function ProductionOutputStockRequestCreatePage({
                         <Alert
                           type="info"
                           showIcon
-                          title="ยังไม่มีใบสั่งผลิตที่เสร็จสิ้น"
+                          title="ยังไม่มีใบสั่งผลิตที่เริ่มผลิต"
                           description={
                             <>
-                              สร้างและปิดใบสั่งผลิตที่{" "}
+                              เปิดและกด &quot;เริ่มผลิต&quot; ที่{" "}
                               <Link href="/production/production-orders">
                                 /production/production-orders
                               </Link>{" "}

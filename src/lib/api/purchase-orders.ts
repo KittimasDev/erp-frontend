@@ -1,6 +1,7 @@
 import { apiFetch } from "./client";
 import type {
   CreatePurchaseOrderFromPrBody,
+  CreatePurchaseOrderFromPrsBody,
   PurchaseOrderApiResponse,
   PurchaseOrderByPrApiResponse,
   PurchaseOrderListApiResponse,
@@ -41,10 +42,7 @@ export function getPurchaseOrder(token: string, id: string) {
   });
 }
 
-export function getPurchaseOrderByPr(
-  token: string,
-  purchaseRequestId: string,
-) {
+export function getPurchaseOrderByPr(token: string, purchaseRequestId: string) {
   return apiFetch<PurchaseOrderByPrApiResponse>(
     `/api/purchase-orders/by-pr/${purchaseRequestId}`,
     { method: "GET", token },
@@ -58,6 +56,16 @@ export function createPurchaseOrderFromPr(
 ) {
   return apiFetch<PurchaseOrderApiResponse>(
     `/api/purchase-orders/from-pr/${purchaseRequestId}`,
+    { method: "POST", token, body },
+  );
+}
+
+export function createPurchaseOrderFromPrs(
+  token: string,
+  body: CreatePurchaseOrderFromPrsBody,
+) {
+  return apiFetch<PurchaseOrderApiResponse>(
+    "/api/purchase-orders/consolidated-from-pr",
     { method: "POST", token, body },
   );
 }

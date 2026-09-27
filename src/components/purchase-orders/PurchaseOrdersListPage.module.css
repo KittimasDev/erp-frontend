@@ -291,3 +291,71 @@
     flex: 1;
   }
 }
+
+.selectionActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.selectionCount {
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.selectionHint {
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.itemCountCell {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+}
+
+.itemCountPicked {
+  color: var(--pr-green-dark);
+  font-size: 11px;
+}
+
+/* ── แผงสินค้าที่กางออกมาใต้แถวใบขอซื้อ ── */
+.panel {
+  padding: 4px 0 8px;
+}
+
+.panelHint {
+  margin: 0 0 8px;
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.panelItemName {
+  color: var(--pr-text);
+  font-weight: 500;
+}
+
+.panelItemDesc {
+  color: var(--pr-muted);
+  font-size: 12px;
+}
+
+.panelOrdered {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* บรรทัดที่สั่งไปแล้ว — ยังเห็นอยู่ แต่ต้องดูออกว่าเลือกไม่ได้ */
+.panelRowOrdered td {
+  opacity: 0.55;
+}
+
+/*
+  แถวที่กางออกต้องแยกพื้นหลังจากแถวปกติ ไม่งั้นกลืนกันตอนเลื่อนแนวนอน
+  (ตารางนี้ตั้ง scroll.x ไว้ และมีคอลัมน์ fixed ที่บังคับพื้นหลังขาว)
+*/
+.pendingTable :global(.ant-table-expanded-row) > td {
+  background: #fbfcfa !important;
+}

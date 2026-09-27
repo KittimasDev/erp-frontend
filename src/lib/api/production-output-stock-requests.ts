@@ -33,6 +33,13 @@ function buildQuery(params?: ProductionOutputStockRequestQueryParams) {
   if (params.referenceDocId) {
     search.set("referenceDocId", params.referenceDocId);
   }
+  /*
+    ขาดตัวนี้ไปทำให้หน้ารายละเอียดใบสั่งผลิตส่ง productionOrderId มาแล้วถูกทิ้งเงียบ ๆ
+    ตาราง "คำขอจากใบสั่งผลิตนี้" เลยแสดงคำขอทั้งระบบ
+  */
+  if (params.productionOrderId) {
+    search.set("productionOrderId", params.productionOrderId);
+  }
   if (params.q?.trim()) {
     search.set("q", params.q.trim());
   }

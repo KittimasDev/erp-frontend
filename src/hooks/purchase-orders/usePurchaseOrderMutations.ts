@@ -9,6 +9,7 @@ import {
   approvePurchaseOrder,
   cancelPurchaseOrder,
   createPurchaseOrderFromPr,
+  createPurchaseOrderFromPrs,
   rejectPurchaseOrder,
   returnPurchaseOrderToDraft,
   submitPurchaseOrder,
@@ -21,6 +22,7 @@ import {
 } from "@/types/document-attachments";
 import type {
   CreatePurchaseOrderFromPrBody,
+  CreatePurchaseOrderFromPrsBody,
   RejectPurchaseOrderBody,
   UpdatePurchaseOrderBody,
 } from "@/types/purchase-orders";
@@ -39,8 +41,31 @@ export function useCreatePurchaseOrderFromPrMutation() {
     }: {
       purchaseRequestId: string;
       body: CreatePurchaseOrderFromPrBody;
-    }) =>
-      createPurchaseOrderFromPr(getAccessToken(), purchaseRequestId, body),
+    }) => createPurchaseOrderFromPr(getAccessToken(), purchaseRequestId, body),
+    onSuccess: async (response) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey }),
+        queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey }),
+      ]);
+      message.success(response.message || "สร้างใบสั่งซื้อสำเร็จแล้ว");
+    },
+    onError: (error: Error) => {
+      message.error(
+        error instanceof ApiError ? error.message : "สร้างใบสั่งซื้อไม่สำเร็จ",
+      );
+    },
+  });
+}
+
+/** รวมใบขอซื้อหลายใบเป็นใบสั่งซื้อใบเดียว — invalidate ชุดเดียวกับการสร้างจากใบเดียว */
+export function useCreatePurchaseOrderFromPrsMutation() {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationKey: [...purchaseOrdersQueryKey, "create-from-prs"],
+    mutationFn: (body: CreatePurchaseOrderFromPrsBody) =>
+      createPurchaseOrderFromPrs(getAccessToken(), body),
     onSuccess: async (response) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey }),
@@ -62,13 +87,8 @@ export function useUpdatePurchaseOrderMutation() {
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "update"],
-    mutationFn: ({
-      id,
-      body,
-    }: {
-      id: string;
-      body: UpdatePurchaseOrderBody;
-    }) => updatePurchaseOrder(getAccessToken(), id, body),
+    mutationFn: ({ id, body }: { id: string; body: UpdatePurchaseOrderBody }) =>
+      updatePurchaseOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
       message.success(response.message || "แก้ไขใบสั่งซื้อสำเร็จแล้ว");
@@ -127,13 +147,8 @@ export function useRejectPurchaseOrderMutation() {
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "reject"],
-    mutationFn: ({
-      id,
-      body,
-    }: {
-      id: string;
-      body: RejectPurchaseOrderBody;
-    }) => rejectPurchaseOrder(getAccessToken(), id, body),
+    mutationFn: ({ id, body }: { id: string; body: RejectPurchaseOrderBody }) =>
+      rejectPurchaseOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
       message.success(response.message || "ปฏิเสธใบสั่งซื้อแล้ว");
@@ -153,13 +168,8 @@ export function useReturnPurchaseOrderToDraftMutation() {
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "return-to-draft"],
-    mutationFn: ({
-      id,
-      body,
-    }: {
-      id: string;
-      body: RejectPurchaseOrderBody;
-    }) => returnPurchaseOrderToDraft(getAccessToken(), id, body),
+    mutationFn: ({ id, body }: { id: string; body: RejectPurchaseOrderBody }) =>
+      returnPurchaseOrderToDraft(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
       message.success(response.message || "ส่งกลับให้แก้ไขแล้ว");

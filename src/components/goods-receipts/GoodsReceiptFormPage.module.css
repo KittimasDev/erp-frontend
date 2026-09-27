@@ -93,9 +93,15 @@
   z-index: 1;
 }
 
+/*
+  ฝั่งฟอร์มต้องกว้างกว่านี้ — รายการรับเข้าคลังมีช่องจำนวน+หน่วย, คลัง, ตำแหน่ง, Lot
+  ซ้อนอยู่ในการ์ดสองชั้น ถ้าให้สัดส่วนเดิม (1.4 : 0.75) คอลัมน์ฟอร์มเหลือราว 620px
+  หักขอบในอีก ~100px ช่องจำนวนจะแคบกว่าตัวเลือกหน่วยจนตัวเลขถูกบีบหาย
+  กล่องสรุปด้านขวาเป็นข้อความสั้น ๆ 260px พอ
+*/
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.75fr);
+  grid-template-columns: minmax(0, 1.85fr) minmax(260px, 0.62fr);
   gap: 18px;
   align-items: start;
 }
@@ -212,6 +218,101 @@
   grid-template-columns: 1fr 1.2fr 1.2fr 0.9fr;
   gap: 0 12px;
 }
+
+/* ── รายการรับเข้าคลัง (หน้าสร้างใบรับจากใบสั่งซื้อ) ──────────────────
+   ตัวเลขคือสิ่งที่คนอ่านใบรับต้องเห็นก่อนเพื่อน แต่ของเดิมวางช่องจำนวนไว้
+   คอลัมน์แรกของกริด 4 ช่อง ซึ่งแคบกว่าตัวเลือกหน่วยที่ตรึงไว้ 132px
+   ชุดคลาสนี้จึงตรึงความกว้างขั้นต่ำของช่องจำนวนไว้ แล้วให้ช่องอื่นตกบรรทัดแทน */
+
+.lineStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  /* การ์ดมี padding ล่างแค่ 2px — แถวนี้ต้องกันระยะหายใจให้ตัวเอง */
+  margin: 4px 0 10px;
+}
+
+.lineStat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid var(--pr-border);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.lineStatLabel {
+  color: var(--pr-muted);
+}
+
+.lineStatValue {
+  color: var(--pr-text);
+  font-weight: 500;
+}
+
+/* "คงเหลือ" คือเพดานที่ต้องเทียบตอนกรอก — ให้เด่นกว่าตัวอื่น */
+.lineStatRemaining {
+  border-color: rgba(115, 152, 22, 0.45);
+  background: rgba(115, 152, 22, 0.08);
+}
+
+.lineStatRemaining .lineStatValue {
+  color: var(--pr-green-dark);
+}
+
+.lineStatEmpty {
+  border-color: rgba(207, 19, 34, 0.35);
+  background: rgba(207, 19, 34, 0.06);
+}
+
+.lineStatEmpty .lineStatValue {
+  color: #cf1322;
+}
+
+.destGrid {
+  display: grid;
+  /*
+    auto-fit นับจำนวนคอลัมน์จากที่ว่างจริงของการ์ด ไม่ใช่จากขนาดจอ — การ์ดนี้ซ้อน
+    อยู่ในการ์ดอื่นและมีกล่องสรุปแย่งความกว้าง media query จึงเดาแทนไม่ได้
+    260px คือความกว้างที่ช่องจำนวนต้องใช้จริง (ตัวเลือกหน่วยตรึงไว้ 132px
+    เหลือให้ตัวเลขราว 128px) ต่ำกว่านี้ตัวเลขจะถูกบีบจนอ่านไม่ออก
+    ที่แคบกว่า 260px จะเหลือคอลัมน์เดียวเอง ไม่ล้นกรอบ
+  */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0 12px;
+}
+
+.destSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 14px;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #f4f6f8;
+  font-size: 12px;
+}
+
+.destSummaryValue {
+  color: var(--pr-text);
+  font-weight: 500;
+}
+
+.destSummaryDone {
+  background: rgba(115, 152, 22, 0.1);
+  color: var(--pr-green-dark);
+}
+
+.destSummaryDone .destSummaryValue {
+  color: var(--pr-green-dark);
+}
+
 
 .lineGridSecondary {
   display: grid;
@@ -454,7 +555,8 @@
 
   .formGrid,
   .lineGrid,
-  .lineGridSecondary {
+  .lineGridSecondary,
+  .destGrid {
     grid-template-columns: 1fr;
   }
 

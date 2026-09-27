@@ -355,7 +355,7 @@ export default function ProductionOutputStockRequestsPage() {
               คำขอรับผลผลิตเข้าคลัง
             </Typography.Title>
             <Typography.Text className={styles.pageSubtitle}>
-              ส่งคำขอจากใบสั่งผลิตที่เสร็จสิ้นแล้ว — รายการที่รออนุมัติจะถูกเน้นไว้
+              ส่งคำขอจากใบสั่งผลิตที่เริ่มผลิตแล้ว ทยอยรับเป็นงวดได้ — รายการที่รออนุมัติจะถูกเน้นไว้
               สต๊อกยังไม่เพิ่มจนกว่าหัวหน้าคลังจะอนุมัติที่เมนู คลัง FG
             </Typography.Text>
           </div>

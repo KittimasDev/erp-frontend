@@ -50,6 +50,18 @@ export type PurchaseRequestItem = {
   requiredDate?: string;
   remark?: string;
   sortOrder: number;
+  /**
+   * ใบสั่งซื้อที่สั่งบรรทัดนี้ไปแล้ว — ไม่มีค่า = ยังไม่ถูกสั่ง
+   * ใบขอซื้อใบเดียวแตกเป็นใบสั่งซื้อได้หลายใบตามเจ้าของสินค้า
+   */
+  orderedPurchaseOrder?: PurchaseRequestLinkedPo;
+};
+
+export type PurchaseRequestLinkedPo = {
+  id: string;
+  poNo: string;
+  status: string;
+  paymentStatus?: string;
 };
 
 export type PurchaseRequest = {
@@ -68,12 +80,10 @@ export type PurchaseRequest = {
   /** สิ่งที่ผู้อนุมัติสั่งให้แก้ไข ตอนส่งกลับแก้ไข (สถานะ REVISING) */
   rejectedReason?: string;
   items: PurchaseRequestItem[];
-  linkedPurchaseOrder?: {
-    id: string;
-    poNo: string;
-    status: string;
-    paymentStatus?: string;
-  } | null;
+  /** ใบล่าสุด — คงไว้เพื่อความเข้ากันได้ย้อนหลัง ตัวเต็มอยู่ใน linkedPurchaseOrders */
+  linkedPurchaseOrder?: PurchaseRequestLinkedPo | null;
+  /** ใบสั่งซื้อทุกใบที่ผูกกับใบขอซื้อนี้ เรียงใบใหม่สุดก่อน */
+  linkedPurchaseOrders?: PurchaseRequestLinkedPo[];
   createdAt: string;
   updatedAt: string;
 };

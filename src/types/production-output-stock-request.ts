@@ -1,3 +1,5 @@
+import { PRODUCTION_ORDER_RUNNING_STATUSES } from "./production-order";
+
 export const ProductionOutputRequestStatus = {
   PENDING_APPROVAL: "PENDING_APPROVAL",
   APPROVED: "APPROVED",
@@ -198,6 +200,22 @@ export function hasRequestableProductionOutput(
   }
   return items.some(
     (item) => Number(item.remainingQty) > 0 && !blocked.has(item.itemId),
+  );
+}
+
+/**
+ * ขอรับผลผลิตจากใบนี้ได้อีกไหม — คนละคำถามกับ [hasRequestableProductionOutput]
+ *
+ * ตัวบนตอบว่า "ยังมีงานค้างตามแผนไหม" ใช้กับคิวงานและ badge
+ * ตัวนี้ตอบว่า "กดขอได้ไหม" — ใบที่ยังเดินเครื่องอยู่ของจริงออกเกินแผนได้เสมอ
+ * ครบแผนแล้วจึงไม่ใช่เหตุให้ปิดปุ่ม แค่ไม่เติมยอดให้ ต้องตั้งใจกรอกเอง
+ */
+export function canRequestMoreProductionOutput(
+  order: ProductionOutputReadyOrder,
+): boolean {
+  return (
+    PRODUCTION_ORDER_RUNNING_STATUSES.includes(order.status) ||
+    hasRequestableProductionOutput(order)
   );
 }
 

@@ -45,7 +45,10 @@ import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
 import type { DocumentAttachment } from "@/types/document-attachments";
-import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
+import {
+  listPurchaseRequests,
+  PURCHASE_ORDER_STATUS_LABEL,
+} from "@/types/purchase-orders";
 import {
   calcDocumentTotals,
   resolveVatMode,
@@ -154,6 +157,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const [previewIsImage, setPreviewIsImage] = useState(false);
 
   const data = query.data?.data;
+  /* ใบสั่งซื้อหนึ่งใบรวมใบขอซื้อได้หลายใบ — แสดงให้ครบ ไม่ใช่แค่ใบแรก */
+  const sourcePurchaseRequests = data ? listPurchaseRequests(data) : [];
   const vatMode = resolveVatMode(data?.vatMode);
   const vatPercent = resolveDocumentVatPercent({ vatMode });
   const totals = useMemo(
@@ -172,7 +177,9 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   // ใช้ hook ไม่ใช่ getter เพื่อให้ปุ่มอัปเดตทันทีเมื่อแอดมิน save matrix
   const poActions = useScreenActionPermissions("PURCHASE_ORDERS");
   // ตั้งใบสำคัญจ่ายอยู่หน้า "รอจ่ายเงิน Supplier" — หน้า PURCHASE_PAYMENTS มีแค่ VIEW/EXPORT
-  const paymentActions = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING");
+  const paymentActions = useScreenActionPermissions(
+    "PURCHASE_PAYMENTS_PENDING",
+  );
   const canWrite = poActions.canEdit;
   // backend ให้ยกเลิกด้วย PURCHASE_ORDERS.EDIT ไม่ได้จำกัดแค่หัวหน้า
   const canCancel = poActions.canEdit;
@@ -188,9 +195,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       data?.status === "PENDING_APPROVAL" ||
       data?.status === "CONFIRMED");
 
-  const grByPoQuery = useGoodsReceiptsByPoQuery(
-    data ? data.id : undefined,
-  );
+  const grByPoQuery = useGoodsReceiptsByPoQuery(data ? data.id : undefined);
   const linkedGrs = grByPoQuery.data?.data ?? [];
 
   const paymentByPoQuery = usePurchasePaymentByPoQuery(data?.id);
@@ -302,9 +307,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     uploadMutation.isPending;
 
   const buildPurchaseOrderPdf = async () => {
-    const { generatePurchaseOrderPdf } = await import(
-      "@/utils/generatePurchaseOrderPdf"
-    );
+    const { generatePurchaseOrderPdf } =
+      await import("@/utils/generatePurchaseOrderPdf");
     // ต้อง await + catch — ไม่งั้นสร้าง PDF พังแล้วเงียบสนิท ผู้ใช้กดปุ่มแล้วไม่มีอะไรเกิดขึ้น
     await generatePurchaseOrderPdf({
       poNo: data.poNo,
@@ -402,7 +406,9 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>วันที่</span>
-                <div className={styles.metaValue}>{formatDate(data.poDate)}</div>
+                <div className={styles.metaValue}>
+                  {formatDate(data.poDate)}
+                </div>
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>ผู้ขาย</span>
@@ -415,13 +421,16 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>อ้างอิง PR</span>
                 <div className={styles.metaValue}>
-                  {data.purchaseRequest ? (
-                    <Link href={`/purchase-requests/${data.purchaseRequest.id}`}>
-                      {data.purchaseRequest.prNo}
-                    </Link>
-                  ) : (
-                    "—"
-                  )}
+                  {sourcePurchaseRequests.length
+                    ? sourcePurchaseRequests.map((pr, index) => (
+                        <span key={pr.id}>
+                          {index > 0 ? " · " : null}
+                          <Link href={`/purchase-requests/${pr.id}`}>
+                            {pr.prNo}
+                          </Link>
+                        </span>
+                      ))
+                    : "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
@@ -503,7 +512,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     <div className={styles.itemMeta}>
                       <span>
                         คลังปลายทาง:{" "}
-                        {item.expectedWarehouseCode || item.expectedWarehouseName
+                        {item.expectedWarehouseCode ||
+                        item.expectedWarehouseName
                           ? `${item.expectedWarehouseCode ?? ""}${
                               item.expectedWarehouseCode &&
                               item.expectedWarehouseName
@@ -512,10 +522,12 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                             }${item.expectedWarehouseName ?? ""}`
                           : "ระบุตอนรับของ"}
                       </span>
-                      {item.expectedLocationCode || item.expectedLocationName ? (
+                      {item.expectedLocationCode ||
+                      item.expectedLocationName ? (
                         <span>
                           ตำแหน่ง: {item.expectedLocationCode ?? ""}
-                          {item.expectedLocationCode && item.expectedLocationName
+                          {item.expectedLocationCode &&
+                          item.expectedLocationName
                             ? " — "
                             : ""}
                           {item.expectedLocationName ?? ""}
@@ -663,7 +675,9 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             {data.approvedAt ? (
               <div className={styles.sideRow}>
                 <span>
-                  {data.status === "REJECTED" ? "ไม่อนุมัติเมื่อ" : "อนุมัติเมื่อ"}
+                  {data.status === "REJECTED"
+                    ? "ไม่อนุมัติเมื่อ"
+                    : "อนุมัติเมื่อ"}
                 </span>
                 <strong>{formatDateTime(data.approvedAt)}</strong>
               </div>
@@ -812,9 +826,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 type="primary"
                 icon={<DollarOutlined />}
                 onClick={() =>
-                  router.push(
-                    `/purchase-payments/create-from-po/${data.id}`,
-                  )
+                  router.push(`/purchase-payments/create-from-po/${data.id}`)
                 }
               >
                 จ่ายเงิน / สร้างใบสำคัญจ่าย
@@ -860,10 +872,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                   );
                   return (
                     <li key={gr.id}>
-                      <Link href={`/goods-receipts/${gr.id}`}>
-                        {gr.grNo}
-                      </Link>{" "}
-                      · {GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status} ·{" "}
+                      <Link href={`/goods-receipts/${gr.id}`}>{gr.grNo}</Link> ·{" "}
+                      {GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status} ·{" "}
                       {formatDate(gr.grDate)}
                       {warehouses.length > 0 ? (
                         <>

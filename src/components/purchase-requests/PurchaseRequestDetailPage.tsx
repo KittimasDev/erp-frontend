@@ -108,6 +108,20 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
   );
   const linkedPo = linkedPoQuery.data?.data ?? null;
 
+  /*
+    ใบขอซื้อใบเดียวแตกเป็นใบสั่งซื้อได้หลายใบตามเจ้าของสินค้า — เอารายการเต็มจาก
+    ตัวเอกสาร ส่วน linkedPoQuery (endpoint by-pr) คืนได้ใบเดียวจึงใช้เป็นตัวสำรอง
+  */
+  const linkedPos =
+    data?.linkedPurchaseOrders?.length
+      ? data.linkedPurchaseOrders
+      : linkedPo
+        ? [linkedPo]
+        : [];
+  const hasUnorderedItems = (data?.items ?? []).some(
+    (item) => !item.orderedPurchaseOrder,
+  );
+
   const grByPoQuery = useGoodsReceiptsByPoQuery(linkedPo?.id);
   const linkedGrs = grByPoQuery.data?.data ?? [];
   const paymentByPoQuery = usePurchasePaymentByPoQuery(linkedPo?.id);
@@ -269,6 +283,19 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                         ต้องการภายใน {formatDate(item.requiredDate)}
                       </span>
                       {item.remark ? <span>หมายเหตุ: {item.remark}</span> : null}
+                      {/* ใบเดียวแตกเป็นหลายใบสั่งซื้อได้ จึงบอกเป็นรายบรรทัด */}
+                      {item.orderedPurchaseOrder ? (
+                        <span>
+                          สั่งซื้อแล้วใน{" "}
+                          <Link
+                            href={`/purchase-orders/${item.orderedPurchaseOrder.id}`}
+                          >
+                            {item.orderedPurchaseOrder.poNo}
+                          </Link>
+                        </span>
+                      ) : (
+                        <span>ยังไม่ได้สั่งซื้อ</span>
+                      )}
                     </div>
                   </div>
                   <div className={styles.itemQty}>
@@ -418,18 +445,30 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
             ) : null}
 
             {data.status === "APPROVED" ? (
-              linkedPo && canReadPo ? (
-                <Button
-                  className={styles.primaryBtn}
-                  type="primary"
-                  icon={<ShoppingCartOutlined />}
-                  onClick={() =>
-                    router.push(`/purchase-orders/${linkedPo.id}`)
-                  }
-                >
-                  ดูใบสั่งซื้อ ({linkedPo.poNo})
-                </Button>
-              ) : !linkedPo && !linkedPoQuery.isLoading ? (
+              linkedPos.length && canReadPo ? (
+                <>
+                  {linkedPos.map((po) => (
+                    <Button
+                      key={po.id}
+                      className={styles.primaryBtn}
+                      type="primary"
+                      icon={<ShoppingCartOutlined />}
+                      onClick={() => router.push(`/purchase-orders/${po.id}`)}
+                    >
+                      ดูใบสั่งซื้อ ({po.poNo})
+                    </Button>
+                  ))}
+                  {hasUnorderedItems ? (
+                    <Button
+                      className={styles.secondaryBtn}
+                      icon={<ShoppingCartOutlined />}
+                      onClick={() => router.push("/purchase-orders")}
+                    >
+                      สั่งซื้อรายการที่เหลือ
+                    </Button>
+                  ) : null}
+                </>
+              ) : !linkedPos.length && !linkedPoQuery.isLoading ? (
                 <Button
                   className={styles.secondaryBtn}
                   icon={<ShoppingCartOutlined />}

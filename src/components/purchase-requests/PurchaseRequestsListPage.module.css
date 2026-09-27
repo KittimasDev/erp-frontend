@@ -276,3 +276,13 @@
     flex: 1;
   }
 }
+
+.prNoCell {
+  display: grid;
+  gap: 2px;
+}
+
+.partialNote {
+  color: var(--pr-muted, #8a9199);
+  font-size: 11px;
+}

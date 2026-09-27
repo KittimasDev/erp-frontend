@@ -87,7 +87,10 @@ export type PurchaseOrder = {
   poNo: string;
   poDate: string;
   purchaseRequestId?: string;
+  /** ใบขอซื้อใบแรก — ใบที่รวมมาหลายใบให้ใช้ `purchaseRequests` */
   purchaseRequest?: PurchaseOrderPrSummary;
+  /** ใบขอซื้อต้นทางทั้งหมด (backend อ่านจากบรรทัด) */
+  purchaseRequests?: PurchaseOrderPrSummary[];
   creditorId: string;
   creditor?: PurchaseOrderCreditorSummary;
   paymentTermId?: string;
@@ -157,6 +160,11 @@ export type CreatePurchaseOrderFromPrBody = {
   items: CreatePurchaseOrderItemFromPrBody[];
 };
 
+/** รวมใบขอซื้อหลายใบเป็นใบสั่งซื้อใบเดียว — โครงเดิม เพิ่มรายการใบขอซื้อต้นทาง */
+export type CreatePurchaseOrderFromPrsBody = CreatePurchaseOrderFromPrBody & {
+  purchaseRequestIds: string[];
+};
+
 export type UpdatePurchaseOrderItemBody = {
   id?: string;
   purchaseRequestItemId?: string;
@@ -206,3 +214,18 @@ export type PurchaseOrderByPrApiResponse = {
   message: string;
   data: PurchaseOrder | null;
 };
+
+/**
+ * ใบขอซื้อต้นทางของใบสั่งซื้อ
+ *
+ * ใบที่สร้างก่อนมีฟีเจอร์รวมหลายใบ (และ response เก่าที่ยัง cache อยู่) จะมีแค่
+ * `purchaseRequest` เดี่ยว จึง fallback ให้ด้วย ผู้เรียกทุกที่จะได้เห็นรูปเดียวกัน
+ */
+export function listPurchaseRequests(
+  po: Pick<PurchaseOrder, "purchaseRequest" | "purchaseRequests">,
+): PurchaseOrderPrSummary[] {
+  if (po.purchaseRequests?.length) {
+    return po.purchaseRequests;
+  }
+  return po.purchaseRequest ? [po.purchaseRequest] : [];
+}
