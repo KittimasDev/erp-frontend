@@ -11,6 +11,7 @@ import {
   Select,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { usePurchaseRequestsQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
 import {
   hasPermission,
@@ -32,9 +34,10 @@ import {
 import { RoleCode } from "@/lib/auth/role-codes";
 import { userHasRole } from "@/lib/auth/session";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
-import type { PurchaseRequest } from "@/types/purchase-requests";
 import {
   PURCHASE_REQUEST_STATUS_LABEL,
+  type PurchaseRequest,
+  type PurchaseRequestItem,
   type PurchaseRequestStatus,
 } from "@/types/purchase-requests";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
@@ -67,19 +70,31 @@ function formatDate(value?: string) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
+function formatPrItemLabel(item: PurchaseRequestItem) {
+  const code = item.itemCode?.trim();
+  const name = (item.itemNameTh ?? item.description)?.trim();
+  if (code && name) return `${code} — ${name}`;
+  return code || name || "—";
+}
+
 export default function PurchaseRequestsListPage() {
   const router = useRouter();
   const [prNo, setPrNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [prDate, setPrDate] = useState<dayjs.Dayjs | null>(null);
+  const [itemIds, setItemIds] = useState<string[]>([]);
   const [applied, setApplied] = useState<{
     prNo?: string;
     status?: string;
     prDateFrom?: string;
     prDateTo?: string;
+    itemIds?: string[];
   }>({});
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+
+  const itemsQuery = useItemsQuery({ isActive: true, isPurchaseItem: true });
+  const catalogItems = itemsQuery.data?.data ?? [];
 
   const canAccessApprovals =
     hasPermission(
@@ -106,6 +121,7 @@ export default function PurchaseRequestsListPage() {
       status,
       prDateFrom: prDate ? prDate.format("YYYY-MM-DD") : undefined,
       prDateTo: prDate ? prDate.format("YYYY-MM-DD") : undefined,
+      itemIds: itemIds.length ? itemIds : undefined,
     });
   };
 
@@ -113,6 +129,7 @@ export default function PurchaseRequestsListPage() {
     setPrNo("");
     setStatus(undefined);
     setPrDate(null);
+    setItemIds([]);
     setApplied({});
     setPage(1);
   };
@@ -142,9 +159,9 @@ export default function PurchaseRequestsListPage() {
   const columns: ColumnsType<PurchaseRequest> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
-        width: 56,
+        width: 72,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
@@ -203,23 +220,52 @@ export default function PurchaseRequestsListPage() {
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ประเภท",
+        title: "ประเภทใบขอซื้อ",
         key: "type",
         ellipsis: true,
         render: (_v, row) => row.purchaseRequestType?.nameTh ?? "—",
       },
       {
-        title: "ผู้ขอ",
+        title: "ผู้ขอซื้อ",
         key: "requestedBy",
         width: 140,
         render: (_v, row) => row.requestedBy?.displayName ?? "—",
       },
       {
-        title: "รายการ",
+        title: "จำนวนรายการสั่งซื้อ",
         key: "itemCount",
-        width: 90,
+        width: 170,
         align: "center",
         render: (_v, row) => `${row.items?.length ?? 0} รายการ`,
+      },
+      {
+        title: "สินค้า",
+        key: "items",
+        width: 240,
+        className: styles.itemColumn,
+        render: (_v, row) => {
+          const items = row.items ?? [];
+          if (items.length === 0) return "—";
+          return (
+            <ul className={styles.itemList}>
+              {items.map((item) => {
+                const label = formatPrItemLabel(item);
+                return (
+                  <li key={item.id} className={styles.itemLine}>
+                    <Tooltip title={label}>
+                      <span className={styles.itemLineInner}>
+                        <span className={styles.itemBullet} aria-hidden>
+                          -
+                        </span>
+                        <span className={styles.itemName}>{label}</span>
+                      </span>
+                    </Tooltip>
+                  </li>
+                );
+              })}
+            </ul>
+          );
+        },
       },
       {
         title: "สถานะ",
@@ -322,6 +368,25 @@ export default function PurchaseRequestsListPage() {
               onChange={(value) => setPrDate(value)}
               format="DD/MM/YYYY"
               placeholder="เลือกวันที่"
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สินค้า</label>
+            <Select
+              allowClear
+              showSearch
+              mode="multiple"
+              maxTagCount="responsive"
+              optionFilterProp="label"
+              style={{ width: "100%" }}
+              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
+              aria-label="สินค้า"
+              value={itemIds}
+              onChange={(value) => setItemIds(value)}
+              options={catalogItems.map((item) => ({
+                value: item.id,
+                label: `${item.itemCode} — ${item.itemNameTh}`,
+              }))}
             />
           </div>
           <div className={styles.filterItem}>

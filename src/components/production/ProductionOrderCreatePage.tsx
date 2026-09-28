@@ -44,6 +44,7 @@ import SelectedProductionRequestsCard, {
   type SelectionLabel,
 } from "./SelectedProductionRequestsCard";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useDomainConvertsUnits } from "@/hooks/unit-conversions/useDomainConvertsUnits";
 import { useUnitOptionContext } from "@/hooks/unit-conversions/useUnitOptionContext";
 import {
   buildUnitSelectOptions,
@@ -354,11 +355,17 @@ export function PlanLineRow({
   const baseUnitId = row.itemId
     ? itemList.find((item) => item.id === row.itemId)?.unitId
     : undefined;
-  // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
+  /*
+    dropdown หน่วยเสนอเท่าที่ backend โดเมนนี้รับได้ — ใบสั่งผลิตแปลงหน่วยแล้ว
+    (resolvePlanLines / resolveInputLines เรียก resolveLinesToBase) จึงเสนอหน่วยที่
+    เดินกฎแปลงถึงได้ · สวิตช์ระดับระบบปิด = เหลือหน่วยหลักตัวเดียวเหมือนเดิม
+  */
+  const canPickUnit = useDomainConvertsUnits("PRODUCTION_ORDERS");
   const unitField = buildUnitSelectOptions(unitCtx, {
     itemId: row.itemId,
     baseUnitId,
     currentUnitId: row.unitId,
+    allowConvertible: canPickUnit,
   });
 
   return (

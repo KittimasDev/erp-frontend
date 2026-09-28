@@ -13,6 +13,7 @@ import {
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useDomainConvertsUnits } from "@/hooks/unit-conversions/useDomainConvertsUnits";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { calcLineAmount, calcDocumentTotals, resolveVatMode } from "@/lib/money/vat-totals";
 import type {
@@ -73,7 +74,13 @@ export default function SalesOrderItemsEditModal(props: Props) {
   });
   const items = useMemo(() => itemsQuery.data?.data ?? [], [itemsQuery.data]);
   // dropdown หน่วยเสนอเท่าที่ backend รับได้ = หน่วยหลักของสินค้า
-  const { resolveUnitField } = useUnitFieldResolver(items);
+  /*
+    เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**
+    สวิตช์ระดับระบบเปิดอยู่ — ดู lib/units/domainCapability.ts
+    ปิดอยู่ = dropdown เหลือหน่วยหลักตัวเดียวเหมือนเดิมทุกประการ
+  */
+  const canPickUnit = useDomainConvertsUnits("SALES_ORDERS");
+  const { resolveUnitField } = useUnitFieldResolver(items, canPickUnit);
 
   const itemOptions = useMemo(
     () =>

@@ -13,6 +13,7 @@ import {
 import dayjs from "dayjs";
 
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useDomainConvertsUnits } from "@/hooks/unit-conversions/useDomainConvertsUnits";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import {
@@ -68,7 +69,13 @@ export default function StockCountFormPage({ mode, id }: Props) {
 
   const items = itemsQuery.data?.data ?? [];
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
-  const { resolveUnitField } = useUnitFieldResolver(items);
+  /*
+    เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**
+    สวิตช์ระดับระบบเปิดอยู่ — ดู lib/units/domainCapability.ts
+    ปิดอยู่ = dropdown เหลือหน่วยหลักตัวเดียวเหมือนเดิมทุกประการ
+  */
+  const canPickUnit = useDomainConvertsUnits("PHYSICAL_INVENTORY_COUNTS");
+  const { resolveUnitField } = useUnitFieldResolver(items, canPickUnit);
   const warehouses = Array.isArray(warehousesQuery.data?.data)
     ? warehousesQuery.data.data
     : [];

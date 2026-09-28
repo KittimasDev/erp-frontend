@@ -21,6 +21,7 @@ import {
 import dayjs from "dayjs";
 
 import { useDepartmentsQuery } from "@/hooks/departments/useDepartmentsQuery";
+import { useDomainConvertsUnits } from "@/hooks/unit-conversions/useDomainConvertsUnits";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { usePurchaseRequestTypesQuery } from "@/hooks/purchase-request-types/usePurchaseRequestTypesQuery";
@@ -83,7 +84,13 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
   const departments = departmentsQuery.data?.data ?? [];
   const items = itemsQuery.data?.data ?? [];
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
-  const { resolveUnitField } = useUnitFieldResolver(items);
+  /*
+    เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**
+    สวิตช์ระดับระบบเปิดอยู่ — ดู lib/units/domainCapability.ts
+    ปิดอยู่ = dropdown เหลือหน่วยหลักตัวเดียวเหมือนเดิมทุกประการ
+  */
+  const canPickUnit = useDomainConvertsUnits("PURCHASE_REQUESTS");
+  const { resolveUnitField } = useUnitFieldResolver(items, canPickUnit);
   const units = unitsQuery.data?.data ?? [];
 
   const watchedItems = Form.useWatch("items", form) ?? [];

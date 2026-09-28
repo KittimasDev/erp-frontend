@@ -31,6 +31,12 @@ function buildPurchaseRequestsQuery(params?: PurchaseRequestQueryParams) {
     search.set("prDateTo", params.prDateTo);
   }
 
+  if (params.itemIds?.length) {
+    for (const itemId of params.itemIds) {
+      search.append("itemIds", itemId);
+    }
+  }
+
   if (params.page != null) {
     search.set("page", String(params.page));
   }

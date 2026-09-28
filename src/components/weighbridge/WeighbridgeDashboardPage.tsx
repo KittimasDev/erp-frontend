@@ -25,6 +25,7 @@ import {
   SearchOutlined,
   UserAddOutlined,
 } from "@ant-design/icons";
+import Link from "next/link";
 import type { ColumnsType } from "antd/es/table";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
@@ -116,6 +117,23 @@ const FLOW_LABELS: Record<string, string> = {
   OTHER: "อื่นๆ",
 };
 
+/*
+  ป้ายในคอลัมน์ "ดำเนินการ" ของแถวที่ไม่มีปุ่มให้กดแล้ว — บอก "ไปไหนต่อ" ไม่ใช่ "สถานะอะไร"
+
+  ตั้งใจไม่ใช้ `nextAction` ของ backend มาเป็นข้อความ ทั้งที่มันมีอยู่แล้ว เพราะนั่นเป็น
+  ประโยคบอกสถานะ ("รอคลังเลือกคลังและอนุมัติ") ซึ่งคอลัมน์ "สถานะ" พูดไปแล้วทั้งประโยค
+  พูดซ้ำสองช่องในแถวเดียวกันทำให้อ่านรก และยาวจนดันเมนู ⋮ ตกบรรทัด แถวสูงกว่าแถวอื่น
+
+  ส่วน "ปลายทาง" ยังใช้ `nextActionHref` จาก backend เหมือนเดิม — เวลา flow ย้ายหน้า
+  จะได้ไม่ต้องตามแก้สองที่
+
+  สถานะที่ไม่อยู่ใน map นี้ (เช่น ยกเลิก) = ไม่มีที่ให้ไปจริง ๆ แสดงขีดพอ
+*/
+const DEAD_END_BADGE: Record<string, { label: string; color: string }> = {
+  STOCK_REQUEST_PENDING: { label: "ไปหน้าอนุมัติคลัง", color: "processing" },
+  STOCK_POSTED: { label: "ดู Lot", color: "success" },
+};
+
 const STAGE_OPTIONS: {
   key: ReceivingStage;
   label: string;
@@ -197,8 +215,16 @@ function getTicketActionFlags(ticket: WeighbridgeTicketListItem) {
     (ticket.receiptStatus === "CONFIRMED" ||
       ticket.receiptStatus === "APPROVED") &&
     ticket.receiptPaymentStatus !== "PAID";
-  // เข้าคลังได้หลังยืนยันยอดแล้ว — ไม่บังคับจ่ายเงินก่อน
+  /*
+    เข้าคลังได้หลังยืนยันยอดแล้ว — ไม่บังคับจ่ายเงินก่อน
+
+    ต้องเช็ค `locked` ด้วย ไม่งั้นตั๋วที่ยกเลิกแล้วแต่ใบรับซื้อยัง CONFIRMED
+    จะยังมีปุ่ม "เข้าคลัง" ให้กด แล้วเอาของเข้าคลังได้ทั้งที่รายการถูกยกเลิกไปแล้ว
+    (backend ก็เพิ่งอุดด่านนี้เหมือนกันที่ assertSourceTicketNotCancelled —
+    ตรงนี้แค่ไม่ให้ปุ่มโผล่มาหลอกให้กดแล้วเจอ error)
+  */
   const canStockInRaw =
+    !locked &&
     Boolean(ticket.receiptId) &&
     (ticket.receiptStatus === "CONFIRMED" ||
       ticket.receiptStatus === "APPROVED") &&
@@ -915,17 +941,46 @@ export default function WeighbridgeDashboardPage() {
               ? goPay
               : goStockIn;
 
+        /*
+          ไม่มีปุ่มให้กดแล้ว = ใส่ป้ายบอกว่าใครถืองานต่อ แทนที่จะเหลือแต่ ⋮ ลอย ๆ
+          ซึ่งหน้าตาเหมือนปุ่มตั้งค่าที่กดแล้วไม่มีอะไรเกิดขึ้น
+
+          ใช้ช่อง primary เพราะเป็นตำแหน่งเดียวกับที่ปุ่มหลักเคยอยู่ (ซ้ายเมนู ⋮)
+          จึงไม่ต้องเพิ่ม prop ให้ RowActionsMenu ซึ่งเป็น component กลางของหลายหน้า
+
+          ข้อความกับปลายทางมาจาก backend ทั้งคู่ (nextAction / nextActionHref ที่
+          resolveRawTireFlowTracking คำนวณให้) — ไม่ map สถานะเองซ้ำ จะได้ไม่หลุดกัน
+        */
+        const deadEndBadge = (() => {
+          if (primaryStage) {
+            return null;
+          }
+          const badge = DEAD_END_BADGE[record.flowState ?? ""];
+          // ไม่มีปลายทาง (ยกเลิกแล้ว) — ขีดเดียวพอ อย่าใส่ป้ายที่กดไม่ได้ให้หลอกตา
+          if (!badge || !record.nextActionHref) {
+            return <span className={styles.deadEndDash}>—</span>;
+          }
+          return (
+            <Link href={record.nextActionHref} className={styles.deadEndLink}>
+              <Tag color={badge.color} className={styles.flowTag}>
+                {badge.label}
+              </Tag>
+            </Link>
+          );
+        })();
+
         return (
           <RowActionsMenu
             className={styles.tableActions}
             ariaLabel={`เมนูดำเนินการ ${record.ticketNo}`}
-            emptyFallback={<span>—</span>}
             primary={
               primaryStage ? (
                 <Button size="small" type="primary" onClick={primaryAction}>
                   {primaryLabel}
                 </Button>
-              ) : null
+              ) : (
+                deadEndBadge
+              )
             }
             actions={[
               primaryStage !== "classify" && {

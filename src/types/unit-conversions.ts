@@ -66,3 +66,15 @@ export type ConvertibleUnitsApiResponse = {
   message: string;
   data: Unit[];
 };
+
+/** สถานะสวิตช์ระดับระบบ — มาจาก env UNIT_CONVERSION_ENABLED ฝั่ง backend */
+export type UnitConversionSettings = {
+  enabled: boolean;
+  maxPathDepth: number;
+};
+
+export type UnitConversionSettingsApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: UnitConversionSettings;
+};

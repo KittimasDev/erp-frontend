@@ -8,6 +8,7 @@ import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
+import { useDomainConvertsUnits } from "@/hooks/unit-conversions/useDomainConvertsUnits";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
@@ -266,7 +267,13 @@ export default function MaterialConversionRunLinesFields({
     itemsQuery,
     items,
   } = data;
-  const { resolveUnitField } = useUnitFieldResolver(items);
+  /*
+    เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**
+    สวิตช์ระดับระบบเปิดอยู่ — ดู lib/units/domainCapability.ts
+    ปิดอยู่ = dropdown เหลือหน่วยหลักตัวเดียวเหมือนเดิมทุกประการ
+  */
+  const canPickUnit = useDomainConvertsUnits("MATERIAL_CONVERSIONS");
+  const { resolveUnitField } = useUnitFieldResolver(items, canPickUnit);
 
   const totalPlannedInput = useMemo(
     () =>

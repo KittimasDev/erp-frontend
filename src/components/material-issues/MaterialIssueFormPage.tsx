@@ -13,6 +13,9 @@ import {
 import dayjs from "dayjs";
 
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useDomainConvertsUnits } from "@/hooks/unit-conversions/useDomainConvertsUnits";
+import { useEnteredUnitCeiling } from "@/hooks/unit-conversions/useEnteredUnitCeiling";
+import { BaseQtyHint } from "@/components/common/BaseQtyHint";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useProductionOrdersQuery } from "@/hooks/production-orders/useProductionOrderQueries";
@@ -59,7 +62,14 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
 
   const items = (itemsQuery.data?.data ?? []).filter((item) => item.isIssueItem);
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
-  const { resolveUnitField } = useUnitFieldResolver(items);
+  /*
+    เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**
+    สวิตช์ระดับระบบเปิดอยู่ — ดู lib/units/domainCapability.ts
+    ปิดอยู่ = dropdown เหลือหน่วยหลักตัวเดียวเหมือนเดิมทุกประการ
+  */
+  const canPickUnit = useDomainConvertsUnits("STOCK_ISSUES");
+  const { resolveUnitField } = useUnitFieldResolver(items, canPickUnit);
+  const resolveCeiling = useEnteredUnitCeiling();
   const lots = lotsQuery.data?.data ?? [];
   const productionOrders = productionOrdersQuery.data?.data.items ?? [];
 
@@ -290,9 +300,24 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                         const selectedLot = availableLots.find(
                           (lot) => lot.lotId === line?.lotId,
                         );
-                        const selectedLotQty = selectedLot
+                        const selectedLotBaseQty = selectedLot
                           ? Number(selectedLot.quantityAvailable)
                           : undefined;
+                        /*
+                          ยอดคงเหลือของ Lot เป็นหน่วยฐาน — ต้องแปลงเป็นหน่วยที่ผู้ใช้
+                          กำลังกรอกก่อนเอาไปเทียบ ไม่งั้น "1 ตัน ไม่เกินคงเหลือ 500 กก."
+                          จะผ่านฉลุยแล้วไปโดนปฏิเสธเอาที่ backend
+                        */
+                        const lineBaseUnitId = line?.itemId
+                          ? items.find((it) => it.id === line.itemId)?.unitId
+                          : undefined;
+                        const ceiling = resolveCeiling({
+                          itemId: line?.itemId,
+                          unitId: line?.unitId,
+                          baseUnitId: lineBaseUnitId,
+                          baseCeiling: selectedLotBaseQty,
+                        });
+                        const selectedLotQty = ceiling.max;
 
                         return (
                           <div key={key} className={styles.lineCard}>
@@ -363,6 +388,12 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                                   { required: true, message: "ระบุจำนวน" },
                                   {
                                     validator: async (_, value) => {
+                                      // แปลงเพดานไม่ได้ = ไม่มีกฎแปลงคู่นี้ กดบันทึกไปก็โดนปฏิเสธ
+                                      if (ceiling.unconvertible) {
+                                        throw new Error(
+                                          "ยังไม่มีกฎแปลงหน่วยคู่นี้ — เลือกหน่วยหลักของสินค้า หรือตั้งกฎที่ ข้อมูลหลัก > กฎแปลงหน่วยนับ",
+                                        );
+                                      }
                                       if (
                                         selectedLotQty != null &&
                                         value != null &&
@@ -383,6 +414,14 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                                   placeholder="0"
                                 />
                               </Form.Item>
+
+                              {/* เงียบสนิทเมื่อกรอกด้วยหน่วยหลักอยู่แล้ว */}
+                              <BaseQtyHint
+                                itemId={line?.itemId}
+                                unitId={line?.unitId}
+                                quantity={line?.quantity}
+                                baseUnitId={lineBaseUnitId}
+                              />
 
                               <Form.Item
                                 {...restField}

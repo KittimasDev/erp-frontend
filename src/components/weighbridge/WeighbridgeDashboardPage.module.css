@@ -611,6 +611,30 @@
   font-weight: 500;
 }
 
+/*
+  ป้ายบอกปลายทางในคอลัมน์ "ดำเนินการ" ของแถวที่ไม่มีปุ่มให้กด
+  ต้องดูกดได้จริง ไม่งั้นคนจะนึกว่าเป็นป้ายตาย
+*/
+.deadEndLink {
+  text-decoration: none;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.deadEndLink :global(.ant-tag) {
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ไม่มีที่ให้ไป — ขีดจาง ๆ ให้ช่องไม่โล่ง แต่ไม่แย่งสายตาไปจากแถวที่มีงานจริง */
+.deadEndDash {
+  color: var(--brand-text-muted, #9a9c97);
+  padding-inline: 4px;
+}
+
 .viewTabs :global(.ant-tabs-nav) {
   margin-bottom: 4px !important;
 }
@@ -650,7 +674,14 @@
 .tableActions {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  /*
+    ห้าม wrap — ถ้าปล่อยให้ตัดบรรทัด ป้าย/ปุ่มจะดันเมนู ⋮ ลงไปบรรทัดสอง
+    แถวนั้นก็สูงกว่าแถวอื่นทั้งตาราง (class นี้ทับ .wrap ของ RowActionsMenu
+    ซึ่งตั้ง nowrap ไว้ถูกแล้ว)
+  */
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .sideSheetRoot {

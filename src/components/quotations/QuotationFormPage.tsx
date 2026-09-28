@@ -27,6 +27,7 @@ import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
 import QuickCreateCustomerModal from "@/components/masters/customers/QuickCreateCustomerModal";
 import UnitPriceSourceHint from "@/components/quotations/UnitPriceSourceHint";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { useDomainConvertsUnits } from "@/hooks/unit-conversions/useDomainConvertsUnits";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
@@ -143,7 +144,13 @@ export default function QuotationFormPage({ mode, id }: Props) {
   const customers = customersQuery.data?.data ?? [];
   const items = itemsQuery.data?.data ?? [];
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
-  const { resolveUnitField } = useUnitFieldResolver(items);
+  /*
+    เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**
+    สวิตช์ระดับระบบเปิดอยู่ — ดู lib/units/domainCapability.ts
+    ปิดอยู่ = dropdown เหลือหน่วยหลักตัวเดียวเหมือนเดิมทุกประการ
+  */
+  const canPickUnit = useDomainConvertsUnits("SALES_QUOTATIONS");
+  const { resolveUnitField } = useUnitFieldResolver(items, canPickUnit);
   const paymentTerms = paymentTermsQuery.data?.data ?? [];
 
   const watchedItems = Form.useWatch("items", form) ?? [];

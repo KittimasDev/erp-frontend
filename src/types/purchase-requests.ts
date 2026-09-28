@@ -100,6 +100,7 @@ export type PurchaseRequestQueryParams = {
   status?: string;
   prDateFrom?: string;
   prDateTo?: string;
+  itemIds?: string[];
   page?: number;
   limit?: number;
 };

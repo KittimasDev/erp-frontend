@@ -5,6 +5,7 @@ import type {
   UnitConversionApiResponse,
   UnitConversionListApiResponse,
   UnitConversionQueryParams,
+  UnitConversionSettingsApiResponse,
   UpdateUnitConversionRequest,
 } from "@/types/unit-conversions";
 
@@ -58,6 +59,19 @@ export function getConvertibleUnits(token: string, itemId: string) {
       token,
     },
   );
+}
+
+/**
+ * สวิตช์ระดับระบบว่าเปิดให้กรอกหน่วยอื่นหรือยัง
+ *
+ * ตอบแค่ "ฟีเจอร์เปิดไหม" ไม่ได้ตอบว่า "โดเมนไหนแปลงได้" — อย่าเอาไปตัดสินใจ
+ * เดี่ยว ๆ ต้อง AND กับ UNIT_CONVERTING_DOMAINS เสมอ (ดู lib/units/domainCapability.ts)
+ */
+export function getUnitConversionSettings(token: string) {
+  return apiFetch<UnitConversionSettingsApiResponse>(`${BASE_PATH}/settings`, {
+    method: "GET",
+    token,
+  });
 }
 
 export function createUnitConversion(

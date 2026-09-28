@@ -1,10 +1,24 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { Form, Input, InputNumber, Modal, Select, Switch, Typography } from "antd";
+import { useEffect, useMemo, useState, type ReactElement } from "react";
+import { PlusOutlined } from "@ant-design/icons";
+import {
+  Button,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Switch,
+  Typography,
+} from "antd";
 
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useCreateUnitMutation } from "@/hooks/units/useCreateUnitMutation";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
+import UnitFormModal from "@/components/masters/units/UnitFormModal";
 import type {
   CreateUnitConversionRequest,
   UnitConversion,
@@ -50,6 +64,49 @@ export default function UnitConversionFormModal({
   onSubmit,
 }: UnitConversionFormModalProps) {
   const [form] = Form.useForm<UnitConversionFormValues>();
+
+  /*
+    เพิ่มหน่วยนับใหม่ได้จากหน้านี้เลย ไม่ต้องเด้งไปหน้า "หน่วยนับ" แล้วกลับมาเริ่มกรอกใหม่
+
+    สิทธิ์คนละตัวกับหน้านี้ — หน้ากฎแปลงหน่วยคุมด้วย MASTERS_UNIT_CONVERSIONS
+    (ระดับหัวหน้าฝ่าย เพราะตั้งกฎผิดทำให้สต๊อกทั้งระบบเพี้ยน) ส่วนการสร้างหน่วย
+    ต้องมี MASTERS_UNITS.ADD ซึ่งกว้างกว่า จึงต้องเช็คแยก
+    ซ่อนไม่ใช่ disable — ปุ่มที่กดไม่ได้ตลอดกาลเป็นแค่ขยะสายตา
+  */
+  const unitActions = useScreenActionPermissions("MASTERS_UNITS");
+  const createUnitMutation = useCreateUnitMutation();
+  const [quickUnitOpen, setQuickUnitOpen] = useState(false);
+  // เพิ่มหน่วยจากช่องไหน จะได้เติมค่าที่สร้างเสร็จกลับเข้าช่องนั้น
+  const [quickUnitTarget, setQuickUnitTarget] = useState<
+    "fromUnitId" | "toUnitId"
+  >("fromUnitId");
+
+  const renderUnitDropdown = (
+    target: "fromUnitId" | "toUnitId",
+    menu: ReactElement,
+  ): ReactElement => (
+    <>
+      {menu}
+      {unitActions.canAdd ? (
+        <>
+          <Divider style={{ margin: "8px 0" }} />
+          <Button
+            type="text"
+            icon={<PlusOutlined />}
+            block
+            /* กัน Select ปิด popup ก่อน onClick จะทำงาน */
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              setQuickUnitTarget(target);
+              setQuickUnitOpen(true);
+            }}
+          >
+            เพิ่มหน่วยนับใหม่
+          </Button>
+        </>
+      ) : null}
+    </>
+  );
 
   const unitsQuery = useUnitsQuery({ isActive: true });
   const itemsQuery = useItemsQuery({ isActive: true });
@@ -289,6 +346,7 @@ export default function UnitConversionFormModal({
               placeholder="เช่น กิโลกรัม"
               loading={unitsQuery.isLoading}
               options={unitOptions}
+              popupRender={(menu) => renderUnitDropdown("fromUnitId", menu)}
             />
           </Form.Item>
 
@@ -314,6 +372,7 @@ export default function UnitConversionFormModal({
               placeholder="เช่น กรัม"
               loading={unitsQuery.isLoading}
               options={unitOptions}
+              popupRender={(menu) => renderUnitDropdown("toUnitId", menu)}
             />
           </Form.Item>
         </div>
@@ -386,6 +445,32 @@ export default function UnitConversionFormModal({
           </Form.Item>
         </div>
       </Form>
+
+      {/*
+        Modal ซ้อน Modal — antd จัดการ z-index ให้เอง ปิดตัวในแล้วตัวนอกยังอยู่
+        ฟอร์มตัวนอกไม่ถูก destroy จึงเติมค่าที่สร้างเสร็จกลับเข้าช่องได้
+
+        ใช้ UnitFormModal ตัวเดียวกับหน้า "หน่วยนับ" ไม่เขียนฟอร์มหน่วยตัวที่สอง
+        ไม่งั้น validation กับค่า default จะค่อย ๆ เพี้ยนออกจากกัน
+      */}
+      <UnitFormModal
+        open={quickUnitOpen}
+        mode="create"
+        confirmLoading={createUnitMutation.isPending}
+        onCancel={() => setQuickUnitOpen(false)}
+        onSubmit={(values) => {
+          createUnitMutation.mutate(values, {
+            onSuccess: (response) => {
+              setQuickUnitOpen(false);
+              // เติมหน่วยที่เพิ่งสร้างเข้าช่องที่กดมา — ไม่ต้องไปหาใน dropdown เอง
+              if (response.data?.id) {
+                form.setFieldValue(quickUnitTarget, response.data.id);
+                void form.validateFields([quickUnitTarget]);
+              }
+            },
+          });
+        }}
+      />
     </Modal>
   );
 }
