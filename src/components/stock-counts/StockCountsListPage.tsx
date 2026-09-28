@@ -107,7 +107,7 @@ export default function StockCountsListPage() {
   const columns: ColumnsType<StockCount> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 52,
         align: "center",

@@ -135,7 +135,7 @@ export default function ProductionRequestsListPage() {
 
   const columns: ColumnsType<ProductionRequest> = [
     {
-      title: "#",
+      title: "ลำดับ",
       key: "index",
       width: 56,
       align: "center",

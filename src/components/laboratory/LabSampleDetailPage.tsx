@@ -60,7 +60,7 @@ export default function LabSampleDetailPage({ id }: Props) {
 
   const columns: ColumnsType<LabTestResult> = [
     {
-      title: "#",
+      title: "ลำดับ",
       width: 48,
       render: (_v, _r, index) => index + 1,
     },

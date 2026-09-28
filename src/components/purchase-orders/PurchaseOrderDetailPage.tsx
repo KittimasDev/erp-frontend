@@ -792,16 +792,38 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             {canReceive &&
             (data.status === "CONFIRMED" ||
               data.status === "PARTIALLY_RECEIVED") ? (
-              <Button
-                className={styles.primaryBtn}
-                type="primary"
-                icon={<InboxOutlined />}
-                onClick={() =>
-                  router.push(`/goods-receipts/create-from-po/${data.id}`)
-                }
-              >
-                สร้างใบรับของ
-              </Button>
+              linkedGrs.some((gr) => gr.status === "DRAFT") ? (
+                <Button
+                  className={styles.primaryBtn}
+                  type="primary"
+                  icon={<InboxOutlined />}
+                  onClick={() => {
+                    const draft = [...linkedGrs]
+                      .filter((gr) => gr.status === "DRAFT")
+                      .sort((a, b) =>
+                        String(b.createdAt ?? "").localeCompare(
+                          String(a.createdAt ?? ""),
+                        ),
+                      )[0];
+                    if (draft) {
+                      router.push(`/goods-receipts/${draft.id}`);
+                    }
+                  }}
+                >
+                  ไปใบรับของแบบร่าง
+                </Button>
+              ) : (
+                <Button
+                  className={styles.primaryBtn}
+                  type="primary"
+                  icon={<InboxOutlined />}
+                  onClick={() =>
+                    router.push(`/goods-receipts/create-from-po/${data.id}`)
+                  }
+                >
+                  สร้างใบรับของ
+                </Button>
+              )
             ) : null}
 
             {linkedPayment ? (

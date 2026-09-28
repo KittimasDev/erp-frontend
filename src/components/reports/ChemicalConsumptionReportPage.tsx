@@ -110,7 +110,7 @@ export default function ChemicalConsumptionReportPage() {
   const columns: ColumnsType<ChemicalConsumptionReportRow> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 52,
         align: "center",

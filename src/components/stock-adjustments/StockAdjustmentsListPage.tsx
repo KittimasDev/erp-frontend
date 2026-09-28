@@ -143,7 +143,7 @@ export default function StockAdjustmentsListPage() {
   const columns: ColumnsType<StockAdjustment> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 52,
         align: "center",

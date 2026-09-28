@@ -4,7 +4,12 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, DatePicker, Input, Pagination, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EyeOutlined, FileTextOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  DollarOutlined,
+  EyeOutlined,
+  FileTextOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import {
   Bar,
@@ -18,6 +23,7 @@ import {
 } from "recharts";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useProcurementSummaryQuery } from "@/hooks/procurement-dashboard/useProcurementSummaryQuery";
 import { useProcurementTrackingQuery } from "@/hooks/procurement-dashboard/useProcurementTrackingQuery";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
@@ -88,6 +94,7 @@ type TrackingFilters = {
 export default function ProcurementDashboardPage() {
   const router = useRouter();
   const today = dayjs();
+  const canPay = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING").canEdit;
 
   const [summaryRange, setSummaryRange] = useState<[Dayjs, Dayjs]>([
     today.subtract(5, "month").startOf("month"),
@@ -139,7 +146,7 @@ export default function ProcurementDashboardPage() {
   const columns: ColumnsType<ProcurementTrackingRow> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 56,
         align: "center",
@@ -211,21 +218,43 @@ export default function ProcurementDashboardPage() {
       {
         title: "จัดการ",
         key: "action",
-        width: 70,
+        width: canPay ? 168 : 70,
         align: "center",
-        render: (_v, row) => (
-          <button
-            className={styles.actionBtn}
-            type="button"
-            title="ดูรายละเอียด"
-            onClick={() => router.push(`/purchase-orders/${row.id}`)}
-          >
-            <EyeOutlined />
-          </button>
-        ),
+        render: (_v, row) => {
+          const payable =
+            canPay &&
+            row.status === "COMPLETED" &&
+            row.paymentStatus !== "PAID";
+          return (
+            <div style={{ display: "inline-flex", gap: 6 }}>
+              <button
+                className={styles.actionBtn}
+                type="button"
+                title="ดูรายละเอียด"
+                onClick={() => router.push(`/purchase-orders/${row.id}`)}
+              >
+                <EyeOutlined />
+              </button>
+              {payable ? (
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<DollarOutlined />}
+                  onClick={() =>
+                    router.push(
+                      `/purchase-payments/create-from-po/${row.id}`,
+                    )
+                  }
+                >
+                  จ่ายเงิน
+                </Button>
+              ) : null}
+            </div>
+          );
+        },
       },
     ],
-    [limit, page, router],
+    [canPay, limit, page, router],
   );
 
   return (

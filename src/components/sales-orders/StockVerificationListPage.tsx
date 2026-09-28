@@ -28,7 +28,7 @@ export default function StockVerificationListPage() {
   const columns: ColumnsType<StockVerificationPendingOrder> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         width: 56,
         align: "center",
         render: (_v, _r, index) => index + 1,

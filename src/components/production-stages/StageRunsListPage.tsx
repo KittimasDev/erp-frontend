@@ -84,7 +84,7 @@ export default function StageRunsListPage({
 
   const columns: ColumnsType<StageRun> = [
     {
-      title: "#",
+      title: "ลำดับ",
       key: "index",
       width: 56,
       align: "center",

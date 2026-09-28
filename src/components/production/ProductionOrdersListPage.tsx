@@ -56,7 +56,7 @@ export default function ProductionOrdersListPage() {
 
   const columns: ColumnsType<ProductionOrder> = [
     {
-      title: "#",
+      title: "ลำดับ",
       key: "index",
       width: 56,
       align: "center",

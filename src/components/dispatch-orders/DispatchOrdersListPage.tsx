@@ -62,7 +62,7 @@ export default function DispatchOrdersListPage() {
   const columns: ColumnsType<DispatchOrder> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         width: 56,
         align: "center",
         render: (_v, _r, index) => index + 1,

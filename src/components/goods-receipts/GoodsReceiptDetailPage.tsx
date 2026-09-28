@@ -333,9 +333,9 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "Confirm ใบรับของและโพสต์สต๊อก?",
+                      title: "ยืนยันรับสินค้าเข้าสต๊อก",
                       content:
-                        "ยืนยันแล้วจะเพิ่ม quantity_on_hand / available และแก้เอกสารไม่ได้",
+                        "ยืนยันการรับสินค้าเพื่อบันทึกเข้าสต๊อก หลังยืนยันแล้วไม่สามารถแก้ไขเอกสารได้",
                       onOk: () => confirmMutation.mutateAsync(data.id),
                     })
                   }

@@ -185,9 +185,9 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
 
   const itemColumns: ColumnsType<StockPostingReceiptItem> = [
     {
-      title: "#",
+      title: "ลำดับ",
       key: "index",
-      width: 56,
+      width: 72,
       align: "center",
       render: (_value, _row, index) => index + 1,
     },

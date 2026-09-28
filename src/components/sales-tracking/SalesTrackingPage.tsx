@@ -360,7 +360,7 @@ export default function SalesTrackingPage() {
   const columns: ColumnsType<SalesTrackingRow> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,

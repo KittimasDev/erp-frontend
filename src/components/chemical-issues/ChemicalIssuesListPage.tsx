@@ -119,7 +119,7 @@ export default function ChemicalIssuesListPage() {
   const columns: ColumnsType<ChemicalIssue> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 52,
         align: "center",

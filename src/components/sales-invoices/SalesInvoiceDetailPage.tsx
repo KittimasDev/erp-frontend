@@ -302,7 +302,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
   const itemColumns: ColumnsType<SalesInvoiceItem> = [
     {
-      title: "#",
+      title: "ลำดับ",
       width: 48,
       render: (_v, _r, index) => index + 1,
     },

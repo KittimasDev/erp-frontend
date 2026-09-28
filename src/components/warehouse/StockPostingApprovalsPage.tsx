@@ -81,7 +81,14 @@ export default function StockPostingApprovalsPage() {
   const [page, setPage] = useState(1);
   const canApprove = useCanApproveStockPostingApprovals();
   const approvalsQuery = useStockPostingApprovalsQuery(status);
-  const rows = approvalsQuery.data?.data ?? [];
+  const rows = useMemo(() => {
+    const list = approvalsQuery.data?.data ?? [];
+    return [...list].sort((a, b) => {
+      const aTime = new Date(a.requestedAt ?? a.createdAt).getTime();
+      const bTime = new Date(b.requestedAt ?? b.createdAt).getTime();
+      return bTime - aTime;
+    });
+  }, [approvalsQuery.data?.data]);
 
   const countQueries = useQueries({
     queries: STATUS_FILTERS.map((filter) => ({
@@ -111,9 +118,9 @@ export default function StockPostingApprovalsPage() {
   const columns: ColumnsType<StockPostingRequest> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "index",
-        width: 56,
+        width: 72,
         align: "center",
         render: (_value, _row, index) => (page - 1) * PAGE_SIZE + index + 1,
       },

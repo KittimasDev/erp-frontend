@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Popconfirm, Table, Tag, Typography } from "antd";
 import { CheckOutlined } from "@ant-design/icons";
@@ -19,8 +19,11 @@ import type { ProductionOutputStockRequest } from "@/types/production-output-sto
 import { PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL } from "@/types/production-output-stock-request";
 import styles from "@/components/masters/shared/master-page.module.css";
 
+const PAGE_SIZE = 10;
+
 export default function ProductionOutputApprovalsPage() {
   const router = useRouter();
+  const [page, setPage] = useState(1);
   const canApprove =
     hasPermission("PRODUCTION_OUTPUT_APPROVALS.APPROVE") ||
     (!isMatrixPermissionMode() &&
@@ -28,10 +31,24 @@ export default function ProductionOutputApprovalsPage() {
         userHasRole(RoleCode.ADMINISTRATOR)));
   const approvalsQuery = useProductionOutputApprovalsQuery();
   const approveMutation = useApproveProductionOutputStockRequestMutation();
-  const rows = approvalsQuery.data?.data ?? [];
+  const rows = useMemo(() => {
+    const list = approvalsQuery.data?.data ?? [];
+    return [...list].sort((a, b) => {
+      const aTime = new Date(a.requestedAt ?? a.createdAt).getTime();
+      const bTime = new Date(b.requestedAt ?? b.createdAt).getTime();
+      return bTime - aTime;
+    });
+  }, [approvalsQuery.data?.data]);
 
   const columns: ColumnsType<ProductionOutputStockRequest> = useMemo(
     () => [
+      {
+        title: "ลำดับ",
+        key: "index",
+        width: 72,
+        align: "center",
+        render: (_value, _row, index) => (page - 1) * PAGE_SIZE + index + 1,
+      },
       {
         title: "เลขที่คำขอ",
         dataIndex: "requestNo",
@@ -131,7 +148,7 @@ export default function ProductionOutputApprovalsPage() {
         ),
       },
     ],
-    [router, canApprove, approveMutation, approvalsQuery],
+    [page, router, canApprove, approveMutation, approvalsQuery],
   );
 
   return (
@@ -169,8 +186,11 @@ export default function ProductionOutputApprovalsPage() {
             dataSource={rows}
             loading={approvalsQuery.isFetching}
             pagination={{
-              pageSize: 10,
+              current: page,
+              pageSize: PAGE_SIZE,
+              showSizeChanger: false,
               showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+              onChange: setPage,
             }}
             locale={{ emptyText: "ไม่มีคำขอรออนุมัติ" }}
           />

@@ -3,13 +3,27 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Form, Input, Select, Spin } from "antd";
+import { useQuery } from "@tanstack/react-query";
+import { Alert, Button, DatePicker, Form, Input, Select, Spin } from "antd";
 import { ArrowLeftOutlined, DollarOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreatePurchasePaymentFromPoMutation } from "@/hooks/purchase-payments/usePurchasePaymentMutations";
-import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
-import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import {
+  purchasePaymentsQueryKey,
+  usePurchasePaymentByPoQuery,
+} from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import {
+  purchaseOrdersQueryKey,
+  usePurchaseOrderQuery,
+} from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import { goodsReceiptsQueryKey } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import { getGoodsReceipt } from "@/lib/api/goods-receipts";
+import { getPurchaseOrderByPr } from "@/lib/api/purchase-orders";
+import { getPurchasePayment } from "@/lib/api/purchase-payments";
+import { ApiError } from "@/lib/api/client";
+import { getAccessToken } from "@/lib/auth/token";
 import styles from "./PurchasePaymentFormPage.module.css";
 
 type FormValues = {
@@ -29,6 +43,10 @@ function formatMoney(value?: string) {
   });
 }
 
+function apiStatus(error: unknown): number | undefined {
+  return error instanceof ApiError ? error.status : undefined;
+}
+
 export default function PurchasePaymentCreateFromPoPage({
   purchaseOrderId,
 }: Props) {
@@ -40,6 +58,48 @@ export default function PurchasePaymentCreateFromPoPage({
 
   const po = poQuery.data?.data;
   const existing = existingQuery.data?.data;
+  const forbidden = apiStatus(poQuery.error) === 403;
+  const shouldResolve =
+    !poQuery.isLoading && !po && !forbidden && poQuery.isFetched;
+
+  const grResolveQuery = useQuery({
+    queryKey: [
+      ...goodsReceiptsQueryKey,
+      "detail",
+      purchaseOrderId,
+      "pay-resolve",
+    ],
+    queryFn: () => getGoodsReceipt(getAccessToken(), purchaseOrderId),
+    enabled: shouldResolve,
+    retry: false,
+  });
+  const prResolveQuery = useQuery({
+    queryKey: [
+      ...purchaseOrdersQueryKey,
+      "by-pr",
+      purchaseOrderId,
+      "pay-resolve",
+    ],
+    queryFn: () => getPurchaseOrderByPr(getAccessToken(), purchaseOrderId),
+    enabled: shouldResolve,
+    retry: false,
+  });
+  const paymentResolveQuery = useQuery({
+    queryKey: [
+      ...purchasePaymentsQueryKey,
+      "detail",
+      purchaseOrderId,
+      "pay-resolve",
+    ],
+    queryFn: () => getPurchasePayment(getAccessToken(), purchaseOrderId),
+    enabled: shouldResolve,
+    retry: false,
+  });
+
+  const resolvedPoId =
+    grResolveQuery.data?.data?.purchaseOrderId ??
+    prResolveQuery.data?.data?.id;
+  const resolvedPaymentId = paymentResolveQuery.data?.data?.id;
 
   useEffect(() => {
     if (existing?.id) {
@@ -47,7 +107,41 @@ export default function PurchasePaymentCreateFromPoPage({
     }
   }, [existing, router]);
 
-  if (poQuery.isLoading || existingQuery.isLoading || existing?.id) {
+  useEffect(() => {
+    if (resolvedPoId && resolvedPoId !== purchaseOrderId) {
+      router.replace(`/purchase-payments/create-from-po/${resolvedPoId}`);
+      return;
+    }
+    if (resolvedPaymentId) {
+      router.replace(`/purchase-payments/${resolvedPaymentId}`);
+    }
+  }, [purchaseOrderId, resolvedPaymentId, resolvedPoId, router]);
+
+  const resolving =
+    shouldResolve &&
+    (grResolveQuery.isLoading ||
+      prResolveQuery.isLoading ||
+      paymentResolveQuery.isLoading);
+  const redirecting = Boolean(
+    existing?.id ||
+      (resolvedPoId && resolvedPoId !== purchaseOrderId) ||
+      resolvedPaymentId,
+  );
+
+  if (forbidden) {
+    return (
+      <AccessDenied
+        screenCodes={["PURCHASE_ORDERS", "PURCHASE_PAYMENTS_PENDING"]}
+      />
+    );
+  }
+
+  if (
+    poQuery.isLoading ||
+    existingQuery.isLoading ||
+    resolving ||
+    redirecting
+  ) {
     return (
       <div className={styles.page}>
         <Spin /> กำลังโหลด...
@@ -58,9 +152,15 @@ export default function PurchasePaymentCreateFromPoPage({
   if (!po) {
     return (
       <div className={styles.page}>
-        ไม่พบใบสั่งซื้อ
-        <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-payments/pending">กลับ</Link>
+        <Alert
+          type="warning"
+          showIcon
+          title="รหัสนี้ไม่ใช่ใบสั่งซื้อ"
+          description="ลิงก์นี้ไม่ตรงกับใบสั่งซื้อ ใบขอซื้อ ใบรับของ หรือใบสำคัญจ่ายที่ระบบรู้จัก"
+        />
+        <div style={{ marginTop: 12, display: "flex", gap: 12 }}>
+          <Link href="/procurement/tracking">กลับติดตามจัดซื้อ</Link>
+          <Link href="/purchase-payments/pending">ไปหน้ารอจ่ายเงิน</Link>
         </div>
       </div>
     );
@@ -107,7 +207,8 @@ export default function PurchasePaymentCreateFromPoPage({
           voucherDate: dayjs(),
           paymentMethod: "TRANSFER",
         }}
-      >        <div className={styles.layout}>
+      >
+        <div className={styles.layout}>
           <section className={styles.formCard}>
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>

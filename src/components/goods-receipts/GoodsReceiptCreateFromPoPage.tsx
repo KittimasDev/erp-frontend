@@ -45,6 +45,7 @@ import {
 import { formatQtyUnit, formatQtyWithBase } from "@/lib/units/format";
 import type { Item } from "@/types/items";
 import type { Unit } from "@/types/units";
+import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import styles from "./GoodsReceiptFormPage.module.css";
 
 const EMPTY_GRS: never[] = [];
@@ -251,12 +252,35 @@ export default function GoodsReceiptCreateFromPoPage({
     return map;
   }, [po?.items, receivedByPoItem, itemById, unitLabelById, conversionIndex]);
 
+  const hasReceivableLines = Array.from(lineMetaByPoItemId.values()).some(
+    (meta) => meta.remainingBaseQty > 0,
+  );
+  const latestDraftGr = useMemo(() => {
+    const drafts = existingGrs.filter((gr) => gr.status === "DRAFT");
+    if (!drafts.length) return undefined;
+    return [...drafts].sort((a, b) =>
+      String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")),
+    )[0];
+  }, [existingGrs]);
+  const listsReady =
+    !poQuery.isLoading &&
+    !grByPoQuery.isLoading &&
+    !itemsQuery.isLoading &&
+    !unitsQuery.isLoading;
+  const redirectToDraft =
+    listsReady && !hasReceivableLines && Boolean(latestDraftGr?.id);
+
   const receivable =
     po?.status === "CONFIRMED" || po?.status === "PARTIALLY_RECEIVED";
 
   // meta ขึ้นกับ query หลายตัวที่โหลดเสร็จไม่พร้อมกัน — ถ้าไม่กันไว้
   // effect จะยิงซ้ำแล้วทับค่าที่ผู้ใช้กรอกไปแล้ว
   const prefilledForRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!redirectToDraft || !latestDraftGr) return;
+    router.replace(`/goods-receipts/${latestDraftGr.id}`);
+  }, [latestDraftGr, redirectToDraft, router]);
 
   useEffect(() => {
     if (!po || !receivable) return;
@@ -308,7 +332,8 @@ export default function GoodsReceiptCreateFromPoPage({
     poQuery.isLoading ||
     grByPoQuery.isLoading ||
     itemsQuery.isLoading ||
-    unitsQuery.isLoading
+    unitsQuery.isLoading ||
+    redirectToDraft
   ) {
     return (
       <div className={styles.page}>
@@ -456,10 +481,6 @@ export default function GoodsReceiptCreateFromPoPage({
     router.push(`/goods-receipts/${response.data.id}`);
   };
 
-  const hasReceivableLines = Array.from(lineMetaByPoItemId.values()).some(
-    (meta) => meta.remainingBaseQty > 0,
-  );
-
   const selectedPreview = watchedItems.flatMap((item) => {
     if (!item?.selected) return [];
     const meta = lineMetaByPoItemId.get(item.purchaseOrderItemId);
@@ -514,8 +535,31 @@ export default function GoodsReceiptCreateFromPoPage({
         <Alert
           type="info"
           showIcon
-          title="รายการในใบสั่งซื้อนี้รับครบแล้ว"
-          description="ไม่มีจำนวนคงเหลือให้รับเพิ่ม"
+          title={
+            existingGrs.some((gr) => gr.status === "DRAFT")
+              ? "มีใบรับของแบบร่างอยู่แล้ว"
+              : "รายการในใบสั่งซื้อนี้รับครบแล้ว"
+          }
+          description={
+            <div>
+              <p style={{ margin: 0 }}>
+                {existingGrs.some((gr) => gr.status === "DRAFT")
+                  ? "ยอดในใบร่างถูกนับเป็นค้างรับแล้ว จึงสร้างใบใหม่ไม่ได้ — เปิดใบร่างเพื่อแก้ไขหรือยืนยันรับเข้าสต๊อก"
+                  : "ไม่มีจำนวนคงเหลือให้รับเพิ่ม"}
+              </p>
+              {existingGrs.length > 0 ? (
+                <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+                  {existingGrs.map((gr) => (
+                    <li key={gr.id}>
+                      <Link href={`/goods-receipts/${gr.id}`}>{gr.grNo}</Link>
+                      {" · "}
+                      {GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          }
         />
       ) : null}
 

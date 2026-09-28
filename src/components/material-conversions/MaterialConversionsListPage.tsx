@@ -190,7 +190,7 @@ export default function MaterialConversionsListPage() {
 
   const columns: ColumnsType<MaterialConversionRun> = [
     {
-      title: "#",
+      title: "ลำดับ",
       key: "index",
       width: 56,
       align: "center",
@@ -743,7 +743,7 @@ function JobsTab({
 }) {
   const columns: ColumnsType<MaterialConversionJob> = [
     {
-      title: "#",
+      title: "ลำดับ",
       key: "index",
       width: 56,
       align: "center",

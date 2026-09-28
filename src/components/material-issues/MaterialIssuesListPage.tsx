@@ -110,7 +110,7 @@ export default function MaterialIssuesListPage() {
   const columns: ColumnsType<StockIssue> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 52,
         align: "center",

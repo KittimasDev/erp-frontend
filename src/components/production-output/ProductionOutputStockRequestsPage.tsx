@@ -182,7 +182,7 @@ export default function ProductionOutputStockRequestsPage() {
   const columns: ColumnsType<ProductionOutputStockRequest> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "index",
         width: 56,
         align: "center",

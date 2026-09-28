@@ -111,7 +111,7 @@ export default function StockTransfersListPage() {
   const columns: ColumnsType<StockTransfer> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 52,
         align: "center",

@@ -173,7 +173,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
 
   const columns: ColumnsType<AppUser> = [
     {
-      title: "#",
+      title: "ลำดับ",
       key: "index",
       width: 56,
       align: "center",

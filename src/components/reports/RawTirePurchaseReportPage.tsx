@@ -124,7 +124,7 @@ export default function RawTirePurchaseReportPage() {
   const columns: ColumnsType<RawTirePurchaseReportRow> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 52,
         align: "center",

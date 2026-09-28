@@ -120,7 +120,7 @@ export default function PurchasePaymentsListPage() {
   const columns: ColumnsType<SupplierPaymentVoucher> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,

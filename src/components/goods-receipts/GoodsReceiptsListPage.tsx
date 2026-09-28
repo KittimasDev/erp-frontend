@@ -129,7 +129,7 @@ export default function GoodsReceiptsListPage() {
   const columns: ColumnsType<GoodsReceipt> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
         width: 52,
         align: "center",

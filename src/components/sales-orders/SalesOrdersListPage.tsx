@@ -152,7 +152,7 @@ export default function SalesOrdersListPage() {
   const columns: ColumnsType<SalesOrder> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         width: 56,
         align: "center",
         render: (_v, _r, index) => index + 1,
