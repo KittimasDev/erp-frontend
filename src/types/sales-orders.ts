@@ -141,6 +141,7 @@ export type SalesOrderQueryParams = {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+  itemIds?: string[];
 };
 
 export type CreateSalesOrderFromQuotationBody = {

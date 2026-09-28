@@ -30,6 +30,8 @@ export type Item = {
   allowNegativeStock: boolean;
   isQcRequired: boolean;
   isActive: boolean;
+  /** มีเอกสารหรือความเคลื่อนไหวแล้ว — ห้ามแก้รหัส หน่วยนับ คุม Lot วันหมดอายุ */
+  hasTransactions: boolean;
   createdAt: string;
   updatedAt: string;
 };
@@ -54,7 +56,7 @@ export type CreateItemRequest = {
   description?: string;
   itemCategoryId: string;
   unitId: string;
-  warehouseGroup?: string;
+  warehouseGroup: string;
   isPurchaseItem?: boolean;
   isStockItem?: boolean;
   isIssueItem?: boolean;

@@ -31,6 +31,11 @@ function buildQuotationsQuery(params?: QuotationQueryParams) {
   if (params.dateTo) {
     search.set("dateTo", params.dateTo);
   }
+  if (params.itemIds?.length) {
+    for (const itemId of params.itemIds) {
+      search.append("itemIds", itemId);
+    }
+  }
 
   const query = search.toString();
   return query ? `?${query}` : "";

@@ -25,6 +25,13 @@ export type SalesTrackingRound = {
   nextAction: string;
 };
 
+export type SalesTrackingItem = {
+  id: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  description?: string;
+};
+
 export type SalesTrackingRow = {
   salesOrderId: string;
   salesOrderNo: string;
@@ -52,6 +59,7 @@ export type SalesTrackingRow = {
   rounds: SalesTrackingRound[];
   currentStep: string;
   nextAction: string;
+  items: SalesTrackingItem[];
 };
 
 export type SalesTrackingList = {
@@ -99,6 +107,7 @@ export type SalesTrackingQueryParams = {
   salesOrderStatus?: string;
   dateFrom?: string;
   dateTo?: string;
+  itemIds?: string[];
   page?: number;
   pageSize?: number;
 };

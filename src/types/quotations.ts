@@ -96,6 +96,7 @@ export type QuotationQueryParams = {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+  itemIds?: string[];
 };
 
 export type QuotationItemInput = {

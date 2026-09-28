@@ -137,7 +137,7 @@
 
 .filterGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px 14px;
 }
 
@@ -262,6 +262,7 @@
 .prNo {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(115, 152, 22, 0.12);
@@ -270,6 +271,52 @@
   font-weight: 500;
   letter-spacing: 0.02em;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.itemColumn {
+  max-width: 240px;
+}
+
+.itemList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemLine {
+  min-width: 0;
+}
+
+.itemLineInner {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  gap: 6px;
+  line-height: 1.35;
+  cursor: default;
+}
+
+.itemBullet {
+  flex: none;
+}
+
+.itemName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customerName {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table :global(.ant-table) {
@@ -293,6 +340,18 @@
 }
 
 .table :global(.ant-table-tbody > tr:hover > td) {
+  background: #f8faf5 !important;
+}
+
+.table :global(.ant-table-cell-fix-right) {
+  background: #fff !important;
+}
+
+.table :global(.ant-table-thead .ant-table-cell-fix-right) {
+  background: #f5f7f2 !important;
+}
+
+.table :global(.ant-table-tbody > tr:hover > .ant-table-cell-fix-right) {
   background: #f8faf5 !important;
 }
 

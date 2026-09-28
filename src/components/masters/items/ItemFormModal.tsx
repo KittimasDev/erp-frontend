@@ -193,7 +193,7 @@ export default function ItemFormModal({
       description: values.description?.trim() || undefined,
       itemCategoryId: values.itemCategoryId,
       unitId: values.unitId,
-      warehouseGroup: values.warehouseGroup || undefined,
+      warehouseGroup: values.warehouseGroup as string,
       minimumStockQty: values.minimumStockQty ?? 0,
       // ส่งเฉพาะตอนขายได้ ปิดแล้วไม่ต้องยัดราคาไปให้ backend
       sellingPrice: values.isSalesItem
@@ -219,6 +219,13 @@ export default function ItemFormModal({
   };
 
   const isCreateMode = mode === "create";
+  const lockCoreFields =
+    !isCreateMode && Boolean(initialItem?.hasTransactions);
+  const lockHint = "มีเอกสารแล้ว แก้ไม่ได้";
+  const lockedToggles = new Set<ToggleField>([
+    "requiresLotControl",
+    "requiresExpiryDate",
+  ]);
 
   return (
     <Modal
@@ -273,12 +280,18 @@ export default function ItemFormModal({
             <Form.Item
               label="รหัสสินค้า"
               name="code"
+              extra={lockCoreFields ? lockHint : undefined}
               rules={[
                 { required: true, message: "กรุณากรอกรหัสสินค้า" },
                 { max: 50, message: "รหัสต้องไม่เกิน 50 ตัวอักษร" },
               ]}
             >
-              <Input size="large" placeholder="เช่น RM-001" autoComplete="off" />
+              <Input
+                size="large"
+                placeholder="เช่น RM-001"
+                autoComplete="off"
+                disabled={lockCoreFields}
+              />
             </Form.Item>
           </Col>
 
@@ -333,6 +346,7 @@ export default function ItemFormModal({
             <Form.Item
               label="หน่วยนับ"
               name="unitId"
+              extra={lockCoreFields ? lockHint : undefined}
               rules={[{ required: true, message: "กรุณาเลือกหน่วยนับ" }]}
             >
               <Select
@@ -341,6 +355,7 @@ export default function ItemFormModal({
                 optionFilterProp="label"
                 placeholder="เลือกหน่วยนับ"
                 loading={unitsQuery.isLoading}
+                disabled={lockCoreFields}
                 options={units.map((unit) => ({
                   value: unit.id,
                   label: `${unit.code} — ${unit.nameTh}`,
@@ -352,9 +367,12 @@ export default function ItemFormModal({
 
         <Row gutter={16}>
           <Col xs={24} sm={12}>
-            <Form.Item label="กลุ่มคลัง" name="warehouseGroup">
+            <Form.Item
+              label="กลุ่มคลัง"
+              name="warehouseGroup"
+              rules={[{ required: true, message: "กรุณาเลือกกลุ่มคลัง" }]}
+            >
               <Select
-                allowClear
                 size="large"
                 placeholder="เลือกกลุ่มคลัง"
                 options={WAREHOUSE_GROUP_OPTIONS}
@@ -401,6 +419,7 @@ export default function ItemFormModal({
             <div className={styles.toggleGrid}>
               {group.items.map(([name, label]) => {
                 const checked = Boolean(watched?.[name]);
+                const locked = lockCoreFields && lockedToggles.has(name);
 
                 return (
                   <div
@@ -408,8 +427,14 @@ export default function ItemFormModal({
                     className={`${styles.toggleTile} ${
                       checked ? styles.toggleTileOn : ""
                     }`}
+                    title={locked ? lockHint : undefined}
                     // กดที่การ์ดทั้งใบได้ ไม่ต้องเล็งสวิตช์เล็ก ๆ
-                    onClick={() => form.setFieldValue(name, !checked)}
+                    onClick={() => {
+                      if (locked) {
+                        return;
+                      }
+                      form.setFieldValue(name, !checked);
+                    }}
                   >
                     <span>{label}</span>
 
@@ -419,7 +444,7 @@ export default function ItemFormModal({
                       style={{ display: "flex" }}
                     >
                       <Form.Item name={name} valuePropName="checked" noStyle>
-                        <Switch size="small" />
+                        <Switch size="small" disabled={locked} />
                       </Form.Item>
                     </div>
                   </div>

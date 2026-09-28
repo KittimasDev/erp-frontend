@@ -16,6 +16,7 @@ import {
   Spin,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -43,6 +44,7 @@ import {
 } from "@/types/delivery-schedules";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import {
   useSalesTrackingDetailQuery,
   useSalesTrackingListQuery,
@@ -62,6 +64,7 @@ import {
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 import type {
+  SalesTrackingItem,
   SalesTrackingQueryParams,
   SalesTrackingRow,
   SalesTrackingTimelineStep,
@@ -152,6 +155,40 @@ function toneTagColor(tone: SalesTimelineStepTone): string {
   if (tone === "active") return "processing";
   if (tone === "cancelled") return "error";
   return "default";
+}
+
+function formatCatalogItemLabel(item: {
+  itemCode?: string;
+  itemNameTh?: string;
+  description?: string;
+}) {
+  const code = item.itemCode?.trim();
+  const name = (item.itemNameTh ?? item.description)?.trim();
+  if (code && name) return `${code} — ${name}`;
+  return code || name || "—";
+}
+
+function renderItemList(items: SalesTrackingItem[]) {
+  if (!items.length) return "—";
+  return (
+    <ul className={styles.itemList}>
+      {items.map((item) => {
+        const label = formatCatalogItemLabel(item);
+        return (
+          <li key={item.id} className={styles.itemLine}>
+            <Tooltip title={label}>
+              <span className={styles.itemLineInner}>
+                <span className={styles.itemBullet} aria-hidden>
+                  -
+                </span>
+                <span className={styles.itemName}>{label}</span>
+              </span>
+            </Tooltip>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 function canOpenTimelineHref(
@@ -278,6 +315,7 @@ export default function SalesTrackingPage() {
 
   const [keyword, setKeyword] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
+  const [itemIds, setItemIds] = useState<string[]>([]);
   const [status, setStatus] = useState<string | undefined>();
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(
     null,
@@ -293,10 +331,20 @@ export default function SalesTrackingPage() {
   const listQuery = useSalesTrackingListQuery(applied);
   const detailQuery = useSalesTrackingDetailQuery(selectedSoId);
   const customersQuery = useCustomersQuery();
+  const itemsQuery = useItemsQuery({
+    isActive: true,
+    isFinishedGood: true,
+    isSalesItem: true,
+  });
 
   const summary = summaryQuery.data?.data;
   const list = listQuery.data?.data;
   const customers = customersQuery.data?.data ?? [];
+  const catalogItems = itemsQuery.data?.data ?? [];
+  const itemOptions = catalogItems.map((item) => ({
+    value: item.id,
+    label: `${item.itemCode} — ${item.itemNameTh}`,
+  }));
 
   const applyFilters = (overrides?: Partial<SalesTrackingQueryParams>) => {
     const nextPage = overrides?.page ?? 1;
@@ -307,6 +355,7 @@ export default function SalesTrackingPage() {
       salesOrderStatus: status,
       dateFrom: dateRange?.[0]?.format("YYYY-MM-DD"),
       dateTo: dateRange?.[1]?.format("YYYY-MM-DD"),
+      itemIds: itemIds.length ? itemIds : undefined,
       page: nextPage,
       pageSize: PAGE_SIZE,
       ...overrides,
@@ -368,7 +417,9 @@ export default function SalesTrackingPage() {
       {
         title: "SO",
         dataIndex: "salesOrderNo",
-        width: 140,
+        width: 160,
+        onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
+        onCell: () => ({ style: { whiteSpace: "nowrap" } }),
         render: (v: string, row) => (
           <Link
             href={`/sales-orders/${row.salesOrderId}`}
@@ -388,8 +439,23 @@ export default function SalesTrackingPage() {
       {
         title: "ลูกค้า",
         dataIndex: "customerName",
+        width: 220,
         ellipsis: true,
-        render: (v?: string) => v ?? "—",
+        render: (v?: string) => {
+          const name = v?.trim() || "—";
+          return (
+            <Tooltip title={name === "—" ? undefined : name}>
+              <span className={styles.customerName}>{name}</span>
+            </Tooltip>
+          );
+        },
+      },
+      {
+        title: "สินค้า",
+        key: "items",
+        width: 230,
+        className: styles.itemColumn,
+        render: (_v, row) => renderItemList(row.items ?? []),
       },
       {
         title: "วันที่ SO",
@@ -444,12 +510,14 @@ export default function SalesTrackingPage() {
       {
         title: "ทำถัดไป",
         dataIndex: "nextAction",
+        width: 180,
         ellipsis: true,
       },
       {
         title: "",
         key: "actions",
         width: 70,
+        fixed: "right",
         render: (_v, row) => (
           <Button
             size="small"
@@ -576,6 +644,23 @@ export default function SalesTrackingPage() {
             />
           </div>
           <div className={styles.filterItem}>
+            <label>สินค้า</label>
+            <Select
+              allowClear
+              showSearch
+              mode="multiple"
+              maxTagCount="responsive"
+              optionFilterProp="label"
+              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
+              aria-label="สินค้าในใบสั่งขาย"
+              value={itemIds}
+              onChange={(value) => setItemIds(value)}
+              style={{ width: "100%" }}
+              loading={itemsQuery.isLoading}
+              options={itemOptions}
+            />
+          </div>
+          <div className={styles.filterItem}>
             <label>ลูกค้า</label>
             <Select
               allowClear
@@ -628,6 +713,7 @@ export default function SalesTrackingPage() {
             onClick={() => {
               setKeyword("");
               setCustomerId(undefined);
+              setItemIds([]);
               setStatus(undefined);
               setDateRange(null);
               setPage(1);
@@ -657,7 +743,7 @@ export default function SalesTrackingPage() {
           loading={listQuery.isLoading || listQuery.isFetching}
           columns={columns}
           dataSource={list?.items ?? []}
-          scroll={{ x: 1200 }}
+          scroll={{ x: 1880 }}
           expandable={{
             rowExpandable: (row) => row.rounds.length > 0,
             expandedRowRender: (row) => (

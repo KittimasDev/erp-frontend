@@ -17,6 +17,11 @@ function buildQuery(params?: SalesTrackingQueryParams) {
   if (params.salesOrderStatus) search.set("salesOrderStatus", params.salesOrderStatus);
   if (params.dateFrom) search.set("dateFrom", params.dateFrom);
   if (params.dateTo) search.set("dateTo", params.dateTo);
+  if (params.itemIds?.length) {
+    for (const itemId of params.itemIds) {
+      search.append("itemIds", itemId);
+    }
+  }
   if (params.page) search.set("page", String(params.page));
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
   const q = search.toString();

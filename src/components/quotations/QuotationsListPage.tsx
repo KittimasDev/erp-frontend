@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Dropdown, Input, Pagination, Select, Table } from "antd";
+import { Button, DatePicker, Dropdown, Input, Pagination, Select, Table, Tooltip } from "antd";
 import type { MenuProps } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -22,7 +22,8 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useQuotationsQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import type { Quotation } from "@/types/quotations";
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import type { Quotation, QuotationItem } from "@/types/quotations";
 import {
   QUOTATION_FLOW_STEPS,
   QUOTATION_STATUS_FILTER_LABEL,
@@ -54,6 +55,40 @@ function formatMoney(value?: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function formatCatalogItemLabel(item: {
+  itemCode?: string;
+  itemNameTh?: string;
+  description?: string;
+}) {
+  const code = item.itemCode?.trim();
+  const name = (item.itemNameTh ?? item.description)?.trim();
+  if (code && name) return `${code} — ${name}`;
+  return code || name || "—";
+}
+
+function renderItemList(items: QuotationItem[]) {
+  if (!items.length) return "—";
+  return (
+    <ul className={styles.itemList}>
+      {items.map((item) => {
+        const label = formatCatalogItemLabel(item);
+        return (
+          <li key={item.id} className={styles.itemLine}>
+            <Tooltip title={label}>
+              <span className={styles.itemLineInner}>
+                <span className={styles.itemBullet} aria-hidden>
+                  -
+                </span>
+                <span className={styles.itemName}>{label}</span>
+              </span>
+            </Tooltip>
+          </li>
+        );
+      })}
+    </ul>
+  );
 }
 
 /**
@@ -118,6 +153,7 @@ export default function QuotationsListPage() {
   const [createdById, setCreatedById] = useState<string | undefined>();
   const [step, setStep] = useState<number | undefined>();
   const [date, setDate] = useState<dayjs.Dayjs | null>(null);
+  const [itemIds, setItemIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [applied, setApplied] = useState<{
     quotationNo?: string;
@@ -125,6 +161,7 @@ export default function QuotationsListPage() {
     status?: string;
     dateFrom?: string;
     dateTo?: string;
+    itemIds?: string[];
   }>({});
   /** ผู้สร้าง + ขั้นตอน ยังไม่มีใน query ของ API — กรองฝั่ง client จากผลที่ได้มา */
   const [appliedLocal, setAppliedLocal] = useState<{
@@ -148,6 +185,17 @@ export default function QuotationsListPage() {
     () => new Map(customers.map((c) => [c.id, c])),
     [customers],
   );
+
+  const itemsQuery = useItemsQuery({
+    isActive: true,
+    isFinishedGood: true,
+    isSalesItem: true,
+  });
+  const catalogItems = itemsQuery.data?.data ?? [];
+  const itemOptions = catalogItems.map((item) => ({
+    value: item.id,
+    label: `${item.itemCode} — ${item.itemNameTh}`,
+  }));
 
   const query = useQuotationsQuery(applied, { enabled: canView });
   const serverRows = useMemo(() => query.data?.data ?? [], [query.data]);
@@ -199,6 +247,7 @@ export default function QuotationsListPage() {
       status,
       dateFrom: date ? date.format("YYYY-MM-DD") : undefined,
       dateTo: date ? date.format("YYYY-MM-DD") : undefined,
+      itemIds: itemIds.length ? itemIds : undefined,
     });
     setAppliedLocal({ createdById, step });
   };
@@ -210,6 +259,7 @@ export default function QuotationsListPage() {
     setCreatedById(undefined);
     setStep(undefined);
     setDate(null);
+    setItemIds([]);
     setPage(1);
     setApplied({});
     setAppliedLocal({});
@@ -295,6 +345,13 @@ export default function QuotationsListPage() {
             </div>
           );
         },
+      },
+      {
+        title: "สินค้า",
+        key: "items",
+        width: 240,
+        className: styles.itemColumn,
+        render: (_v, row) => renderItemList(row.items ?? []),
       },
       {
         title: "ผู้สร้าง",
@@ -404,7 +461,7 @@ export default function QuotationsListPage() {
           <p className={styles.sectionEyebrow}>Search</p>
           <h2 className={styles.sectionTitle}>ค้นหาใบเสนอราคา</h2>
           <p className={styles.sectionSubtitle}>
-            กรองด้วยเลขที่ใบเสนอราคา ข้อมูลลูกค้า สถานะเอกสาร และช่วงเวลา
+            กรองด้วยเลขที่ใบเสนอราคา สินค้า ข้อมูลลูกค้า สถานะเอกสาร และช่วงเวลา
           </p>
         </div>
 
@@ -418,6 +475,23 @@ export default function QuotationsListPage() {
               value={quotationNo}
               onChange={(e) => setQuotationNo(e.target.value)}
               onPressEnter={applyFilters}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สินค้า</label>
+            <Select
+              allowClear
+              showSearch
+              mode="multiple"
+              maxTagCount="responsive"
+              optionFilterProp="label"
+              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
+              aria-label="สินค้าในใบเสนอราคา"
+              value={itemIds}
+              onChange={(value) => setItemIds(value)}
+              style={{ width: "100%" }}
+              loading={itemsQuery.isLoading}
+              options={itemOptions}
             />
           </div>
           <div className={styles.filterItem}>
@@ -530,7 +604,7 @@ export default function QuotationsListPage() {
           dataSource={pagedRows}
           pagination={false}
           className={styles.table}
-          scroll={{ x: 1180 }}
+          scroll={{ x: 1420 }}
           onRow={(row) => ({
             onClick: () => router.push(`/quotations/${row.id}`),
           })}

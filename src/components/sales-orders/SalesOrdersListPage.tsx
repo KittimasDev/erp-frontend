@@ -2,25 +2,80 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Input, Select, Space, Table, Tag } from "antd";
+import { Button, DatePicker, Input, Select, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EyeOutlined, SearchOutlined, ShoppingCartOutlined } from "@ant-design/icons";
+import {
+  EditOutlined,
+  EyeOutlined,
+  SearchOutlined,
+  ShoppingCartOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   resolveSalesOrderProgress,
   SALES_ORDER_FLOW_STEPS,
 } from "@/lib/sales/sales-order-progress";
 import { salesOrderRevisionStamp } from "@/lib/datetime/thai-buddhist-date";
-import type { SalesOrder } from "@/types/sales-orders";
+import type { SalesOrder, SalesOrderItem } from "@/types/sales-orders";
 import {
+  isPreConfirmSalesOrderStatus,
   SALES_ORDER_STATUS_LABEL,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 import styles from "./SalesOrdersListPage.module.css";
+
+/**
+ * กลุ่มสรุปด้านบน — จัดตาม "ใครถืองานอยู่" ไม่ใช่ไล่ตามชื่อสถานะ
+ *
+ * ฝ่ายขายเปิดหน้านี้มาเพื่อตอบคำถามเดียว: มีใบไหนค้างที่ฉันบ้าง
+ * การไล่สถานะดิบทั้ง 10 ตัวเป็นการ์ดจะกลายเป็นแถวตัวเลขที่ไม่มีใครอ่าน
+ */
+const SUMMARY_BUCKETS = [
+  {
+    key: "waiting",
+    label: "รอยืนยัน",
+    hint: "อยู่ที่ฝ่ายขาย",
+    tone: "warn",
+    statuses: ["DRAFT", "AWAITING_CONFIRM"],
+  },
+  {
+    key: "running",
+    label: "กำลังดำเนินการ",
+    hint: "อยู่ที่คลัง",
+    tone: "info",
+    statuses: [
+      "CONFIRMED",
+      "STOCK_CHECKED",
+      "PICKING",
+      "PACKED",
+      "PARTIALLY_ISSUED",
+    ],
+  },
+  {
+    key: "done",
+    label: "ส่งแล้ว",
+    hint: "จบงาน",
+    tone: "done",
+    statuses: ["DELIVERED", "COMPLETED"],
+  },
+  {
+    key: "cancelled",
+    label: "ยกเลิก",
+    hint: "ไม่นับเป็นยอด",
+    tone: "muted",
+    statuses: ["CANCELLED"],
+  },
+] as const;
+
+type SummaryBucketKey = (typeof SUMMARY_BUCKETS)[number]["key"];
+
+const PAGE_SIZE = 10;
 
 function statusColor(status: string) {
   switch (status) {
@@ -54,6 +109,47 @@ function formatMoney(value?: string) {
   });
 }
 
+function formatCatalogItemLabel(item: {
+  itemCode?: string;
+  itemNameTh?: string;
+  description?: string;
+}) {
+  const code = item.itemCode?.trim();
+  const name = (item.itemNameTh ?? item.description)?.trim();
+  if (code && name) return `${code} — ${name}`;
+  return code || name || "—";
+}
+
+function renderItemList(items: SalesOrderItem[]) {
+  if (!items.length) return "—";
+  return (
+    <ul className={styles.itemList}>
+      {items.map((item) => {
+        const label = formatCatalogItemLabel(item);
+        return (
+          <li key={item.id} className={styles.itemLine}>
+            <Tooltip title={label}>
+              <span className={styles.itemLineInner}>
+                <span className={styles.itemBullet} aria-hidden>
+                  -
+                </span>
+                <span className={styles.itemName}>{label}</span>
+              </span>
+            </Tooltip>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
+ * ขั้นตอน + สถานะ รวมเป็นช่องเดียว
+ *
+ * เดิมแยกสองคอลัมน์กว้างรวม 360px ทั้งที่พูดเรื่องเดียวกัน — ช่องขั้นตอนบอกชื่อขั้น
+ * ปัจจุบันอยู่แล้ว แล้วมี Tag สถานะซ้ำอีกช่องข้าง ๆ · ยุบรวมแล้วประหยัดไป ~130px
+ * ซึ่งเป็นตัวที่ทำให้ตารางต้องเลื่อนแนวนอน
+ */
 function SalesOrderProgressCell({
   status,
   deliveryStatus,
@@ -67,11 +163,16 @@ function SalesOrderProgressCell({
       className={`${styles.progressCell} ${styles[`progress_${progress.tone}`]}`}
     >
       <div className={styles.progressMeta}>
+        <Tag color={statusColor(status)} className={styles.progressStatusTag}>
+          {SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status}
+        </Tag>
         <span className={styles.progressCount}>
           {progress.tone === "stopped" && progress.current === 0
             ? "—"
             : `${progress.inProgress}/${progress.total}`}
         </span>
+      </div>
+      <div className={styles.progressLabelRow}>
         <span className={styles.progressLabel}>
           {progress.currentStepLabel}
           {progress.tone !== "done" && progress.tone !== "stopped"
@@ -118,18 +219,61 @@ export default function SalesOrdersListPage() {
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [status, setStatus] = useState<string | undefined>();
   const [date, setDate] = useState<dayjs.Dayjs | null>(null);
+  const [itemIds, setItemIds] = useState<string[]>([]);
   const [applied, setApplied] = useState<{
     soNo?: string;
     customerId?: string;
     status?: string;
     dateFrom?: string;
     dateTo?: string;
+    itemIds?: string[];
   }>({});
 
   const customersQuery = useCustomersQuery();
   const customers = customersQuery.data?.data ?? [];
+  const itemsQuery = useItemsQuery({
+    isActive: true,
+    isFinishedGood: true,
+    isSalesItem: true,
+  });
+  const catalogItems = itemsQuery.data?.data ?? [];
+  const itemOptions = catalogItems.map((item) => ({
+    value: item.id,
+    label: `${item.itemCode} — ${item.itemNameTh}`,
+  }));
   const query = useSalesOrdersQuery(applied);
-  const rows = query.data?.data ?? [];
+  const rows = useMemo(() => query.data?.data ?? [], [query.data]);
+
+  /*
+    กรองด้วยการ์ดสรุปทำฝั่ง client เพราะหน้านี้ดึงมาทั้งชุดแล้วแบ่งหน้าเองอยู่แล้ว
+    (Table เป็นคนแบ่งหน้า ไม่ได้ยิง API ต่อหน้า) · และการ์ดหนึ่งใบครอบหลายสถานะ
+    ซึ่ง query param `status` ของ API รับได้ทีละตัว
+  */
+  const [bucket, setBucket] = useState<SummaryBucketKey | null>(null);
+  /* ต้องรู้หน้าปัจจุบันเองเพื่อให้คอลัมน์ "ลำดับ" นับต่อเนื่องข้ามหน้า */
+  const [page, setPage] = useState(1);
+
+  const bucketCounts = useMemo(() => {
+    const counts = new Map<SummaryBucketKey, number>();
+    for (const item of SUMMARY_BUCKETS) {
+      counts.set(
+        item.key,
+        rows.filter((row) =>
+          (item.statuses as readonly string[]).includes(row.status),
+        ).length,
+      );
+    }
+    return counts;
+  }, [rows]);
+
+  const visibleRows = useMemo(() => {
+    if (!bucket) return rows;
+    const active = SUMMARY_BUCKETS.find((item) => item.key === bucket);
+    if (!active) return rows;
+    return rows.filter((row) =>
+      (active.statuses as readonly string[]).includes(row.status),
+    );
+  }, [rows, bucket]);
 
   const applyFilters = () => {
     setApplied({
@@ -138,7 +282,9 @@ export default function SalesOrdersListPage() {
       status,
       dateFrom: date ? date.format("YYYY-MM-DD") : undefined,
       dateTo: date ? date.format("YYYY-MM-DD") : undefined,
+      itemIds: itemIds.length ? itemIds : undefined,
     });
+    setPage(1);
   };
 
   const clearFilters = () => {
@@ -146,20 +292,30 @@ export default function SalesOrdersListPage() {
     setCustomerId(undefined);
     setStatus(undefined);
     setDate(null);
+    setItemIds([]);
     setApplied({});
+    setBucket(null);
+    setPage(1);
   };
 
   const columns: ColumnsType<SalesOrder> = useMemo(
     () => [
       {
+        /*
+          เลขลำดับในหน้า — ไม่ใช่ข้อมูลของเอกสาร แต่คนใช้อ้างอิงกันด้วยปากว่า
+          "แถวที่ 3" ตอนคุยงาน จึงต้องมี · นับต่อเนื่องข้ามหน้าตามเลขหน้าปัจจุบัน
+        */
         title: "ลำดับ",
+        key: "seq",
         width: 56,
         align: "center",
-        render: (_v, _r, index) => index + 1,
+        render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,
       },
       {
         title: "เลขที่",
         dataIndex: "soNo",
+        width: 170,
+        onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
         render: (_value: string, row) => (
           <div className={styles.soNoCell}>
             <span className={styles.prNo}>{row.soNo}</span>
@@ -172,21 +328,29 @@ export default function SalesOrdersListPage() {
       {
         title: "วันที่",
         dataIndex: "soDate",
-        width: 110,
+        width: 100,
         render: (value: string) => formatDate(value),
       },
       {
         title: "ลูกค้า",
         key: "customer",
+        ellipsis: true,
         render: (_v, row) =>
           row.customer
             ? `${row.customer.customerCode} — ${row.customer.nameTh}`
             : "—",
       },
       {
+        title: "สินค้า",
+        key: "items",
+        width: 230,
+        className: styles.itemColumn,
+        render: (_v, row) => renderItemList(row.items ?? []),
+      },
+      {
         title: "ผู้สร้าง",
         key: "createdBy",
-        width: 140,
+        width: 120,
         ellipsis: true,
         render: (_v, row) =>
           row.createdBy?.displayName?.trim() ||
@@ -203,7 +367,7 @@ export default function SalesOrdersListPage() {
       {
         title: "ขั้นตอน",
         key: "progress",
-        width: 220,
+        width: 230,
         render: (_v, row) => (
           <SalesOrderProgressCell
             status={row.status}
@@ -212,31 +376,43 @@ export default function SalesOrdersListPage() {
         ),
       },
       {
-        title: "สถานะ",
-        dataIndex: "status",
-        width: 140,
-        render: (value: string) => (
-          <Tag color={statusColor(value)}>
-            {SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value}
-          </Tag>
-        ),
-      },
-      {
-        title: "",
+        /*
+          ใช้ RowActionsMenu แบบเดียวกับหน้ารายการอื่นของระบบ (ใบขอซื้อ ฯลฯ)
+          แทนปุ่มรูปตาเดี่ยว ๆ ของเดิม — ได้ชื่อเมนูอ่านออก กดด้วยคีย์บอร์ดได้
+          และเพิ่ม "แก้ไข" เข้ามาได้โดยไม่ต้องหาที่วางปุ่มเพิ่ม
+
+          ยังไม่มี route /sales-orders/[id]/edit แยก — การแก้ไขทำที่หน้ารายละเอียด
+          เมนูแก้ไขจึงพาไปหน้าเดียวกัน แต่โผล่เฉพาะใบที่ยังแก้ได้ (ก่อนยืนยัน)
+          จะได้ไม่หลอกให้กดเข้าไปแล้วพบว่าแก้ไม่ได้
+        */
+        title: "จัดการ",
         key: "actions",
-        width: 60,
+        width: 80,
+        align: "center",
+        fixed: "right",
         render: (_v, row) => (
-          <Space size={6} onClick={(e) => e.stopPropagation()}>
-            <Button
-              size="small"
-              icon={<EyeOutlined />}
-              onClick={() => router.push(`/sales-orders/${row.id}`)}
-            />
-          </Space>
+          <RowActionsMenu
+            ariaLabel={`เมนูจัดการ ${row.soNo}`}
+            actions={[
+              {
+                key: "view",
+                icon: <EyeOutlined />,
+                label: "ดูรายละเอียด",
+                onClick: () => router.push(`/sales-orders/${row.id}`),
+              },
+              isPreConfirmSalesOrderStatus(row.status) &&
+                salesOrderActions.canEdit && {
+                  key: "edit",
+                  icon: <EditOutlined />,
+                  label: "แก้ไข",
+                  onClick: () => router.push(`/sales-orders/${row.id}`),
+                },
+            ]}
+          />
         ),
       },
     ],
-    [router],
+    [page, router, salesOrderActions.canEdit],
   );
 
   return (
@@ -258,6 +434,37 @@ export default function SalesOrdersListPage() {
         </div>
       </header>
 
+      <section className={styles.summaryGrid}>
+        {SUMMARY_BUCKETS.map((item) => {
+          const active = bucket === item.key;
+          return (
+            <button
+              key={item.key}
+              type="button"
+              // กดซ้ำที่ใบเดิม = ปลดตัวกรอง จะได้ไม่ต้องไปหาปุ่มเคลียร์
+              onClick={() => {
+                setBucket(active ? null : item.key);
+                setPage(1);
+              }}
+              className={[
+                styles.summaryCard,
+                styles[`summary_${item.tone}`],
+                active ? styles.summaryCardActive : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-pressed={active}
+            >
+              <span className={styles.summaryLabel}>{item.label}</span>
+              <strong className={styles.summaryValue}>
+                {bucketCounts.get(item.key) ?? 0}
+              </strong>
+              <span className={styles.summaryHint}>{item.hint}</span>
+            </button>
+          );
+        })}
+      </section>
+
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
@@ -268,6 +475,23 @@ export default function SalesOrdersListPage() {
               value={soNo}
               onChange={(e) => setSoNo(e.target.value)}
               onPressEnter={applyFilters}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สินค้า</label>
+            <Select
+              allowClear
+              showSearch
+              mode="multiple"
+              maxTagCount="responsive"
+              optionFilterProp="label"
+              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
+              aria-label="สินค้าในใบสั่งขาย"
+              value={itemIds}
+              onChange={(value) => setItemIds(value)}
+              style={{ width: "100%" }}
+              loading={itemsQuery.isLoading}
+              options={itemOptions}
             />
           </div>
           <div className={styles.filterItem}>
@@ -327,16 +551,38 @@ export default function SalesOrdersListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{rows.length}</strong> รายการ
+            พบทั้งหมด <strong>{visibleRows.length}</strong> รายการ
+            {bucket ? (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  className={styles.clearBucket}
+                  onClick={() => {
+                    setBucket(null);
+                    setPage(1);
+                  }}
+                >
+                  ล้างตัวกรองการ์ด
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
         <Table
           rowKey="id"
           loading={query.isLoading}
           columns={columns}
-          dataSource={rows}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          dataSource={visibleRows}
+          pagination={{
+            current: page,
+            pageSize: PAGE_SIZE,
+            showSizeChanger: false,
+            onChange: setPage,
+          }}
           className={styles.table}
+          /* ยุบขั้นตอน+สถานะเป็นช่องเดียวแล้ว ยังแคบกว่าเดิม (เดิม 1280) */
+          scroll={{ x: 1200 }}
           onRow={(row) => ({
             onClick: () => router.push(`/sales-orders/${row.id}`),
           })}

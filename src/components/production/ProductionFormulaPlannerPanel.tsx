@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type KeyboardEvent } from "react";
 import { Alert, Button, InputNumber, Select, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { CalculatorOutlined } from "@ant-design/icons";
@@ -40,6 +40,32 @@ type Props = {
 
 function fmtQty(value: number) {
   return value.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+}
+
+/** อนุญาตเฉพาะตัวเลขและจุดทศนิยม (บล็อก e / + / - / ตัวอักษร) */
+function blockNonNumericKey(event: KeyboardEvent<HTMLInputElement>) {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return;
+  }
+  const allowed = new Set([
+    "Backspace",
+    "Delete",
+    "Tab",
+    "Escape",
+    "Enter",
+    "ArrowLeft",
+    "ArrowRight",
+    "ArrowUp",
+    "ArrowDown",
+    "Home",
+    "End",
+  ]);
+  if (allowed.has(event.key)) {
+    return;
+  }
+  if (!/^[0-9.]$/.test(event.key)) {
+    event.preventDefault();
+  }
 }
 
 /**
@@ -228,9 +254,16 @@ export default function ProductionFormulaPlannerPanel({
             min={0.001}
             precision={3}
             placeholder="0.000"
+            inputMode="decimal"
             value={targetQty}
             disabled={disabled || !driverLineId}
             onChange={onTargetQty}
+            onKeyDown={blockNonNumericKey}
+            parser={(value) => {
+              const cleaned = (value ?? "").replace(/[^\d.]/g, "");
+              const parsed = Number(cleaned);
+              return Number.isFinite(parsed) ? parsed : 0;
+            }}
           />
         </label>
 
