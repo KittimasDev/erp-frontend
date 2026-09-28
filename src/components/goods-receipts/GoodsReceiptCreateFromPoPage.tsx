@@ -81,6 +81,7 @@ type LineMeta = {
   receivedQty: number;
   remainingQty: number;
   remainingBaseQty: number;
+  requiresLotControl: boolean;
   expectedWarehouseId?: string;
   expectedLocationId?: string;
 };
@@ -244,6 +245,9 @@ export default function GoodsReceiptCreateFromPoPage({
         receivedQty: receivedBase,
         remainingQty: remainingInPoUnit,
         remainingBaseQty,
+        requiresLotControl: Boolean(
+          itemById.get(poItem.itemId)?.requiresLotControl,
+        ),
         expectedWarehouseId: poItem.expectedWarehouseId,
         expectedLocationId: poItem.expectedLocationId,
       });
@@ -292,26 +296,23 @@ export default function GoodsReceiptCreateFromPoPage({
     form.setFieldsValue({
       grDate: dayjs(),
       remark: undefined,
-      items: (po.items ?? []).map((item) => {
-        const meta = lineMetaByPoItemId.get(item.id);
-        const remaining = meta?.remainingQty ?? 0;
-        return {
-          selected: remaining > 0,
-          purchaseOrderItemId: item.id,
-          destinations:
-            remaining > 0
-              ? [
-                  {
-                    // เริ่มด้วยหน่วยของ PO เสมอ เลขที่ผู้ใช้เห็นจะได้ตรงกับใบสั่งซื้อ
-                    qty: { quantity: remaining, unitId: meta?.poUnitId },
-                    warehouseId: item.expectedWarehouseId ?? undefined,
-                    locationId: item.expectedLocationId ?? undefined,
-                    lotNo: undefined,
-                  },
-                ]
-              : [],
-        };
-      }),
+      items: (po.items ?? [])
+        .filter((item) => (lineMetaByPoItemId.get(item.id)?.remainingBaseQty ?? 0) > 0)
+        .map((item) => {
+          const meta = lineMetaByPoItemId.get(item.id);
+          return {
+            selected: false,
+            purchaseOrderItemId: item.id,
+            destinations: [
+              {
+                qty: { quantity: undefined, unitId: meta?.poUnitId },
+                warehouseId: item.expectedWarehouseId ?? undefined,
+                locationId: item.expectedLocationId ?? undefined,
+                lotNo: undefined,
+              },
+            ],
+          };
+        }),
     });
   }, [
     form,
@@ -420,6 +421,16 @@ export default function GoodsReceiptCreateFromPoPage({
           return;
         }
 
+        if (meta?.requiresLotControl && !dest.lotNo?.trim()) {
+          form.setFields([
+            {
+              name: "items",
+              errors: [`${label}: กรุณาระบุเลข Lot`],
+            },
+          ]);
+          return;
+        }
+
         // ด่านที่สองต่อจาก validator — กันเอกสารเก่าที่หน่วยไม่มีกฎแปลงหลุดไปถึง backend
         const base = destBaseQty(conversionIndex, meta, dest);
         if (base === null) {
@@ -441,7 +452,9 @@ export default function GoodsReceiptCreateFromPoPage({
           unitId: dest.qty?.unitId,
           warehouseId: dest.warehouseId,
           locationId: dest.locationId,
-          lotNo: dest.lotNo?.trim() || undefined,
+          lotNo: meta?.requiresLotControl
+            ? dest.lotNo?.trim() || undefined
+            : undefined,
           label,
         });
       }
@@ -591,7 +604,8 @@ export default function GoodsReceiptCreateFromPoPage({
                 <div className={styles.sectionHead}>
                   <h2 className={styles.sectionTitle}>รายการรับเข้าคลัง</h2>
                   <p className={styles.sectionHint}>
-                    แยกสินค้าบรรทัดเดียวเข้าได้หลายคลัง — รวมจำนวนห้ามเกินที่เหลือ
+                    แสดงเฉพาะรายการที่ยังรับไม่ครบ — ติ๊กเฉพาะบรรทัดที่จะรับรอบนี้
+                    รับไม่ครบได้ จะเปิดใบรับใหม่ภายหลัง
                   </p>
                 </div>
                 <Form.List name="items">
@@ -751,7 +765,8 @@ export default function GoodsReceiptCreateFromPoPage({
                                             <Form.Item
                                               {...destRest}
                                               className={styles.field}
-                                              label="จำนวนรับ"
+                                              label="จำนวนที่รับครั้งนี้"
+                                              extra={`คงเหลือ ${formatQtyUnit(remaining, meta?.unitLabel ?? "")} — รับไม่ครบได้ จะเปิดใบรับใหม่ภายหลัง`}
                                               name={[destName, "qty"]}
                                               rules={[
                                                 {
@@ -837,14 +852,22 @@ export default function GoodsReceiptCreateFromPoPage({
                                                 }))}
                                               />
                                             </Form.Item>
-                                            <Form.Item
-                                              {...destRest}
-                                              className={styles.field}
-                                              label="Lot (ถ้ามี)"
-                                              name={[destName, "lotNo"]}
-                                            >
-                                              <Input />
-                                            </Form.Item>
+                                            {meta?.requiresLotControl ? (
+                                              <Form.Item
+                                                {...destRest}
+                                                className={styles.field}
+                                                label="Lot"
+                                                name={[destName, "lotNo"]}
+                                                rules={[
+                                                  {
+                                                    required: true,
+                                                    message: "กรุณาระบุเลข Lot",
+                                                  },
+                                                ]}
+                                              >
+                                                <Input placeholder="กรอกเลข Lot" />
+                                              </Form.Item>
+                                            ) : null}
                                           </div>
                                         </div>
                                       );
@@ -857,29 +880,14 @@ export default function GoodsReceiptCreateFromPoPage({
                                           destSumBase >= remainingBase - 1e-9
                                         }
                                         onClick={() => {
-                                          const leftBase = roundQty(
-                                            Math.max(
-                                              0,
-                                              remainingBase - destSumBase,
-                                            ),
-                                          );
-                                          // เสนอค่าเริ่มต้นในหน่วยของ PO เพื่อให้ตัวเลขอ่านคู่กับใบสั่งซื้อได้
-                                          const leftInPoUnit = meta
-                                            ? fromBaseQty(conversionIndex, {
-                                                baseQty: leftBase,
-                                                unitId: meta.poUnitId,
-                                                baseUnitId: meta.baseUnitId,
-                                                itemId: meta.itemId,
-                                              })
-                                            : null;
                                           add({
                                             qty: {
-                                              quantity:
-                                                leftInPoUnit ?? leftBase,
+                                              quantity: undefined,
                                               unitId: meta?.poUnitId,
                                             },
                                             warehouseId: undefined,
                                             locationId: undefined,
+                                            lotNo: undefined,
                                           });
                                         }}
                                       >

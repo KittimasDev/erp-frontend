@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, DatePicker, Form, Input, Select, Spin } from "antd";
@@ -66,6 +66,8 @@ export default function GoodsReceiptEditPage({ id }: Props) {
   const units = unitsQuery.data?.data ?? EMPTY_UNITS;
   const mastersLoading = itemsQuery.isLoading || unitsQuery.isLoading;
   const watchedItems = Form.useWatch("items", form) ?? [];
+  // กัน setFieldsValue ทับจำนวนที่ผู้ใช้กำลังพิมพ์ เมื่อ items/units เปลี่ยน identity
+  const hydratedForIdRef = useRef<string | null>(null);
 
   const itemById = useMemo(
     () => new Map(items.map((item) => [item.id, item])),
@@ -83,6 +85,8 @@ export default function GoodsReceiptEditPage({ id }: Props) {
       return;
     }
     if (mastersLoading) return;
+    if (hydratedForIdRef.current === data.id) return;
+    hydratedForIdRef.current = data.id;
 
     form.setFieldsValue({
       grDate: dayjs(data.grDate),
@@ -110,14 +114,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
         };
       }),
     });
-  }, [
-    data,
-    form,
-    router,
-    itemById,
-    unitLabelById,
-    mastersLoading,
-  ]);
+  }, [data, form, router, itemById, unitLabelById, mastersLoading]);
 
   if (detailQuery.isLoading) {
     return (
@@ -208,15 +205,31 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                     <div className={styles.lineList}>
                       {fields.map(({ key, name, ...restField }, index) => {
                         const line = watchedItems[index];
+                        const persisted =
+                          data.items?.find((item) => item.id === line?.id) ??
+                          data.items?.[index];
+                        const itemId = persisted?.itemId ?? line?.itemId;
+                        const baseUnitId =
+                          persisted?.baseUnitId ??
+                          (itemId ? itemById.get(itemId)?.unitId : undefined) ??
+                          persisted?.unitId ??
+                          line?.baseUnitId;
+                        const baseUnitLabel =
+                          (baseUnitId
+                            ? unitLabelById.get(baseUnitId)
+                            : undefined) ?? line?.baseUnitLabel;
                         const locs = locations.filter(
                           (loc) => loc.warehouseId === line?.warehouseId,
                         );
+                        const itemLabel =
+                          line?.itemLabel ||
+                          (persisted
+                            ? `${persisted.itemCode ?? ""} — ${persisted.itemNameTh ?? ""}`
+                            : `รายการที่ ${index + 1}`);
                         return (
                           <div key={key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
-                              <strong>
-                                {line?.itemLabel || `รายการที่ ${index + 1}`}
-                              </strong>
+                              <strong>{itemLabel}</strong>
                             </div>
                             <Form.Item {...restField} name={[name, "id"]} hidden>
                               <Input />
@@ -228,7 +241,28 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                             >
                               <Input />
                             </Form.Item>
-                            <div className={styles.lineGrid}>
+                            <Form.Item
+                              {...restField}
+                              name={[name, "itemId"]}
+                              hidden
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              {...restField}
+                              name={[name, "baseUnitId"]}
+                              hidden
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              {...restField}
+                              name={[name, "itemLabel"]}
+                              hidden
+                            >
+                              <Input />
+                            </Form.Item>
+                            <div className={styles.destGrid}>
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
@@ -238,9 +272,9 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                                   {
                                     validator: makeQtyUnitValidator({
                                       index: conversionIndex,
-                                      itemId: line?.itemId,
-                                      baseUnitId: line?.baseUnitId,
-                                      baseUnitLabel: line?.baseUnitLabel,
+                                      itemId,
+                                      baseUnitId,
+                                      baseUnitLabel,
                                     }),
                                   },
                                 ]}
@@ -248,8 +282,8 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                                 <QuantityUnitInput
                                   index={conversionIndex}
                                   units={units}
-                                  itemId={line?.itemId}
-                                  baseUnitId={line?.baseUnitId}
+                                  itemId={itemId}
+                                  baseUnitId={baseUnitId}
                                   size="middle"
                                 />
                               </Form.Item>
