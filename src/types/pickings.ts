@@ -1,7 +1,7 @@
 export type PickingStatus = "DRAFT" | "CONFIRMED" | "CANCELLED";
 
 export const PICKING_STATUS_LABEL: Record<PickingStatus, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   CONFIRMED: "ยืนยันแล้ว",
   CANCELLED: "ยกเลิก",
 };

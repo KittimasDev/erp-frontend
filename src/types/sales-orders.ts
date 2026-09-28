@@ -15,7 +15,7 @@ export function isPreConfirmSalesOrderStatus(status?: string): boolean {
 }
 
 export const SALES_ORDER_STATUS_LABEL: Record<SalesOrderStatus, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   AWAITING_CONFIRM: "รอยืนยันใบสั่งขาย",
   CONFIRMED: "ยืนยันแล้ว",
   STOCK_CHECKED: "ตรวจสต๊อกแล้ว",

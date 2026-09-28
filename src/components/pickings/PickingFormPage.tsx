@@ -688,7 +688,7 @@ export default function PickingFormPage({ id, mode }: Props) {
         <Alert
           type="info"
           showIcon
-          title="ใบจ่ายอยู่สถานะร่าง"
+          title="ใบจ่ายอยู่สถานะแบบร่างเอกสาร"
           description={
             canWrite
               ? reservationReady

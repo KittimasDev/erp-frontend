@@ -10,7 +10,7 @@ export type PurchaseOrderStatus =
   | string;
 
 export const PURCHASE_ORDER_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   PENDING_APPROVAL: "รออนุมัติ",
   // ถูกหัวหน้าส่งกลับมาแก้ — ต้องแยกจาก "ร่าง" ให้เห็นว่ามีงานค้างอยู่
   REVISING: "แก้ไข",
@@ -134,6 +134,7 @@ export type PurchaseOrderQueryParams = {
   purchaseRequestId?: string;
   poDateFrom?: string;
   poDateTo?: string;
+  itemIds?: string[];
   page?: number;
   limit?: number;
 };

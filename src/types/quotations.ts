@@ -6,7 +6,7 @@ export type QuotationStatus =
   | "CANCELLED";
 
 export const QUOTATION_STATUS_LABEL: Record<QuotationStatus, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   SENT: "รอลูกค้าตอบรับ",
   ACCEPTED: "ลูกค้าตอบรับแล้ว",
   REJECTED: "ลูกค้าปฏิเสธ",

@@ -333,7 +333,7 @@ export default function GoodsReceiptsListPage() {
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "ร่าง" },
+                { value: "DRAFT", label: "แบบร่างเอกสาร" },
                 { value: "CONFIRMED", label: "ยืนยันแล้ว" },
                 { value: "CANCELLED", label: "ยกเลิก" },
               ]}

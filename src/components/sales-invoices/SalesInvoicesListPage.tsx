@@ -303,7 +303,7 @@ export default function SalesInvoicesListPage() {
               onChange={setStatus}
               style={{ width: "100%" }}
               options={[
-                { value: "DRAFT", label: "ร่าง" },
+                { value: "DRAFT", label: "แบบร่างเอกสาร" },
                 { value: "POSTED", label: "โพสต์แล้ว" },
                 { value: "CANCELLED", label: "ยกเลิก" },
               ]}

@@ -516,7 +516,7 @@ export default function MaterialConversionsListPage() {
           <div className={styles.summaryGroup}>
             <span className={styles.summaryGroupLabel}>สรุปในหน้านี้</span>
             <div className={styles.summaryStats}>
-              <Stat label="ร่าง" value={pageStats.draft} color="#c4c8cd" />
+              <Stat label="แบบร่างเอกสาร" value={pageStats.draft} color="#c4c8cd" />
               <Stat
                 label="กำลังทำงาน"
                 value={pageStats.inProgress}

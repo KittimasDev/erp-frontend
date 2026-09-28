@@ -10,7 +10,7 @@ export const PURCHASE_REQUEST_STATUS_LABEL: Record<
   PurchaseRequestStatus,
   string
 > = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   PENDING_APPROVAL: "รออนุมัติ",
   // ถูกผู้อนุมัติส่งกลับมาแก้ — ต้องแยกจาก "ร่าง"
   REVISING: "แก้ไข",

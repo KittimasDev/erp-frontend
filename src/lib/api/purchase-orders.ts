@@ -19,6 +19,11 @@ function buildQuery(params?: PurchaseOrderQueryParams) {
     search.set("purchaseRequestId", params.purchaseRequestId);
   if (params.poDateFrom) search.set("poDateFrom", params.poDateFrom);
   if (params.poDateTo) search.set("poDateTo", params.poDateTo);
+  if (params.itemIds?.length) {
+    for (const itemId of params.itemIds) {
+      search.append("itemIds", itemId);
+    }
+  }
   if (params.page != null) search.set("page", String(params.page));
   if (params.limit != null) search.set("limit", String(params.limit));
   const query = search.toString();

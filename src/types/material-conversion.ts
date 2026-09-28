@@ -16,7 +16,7 @@ export type MaterialConversionStatus =
   (typeof MATERIAL_CONVERSION_STATUS)[number];
 
 export const MATERIAL_CONVERSION_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   IN_PROGRESS: "กำลังทำงาน",
   COMPLETED: "เสร็จแล้ว",
   CANCELLED: "ยกเลิก",
@@ -387,7 +387,7 @@ export const MATERIAL_CONVERSION_JOB_PROGRESS_LABEL: Record<string, string> = {
 /** สภาพของขั้นบนไทม์ไลน์ — `NOT_STARTED` คือยังไม่เคยเปิดเอกสารของขั้นนั้น */
 export const JOB_STEP_STATE_LABEL: Record<string, string> = {
   NOT_STARTED: "ยังไม่เริ่ม",
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   IN_PROGRESS: "กำลังทำงาน",
   COMPLETED: "เสร็จแล้ว",
 };

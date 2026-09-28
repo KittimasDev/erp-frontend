@@ -5,7 +5,7 @@ export type GoodsReceiptStatus =
   | string;
 
 export const GOODS_RECEIPT_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   CONFIRMED: "ยืนยันแล้ว",
   CANCELLED: "ยกเลิก",
 };

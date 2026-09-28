@@ -359,3 +359,46 @@
 .pendingTable :global(.ant-table-expanded-row) > td {
   background: #fbfcfa !important;
 }
+
+.toolbarItemSelect {
+  min-width: 260px;
+  max-width: 420px;
+  flex: 1 1 260px;
+}
+
+.itemColumn {
+  max-width: 240px;
+}
+
+.itemList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemLine {
+  min-width: 0;
+}
+
+.itemLineInner {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  gap: 6px;
+  line-height: 1.35;
+  cursor: default;
+}
+
+.itemBullet {
+  flex: none;
+}
+
+.itemName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

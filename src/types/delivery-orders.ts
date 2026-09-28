@@ -5,7 +5,7 @@ export type DeliveryOrderStatus =
   | "CANCELLED";
 
 export const DELIVERY_ORDER_STATUS_LABEL: Record<DeliveryOrderStatus, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   CONFIRMED: "ยืนยันแล้ว",
   DELIVERED: "ส่งแล้ว",
   CANCELLED: "ยกเลิก",

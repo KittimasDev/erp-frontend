@@ -6,7 +6,7 @@ export type SalesInvoicePaymentStatus =
   | string;
 
 export const SALES_INVOICE_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   POSTED: "โพสต์แล้ว",
   CANCELLED: "ยกเลิก",
 };

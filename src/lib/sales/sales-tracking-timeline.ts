@@ -60,7 +60,7 @@ export function salesTimelineStatusLabel(status?: string) {
   const map: Record<string, string> = {
     DONE: "เสร็จแล้ว",
     PENDING: "รอดำเนินการ",
-    DRAFT: "ร่าง",
+    DRAFT: "แบบร่างเอกสาร",
     AWAITING_CONFIRM: "รอยืนยันใบสั่งขาย",
     CONFIRMED: "ยืนยันแล้ว",
     DELIVERED: "ส่งแล้ว",

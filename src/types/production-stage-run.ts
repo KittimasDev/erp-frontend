@@ -17,7 +17,7 @@ export type StageRunStatusValue =
   (typeof StageRunStatus)[keyof typeof StageRunStatus];
 
 export const STAGE_RUN_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   IN_PROGRESS: "กำลังทำงาน",
   COMPLETED: "เสร็จแล้ว",
   CANCELLED: "ยกเลิก",

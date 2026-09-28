@@ -25,6 +25,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useSubmitPurchaseOrderMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import { usePurchaseOrdersQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchaseOrdersPendingFromPrQuery } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
@@ -124,16 +125,60 @@ function formatMoney(value?: string) {
   });
 }
 
+function formatCatalogItemLabel(item: {
+  itemCode?: string;
+  itemNameTh?: string;
+  description?: string;
+}) {
+  const code = item.itemCode?.trim();
+  const name = (item.itemNameTh ?? item.description)?.trim();
+  if (code && name) return `${code} — ${name}`;
+  return code || name || "—";
+}
+
+function renderItemList(
+  items: Array<{
+    id: string;
+    itemCode?: string;
+    itemNameTh?: string;
+    description?: string;
+  }>,
+) {
+  if (!items.length) return "—";
+  return (
+    <ul className={styles.itemList}>
+      {items.map((item) => {
+        const label = formatCatalogItemLabel(item);
+        return (
+          <li key={item.id} className={styles.itemLine}>
+            <Tooltip title={label}>
+              <span className={styles.itemLineInner}>
+                <span className={styles.itemBullet} aria-hidden>
+                  -
+                </span>
+                <span className={styles.itemName}>{label}</span>
+              </span>
+            </Tooltip>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function PurchaseOrdersListPage() {
   const router = useRouter();
   const [poNo, setPoNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [poDate, setPoDate] = useState<dayjs.Dayjs | null>(null);
+  const [itemIds, setItemIds] = useState<string[]>([]);
+  const [pendingItemIds, setPendingItemIds] = useState<string[]>([]);
   const [applied, setApplied] = useState<{
     poNo?: string;
     status?: string;
     poDateFrom?: string;
     poDateTo?: string;
+    itemIds?: string[];
   }>({});
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -171,6 +216,13 @@ export default function PurchaseOrdersListPage() {
 
   const submitMutation = useSubmitPurchaseOrderMutation();
 
+  const itemsQuery = useItemsQuery({ isActive: true, isPurchaseItem: true });
+  const catalogItems = itemsQuery.data?.data ?? [];
+  const itemOptions = catalogItems.map((item) => ({
+    value: item.id,
+    label: `${item.itemCode} — ${item.itemNameTh}`,
+  }));
+
   const query = usePurchaseOrdersQuery({ ...applied, page, limit });
   const rows = query.data?.data.items ?? [];
   const total = query.data?.data.total ?? 0;
@@ -178,6 +230,7 @@ export default function PurchaseOrdersListPage() {
   const pendingQuery = usePurchaseOrdersPendingFromPrQuery({
     page: pendingPage,
     limit: pendingLimit,
+    itemIds: pendingItemIds.length ? pendingItemIds : undefined,
   });
   /* identity ต้องนิ่ง — ถูกใช้เป็น dep ของ memo/callback หลายตัวด้านล่าง */
   const pendingPrs = useMemo(
@@ -413,9 +466,9 @@ export default function PurchaseOrdersListPage() {
           ]
         : []),
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
-        width: 56,
+        width: 72,
         align: "center",
         render: (_v, _r, index) => (pendingPage - 1) * pendingLimit + index + 1,
       },
@@ -473,6 +526,13 @@ export default function PurchaseOrdersListPage() {
             </span>
           );
         },
+      },
+      {
+        title: "สินค้า",
+        key: "items",
+        width: 240,
+        className: styles.itemColumn,
+        render: (_v, row) => renderItemList(row.items ?? []),
       },
       {
         title: "สถานะ",
@@ -539,9 +599,9 @@ export default function PurchaseOrdersListPage() {
   const columns: ColumnsType<PurchaseOrder> = useMemo(
     () => [
       {
-        title: "#",
+        title: "ลำดับ",
         key: "no",
-        width: 56,
+        width: 72,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
@@ -581,6 +641,13 @@ export default function PurchaseOrdersListPage() {
           const prNos = listPurchaseRequests(row).map((pr) => pr.prNo);
           return prNos.length ? prNos.join(", ") : "—";
         },
+      },
+      {
+        title: "สินค้า",
+        key: "items",
+        width: 240,
+        className: styles.itemColumn,
+        render: (_v, row) => renderItemList(row.items ?? []),
       },
       {
         title: "ยอดรวม",
@@ -670,6 +737,22 @@ export default function PurchaseOrdersListPage() {
             <ShoppingCartOutlined className={styles.pendingIcon} />
             ใบขอซื้อรอสร้างใบสั่งซื้อ <strong>{pendingTotal}</strong> รายการ
           </div>
+          <Select
+            allowClear
+            showSearch
+            mode="multiple"
+            maxTagCount="responsive"
+            optionFilterProp="label"
+            className={styles.toolbarItemSelect}
+            placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
+            aria-label="สินค้าในคิวใบขอซื้อ"
+            value={pendingItemIds}
+            onChange={(value) => {
+              setPendingItemIds(value);
+              setPendingPage(1);
+            }}
+            options={itemOptions}
+          />
           {selectedLines.length ? (
             <div className={styles.selectionActions}>
               <span className={styles.selectionCount}>
@@ -706,7 +789,7 @@ export default function PurchaseOrdersListPage() {
           loading={pendingQuery.isLoading}
           pagination={false}
           className={`${styles.table} ${styles.pendingTable}`}
-          scroll={{ x: 950 }}
+          scroll={{ x: 1180 }}
           expandable={{
             /* คนที่ดูอย่างเดียวก็ควรกางดูสินค้าได้ จึงไม่ผูกกับสิทธิ์ */
             expandedRowKeys: expandedPrIds,
@@ -776,6 +859,22 @@ export default function PurchaseOrdersListPage() {
             />
           </div>
           <div className={styles.filterItem}>
+            <label>สินค้า</label>
+            <Select
+              allowClear
+              showSearch
+              mode="multiple"
+              maxTagCount="responsive"
+              optionFilterProp="label"
+              style={{ width: "100%" }}
+              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
+              aria-label="สินค้าในใบสั่งซื้อ"
+              value={itemIds}
+              onChange={(value) => setItemIds(value)}
+              options={itemOptions}
+            />
+          </div>
+          <div className={styles.filterItem}>
             <label>สถานะ</label>
             <Select
               allowClear
@@ -784,7 +883,7 @@ export default function PurchaseOrdersListPage() {
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "ร่าง" },
+                { value: "DRAFT", label: "แบบร่างเอกสาร" },
                 { value: "REVISING", label: "แก้ไข" },
                 { value: "PENDING_APPROVAL", label: "รออนุมัติ" },
                 { value: "CONFIRMED", label: "อนุมัติแล้ว · รอส่งสินค้า" },
@@ -802,6 +901,7 @@ export default function PurchaseOrdersListPage() {
               setPoNo("");
               setStatus(undefined);
               setPoDate(null);
+              setItemIds([]);
               setApplied({});
               setPage(1);
             }}
@@ -819,6 +919,7 @@ export default function PurchaseOrdersListPage() {
                 status,
                 poDateFrom: poDate ? poDate.format("YYYY-MM-DD") : undefined,
                 poDateTo: poDate ? poDate.format("YYYY-MM-DD") : undefined,
+                itemIds: itemIds.length ? itemIds : undefined,
               });
             }}
           >

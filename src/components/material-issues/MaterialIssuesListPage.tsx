@@ -279,7 +279,7 @@ export default function MaterialIssuesListPage() {
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "ร่าง" },
+                { value: "DRAFT", label: "แบบร่างเอกสาร" },
                 { value: "POSTED", label: "อนุมัติแล้ว" },
                 { value: "CANCELLED", label: "ยกเลิก" },
               ]}

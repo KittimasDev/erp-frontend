@@ -5,7 +5,7 @@ export type SupplierPaymentVoucherStatus =
   | string;
 
 export const SUPPLIER_PAYMENT_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   PAID: "จ่ายแล้ว",
   CANCELLED: "ยกเลิก",
 };

@@ -335,7 +335,7 @@ export default function StockAdjustmentsListPage() {
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "ร่าง" },
+                { value: "DRAFT", label: "แบบร่างเอกสาร" },
                 { value: "PENDING_APPROVAL", label: "รออนุมัติ" },
                 { value: "POSTED", label: "อนุมัติแล้ว" },
                 { value: "CANCELLED", label: "ยกเลิก" },

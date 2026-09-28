@@ -1,7 +1,7 @@
 export type PackingStatus = "DRAFT" | "CONFIRMED" | "CANCELLED";
 
 export const PACKING_STATUS_LABEL: Record<PackingStatus, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   CONFIRMED: "ยืนยันแล้ว",
   CANCELLED: "ยกเลิก",
 };

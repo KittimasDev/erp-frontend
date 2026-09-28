@@ -39,7 +39,7 @@ const DISPLAY_LABELS: Record<string, string> = {
 };
 
 const RECEIPT_STATUS_LABELS: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   CONFIRMED: "ยืนยันแล้ว",
   CANCELLED: "ยกเลิก",
 };

@@ -7,7 +7,7 @@ export type StockAdjustmentStatus =
   | string;
 
 export const STOCK_ADJUSTMENT_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   PENDING_APPROVAL: "รออนุมัติ",
   POSTED: "อนุมัติแล้ว",
   CANCELLED: "ยกเลิก",

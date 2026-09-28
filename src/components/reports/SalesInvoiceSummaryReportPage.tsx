@@ -204,7 +204,7 @@ export default function SalesInvoiceSummaryReportPage() {
                 setPage(1);
               }}
               options={[
-                { value: "DRAFT", label: "ร่าง" },
+                { value: "DRAFT", label: "แบบร่างเอกสาร" },
                 { value: "POSTED", label: "โพสต์แล้ว" },
                 { value: "CANCELLED", label: "ยกเลิก" },
               ]}

@@ -15,7 +15,7 @@ import {
  * ความคืบหน้าหลังยืนยันจึงต้องอ่านจาก `so.delivery_status` ที่สรุปมาจากทุกรอบ
  */
 export const SALES_ORDER_FLOW_STEPS = [
-  { key: "DRAFT", label: "ร่าง", shortLabel: "ร่าง" },
+  { key: "DRAFT", label: "แบบร่างเอกสาร", shortLabel: "แบบร่างเอกสาร" },
   { key: "CONFIRMED", label: "ยืนยัน", shortLabel: "ยืนยัน" },
   { key: "ISSUING", label: "จ่ายสินค้า", shortLabel: "จ่าย" },
   { key: "PACKING", label: "บรรจุ", shortLabel: "บรรจุ" },
@@ -194,7 +194,7 @@ export function resolveSalesOrderProgress(
       current: 1,
       inProgress: 1,
       label: "รอจัดรอบจัดส่ง/ยืนยัน",
-      currentStepLabel: "ร่าง",
+      currentStepLabel: "แบบร่างเอกสาร",
     },
     AWAITING_CONFIRM: {
       current: 1,

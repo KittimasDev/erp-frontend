@@ -2,7 +2,7 @@ import type { Quotation } from "@/types/quotations";
 
 /** 4 ขั้นตอน QT → SO (ตรงกับหน้ารายละเอียด) */
 export const QUOTATION_FLOW_STEPS = [
-  { key: "DRAFT", label: "ร่าง" },
+  { key: "DRAFT", label: "แบบร่างเอกสาร" },
   { key: "SENT", label: "รอลูกค้าตอบรับ" },
   { key: "ACCEPTED", label: "ลูกค้าตอบรับแล้ว" },
   { key: "SALES_ORDER", label: "เปิด SO" },
@@ -91,8 +91,8 @@ export function resolveQuotationFlow(
   return {
     step: 1,
     total,
-    label: "ร่าง",
-    shortLabel: "ร่าง",
+    label: "แบบร่างเอกสาร",
+    shortLabel: "แบบร่างเอกสาร",
     tone: "active",
     tagColor: "warning",
   };
@@ -100,7 +100,7 @@ export function resolveQuotationFlow(
 
 /** ป้ายสถานะสำหรับ filter dropdown (ค่า API ยังเป็น enum เดิม) */
 export const QUOTATION_STATUS_FILTER_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   SENT: "รอลูกค้าตอบรับ",
   ACCEPTED: "ลูกค้าตอบรับแล้ว",
   REJECTED: "ลูกค้าปฏิเสธ",

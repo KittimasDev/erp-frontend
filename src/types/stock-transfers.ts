@@ -1,7 +1,7 @@
 export type StockTransferStatus = "DRAFT" | "POSTED" | "CANCELLED" | string;
 
 export const STOCK_TRANSFER_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   POSTED: "อนุมัติแล้ว",
   CANCELLED: "ยกเลิก",
 };

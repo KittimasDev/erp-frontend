@@ -130,7 +130,7 @@ function statusLabel(status?: string) {
   const map: Record<string, string> = {
     DONE: "เสร็จแล้ว",
     PENDING: "รอดำเนินการ",
-    DRAFT: "ร่าง",
+    DRAFT: "แบบร่างเอกสาร",
     CONFIRMED: "ยืนยันแล้ว",
     DELIVERED: "ส่งแล้ว",
     ACCEPTED: "ลูกค้าตอบรับ",

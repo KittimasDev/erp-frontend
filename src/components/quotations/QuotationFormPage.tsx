@@ -297,7 +297,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
       quotationNo:
         mode === "edit" && detailQuery.data?.data?.quotationNo
           ? detailQuery.data.data.quotationNo
-          : "ร่าง",
+          : "แบบร่างเอกสาร",
       quotationDate: values.quotationDate
         ? values.quotationDate.format("DD/MM/YYYY")
         : "—",

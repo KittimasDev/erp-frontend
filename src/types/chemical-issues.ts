@@ -1,7 +1,7 @@
 export type ChemicalIssueStatus = "DRAFT" | "POSTED" | "CANCELLED" | string;
 
 export const CHEMICAL_ISSUE_STATUS_LABEL: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   POSTED: "อนุมัติแล้ว",
   CANCELLED: "ยกเลิก",
 };

@@ -121,7 +121,7 @@ export const DEDUCTION_TYPE_OPTIONS = [
 ] as const;
 
 export const RECEIPT_STATUS_LABELS: Record<string, string> = {
-  DRAFT: "ร่าง",
+  DRAFT: "แบบร่างเอกสาร",
   CONFIRMED: "ยืนยันแล้ว",
   CANCELLED: "ยกเลิก",
 };
