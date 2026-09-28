@@ -1,3 +1,10 @@
+export type ProcurementTrackingItem = {
+  id: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  description?: string;
+};
+
 export type ProcurementTrackingRow = {
   id: string;
   poNo: string;
@@ -8,6 +15,7 @@ export type ProcurementTrackingRow = {
   paymentStatus: string;
   totalAmount: string;
   grCount: number;
+  items?: ProcurementTrackingItem[];
 };
 
 export type ProcurementTrackingListData = {
@@ -24,6 +32,7 @@ export type ProcurementTrackingQueryParams = {
   paymentStatus?: string;
   dateFrom?: string;
   dateTo?: string;
+  itemIds?: string[];
   page?: number;
   limit?: number;
 };

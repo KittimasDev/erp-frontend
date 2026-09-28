@@ -3,22 +3,36 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, DatePicker, Form, Input, Modal, Spin } from "antd";
+import { App, Button, DatePicker, Form, Input, Modal, Spin, Upload } from "antd";
+import type { UploadProps } from "antd";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
+  DeleteOutlined,
   DollarOutlined,
+  DownloadOutlined,
+  EyeOutlined,
   FilePdfOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import {
   useCancelPurchasePaymentMutation,
   useConfirmPurchasePaymentMutation,
+  useDeletePurchasePaymentAttachmentMutation,
+  useUploadPurchasePaymentAttachmentMutation,
 } from "@/hooks/purchase-payments/usePurchasePaymentMutations";
-import { usePurchasePaymentQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import {
+  usePurchasePaymentAttachmentsQuery,
+  usePurchasePaymentQuery,
+} from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { useGoodsReceiptsByPoQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
+import { ApiError } from "@/lib/api/client";
+import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
+import { getAccessToken } from "@/lib/auth/token";
+import type { DocumentAttachment } from "@/types/document-attachments";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
@@ -53,6 +67,36 @@ function statusClass(status: string) {
     default:
       return styles.statusDraft;
   }
+}
+
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+]);
+
+function isImageMime(mimeType?: string) {
+  return Boolean(mimeType?.startsWith("image/"));
+}
+
+function attachmentDisplayName(file: DocumentAttachment) {
+  return file.originalFileName || "ไฟล์แนบ";
+}
+
+function formatDateTime(value?: string) {
+  if (!value) return "—";
+  return dayjs(value).format("DD/MM/YYYY HH:mm");
+}
+
+function formatFileSize(value?: string | number) {
+  const n = Number(value ?? 0);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export default function PurchasePaymentDetailPage({ id }: Props) {
@@ -90,8 +134,16 @@ function PurchasePaymentDetailView({
   const { modal, message } = App.useApp();
   const confirmMutation = useConfirmPurchasePaymentMutation();
   const cancelMutation = useCancelPurchasePaymentMutation();
+  const attachmentsQuery = usePurchasePaymentAttachmentsQuery(data.id);
+  const uploadMutation = useUploadPurchasePaymentAttachmentMutation();
+  const deleteAttachmentMutation = useDeletePurchasePaymentAttachmentMutation();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState("");
+  const [previewIsImage, setPreviewIsImage] = useState(false);
   const [confirmForm] = Form.useForm<{
     paymentDate: dayjs.Dayjs;
     transactionRef?: string;
@@ -103,16 +155,98 @@ function PurchasePaymentDetailView({
    * confirm จ่ายเงิน = PURCHASE_PAYMENTS_PENDING.APPROVE · ยกเลิกเอกสาร = .EDIT
    */
   const pendingActions = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING");
+  const paymentActions = useScreenActionPermissions("PURCHASE_PAYMENTS");
   const canConfirmPayment = pendingActions.canApprove;
   const canCancelPayment = pendingActions.canEdit;
+  const canManageAttachment =
+    (pendingActions.canEdit || paymentActions.canEdit) &&
+    data.status !== "CANCELLED";
 
   const poId = data.purchaseOrderId ?? data.purchaseOrder?.id;
   const poQuery = usePurchaseOrderQuery(poId);
   const po = poQuery.data?.data;
   const grByPoQuery = useGoodsReceiptsByPoQuery(poId);
   const linkedGrs = grByPoQuery.data?.data ?? [];
+  const attachments = attachmentsQuery.data?.data ?? [];
 
-  const busy = confirmMutation.isPending || cancelMutation.isPending;
+  const busy =
+    confirmMutation.isPending ||
+    cancelMutation.isPending ||
+    uploadMutation.isPending ||
+    deleteAttachmentMutation.isPending;
+
+  const closePreview = () => {
+    setPreviewOpen(false);
+    setPreviewTitle("");
+    setPreviewIsImage(false);
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+  };
+
+  const downloadAttachment = async (file: DocumentAttachment) => {
+    try {
+      const { blob, filename } = await downloadDocumentAttachment(
+        getAccessToken(),
+        file.id,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename || attachmentDisplayName(file);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "ดาวน์โหลดไฟล์ไม่สำเร็จ",
+      );
+    }
+  };
+
+  const openAttachmentPreview = async (file: DocumentAttachment) => {
+    setPreviewLoading(true);
+    setPreviewOpen(true);
+    setPreviewTitle(attachmentDisplayName(file));
+    setPreviewIsImage(isImageMime(file.mimeType));
+    try {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl(null);
+      }
+      const { blob } = await downloadDocumentAttachment(
+        getAccessToken(),
+        file.id,
+      );
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch (error) {
+      setPreviewOpen(false);
+      message.error(
+        error instanceof ApiError ? error.message : "เปิดไฟล์ไม่สำเร็จ",
+      );
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const uploadProps: UploadProps = {
+    showUploadList: false,
+    accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
+    beforeUpload: (file) => {
+      if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
+        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        return Upload.LIST_IGNORE;
+      }
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        return Upload.LIST_IGNORE;
+      }
+      void uploadMutation.mutateAsync({ documentId: data.id, file });
+      return false;
+    },
+  };
 
   const handlePrintPdf = async () => {
     setIsPrinting(true);
@@ -259,6 +393,109 @@ function PurchasePaymentDetailView({
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
           ) : null}
+
+          <div className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>หลักฐานการจ่ายเงิน</h2>
+              <span className={styles.sectionHint}>
+                {attachmentsQuery.isLoading
+                  ? "กำลังโหลด..."
+                  : `${attachments.length} ไฟล์`}
+              </span>
+            </div>
+            {attachmentsQuery.isLoading ? (
+              <Spin size="small" />
+            ) : attachments.length === 0 ? (
+              <p className={styles.attachmentEmpty}>ยังไม่มีไฟล์หลักฐาน</p>
+            ) : (
+              <ul className={styles.attachmentList}>
+                {attachments.map((file) => {
+                  const sizeLabel = formatFileSize(file.fileSize);
+                  return (
+                    <li key={file.id} className={styles.attachmentItem}>
+                      <div className={styles.attachmentMeta}>
+                        <span className={styles.attachmentName}>
+                          {attachmentDisplayName(file)}
+                        </span>
+                        <span className={styles.attachmentDesc}>
+                          {[
+                            sizeLabel,
+                            formatDateTime(file.createdAt),
+                            file.description,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      </div>
+                      <div className={styles.attachmentActions}>
+                        {(isImageMime(file.mimeType) ||
+                          file.mimeType === "application/pdf") && (
+                          <Button
+                            size="small"
+                            icon={<EyeOutlined />}
+                            onClick={() => void openAttachmentPreview(file)}
+                          >
+                            ดู
+                          </Button>
+                        )}
+                        <Button
+                          size="small"
+                          icon={<DownloadOutlined />}
+                          onClick={() => void downloadAttachment(file)}
+                        >
+                          ดาวน์โหลด
+                        </Button>
+                        {canManageAttachment ? (
+                          <Button
+                            size="small"
+                            danger
+                            icon={<DeleteOutlined />}
+                            loading={
+                              deleteAttachmentMutation.isPending &&
+                              deleteAttachmentMutation.variables
+                                ?.attachmentId === file.id
+                            }
+                            disabled={busy}
+                            onClick={() =>
+                              modal.confirm({
+                                title: "ยืนยันลบไฟล์แนบ?",
+                                content: attachmentDisplayName(file),
+                                okText: "ลบ",
+                                okButtonProps: { danger: true },
+                                onOk: () =>
+                                  deleteAttachmentMutation.mutateAsync({
+                                    attachmentId: file.id,
+                                    documentId: data.id,
+                                  }),
+                              })
+                            }
+                          >
+                            ลบ
+                          </Button>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {canManageAttachment ? (
+              <Upload {...uploadProps}>
+                <Button
+                  icon={<UploadOutlined />}
+                  loading={uploadMutation.isPending}
+                  style={{ marginTop: 10 }}
+                >
+                  อัปโหลดหลักฐาน
+                </Button>
+              </Upload>
+            ) : null}
+            {canManageAttachment ? (
+              <p className={styles.sectionHint} style={{ marginTop: 8 }}>
+                รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB
+              </p>
+            ) : null}
+          </div>
         </section>
 
         <aside className={styles.sideCard}>
@@ -282,6 +519,10 @@ function PurchasePaymentDetailView({
                   ? dayjs(data.paidAt).format("DD/MM/YYYY HH:mm")
                   : "—"}
               </strong>
+            </div>
+            <div className={styles.sideRow}>
+              <span>ไฟล์แนบ</span>
+              <strong>{attachments.length}</strong>
             </div>
           </div>
 
@@ -402,6 +643,34 @@ function PurchasePaymentDetailView({
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        open={previewOpen}
+        title={previewTitle || "ดูไฟล์แนบ"}
+        onCancel={closePreview}
+        footer={null}
+        width={previewIsImage ? 720 : 900}
+        destroyOnHidden
+      >
+        {previewLoading || !previewUrl ? (
+          <div className={styles.stateCard}>
+            <Spin /> กำลังโหลดไฟล์...
+          </div>
+        ) : previewIsImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewUrl}
+            alt={previewTitle}
+            className={styles.previewImage}
+          />
+        ) : (
+          <iframe
+            title={previewTitle}
+            src={previewUrl}
+            className={styles.previewFrame}
+          />
+        )}
       </Modal>
     </div>
   );

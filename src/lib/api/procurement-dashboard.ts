@@ -16,6 +16,11 @@ function buildTrackingQuery(params?: ProcurementTrackingQueryParams) {
     search.set("paymentStatus", params.paymentStatus.trim());
   if (params.dateFrom) search.set("dateFrom", params.dateFrom);
   if (params.dateTo) search.set("dateTo", params.dateTo);
+  if (params.itemIds?.length) {
+    for (const itemId of params.itemIds) {
+      search.append("itemIds", itemId);
+    }
+  }
   if (params.page != null) search.set("page", String(params.page));
   if (params.limit != null) search.set("limit", String(params.limit));
   const query = search.toString();

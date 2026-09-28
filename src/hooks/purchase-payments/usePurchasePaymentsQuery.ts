@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { getDocumentAttachments } from "@/lib/api/document-attachments";
 import {
   getPendingPurchasePayments,
   getPurchasePayment,
@@ -9,6 +10,10 @@ import {
   getPurchasePayments,
 } from "@/lib/api/purchase-payments";
 import { getAccessToken } from "@/lib/auth/token";
+import {
+  ATTACHMENT_GROUP_PAYMENT,
+  DOCUMENT_TYPE_SUPPLIER_PAYMENT,
+} from "@/types/document-attachments";
 import {
   canAccessScreen,
   hasPermission,
@@ -55,6 +60,24 @@ export function usePurchasePaymentByPoQuery(purchaseOrderId?: string) {
     queryFn: () =>
       getPurchasePaymentByPo(getAccessToken(), purchaseOrderId as string),
     enabled: Boolean(purchaseOrderId),
+  });
+}
+
+export function usePurchasePaymentAttachmentsQuery(voucherId?: string) {
+  return useQuery({
+    queryKey: [...purchasePaymentsQueryKey, "attachments", voucherId],
+    queryFn: () =>
+      getDocumentAttachments(getAccessToken(), {
+        documentType: DOCUMENT_TYPE_SUPPLIER_PAYMENT,
+        documentId: voucherId as string,
+      }),
+    enabled: Boolean(voucherId),
+    select: (res) => ({
+      ...res,
+      data: (res.data ?? []).filter(
+        (row) => row.attachmentGroup === ATTACHMENT_GROUP_PAYMENT,
+      ),
+    }),
   });
 }
 

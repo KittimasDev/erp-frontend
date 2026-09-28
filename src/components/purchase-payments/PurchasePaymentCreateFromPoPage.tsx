@@ -261,7 +261,7 @@ export default function PurchasePaymentCreateFromPoPage({
                   htmlType="submit"
                   loading={createMutation.isPending}
                 >
-                  สร้างใบสำคัญ (DRAFT)
+                  สร้างใบสำคัญจ่าย
                 </Button>
               </div>
             </div>
