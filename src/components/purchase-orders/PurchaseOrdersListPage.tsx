@@ -54,6 +54,7 @@ import PendingPrItemsPanel, {
 } from "./PendingPrItemsPanel";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
+import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import styles from "./PurchaseOrdersListPage.module.css";
 
 /** จำนวนรายการที่ยังไม่ถูกสั่งซื้อในใบขอซื้อใบนั้น */
@@ -123,47 +124,6 @@ function formatMoney(value?: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-}
-
-function formatCatalogItemLabel(item: {
-  itemCode?: string;
-  itemNameTh?: string;
-  description?: string;
-}) {
-  const code = item.itemCode?.trim();
-  const name = (item.itemNameTh ?? item.description)?.trim();
-  if (code && name) return `${code} — ${name}`;
-  return code || name || "—";
-}
-
-function renderItemList(
-  items: Array<{
-    id: string;
-    itemCode?: string;
-    itemNameTh?: string;
-    description?: string;
-  }>,
-) {
-  if (!items.length) return "—";
-  return (
-    <ul className={styles.itemList}>
-      {items.map((item) => {
-        const label = formatCatalogItemLabel(item);
-        return (
-          <li key={item.id} className={styles.itemLine}>
-            <Tooltip title={label}>
-              <span className={styles.itemLineInner}>
-                <span className={styles.itemBullet} aria-hidden>
-                  -
-                </span>
-                <span className={styles.itemName}>{label}</span>
-              </span>
-            </Tooltip>
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
 export default function PurchaseOrdersListPage() {
@@ -532,7 +492,9 @@ export default function PurchaseOrdersListPage() {
         key: "items",
         width: 240,
         className: styles.itemColumn,
-        render: (_v, row) => renderItemList(row.items ?? []),
+        render: (_v, row) => (
+          <CollapsibleItemList items={row.items ?? []} />
+        ),
       },
       {
         title: "สถานะ",
@@ -647,7 +609,9 @@ export default function PurchaseOrdersListPage() {
         key: "items",
         width: 240,
         className: styles.itemColumn,
-        render: (_v, row) => renderItemList(row.items ?? []),
+        render: (_v, row) => (
+          <CollapsibleItemList items={row.items ?? []} />
+        ),
       },
       {
         title: "ยอดรวม",

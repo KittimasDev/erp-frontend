@@ -38,6 +38,7 @@ import {
 import dayjs, { type Dayjs } from "dayjs";
 
 import AccessDenied from "@/components/auth/AccessDenied";
+import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import {
   DELIVERY_SCHEDULE_STATUS_LABEL,
   type DeliveryScheduleStatus,
@@ -64,7 +65,6 @@ import {
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 import type {
-  SalesTrackingItem,
   SalesTrackingQueryParams,
   SalesTrackingRow,
   SalesTrackingTimelineStep,
@@ -155,40 +155,6 @@ function toneTagColor(tone: SalesTimelineStepTone): string {
   if (tone === "active") return "processing";
   if (tone === "cancelled") return "error";
   return "default";
-}
-
-function formatCatalogItemLabel(item: {
-  itemCode?: string;
-  itemNameTh?: string;
-  description?: string;
-}) {
-  const code = item.itemCode?.trim();
-  const name = (item.itemNameTh ?? item.description)?.trim();
-  if (code && name) return `${code} — ${name}`;
-  return code || name || "—";
-}
-
-function renderItemList(items: SalesTrackingItem[]) {
-  if (!items.length) return "—";
-  return (
-    <ul className={styles.itemList}>
-      {items.map((item) => {
-        const label = formatCatalogItemLabel(item);
-        return (
-          <li key={item.id} className={styles.itemLine}>
-            <Tooltip title={label}>
-              <span className={styles.itemLineInner}>
-                <span className={styles.itemBullet} aria-hidden>
-                  -
-                </span>
-                <span className={styles.itemName}>{label}</span>
-              </span>
-            </Tooltip>
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
 function canOpenTimelineHref(
@@ -455,7 +421,9 @@ export default function SalesTrackingPage() {
         key: "items",
         width: 230,
         className: styles.itemColumn,
-        render: (_v, row) => renderItemList(row.items ?? []),
+        render: (_v, row) => (
+          <CollapsibleItemList items={row.items ?? []} />
+        ),
       },
       {
         title: "วันที่ SO",

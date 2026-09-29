@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, DatePicker, Input, Select, Table, Tag, Tooltip } from "antd";
+import { Button, DatePicker, Input, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   EditOutlined,
@@ -15,6 +15,7 @@ import dayjs from "dayjs";
 import { useSalesOrdersQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
@@ -22,7 +23,7 @@ import {
   SALES_ORDER_FLOW_STEPS,
 } from "@/lib/sales/sales-order-progress";
 import { salesOrderRevisionStamp } from "@/lib/datetime/thai-buddhist-date";
-import type { SalesOrder, SalesOrderItem } from "@/types/sales-orders";
+import type { SalesOrder } from "@/types/sales-orders";
 import {
   isPreConfirmSalesOrderStatus,
   SALES_ORDER_STATUS_LABEL,
@@ -107,40 +108,6 @@ function formatMoney(value?: string) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-}
-
-function formatCatalogItemLabel(item: {
-  itemCode?: string;
-  itemNameTh?: string;
-  description?: string;
-}) {
-  const code = item.itemCode?.trim();
-  const name = (item.itemNameTh ?? item.description)?.trim();
-  if (code && name) return `${code} — ${name}`;
-  return code || name || "—";
-}
-
-function renderItemList(items: SalesOrderItem[]) {
-  if (!items.length) return "—";
-  return (
-    <ul className={styles.itemList}>
-      {items.map((item) => {
-        const label = formatCatalogItemLabel(item);
-        return (
-          <li key={item.id} className={styles.itemLine}>
-            <Tooltip title={label}>
-              <span className={styles.itemLineInner}>
-                <span className={styles.itemBullet} aria-hidden>
-                  -
-                </span>
-                <span className={styles.itemName}>{label}</span>
-              </span>
-            </Tooltip>
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
 /**
@@ -345,7 +312,9 @@ export default function SalesOrdersListPage() {
         key: "items",
         width: 230,
         className: styles.itemColumn,
-        render: (_v, row) => renderItemList(row.items ?? []),
+        render: (_v, row) => (
+          <CollapsibleItemList items={row.items ?? []} />
+        ),
       },
       {
         title: "ผู้สร้าง",

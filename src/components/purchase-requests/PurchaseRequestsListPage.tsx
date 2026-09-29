@@ -11,7 +11,6 @@ import {
   Select,
   Table,
   Tag,
-  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -37,10 +36,10 @@ import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadg
 import {
   PURCHASE_REQUEST_STATUS_LABEL,
   type PurchaseRequest,
-  type PurchaseRequestItem,
   type PurchaseRequestStatus,
 } from "@/types/purchase-requests";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
+import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import { formatErpDate } from "@/lib/datetime/erp-timezone";
 import styles from "./PurchaseRequestsListPage.module.css";
 
@@ -68,13 +67,6 @@ function statusColor(status: string) {
 function formatDate(value?: string) {
   if (!value) return "—";
   return dayjs(value).format("DD/MM/YYYY");
-}
-
-function formatPrItemLabel(item: PurchaseRequestItem) {
-  const code = item.itemCode?.trim();
-  const name = (item.itemNameTh ?? item.description)?.trim();
-  if (code && name) return `${code} — ${name}`;
-  return code || name || "—";
 }
 
 export default function PurchaseRequestsListPage() {
@@ -243,29 +235,9 @@ export default function PurchaseRequestsListPage() {
         key: "items",
         width: 240,
         className: styles.itemColumn,
-        render: (_v, row) => {
-          const items = row.items ?? [];
-          if (items.length === 0) return "—";
-          return (
-            <ul className={styles.itemList}>
-              {items.map((item) => {
-                const label = formatPrItemLabel(item);
-                return (
-                  <li key={item.id} className={styles.itemLine}>
-                    <Tooltip title={label}>
-                      <span className={styles.itemLineInner}>
-                        <span className={styles.itemBullet} aria-hidden>
-                          -
-                        </span>
-                        <span className={styles.itemName}>{label}</span>
-                      </span>
-                    </Tooltip>
-                  </li>
-                );
-              })}
-            </ul>
-          );
-        },
+        render: (_v, row) => (
+          <CollapsibleItemList items={row.items ?? []} />
+        ),
       },
       {
         title: "สถานะ",

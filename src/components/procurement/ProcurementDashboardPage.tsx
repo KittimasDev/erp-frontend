@@ -10,7 +10,6 @@ import {
   Select,
   Table,
   Tag,
-  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -33,13 +32,13 @@ import {
 } from "recharts";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useProcurementSummaryQuery } from "@/hooks/procurement-dashboard/useProcurementSummaryQuery";
 import { useProcurementTrackingQuery } from "@/hooks/procurement-dashboard/useProcurementTrackingQuery";
 import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import type {
-  ProcurementTrackingItem,
   ProcurementTrackingRow,
 } from "@/types/procurement-dashboard";
 
@@ -127,40 +126,6 @@ function rangeForYear(year: number, today: Dayjs): [Dayjs, Dayjs] {
   const yearEnd = dayjs(`${year}-12-31`).startOf("day");
   const end = yearEnd.isAfter(today, "day") ? today.startOf("day") : yearEnd;
   return [start, end];
-}
-
-function formatCatalogItemLabel(item: {
-  itemCode?: string;
-  itemNameTh?: string;
-  description?: string;
-}) {
-  const code = item.itemCode?.trim();
-  const name = (item.itemNameTh ?? item.description)?.trim();
-  if (code && name) return `${code} — ${name}`;
-  return code || name || "—";
-}
-
-function renderItemList(items: ProcurementTrackingItem[]) {
-  if (!items.length) return "—";
-  return (
-    <ul className={styles.itemList}>
-      {items.map((item) => {
-        const label = formatCatalogItemLabel(item);
-        return (
-          <li key={item.id} className={styles.itemLine}>
-            <Tooltip title={label}>
-              <span className={styles.itemLineInner}>
-                <span className={styles.itemBullet} aria-hidden>
-                  -
-                </span>
-                <span className={styles.itemName}>{label}</span>
-              </span>
-            </Tooltip>
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
 type TrackingFilters = {
@@ -277,7 +242,9 @@ export default function ProcurementDashboardPage() {
         key: "items",
         width: 240,
         className: styles.itemColumn,
-        render: (_v, row) => renderItemList(row.items ?? []),
+        render: (_v, row) => (
+          <CollapsibleItemList items={row.items ?? []} />
+        ),
       },
       {
         title: "ยอดรวม",
