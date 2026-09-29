@@ -305,7 +305,7 @@ export default function GoodsReceiptCreateFromPoPage({
             purchaseOrderItemId: item.id,
             destinations: [
               {
-                qty: { quantity: undefined, unitId: meta?.poUnitId },
+                qty: { quantity: meta?.remainingQty, unitId: meta?.poUnitId },
                 warehouseId: item.expectedWarehouseId ?? undefined,
                 locationId: item.expectedLocationId ?? undefined,
                 lotNo: undefined,
