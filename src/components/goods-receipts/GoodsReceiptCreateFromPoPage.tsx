@@ -46,6 +46,9 @@ import { formatQtyUnit, formatQtyWithBase } from "@/lib/units/format";
 import type { Item } from "@/types/items";
 import type { Unit } from "@/types/units";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import { usePoDeliverySchedulesQuery } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
+import PoDeliverySchedulesSection from "@/components/purchase-orders/PoDeliverySchedulesSection";
+import { isPoScheduleOpen } from "@/types/po-delivery-schedules";
 import styles from "./GoodsReceiptFormPage.module.css";
 
 const EMPTY_GRS: never[] = [];
@@ -112,6 +115,7 @@ type LineValues = {
 type FormValues = {
   grDate: dayjs.Dayjs;
   remark?: string;
+  purchaseOrderDeliveryScheduleId?: string;
   items: LineValues[];
 };
 
@@ -140,6 +144,13 @@ export default function GoodsReceiptCreateFromPoPage({
   const itemsQuery = useItemsQuery({ isActive: true });
   const unitsQuery = useUnitsQuery({ isActive: true });
   const { index: conversionIndex } = useUnitConversionIndex();
+  const schedulesQuery = usePoDeliverySchedulesQuery(purchaseOrderId);
+  const schedules = schedulesQuery.data?.data ?? [];
+  const openSchedules = schedules.filter((round) => isPoScheduleOpen(round.status));
+  const watchedScheduleId = Form.useWatch(
+    "purchaseOrderDeliveryScheduleId",
+    form,
+  );
 
   const po = poQuery.data?.data;
   const existingGrs = Array.isArray(grByPoQuery.data?.data)
@@ -163,6 +174,20 @@ export default function GoodsReceiptCreateFromPoPage({
     () => new Map(items.map((item) => [item.id, item])),
     [items],
   );
+  const selectedSchedule = openSchedules.find(
+    (round) => round.id === watchedScheduleId,
+  );
+  const scheduleRemainingByPoItem = useMemo(() => {
+    const map = new Map<string, { remaining: number; received: number }>();
+    for (const item of selectedSchedule?.items ?? []) {
+      map.set(item.purchaseOrderItemId, {
+        remaining: Number(item.remainingQuantity),
+        received: Number(item.receivedQuantity),
+      });
+    }
+    return map;
+  }, [selectedSchedule]);
+
   const unitLabelById = useMemo(
     () => new Map(units.map((unit) => [unit.id, unit.nameTh || unit.code])),
     [units],
@@ -219,19 +244,36 @@ export default function GoodsReceiptCreateFromPoPage({
         ? (orderedBase as number)
         : orderedInPoUnit;
 
-      const receivedBase = receivedByPoItem.get(poItem.id) ?? 0;
-      const remainingBaseQty = roundQty(
-        Math.max(0, orderedBaseQty - receivedBase),
-      );
-
-      const remainingInPoUnit = convertible
-        ? (fromBaseQty(conversionIndex, {
-            baseQty: remainingBaseQty,
-            unitId: poUnitId,
-            baseUnitId,
-            itemId: poItem.itemId,
-          }) ?? remainingBaseQty)
-        : remainingBaseQty;
+      const scheduleQty = scheduleRemainingByPoItem.get(poItem.id);
+      const receivedBase = scheduleQty
+        ? scheduleQty.received
+        : (receivedByPoItem.get(poItem.id) ?? 0);
+      const remainingInPoUnit = scheduleQty
+        ? scheduleQty.remaining
+        : convertible
+          ? (fromBaseQty(conversionIndex, {
+              baseQty: roundQty(
+                Math.max(
+                  0,
+                  orderedBaseQty - (receivedByPoItem.get(poItem.id) ?? 0),
+                ),
+              ),
+              unitId: poUnitId,
+              baseUnitId,
+              itemId: poItem.itemId,
+            }) ??
+            Math.max(0, orderedInPoUnit - (receivedByPoItem.get(poItem.id) ?? 0)))
+          : Math.max(0, orderedInPoUnit - (receivedByPoItem.get(poItem.id) ?? 0));
+      const remainingBaseQty = scheduleQty
+        ? (convertible
+            ? (convertQty(conversionIndex, {
+                qty: remainingInPoUnit,
+                fromUnitId: poUnitId,
+                toUnitId: baseUnitId,
+                itemId: poItem.itemId,
+              }) ?? remainingInPoUnit)
+            : remainingInPoUnit)
+        : roundQty(Math.max(0, orderedBaseQty - (receivedByPoItem.get(poItem.id) ?? 0)));
 
       map.set(poItem.id, {
         itemId: poItem.itemId,
@@ -254,7 +296,14 @@ export default function GoodsReceiptCreateFromPoPage({
     }
 
     return map;
-  }, [po?.items, receivedByPoItem, itemById, unitLabelById, conversionIndex]);
+  }, [
+    po?.items,
+    receivedByPoItem,
+    itemById,
+    unitLabelById,
+    conversionIndex,
+    scheduleRemainingByPoItem,
+  ]);
 
   const hasReceivableLines = Array.from(lineMetaByPoItemId.values()).some(
     (meta) => meta.remainingBaseQty > 0,
@@ -296,8 +345,16 @@ export default function GoodsReceiptCreateFromPoPage({
     form.setFieldsValue({
       grDate: dayjs(),
       remark: undefined,
+      purchaseOrderDeliveryScheduleId:
+        form.getFieldValue("purchaseOrderDeliveryScheduleId") ||
+        openSchedules[0]?.id,
       items: (po.items ?? [])
-        .filter((item) => (lineMetaByPoItemId.get(item.id)?.remainingBaseQty ?? 0) > 0)
+        .filter((item) => {
+          if (selectedSchedule && !scheduleRemainingByPoItem.has(item.id)) {
+            return false;
+          }
+          return (lineMetaByPoItemId.get(item.id)?.remainingBaseQty ?? 0) > 0;
+        })
         .map((item) => {
           const meta = lineMetaByPoItemId.get(item.id);
           return {
@@ -488,6 +545,7 @@ export default function GoodsReceiptCreateFromPoPage({
       body: {
         grDate: values.grDate.format("YYYY-MM-DD"),
         remark: values.remark?.trim() || undefined,
+        purchaseOrderDeliveryScheduleId: values.purchaseOrderDeliveryScheduleId,
         items: flat.map(({ label: _label, ...item }) => item),
       },
     });
@@ -576,12 +634,32 @@ export default function GoodsReceiptCreateFromPoPage({
         />
       ) : null}
 
+      <PoDeliverySchedulesSection
+        purchaseOrderId={purchaseOrderId}
+        canManage={goodsReceiptActions.canEdit}
+        showCloseOnReceiving
+      />
+
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <div className={styles.layout}>
           <section className={styles.formCard}>
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
                 <div className={styles.formGrid}>
+                  <Form.Item
+                    className={styles.field}
+                    label="รอบจัดส่ง"
+                    name="purchaseOrderDeliveryScheduleId"
+                    rules={[{ required: true, message: "เลือกรอบที่ต้องการรับ" }]}
+                  >
+                    <Select
+                      placeholder="เลือกรอบ"
+                      options={openSchedules.map((round) => ({
+                        value: round.id,
+                        label: `รอบที่ ${round.roundNo} · กำหนดส่ง ${dayjs(round.effectiveDeliveryDate).format("DD/MM/YYYY")}`,
+                      }))}
+                    />
+                  </Form.Item>
                   <Form.Item
                     className={styles.field}
                     label="วันที่รับ"

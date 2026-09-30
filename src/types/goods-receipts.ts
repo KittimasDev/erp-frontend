@@ -141,6 +141,7 @@ export type CreateGoodsReceiptItemFromPoBody = {
 export type CreateGoodsReceiptFromPoBody = {
   grDate: string;
   remark?: string;
+  purchaseOrderDeliveryScheduleId?: string;
   items: CreateGoodsReceiptItemFromPoBody[];
 };
 

@@ -62,6 +62,7 @@ import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
 import { SUPPLIER_PAYMENT_STATUS_LABEL } from "@/types/purchase-payments";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
+import PoDeliverySchedulesSection from "./PoDeliverySchedulesSection";
 import styles from "./PurchaseOrderDetailPage.module.css";
 
 type Props = { id: string };
@@ -492,6 +493,11 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </div>
             </div>
           </div>
+
+          <PoDeliverySchedulesSection
+            purchaseOrderId={data.id}
+            canManage={canWrite}
+          />
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>

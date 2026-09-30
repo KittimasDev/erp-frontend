@@ -68,6 +68,9 @@ import {
 } from "@/types/document-attachments";
 import { clearPurchaseOrderPrLineSelection } from "@/types/purchase-order-pr-line-selection";
 import type { PurchaseRequest } from "@/types/purchase-requests";
+import PoDeliverySchedulesEditor, {
+  sumScheduledQty,
+} from "./PoDeliverySchedulesEditor";
 import styles from "./PurchaseOrderFormPage.module.css";
 
 type LineValues = {
@@ -92,6 +95,10 @@ type FormValues = {
   discountAmount?: number;
   remark?: string;
   items: LineValues[];
+  deliverySchedules?: Array<{
+    deliveryDate?: dayjs.Dayjs;
+    items?: Array<{ purchaseRequestItemId: string; quantity?: number }>;
+  }>;
 };
 
 const PAYMENT_METHOD_OPTIONS = Object.entries(
@@ -291,6 +298,19 @@ export default function PurchaseOrderCreateFromPrPage({
           description: item.description,
         })),
       ),
+      deliverySchedules: [
+        {
+          deliveryDate: undefined,
+          items: openItemsByPr.flatMap(({ open }) =>
+            open.map((item) => ({
+              purchaseRequestItemId: item.id,
+              quantity: usePreselect && !preselectSet.has(item.id)
+                ? 0
+                : Number(item.quantity),
+            })),
+          ),
+        },
+      ],
     });
   }, [
     form,
@@ -508,6 +528,24 @@ export default function PurchaseOrderCreateFromPrPage({
       return;
     }
 
+    const selectedLines = values.items.filter((item) => item.selected);
+    const rounds = values.deliverySchedules ?? [];
+    if (!rounds.length || rounds.some((round) => !round.deliveryDate)) {
+      message.error("ต้องมีอย่างน้อย 1 รอบจัดส่งและระบุวันที่กำหนดส่ง");
+      return;
+    }
+    for (const line of selectedLines) {
+      const meta = lineMetaByPrItemId.get(line.purchaseRequestItemId);
+      const ordered = Number(meta?.quantity ?? line.quantity) || 0;
+      const scheduled = sumScheduledQty(rounds, line.purchaseRequestItemId);
+      if (Math.abs(scheduled - ordered) > 0.0005) {
+        message.error(
+          `จำนวนรอบของ ${meta?.itemLabel ?? "สินค้า"} ต้องเท่ากับจำนวนที่สั่ง (${scheduled.toFixed(3)}/${ordered.toFixed(3)})`,
+        );
+        return;
+      }
+    }
+
     submitLockRef.current = true;
     setIsSubmitting(true);
 
@@ -536,6 +574,22 @@ export default function PurchaseOrderCreateFromPrPage({
             discountAmount: Number(item.discountAmount) || 0,
             description: item.description?.trim() || undefined,
           })),
+        deliverySchedules: rounds.map((round) => ({
+          deliveryDate: round.deliveryDate!.format("YYYY-MM-DD"),
+          items: (round.items ?? [])
+            .filter(
+              (item) =>
+                Number(item.quantity || 0) > 0 &&
+                selectedLines.some(
+                  (line) =>
+                    line.purchaseRequestItemId === item.purchaseRequestItemId,
+                ),
+            )
+            .map((item) => ({
+              purchaseRequestItemId: item.purchaseRequestItemId,
+              quantity: Number(item.quantity),
+            })),
+        })),
       };
 
       /* ใบเดียวใช้ endpoint เดิม ไม่เปลี่ยนเส้นทางของงานที่ใช้อยู่ทุกวัน */
@@ -936,6 +990,23 @@ export default function PurchaseOrderCreateFromPrPage({
                   )}
                 </Form.List>
               </div>
+
+              <PoDeliverySchedulesEditor
+                form={form}
+                sourceLines={watchedItems
+                  .filter((item) => item?.selected)
+                  .map((item) => {
+                    const meta = lineMetaByPrItemId.get(
+                      item.purchaseRequestItemId,
+                    );
+                    return {
+                      purchaseRequestItemId: item.purchaseRequestItemId,
+                      label: meta?.itemLabel ?? item.purchaseRequestItemId,
+                      quantity: Number(meta?.quantity ?? item.quantity) || 0,
+                      unitLabel: meta?.unitLabel ?? "",
+                    };
+                  })}
+              />
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>

@@ -103,6 +103,7 @@ export type PurchaseOrder = {
   withholdingTaxType?: string;
   withholdingTaxPercent?: string;
   status: PurchaseOrderStatus;
+  receiveStatus?: string;
   paymentStatus?: string;
   subtotalAmount: string;
   discountAmount: string;
