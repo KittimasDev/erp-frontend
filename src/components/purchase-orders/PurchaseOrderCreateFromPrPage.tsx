@@ -329,6 +329,22 @@ export default function PurchaseOrderCreateFromPrPage({
 
   const selectedCount = watchedItems.filter((line) => line?.selected).length;
 
+  const scheduleSourceLines = useMemo(
+    () =>
+      watchedItems
+        .filter((item) => item?.selected)
+        .map((item) => {
+          const meta = lineMetaByPrItemId.get(item.purchaseRequestItemId);
+          return {
+            purchaseRequestItemId: item.purchaseRequestItemId,
+            label: meta?.itemLabel ?? item.purchaseRequestItemId,
+            quantity: Number(meta?.quantity ?? item.quantity) || 0,
+            unitLabel: meta?.unitLabel ?? "",
+          };
+        }),
+    [watchedItems, lineMetaByPrItemId],
+  );
+
   /** ติ๊ก/ล้างทุกบรรทัดของใบขอซื้อใบหนึ่งรวดเดียว */
   const setGroupSelection = (prId: string | undefined, selected: boolean) => {
     if (!prId) {
@@ -993,19 +1009,7 @@ export default function PurchaseOrderCreateFromPrPage({
 
               <PoDeliverySchedulesEditor
                 form={form}
-                sourceLines={watchedItems
-                  .filter((item) => item?.selected)
-                  .map((item) => {
-                    const meta = lineMetaByPrItemId.get(
-                      item.purchaseRequestItemId,
-                    );
-                    return {
-                      purchaseRequestItemId: item.purchaseRequestItemId,
-                      label: meta?.itemLabel ?? item.purchaseRequestItemId,
-                      quantity: Number(meta?.quantity ?? item.quantity) || 0,
-                      unitLabel: meta?.unitLabel ?? "",
-                    };
-                  })}
+                sourceLines={scheduleSourceLines}
               />
 
               <div className={styles.sectionBlock}>

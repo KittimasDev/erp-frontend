@@ -30,7 +30,7 @@ import {
 } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
 import {
   STOCK_ADJUSTMENT_STATUS_LABEL,
-  STOCK_ADJUSTMENT_TYPE_LABEL,
+  stockAdjustmentTypeDisplayName,
 } from "@/types/stock-adjustments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./StockAdjustmentDetailPage.module.css";
@@ -129,9 +129,7 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
           <h1 className={styles.pageTitle}>{data.adjustmentNo}</h1>
           <p className={styles.pageSubtitle}>
             {formatDate(data.adjustmentDate)} · {data.items?.length ?? 0}{" "}
-            รายการ ·{" "}
-            {STOCK_ADJUSTMENT_TYPE_LABEL[data.adjustmentType] ??
-              data.adjustmentType}
+            รายการ · {stockAdjustmentTypeDisplayName(data)}
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -164,8 +162,7 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>ประเภท</span>
                 <div className={styles.metaValue}>
-                  {STOCK_ADJUSTMENT_TYPE_LABEL[data.adjustmentType] ??
-                    data.adjustmentType}
+                  {stockAdjustmentTypeDisplayName(data)}
                 </div>
               </div>
               <div className={styles.metaItem}>

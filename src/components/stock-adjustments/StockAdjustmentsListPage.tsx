@@ -26,11 +26,10 @@ import { useStockAdjustmentsQuery } from "@/hooks/stock-adjustments/useStockAdju
 import type {
   StockAdjustment,
   StockAdjustmentStatus,
-  StockAdjustmentType,
 } from "@/types/stock-adjustments";
 import {
   STOCK_ADJUSTMENT_STATUS_LABEL,
-  STOCK_ADJUSTMENT_TYPE_LABEL,
+  stockAdjustmentTypeDisplayName,
 } from "@/types/stock-adjustments";
 import styles from "./StockAdjustmentsListPage.module.css";
 
@@ -169,8 +168,8 @@ export default function StockAdjustmentsListPage() {
         dataIndex: "adjustmentType",
         key: "adjustmentType",
         width: 120,
-        render: (value: StockAdjustmentType) =>
-          STOCK_ADJUSTMENT_TYPE_LABEL[value] ?? value,
+        render: (_value: string, record: StockAdjustment) =>
+          stockAdjustmentTypeDisplayName(record),
       },
       {
         title: "สถานะ",

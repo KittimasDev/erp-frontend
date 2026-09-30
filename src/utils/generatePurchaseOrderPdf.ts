@@ -24,6 +24,19 @@ type PurchaseOrderPdfItem = {
   amount: number;
 };
 
+export type PurchaseOrderPdfRoundItem = {
+  itemCode: string;
+  itemName: string;
+  qty: number;
+  unit: string;
+};
+
+export type PurchaseOrderPdfRound = {
+  roundNo: number;
+  deliveryDate: string;
+  items: PurchaseOrderPdfRoundItem[];
+};
+
 export type PurchaseOrderPdfData = {
   poNo: string;
   poDate: string;
@@ -49,7 +62,12 @@ export type PurchaseOrderPdfData = {
   vatAmount: number;
   totalAmount: number;
   items: PurchaseOrderPdfItem[];
+  deliveryRounds?: PurchaseOrderPdfRound[];
 };
+
+function activeDeliveryRounds(data: PurchaseOrderPdfData): PurchaseOrderPdfRound[] {
+  return (data.deliveryRounds ?? []).filter((round) => round.items.length > 0);
+}
 
 const PAGE_ID = "purchase-order-pdf";
 
@@ -178,6 +196,38 @@ function rowHtml(item: PurchaseOrderPdfItem) {
           <div class="cell right">${formatMoney(item.discountAmount)}</div>
           <div class="cell right">${formatMoney(item.amount)}</div>
         </div>`;
+}
+
+function scheduleSectionHeadHtml() {
+  return `<div class="sched-section-head">รอบจัดส่ง</div>`;
+}
+
+function scheduleRoundHeadingHtml(round: PurchaseOrderPdfRound) {
+  return `<div class="group-heading">รอบที่ ${round.roundNo} — กำหนดส่ง ${escapeHtml(round.deliveryDate)}</div>`;
+}
+
+function scheduleTheadHtml() {
+  return `
+        <div class="tr thead sched">
+          <div class="cell center">รหัสสินค้า</div>
+          <div class="cell cell-name">รายการสินค้า / Description</div>
+          <div class="cell center">จำนวน</div>
+          <div class="cell center">หน่วย</div>
+        </div>`;
+}
+
+function scheduleRowHtml(item: PurchaseOrderPdfRoundItem) {
+  return `
+        <div class="tr tbody sched">
+          <div class="cell center">${escapeHtml(item.itemCode)}</div>
+          <div class="cell cell-name">${escapeHtml(item.itemName)}</div>
+          <div class="cell center">${formatQty(item.qty)}</div>
+          <div class="cell center">${escapeHtml(item.unit)}</div>
+        </div>`;
+}
+
+function scheduleTableHtml(rows: string[]) {
+  return `<div class="table schedule-table">${scheduleTheadHtml()}${rows.join("")}</div>`;
 }
 
 function totalsHtml(data: PurchaseOrderPdfData) {
@@ -533,6 +583,30 @@ function createStyle() {
         white-space: nowrap;
       }
 
+      .sched-section-head {
+        margin-top: 16px;
+        font-size: 8.5px;
+        font-weight: 700;
+        color: #343434;
+        flex-shrink: 0;
+      }
+
+      .group-heading {
+        margin-top: 10px;
+        font-size: 8.5px;
+        font-weight: 700;
+        color: #343434;
+        flex-shrink: 0;
+      }
+
+      .table.schedule-table {
+        margin-top: 6px;
+      }
+
+      .tr.sched {
+        grid-template-columns: 80px 1fr 56px 48px;
+      }
+
       .totals {
         width: 229px;
         margin-left: auto;
@@ -752,6 +826,10 @@ type Metrics = {
   pageEnd: number;
   foot: number;
   noteLine: number;
+  schedSection: number;
+  schedRoundHeads: number[];
+  schedThead: number;
+  schedRows: number[];
 };
 
 type Probe = {
@@ -807,6 +885,7 @@ function buildProbe(data: PurchaseOrderPdfData, chunks: string[]): Probe {
   root.style.background = "#fff";
 
   const mark = (id: number) => `<span class="pm" data-pm="${id}"></span>`;
+  const rounds = activeDeliveryRounds(data);
 
   root.innerHTML = `
     ${createStyle()}
@@ -826,6 +905,15 @@ function buildProbe(data: PurchaseOrderPdfData, chunks: string[]): Probe {
         ${chunks.map((html) => noteChunkHtml(html)).join("")}
       </div>
       <div class="note-value" id="po-probe-scratch"></div>
+      ${
+        rounds.length
+          ? `${scheduleSectionHeadHtml()}
+      <div id="po-probe-round-heads">${rounds.map(scheduleRoundHeadingHtml).join("")}</div>
+      <div class="table schedule-table" id="po-probe-sched-table">
+        ${scheduleTheadHtml()}${rounds.flatMap((round) => round.items.map(scheduleRowHtml)).join("")}
+      </div>`
+          : ""
+      }
     </div>
   `;
 
@@ -840,6 +928,9 @@ function buildProbe(data: PurchaseOrderPdfData, chunks: string[]): Probe {
   const table = root.querySelector<HTMLElement>("#po-probe-table")!;
   const notes = root.querySelector<HTMLElement>("#po-probe-notes")!;
   const scratch = root.querySelector<HTMLElement>("#po-probe-scratch")!;
+  const schedHead = root.querySelector<HTMLElement>(".sched-section-head");
+  const schedTable = root.querySelector<HTMLElement>("#po-probe-sched-table");
+  const roundHeads = root.querySelector<HTMLElement>("#po-probe-round-heads");
 
   const height = (el: Element) => el.getBoundingClientRect().height;
 
@@ -862,6 +953,16 @@ function buildProbe(data: PurchaseOrderPdfData, chunks: string[]): Probe {
       rows: Array.from(table.querySelectorAll(".tr.tbody")).map(height),
       paragraphs: Array.from(notes.children).map(height),
       noteLine,
+      schedSection: schedHead ? height(schedHead) + 16 : 0,
+      schedRoundHeads: roundHeads
+        ? Array.from(roundHeads.children).map((el) => height(el) + 10)
+        : [],
+      schedThead: schedTable
+        ? height(schedTable.querySelector(".tr.thead")!)
+        : 0,
+      schedRows: schedTable
+        ? Array.from(schedTable.querySelectorAll(".tr.tbody")).map(height)
+        : [],
     },
   };
 }
@@ -941,6 +1042,63 @@ function buildPages(
   }
   page.tail.push(totalsHtml(data));
   page.used += m.totals;
+
+  const rounds = activeDeliveryRounds(data);
+  if (rounds.length) {
+    let openSchedRows: string[] = [];
+    let schedRowIndex = 0;
+
+    const flushScheduleTable = () => {
+      if (!openSchedRows.length) {
+        return;
+      }
+      page.tail.push(scheduleTableHtml(openSchedRows));
+      openSchedRows = [];
+    };
+
+    const nextSchedulePage = () => {
+      flushScheduleTable();
+      nextPage();
+    };
+
+    if (page.used > 0 && m.schedSection > free()) {
+      nextSchedulePage();
+    }
+    page.tail.push(scheduleSectionHeadHtml());
+    page.used += m.schedSection;
+
+    for (let ri = 0; ri < rounds.length; ri += 1) {
+      const round = rounds[ri];
+      const headHeight = m.schedRoundHeads[ri] ?? 0;
+      const firstRowHeight = m.schedRows[schedRowIndex] ?? 0;
+      const firstNeed =
+        headHeight + m.schedThead + TABLE_CHROME + firstRowHeight;
+
+      if (page.used > 0 && firstNeed > free()) {
+        nextSchedulePage();
+      }
+      flushScheduleTable();
+      page.tail.push(scheduleRoundHeadingHtml(round));
+      page.used += headHeight;
+
+      for (const item of round.items) {
+        const rowHeight = m.schedRows[schedRowIndex] ?? 0;
+        const tableCost = openSchedRows.length
+          ? 0
+          : m.schedThead + TABLE_CHROME;
+        if (page.used > 0 && tableCost + rowHeight > free()) {
+          nextSchedulePage();
+        }
+        if (!openSchedRows.length) {
+          page.used += m.schedThead + TABLE_CHROME;
+        }
+        openSchedRows.push(scheduleRowHtml(item));
+        page.used += rowHeight;
+        schedRowIndex += 1;
+      }
+    }
+    flushScheduleTable();
+  }
 
   // 3) หมายเหตุ — หัวข้อต้องมีอย่างน้อยหนึ่งบรรทัดตามหลัง ไม่งั้นยกไปหน้าใหม่
   if (page.used > 0 && m.noteHead + m.noteLine > free()) {

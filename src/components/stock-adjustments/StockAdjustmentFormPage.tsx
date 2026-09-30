@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +19,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import StockAdjustmentTypeFormModal from "@/components/masters/stock-adjustment-types/StockAdjustmentTypeFormModal";
+import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useDomainConvertsUnits } from "@/hooks/unit-conversions/useDomainConvertsUnits";
 import { useUnitFieldResolver } from "@/hooks/unit-conversions/useUnitFieldResolver";
@@ -28,6 +30,8 @@ import {
   useUpdateStockAdjustmentMutation,
 } from "@/hooks/stock-adjustments/useStockAdjustmentMutations";
 import { useStockAdjustmentQuery } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
+import { useCreateStockAdjustmentTypeMutation } from "@/hooks/stock-adjustment-types/useCreateStockAdjustmentTypeMutation";
+import { useStockAdjustmentTypesQuery } from "@/hooks/stock-adjustment-types/useStockAdjustmentTypesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateStockAdjustmentBody } from "@/types/stock-adjustments";
@@ -63,6 +67,14 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
   const detailQuery = useStockAdjustmentQuery(mode === "edit" ? id : undefined);
   const createMutation = useCreateStockAdjustmentMutation();
   const updateMutation = useUpdateStockAdjustmentMutation();
+  const typeActions = useScreenActionPermissions(
+    "MASTERS_STOCK_ADJUSTMENT_TYPES",
+  );
+  const canCreateType = typeActions.canAdd;
+  const [typeModalOpen, setTypeModalOpen] = useState(false);
+  const typesQuery = useStockAdjustmentTypesQuery({ isActive: true });
+  const createTypeMutation = useCreateStockAdjustmentTypeMutation();
+  const activeTypes = typesQuery.data?.data ?? [];
 
   const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
   const warehousesQuery = useWarehousesQuery({ isActive: true });
@@ -87,6 +99,27 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
   const lots = lotsQuery.data?.data ?? [];
 
   const watchedItems = Form.useWatch("items", form) ?? [];
+  const watchedType = Form.useWatch("adjustmentType", form);
+  const detail = detailQuery.data?.data;
+
+  const typeOptions = useMemo(() => {
+    const options = activeTypes.map((item) => ({
+      value: item.code,
+      label: `${item.code} — ${item.nameTh}`,
+    }));
+    const current = watchedType || detail?.adjustmentType;
+    if (current && !options.some((option) => option.value === current)) {
+      const name =
+        detail?.adjustmentTypeName ||
+        STOCK_ADJUSTMENT_TYPE_LABEL[current] ||
+        current;
+      options.push({
+        value: current,
+        label: `${current} — ${name}`,
+      });
+    }
+    return options;
+  }, [activeTypes, watchedType, detail]);
 
   useEffect(() => {
     if (mode === "create") {
@@ -122,6 +155,24 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
       })),
     });
   }, [detailQuery.data, form, mode, router]);
+
+  useEffect(() => {
+    if (mode !== "create") {
+      return;
+    }
+    const codes = activeTypes.map((item) => item.code);
+    if (codes.length === 0) {
+      return;
+    }
+    const current = form.getFieldValue("adjustmentType") as string | undefined;
+    if (current && codes.includes(current)) {
+      return;
+    }
+    form.setFieldValue(
+      "adjustmentType",
+      codes.includes("CORRECTION") ? "CORRECTION" : codes[0],
+    );
+  }, [mode, activeTypes, form]);
 
   const saving = createMutation.isPending || updateMutation.isPending;
 
@@ -231,17 +282,54 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
 
-                  <Form.Item
-                    className={styles.field}
-                    label="ประเภท"
-                    name="adjustmentType"
-                    rules={[{ required: true, message: "เลือกประเภท" }]}
-                  >
-                    <Select
-                      options={Object.entries(STOCK_ADJUSTMENT_TYPE_LABEL).map(
-                        ([value, label]) => ({ value, label }),
-                      )}
-                    />
+                  <Form.Item className={styles.field} label="ประเภท" required>
+                    <div className={styles.typeFieldRow}>
+                      <Form.Item
+                        name="adjustmentType"
+                        rules={[{ required: true, message: "เลือกประเภท" }]}
+                        noStyle
+                      >
+                        <Select
+                          showSearch
+                          optionFilterProp="label"
+                          loading={typesQuery.isLoading}
+                          options={typeOptions}
+                          popupRender={(menu) => (
+                            <>
+                              {menu}
+                              {canCreateType ? (
+                                <div className={styles.typeDropdownFooter}>
+                                  <Button
+                                    type="link"
+                                    icon={<PlusOutlined />}
+                                    onMouseDown={(event) =>
+                                      event.preventDefault()
+                                    }
+                                    onClick={() => setTypeModalOpen(true)}
+                                  >
+                                    สร้างประเภทใหม่
+                                  </Button>
+                                </div>
+                              ) : null}
+                            </>
+                          )}
+                        />
+                      </Form.Item>
+                      {canCreateType ? (
+                        <Button
+                          icon={<PlusOutlined />}
+                          onClick={() => setTypeModalOpen(true)}
+                          aria-label="สร้างประเภทใหม่"
+                        >
+                          สร้าง
+                        </Button>
+                      ) : null}
+                    </div>
+                    <p className={styles.typeHint}>
+                      <Link href="/masters/stock-adjustment-types">
+                        จัดการประเภทใบปรับปรุงสต๊อก
+                      </Link>
+                    </p>
                   </Form.Item>
 
                   <Form.Item
@@ -591,6 +679,21 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
           </aside>
         </div>
       </Form>
+
+      <StockAdjustmentTypeFormModal
+        open={typeModalOpen}
+        mode="create"
+        confirmLoading={createTypeMutation.isPending}
+        onCancel={() => setTypeModalOpen(false)}
+        onSubmit={(values) => {
+          createTypeMutation.mutate(values, {
+            onSuccess: (response) => {
+              form.setFieldValue("adjustmentType", response.data.code);
+              setTypeModalOpen(false);
+            },
+          });
+        }}
+      />
     </div>
   );
 }

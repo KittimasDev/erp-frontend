@@ -41,6 +41,8 @@ import {
 import styles from "./PurchaseOrderDetailPage.module.css";
 
 const ATTACHMENT_GROUP_PO_RESCHEDULE = "PO_RESCHEDULE";
+const RESCHEDULE_FORM_ID = "po-delivery-reschedule-form";
+const REASON_FORM_ID = "po-delivery-reason-form";
 
 type Props = {
   purchaseOrderId: string;
@@ -57,8 +59,6 @@ export default function PoDeliverySchedulesSection({
   const rescheduleMutation = useReschedulePoDeliveryMutation();
   const cancelMutation = useCancelPoReceivingMutation();
   const closeMutation = useClosePoRemainingMutation();
-  const [rescheduleForm] = Form.useForm();
-  const [reasonForm] = Form.useForm();
   const [active, setActive] = useState<PoDeliverySchedule | null>(null);
   const [mode, setMode] = useState<"reschedule" | "cancel" | "close" | "history" | null>(
     null,
@@ -71,8 +71,6 @@ export default function PoDeliverySchedulesSection({
     setActive(null);
     setMode(null);
     setFile(null);
-    rescheduleForm.resetFields();
-    reasonForm.resetFields();
   };
 
   return (
@@ -205,12 +203,12 @@ export default function PoDeliverySchedulesSection({
         open={mode === "reschedule"}
         destroyOnHidden
         onCancel={closeModal}
-        onOk={() => rescheduleForm.submit()}
         confirmLoading={rescheduleMutation.isPending}
         okText="บันทึก"
+        okButtonProps={{ htmlType: "submit", form: RESCHEDULE_FORM_ID }}
       >
         <Form
-          form={rescheduleForm}
+          id={RESCHEDULE_FORM_ID}
           layout="vertical"
           onFinish={async (values: { newDate: dayjs.Dayjs; reason: string }) => {
             if (!active) {
@@ -269,13 +267,16 @@ export default function PoDeliverySchedulesSection({
         open={mode === "cancel" || mode === "close"}
         destroyOnHidden
         onCancel={closeModal}
-        onOk={() => reasonForm.submit()}
         confirmLoading={cancelMutation.isPending || closeMutation.isPending}
         okText="ยืนยัน"
-        okButtonProps={{ danger: true }}
+        okButtonProps={{
+          danger: true,
+          htmlType: "submit",
+          form: REASON_FORM_ID,
+        }}
       >
         <Form
-          form={reasonForm}
+          id={REASON_FORM_ID}
           layout="vertical"
           onFinish={async (values: { reason: string }) => {
             if (!active || (mode !== "cancel" && mode !== "close")) {

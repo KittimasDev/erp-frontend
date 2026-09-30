@@ -147,6 +147,10 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters/units", title: "หน่วยนับ" },
   { href: "/warehouses", title: "คลังสินค้า" },
   { href: "/warehouse-locations", title: "ตำแหน่งจัดเก็บ" },
+  {
+    href: "/masters/stock-adjustment-types",
+    title: "ประเภทใบปรับปรุงสต๊อก",
+  },
   { href: "/masters/payment-terms", title: "เงื่อนไขชำระเงิน" },
   { href: "/masters/tax-rates", title: "อัตราภาษี" },
   { href: "/masters/purchase-request-types", title: "ประเภทใบขอซื้อ" },

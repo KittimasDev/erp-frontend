@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Input, Modal, Spin, Upload } from "antd";
@@ -44,6 +44,9 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { ApiError } from "@/lib/api/client";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
+import { getPoDeliverySchedules } from "@/lib/api/po-delivery-schedules";
+import { usePoDeliverySchedulesQuery } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
+import type { PoDeliverySchedule } from "@/types/po-delivery-schedules";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import {
   listPurchaseRequests,
@@ -109,6 +112,25 @@ function formatMoney(value?: string | number) {
   });
 }
 
+function toPdfDeliveryRounds(schedules: PoDeliverySchedule[]) {
+  return [...schedules]
+    .filter((schedule) => schedule.status !== "CANCELLED")
+    .sort((a, b) => a.roundNo - b.roundNo)
+    .map((schedule) => ({
+      roundNo: schedule.roundNo,
+      deliveryDate: formatDate(schedule.effectiveDeliveryDate),
+      items: schedule.items
+        .filter((item) => Number(item.quantity) > 0)
+        .map((item) => ({
+          itemCode: item.itemCode ?? "—",
+          itemName: item.itemNameTh ?? "—",
+          qty: Number(item.quantity) || 0,
+          unit: item.unitCode ?? "—",
+        })),
+    }))
+    .filter((round) => round.items.length > 0);
+}
+
 function statusClass(status: string) {
   switch (status) {
     case "CONFIRMED":
@@ -139,6 +161,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const { modal, message } = App.useApp();
   const query = usePurchaseOrderQuery(id);
   const attachmentsQuery = usePurchaseOrderAttachmentsQuery(id);
+  const schedulesQuery = usePoDeliverySchedulesQuery(id);
   const submitMutation = useSubmitPurchaseOrderMutation();
   const approveMutation = useApprovePurchaseOrderMutation();
   const rejectMutation = useRejectPurchaseOrderMutation();
@@ -156,6 +179,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState("");
   const [previewIsImage, setPreviewIsImage] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const pdfLockRef = useRef(false);
 
   const data = query.data?.data;
   /* ใบสั่งซื้อหนึ่งใบรวมใบขอซื้อได้หลายใบ — แสดงให้ครบ ไม่ใช่แค่ใบแรก */
@@ -310,6 +335,11 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const buildPurchaseOrderPdf = async () => {
     const { generatePurchaseOrderPdf } =
       await import("@/utils/generatePurchaseOrderPdf");
+    let schedules = schedulesQuery.data?.data;
+    if (!schedules) {
+      const response = await getPoDeliverySchedules(getAccessToken(), data.id);
+      schedules = response.data;
+    }
     // ต้อง await + catch — ไม่งั้นสร้าง PDF พังแล้วเงียบสนิท ผู้ใช้กดปุ่มแล้วไม่มีอะไรเกิดขึ้น
     await generatePurchaseOrderPdf({
       poNo: data.poNo,
@@ -352,10 +382,17 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
         discountAmount: Number(item.discountAmount) || 0,
         amount: Number(item.amount) || 0,
       })),
+      deliveryRounds: toPdfDeliveryRounds(schedules ?? []),
     });
   };
 
   const printPdf = async () => {
+    if (pdfLockRef.current) {
+      return;
+    }
+    pdfLockRef.current = true;
+    setPdfLoading(true);
+    const hideLoading = message.loading("กำลังสร้าง PDF...", 0);
     try {
       await buildPurchaseOrderPdf();
     } catch (error) {
@@ -364,6 +401,12 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           ? `สร้าง PDF ไม่สำเร็จ: ${error.message}`
           : "สร้าง PDF ไม่สำเร็จ",
       );
+    } finally {
+      if (typeof hideLoading === "function") {
+        hideLoading();
+      }
+      pdfLockRef.current = false;
+      setPdfLoading(false);
     }
   };
 
@@ -388,7 +431,12 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           >
             กลับ
           </Button>
-          <Button icon={<FilePdfOutlined />} onClick={printPdf}>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={printPdf}
+            loading={pdfLoading}
+            disabled={pdfLoading}
+          >
             พิมพ์ PDF
           </Button>
         </div>
@@ -706,6 +754,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               className={styles.secondaryBtn}
               icon={<FilePdfOutlined />}
               onClick={printPdf}
+              loading={pdfLoading}
+              disabled={pdfLoading}
             >
               พิมพ์ PDF สั่งซื้อ
             </Button>

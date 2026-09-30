@@ -22,6 +22,17 @@ export const STOCK_ADJUSTMENT_TYPE_LABEL: Record<string, string> = {
   CORRECTION: "แก้ไขยอด",
 };
 
+export function stockAdjustmentTypeDisplayName(row: {
+  adjustmentType: string;
+  adjustmentTypeName?: string;
+}): string {
+  const fromApi = row.adjustmentTypeName?.trim();
+  if (fromApi) {
+    return fromApi;
+  }
+  return STOCK_ADJUSTMENT_TYPE_LABEL[row.adjustmentType] ?? row.adjustmentType;
+}
+
 export type StockAdjustmentItem = {
   id: string;
   itemId: string;
@@ -49,6 +60,7 @@ export type StockAdjustment = {
   adjustmentNo: string;
   adjustmentDate: string;
   adjustmentType: string;
+  adjustmentTypeName?: string;
   reason?: string;
   status: StockAdjustmentStatus;
   requestedById?: string;

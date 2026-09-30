@@ -1480,6 +1480,14 @@ const masterMenus: MenuItem[] = [
     roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
   },
   {
+    key: "stock-adjustment-types",
+    screenCode: "MASTERS_STOCK_ADJUSTMENT_TYPES",
+    label: "ประเภทใบปรับปรุงสต๊อก",
+    href: "/masters/stock-adjustment-types",
+    icon: <IconPrType />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
     key: "payment-terms",
     screenCode: "MASTERS_PAYMENT_TERMS",
     label: "เงื่อนไขชำระเงิน",

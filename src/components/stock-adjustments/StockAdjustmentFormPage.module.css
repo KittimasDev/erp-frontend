@@ -151,6 +151,24 @@
   grid-column: 1 / -1;
 }
 
+.typeFieldRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.typeDropdownFooter {
+  border-top: 1px solid var(--sc-border);
+  padding: 4px 8px;
+}
+
+.typeHint {
+  margin: 4px 0 0;
+  color: var(--sc-muted);
+  font-size: 12px;
+}
+
 .lineList {
   display: grid;
   gap: 12px;
