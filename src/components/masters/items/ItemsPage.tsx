@@ -20,6 +20,7 @@ import {
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
+  StopOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -411,20 +412,41 @@ export default function ItemsPage() {
                         `/masters/unit-conversions?itemId=${record.id}`,
                       ),
                   },
-                  canDelete && "divider",
-                  canDelete && {
-                    key: "delete",
-                    icon: <DeleteOutlined />,
-                    label: "ลบ",
-                    danger: true,
-                    onClick: () => deleteMutation.mutate(record.id),
-                    confirm: {
-                      title: "ลบสินค้า",
-                      content: `ต้องการลบ "${record.itemCode}" หรือไม่?`,
-                      okText: "ลบ",
-                      cancelText: "ยกเลิก",
+                  ((canEdit && record.isActive) ||
+                    (canDelete && !record.hasTransactions)) &&
+                    "divider",
+                  canEdit &&
+                    record.isActive && {
+                      key: "deactivate",
+                      icon: <StopOutlined />,
+                      label: "ปิดใช้งาน",
+                      danger: true,
+                      onClick: () =>
+                        updateMutation.mutate({
+                          id: record.id,
+                          body: { isActive: false },
+                        }),
+                      confirm: {
+                        title: "ปิดใช้งานสินค้า",
+                        content: `ต้องการปิดการใช้งาน "${record.itemCode}" หรือไม่? ประวัติเอกสารและล็อตของสินค้านี้จะยังอยู่ รหัสสินค้านี้จะสร้างซ้ำไม่ได้`,
+                        okText: "ปิดใช้งาน",
+                        cancelText: "ยกเลิก",
+                      },
                     },
-                  },
+                  canDelete &&
+                    !record.hasTransactions && {
+                      key: "delete",
+                      icon: <DeleteOutlined />,
+                      label: "ลบ",
+                      danger: true,
+                      onClick: () => deleteMutation.mutate(record.id),
+                      confirm: {
+                        title: "ลบสินค้า",
+                        content: `ต้องการลบ "${record.itemCode}" ออกจากระบบหรือไม่? รหัสสินค้านี้จะใช้ซ้ำได้`,
+                        okText: "ลบ",
+                        cancelText: "ยกเลิก",
+                      },
+                    },
                 ]}
               />
             ),
