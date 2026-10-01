@@ -49,6 +49,26 @@
   max-width: 120px;
 }
 
+.rounds {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  width: max-content;
+  max-width: 220px;
+}
+
+.round {
+  display: grid;
+  gap: 1px;
+  line-height: 1.4;
+  color: var(--flow-muted);
+}
+
+.round strong {
+  color: var(--flow-ink);
+  font-weight: 500;
+}
+
 .docLinks {
   display: grid;
   gap: 6px;

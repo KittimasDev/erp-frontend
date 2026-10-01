@@ -1,9 +1,15 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Button, Steps } from "antd";
 import { ShoppingCartOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
 
+import {
+  receiveTimingLabel,
+  type PoDeliverySchedule,
+} from "@/types/po-delivery-schedules";
 import {
   PROCUREMENT_FLOW_STEPS,
   resolveProcurementFlow,
@@ -15,11 +21,46 @@ type Props = {
   input: ProcurementFlowInput;
   /** Hide document links under steps */
   hideLinks?: boolean;
+  /** รอบจัดส่งของใบสั่งซื้อ — แสดงใต้ขั้นรับของ */
+  deliverySchedules?: PoDeliverySchedule[];
 };
+
+function formatDate(value: string) {
+  return dayjs(value).format("DD/MM/YYYY");
+}
+
+function DeliveryRounds({ schedules }: { schedules: PoDeliverySchedule[] }) {
+  const sorted = [...schedules].sort((a, b) => a.roundNo - b.roundNo);
+  return (
+    <div className={styles.rounds}>
+      {sorted.map((schedule) => {
+        const timing = receiveTimingLabel(
+          schedule.latestActualReceiveDate,
+          schedule.effectiveDeliveryDate,
+        );
+        return (
+          <div key={schedule.id} className={styles.round}>
+            <strong>รอบที่ {schedule.roundNo}</strong>
+            <span>กำหนดส่ง {formatDate(schedule.effectiveDeliveryDate)}</span>
+            {schedule.latestActualReceiveDate ? (
+              <span>
+                รับจริงล่าสุด {formatDate(schedule.latestActualReceiveDate)}
+                {timing ? ` · ${timing}` : ""}
+              </span>
+            ) : schedule.status === "CANCELLED" ? (
+              <span>ยกเลิกการรับ</span>
+            ) : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function ProcurementFlowTimeline({
   input,
   hideLinks = false,
+  deliverySchedules,
 }: Props) {
   const flow = resolveProcurementFlow(input);
   const current =
@@ -28,7 +69,7 @@ export default function ProcurementFlowTimeline({
     Boolean(input.pr && input.pr.status === "APPROVED") && !flow.docs.po;
 
   const items = PROCUREMENT_FLOW_STEPS.map((step, index) => {
-    let description: string | undefined;
+    let description: ReactNode;
     if (index === 0 && flow.docs.pr) description = flow.docs.pr.no;
     if (index === 1 && flow.docs.po) description = flow.docs.po.no;
     if (index === 1 && !flow.docs.po && goToPurchaseOrders) {
@@ -39,6 +80,14 @@ export default function ProcurementFlowTimeline({
         flow.docs.goodsReceipts.length > 1
           ? `${flow.docs.goodsReceipts[0].no} +${flow.docs.goodsReceipts.length - 1}`
           : flow.docs.goodsReceipts[0].no;
+    }
+    if (index === 2 && deliverySchedules?.length) {
+      description = (
+        <>
+          {description}
+          <DeliveryRounds schedules={deliverySchedules} />
+        </>
+      );
     }
     if (index === 3 && flow.docs.payment) description = flow.docs.payment.no;
 

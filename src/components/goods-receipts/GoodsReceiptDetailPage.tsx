@@ -25,6 +25,7 @@ import {
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import { usePoDeliverySchedulesQuery } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
 import { formatQtyWithBase, pickUnitLabel } from "@/lib/units/format";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { isPoPayableStatus } from "@/types/purchase-orders";
@@ -80,6 +81,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
   const po = poQuery.data?.data;
   const grByPoQuery = useGoodsReceiptsByPoQuery(poId);
   const linkedGrs = grByPoQuery.data?.data ?? [];
+  const schedulesQuery = usePoDeliverySchedulesQuery(poId);
   const paymentByPoQuery = usePurchasePaymentByPoQuery(
     po &&
       (isPoPayableStatus(po.status) ||
@@ -459,6 +461,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
           </div>
 
           <ProcurementFlowTimeline
+            deliverySchedules={schedulesQuery.data?.data}
             input={{
               pr: po?.purchaseRequest
                 ? {
