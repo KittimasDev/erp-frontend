@@ -69,6 +69,24 @@
   font-weight: 500;
 }
 
+.timingEarly,
+.timingOnTime,
+.timingLate {
+  font-weight: 600;
+}
+
+.timingEarly {
+  color: #1d6fd8;
+}
+
+.timingOnTime {
+  color: #3f8a12;
+}
+
+.timingLate {
+  color: #d4380d;
+}
+
 .docLinks {
   display: grid;
   gap: 6px;

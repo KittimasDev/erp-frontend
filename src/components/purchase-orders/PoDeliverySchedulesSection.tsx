@@ -35,7 +35,9 @@ import {
   isPoScheduleOpen,
   PO_DELIVERY_RECEIVE_STATUS_COLOR,
   PO_DELIVERY_RECEIVE_STATUS_LABEL,
-  receiveTimingLabel,
+  RECEIVE_TIMING_COLOR,
+  RECEIVE_TIMING_LABEL,
+  receiveTiming,
   type PoDeliverySchedule,
 } from "@/types/po-delivery-schedules";
 import styles from "./PurchaseOrderDetailPage.module.css";
@@ -84,7 +86,7 @@ export default function PoDeliverySchedulesSection({
         schedules.map((schedule) => {
           const statusLabel =
             PO_DELIVERY_RECEIVE_STATUS_LABEL[schedule.status] ?? schedule.status;
-          const timing = receiveTimingLabel(
+          const timing = receiveTiming(
             schedule.latestActualReceiveDate,
             schedule.effectiveDeliveryDate,
           );
@@ -108,10 +110,27 @@ export default function PoDeliverySchedulesSection({
                       : null}
                   </div>
                   {schedule.latestActualReceiveDate ? (
-                    <div>
-                      รับจริงล่าสุด{" "}
-                      {dayjs(schedule.latestActualReceiveDate).format("DD/MM/YYYY")}
-                      {timing ? ` · ${timing}` : null}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        flexWrap: "wrap",
+                        marginTop: 2,
+                      }}
+                    >
+                      <span>
+                        รับจริงล่าสุด{" "}
+                        {dayjs(schedule.latestActualReceiveDate).format("DD/MM/YYYY")}
+                      </span>
+                      {timing ? (
+                        <Tag
+                          color={RECEIVE_TIMING_COLOR[timing]}
+                          style={{ fontWeight: 600, marginInlineEnd: 0 }}
+                        >
+                          {RECEIVE_TIMING_LABEL[timing]}
+                        </Tag>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

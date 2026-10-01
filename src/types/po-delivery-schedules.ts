@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 export type PoDeliveryReceiveStatus =
   | "NOT_RECEIVED"
   | "PARTIALLY_RECEIVED"
@@ -131,18 +133,43 @@ export function canClosePoRoundRemaining(schedule: PoDeliverySchedule) {
   return isPoScheduleOpen(schedule.status) && received > 0.0005 && remaining > 0.0005;
 }
 
+export type ReceiveTiming = "early" | "on_time" | "late";
+
+export const RECEIVE_TIMING_LABEL: Record<ReceiveTiming, string> = {
+  early: "รับก่อนวันส่งของ",
+  on_time: "รับสินค้าตามกำหนด",
+  late: "รับสินค้าล่าช้า",
+};
+
+export const RECEIVE_TIMING_COLOR: Record<ReceiveTiming, string> = {
+  early: "blue",
+  on_time: "green",
+  late: "red",
+};
+
+/** เทียบระดับวัน — ข้อมูลเก่าอาจส่งวันที่รับจริงมาเป็น timestamp UTC */
+export function receiveTiming(
+  actualDate: string | undefined,
+  effectiveDate: string | undefined,
+): ReceiveTiming | null {
+  if (!actualDate || !effectiveDate) {
+    return null;
+  }
+  const actual = dayjs(actualDate).format("YYYY-MM-DD");
+  const effective = dayjs(effectiveDate).format("YYYY-MM-DD");
+  if (actual < effective) {
+    return "early";
+  }
+  if (actual === effective) {
+    return "on_time";
+  }
+  return "late";
+}
+
 export function receiveTimingLabel(
   actualDate: string | undefined,
   effectiveDate: string,
 ) {
-  if (!actualDate) {
-    return null;
-  }
-  if (actualDate < effectiveDate) {
-    return "รับก่อนวันส่งของ";
-  }
-  if (actualDate === effectiveDate) {
-    return "รับสินค้าตามกำหนด";
-  }
-  return "รับสินค้าล่าช้า";
+  const timing = receiveTiming(actualDate, effectiveDate);
+  return timing ? RECEIVE_TIMING_LABEL[timing] : null;
 }

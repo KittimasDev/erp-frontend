@@ -7,8 +7,10 @@ import { ShoppingCartOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import {
-  receiveTimingLabel,
+  RECEIVE_TIMING_LABEL,
+  receiveTiming,
   type PoDeliverySchedule,
+  type ReceiveTiming,
 } from "@/types/po-delivery-schedules";
 import {
   PROCUREMENT_FLOW_STEPS,
@@ -29,12 +31,18 @@ function formatDate(value: string) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
+const TIMING_CLASS: Record<ReceiveTiming, string> = {
+  early: styles.timingEarly,
+  on_time: styles.timingOnTime,
+  late: styles.timingLate,
+};
+
 function DeliveryRounds({ schedules }: { schedules: PoDeliverySchedule[] }) {
   const sorted = [...schedules].sort((a, b) => a.roundNo - b.roundNo);
   return (
     <div className={styles.rounds}>
       {sorted.map((schedule) => {
-        const timing = receiveTimingLabel(
+        const timing = receiveTiming(
           schedule.latestActualReceiveDate,
           schedule.effectiveDeliveryDate,
         );
@@ -43,10 +51,16 @@ function DeliveryRounds({ schedules }: { schedules: PoDeliverySchedule[] }) {
             <strong>รอบที่ {schedule.roundNo}</strong>
             <span>กำหนดส่ง {formatDate(schedule.effectiveDeliveryDate)}</span>
             {schedule.latestActualReceiveDate ? (
-              <span>
-                รับจริงล่าสุด {formatDate(schedule.latestActualReceiveDate)}
-                {timing ? ` · ${timing}` : ""}
-              </span>
+              <>
+                <span>
+                  รับจริงล่าสุด {formatDate(schedule.latestActualReceiveDate)}
+                </span>
+                {timing ? (
+                  <span className={TIMING_CLASS[timing]}>
+                    {RECEIVE_TIMING_LABEL[timing]}
+                  </span>
+                ) : null}
+              </>
             ) : schedule.status === "CANCELLED" ? (
               <span>ยกเลิกการรับ</span>
             ) : null}
