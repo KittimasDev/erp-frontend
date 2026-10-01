@@ -24,6 +24,7 @@ import {
   FilePdfOutlined,
   FileTextOutlined,
   InboxOutlined,
+  RollbackOutlined,
   SaveOutlined,
   SendOutlined,
   ShoppingCartOutlined,
@@ -38,8 +39,13 @@ import {
 } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import type { DeliveryOrderItem } from "@/types/delivery-orders";
-import { DELIVERY_ORDER_STATUS_LABEL } from "@/types/delivery-orders";
+import type { DeliveryOrderItem, DeliveryResult } from "@/types/delivery-orders";
+import {
+  DELIVERY_ORDER_STATUS_LABEL,
+  DELIVERY_RESULT_COLOR,
+  DELIVERY_RESULT_LABEL,
+} from "@/types/delivery-orders";
+import DeliveryResultModal from "./DeliveryResultModal";
 import styles from "./DeliveryOrderFormPage.module.css";
 
 type Props = { id: string; mode: "view" | "edit" };
@@ -56,6 +62,8 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
   const canWrite = deliveryActions.canEdit;
   const canConfirm = deliveryActions.canApprove;
+  const returnNoteActions = useScreenActionPermissions("RETURN_NOTES");
+  const [resultModalOpen, setResultModalOpen] = useState(false);
 
   const data = query.data?.data;
   const editable =
@@ -164,6 +172,43 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       render: (v?: string) => v || "—",
     },
   ];
+
+  const isReturnResult: boolean =
+    data.deliveryResult === "FULL_RETURN" ||
+    data.deliveryResult === "PARTIAL_RETURN";
+  const canCreateReturnNote =
+    mode === "view" &&
+    data.status === "DELIVERED" &&
+    isReturnResult &&
+    data.returnToStock === true &&
+    returnNoteActions.canAdd;
+
+  if (isReturnResult) {
+    columns.splice(2, 0,
+      {
+        title: "รับจริง",
+        dataIndex: "acceptedQty",
+        align: "right",
+        width: 110,
+        render: (v?: string) =>
+          v != null ? Number(v).toLocaleString("th-TH") : "—",
+      },
+      {
+        title: "ตีกลับ",
+        dataIndex: "returnedQty",
+        align: "right",
+        width: 110,
+        render: (v?: string) =>
+          v != null && Number(v) > 0 ? (
+            <span style={{ color: "#d4380d", fontWeight: 600 }}>
+              {Number(v).toLocaleString("th-TH")}
+            </span>
+          ) : (
+            "0"
+          ),
+      },
+    );
+  }
 
   const showEditButton =
     mode === "view" &&
@@ -302,18 +347,20 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               className={styles.primaryBtn}
               icon={<SendOutlined />}
               loading={deliverMutation.isPending}
-              onClick={() =>
-                modal.confirm({
-                  title: "ยืนยันส่งมอบแล้ว?",
-                  content: "SO จะเป็น DELIVERED — ไม่ตัดสต๊อก",
-                  onOk: async () => {
-                    await deliverMutation.mutateAsync(id);
-                    router.push(`/delivery-orders/${id}`);
-                  },
-                })
-              }
+              onClick={() => setResultModalOpen(true)}
             >
               Mark Delivered
+            </Button>
+          ) : null}
+          {canCreateReturnNote ? (
+            <Button
+              className={styles.secondaryBtn}
+              icon={<RollbackOutlined />}
+              onClick={() =>
+                router.push(`/return-notes/create?deliveryOrderId=${id}`)
+              }
+            >
+              สร้างใบคืนสินค้า
             </Button>
           ) : null}
           {(data.status === "DRAFT" || data.status === "CONFIRMED") &&
@@ -349,12 +396,102 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
         </div>
       </header>
 
-      {data.status === "DELIVERED" ? (
+      <DeliveryResultModal
+        open={resultModalOpen}
+        items={data.items ?? []}
+        loading={deliverMutation.isPending}
+        onCancel={() => setResultModalOpen(false)}
+        onConfirm={async (body) => {
+          try {
+            await deliverMutation.mutateAsync({ id, body });
+          } catch {
+            return;
+          }
+          setResultModalOpen(false);
+          const isReturn = body.result !== "SUCCESS";
+          if (isReturn && body.returnToStock && returnNoteActions.canAdd) {
+            router.push(`/return-notes/create?deliveryOrderId=${id}`);
+            return;
+          }
+          router.push(`/delivery-orders/${id}`);
+        }}
+      />
+
+      {data.status === "DELIVERED" && !isReturnResult ? (
         <Alert
           type="success"
           showIcon
           title="ส่งมอบแล้ว — ไม่มีการตัดสต๊อกในขั้นตอนนี้"
         />
+      ) : null}
+
+      {data.status === "DELIVERED" && isReturnResult ? (
+        <section className={styles.formCard}>
+          <h2 className={styles.sectionTitle}>ผลการส่ง</h2>
+          <div className={styles.formGrid}>
+            <div className={styles.field}>
+              <span>ผลการส่ง</span>
+              <div className={styles.fieldValue}>
+                <Tag
+                  color={
+                    DELIVERY_RESULT_COLOR[data.deliveryResult as DeliveryResult] ??
+                    "default"
+                  }
+                  style={{ fontWeight: 600 }}
+                >
+                  {DELIVERY_RESULT_LABEL[data.deliveryResult as DeliveryResult] ??
+                    data.deliveryResult}
+                </Tag>
+              </div>
+            </div>
+            <div className={styles.field}>
+              <span>สินค้าที่ตีกลับ</span>
+              <div className={styles.fieldValue}>
+                {data.returnToStock ? "นำสินค้าคืนเข้าคลัง" : "ไม่นำเข้าคลัง"}
+              </div>
+            </div>
+            <div className={styles.field}>
+              <span>ส่งสินค้าใหม่</span>
+              <div className={styles.fieldValue}>
+                {data.redeliverRequired ? (
+                  <>
+                    ส่งใหม่
+                    {data.redeliverDate
+                      ? ` · ${dayjs(data.redeliverDate).format("DD/MM/YYYY")}`
+                      : ""}
+                    {data.redeliveryScheduleId ? (
+                      <>
+                        {" · "}
+                        <Link
+                          href={`/sales-orders/${data.salesOrderId}`}
+                          className={styles.docLink}
+                        >
+                          รอบที่ {data.redeliveryRoundNo ?? "—"}
+                          <ExportOutlined className={styles.docLinkIcon} />
+                        </Link>
+                      </>
+                    ) : null}
+                  </>
+                ) : (
+                  "ไม่ส่งใหม่"
+                )}
+              </div>
+            </div>
+            <div className={styles.field}>
+              <span>ผู้บันทึก</span>
+              <div className={styles.fieldValue}>
+                {data.deliveredByName ?? "—"}
+                {data.deliveredAt
+                  ? ` · ${dayjs(data.deliveredAt).format("DD/MM/YYYY HH:mm")}`
+                  : ""}
+              </div>
+            </div>
+            <div className={`${styles.field} ${styles.fieldWide}`}>
+              <span>เหตุผลการตีกลับ</span>
+              <div className={styles.fieldValue}>{data.returnReason || "—"}</div>
+            </div>
+          </div>
+        </section>
       ) : null}
 
       <section className={styles.formCard}>

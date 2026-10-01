@@ -891,6 +891,22 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
       ROLE.ACCOUNTING_OFFICER,
     ],
   },
+  {
+    key: "return-notes",
+    screenCode: "RETURN_NOTES",
+    label: "คืนสินค้า",
+    href: "/return-notes",
+    icon: <IconReceiving />,
+    matchHrefs: ["/return-notes", "/return-notes/create"],
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
 ];
 
 const purchaseMenus: MenuItem[] = [

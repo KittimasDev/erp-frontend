@@ -11,6 +11,20 @@ export const DELIVERY_ORDER_STATUS_LABEL: Record<DeliveryOrderStatus, string> = 
   CANCELLED: "ยกเลิก",
 };
 
+export type DeliveryResult = "SUCCESS" | "FULL_RETURN" | "PARTIAL_RETURN";
+
+export const DELIVERY_RESULT_LABEL: Record<DeliveryResult, string> = {
+  SUCCESS: "ส่งสำเร็จ",
+  FULL_RETURN: "ตีกลับทั้งหมด",
+  PARTIAL_RETURN: "ตีกลับบางส่วน",
+};
+
+export const DELIVERY_RESULT_COLOR: Record<DeliveryResult, string> = {
+  SUCCESS: "success",
+  FULL_RETURN: "error",
+  PARTIAL_RETURN: "warning",
+};
+
 export type DeliveryOrderItem = {
   id: string;
   salesOrderItemId: string;
@@ -18,6 +32,9 @@ export type DeliveryOrderItem = {
   itemCode?: string;
   itemNameTh?: string;
   deliveredQty: string;
+  acceptedQty?: string;
+  returnedQty?: string;
+  pickingItemId?: string;
   unitId: string;
   unitCode?: string;
   remark?: string;
@@ -47,6 +64,16 @@ export type DeliveryOrder = {
   remark?: string;
   confirmedAt?: string;
   deliveredAt?: string;
+  salesOrderDeliveryScheduleId?: string;
+  roundNo?: number;
+  deliveryResult?: DeliveryResult | string;
+  returnReason?: string;
+  returnToStock?: boolean;
+  redeliverRequired?: boolean;
+  redeliverDate?: string;
+  redeliveryScheduleId?: string;
+  redeliveryRoundNo?: number;
+  deliveredByName?: string;
   items: DeliveryOrderItem[];
   createdAt: string;
   updatedAt: string;
@@ -85,6 +112,19 @@ export type CreateDeliveryOrderFromPackingBody = {
 
 export type UpdateDeliveryOrderBody = CreateDeliveryOrderFromPackingBody & {
   items?: Array<{ id: string; deliveredQty?: number; remark?: string }>;
+};
+
+export type DeliverDeliveryOrderBody = {
+  result: DeliveryResult;
+  returnReason?: string;
+  returnToStock?: boolean;
+  redeliver?: boolean;
+  redeliverDate?: string;
+  items?: Array<{
+    deliveryOrderItemId: string;
+    acceptedQty: number;
+    returnedQty: number;
+  }>;
 };
 
 export type DeliveryOrderApiResponse = {

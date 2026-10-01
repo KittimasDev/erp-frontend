@@ -239,6 +239,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   { prefix: "/sales-orders", screenCodes: ["SALES_ORDERS"] },
   { prefix: "/delivery-orders", screenCodes: ["DELIVERY_ORDERS"] },
+  { prefix: "/return-notes", screenCodes: ["RETURN_NOTES"] },
   {
     prefix: "/sales-invoices/pending",
     screenCodes: ["SALES_INVOICES_PENDING"],
@@ -493,6 +494,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   SALES_ORDERS_IN_PRODUCTION: "/customers/sales-orders-in-production",
   SALES_STOCK_VERIFICATION: "/sales-orders/stock-verification",
   DELIVERY_ORDERS: "/delivery-orders",
+  RETURN_NOTES: "/return-notes",
   SALES_INVOICES: "/sales-invoices",
   SALES_INVOICES_PENDING: "/sales-invoices/pending",
   SALES_TRACKING: "/sales-tracking",

@@ -171,6 +171,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "PICKINGS",
       "PACKINGS",
       "DELIVERY_ORDERS",
+      "RETURN_NOTES",
       "PRODUCTION_OUTPUT_APPROVALS",
       "FG_STOCK_MOVEMENTS",
     ],

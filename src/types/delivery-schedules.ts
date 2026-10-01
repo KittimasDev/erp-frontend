@@ -93,6 +93,7 @@ export type DeliverySchedule = {
   rescheduledCount?: number;
   lastRescheduledAt?: string;
   lastRescheduleReason?: string;
+  sourceDeliveryOrderId?: string;
   /** เลขรุ่นกันบันทึกทับกันของรอบนี้ — แยกจากของใบสั่งขาย */
   editVersion: number;
   items: DeliveryScheduleItem[];

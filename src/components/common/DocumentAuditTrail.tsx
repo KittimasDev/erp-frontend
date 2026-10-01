@@ -33,6 +33,8 @@ function actionLabel(action: string) {
       return "แก้หัวเอกสาร/การชำระ";
     case "RESCHEDULE":
       return "เลื่อนกำหนดส่ง";
+    case "DELIVERY_RETURN":
+      return "ลูกค้าตีกลับสินค้า";
     case "DELETE":
       return "ลบ";
     default:
@@ -53,6 +55,7 @@ function actionColor(action: string) {
       return "blue";
     case "CANCEL":
     case "CANCEL_ROUND":
+    case "DELIVERY_RETURN":
     case "DELETE":
       return "red";
     default:

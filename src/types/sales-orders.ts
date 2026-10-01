@@ -315,7 +315,8 @@ export type SalesOrderPdfSnapshotChangeSource =
   | "UPDATE_HEADER"
   | "RESCHEDULE"
   | "CANCEL_ROUND"
-  | "CANCEL";
+  | "CANCEL"
+  | "DELIVERY_RETURN";
 
 export type SalesOrderPdfSnapshotLine = {
   no: number;

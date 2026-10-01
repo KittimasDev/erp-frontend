@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Alert,
   App,
@@ -556,6 +557,11 @@ export default function DeliverySchedulesSection({
                   ส่งวันที่ {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
                 </span>
                 {statusTag(schedule.status)}
+                {schedule.sourceDeliveryOrderId ? (
+                  <Link href={`/delivery-orders/${schedule.sourceDeliveryOrderId}`}>
+                    <Tag color="volcano">ส่งชดเชยของที่ตีกลับ</Tag>
+                  </Link>
+                ) : null}
                 {(schedule.rescheduledCount ?? 0) > 0 ? (
                   <Tooltip
                     title={

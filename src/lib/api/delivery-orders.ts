@@ -1,6 +1,7 @@
 import { apiFetch } from "./client";
 import type {
   CreateDeliveryOrderFromPackingBody,
+  DeliverDeliveryOrderBody,
   DeliveryOrderApiResponse,
   DeliveryOrderListApiResponse,
   DeliveryOrderQueryParams,
@@ -74,10 +75,14 @@ export function confirmDeliveryOrder(token: string, id: string) {
   );
 }
 
-export function deliverDeliveryOrder(token: string, id: string) {
+export function deliverDeliveryOrder(
+  token: string,
+  id: string,
+  body: DeliverDeliveryOrderBody,
+) {
   return apiFetch<DeliveryOrderApiResponse>(
     `/api/delivery-orders/${id}/deliver`,
-    { method: "POST", token },
+    { method: "POST", token, body },
   );
 }
 

@@ -265,6 +265,7 @@ export const STOCK_MOVEMENT_TYPE_LABEL: Record<string, string> = {
   RECEIVE: "รับเข้า",
   ISSUE: "เบิกออก",
   SALES_OUT: "ขายออก",
+  SALES_RETURN_IN: "รับคืนจากลูกค้า",
   ADJUST_IN: "ปรับเพิ่ม",
   ADJUST_OUT: "ปรับลด",
   TRANSFER_IN: "โอนเข้า",

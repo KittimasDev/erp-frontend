@@ -74,6 +74,7 @@ function movementTagColor(label: string): string | undefined {
     case STOCK_MOVEMENT_TYPE_LABEL.RECEIVE:
     case STOCK_MOVEMENT_TYPE_LABEL.ADJUST_IN:
     case STOCK_MOVEMENT_TYPE_LABEL.TRANSFER_IN:
+    case STOCK_MOVEMENT_TYPE_LABEL.SALES_RETURN_IN:
       return "success";
     case STOCK_MOVEMENT_TYPE_LABEL.ISSUE:
     case STOCK_MOVEMENT_TYPE_LABEL.ADJUST_OUT:

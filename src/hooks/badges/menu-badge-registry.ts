@@ -25,6 +25,7 @@ import {
   pendingPurchaseRequestApprovalsCountOptions,
   purchaseOrdersPendingFromPrCountOptions,
 } from "@/hooks/purchase-requests/usePurchaseRequestsQuery";
+import { pendingReturnNotesCountOptions } from "@/hooks/return-notes/useReturnNotesQuery";
 import { pendingSalesInvoicesCountOptions } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { pendingStockVerificationCountOptions } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import { pendingStockControlCountOptions } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
@@ -216,6 +217,18 @@ export const MENU_BADGE_REGISTRY: readonly MenuBadgeEntry[] = [
     label: "รอออกใบส่งสินค้า",
     options: (ctx) =>
       readyPackingsForDeliveryCountOptions(ctx) as UseQueryOptions<
+        unknown,
+        Error,
+        number
+      >,
+  },
+  {
+    menuKey: "return-notes",
+    screenCode: "RETURN_NOTES",
+    kind: "approval",
+    label: "ใบคืนสินค้ารอคลังอนุมัติ",
+    options: (ctx) =>
+      pendingReturnNotesCountOptions(ctx) as UseQueryOptions<
         unknown,
         Error,
         number

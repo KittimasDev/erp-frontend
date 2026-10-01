@@ -1,0 +1,52 @@
+.body {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #344054;
+}
+
+.required {
+  color: #d92d20;
+}
+
+.hint {
+  font-size: 12px;
+  color: #667085;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.itemCode {
+  font-weight: 600;
+}
+
+.itemName {
+  font-size: 12px;
+  color: #667085;
+}
+
+.errors {
+  margin: 0;
+  padding-left: 18px;
+  color: #d92d20;
+  font-size: 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

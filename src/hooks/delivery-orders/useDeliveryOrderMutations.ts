@@ -14,6 +14,7 @@ import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   CreateDeliveryOrderFromPackingBody,
+  DeliverDeliveryOrderBody,
   UpdateDeliveryOrderBody,
 } from "@/types/delivery-orders";
 import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
@@ -81,13 +82,14 @@ export function useDeliverDeliveryOrderMutation() {
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (id: string) => deliverDeliveryOrder(getAccessToken(), id),
+    mutationFn: ({ id, body }: { id: string; body: DeliverDeliveryOrderBody }) =>
+      deliverDeliveryOrder(getAccessToken(), id, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "บันทึกส่งมอบสำเร็จ");
+      message.success(res.message || "บันทึกผลการส่งสำเร็จ");
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "ส่งมอบไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : "บันทึกผลการส่งไม่สำเร็จ"),
   });
 }
 

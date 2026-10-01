@@ -95,6 +95,8 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
     title: "สร้างใบส่งจากใบบรรจุ",
   },
   { href: "/delivery-orders", title: "ใบส่งสินค้า" },
+  { href: "/return-notes/create", title: "สร้างใบคืนสินค้า" },
+  { href: "/return-notes", title: "คืนสินค้า / ใบคืนสินค้า" },
   { href: "/sales-invoices/pending", title: "รอออกใบแจ้งหนี้" },
   { href: "/sales-invoices", title: "ใบแจ้งหนี้ขาย" },
   { href: "/sales-tracking", title: "ติดตามการขายและจัดส่ง" },
