@@ -26,6 +26,16 @@ export const PURCHASE_ORDER_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "ยกเลิก",
 };
 
+/** ใบที่อนุมัติแล้วแต่ยังไม่มีของเข้า (รวมกรณีมีรอบยกเลิกการรับปน) — ใบเก่าที่ไม่มี receiveStatus คงป้ายเดิม */
+export function purchaseOrderStatusLabel(
+  po: Pick<PurchaseOrder, "status" | "receiveStatus">,
+) {
+  if (po.status === "CONFIRMED" && po.receiveStatus === "NOT_RECEIVED") {
+    return "ยังไม่ได้รับสินค้า";
+  }
+  return PURCHASE_ORDER_STATUS_LABEL[po.status] ?? po.status;
+}
+
 /** รับของได้เฉพาะใบที่ยังเปิดรับ และยังมี Qty คงเหลือในรอบที่เปิด */
 export function isPoReceivableStatus(status: string) {
   return status === "CONFIRMED" || status === "PARTIALLY_RECEIVED";

@@ -38,7 +38,7 @@ import { RoleCode } from "@/lib/auth/role-codes";
 import type { PurchaseOrder } from "@/types/purchase-orders";
 import {
   listPurchaseRequests,
-  PURCHASE_ORDER_STATUS_LABEL,
+  purchaseOrderStatusLabel,
 } from "@/types/purchase-orders";
 import type {
   PurchaseRequest,
@@ -628,10 +628,8 @@ export default function PurchaseOrdersListPage() {
         dataIndex: "status",
         key: "status",
         width: 120,
-        render: (value: string) => (
-          <Tag color={statusColor(value)}>
-            {PURCHASE_ORDER_STATUS_LABEL[value] ?? value}
-          </Tag>
+        render: (value: string, row) => (
+          <Tag color={statusColor(value)}>{purchaseOrderStatusLabel(row)}</Tag>
         ),
       },
       {

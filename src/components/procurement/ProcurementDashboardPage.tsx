@@ -82,6 +82,7 @@ const MONTH_BAR_COLORS = [
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
   UNPAID: "รอจ่าย",
   PAID: "จ่ายแล้ว",
+  NOT_REQUIRED: "ไม่ต้องชำระ",
 };
 
 function formatMoney(value: string | number) {
@@ -125,7 +126,9 @@ function statusColor(status: string) {
 }
 
 function paymentStatusColor(status: string) {
-  return status === "PAID" ? "success" : "warning";
+  if (status === "PAID") return "success";
+  if (status === "NOT_REQUIRED") return "default";
+  return "warning";
 }
 
 function rangeForYear(year: number, today: Dayjs): [Dayjs, Dayjs] {
@@ -585,6 +588,7 @@ export default function ProcurementDashboardPage() {
                 options={[
                   { value: "UNPAID", label: "รอจ่าย" },
                   { value: "PAID", label: "จ่ายแล้ว" },
+                  { value: "NOT_REQUIRED", label: "ไม่ต้องชำระ" },
                 ]}
               />
             </div>

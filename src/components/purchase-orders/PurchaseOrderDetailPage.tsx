@@ -55,7 +55,7 @@ import {
   isPoPayableStatus,
   isPoReceivableStatus,
   listPurchaseRequests,
-  PURCHASE_ORDER_STATUS_LABEL,
+  purchaseOrderStatusLabel,
 } from "@/types/purchase-orders";
 import {
   calcDocumentTotals,
@@ -705,7 +705,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             <h2 className={styles.sideTitle}>{data.poNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {PURCHASE_ORDER_STATUS_LABEL[data.status] ?? data.status}
+            {purchaseOrderStatusLabel(data)}
           </div>
 
           <div className={styles.sideRows}>
