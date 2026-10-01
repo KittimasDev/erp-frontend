@@ -49,6 +49,10 @@ import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { usePoDeliverySchedulesQuery } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
 import PoDeliverySchedulesSection from "@/components/purchase-orders/PoDeliverySchedulesSection";
 import { isPoScheduleOpen } from "@/types/po-delivery-schedules";
+import {
+  isPoReceivableStatus,
+  PURCHASE_ORDER_STATUS_LABEL,
+} from "@/types/purchase-orders";
 import styles from "./GoodsReceiptFormPage.module.css";
 
 const EMPTY_GRS: never[] = [];
@@ -323,8 +327,7 @@ export default function GoodsReceiptCreateFromPoPage({
   const redirectToDraft =
     listsReady && !hasReceivableLines && Boolean(latestDraftGr?.id);
 
-  const receivable =
-    po?.status === "CONFIRMED" || po?.status === "PARTIALLY_RECEIVED";
+  const receivable = isPoReceivableStatus(po?.status ?? "");
 
   // meta ขึ้นกับ query หลายตัวที่โหลดเสร็จไม่พร้อมกัน — ถ้าไม่กันไว้
   // effect จะยิงซ้ำแล้วทับค่าที่ผู้ใช้กรอกไปแล้ว
@@ -434,7 +437,7 @@ export default function GoodsReceiptCreateFromPoPage({
           type="warning"
           showIcon
           title="ใบสั่งซื้อนี้ยังรับของไม่ได้"
-          description={`สถานะปัจจุบัน: ${po.status} — รับของได้เมื่อสถานะเป็น CONFIRMED หรือ PARTIALLY_RECEIVED`}
+          description={`สถานะปัจจุบัน: ${PURCHASE_ORDER_STATUS_LABEL[po.status] ?? po.status} — รับของได้เมื่อสถานะเป็นอนุมัติแล้วหรือรับของบางส่วน และยังมีจำนวนคงเหลือ`}
         />
         <div style={{ marginTop: 12 }}>
           <Link href={`/purchase-orders/${po.id}`}>กลับไปใบสั่งซื้อ</Link>

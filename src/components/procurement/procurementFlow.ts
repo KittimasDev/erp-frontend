@@ -57,7 +57,9 @@ function isPoStepDone(status?: string) {
   return (
     status === "CONFIRMED" ||
     status === "PARTIALLY_RECEIVED" ||
-    status === "COMPLETED"
+    status === "COMPLETED" ||
+    status === "CLOSED_PARTIAL" ||
+    status === "RECEIVE_CANCELLED"
   );
 }
 
@@ -66,7 +68,7 @@ function isGrStepDone(
   _goodsReceipts?: Array<{ status: string }>,
 ) {
   // รับครบแล้วเท่านั้นถึงจะไปขั้นจ่ายเงิน — partial ยังอยู่ขั้นรับของ
-  return poStatus === "COMPLETED";
+  return poStatus === "COMPLETED" || poStatus === "CLOSED_PARTIAL";
 }
 
 function isPayStepDone(
@@ -149,6 +151,9 @@ export function resolveProcurementFlow(
   } else if (isTerminalFail(po?.status)) {
     stepStates[1] = "error";
     current = 1;
+  } else if (po?.status === "RECEIVE_CANCELLED") {
+    stepStates[2] = "error";
+    current = 2;
   } else if (payment?.status === "CANCELLED" && !payDone) {
     stepStates[3] = "error";
     current = 3;
@@ -178,6 +183,14 @@ export function resolveProcurementFlow(
     badgeLabel = po?.status === "REJECTED" ? "ไม่อนุมัติ" : "ยกเลิก";
     badgeTone = "error";
     stepsStatus = "error";
+  } else if (po?.status === "RECEIVE_CANCELLED") {
+    nextHint = "ยกเลิกการรับทุกรอบแล้ว — ไม่มีของเข้าคลัง จึงไม่ต้องจ่ายเงิน";
+    summaryLabel = "ยกเลิกการรับ";
+    badgeLabel = "ยกเลิกการรับ";
+    badgeTone = "error";
+    stepsStatus = "error";
+    current = 2;
+    stepStates[2] = "error";
   } else if (current >= 4 || payDone) {
     nextHint = "สายงานจัดซื้อเสร็จครบแล้ว (ขอซื้อ → สั่งซื้อ → รับของ → จ่ายเงิน)";
     summaryLabel = "เสร็จครบ";
@@ -339,7 +352,13 @@ export function resolveListFlowBadge(source: ListFlowSource): {
       ) {
         return { label: "3/4 · รับของ", tone: "active" };
       }
-      if (source.status === "COMPLETED") {
+      if (source.status === "RECEIVE_CANCELLED") {
+        return { label: "ยกเลิกการรับ", tone: "error" };
+      }
+      if (
+        source.status === "COMPLETED" ||
+        source.status === "CLOSED_PARTIAL"
+      ) {
         if (source.paymentStatus === "PAID") {
           return { label: "เสร็จครบ", tone: "done" };
         }
@@ -351,8 +370,12 @@ export function resolveListFlowBadge(source: ListFlowSource): {
       if (source.status === "CANCELLED") {
         return { label: "ยกเลิก", tone: "error" };
       }
-      // ให้ตรงกับ resolveProcurementFlow: รับครบ (PO COMPLETED) = ขั้นจ่ายเงิน
-      if (source.status === "CONFIRMED" && source.poStatus === "COMPLETED") {
+      // ให้ตรงกับ resolveProcurementFlow: รับครบหรือปิดรับบางส่วน = ขั้นจ่ายเงิน
+      if (
+        source.status === "CONFIRMED" &&
+        (source.poStatus === "COMPLETED" ||
+          source.poStatus === "CLOSED_PARTIAL")
+      ) {
         if (source.paymentStatus === "PAID") {
           return { label: "เสร็จครบ", tone: "done" };
         }

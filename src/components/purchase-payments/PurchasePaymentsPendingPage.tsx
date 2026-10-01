@@ -217,7 +217,7 @@ export default function PurchasePaymentsPendingPage() {
           </div>
           <h1 className={styles.pageTitle}>PO รอจ่ายเงิน</h1>
           <p className={styles.pageSubtitle}>
-            ใบสั่งซื้อที่รับของครบแล้ว (COMPLETED) และมี GR ยืนยัน —
+            ใบสั่งซื้อที่รับของครบหรือปิดรับบางส่วน และมี GR ยืนยัน —
             จ่ายเต็มจำนวนเท่านั้น
           </p>
         </div>
@@ -344,7 +344,7 @@ export default function PurchasePaymentsPendingPage() {
             emptyText: (
               <div className={styles.emptyState}>
                 <strong>ไม่มี PO รอจ่ายเงิน</strong>
-                เมื่อรับของครบและ Confirm GR แล้ว รายการจะขึ้นที่นี่
+                เมื่อรับของครบหรือปิดรับบางส่วน และ Confirm GR แล้ว รายการจะขึ้นที่นี่
               </div>
             ),
           }}

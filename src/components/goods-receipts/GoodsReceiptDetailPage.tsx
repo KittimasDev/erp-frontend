@@ -27,6 +27,7 @@ import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrders
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import { formatQtyWithBase, pickUnitLabel } from "@/lib/units/format";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
+import { isPoPayableStatus } from "@/types/purchase-orders";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./GoodsReceiptDetailPage.module.css";
 
@@ -81,7 +82,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
   const linkedGrs = grByPoQuery.data?.data ?? [];
   const paymentByPoQuery = usePurchasePaymentByPoQuery(
     po &&
-      (po.status === "COMPLETED" ||
+      (isPoPayableStatus(po.status) ||
         po.status === "PARTIALLY_RECEIVED" ||
         po.paymentStatus === "PAID")
       ? poId
@@ -384,7 +385,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
             ) : null}
 
             {data.status === "CONFIRMED" &&
-            po?.status === "COMPLETED" &&
+            isPoPayableStatus(po?.status ?? "") &&
             isPaid &&
             linkedPayment ? (
               <Button
@@ -400,7 +401,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
 
             {data.status === "CONFIRMED" &&
             canPay &&
-            po?.status === "COMPLETED" &&
+            isPoPayableStatus(po?.status ?? "") &&
             !isPaid &&
             !linkedPayment &&
             poId ? (
@@ -418,7 +419,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
 
             {data.status === "CONFIRMED" &&
             canPay &&
-            po?.status === "COMPLETED" &&
+            isPoPayableStatus(po?.status ?? "") &&
             !isPaid &&
             linkedPayment?.status === "DRAFT" ? (
               <Button
@@ -434,7 +435,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
             ) : null}
 
             {data.status === "CONFIRMED" &&
-            po?.status === "COMPLETED" &&
+            isPoPayableStatus(po?.status ?? "") &&
             !isPaid &&
             !canPay &&
             poId ? (

@@ -37,7 +37,10 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useProcurementSummaryQuery } from "@/hooks/procurement-dashboard/useProcurementSummaryQuery";
 import { useProcurementTrackingQuery } from "@/hooks/procurement-dashboard/useProcurementTrackingQuery";
-import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
+import {
+  isPoPayableStatus,
+  PURCHASE_ORDER_STATUS_LABEL,
+} from "@/types/purchase-orders";
 import type {
   ProcurementTrackingRow,
 } from "@/types/procurement-dashboard";
@@ -55,6 +58,8 @@ const STATUS_BAR_COLOR: Record<string, string> = {
   CONFIRMED: GREEN,
   PARTIALLY_RECEIVED: "#F9BB0C",
   COMPLETED: GREEN_DARK,
+  CLOSED_PARTIAL: "#0ea5e9",
+  RECEIVE_CANCELLED: "#9ca3af",
   REJECTED: "#9ca3af",
   CANCELLED: "#6b7280",
 };
@@ -101,6 +106,7 @@ function statusColor(status: string) {
   switch (status) {
     case "CONFIRMED":
     case "COMPLETED":
+    case "CLOSED_PARTIAL":
       return "success";
     case "REVISING":
       return "orange";
@@ -109,6 +115,7 @@ function statusColor(status: string) {
       return "processing";
     case "PARTIALLY_RECEIVED":
       return "warning";
+    case "RECEIVE_CANCELLED":
     case "CANCELLED":
     case "REJECTED":
       return "default";
@@ -291,7 +298,7 @@ export default function ProcurementDashboardPage() {
         render: (_v, row) => {
           const payable =
             canPay &&
-            row.status === "COMPLETED" &&
+            isPoPayableStatus(row.status) &&
             row.paymentStatus !== "PAID";
           return (
             <div style={{ display: "inline-flex", gap: 6 }}>

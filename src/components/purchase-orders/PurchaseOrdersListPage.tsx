@@ -94,6 +94,7 @@ function statusColor(status: string) {
   switch (status) {
     case "CONFIRMED":
     case "COMPLETED":
+    case "CLOSED_PARTIAL":
       return "success";
     case "PENDING_APPROVAL":
       return "gold";
@@ -104,6 +105,7 @@ function statusColor(status: string) {
     case "PARTIALLY_RECEIVED":
       return "processing";
     case "REJECTED":
+    case "RECEIVE_CANCELLED":
       return "error";
     case "CANCELLED":
       return "default";
@@ -853,6 +855,8 @@ export default function PurchaseOrdersListPage() {
                 { value: "CONFIRMED", label: "อนุมัติแล้ว · รอส่งสินค้า" },
                 { value: "PARTIALLY_RECEIVED", label: "รับของบางส่วน" },
                 { value: "COMPLETED", label: "รับครบแล้ว" },
+                { value: "CLOSED_PARTIAL", label: "ปิดรับบางส่วน" },
+                { value: "RECEIVE_CANCELLED", label: "ยกเลิกการรับ" },
                 { value: "REJECTED", label: "ไม่อนุมัติ" },
                 { value: "CANCELLED", label: "ยกเลิก" },
               ]}

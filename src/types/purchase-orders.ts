@@ -6,6 +6,8 @@ export type PurchaseOrderStatus =
   | "REJECTED"
   | "PARTIALLY_RECEIVED"
   | "COMPLETED"
+  | "CLOSED_PARTIAL"
+  | "RECEIVE_CANCELLED"
   | "CANCELLED"
   | string;
 
@@ -19,8 +21,20 @@ export const PURCHASE_ORDER_STATUS_LABEL: Record<string, string> = {
   REJECTED: "ไม่อนุมัติ",
   PARTIALLY_RECEIVED: "รับของบางส่วน",
   COMPLETED: "รับครบแล้ว",
+  CLOSED_PARTIAL: "ปิดรับบางส่วน",
+  RECEIVE_CANCELLED: "ยกเลิกการรับ",
   CANCELLED: "ยกเลิก",
 };
+
+/** รับของได้เฉพาะใบที่ยังเปิดรับ และยังมี Qty คงเหลือในรอบที่เปิด */
+export function isPoReceivableStatus(status: string) {
+  return status === "CONFIRMED" || status === "PARTIALLY_RECEIVED";
+}
+
+/** จ่ายเงินได้เมื่อรับครบ หรือปิดรับบางส่วน — ไม่รวมยกเลิกการรับ */
+export function isPoPayableStatus(status: string) {
+  return status === "COMPLETED" || status === "CLOSED_PARTIAL";
+}
 
 export type PurchaseOrderCreditorSummary = {
   id: string;

@@ -46,9 +46,14 @@ import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
 import { getPoDeliverySchedules } from "@/lib/api/po-delivery-schedules";
 import { usePoDeliverySchedulesQuery } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
-import type { PoDeliverySchedule } from "@/types/po-delivery-schedules";
+import {
+  isPoScheduleOpen,
+  type PoDeliverySchedule,
+} from "@/types/po-delivery-schedules";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import {
+  isPoPayableStatus,
+  isPoReceivableStatus,
   listPurchaseRequests,
   PURCHASE_ORDER_STATUS_LABEL,
 } from "@/types/purchase-orders";
@@ -135,17 +140,26 @@ function statusClass(status: string) {
   switch (status) {
     case "CONFIRMED":
     case "COMPLETED":
-      return styles.statusApproved;
+    case "CLOSED_PARTIAL":
     case "PARTIALLY_RECEIVED":
       return styles.statusApproved;
     case "REVISING":
       return styles.statusRevision;
     case "CANCELLED":
+    case "RECEIVE_CANCELLED":
     case "REJECTED":
       return styles.statusCancelled;
     default:
       return styles.statusDraft;
   }
+}
+
+function hasOpenReceivableQty(schedules: PoDeliverySchedule[]) {
+  return schedules.some(
+    (schedule) =>
+      isPoScheduleOpen(schedule.status) &&
+      schedule.items.some((item) => Number(item.remainingQuantity) > 0.0005),
+  );
 }
 
 function isImageMime(mimeType?: string) {
@@ -228,6 +242,13 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   const linkedPayment = paymentByPoQuery.data?.data ?? null;
   const isPaid =
     data?.paymentStatus === "PAID" || linkedPayment?.status === "PAID";
+  const schedules = schedulesQuery.data?.data ?? [];
+  const canShowReceive =
+    canReceive &&
+    isPoReceivableStatus(data?.status ?? "") &&
+    (schedulesQuery.isLoading || hasOpenReceivableQty(schedules));
+  const canShowPay =
+    canPay && isPoPayableStatus(data?.status ?? "") && !isPaid && !linkedPayment;
 
   const closePreview = () => {
     setPreviewOpen(false);
@@ -845,9 +866,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </p>
             ) : null}
 
-            {canReceive &&
-            (data.status === "CONFIRMED" ||
-              data.status === "PARTIALLY_RECEIVED") ? (
+            {canShowReceive ? (
               linkedGrs.some((gr) => gr.status === "DRAFT") ? (
                 <Button
                   className={styles.primaryBtn}
@@ -895,10 +914,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               </Button>
             ) : null}
 
-            {canPay &&
-            data.status === "COMPLETED" &&
-            !isPaid &&
-            !linkedPayment ? (
+            {canShowPay ? (
               <Button
                 className={styles.primaryBtn}
                 type="primary"
