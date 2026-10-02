@@ -8,11 +8,7 @@
  * ผู้ใช้ล่วงหน้าก่อนกด ไม่ใช่ให้ไปเห็นยอดเปลี่ยนเองทีหลัง
  */
 export type DeliveryScheduleStatus =
-  | "PLANNED"
-  | "ISSUED"
-  | "PACKED"
-  | "DELIVERED"
-  | "CANCELLED";
+  "PLANNED" | "ISSUED" | "PACKED" | "DELIVERED" | "CANCELLED";
 
 export const DELIVERY_SCHEDULE_STATUS_LABEL: Record<
   DeliveryScheduleStatus,
@@ -71,7 +67,32 @@ export type DeliveryScheduleItem = {
   packedQuantity: string;
   deliveredQuantity: string;
   remainingQuantity: string;
+  /** ลูกค้าตีกลับในรอบนี้เท่าไร (ประวัติ) — ถูกหักออกจาก `quantity` แล้ว */
+  returnedQuantity?: string;
+  /** จำนวนเดิมของรอบ = quantity + returnedQuantity · ใช้แสดงผลเท่านั้น ห้ามใช้วางแผนจำนวน */
+  originalQuantity?: string;
   sortOrder: number;
+};
+
+export type DeliveryScheduleReturnResult = "FULL_RETURN" | "PARTIAL_RETURN";
+
+export const DELIVERY_SCHEDULE_RETURN_LABEL: Record<
+  DeliveryScheduleReturnResult,
+  string
+> = {
+  FULL_RETURN: "ถูกตีกลับทั้งหมด",
+  PARTIAL_RETURN: "ถูกตีกลับบางส่วน",
+};
+
+/** ผลการตีกลับของรอบ — มาจากใบส่งสินค้าของรอบนั้น */
+export type DeliveryScheduleReturnInfo = {
+  deliveryOrderId: string;
+  deliveryOrderNo: string;
+  result: DeliveryScheduleReturnResult | string;
+  returnReason?: string;
+  /** ไม่มีค่าคือไม่ส่งใหม่ (ลดจำนวนสั่ง) */
+  redeliveryScheduleId?: string;
+  redeliveryRoundNo?: number;
 };
 
 export type DeliverySchedule = {
@@ -94,6 +115,8 @@ export type DeliverySchedule = {
   lastRescheduledAt?: string;
   lastRescheduleReason?: string;
   sourceDeliveryOrderId?: string;
+  /** มีค่าเมื่อรอบนี้ถูกลูกค้าตีกลับ — หัวรอบต้องขึ้นป้ายสีแดง */
+  deliveryReturn?: DeliveryScheduleReturnInfo;
   /** เลขรุ่นกันบันทึกทับกันของรอบนี้ — แยกจากของใบสั่งขาย */
   editVersion: number;
   items: DeliveryScheduleItem[];

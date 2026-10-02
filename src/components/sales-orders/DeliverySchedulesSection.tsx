@@ -40,11 +40,13 @@ import {
 } from "@/lib/api/conflict";
 import { ApiError } from "@/lib/api/client";
 import {
+  DELIVERY_SCHEDULE_RETURN_LABEL,
   DELIVERY_SCHEDULE_STATUS_COLOR,
   DELIVERY_SCHEDULE_STATUS_LABEL,
   isDeliveryScheduleEditable,
   isDeliveryScheduleReschedulable,
   type DeliverySchedule,
+  type DeliveryScheduleReturnResult,
   type DeliveryScheduleStatus,
   type UpsertDeliveryScheduleItemBody,
 } from "@/types/delivery-schedules";
@@ -534,169 +536,245 @@ export default function DeliverySchedulesSection({
         ) : schedules.length === 0 ? (
           <Empty description="ยังไม่มีรอบจัดส่ง" />
         ) : (
-          schedules.map((schedule) => (
-            <div
-              key={schedule.id}
-              style={{
-                border: "1px solid var(--erp-border, #e5e7eb)",
-                borderRadius: 8,
-                padding: 12,
-                opacity: schedule.status === "CANCELLED" ? 0.6 : 1,
-              }}
-            >
+          schedules.map((schedule) => {
+            const deliveryReturn = schedule.deliveryReturn;
+            const hasReturn =
+              !!deliveryReturn ||
+              (schedule.items ?? []).some(
+                (line) => toNum(line.returnedQuantity) > EPS,
+              );
+            return (
               <div
+                key={schedule.id}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  flexWrap: "wrap",
+                  border: hasReturn
+                    ? "1px solid #ffa39e"
+                    : "1px solid var(--erp-border, #e5e7eb)",
+                  borderLeft: hasReturn ? "4px solid #cf1322" : undefined,
+                  borderRadius: 8,
+                  padding: 12,
+                  opacity: schedule.status === "CANCELLED" ? 0.6 : 1,
                 }}
               >
-                <strong>รอบ {schedule.roundNo}</strong>
-                <span>
-                  ส่งวันที่ {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
-                </span>
-                {statusTag(schedule.status)}
-                {schedule.sourceDeliveryOrderId ? (
-                  <Link href={`/delivery-orders/${schedule.sourceDeliveryOrderId}`}>
-                    <Tag color="volcano">ส่งชดเชยของที่ตีกลับ</Tag>
-                  </Link>
-                ) : null}
-                {(schedule.rescheduledCount ?? 0) > 0 ? (
-                  <Tooltip
-                    title={
-                      <span>
-                        เดิม{" "}
-                        {schedule.originalDeliveryDate
-                          ? dayjs(schedule.originalDeliveryDate).format(
-                              "DD/MM/YYYY",
-                            )
-                          : "—"}{" "}
-                        → ปัจจุบัน{" "}
-                        {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
-                        {schedule.lastRescheduleReason
-                          ? ` · เหตุผลล่าสุด: ${schedule.lastRescheduleReason}`
-                          : ""}
-                      </span>
-                    }
-                  >
-                    <Tag color="warning" icon={<HistoryOutlined />}>
-                      เลื่อนกำหนดส่งแล้ว {schedule.rescheduledCount} ครั้ง
-                    </Tag>
-                  </Tooltip>
-                ) : null}
-                <span style={{ flex: 1 }} />
-                {canEdit ? (
-                  <Space>
-                    {/* เลื่อนวันทำได้กว้างกว่าแก้รอบ — วันเปลี่ยนแต่ของยังอยู่ครบ
-                        โชว์หลังยืนยัน SO เท่านั้น ก่อนนั้นแก้วันผ่านปุ่มแก้ไข */}
-                    {!isPreConfirmSalesOrderStatus(salesOrderStatus) &&
-                    isDeliveryScheduleReschedulable(schedule.status) ? (
-                      <Button
-                        size="small"
-                        icon={<CalendarOutlined />}
-                        disabled={busy}
-                        onClick={() => openReschedule(schedule)}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <strong>รอบ {schedule.roundNo}</strong>
+                  <span>
+                    ส่งวันที่{" "}
+                    {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
+                  </span>
+                  {statusTag(schedule.status)}
+                  {schedule.sourceDeliveryOrderId ? (
+                    <Link
+                      href={`/delivery-orders/${schedule.sourceDeliveryOrderId}`}
+                    >
+                      <Tag color="volcano">ส่งชดเชยของที่ตีกลับ</Tag>
+                    </Link>
+                  ) : null}
+                  {deliveryReturn ? (
+                    <>
+                      <Tooltip
+                        title={
+                          <span>
+                            ใบส่งสินค้า {deliveryReturn.deliveryOrderNo}
+                            {deliveryReturn.returnReason
+                              ? ` · เหตุผล: ${deliveryReturn.returnReason}`
+                              : ""}
+                          </span>
+                        }
                       >
-                        เลื่อนกำหนดส่ง
-                      </Button>
-                    ) : null}
-                    {isDeliveryScheduleEditable(schedule.status) ? (
-                      <>
-                        {isPreConfirmSalesOrderStatus(salesOrderStatus) ? (
-                          <Button
-                            size="small"
-                            icon={<EditOutlined />}
-                            disabled={busy}
-                            onClick={() => openEdit(schedule)}
-                          >
-                            แก้ไข
-                          </Button>
-                        ) : null}
+                        <Link
+                          href={`/delivery-orders/${deliveryReturn.deliveryOrderId}`}
+                        >
+                          <Tag color="red">
+                            {DELIVERY_SCHEDULE_RETURN_LABEL[
+                              deliveryReturn.result as DeliveryScheduleReturnResult
+                            ] ?? "ถูกตีกลับ"}
+                          </Tag>
+                        </Link>
+                      </Tooltip>
+                      {deliveryReturn.redeliveryRoundNo ? (
+                        <span style={{ color: "#cf1322" }}>
+                          ส่งใหม่ในรอบ {deliveryReturn.redeliveryRoundNo}
+                        </span>
+                      ) : (
+                        <span style={{ color: "#cf1322" }}>
+                          ไม่ส่งใหม่
+                        </span>
+                      )}
+                    </>
+                  ) : hasReturn ? (
+                    <Tag color="red">ถูกตีกลับ</Tag>
+                  ) : null}
+                  {(schedule.rescheduledCount ?? 0) > 0 ? (
+                    <Tooltip
+                      title={
+                        <span>
+                          เดิม{" "}
+                          {schedule.originalDeliveryDate
+                            ? dayjs(schedule.originalDeliveryDate).format(
+                                "DD/MM/YYYY",
+                              )
+                            : "—"}{" "}
+                          → ปัจจุบัน{" "}
+                          {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
+                          {schedule.lastRescheduleReason
+                            ? ` · เหตุผลล่าสุด: ${schedule.lastRescheduleReason}`
+                            : ""}
+                        </span>
+                      }
+                    >
+                      <Tag color="warning" icon={<HistoryOutlined />}>
+                        เลื่อนกำหนดส่งแล้ว {schedule.rescheduledCount} ครั้ง
+                      </Tag>
+                    </Tooltip>
+                  ) : null}
+                  <span style={{ flex: 1 }} />
+                  {canEdit ? (
+                    <Space>
+                      {/* เลื่อนวันทำได้กว้างกว่าแก้รอบ — วันเปลี่ยนแต่ของยังอยู่ครบ
+                        โชว์หลังยืนยัน SO เท่านั้น ก่อนนั้นแก้วันผ่านปุ่มแก้ไข */}
+                      {!isPreConfirmSalesOrderStatus(salesOrderStatus) &&
+                      isDeliveryScheduleReschedulable(schedule.status) ? (
                         <Button
                           size="small"
-                          danger
-                          icon={<DeleteOutlined />}
+                          icon={<CalendarOutlined />}
                           disabled={busy}
-                          onClick={() => openCancel(schedule)}
+                          onClick={() => openReschedule(schedule)}
                         >
-                          ยกเลิกรอบ
+                          เลื่อนกำหนดส่ง
                         </Button>
-                      </>
-                    ) : null}
-                  </Space>
+                      ) : null}
+                      {isDeliveryScheduleEditable(schedule.status) ? (
+                        <>
+                          {isPreConfirmSalesOrderStatus(salesOrderStatus) ? (
+                            <Button
+                              size="small"
+                              icon={<EditOutlined />}
+                              disabled={busy}
+                              onClick={() => openEdit(schedule)}
+                            >
+                              แก้ไข
+                            </Button>
+                          ) : null}
+                          <Button
+                            size="small"
+                            danger
+                            icon={<DeleteOutlined />}
+                            disabled={busy}
+                            onClick={() => openCancel(schedule)}
+                          >
+                            ยกเลิกรอบ
+                          </Button>
+                        </>
+                      ) : null}
+                    </Space>
+                  ) : null}
+                </div>
+
+                {schedule.remark ? (
+                  <p style={{ margin: "8px 0 0", color: "#6b7280" }}>
+                    {schedule.remark}
+                  </p>
                 ) : null}
+                {schedule.cancelledReason ? (
+                  <p style={{ margin: "8px 0 0", color: "#cf1322" }}>
+                    เหตุผลที่ยกเลิก: {schedule.cancelledReason}
+                  </p>
+                ) : null}
+
+                <Table
+                  rowKey="id"
+                  size="small"
+                  pagination={false}
+                  style={{ marginTop: 12 }}
+                  dataSource={schedule.items ?? []}
+                  columns={[
+                    {
+                      title: "สินค้า",
+                      key: "item",
+                      render: (_v, line) =>
+                        line.itemCode
+                          ? `${line.itemCode} — ${line.itemNameTh ?? ""}`
+                          : (line.itemNameTh ?? "—"),
+                    },
+                    {
+                      title: "สั่ง",
+                      key: "quantity",
+                      align: "right",
+                      width: 100,
+                      // รอบที่ถูกตีกลับแสดงจำนวนเดิมของรอบ — quantity จริงถูกหักไปแล้ว
+                      render: (_v, line) =>
+                        `${line.originalQuantity ?? line.quantity} ${line.unitCode ?? ""}`,
+                    },
+                    {
+                      title: "จองแล้ว",
+                      dataIndex: "reservedQuantity",
+                      align: "right",
+                      width: 100,
+                    },
+                    {
+                      title: "จ่ายแล้ว",
+                      dataIndex: "issuedQuantity",
+                      align: "right",
+                      width: 100,
+                    },
+                    {
+                      title: "บรรจุแล้ว",
+                      dataIndex: "packedQuantity",
+                      align: "right",
+                      width: 100,
+                    },
+                    {
+                      title: "ส่งแล้ว",
+                      dataIndex: "deliveredQuantity",
+                      align: "right",
+                      width: 100,
+                    },
+                    {
+                      title: "ตีกลับ",
+                      dataIndex: "returnedQuantity",
+                      align: "right",
+                      width: 100,
+                      hidden: !hasReturn,
+                      render: (v: string | undefined) =>
+                        toNum(v) > EPS ? (
+                          <strong style={{ color: "#cf1322" }}>{v}</strong>
+                        ) : (
+                          "—"
+                        ),
+                    },
+                    {
+                      title: "คงเหลือ",
+                      dataIndex: "remainingQuantity",
+                      align: "right",
+                      width: 120,
+                      render: (v: string, line) => {
+                        if (Number(v) > 0) return <strong>{v}</strong>;
+                        if (toNum(line.returnedQuantity) <= EPS) return "—";
+                        return (
+                          <span>
+                            —{" "}
+                            <span style={{ color: "#cf1322", fontSize: 12 }}>
+                              {deliveryReturn?.redeliveryRoundNo
+                                ? `ย้ายไปรอบ ${deliveryReturn.redeliveryRoundNo}`
+                                : ""}
+                            </span>
+                          </span>
+                        );
+                      },
+                    },
+                  ]}
+                />
               </div>
-
-              {schedule.remark ? (
-                <p style={{ margin: "8px 0 0", color: "#6b7280" }}>
-                  {schedule.remark}
-                </p>
-              ) : null}
-              {schedule.cancelledReason ? (
-                <p style={{ margin: "8px 0 0", color: "#cf1322" }}>
-                  เหตุผลที่ยกเลิก: {schedule.cancelledReason}
-                </p>
-              ) : null}
-
-              <Table
-                rowKey="id"
-                size="small"
-                pagination={false}
-                style={{ marginTop: 12 }}
-                dataSource={schedule.items ?? []}
-                columns={[
-                  {
-                    title: "สินค้า",
-                    key: "item",
-                    render: (_v, line) =>
-                      line.itemCode
-                        ? `${line.itemCode} — ${line.itemNameTh ?? ""}`
-                        : (line.itemNameTh ?? "—"),
-                  },
-                  {
-                    title: "สั่ง",
-                    dataIndex: "quantity",
-                    align: "right",
-                    width: 100,
-                    render: (v: string, line) => `${v} ${line.unitCode ?? ""}`,
-                  },
-                  {
-                    title: "จองแล้ว",
-                    dataIndex: "reservedQuantity",
-                    align: "right",
-                    width: 100,
-                  },
-                  {
-                    title: "จ่ายแล้ว",
-                    dataIndex: "issuedQuantity",
-                    align: "right",
-                    width: 100,
-                  },
-                  {
-                    title: "บรรจุแล้ว",
-                    dataIndex: "packedQuantity",
-                    align: "right",
-                    width: 100,
-                  },
-                  {
-                    title: "ส่งแล้ว",
-                    dataIndex: "deliveredQuantity",
-                    align: "right",
-                    width: 100,
-                  },
-                  {
-                    title: "คงเหลือ",
-                    dataIndex: "remainingQuantity",
-                    align: "right",
-                    width: 100,
-                    render: (v: string) =>
-                      Number(v) > 0 ? <strong>{v}</strong> : "—",
-                  },
-                ]}
-              />
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -898,7 +976,9 @@ export default function DeliverySchedulesSection({
           }
           description={
             <ul style={{ margin: 0, paddingLeft: 18 }}>
-              <li>ของที่จองไว้ให้รอบนี้คืนเป็นสต๊อกกลาง ให้ใบอื่นใช้ได้ทันที</li>
+              <li>
+                ของที่จองไว้ให้รอบนี้คืนเป็นสต๊อกกลาง ให้ใบอื่นใช้ได้ทันที
+              </li>
               <li>
                 ใบขอผลิตของรอบนี้ที่ <strong>ยังไม่เริ่มผลิต</strong>{" "}
                 จะถูกยกเลิกอัตโนมัติ · ใบที่เริ่มผลิตแล้วไม่ถูกยกเลิก
