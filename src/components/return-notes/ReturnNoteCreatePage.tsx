@@ -51,7 +51,17 @@ export default function ReturnNoteCreatePage() {
   const [submitted, setSubmitted] = useState(false);
 
   const prefilled = Boolean(fromDeliveryOrderId);
-  const pickingId = prefilled ? fromDeliveryOrder?.pickingId : pickedPickingId;
+  // ใบส่งที่รวมหลายใบบรรจุ = หลายใบจ่าย · ใบคืนผูกกับใบจ่ายทีละใบ ต้องให้เลือก
+  const [prefilledPickingId, setPrefilledPickingId] = useState<string>();
+  const doPickings = (fromDeliveryOrder?.packings ?? []).filter(
+    (ref, index, all) =>
+      all.findIndex((other) => other.pickingId === ref.pickingId) === index,
+  );
+  const multiPicking = doPickings.length > 1;
+  const pickingId = prefilled
+    ? (prefilledPickingId ??
+      (multiPicking ? undefined : fromDeliveryOrder?.pickingId))
+    : pickedPickingId;
   const deliveryOrderId = prefilled ? fromDeliveryOrderId : pickedDeliveryOrderId;
 
   const salesOrdersQuery = useReturnSourceSalesOrdersQuery(soKeyword, !prefilled);
@@ -227,6 +237,30 @@ export default function ReturnNoteCreatePage() {
                 <Spin />
               ) : !fromDeliveryOrder ? (
                 <Alert type="error" showIcon title="ไม่พบใบส่งสินค้าที่อ้างอิง" />
+              ) : multiPicking ? (
+                <div className={styles.metaGrid}>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>
+                      ใบจ่ายสินค้า (ใบส่ง {fromDeliveryOrder.deliveryOrderNo} รวม{" "}
+                      {doPickings.length} ใบจ่าย)
+                    </span>
+                    <Select
+                      style={{ width: "100%" }}
+                      placeholder="เลือกใบจ่ายสินค้าที่จะคืน"
+                      value={pickingId}
+                      onChange={(value: string) => {
+                        setPrefilledPickingId(value);
+                        resetLines();
+                      }}
+                      options={doPickings.map((ref) => ({
+                        value: ref.pickingId,
+                        label: `${ref.pickingNo ?? ref.pickingId}${
+                          ref.packingNo ? ` · ${ref.packingNo}` : ""
+                        }${ref.roundNo ? ` · รอบที่ ${ref.roundNo}` : ""}`,
+                      }))}
+                    />
+                  </div>
+                </div>
               ) : null
             ) : (
               <div className={styles.metaGrid}>

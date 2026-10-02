@@ -1,7 +1,14 @@
 "use client";
 
+import { Suspense } from "react";
+import { Spin } from "antd";
+
 import CreateDeliverySelectPackingPage from "@/components/delivery-orders/CreateDeliverySelectPackingPage";
 
 export default function Page() {
-  return <CreateDeliverySelectPackingPage />;
+  return (
+    <Suspense fallback={<Spin />}>
+      <CreateDeliverySelectPackingPage />
+    </Suspense>
+  );
 }

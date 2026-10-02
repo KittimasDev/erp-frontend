@@ -7,6 +7,7 @@ import {
   cancelDeliveryOrder,
   confirmDeliveryOrder,
   createDeliveryOrderFromPacking,
+  createDeliveryOrderFromPackings,
   deliverDeliveryOrder,
   updateDeliveryOrder,
 } from "@/lib/api/delivery-orders";
@@ -14,6 +15,7 @@ import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   CreateDeliveryOrderFromPackingBody,
+  CreateDeliveryOrderFromPackingsBody,
   DeliverDeliveryOrderBody,
   UpdateDeliveryOrderBody,
 } from "@/types/delivery-orders";
@@ -47,6 +49,27 @@ export function useCreateDeliveryOrderFromPackingMutation() {
     },
     onError: (e: Error) =>
       message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ"),
+  });
+}
+
+/** รวมหลายใบบรรจุ (SO เดียวกัน) เป็นใบส่งเดียว — 409 = มีคนใช้ใบบรรจุไปแล้ว ให้โหลดรายการใหม่ */
+export function useCreateDeliveryOrderFromPackingsMutation() {
+  const { message } = App.useApp();
+  const qc = useQueryClient();
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (body: CreateDeliveryOrderFromPackingsBody) =>
+      createDeliveryOrderFromPackings(getAccessToken(), body),
+    onSuccess: async (res) => {
+      await invalidate();
+      message.success(res.message || "สร้างใบส่งแล้ว");
+    },
+    onError: async (e: Error) => {
+      message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ");
+      if (e instanceof ApiError && e.status === 409) {
+        await qc.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
+      }
+    },
   });
 }
 

@@ -7,10 +7,15 @@ import { Button, Result, Spin } from "antd";
 
 import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreateDeliveryOrderFromPackingMutation } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
+import { useReadyPackingsForDeliveryQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { ApiError } from "@/lib/api/client";
 import { canCreateDeliveryFromPacking } from "@/lib/sales/sales-fulfillment-nav";
 
+/**
+ * ใบบรรจุพร้อมส่ง → ไปหน้าเลือกใบบรรจุ (เลือกไว้ให้แล้ว รวมใบอื่นของ SO เดียวกันได้)
+ * ไม่อยู่ในรายการพร้อมส่ง → backend คืนใบส่งที่ใช้ใบบรรจุนี้อยู่ หรือแจ้งเหตุผลที่สร้างไม่ได้
+ */
 export default function Page({
   params,
 }: {
@@ -18,6 +23,7 @@ export default function Page({
 }) {
   const { packingId } = use(params);
   const router = useRouter();
+  const readyQuery = useReadyPackingsForDeliveryQuery();
   const createMutation = useCreateDeliveryOrderFromPackingMutation();
   const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
@@ -28,8 +34,20 @@ export default function Page({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
 
+  const readyLoaded = readyQuery.isSuccess;
+  const isReady = (readyQuery.data?.data ?? []).some(
+    (row) => row.id === packingId,
+  );
+
   useEffect(() => {
-    if (!canCreate) return;
+    if (!canCreate || !readyLoaded) return;
+
+    if (isReady) {
+      router.replace(
+        `/delivery-orders/create-from-packing?packingId=${encodeURIComponent(packingId)}`,
+      );
+      return;
+    }
 
     let cancelled = false;
     (async () => {
@@ -60,7 +78,7 @@ export default function Page({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [packingId, canCreate]);
+  }, [packingId, canCreate, readyLoaded, isReady]);
 
   if (!canCreate || forbidden) {
     return (
@@ -68,12 +86,17 @@ export default function Page({
     );
   }
 
-  if (errorMessage) {
+  if (errorMessage || readyQuery.isError) {
     return (
       <Result
         status="error"
         title="สร้างใบส่งสินค้าไม่สำเร็จ"
-        subTitle={errorMessage}
+        subTitle={
+          errorMessage ??
+          (readyQuery.error instanceof Error
+            ? readyQuery.error.message
+            : "โหลดรายการใบบรรจุไม่สำเร็จ")
+        }
         extra={
           <Link href={`/packings/${packingId}`}>
             <Button type="primary">กลับใบบรรจุ</Button>

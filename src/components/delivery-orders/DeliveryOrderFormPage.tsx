@@ -39,7 +39,11 @@ import {
 } from "@/hooks/delivery-orders/useDeliveryOrderMutations";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import type { DeliveryOrderItem, DeliveryResult } from "@/types/delivery-orders";
+import type {
+  DeliveryOrderItem,
+  DeliveryOrderPackingRef,
+  DeliveryResult,
+} from "@/types/delivery-orders";
 import {
   DELIVERY_ORDER_STATUS_LABEL,
   DELIVERY_RESULT_COLOR,
@@ -125,6 +129,27 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       data.status as keyof typeof DELIVERY_ORDER_STATUS_LABEL
     ] ?? data.status;
 
+  const packingRefs: DeliveryOrderPackingRef[] = data.packings?.length
+    ? data.packings
+    : data.packingId
+      ? [
+          {
+            packingId: data.packingId,
+            packingNo: data.packingNo,
+            pickingId: data.pickingId,
+            pickingNo: data.pickingNo,
+          },
+        ]
+      : [];
+  const pickingRefs = packingRefs.filter(
+    (ref, index, all) =>
+      Boolean(ref.pickingId) &&
+      all.findIndex((other) => other.pickingId === ref.pickingId) === index,
+  );
+  const roundSuffix = (roundNo?: number) => (roundNo ? ` · รอบ ${roundNo}` : "");
+  const packingNosText =
+    packingRefs.map((ref) => ref.packingNo ?? ref.packingId).join(", ") || "—";
+
   const save = async () => {
     await updateMutation.mutateAsync({
       id,
@@ -143,6 +168,26 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   };
 
   const columns: ColumnsType<DeliveryOrderItem> = [
+    {
+      title: "ใบบรรจุ",
+      key: "packing",
+      width: 150,
+      render: (_v, item) => {
+        const packingId = item.packingId ?? data.packingId;
+        const packingNo = item.packingId ? item.packingNo : data.packingNo;
+        return packingId ? (
+          <Link href={`/packings/${packingId}`}>{packingNo ?? "—"}</Link>
+        ) : (
+          "—"
+        );
+      },
+    },
+    {
+      title: "รอบ",
+      dataIndex: "roundNo",
+      width: 80,
+      render: (v?: number) => (v ? `รอบที่ ${v}` : "—"),
+    },
     {
       title: "สินค้า",
       key: "item",
@@ -185,7 +230,9 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     returnNoteActions.canAdd;
 
   if (isReturnResult) {
-    columns.splice(2, 0,
+    const afterDeliveredQty =
+      columns.findIndex((col) => "dataIndex" in col && col.dataIndex === "deliveredQty") + 1;
+    columns.splice(afterDeliveredQty, 0,
       {
         title: "รับจริง",
         dataIndex: "acceptedQty",
@@ -241,24 +288,27 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
             ) : null}
-            {data.packingId ? (
+            {packingRefs.map((ref) => (
               <Link
-                href={`/packings/${data.packingId}`}
+                key={`packing-${ref.packingId}`}
+                href={`/packings/${ref.packingId}`}
                 className={styles.docLink}
               >
-                Packing {data.packingNo ?? data.packingId}
+                Packing {ref.packingNo ?? ref.packingId}
+                {packingRefs.length > 1 ? roundSuffix(ref.roundNo) : ""}
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
-            ) : null}
-            {data.pickingId ? (
+            ))}
+            {pickingRefs.map((ref) => (
               <Link
-                href={`/pickings/${data.pickingId}`}
+                key={`picking-${ref.pickingId}`}
+                href={`/pickings/${ref.pickingId}`}
                 className={styles.docLink}
               >
-                ใบจ่าย {data.pickingNo ?? data.pickingId}
+                ใบจ่าย {ref.pickingNo ?? ref.pickingId}
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
-            ) : null}
+            ))}
             {data.sourceDeliveryOrderId ? (
               <Link
                 href={`/delivery-orders/${data.sourceDeliveryOrderId}`}
@@ -303,7 +353,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 deliveryOrderNo: data.deliveryOrderNo,
                 deliveryDate: dayjs(data.deliveryDate).format("DD/MM/YYYY"),
                 salesOrderNo: data.salesOrderNo ?? "—",
-                packingNo: data.packingNo ?? "—",
+                packingNo: packingNosText,
                 customerName: data.customerName ?? "—",
                 shippingAddress: data.shippingAddress ?? "—",
                 contactName: data.contactName ?? "—",
@@ -556,9 +606,10 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               </div>
             </Link>
           ) : null}
-          {data.pickingId ? (
+          {pickingRefs.map((ref) => (
             <Link
-              href={`/pickings/${data.pickingId}`}
+              key={`picking-${ref.pickingId}`}
+              href={`/pickings/${ref.pickingId}`}
               className={styles.relatedLink}
             >
               <div className={styles.relatedIcon}>
@@ -567,15 +618,17 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               <div className={styles.relatedBody}>
                 <p className={styles.relatedLabel}>ใบจ่ายสินค้า</p>
                 <p className={styles.relatedValue}>
-                  {data.pickingNo ?? data.pickingId}
+                  {ref.pickingNo ?? ref.pickingId}
+                  {pickingRefs.length > 1 ? roundSuffix(ref.roundNo) : ""}
                 </p>
                 <p className={styles.relatedHint}>คลิกเพื่อเปิดรายละเอียดใบจ่าย</p>
               </div>
             </Link>
-          ) : null}
-          {data.packingId ? (
+          ))}
+          {packingRefs.map((ref) => (
             <Link
-              href={`/packings/${data.packingId}`}
+              key={`packing-${ref.packingId}`}
+              href={`/packings/${ref.packingId}`}
               className={styles.relatedLink}
             >
               <div className={styles.relatedIcon}>
@@ -584,12 +637,13 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               <div className={styles.relatedBody}>
                 <p className={styles.relatedLabel}>ใบบรรจุสินค้า</p>
                 <p className={styles.relatedValue}>
-                  {data.packingNo ?? data.packingId}
+                  {ref.packingNo ?? ref.packingId}
+                  {packingRefs.length > 1 ? roundSuffix(ref.roundNo) : ""}
                 </p>
                 <p className={styles.relatedHint}>คลิกเพื่อเปิดรายละเอียดใบบรรจุ</p>
               </div>
             </Link>
-          ) : null}
+          ))}
         </div>
       </section>
 
@@ -748,7 +802,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           <div className={styles.toolbarLeft}>
             <p className={styles.toolbarTitle}>รายการสินค้าที่ส่ง</p>
             <p className={styles.toolbarHint}>
-              จำนวนส่งรวมต่อรายการสินค้าต้องเท่ากับจำนวนที่บรรจุ (รองรับแยกหลายแถว)
+              สินค้าและจำนวนดึงจากใบบรรจุที่อ้างอิง — แก้ไข เพิ่ม หรือลบรายการไม่ได้
             </p>
           </div>
         </div>
@@ -759,7 +813,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           pagination={false}
           size="middle"
           className={styles.table}
-          scroll={{ x: 640 }}
+          scroll={{ x: 860 }}
         />
       </section>
     </div>

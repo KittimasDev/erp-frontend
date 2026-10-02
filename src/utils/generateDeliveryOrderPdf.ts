@@ -7,6 +7,7 @@ export type DeliveryOrderPdfData = {
   deliveryOrderNo: string;
   deliveryDate: string;
   salesOrderNo: string;
+  /** ใบส่งที่รวมหลายใบบรรจุ → เลขที่ทุกใบคั่นด้วย ", " */
   packingNo: string;
   customerName: string;
   shippingAddress: string;

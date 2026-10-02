@@ -709,7 +709,9 @@ export default function SalesTrackingPage() {
         deliveryOrderNo: data.deliveryOrderNo,
         deliveryDate: dayjs(data.deliveryDate).format("DD/MM/YYYY"),
         salesOrderNo: data.salesOrderNo ?? "—",
-        packingNo: data.packingNo ?? "—",
+        packingNo: data.packings?.length
+          ? data.packings.map((ref) => ref.packingNo ?? ref.packingId).join(", ")
+          : (data.packingNo ?? "—"),
         customerName: data.customerName ?? "—",
         shippingAddress: data.shippingAddress ?? "—",
         contactName: data.contactName ?? "—",

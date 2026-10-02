@@ -35,10 +35,24 @@ export type DeliveryOrderItem = {
   acceptedQty?: string;
   returnedQty?: string;
   pickingItemId?: string;
+  /** ใบบรรจุที่แถวนี้มาจาก — ใบส่งหนึ่งใบรวมได้หลายใบบรรจุ */
+  packingId?: string;
+  packingNo?: string;
+  salesOrderDeliveryScheduleId?: string;
+  roundNo?: number;
   unitId: string;
   unitCode?: string;
   remark?: string;
   sortOrder: number;
+};
+
+export type DeliveryOrderPackingRef = {
+  packingId: string;
+  packingNo?: string;
+  pickingId: string;
+  pickingNo?: string;
+  salesOrderDeliveryScheduleId?: string;
+  roundNo?: number;
 };
 
 export type DeliveryOrder = {
@@ -83,9 +97,20 @@ export type DeliveryOrder = {
   redeliveryDeliveryOrderId?: string;
   redeliveryDeliveryOrderNo?: string;
   deliveredByName?: string;
+  /** ใบบรรจุทั้งหมดที่ใบนี้รวมมา (packingId/pickingId บนหัว = ใบแรก) */
+  packings?: DeliveryOrderPackingRef[];
   items: DeliveryOrderItem[];
   createdAt: string;
   updatedAt: string;
+};
+
+export type ReadyPackingItem = {
+  id: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  packedQty: string;
+  unitCode?: string;
+  sortOrder: number;
 };
 
 export type ReadyPacking = {
@@ -94,8 +119,12 @@ export type ReadyPacking = {
   packingDate: string;
   salesOrderId: string;
   salesOrderNo?: string;
+  customerId?: string;
   customerName?: string;
+  salesOrderDeliveryScheduleId?: string;
+  roundNo?: number;
   itemCount: number;
+  items?: ReadyPackingItem[];
   status: string;
 };
 
@@ -118,6 +147,11 @@ export type CreateDeliveryOrderFromPackingBody = {
   driverPhone?: string;
   remark?: string;
 };
+
+export type CreateDeliveryOrderFromPackingsBody =
+  CreateDeliveryOrderFromPackingBody & {
+    packingIds: string[];
+  };
 
 export type UpdateDeliveryOrderBody = CreateDeliveryOrderFromPackingBody & {
   items?: Array<{ id: string; deliveredQty?: number; remark?: string }>;
