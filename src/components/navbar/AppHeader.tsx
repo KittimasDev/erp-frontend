@@ -873,15 +873,25 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     ],
   },
   {
+    key: "delivery-orders-create-from-packing",
+    screenCode: "DELIVERY_ORDERS",
+    label: "สร้างใบส่งจากใบบรรจุ",
+    href: "/delivery-orders/create-from-packing",
+    icon: <IconStockTransfer />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "delivery-orders",
     screenCode: "DELIVERY_ORDERS",
     label: "ใบส่งสินค้า",
     href: "/delivery-orders",
     icon: <IconStockTransfer />,
-    matchHrefs: [
-      "/delivery-orders",
-      "/delivery-orders/create-from-packing",
-    ],
     roles: [
       ROLE.SALES_OFFICER,
       ROLE.SALES_MANAGER,
