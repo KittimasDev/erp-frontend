@@ -79,6 +79,22 @@ export type SalesTrackingTimelineStep = {
   href?: string;
 };
 
+/** จำนวนรายสินค้าของหนึ่งรอบ — สูตรเดียวกับแผงรอบจัดส่งในหน้า SO */
+export type SalesTrackingRoundItem = {
+  deliveryScheduleItemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitCode?: string;
+  /** จำนวนเดิมของรอบ (ก่อนถูกตีกลับ) */
+  originalQuantity: string;
+  /** ลูกค้ารับแล้ว */
+  deliveredQuantity: string;
+  returnedQuantity: string;
+  /** ตีกลับแล้วปิดการส่ง (ไม่นำเข้าคลัง + ไม่ส่งใหม่) */
+  closedQuantity: string;
+  remainingQuantity: string;
+};
+
 export type SalesTrackingRoundTimeline = {
   deliveryScheduleId: string;
   roundNo: number;
@@ -87,6 +103,19 @@ export type SalesTrackingRoundTimeline = {
   currentStep: string;
   nextAction: string;
   timeline: SalesTrackingTimelineStep[];
+  /** มีค่าเฉพาะเมื่อใบส่งของรอบบันทึกผลการส่งแล้ว */
+  deliveredAt?: string;
+  /** SUCCESS / FULL_RETURN / PARTIAL_RETURN */
+  deliveryResult?: string;
+  returnReason?: string;
+  returnToStock?: boolean;
+  redeliverRequired?: boolean;
+  redeliverDate?: string;
+  redeliveryRoundNo?: number;
+  /** รอบนี้เป็นการส่งใหม่แทนของที่ตีกลับจากใบส่งนี้ */
+  sourceDeliveryOrderNo?: string;
+  sourceRoundNo?: number;
+  items?: SalesTrackingRoundItem[];
 };
 
 export type SalesTrackingDetail = {

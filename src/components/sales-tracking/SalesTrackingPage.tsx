@@ -40,7 +40,9 @@ import dayjs, { type Dayjs } from "dayjs";
 import AccessDenied from "@/components/auth/AccessDenied";
 import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import {
+  DELIVERY_SCHEDULE_RETURN_LABEL,
   DELIVERY_SCHEDULE_STATUS_LABEL,
+  type DeliveryScheduleReturnResult,
   type DeliveryScheduleStatus,
 } from "@/types/delivery-schedules";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -64,8 +66,11 @@ import {
   SALES_ORDER_STATUS_LABEL,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
+import { formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import type {
   SalesTrackingQueryParams,
+  SalesTrackingRoundItem,
+  SalesTrackingRoundTimeline,
   SalesTrackingRow,
   SalesTrackingTimelineStep,
 } from "@/types/sales-tracking";
@@ -245,6 +250,182 @@ function TimelineStepCard({
           <span className={styles.timelineLinkDisabled}>ยังไม่มีเอกสาร</span>
         )}
       </div>
+    </div>
+  );
+}
+
+const QTY_EPS = 0.0005;
+
+function formatQty(value?: string) {
+  return Number(value ?? 0).toLocaleString("th-TH", {
+    maximumFractionDigits: 3,
+  });
+}
+
+function isReturnResult(result?: string): boolean {
+  return result === "FULL_RETURN" || result === "PARTIAL_RETURN";
+}
+
+function redeliveryText(round: SalesTrackingRoundTimeline): string {
+  if (round.redeliverRequired || round.redeliveryRoundNo) {
+    const roundPart = round.redeliveryRoundNo
+      ? `ในรอบ ${round.redeliveryRoundNo}`
+      : "";
+    const datePart = round.redeliverDate
+      ? ` วันที่ ${formatDate(round.redeliverDate)}`
+      : "";
+    return `ส่งใหม่${roundPart ? ` ${roundPart}` : ""}${datePart}`;
+  }
+  return round.returnToStock === false
+    ? "ไม่ส่งใหม่ (ปิดการส่ง)"
+    : "ไม่ส่งใหม่ (ลดจำนวนสั่ง)";
+}
+
+function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
+  const items = round.items ?? [];
+  const returned = isReturnResult(round.deliveryResult);
+  const hasReturnedQty = items.some(
+    (line) => Number(line.returnedQuantity) > QTY_EPS,
+  );
+  const hasClosedQty = items.some(
+    (line) => Number(line.closedQuantity) > QTY_EPS,
+  );
+  const redQty = (value: string) =>
+    Number(value) > QTY_EPS ? (
+      <strong className={styles.roundReturnNote}>{formatQty(value)}</strong>
+    ) : (
+      "—"
+    );
+
+  const columns: ColumnsType<SalesTrackingRoundItem> = [
+    {
+      title: "สินค้า",
+      key: "item",
+      render: (_v, line) => (
+        <div>
+          <strong>{line.itemCode ?? "—"}</strong>
+          {line.itemNameTh ? <div>{line.itemNameTh}</div> : null}
+        </div>
+      ),
+    },
+    {
+      title: "สั่งในรอบ",
+      dataIndex: "originalQuantity",
+      align: "right",
+      width: 84,
+      render: (v: string, line) =>
+        `${formatQty(v)}${line.unitCode ? ` ${line.unitCode}` : ""}`,
+    },
+    {
+      title: "ลูกค้ารับ",
+      dataIndex: "deliveredQuantity",
+      align: "right",
+      width: 76,
+      render: (v: string) => formatQty(v),
+    },
+    {
+      title: "ตีกลับ",
+      dataIndex: "returnedQuantity",
+      align: "right",
+      width: 64,
+      hidden: !hasReturnedQty,
+      render: redQty,
+    },
+    {
+      title: "ปิดการส่ง",
+      dataIndex: "closedQuantity",
+      align: "right",
+      width: 72,
+      hidden: !hasClosedQty,
+      render: redQty,
+    },
+    {
+      title: "คงเหลือ",
+      dataIndex: "remainingQuantity",
+      align: "right",
+      width: 68,
+      render: (v: string) =>
+        Number(v) > QTY_EPS ? <strong>{formatQty(v)}</strong> : "—",
+    },
+  ];
+
+  return (
+    <div
+      className={`${styles.roundDetail} ${returned ? styles.roundDetailReturned : ""}`}
+    >
+      <div className={styles.roundFacts}>
+        <div>
+          <span>ผลการส่ง</span>
+          <strong>
+            {!round.deliveryResult ? (
+              "ยังไม่ส่ง"
+            ) : returned ? (
+              <Tag color="red" className={styles.timelineTag}>
+                {DELIVERY_SCHEDULE_RETURN_LABEL[
+                  round.deliveryResult as DeliveryScheduleReturnResult
+                ] ?? round.deliveryResult}
+              </Tag>
+            ) : (
+              <Tag color="success" className={styles.timelineTag}>
+                ส่งสำเร็จ
+              </Tag>
+            )}
+          </strong>
+        </div>
+        <div>
+          <span>กำหนดส่ง</span>
+          <strong>{formatDate(round.deliveryDate)}</strong>
+        </div>
+        {round.deliveredAt ? (
+          <div>
+            <span>ส่งจริง</span>
+            <strong>{formatErpDateTime(round.deliveredAt)}</strong>
+          </div>
+        ) : null}
+        {returned ? (
+          <>
+            {round.returnReason ? (
+              <div>
+                <span>เหตุผลที่ตีกลับ</span>
+                <strong className={styles.roundReturnNote}>
+                  {round.returnReason}
+                </strong>
+              </div>
+            ) : null}
+            <div>
+              <span>ของที่ตีกลับ</span>
+              <strong>
+                {round.returnToStock ? "คืนเข้าคลัง" : "ไม่คืนเข้าคลัง"}
+              </strong>
+            </div>
+            <div>
+              <span>ต่อจากนี้</span>
+              <strong className={styles.roundReturnNote}>
+                {redeliveryText(round)}
+              </strong>
+            </div>
+          </>
+        ) : null}
+        {round.sourceDeliveryOrderNo ? (
+          <div>
+            <span>ที่มา</span>
+            <strong>
+              ส่งใหม่แทนของที่ตีกลับจาก {round.sourceDeliveryOrderNo}
+              {round.sourceRoundNo ? ` (รอบ ${round.sourceRoundNo})` : ""}
+            </strong>
+          </div>
+        ) : null}
+      </div>
+      {items.length ? (
+        <Table<SalesTrackingRoundItem>
+          rowKey="deliveryScheduleItemId"
+          size="small"
+          pagination={false}
+          className={styles.roundItemsTable}
+          columns={columns}
+          dataSource={items}
+        />
+      ) : null}
     </div>
   );
 }
@@ -786,7 +967,7 @@ export default function SalesTrackingPage() {
       <Drawer
         open={Boolean(selectedSoId)}
         onClose={() => setSelectedSoId(undefined)}
-        size={520}
+        size={640}
         className={styles.timelineDrawer}
         title={null}
         styles={{
@@ -866,8 +1047,17 @@ export default function SalesTrackingPage() {
                         รอบที่ {round.roundNo} · ส่งวันที่{" "}
                         {formatDate(round.deliveryDate)}
                       </span>
-                      <Tag>{roundStatusLabel}</Tag>
+                      <Tag
+                        color={
+                          isReturnResult(round.deliveryResult)
+                            ? "red"
+                            : undefined
+                        }
+                      >
+                        {roundStatusLabel}
+                      </Tag>
                     </div>
+                    <RoundDetail round={round} />
                     {roundSteps.map((step, index) => (
                       <TimelineStepCard
                         key={`${round.deliveryScheduleId}-${step.step}-${step.documentId ?? index}`}
