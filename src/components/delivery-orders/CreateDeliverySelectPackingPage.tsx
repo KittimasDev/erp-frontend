@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Alert, Button, Table, Tag } from "antd";
+import { Alert, Button, Table, Tag, Tooltip } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -83,6 +83,17 @@ export default function CreateDeliverySelectPackingPage() {
       ),
     [selected],
   );
+
+  const isOtherSo = (row: ReadyPacking) =>
+    Boolean(selectedSoId) && row.salesOrderId !== selectedSoId;
+
+  const createBlockedReason = query.isLoading
+    ? "กำลังโหลดรายการใบบรรจุ"
+    : !rows.length
+      ? "ยังไม่มีใบบรรจุที่พร้อมสร้างใบส่ง — ใบบรรจุต้องยืนยันแล้ว และยังไม่ถูกใช้ในใบส่งอื่น"
+      : !selected.length
+        ? "ติ๊กเลือกใบบรรจุในตารางด้านบนอย่างน้อย 1 ใบ"
+        : undefined;
 
   if (!canCreate) {
     return <AccessDenied screenCodes={["DELIVERY_ORDERS", "SALES_ORDERS"]} />;
@@ -214,10 +225,23 @@ export default function CreateDeliverySelectPackingPage() {
             selectedRowKeys: selected.map((row) => row.id),
             onChange: (keys) => setPickedIds(keys.map(String)),
             getCheckboxProps: (row) => ({
-              disabled: Boolean(selectedSoId) && row.salesOrderId !== selectedSoId,
+              disabled: isOtherSo(row),
             }),
+            renderCell: (_checked, row, _index, node) =>
+              isOtherSo(row) ? (
+                <Tooltip
+                  title={`ใบบรรจุนี้เป็นของ ${row.salesOrderNo ?? "SO อื่น"} — รวมในใบส่งเดียวกันได้เฉพาะใบบรรจุของ ${selected[0]?.salesOrderNo ?? "SO ที่เลือกไว้"} · เอาติ๊กออกทั้งหมดก่อนถ้าจะเปลี่ยน SO`}
+                >
+                  <span>{node}</span>
+                </Tooltip>
+              ) : (
+                node
+              ),
           }}
-          locale={{ emptyText: "ไม่มี Packing ที่พร้อมสร้างใบส่ง" }}
+          locale={{
+            emptyText:
+              "ไม่มีใบบรรจุที่พร้อมสร้างใบส่ง — ใบบรรจุต้องยืนยันแล้ว และยังไม่ถูกใช้ในใบส่งอื่น (ยกเลิกใบส่งแล้วใบบรรจุจะกลับมาเลือกได้)",
+          }}
         />
       </section>
 
@@ -233,16 +257,20 @@ export default function CreateDeliverySelectPackingPage() {
               </>
             ) : null}
           </div>
-          <Button
-            type="primary"
-            className={styles.primaryBtn}
-            icon={<PlusOutlined />}
-            disabled={!selected.length}
-            loading={createMutation.isPending}
-            onClick={onCreate}
-          >
-            สร้างใบส่งสินค้า ({selected.length} ใบบรรจุ)
-          </Button>
+          <Tooltip title={createBlockedReason}>
+            <span>
+              <Button
+                type="primary"
+                className={styles.primaryBtn}
+                icon={<PlusOutlined />}
+                disabled={Boolean(createBlockedReason)}
+                loading={createMutation.isPending}
+                onClick={onCreate}
+              >
+                สร้างใบส่งสินค้า ({selected.length} ใบบรรจุ)
+              </Button>
+            </span>
+          </Tooltip>
         </div>
         <Table
           rowKey={(line) => `${line.packingId}:${line.id}`}
