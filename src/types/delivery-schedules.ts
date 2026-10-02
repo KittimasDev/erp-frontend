@@ -8,7 +8,13 @@
  * ผู้ใช้ล่วงหน้าก่อนกด ไม่ใช่ให้ไปเห็นยอดเปลี่ยนเองทีหลัง
  */
 export type DeliveryScheduleStatus =
-  "PLANNED" | "ISSUED" | "PACKED" | "DELIVERED" | "CANCELLED";
+  | "PLANNED"
+  | "ISSUED"
+  | "PACKED"
+  | "DELIVERED"
+  /** ส่งแล้วแต่ลูกค้าตีกลับบางส่วน — จบรอบเหมือน DELIVERED */
+  | "PARTIALLY_DELIVERED"
+  | "CANCELLED";
 
 export const DELIVERY_SCHEDULE_STATUS_LABEL: Record<
   DeliveryScheduleStatus,
@@ -18,6 +24,7 @@ export const DELIVERY_SCHEDULE_STATUS_LABEL: Record<
   ISSUED: "จ่ายของแล้ว",
   PACKED: "บรรจุแล้ว",
   DELIVERED: "ส่งแล้ว",
+  PARTIALLY_DELIVERED: "ส่งบางส่วน",
   CANCELLED: "ยกเลิก",
 };
 
@@ -29,8 +36,14 @@ export const DELIVERY_SCHEDULE_STATUS_COLOR: Record<
   ISSUED: "processing",
   PACKED: "cyan",
   DELIVERED: "success",
+  PARTIALLY_DELIVERED: "warning",
   CANCELLED: "error",
 };
+
+/** รอบที่ส่งถึงลูกค้าแล้ว (ครบหรือตีกลับบางส่วน) — ต้องตรงกับ isScheduleDeliveredStatus ฝั่ง backend */
+export function isDeliveryScheduleDone(status: string | undefined): boolean {
+  return status === "DELIVERED" || status === "PARTIALLY_DELIVERED";
+}
 
 /** แก้ไข/ยกเลิกรอบได้เฉพาะตอนยังไม่จ่ายของ */
 export function isDeliveryScheduleEditable(status: string): boolean {
@@ -67,9 +80,11 @@ export type DeliveryScheduleItem = {
   packedQuantity: string;
   deliveredQuantity: string;
   remainingQuantity: string;
-  /** ลูกค้าตีกลับในรอบนี้เท่าไร (ประวัติ) — ถูกหักออกจาก `quantity` แล้ว */
+  /** ลูกค้าตีกลับในรอบนี้เท่าไร (ประวัติ) — ถูกหักออกจาก `quantity` แล้ว ยกเว้นส่วนที่ปิดการส่ง */
   returnedQuantity?: string;
-  /** จำนวนเดิมของรอบ = quantity + returnedQuantity · ใช้แสดงผลเท่านั้น ห้ามใช้วางแผนจำนวน */
+  /** ตีกลับแล้วปิดการส่ง (ไม่นำเข้าคลัง + ไม่ส่งใหม่) — ยังอยู่ใน `quantity` แต่ไม่ค้างส่ง */
+  closedQuantity?: string;
+  /** จำนวนเดิมของรอบ = quantity + returnedQuantity − closedQuantity · ใช้แสดงผลเท่านั้น ห้ามใช้วางแผนจำนวน */
   originalQuantity?: string;
   sortOrder: number;
 };
@@ -90,7 +105,9 @@ export type DeliveryScheduleReturnInfo = {
   deliveryOrderNo: string;
   result: DeliveryScheduleReturnResult | string;
   returnReason?: string;
-  /** ไม่มีค่าคือไม่ส่งใหม่ (ลดจำนวนสั่ง) */
+  /** false + ไม่ส่งใหม่ = จำนวนที่ตีกลับค้างส่งใน SO (ไม่ลดจำนวนสั่ง) */
+  returnToStock?: boolean;
+  /** ไม่มีค่าคือไม่ส่งใหม่ (นำเข้าคลัง = ลดจำนวนสั่ง · ไม่นำเข้าคลัง = ค้างส่ง) */
   redeliveryScheduleId?: string;
   redeliveryRoundNo?: number;
 };

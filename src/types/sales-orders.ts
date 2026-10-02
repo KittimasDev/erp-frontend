@@ -85,6 +85,8 @@ export type SalesOrderItem = {
   reservedQuantity: string;
   issuedQuantity: string;
   deliveredQuantity: string;
+  /** ตีกลับแล้วปิดการส่ง (ไม่นำเข้าคลัง + ไม่ส่งใหม่) — ไม่นับเป็นค้างส่ง */
+  closedQuantity?: string;
   sortOrder: number;
 };
 

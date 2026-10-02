@@ -73,6 +73,15 @@ export type DeliveryOrder = {
   redeliverDate?: string;
   redeliveryScheduleId?: string;
   redeliveryRoundNo?: number;
+  /** ใบคืนสินค้าของใบส่งนี้ (รออนุมัติ/อนุมัติแล้ว ล่าสุด) — มีเฉพาะ GET /:id และผลของ deliver */
+  returnNoteId?: string;
+  returnNoteNo?: string;
+  /** มีค่า = ใบนี้เป็นการส่งซ้ำของใบที่ถูกตีกลับ (ไม่จ่าย/บรรจุใหม่ ไม่ตัดสต๊อกซ้ำ) */
+  sourceDeliveryOrderId?: string;
+  sourceDeliveryOrderNo?: string;
+  /** ใบส่งซ้ำที่ระบบสร้างจากใบนี้ — มีเฉพาะ GET /:id และผลของ deliver */
+  redeliveryDeliveryOrderId?: string;
+  redeliveryDeliveryOrderNo?: string;
   deliveredByName?: string;
   items: DeliveryOrderItem[];
   createdAt: string;

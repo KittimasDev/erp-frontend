@@ -48,6 +48,7 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import { getFifoLotSuggestion } from "@/lib/api/dispatch-orders";
 import { getAccessToken } from "@/lib/auth/token";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
 import type { PickingItem } from "@/types/pickings";
 import { PICKING_STATUS_LABEL } from "@/types/pickings";
 import type { SalesOrderStockVerificationLine } from "@/types/sales-orders";
@@ -311,7 +312,7 @@ export default function PickingFormPage({ id, mode }: Props) {
     data?.status === "CONFIRMED" &&
     !packingHref &&
     (packingStep.roundStatus === "PACKED" ||
-      packingStep.roundStatus === "DELIVERED");
+      isDeliveryScheduleDone(packingStep.roundStatus));
 
   const renderItemLotHint = (item: PickingItem) => {
     const row = rows.find((r) => r.id === item.id);

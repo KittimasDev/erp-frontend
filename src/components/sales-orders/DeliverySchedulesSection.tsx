@@ -605,7 +605,9 @@ export default function DeliverySchedulesSection({
                         </span>
                       ) : (
                         <span style={{ color: "#cf1322" }}>
-                          ไม่ส่งใหม่
+                          {deliveryReturn.returnToStock === false
+                            ? "ไม่ส่งใหม่ (ปิดการส่ง)"
+                            : "ไม่ส่งใหม่ (ลดจำนวนสั่ง)"}
                         </span>
                       )}
                     </>
@@ -762,9 +764,11 @@ export default function DeliverySchedulesSection({
                           <span>
                             —{" "}
                             <span style={{ color: "#cf1322", fontSize: 12 }}>
-                              {deliveryReturn?.redeliveryRoundNo
-                                ? `ย้ายไปรอบ ${deliveryReturn.redeliveryRoundNo}`
-                                : ""}
+                              {toNum(line.closedQuantity) > EPS
+                                ? "ปิดการส่ง"
+                                : deliveryReturn?.redeliveryRoundNo
+                                  ? `ย้ายไปรอบ ${deliveryReturn.redeliveryRoundNo}`
+                                  : ""}
                             </span>
                           </span>
                         );

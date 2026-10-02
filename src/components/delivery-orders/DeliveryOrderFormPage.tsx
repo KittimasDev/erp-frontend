@@ -181,6 +181,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     data.status === "DELIVERED" &&
     isReturnResult &&
     data.returnToStock === true &&
+    !data.returnNoteId &&
     returnNoteActions.canAdd;
 
   if (isReturnResult) {
@@ -255,6 +256,17 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 className={styles.docLink}
               >
                 ใบจ่าย {data.pickingNo ?? data.pickingId}
+                <ExportOutlined className={styles.docLinkIcon} />
+              </Link>
+            ) : null}
+            {data.sourceDeliveryOrderId ? (
+              <Link
+                href={`/delivery-orders/${data.sourceDeliveryOrderId}`}
+                className={styles.docLink}
+              >
+                <Tag color="volcano" style={{ marginInlineEnd: 0 }}>
+                  ส่งซ้ำจาก {data.sourceDeliveryOrderNo ?? "ใบส่งเดิม"}
+                </Tag>
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
             ) : null}
@@ -364,6 +376,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             </Button>
           ) : null}
           {(data.status === "DRAFT" || data.status === "CONFIRMED") &&
+          !data.sourceDeliveryOrderId &&
           canConfirm ? (
             <Button
               danger
@@ -408,14 +421,19 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             return;
           }
           setResultModalOpen(false);
-          const isReturn = body.result !== "SUCCESS";
-          if (isReturn && body.returnToStock && returnNoteActions.canAdd) {
-            router.push(`/return-notes/create?deliveryOrderId=${id}`);
-            return;
-          }
           router.push(`/delivery-orders/${id}`);
         }}
       />
+
+      {data.sourceDeliveryOrderId &&
+      (data.status === "DRAFT" || data.status === "CONFIRMED") ? (
+        <Alert
+          type="info"
+          showIcon
+          title={`ใบส่งซ้ำของ ${data.sourceDeliveryOrderNo ?? "ใบส่งเดิม"} — ส่งของชุดเดิมที่ตีกลับ ไม่ต้องจ่าย/บรรจุใหม่ และไม่ตัดสต๊อกซ้ำ`}
+          description="จำนวนล็อกตามยอดที่ตีกลับ · แก้วันที่ส่ง/ข้อมูลรถได้ แต่ยกเลิกใบนี้ไม่ได้"
+        />
+      ) : null}
 
       {data.status === "DELIVERED" && !isReturnResult ? (
         <Alert
@@ -448,6 +466,18 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               <span>สินค้าที่ตีกลับ</span>
               <div className={styles.fieldValue}>
                 {data.returnToStock ? "นำสินค้าคืนเข้าคลัง" : "ไม่นำเข้าคลัง"}
+                {data.returnNoteId ? (
+                  <>
+                    {" · ใบคืนสินค้า "}
+                    <Link
+                      href={`/return-notes/${data.returnNoteId}`}
+                      className={styles.docLink}
+                    >
+                      {data.returnNoteNo ?? "—"}
+                      <ExportOutlined className={styles.docLinkIcon} />
+                    </Link>
+                  </>
+                ) : null}
               </div>
             </div>
             <div className={styles.field}>
@@ -467,6 +497,18 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                           className={styles.docLink}
                         >
                           รอบที่ {data.redeliveryRoundNo ?? "—"}
+                          <ExportOutlined className={styles.docLinkIcon} />
+                        </Link>
+                      </>
+                    ) : null}
+                    {data.redeliveryDeliveryOrderId ? (
+                      <>
+                        {" · ใบส่งใหม่ "}
+                        <Link
+                          href={`/delivery-orders/${data.redeliveryDeliveryOrderId}`}
+                          className={styles.docLink}
+                        >
+                          {data.redeliveryDeliveryOrderNo ?? "—"}
                           <ExportOutlined className={styles.docLinkIcon} />
                         </Link>
                       </>

@@ -90,7 +90,10 @@ import { useStaleDocumentPrompt } from "@/hooks/common/useStaleDocumentPrompt";
 import SalesOrderItemsEditModal from "./SalesOrderItemsEditModal";
 import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
-import type { DeliverySchedule } from "@/types/delivery-schedules";
+import {
+  isDeliveryScheduleDone,
+  type DeliverySchedule,
+} from "@/types/delivery-schedules";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
@@ -738,7 +741,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
     // รอบที่คืบหน้าน้อยสุดที่ยังไม่จบ — ทำให้แถบตรงกับหัวเรื่อง
     (tracking?.rounds ?? []).find(
       (round) =>
-        round.roundStatus !== "DELIVERED" && round.roundStatus !== "CANCELLED",
+        !isDeliveryScheduleDone(round.roundStatus) &&
+        round.roundStatus !== "CANCELLED",
     )?.roundStatus,
   );
 
@@ -1130,12 +1134,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
      */
     const roundInFlight = (tracking?.rounds ?? []).find(
       (round) =>
-        round.roundStatus !== "DELIVERED" && round.roundStatus !== "CANCELLED",
+        !isDeliveryScheduleDone(round.roundStatus) &&
+        round.roundStatus !== "CANCELLED",
     );
     const roundDoc = (step: string) =>
       roundInFlight?.timeline?.find((s) => s.step === step);
     const packingDoc = roundDoc("Packing");
     const pickingDoc = roundDoc("Picking");
+    const deliveryDoc = roundDoc("Delivery");
 
     let roundAction: ReactNode;
     if (
@@ -1146,8 +1152,19 @@ export default function SalesOrderDetailPage({ id }: Props) {
       roundAction = null;
     } else if (roundInFlight.roundStatus === "PACKED") {
       const canCreateDo = deliveryActions.canAdd;
-      roundAction =
-        canCreateDo && packingDoc?.documentId ? (
+      roundAction = deliveryDoc?.documentId ? (
+        // รอบส่งซ้ำ (ตีกลับแบบไม่นำเข้าคลัง) ไม่มีใบบรรจุ — ระบบเปิดใบส่งไว้ให้แล้ว
+        <Button
+          className={styles.primaryBtn}
+          type="primary"
+          icon={<ShoppingOutlined />}
+          onClick={() =>
+            router.push(`/delivery-orders/${deliveryDoc.documentId}`)
+          }
+        >
+          เปิดใบส่งสินค้า (รอบ {roundInFlight.roundNo})
+        </Button>
+      ) : canCreateDo && packingDoc?.documentId ? (
           <Button
             className={styles.primaryBtn}
             type="primary"
@@ -2475,6 +2492,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
                               "th-TH",
                             )}
                           </span>
+                          {Number(item.closedQuantity ?? 0) > 0.0005 ? (
+                            <span style={{ color: "#cf1322" }}>
+                              ปิดการส่ง{" "}
+                              {Number(item.closedQuantity).toLocaleString(
+                                "th-TH",
+                              )}
+                            </span>
+                          ) : null}
                         </div>
                       ) : null}
                     </div>

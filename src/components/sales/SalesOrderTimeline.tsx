@@ -30,6 +30,7 @@ import {
   SALES_ORDER_FLOW_STEPS,
   type SalesOrderProgress,
 } from "@/lib/sales/sales-order-progress";
+import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
 import type {
   SalesTrackingRoundTimeline,
   SalesTrackingTimelineStep,
@@ -56,7 +57,7 @@ type Props = {
 };
 
 function isOpenRound(roundStatus: string) {
-  return roundStatus !== "DELIVERED" && roundStatus !== "CANCELLED";
+  return !isDeliveryScheduleDone(roundStatus) && roundStatus !== "CANCELLED";
 }
 
 function nextOpenRound(rounds: FlowRound[]): FlowRound | undefined {

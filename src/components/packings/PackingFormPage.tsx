@@ -40,6 +40,7 @@ import {
 import { usePackingQuery } from "@/hooks/packings/usePackingsQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
+import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
 import type { PackingItem } from "@/types/packings";
 import { PACKING_STATUS_LABEL } from "@/types/packings";
 import styles from "./PackingFormPage.module.css";
@@ -96,7 +97,7 @@ export default function PackingFormPage({ id, mode }: Props) {
     deliveryStep.roundStatus === "PACKED";
   const deliveryRoundDone =
     data?.status === "CONFIRMED" &&
-    (Boolean(deliveryHref) || deliveryStep.roundStatus === "DELIVERED");
+    (Boolean(deliveryHref) || isDeliveryScheduleDone(deliveryStep.roundStatus));
 
   const [packingDate, setPackingDate] = useState<dayjs.Dayjs | null>(null);
   const [packageType, setPackageType] = useState("");
