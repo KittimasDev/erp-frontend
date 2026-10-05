@@ -435,6 +435,7 @@ type SummaryCard = {
   label: string;
   value?: number;
   filterStatus?: string;
+  isAll?: boolean;
 };
 
 export default function SalesTrackingPage() {
@@ -476,6 +477,7 @@ export default function SalesTrackingPage() {
 
   const summaryQuery = useSalesTrackingSummaryQuery();
   const listQuery = useSalesTrackingListQuery(applied);
+  const allTotalQuery = useSalesTrackingListQuery({ page: 1, pageSize: 1 });
   const detailQuery = useSalesTrackingDetailQuery(selectedSoId);
   const customersQuery = useCustomersQuery();
   const itemsQuery = useItemsQuery({
@@ -511,6 +513,12 @@ export default function SalesTrackingPage() {
 
   const cards: SummaryCard[] = [
     {
+      key: "all",
+      label: "ทั้งหมด",
+      value: allTotalQuery.data?.data.total,
+      isAll: true,
+    },
+    {
       key: "qt",
       label: "รอลูกค้ายืนยัน QT",
       value: summary?.quotationAwaiting,
@@ -523,31 +531,31 @@ export default function SalesTrackingPage() {
     },
     {
       key: "picking",
-      label: "รอ Picking",
+      label: "รอจ่ายสินค้า",
       value: summary?.soAwaitingPicking,
       filterStatus: "STOCK_CHECKED",
     },
     {
       key: "packing",
-      label: "รอ Packing",
+      label: "รอบรรจุสินค้า",
       value: summary?.awaitingPacking,
       filterStatus: "PICKING",
     },
     {
       key: "delivery",
-      label: "รอ Delivery",
+      label: "รอส่งสินค้า",
       value: summary?.awaitingDelivery,
       filterStatus: "PACKED",
     },
     {
       key: "delivered",
-      label: "ส่งแล้ว",
+      label: "ส่งสินค้าแล้ว",
       value: summary?.delivered,
       filterStatus: "DELIVERED",
     },
     {
       key: "cancelled",
-      label: "ยกเลิก",
+      label: "ยกเลิกใบสั่งขาย",
       value: summary?.cancelled,
       filterStatus: "CANCELLED",
     },
@@ -757,14 +765,21 @@ export default function SalesTrackingPage() {
 
       <Row gutter={[12, 12]}>
         {cards.map((card) => {
-          const clickable = Boolean(card.filterStatus);
-          const active = status === card.filterStatus;
+          const clickable = card.isAll || Boolean(card.filterStatus);
+          const active = card.isAll
+            ? !status
+            : clickable && status === card.filterStatus;
           return (
             <Col xs={12} sm={8} md={6} lg={3} key={card.key}>
               <Card
                 size="small"
                 className={`${styles.summaryCard} ${active ? styles.summaryCardActive : ""} ${clickable ? styles.summaryCardClickable : ""}`}
                 onClick={() => {
+                  if (card.isAll) {
+                    setStatus(undefined);
+                    applyFilters({ salesOrderStatus: undefined, page: 1 });
+                    return;
+                  }
                   if (!card.filterStatus) return;
                   const next =
                     status === card.filterStatus
