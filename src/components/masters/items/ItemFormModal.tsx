@@ -16,6 +16,10 @@ import {
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import type { CreateItemRequest, Item } from "@/types/items";
+import {
+  ITEM_TYPE_OPTIONS,
+  initialItemType,
+} from "@/components/masters/items/item-type-options";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 type ItemFormValues = {
@@ -24,6 +28,7 @@ type ItemFormValues = {
   description?: string;
   itemCategoryId: string;
   unitId: string;
+  itemType?: string;
   warehouseGroup?: string;
   minimumStockQty?: number | null;
   sellingPrice?: number | null;
@@ -32,7 +37,6 @@ type ItemFormValues = {
   isStockItem: boolean;
   isIssueItem: boolean;
   isSalesItem: boolean;
-  isFinishedGood: boolean;
   requiresLotControl: boolean;
   requiresQc: boolean;
   requiresExpiryDate: boolean;
@@ -57,7 +61,6 @@ type ToggleField = Extract<
   | "isStockItem"
   | "isIssueItem"
   | "isSalesItem"
-  | "isFinishedGood"
   | "requiresLotControl"
   | "requiresQc"
   | "requiresExpiryDate"
@@ -79,7 +82,6 @@ const TOGGLE_GROUPS: Array<{
       ["isStockItem", "คุมสต๊อก"],
       ["isIssueItem", "เบิกได้"],
       ["isSalesItem", "ขายได้"],
-      ["isFinishedGood", "สินค้าสำเร็จรูป"],
     ],
   },
   {
@@ -138,6 +140,7 @@ export default function ItemFormModal({
         description: initialItem.description,
         itemCategoryId: initialItem.itemCategoryId,
         unitId: initialItem.unitId,
+        itemType: initialItemType(initialItem),
         warehouseGroup: initialItem.warehouseGroup,
         minimumStockQty: Number(initialItem.minimumStockQty || 0),
         sellingPrice:
@@ -149,7 +152,6 @@ export default function ItemFormModal({
         isStockItem: initialItem.isStockItem,
         isIssueItem: initialItem.isIssueItem,
         isSalesItem: initialItem.isSalesItem,
-        isFinishedGood: initialItem.isFinishedGood,
         requiresLotControl: initialItem.requiresLotControl,
         requiresQc: initialItem.requiresQc,
         requiresExpiryDate: initialItem.requiresExpiryDate,
@@ -166,6 +168,7 @@ export default function ItemFormModal({
       description: "",
       itemCategoryId: undefined,
       unitId: undefined,
+      itemType: undefined,
       warehouseGroup: undefined,
       minimumStockQty: 0,
       sellingPrice: undefined,
@@ -174,7 +177,6 @@ export default function ItemFormModal({
       isStockItem: true,
       isIssueItem: true,
       isSalesItem: false,
-      isFinishedGood: false,
       requiresLotControl: false,
       requiresQc: false,
       requiresExpiryDate: false,
@@ -193,6 +195,7 @@ export default function ItemFormModal({
       description: values.description?.trim() || undefined,
       itemCategoryId: values.itemCategoryId,
       unitId: values.unitId,
+      itemType: values.itemType,
       warehouseGroup: values.warehouseGroup as string,
       minimumStockQty: values.minimumStockQty ?? 0,
       // ส่งเฉพาะตอนขายได้ ปิดแล้วไม่ต้องยัดราคาไปให้ backend
@@ -208,7 +211,6 @@ export default function ItemFormModal({
       isStockItem: values.isStockItem,
       isIssueItem: values.isIssueItem,
       isSalesItem: values.isSalesItem,
-      isFinishedGood: values.isFinishedGood,
       requiresLotControl: values.requiresLotControl,
       requiresQc: values.requiresQc,
       requiresExpiryDate: values.requiresExpiryDate,
@@ -338,6 +340,21 @@ export default function ItemFormModal({
                   value: category.id,
                   label: `${category.code} — ${category.nameTh}`,
                 }))}
+              />
+            </Form.Item>
+          </Col>
+
+          <Col xs={24} sm={12}>
+            <Form.Item
+              label="ประเภทสินค้า"
+              name="itemType"
+              extra="สินค้าสำเร็จรูปคือ FINISHED_GOODS แม้ของจะอยู่คลังรอตรวจหรือของเสีย"
+              rules={[{ required: true, message: "กรุณาเลือกประเภทสินค้า" }]}
+            >
+              <Select
+                size="large"
+                placeholder="เลือกประเภทสินค้า"
+                options={[...ITEM_TYPE_OPTIONS]}
               />
             </Form.Item>
           </Col>

@@ -2,10 +2,11 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Form, Input, Space, Switch, Typography } from "antd";
+import { Button, Form, Input, Select, Space, Switch, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { WAREHOUSE_TYPE_OPTIONS } from "@/components/masters/warehouses/warehouse-type-options";
 import { useCreateWarehouseMutation } from "@/hooks/warehouses/useCreateWarehouseMutation";
 import { useUpdateWarehouseMutation } from "@/hooks/warehouses/useUpdateWarehouseMutation";
 import { useWarehouseQuery } from "@/hooks/warehouses/useWarehouseQuery";
@@ -48,7 +49,7 @@ export default function WarehouseFormPage({
       form.setFieldsValue({
         code: "",
         name: "",
-        warehouseGroup: "",
+        warehouseGroup: undefined,
         description: "",
         allowNegativeStock: false,
         isQcRequired: false,
@@ -175,16 +176,14 @@ export default function WarehouseFormPage({
             </Form.Item>
 
             <Form.Item
-              label="กลุ่มคลัง"
+              label="ประเภทคลัง"
               name="warehouseGroup"
-              rules={[
-                { max: 50, message: "กลุ่มคลังต้องไม่เกิน 50 ตัวอักษร" },
-              ]}
+              rules={[{ required: true, message: "กรุณาเลือกประเภทคลัง" }]}
             >
-              <Input
+              <Select
                 size="large"
-                placeholder="เช่น RAW_MATERIAL"
-                autoComplete="off"
+                placeholder="เลือกประเภทคลัง"
+                options={[...WAREHOUSE_TYPE_OPTIONS]}
               />
             </Form.Item>
 

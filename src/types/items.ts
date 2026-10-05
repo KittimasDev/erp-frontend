@@ -56,6 +56,7 @@ export type CreateItemRequest = {
   description?: string;
   itemCategoryId: string;
   unitId: string;
+  itemType?: string;
   warehouseGroup: string;
   isPurchaseItem?: boolean;
   isStockItem?: boolean;

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, type MutableRefObject } from "react";
-import { Form, Input, Modal, Switch, type FormInstance } from "antd";
+import { Form, Input, Modal, Select, Switch, type FormInstance } from "antd";
 
+import { WAREHOUSE_TYPE_OPTIONS } from "@/components/masters/warehouses/warehouse-type-options";
 import type { CreateWarehouseRequest, Warehouse } from "@/types/warehouses";
 import styles from "@/components/masters/shared/master-page.module.css";
 
@@ -44,7 +45,7 @@ function getInitialValues(
   return {
     code: "",
     name: "",
-    warehouseGroup: "",
+    warehouseGroup: undefined,
     description: "",
     allowNegativeStock: false,
     isQcRequired: false,
@@ -138,14 +139,14 @@ function WarehouseFormBody({
         </Form.Item>
 
         <Form.Item
-          label="กลุ่มคลัง"
+          label="ประเภทคลัง"
           name="warehouseGroup"
-          rules={[{ max: 50, message: "กลุ่มคลังต้องไม่เกิน 50 ตัวอักษร" }]}
+          rules={[{ required: true, message: "กรุณาเลือกประเภทคลัง" }]}
         >
-          <Input
+          <Select
             size="large"
-            placeholder="เช่น RAW_MATERIAL"
-            autoComplete="off"
+            placeholder="เลือกประเภทคลัง"
+            options={[...WAREHOUSE_TYPE_OPTIONS]}
           />
         </Form.Item>
 
