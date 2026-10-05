@@ -519,11 +519,6 @@ export default function SalesTrackingPage() {
       isAll: true,
     },
     {
-      key: "qt",
-      label: "รอลูกค้ายืนยัน QT",
-      value: summary?.quotationAwaiting,
-    },
-    {
       key: "stock",
       label: "รอตรวจสต๊อก",
       value: summary?.soAwaitingStockCheck,

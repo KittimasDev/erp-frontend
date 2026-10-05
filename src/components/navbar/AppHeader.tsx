@@ -607,44 +607,53 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
     ],
   },
   {
-    key: "inventory-issues",
-    label: "เบิกจ่ายสินค้า",
-    href: "/inventory/issues",
-    icon: <IconMaterialIssue />,
-    screenCodes: [
-      "INVENTORY_ISSUES",
-      "MATERIAL_ISSUES",
-      "CHEMICAL_ISSUES",
-      "TIRE_PREP_ISSUES",
-    ],
-    matchHrefs: [
-      "/inventory/issues",
-      "/inventory/material-issues",
-      "/inventory/chemical-issues",
-      "/inventory/tire-prep-issues",
-    ],
-    badgeMenuKeys: ["inventory-issues", "chemical-issues"],
-    // PRODUCTION_OFFICER มาจากเมนูเบิกยางเข้าเตรียมยางที่ยุบเข้ามา
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.PRODUCTION_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "goods-receipts",
-    screenCode: "GOODS_RECEIPTS",
-    label: "รับสินค้าเข้าคลัง",
-    href: "/goods-receipts",
+    key: "rm-receive-issue",
+    label: "รับและเบิกสินค้า",
+    href: "menu://rm-receive-issue",
     icon: <IconReceiving />,
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.PROCUREMENT_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
+    badgeMenuKeys: ["inventory-issues", "chemical-issues"],
+    children: [
+      {
+        key: "goods-receipts",
+        screenCode: "GOODS_RECEIPTS",
+        label: "รับสินค้าเข้าคลัง",
+        href: "/goods-receipts",
+        icon: <IconReceiving />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.PROCUREMENT_OFFICER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "inventory-issues",
+        label: "เบิกจ่ายสินค้า",
+        href: "/inventory/issues",
+        icon: <IconMaterialIssue />,
+        screenCodes: [
+          "INVENTORY_ISSUES",
+          "MATERIAL_ISSUES",
+          "CHEMICAL_ISSUES",
+          "TIRE_PREP_ISSUES",
+        ],
+        matchHrefs: [
+          "/inventory/issues",
+          "/inventory/material-issues",
+          "/inventory/chemical-issues",
+          "/inventory/tire-prep-issues",
+        ],
+        badgeMenuKeys: ["inventory-issues", "chemical-issues"],
+        // PRODUCTION_OFFICER มาจากเมนูเบิกยางเข้าเตรียมยางที่ยุบเข้ามา
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.PRODUCTION_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {
@@ -811,21 +820,22 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     ],
   },
   {
-    key: "warehouse-approvals",
-    label: "อนุมัติงานคลัง",
-    href: "/warehouse/approvals",
-    icon: <IconWarehouse />,
-    screenCodes: ["WAREHOUSE_APPROVALS", "PRODUCTION_OUTPUT_APPROVALS"],
-    /*
-      ไม่ใส่ /warehouse/stock-posting-approvals — ความยาวเท่ากับเมนูของกลุ่มรับซื้อยาง
-      ซึ่งมาก่อนใน ALL_MENU_ITEMS และชนะตลอด ปล่อยให้เป็นของกลุ่มนั้นตามเดิม
-    */
-    matchHrefs: [
-      "/warehouse/approvals",
-      "/warehouse/production-output-approvals",
-    ],
+    key: "fg-receiving",
+    label: "รับสินค้าเข้าคลัง",
+    href: "menu://fg-receiving",
+    icon: <IconReceiving />,
     badgeMenuKeys: ["production-output-approvals"],
-    roles: [ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
+    children: [
+      {
+        key: "production-output-approvals",
+        screenCode: "PRODUCTION_OUTPUT_APPROVALS",
+        label: "อนุมัติรับผลผลิต",
+        href: "/warehouse/production-output-approvals",
+        icon: <IconWarehouse />,
+        badgeMenuKeys: ["production-output-approvals"],
+        roles: [ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
+      },
+    ],
   },
   {
     key: "fg-stock-inquiry",
@@ -889,64 +899,82 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     ],
   },
   {
-    key: "pickings",
-    screenCode: "PICKINGS",
-    label: "ใบจ่ายสินค้า",
-    href: "/pickings",
-    icon: <IconMaterialIssue />,
-    roles: [
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "packings",
-    screenCode: "PACKINGS",
-    label: "ใบบรรจุสินค้า",
-    href: "/packings",
-    icon: <IconWarehouse />,
-    roles: [
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "delivery-orders",
-    screenCode: "DELIVERY_ORDERS",
-    label: "ใบส่งสินค้า",
-    href: "/delivery-orders",
+    key: "fg-fulfillment",
+    label: "จัดเตรียมและจัดส่ง",
+    href: "menu://fg-fulfillment",
     icon: <IconStockTransfer />,
-    matchHrefs: [
-      "/delivery-orders",
-      "/delivery-orders/create-from-packing",
-    ],
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-      ROLE.ACCOUNTING_OFFICER,
+    badgeMenuKeys: ["pickings", "packings", "delivery-orders"],
+    children: [
+      {
+        key: "pickings",
+        screenCode: "PICKINGS",
+        label: "ใบจ่ายสินค้า",
+        href: "/pickings",
+        icon: <IconMaterialIssue />,
+        roles: [
+          ROLE.SALES_MANAGER,
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "packings",
+        screenCode: "PACKINGS",
+        label: "ใบบรรจุสินค้า",
+        href: "/packings",
+        icon: <IconWarehouse />,
+        roles: [
+          ROLE.SALES_MANAGER,
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "delivery-orders",
+        screenCode: "DELIVERY_ORDERS",
+        label: "ใบส่งสินค้า",
+        href: "/delivery-orders",
+        icon: <IconStockTransfer />,
+        matchHrefs: [
+          "/delivery-orders",
+          "/delivery-orders/create-from-packing",
+        ],
+        roles: [
+          ROLE.SALES_OFFICER,
+          ROLE.SALES_MANAGER,
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.EXECUTIVE,
+          ROLE.ACCOUNTING_OFFICER,
+        ],
+      },
     ],
   },
   {
-    key: "return-notes",
-    screenCode: "RETURN_NOTES",
-    label: "คืนสินค้า",
-    href: "/return-notes",
+    key: "fg-returns",
+    label: "คืนและตรวจสอบสินค้า",
+    href: "menu://fg-returns",
     icon: <IconReceiving />,
-    matchHrefs: ["/return-notes", "/return-notes/create"],
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-      ROLE.ACCOUNTING_OFFICER,
+    badgeMenuKeys: ["return-notes"],
+    children: [
+      {
+        key: "return-notes",
+        screenCode: "RETURN_NOTES",
+        label: "คืนสินค้า",
+        href: "/return-notes",
+        icon: <IconReceiving />,
+        matchHrefs: ["/return-notes", "/return-notes/create"],
+        roles: [
+          ROLE.SALES_OFFICER,
+          ROLE.SALES_MANAGER,
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.EXECUTIVE,
+          ROLE.ACCOUNTING_OFFICER,
+        ],
+      },
     ],
   },
   {
@@ -1907,7 +1935,8 @@ function filterMenus(items: MenuItem[]): MenuItem[] {
     }
     if (
       !PRODUCTION_OUTPUT_ENABLED &&
-      item.key === "production-output-stock-requests"
+      (item.key === "production-output-stock-requests" ||
+        item.key === "production-output-approvals")
     ) {
       return [];
     }

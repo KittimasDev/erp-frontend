@@ -341,27 +341,51 @@ function sectionsForScope(
   if (scope === "rm") {
     const daily = SECTIONS.find((section) => section.key === "daily");
     const inquiry = SECTIONS.find((section) => section.key === "inquiry");
+    const dailyCards = (daily?.cards ?? []).filter(
+      (card) => card.key !== "stock-transfers",
+    );
+    const goodsReceipt = dailyCards.find((card) => card.key === "goods-receipts");
+    const issueCards = dailyCards.filter((card) => card.key !== "goods-receipts");
     return [
-      {
-        ...(daily ?? { key: "daily", title: "งานประจำวัน", cards: [] }),
-        cards: (daily?.cards ?? []).filter(
-          (card) => card.key !== "stock-transfers",
-        ),
-      },
       inquiry ?? { key: "inquiry", title: "ตรวจสอบสต๊อก", cards: [] },
+      {
+        key: "rm-receive-issue",
+        title: "รับและเบิกสินค้า",
+        description: "รับของตามใบสั่งซื้อ และเบิกของออกจากคลังวัตถุดิบ",
+        cards: [...(goodsReceipt ? [goodsReceipt] : []), ...issueCards],
+      },
       stockCards,
     ];
   }
 
-  const approvals = SECTIONS.find((section) => section.key === "approvals");
   const fg = SECTIONS.find((section) => section.key === "fg");
+  const fgCards = fg?.cards ?? [];
+  const productionOutputCard = SECTIONS.find(
+    (section) => section.key === "approvals",
+  )?.cards.find((card) => card.key === "production-output-approvals");
+  const receivingSection: WarehouseHubSection[] = productionOutputCard
+    ? [
+        {
+          key: "fg-receiving",
+          title: "รับสินค้าเข้าคลัง",
+          description: "อนุมัติคำขอรับผลผลิตเข้าคลังสินค้าสำเร็จรูป",
+          cards: [
+            {
+              ...productionOutputCard,
+              title: "อนุมัติรับผลผลิต",
+            },
+          ],
+        },
+      ]
+    : [];
+
   return [
-    approvals ?? { key: "approvals", title: "อนุมัติ", cards: [] },
+    ...receivingSection,
     {
       key: "fg-inquiry",
       title: "ตรวจสอบสต๊อก",
       description: "ยอดคงเหลือ FG และความพร้อมของใบสั่งขาย",
-      cards: (fg?.cards ?? []).filter((card) =>
+      cards: fgCards.filter((card) =>
         [
           "fg-stock-balances",
           "fg-lots",
@@ -372,11 +396,17 @@ function sectionsForScope(
     },
     {
       key: "fg-fulfillment",
-      title: "จ่าย บรรจุ และส่ง",
+      title: "จัดเตรียมและจัดส่ง",
+      description: "จ่ายของ บรรจุ แล้วออกใบส่งสินค้า",
+      cards: fgCards.filter((card) =>
+        ["pickings", "packings", "delivery-orders"].includes(card.key),
+      ),
+    },
+    {
+      key: "fg-returns",
+      title: "คืนและตรวจสอบสินค้า",
+      description: "รับของที่ลูกค้าตีกลับเข้าคลังตรวจสอบ",
       cards: [
-        ...(fg?.cards ?? []).filter((card) =>
-          ["pickings", "packings", "delivery-orders"].includes(card.key),
-        ),
         {
           key: "return-notes",
           title: "คืนสินค้า",
