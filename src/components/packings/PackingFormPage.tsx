@@ -14,6 +14,7 @@ import {
   Spin,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -32,6 +33,8 @@ import {
 import dayjs from "dayjs";
 
 import AccessDenied from "@/components/auth/AccessDenied";
+import CreateDeliveryFromPackingsModal from "@/components/delivery-orders/CreateDeliveryFromPackingsModal";
+import { canCreateDeliveryFromPacking } from "@/lib/sales/sales-fulfillment-nav";
 import {
   useCancelPackingMutation,
   useConfirmPackingMutation,
@@ -67,6 +70,13 @@ export default function PackingFormPage({ id, mode }: Props) {
   const canEdit = packingActions.canEdit;
   const canConfirm = packingActions.canApprove;
   const canWrite = canEdit || canConfirm;
+  const deliveryActions = useScreenActionPermissions("DELIVERY_ORDERS");
+  const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
+  const canCreateDelivery = canCreateDeliveryFromPacking({
+    delivery: deliveryActions,
+    salesOrder: salesOrderActions,
+  });
+  const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
 
   const data = query.data?.data;
   const trackingQuery = useSalesTrackingDetailQuery(data?.salesOrderId);
@@ -465,17 +475,24 @@ export default function PackingFormPage({ id, mode }: Props) {
                 เปิดใบส่งสินค้า
               </Button>
             ) : canCreateDeliveryFromThis ? (
-              <Button
-                size="small"
-                type="primary"
-                className={styles.primaryBtn}
-                icon={<CarOutlined />}
-                onClick={() =>
-                  router.push(`/delivery-orders/create-from-packing/${id}`)
+              <Tooltip
+                title={
+                  canCreateDelivery ? undefined : "ไม่มีสิทธิ์สร้างใบส่งสินค้า"
                 }
               >
-                สร้างใบส่งสินค้า
-              </Button>
+                <span>
+                  <Button
+                    size="small"
+                    type="primary"
+                    className={styles.primaryBtn}
+                    icon={<CarOutlined />}
+                    disabled={!canCreateDelivery}
+                    onClick={() => setDeliveryModalOpen(true)}
+                  >
+                    สร้างใบส่งสินค้า
+                  </Button>
+                </span>
+              </Tooltip>
             ) : undefined
           }
         />
@@ -629,6 +646,13 @@ export default function PackingFormPage({ id, mode }: Props) {
           scroll={{ x: 720 }}
         />
       </section>
+
+      <CreateDeliveryFromPackingsModal
+        open={deliveryModalOpen}
+        onClose={() => setDeliveryModalOpen(false)}
+        anchorPackingId={id}
+        salesOrderId={data.salesOrderId}
+      />
     </div>
   );
 }

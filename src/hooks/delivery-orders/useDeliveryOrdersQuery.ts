@@ -38,10 +38,11 @@ export function useDeliveryOrderQuery(id?: string) {
   });
 }
 
-export function useReadyPackingsForDeliveryQuery() {
+export function useReadyPackingsForDeliveryQuery(enabled = true) {
   return useQuery({
     queryKey: [...deliveryOrdersQueryKey, "ready-packings"],
     queryFn: () => getReadyPackingsForDelivery(getAccessToken()),
+    enabled,
   });
 }
 

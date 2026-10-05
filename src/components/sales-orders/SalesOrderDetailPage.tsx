@@ -96,6 +96,7 @@ import {
 } from "@/types/delivery-schedules";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
+import CreateDeliveryFromPackingsModal from "@/components/delivery-orders/CreateDeliveryFromPackingsModal";
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -487,6 +488,8 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const [productionRequiredDate, setProductionRequiredDate] =
     useState<Dayjs | null>(null);
   const [poModalOpen, setPoModalOpen] = useState(false);
+  const [deliveryModalPackingId, setDeliveryModalPackingId] =
+    useState<string>();
   const [poDraft, setPoDraft] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -1169,11 +1172,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             className={styles.primaryBtn}
             type="primary"
             icon={<ShoppingOutlined />}
-            onClick={() =>
-              router.push(
-                `/delivery-orders/create-from-packing/${packingDoc.documentId}`,
-              )
-            }
+            onClick={() => setDeliveryModalPackingId(packingDoc.documentId)}
           >
             สร้างใบส่งสินค้า (รอบ {roundInFlight.roundNo})
           </Button>
@@ -1391,11 +1390,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           className={styles.primaryBtn}
           type="primary"
           icon={<CarOutlined />}
-          onClick={() =>
-            router.push(
-              `/delivery-orders/create-from-packing/${packing.documentId}`,
-            )
-          }
+          onClick={() => setDeliveryModalPackingId(packing.documentId)}
         >
           สร้างใบส่งสินค้า
         </Button>
@@ -2985,6 +2980,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
           )
         ) : null}
       </Modal>
+
+      <CreateDeliveryFromPackingsModal
+        open={Boolean(deliveryModalPackingId)}
+        onClose={() => setDeliveryModalPackingId(undefined)}
+        anchorPackingId={deliveryModalPackingId}
+        salesOrderId={data.id}
+      />
     </div>
   );
 }
