@@ -81,6 +81,7 @@ export type StockCountQueryParams = {
   countNo?: string;
   status?: string;
   warehouseId?: string;
+  warehouseGroup?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -102,6 +103,7 @@ export type CreateStockCountBody = {
   warehouseId: string;
   locationId: string;
   remark?: string;
+  warehouseGroup?: string;
   items: CreateStockCountItemBody[];
 };
 
@@ -121,6 +123,7 @@ export type UpdateStockCountBody = {
   warehouseId?: string;
   locationId?: string;
   remark?: string;
+  warehouseGroup?: string;
   items?: UpdateStockCountItemBody[];
 };
 

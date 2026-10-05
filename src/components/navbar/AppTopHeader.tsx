@@ -204,6 +204,16 @@ function resolvePageTitle(
     return categoryTitle;
   }
 
+  if (pathname === "/inventory/dashboard") {
+    const scope = searchParams?.get("scope");
+    if (scope === "rm") {
+      return "หน้าหลักคลังวัตถุดิบ";
+    }
+    if (scope === "fg") {
+      return "หน้าหลักคลังสินค้าสำเร็จรูป";
+    }
+  }
+
   if (pathname.startsWith("/purchase-requests/") && pathname.endsWith("/edit")) {
     return "แก้ไขใบขอซื้อ";
   }

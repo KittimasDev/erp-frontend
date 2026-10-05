@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Spin } from "antd";
 import {
   ArrowLeftOutlined,
@@ -11,6 +11,10 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import {
+  readWarehouseGroup,
+  withWarehouseGroup,
+} from "@/components/inventory/warehouse-group-scope";
 import {
   useApproveStockCountMutation,
   useCancelStockCountMutation,
@@ -45,6 +49,8 @@ function varianceClass(variance: number) {
 
 export default function StockCountDetailPage({ id }: Props) {
   const router = useRouter();
+  const warehouseGroup = readWarehouseGroup(useSearchParams());
+  const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
   const { modal } = App.useApp();
   const query = useStockCountQuery(id);
   const approveMutation = useApproveStockCountMutation();
@@ -70,7 +76,7 @@ export default function StockCountDetailPage({ id }: Props) {
       <div className={styles.emptyCard}>
         ไม่พบใบนับสต๊อก
         <div style={{ marginTop: 12 }}>
-          <Link href="/inventory/stock-counts">กลับรายการ</Link>
+          <Link href={scopePath("/inventory/stock-counts")}>กลับรายการ</Link>
         </div>
       </div>
     );
@@ -94,7 +100,7 @@ export default function StockCountDetailPage({ id }: Props) {
         <div className={styles.headerActions}>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/inventory/stock-counts")}
+            onClick={() => router.push(scopePath("/inventory/stock-counts"))}
           >
             กลับ
           </Button>
@@ -254,7 +260,7 @@ export default function StockCountDetailPage({ id }: Props) {
                   className={styles.secondaryBtn}
                   icon={<EditOutlined />}
                   onClick={() =>
-                    router.push(`/inventory/stock-counts/${data.id}/edit`)
+                    router.push(scopePath(`/inventory/stock-counts/${data.id}/edit`))
                   }
                 >
                   แก้ไข

@@ -59,6 +59,8 @@ type MenuItem = {
   matchHrefs?: string[];
   /** รวมยอด badge ของเมนูลูกที่ถูกยุบเข้า hub นี้ — ไม่ระบุ = ใช้ [key] */
   badgeMenuKeys?: string[];
+  /** เมนูย่อยแบบพับได้ — ตัวแม่ไม่นำทางเอง */
+  children?: MenuItem[];
 };
 
 const ROLE = {
@@ -559,12 +561,17 @@ const rawTireMenus: MenuItem[] = [
   hub ต้องถือ screenCodes และ roles ของลูกที่ยุบเข้ามาทั้งหมด ไม่งั้นคนที่มีสิทธิ์
   เฉพาะหน้าลูกจะมองไม่เห็นทางเข้าเลย
 */
+const STOCK_MANAGE_ROLES = [
+  ROLE.WAREHOUSE_OFFICER,
+  ROLE.WAREHOUSE_MANAGER,
+] as const;
+
 const rawMaterialWarehouseMenus: MenuItem[] = [
   {
     key: "rm-warehouse-home",
     screenCode: "WAREHOUSE_DASHBOARD",
-    label: "หน้าหลักคลัง",
-    href: "/inventory/dashboard",
+    label: "หน้าหลักคลังวัตถุดิบ",
+    href: "/inventory/dashboard?scope=rm",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -626,30 +633,9 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
     ],
   },
   {
-    key: "rm-stock-transfers",
-    screenCode: "STOCK_TRANSFERS",
-    label: "โอนย้ายวัตถุดิบ",
-    href: "/inventory/stock-transfers",
-    icon: <IconStockTransfer />,
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
-  },
-  {
-    key: "rm-stock-control",
-    label: "นับและปรับปรุงสต๊อกวัตถุดิบ",
-    href: "/inventory/stock-control",
-    icon: <IconStockCount />,
-    screenCodes: ["STOCK_CONTROL", "STOCK_COUNTS", "STOCK_ADJUSTMENTS"],
-    matchHrefs: [
-      "/inventory/stock-control",
-      "/inventory/stock-counts",
-      "/inventory/stock-adjustments",
-    ],
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
-  },
-  {
     key: "goods-receipts",
     screenCode: "GOODS_RECEIPTS",
-    label: "รับสินค้าเข้าคลัง (PO)",
+    label: "รับสินค้าเข้าคลัง",
     href: "/goods-receipts",
     icon: <IconReceiving />,
     roles: [
@@ -659,6 +645,39 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
       ROLE.PROCUREMENT_MANAGER,
       ROLE.ACCOUNTING_OFFICER,
       ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "rm-stock-control",
+    label: "จัดการสต๊อก",
+    href: "menu://rm-stock-control",
+    icon: <IconStockCount />,
+    badgeMenuKeys: ["rm-stock-control"],
+    children: [
+      {
+        key: "rm-stock-transfers",
+        screenCode: "STOCK_TRANSFERS",
+        label: "โอนย้าย",
+        href: "/inventory/stock-transfers?warehouseGroup=RAW_MATERIAL",
+        icon: <IconStockTransfer />,
+        roles: [...STOCK_MANAGE_ROLES],
+      },
+      {
+        key: "rm-stock-counts",
+        screenCode: "STOCK_COUNTS",
+        label: "นับสต๊อก",
+        href: "/inventory/stock-counts?warehouseGroup=RAW_MATERIAL",
+        icon: <IconStockCount />,
+        roles: [...STOCK_MANAGE_ROLES],
+      },
+      {
+        key: "rm-stock-adjustments",
+        screenCode: "STOCK_ADJUSTMENTS",
+        label: "ปรับปรุงสต๊อก",
+        href: "/inventory/stock-adjustments?warehouseGroup=RAW_MATERIAL",
+        icon: <IconStockCount />,
+        roles: [...STOCK_MANAGE_ROLES],
+      },
     ],
   },
 ];
@@ -781,8 +800,8 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
   {
     key: "fg-warehouse-home",
     screenCode: "WAREHOUSE_DASHBOARD",
-    label: "หน้าหลักคลัง",
-    href: "/inventory/dashboard",
+    label: "หน้าหลักคลังสินค้าสำเร็จรูป",
+    href: "/inventory/dashboard?scope=fg",
     icon: <IconWarehouse />,
     roles: [
       ROLE.WAREHOUSE_OFFICER,
@@ -810,46 +829,69 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
   },
   {
     key: "fg-stock-inquiry",
-    label: "ตรวจสอบสต๊อก FG",
-    href: "/inventory/stock-inquiry?isFinishedGood=true",
+    label: "ตรวจสอบสต๊อก",
+    href: "menu://fg-stock-inquiry",
     icon: <IconStockCount />,
-    screenCodes: [
-      "STOCK_INQUIRY",
-      "FG_STOCK_BALANCES",
-      "FG_INVENTORY_LOTS",
-      "FG_STOCK_MOVEMENTS",
-    ],
-    matchHrefs: [
-      "/inventory/stock-inquiry",
-      "/inventory/stock-balances",
-      "/inventory/lots",
-      "/inventory/stock-movements",
-    ],
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "sd-stock-verification",
-    screenCode: "SALES_STOCK_VERIFICATION",
-    label: "ตรวจสอบสต๊อกขาย",
-    href: "/sales-orders/stock-verification",
-    icon: <IconStockCount />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
+    children: [
+      {
+        key: "fg-stock-balances",
+        screenCode: "FG_STOCK_BALANCES",
+        label: "ยอดคงเหลือ",
+        href: "/inventory/stock-balances?isFinishedGood=true",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "fg-inventory-lots",
+        screenCode: "FG_INVENTORY_LOTS",
+        label: "ยอดคงเหลือแยก Lot",
+        href: "/inventory/lots?isFinishedGood=true",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "fg-stock-movements",
+        screenCode: "FG_STOCK_MOVEMENTS",
+        label: "ประวัติสต๊อก",
+        href: "/inventory/stock-movements?isFinishedGood=true",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "sd-stock-verification",
+        screenCode: "SALES_STOCK_VERIFICATION",
+        label: "ตรวจสอบสต๊อกขาย",
+        href: "/sales-orders/stock-verification",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.SALES_OFFICER,
+          ROLE.SALES_MANAGER,
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {
     key: "pickings",
     screenCode: "PICKINGS",
-    label: "ใบจ่ายสินค้า / Picking",
+    label: "ใบจ่ายสินค้า",
     href: "/pickings",
     icon: <IconMaterialIssue />,
     roles: [
@@ -862,24 +904,10 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
   {
     key: "packings",
     screenCode: "PACKINGS",
-    label: "ใบบรรจุสินค้า / Packing",
+    label: "ใบบรรจุสินค้า",
     href: "/packings",
     icon: <IconWarehouse />,
     roles: [
-      ROLE.SALES_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "delivery-orders-create-from-packing",
-    screenCode: "DELIVERY_ORDERS",
-    label: "สร้างใบส่งจากใบบรรจุ",
-    href: "/delivery-orders/create-from-packing",
-    icon: <IconStockTransfer />,
-    roles: [
-      ROLE.SALES_OFFICER,
       ROLE.SALES_MANAGER,
       ROLE.WAREHOUSE_OFFICER,
       ROLE.WAREHOUSE_MANAGER,
@@ -892,6 +920,10 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
     label: "ใบส่งสินค้า",
     href: "/delivery-orders",
     icon: <IconStockTransfer />,
+    matchHrefs: [
+      "/delivery-orders",
+      "/delivery-orders/create-from-packing",
+    ],
     roles: [
       ROLE.SALES_OFFICER,
       ROLE.SALES_MANAGER,
@@ -915,6 +947,40 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
       ROLE.WAREHOUSE_MANAGER,
       ROLE.EXECUTIVE,
       ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
+  {
+    key: "fg-stock-manage",
+    label: "จัดการสต๊อก",
+    href: "menu://fg-stock-manage",
+    icon: <IconStockCount />,
+    badgeMenuKeys: ["rm-stock-control"],
+    children: [
+      {
+        key: "fg-stock-transfers",
+        screenCode: "STOCK_TRANSFERS",
+        label: "โอนย้าย",
+        href: "/inventory/stock-transfers?warehouseGroup=FINISHED_GOODS",
+        icon: <IconStockTransfer />,
+        badgeMenuKeys: ["rm-stock-transfers"],
+        roles: [...STOCK_MANAGE_ROLES],
+      },
+      {
+        key: "fg-stock-counts",
+        screenCode: "STOCK_COUNTS",
+        label: "นับสต๊อก",
+        href: "/inventory/stock-counts?warehouseGroup=FINISHED_GOODS",
+        icon: <IconStockCount />,
+        roles: [...STOCK_MANAGE_ROLES],
+      },
+      {
+        key: "fg-stock-adjustments",
+        screenCode: "STOCK_ADJUSTMENTS",
+        label: "ปรับปรุงสต๊อก",
+        href: "/inventory/stock-adjustments?warehouseGroup=FINISHED_GOODS",
+        icon: <IconStockCount />,
+        roles: [...STOCK_MANAGE_ROLES],
+      },
     ],
   },
 ];
@@ -1608,7 +1674,14 @@ const masterMenus: MenuItem[] = [
   เดิมตก dashboard / oil / maintenance / hrm เมนูพวกนั้นเลยไม่เคยไฮไลต์เลย
   และ `/receiving/dashboard` ก็ไปจุดเมนู `/receiving` แทนเพราะไม่มีตัวเทียบที่ยาวกว่า
 */
-const ALL_MENU_ITEMS = [
+function flattenMenus(items: MenuItem[]): MenuItem[] {
+  return items.flatMap((item) => [
+    item,
+    ...(item.children ? flattenMenus(item.children) : []),
+  ]);
+}
+
+const ALL_MENU_ITEMS = flattenMenus([
   ...dashboardMenus,
   ...rawTireMenus,
   ...rawMaterialWarehouseMenus,
@@ -1624,7 +1697,7 @@ const ALL_MENU_ITEMS = [
   ...reportMenus,
   ...settingMenus,
   ...masterMenus,
-];
+]);
 
 /*
   ยุบเมนูลูกเข้า hub แล้ว `menuKey` ใน MENU_BADGE_REGISTRY จะไม่ตรงกับ MenuItem.key
@@ -1652,6 +1725,20 @@ function hrefPathname(href: string) {
   return href.split("?")[0];
 }
 
+function hrefQueryParam(href: string, name: string) {
+  const query = href.split("?")[1];
+  if (!query) {
+    return null;
+  }
+  return new URLSearchParams(query).get(name);
+}
+
+const STOCK_SCOPE_PATHS = [
+  "/inventory/stock-transfers",
+  "/inventory/stock-counts",
+  "/inventory/stock-adjustments",
+];
+
 function matchesHref(pathname: string, href: string) {
   const path = hrefPathname(href);
   return pathname === path || pathname.startsWith(`${path}/`);
@@ -1677,6 +1764,9 @@ function resolveActiveMenuHref(
   let best: { href: string; matchLen: number } | null = null;
 
   for (const item of ALL_MENU_ITEMS) {
+    if (item.children?.length) {
+      continue;
+    }
     const itemIsFg = isFgInventoryMenu(item);
     const candidates =
       item.matchHrefs && item.matchHrefs.length > 0
@@ -1687,6 +1777,22 @@ function resolveActiveMenuHref(
       // เอาเฉพาะฝั่งที่ตรงกับ scope บน URL — อีกฝั่งไม่ใช่เจ้าของหน้านี้
       if (SHARED_RM_FG_PATHS.includes(candidate) && itemIsFg !== fgScope) {
         continue;
+      }
+      if (candidate === "/inventory/dashboard") {
+        const itemScope = hrefQueryParam(item.href, "scope");
+        const urlScope = searchParams?.get("scope") ?? null;
+        const normalized =
+          urlScope === "rm" || urlScope === "fg" ? urlScope : null;
+        if ((itemScope ?? null) !== normalized) {
+          continue;
+        }
+      }
+      if (STOCK_SCOPE_PATHS.includes(candidate)) {
+        const itemGroup = hrefQueryParam(item.href, "warehouseGroup");
+        const urlGroup = searchParams?.get("warehouseGroup") ?? null;
+        if (itemGroup !== urlGroup) {
+          continue;
+        }
       }
       if (!matchesHref(pathname, candidate)) continue;
       if (!best || candidate.length > best.matchLen) {
@@ -1787,7 +1893,7 @@ function canSeeMenu(item: MenuItem) {
   );
 }
 
-function filterMenus(items: MenuItem[]) {
+function filterMenus(items: MenuItem[]): MenuItem[] {
   const HIDDEN_MENU_KEYS = new Set([
     "sales-invoices",
     "sales-invoices-pending",
@@ -1795,17 +1901,24 @@ function filterMenus(items: MenuItem[]) {
     "reports-sales-payments",
     "reports-ar-aging",
   ]);
-  return items.filter((item) => {
+  return items.flatMap((item) => {
     if (HIDDEN_MENU_KEYS.has(item.key)) {
-      return false;
+      return [];
     }
     if (
       !PRODUCTION_OUTPUT_ENABLED &&
       item.key === "production-output-stock-requests"
     ) {
-      return false;
+      return [];
     }
-    return canSeeMenu(item);
+    if (item.children?.length) {
+      const children = filterMenus(item.children);
+      if (children.length === 0) {
+        return [];
+      }
+      return [{ ...item, children }];
+    }
+    return canSeeMenu(item) ? [item] : [];
   });
 }
 
@@ -1867,6 +1980,9 @@ export default function AppHeader({
   const searchParams = useSearchParams();
 
   const [masterOpen, setMasterOpen] = useState(isMasterActive(pathname));
+  const [openMenuKeys, setOpenMenuKeys] = useState<Record<string, boolean>>(
+    {},
+  );
   const [user, setUser] = useState<StoredUser | null>(null);
   // Re-read matrix on navigation so menu matches latest /permissions/me
   const [permissionsTick, setPermissionsTick] = useState(0);
@@ -1994,6 +2110,126 @@ export default function AppHeader({
 
   const handleGo = (href: string) => {
     router.push(href);
+  };
+
+  const searchKey = searchParams.toString();
+  useEffect(() => {
+    const params = new URLSearchParams(searchKey);
+    const next: Record<string, boolean> = {};
+    for (const item of [
+      ...rawMaterialWarehouseMenus,
+      ...finishedGoodsWarehouseMenus,
+    ]) {
+      if (item.children?.some((child) => isActive(child, pathname, params))) {
+        next[item.key] = true;
+      }
+    }
+    if (Object.keys(next).length === 0) {
+      return;
+    }
+    setOpenMenuKeys((prev) => {
+      const unchanged = Object.entries(next).every(
+        ([key, value]) => prev[key] === value,
+      );
+      return unchanged ? prev : { ...prev, ...next };
+    });
+  }, [pathname, searchKey]);
+
+  const renderMenuEntry = (item: MenuItem) => {
+    if (!item.children?.length) {
+      return renderMenuButton(
+        item,
+        pathname,
+        collapsed,
+        handleGo,
+        searchParams,
+        badgeCounts,
+      );
+    }
+
+    const childActive = item.children.some((child) =>
+      isActive(child, pathname, searchParams),
+    );
+    const open = openMenuKeys[item.key] ?? childActive;
+    const badgeKeys = item.badgeMenuKeys?.length
+      ? item.badgeMenuKeys
+      : [item.key];
+    const raw = badgeKeys.reduce(
+      (sum, key) => sum + (badgeCounts?.[key] ?? 0),
+      0,
+    );
+    const count = raw > 0 ? raw : 0;
+
+    return (
+      <div key={item.key}>
+        <button
+          type="button"
+          title={collapsed ? item.label : undefined}
+          className={`${styles.menuItem} ${styles.parentMenuItem} ${
+            childActive ? styles.menuItemActive : ""
+          }`}
+          onClick={() => {
+            if (collapsed) {
+              expandSidebar(true);
+              setOpenMenuKeys((prev) => ({ ...prev, [item.key]: true }));
+              return;
+            }
+            setOpenMenuKeys((prev) => ({ ...prev, [item.key]: !open }));
+          }}
+          aria-expanded={open}
+        >
+          <span className={styles.menuItemIcon}>{item.icon}</span>
+          <span className={styles.menuItemText}>{item.label}</span>
+          {count > 0 ? (
+            <span
+              className={styles.menuBadge}
+              aria-label={`${count} รายการ${badgeLabelForMenuKeys(badgeKeys)}`}
+            >
+              {count > 99 ? "99+" : count}
+            </span>
+          ) : null}
+          <span className={styles.chevron}>
+            <IconChevron open={open} />
+          </span>
+        </button>
+        {!collapsed && open ? (
+          <div className={styles.subMenu}>
+            {item.children.map((child) => {
+              const active = isActive(child, pathname, searchParams);
+              const childBadgeKeys = child.badgeMenuKeys?.length
+                ? child.badgeMenuKeys
+                : [child.key];
+              const childRaw = childBadgeKeys.reduce(
+                (sum, key) => sum + (badgeCounts?.[key] ?? 0),
+                0,
+              );
+              const childCount = childRaw > 0 ? childRaw : 0;
+              return (
+                <button
+                  key={child.key}
+                  type="button"
+                  className={`${styles.subMenuItem} ${
+                    active ? styles.subMenuItemActive : ""
+                  }`}
+                  onClick={() => handleGo(child.href)}
+                >
+                  <span className={styles.subMenuIcon}>{child.icon}</span>
+                  <span className={styles.menuItemText}>{child.label}</span>
+                  {childCount > 0 ? (
+                    <span
+                      className={styles.menuBadge}
+                      aria-label={`${childCount} รายการ${badgeLabelForMenuKeys(childBadgeKeys)}`}
+                    >
+                      {childCount > 99 ? "99+" : childCount}
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </div>
+    );
   };
 
   const handleBackToPortal = () => {
@@ -2141,14 +2377,7 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleRawMaterialWarehouseMenus.map((item) =>
-                  renderMenuButton(
-                    item,
-                    pathname,
-                    collapsed,
-                    handleGo,
-                    searchParams,
-                    badgeCounts,
-                  ),
+                  renderMenuEntry(item),
                 )}
               </div>
             </div>
@@ -2180,14 +2409,7 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleFinishedGoodsWarehouseMenus.map((item) =>
-                  renderMenuButton(
-                    item,
-                    pathname,
-                    collapsed,
-                    handleGo,
-                    searchParams,
-                    badgeCounts,
-                  ),
+                  renderMenuEntry(item),
                 )}
               </div>
             </div>

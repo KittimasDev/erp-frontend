@@ -13,6 +13,9 @@ function buildQuery(params?: StockCountQueryParams) {
   if (params.countNo?.trim()) search.set("countNo", params.countNo.trim());
   if (params.status?.trim()) search.set("status", params.status.trim());
   if (params.warehouseId) search.set("warehouseId", params.warehouseId);
+  if (params.warehouseGroup) {
+    search.set("warehouseGroup", params.warehouseGroup);
+  }
   if (params.dateFrom) search.set("dateFrom", params.dateFrom);
   if (params.dateTo) search.set("dateTo", params.dateTo);
   if (params.page != null) search.set("page", String(params.page));

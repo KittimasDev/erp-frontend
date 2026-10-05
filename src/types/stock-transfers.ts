@@ -76,6 +76,7 @@ export type StockTransferQueryParams = {
   status?: string;
   dateFrom?: string;
   dateTo?: string;
+  warehouseGroup?: string;
   page?: number;
   limit?: number;
 };
@@ -96,6 +97,7 @@ export type CreateStockTransferItemBody = {
 export type CreateStockTransferBody = {
   transferDate: string;
   remark?: string;
+  warehouseGroup?: string;
   items: CreateStockTransferItemBody[];
 };
 
@@ -116,6 +118,7 @@ export type UpdateStockTransferItemBody = {
 export type UpdateStockTransferBody = {
   transferDate?: string;
   remark?: string;
+  warehouseGroup?: string;
   items?: UpdateStockTransferItemBody[];
 };
 

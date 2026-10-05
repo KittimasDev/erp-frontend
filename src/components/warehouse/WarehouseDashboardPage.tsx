@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Alert } from "antd";
 import {
   AppstoreOutlined,
@@ -275,7 +276,132 @@ const SECTIONS: WarehouseHubSection[] = [
   },
 ];
 
+type DashboardScope = "rm" | "fg";
+
+function readDashboardScope(
+  searchParams: { get(name: string): string | null },
+): DashboardScope | null {
+  const scope = searchParams.get("scope");
+  if (scope === "rm" || scope === "fg") {
+    return scope;
+  }
+  return null;
+}
+
+function withWarehouseGroup(href: string, warehouseGroup: string) {
+  const [path, query = ""] = href.split("?");
+  const params = new URLSearchParams(query);
+  params.set("warehouseGroup", warehouseGroup);
+  return `${path}?${params.toString()}`;
+}
+
+function sectionsForScope(
+  scope: DashboardScope | null,
+): WarehouseHubSection[] {
+  if (!scope) {
+    return SECTIONS;
+  }
+
+  const warehouseGroup = scope === "rm" ? "RAW_MATERIAL" : "FINISHED_GOODS";
+  const stockHref = (path: string) => withWarehouseGroup(path, warehouseGroup);
+  const stockCards: WarehouseHubSection = {
+    key: "stock-manage",
+    title: "จัดการสต๊อก",
+    description: "โอน นับ และปรับปรุงภายในคลังกลุ่มนี้",
+    cards: [
+      {
+        key: "stock-transfers",
+        title: "โอนย้าย",
+        description: "ย้ายของระหว่างคลังและตำแหน่งในกลุ่มนี้",
+        href: stockHref("/inventory/stock-transfers"),
+        icon: <SwapOutlined />,
+        screenCodes: ["STOCK_TRANSFERS"],
+        badgeMenuKeys: ["rm-stock-transfers"],
+      },
+      {
+        key: "stock-counts",
+        title: "นับสต๊อก",
+        description: "สร้างและติดตามเอกสารนับสต๊อก",
+        href: stockHref("/inventory/stock-counts"),
+        icon: <AuditOutlined />,
+        screenCodes: ["STOCK_COUNTS"],
+      },
+      {
+        key: "stock-adjustments",
+        title: "ปรับปรุงสต๊อก",
+        description: "ปรับยอดสต๊อกให้ตรงกับของจริง",
+        href: stockHref("/inventory/stock-adjustments"),
+        icon: <EditOutlined />,
+        screenCodes: ["STOCK_ADJUSTMENTS"],
+        badgeMenuKeys: ["rm-stock-control"],
+      },
+    ],
+  };
+
+  if (scope === "rm") {
+    const daily = SECTIONS.find((section) => section.key === "daily");
+    const inquiry = SECTIONS.find((section) => section.key === "inquiry");
+    return [
+      {
+        ...(daily ?? { key: "daily", title: "งานประจำวัน", cards: [] }),
+        cards: (daily?.cards ?? []).filter(
+          (card) => card.key !== "stock-transfers",
+        ),
+      },
+      inquiry ?? { key: "inquiry", title: "ตรวจสอบสต๊อก", cards: [] },
+      stockCards,
+    ];
+  }
+
+  const approvals = SECTIONS.find((section) => section.key === "approvals");
+  const fg = SECTIONS.find((section) => section.key === "fg");
+  return [
+    approvals ?? { key: "approvals", title: "อนุมัติ", cards: [] },
+    {
+      key: "fg-inquiry",
+      title: "ตรวจสอบสต๊อก",
+      description: "ยอดคงเหลือ FG และความพร้อมของใบสั่งขาย",
+      cards: (fg?.cards ?? []).filter((card) =>
+        [
+          "fg-stock-balances",
+          "fg-lots",
+          "fg-stock-movements",
+          "sd-stock-verification",
+        ].includes(card.key),
+      ),
+    },
+    {
+      key: "fg-fulfillment",
+      title: "จ่าย บรรจุ และส่ง",
+      cards: [
+        ...(fg?.cards ?? []).filter((card) =>
+          ["pickings", "packings", "delivery-orders"].includes(card.key),
+        ),
+        {
+          key: "return-notes",
+          title: "คืนสินค้า",
+          description: "รับของที่ลูกค้าตีกลับเข้าคลังตรวจสอบ",
+          href: "/return-notes",
+          icon: <InboxOutlined />,
+          screenCodes: ["RETURN_NOTES"],
+          badgeMenuKeys: ["return-notes"],
+        },
+      ],
+    },
+    stockCards,
+  ];
+}
+
 export default function WarehouseDashboardPage() {
+  const searchParams = useSearchParams();
+  const scope = readDashboardScope(searchParams);
+  const warehouseGroup =
+    scope === "rm"
+      ? "RAW_MATERIAL"
+      : scope === "fg"
+        ? "FINISHED_GOODS"
+        : undefined;
+  const sections = sectionsForScope(scope);
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
@@ -294,6 +420,7 @@ export default function WarehouseDashboardPage() {
 
   const summaryQuery = useWarehouseDashboardSummaryQuery({
     enabled: canQuerySummary,
+    warehouseGroup,
   });
   const summary = summaryQuery.data?.data;
 
@@ -418,11 +545,23 @@ export default function WarehouseDashboardPage() {
   return (
     <WarehouseHubPage
       eyebrow="WAREHOUSE · HOME"
-      title="หน้าหลักคลัง"
-      subtitle="ภาพรวมสต๊อกและทางลัดไปทุกงานในคลัง"
+      title={
+        scope === "rm"
+          ? "หน้าหลักคลังวัตถุดิบ"
+          : scope === "fg"
+            ? "หน้าหลักคลังสินค้าสำเร็จรูป"
+            : "หน้าหลักคลัง"
+      }
+      subtitle={
+        scope === "rm"
+          ? "ภาพรวมสต๊อกและทางลัดของคลังวัตถุดิบ"
+          : scope === "fg"
+            ? "ภาพรวมสต๊อกและทางลัดของคลังสินค้าสำเร็จรูป"
+            : "ภาพรวมสต๊อกและทางลัดไปทุกงานในคลัง"
+      }
       icon={<AppstoreOutlined />}
       headerExtra={overview}
-      sections={SECTIONS}
+      sections={sections}
     />
   );
 }

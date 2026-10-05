@@ -84,6 +84,7 @@ export type StockAdjustmentQueryParams = {
   adjustmentNo?: string;
   status?: string;
   warehouseId?: string;
+  warehouseGroup?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -106,6 +107,7 @@ export type CreateStockAdjustmentBody = {
   adjustmentDate: string;
   adjustmentType: string;
   reason: string;
+  warehouseGroup?: string;
   items: CreateStockAdjustmentItemBody[];
 };
 
@@ -113,6 +115,7 @@ export type UpdateStockAdjustmentBody = {
   adjustmentDate?: string;
   adjustmentType?: string;
   reason?: string;
+  warehouseGroup?: string;
   items?: Array<CreateStockAdjustmentItemBody & { id?: string }>;
 };
 

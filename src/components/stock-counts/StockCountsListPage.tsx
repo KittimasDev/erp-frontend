@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, DatePicker, Input, Pagination, Select, Space, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -13,6 +13,10 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import {
+  readWarehouseGroup,
+  withWarehouseGroup,
+} from "@/components/inventory/warehouse-group-scope";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockCountsQuery } from "@/hooks/stock-counts/useStockCountsQuery";
 import type { StockCount } from "@/types/stock-counts";
@@ -42,6 +46,8 @@ function StatusPill({ status }: { status: string }) {
 
 export default function StockCountsListPage() {
   const router = useRouter();
+  const warehouseGroup = readWarehouseGroup(useSearchParams());
+  const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
   const [countNo, setCountNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [countDate, setCountDate] = useState<dayjs.Dayjs | null>(null);
@@ -59,18 +65,30 @@ export default function StockCountsListPage() {
   const canAdd = screenActions.canAdd;
   const canEdit = screenActions.canEdit;
 
-  const query = useStockCountsQuery({ ...applied, page, limit });
-  const allQuery = useStockCountsQuery({ page: 1, limit: 1 });
-  const draftQuery = useStockCountsQuery({ status: "DRAFT", page: 1, limit: 1 });
+  const query = useStockCountsQuery({
+    ...applied,
+    page,
+    limit,
+    warehouseGroup,
+  });
+  const allQuery = useStockCountsQuery({ page: 1, limit: 1, warehouseGroup });
+  const draftQuery = useStockCountsQuery({
+    status: "DRAFT",
+    page: 1,
+    limit: 1,
+    warehouseGroup,
+  });
   const postedQuery = useStockCountsQuery({
     status: "POSTED",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
   const cancelledQuery = useStockCountsQuery({
     status: "CANCELLED",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
 
   const rows = query.data?.data.items ?? [];
@@ -163,7 +181,7 @@ export default function StockCountsListPage() {
               type="button"
               className={styles.actionBtn}
               title="ดูรายละเอียด"
-              onClick={() => router.push(`/inventory/stock-counts/${row.id}`)}
+              onClick={() => router.push(scopePath(`/inventory/stock-counts/${row.id}`))}
             >
               <EyeOutlined />
             </button>
@@ -173,7 +191,7 @@ export default function StockCountsListPage() {
                 className={styles.actionBtn}
                 title="แก้ไข"
                 onClick={() =>
-                  router.push(`/inventory/stock-counts/${row.id}/edit`)
+                  router.push(scopePath(`/inventory/stock-counts/${row.id}/edit`))
                 }
               >
                 <EditOutlined />
@@ -206,7 +224,7 @@ export default function StockCountsListPage() {
             <Button
               className={styles.primaryBtn}
               icon={<PlusOutlined />}
-              onClick={() => router.push("/inventory/stock-counts/create")}
+              onClick={() => router.push(scopePath("/inventory/stock-counts/create"))}
             >
               สร้างใบนับสต๊อก
             </Button>
@@ -337,7 +355,7 @@ export default function StockCountsListPage() {
           pagination={false}
           className={styles.table}
           onRow={(row) => ({
-            onClick: () => router.push(`/inventory/stock-counts/${row.id}`),
+            onClick: () => router.push(scopePath(`/inventory/stock-counts/${row.id}`)),
           })}
           locale={{
             emptyText: (

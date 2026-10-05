@@ -153,10 +153,30 @@ export function inferPortalModuleFromPathname(
     แล้วกลุ่มคลังหายทั้งกลุ่ม · ถ้ามาจากกลุ่มคลังอยู่แล้วให้คงกลุ่มนั้นไว้
   */
   if (pathname === "/inventory/dashboard") {
-    const current = getActivePortalModule();
-    return current === "rm-warehouse" || current === "fg-warehouse"
-      ? current
-      : "dashboard";
+    const scope = searchParams?.get("scope");
+    if (scope === "rm") {
+      return "rm-warehouse";
+    }
+    if (scope === "fg") {
+      return "fg-warehouse";
+    }
+    return "dashboard";
+  }
+
+  const stockDocPaths = [
+    "/inventory/stock-transfers",
+    "/inventory/stock-counts",
+    "/inventory/stock-adjustments",
+    "/inventory/stock-control",
+  ];
+  if (
+    stockDocPaths.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    )
+  ) {
+    return searchParams?.get("warehouseGroup") === "FINISHED_GOODS"
+      ? "fg-warehouse"
+      : "rm-warehouse";
   }
 
   if (pathname.startsWith("/dashboard") || pathname === "/receiving/dashboard") {

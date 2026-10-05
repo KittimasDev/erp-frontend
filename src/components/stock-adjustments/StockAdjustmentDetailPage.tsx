@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Input, Spin, Upload } from "antd";
 import type { UploadProps } from "antd";
 import {
@@ -17,6 +17,10 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import {
+  readWarehouseGroup,
+  withWarehouseGroup,
+} from "@/components/inventory/warehouse-group-scope";
 import {
   useApproveStockAdjustmentMutation,
   useCancelStockAdjustmentMutation,
@@ -65,6 +69,8 @@ function formatAdjustQty(value: string | number) {
 
 export default function StockAdjustmentDetailPage({ id }: Props) {
   const router = useRouter();
+  const warehouseGroup = readWarehouseGroup(useSearchParams());
+  const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
   const { modal } = App.useApp();
   const rejectReasonRef = useRef("");
 
@@ -97,7 +103,7 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
       <div className={styles.emptyCard}>
         ไม่พบใบปรับปรุงสต๊อก
         <div style={{ marginTop: 12 }}>
-          <Link href="/inventory/stock-adjustments">กลับรายการ</Link>
+          <Link href={scopePath("/inventory/stock-adjustments")}>กลับรายการ</Link>
         </div>
       </div>
     );
@@ -135,7 +141,7 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
         <div className={styles.headerActions}>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/inventory/stock-adjustments")}
+            onClick={() => router.push(scopePath("/inventory/stock-adjustments"))}
           >
             กลับ
           </Button>
@@ -336,7 +342,9 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
                   className={styles.secondaryBtn}
                   icon={<EditOutlined />}
                   onClick={() =>
-                    router.push(`/inventory/stock-adjustments/${data.id}/edit`)
+                    router.push(
+                      scopePath(`/inventory/stock-adjustments/${data.id}/edit`),
+                    )
                   }
                 >
                   แก้ไข

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
   DatePicker,
@@ -21,6 +21,10 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import {
+  readWarehouseGroup,
+  withWarehouseGroup,
+} from "@/components/inventory/warehouse-group-scope";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockAdjustmentsQuery } from "@/hooks/stock-adjustments/useStockAdjustmentsQuery";
 import type {
@@ -56,6 +60,8 @@ function StatusPill({ status }: { status: string }) {
 
 export default function StockAdjustmentsListPage() {
   const router = useRouter();
+  const warehouseGroup = readWarehouseGroup(useSearchParams());
+  const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
   const [adjustmentNo, setAdjustmentNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [adjustmentDate, setAdjustmentDate] = useState<dayjs.Dayjs | null>(
@@ -75,27 +81,40 @@ export default function StockAdjustmentsListPage() {
   const canAdd = screenActions.canAdd;
   const canEdit = screenActions.canEdit;
 
-  const query = useStockAdjustmentsQuery({ ...applied, page, limit });
-  const allQuery = useStockAdjustmentsQuery({ page: 1, limit: 1 });
+  const query = useStockAdjustmentsQuery({
+    ...applied,
+    page,
+    limit,
+    warehouseGroup,
+  });
+  const allQuery = useStockAdjustmentsQuery({
+    page: 1,
+    limit: 1,
+    warehouseGroup,
+  });
   const draftQuery = useStockAdjustmentsQuery({
     status: "DRAFT",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
   const pendingQuery = useStockAdjustmentsQuery({
     status: "PENDING_APPROVAL",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
   const postedQuery = useStockAdjustmentsQuery({
     status: "POSTED",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
   const cancelledQuery = useStockAdjustmentsQuery({
     status: "CANCELLED",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
 
   const rows = query.data?.data.items ?? [];
@@ -203,7 +222,7 @@ export default function StockAdjustmentsListPage() {
               className={styles.actionBtn}
               title="ดูรายละเอียด"
               onClick={() =>
-                router.push(`/inventory/stock-adjustments/${row.id}`)
+                router.push(scopePath(`/inventory/stock-adjustments/${row.id}`))
               }
             >
               <EyeOutlined />
@@ -214,7 +233,7 @@ export default function StockAdjustmentsListPage() {
                 className={styles.actionBtn}
                 title="แก้ไข"
                 onClick={() =>
-                  router.push(`/inventory/stock-adjustments/${row.id}/edit`)
+                  router.push(scopePath(`/inventory/stock-adjustments/${row.id}/edit`))
                 }
               >
                 <EditOutlined />
@@ -247,7 +266,7 @@ export default function StockAdjustmentsListPage() {
             <Button
               className={styles.primaryBtn}
               icon={<PlusOutlined />}
-              onClick={() => router.push("/inventory/stock-adjustments/create")}
+              onClick={() => router.push(scopePath("/inventory/stock-adjustments/create"))}
             >
               สร้างใบปรับปรุง
             </Button>
@@ -391,7 +410,7 @@ export default function StockAdjustmentsListPage() {
           scroll={{ x: 900 }}
           onRow={(row) => ({
             onClick: () =>
-              router.push(`/inventory/stock-adjustments/${row.id}`),
+              router.push(scopePath(`/inventory/stock-adjustments/${row.id}`)),
           })}
           locale={{
             emptyText: (

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, DatePicker, Form, Input, InputNumber, Select, Typography } from "antd";
 import {
   ArrowLeftOutlined,
@@ -24,6 +24,10 @@ import {
 } from "@/hooks/stock-transfers/useStockTransferMutations";
 import { useStockTransferQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import {
+  readWarehouseGroup,
+  withWarehouseGroup,
+} from "@/components/inventory/warehouse-group-scope";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateStockTransferBody } from "@/types/stock-transfers";
 import styles from "./StockTransferFormPage.module.css";
@@ -53,13 +57,18 @@ type Props = {
 
 export default function StockTransferFormPage({ mode, id }: Props) {
   const router = useRouter();
+  const warehouseGroup = readWarehouseGroup(useSearchParams());
+  const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
   const [form] = Form.useForm<FormValues>();
   const detailQuery = useStockTransferQuery(mode === "edit" ? id : undefined);
   const createMutation = useCreateStockTransferMutation();
   const updateMutation = useUpdateStockTransferMutation();
 
   const itemsQuery = useItemsQuery({ isActive: true });
-  const warehousesQuery = useWarehousesQuery({ isActive: true });
+  const warehousesQuery = useWarehousesQuery({
+    isActive: true,
+    warehouseGroup,
+  });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
   const lotsQuery = useInventoryLotsQuery({ hasStock: true });
 
@@ -93,7 +102,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
     if (!data) return;
 
     if (data.status !== "DRAFT") {
-      router.replace(`/inventory/stock-transfers/${data.id}`);
+      router.replace(scopePath(`/inventory/stock-transfers/${data.id}`));
       return;
     }
 
@@ -152,6 +161,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
     const body: CreateStockTransferBody = {
       transferDate: values.transferDate.format("YYYY-MM-DD"),
       remark: values.remark?.trim() || undefined,
+      warehouseGroup,
       items: (values.items ?? []).map((item, index) => ({
         itemId: item.itemId as string,
         unitId: item.unitId as string,
@@ -168,13 +178,13 @@ export default function StockTransferFormPage({ mode, id }: Props) {
 
     if (mode === "create") {
       const response = await createMutation.mutateAsync(body);
-      router.push(`/inventory/stock-transfers/${response.data.id}`);
+      router.push(scopePath(`/inventory/stock-transfers/${response.data.id}`));
       return;
     }
 
     if (!id) return;
     const response = await updateMutation.mutateAsync({ id, body });
-    router.push(`/inventory/stock-transfers/${response.data.id}`);
+    router.push(scopePath(`/inventory/stock-transfers/${response.data.id}`));
   };
 
   return (
@@ -193,7 +203,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
           </p>
         </div>
         <div className={styles.backLink}>
-          <Link href="/inventory/stock-transfers">
+          <Link href={scopePath("/inventory/stock-transfers")}>
             <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
           </Link>
         </div>
@@ -635,7 +645,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
               <div className={styles.footerActions}>
                 <Button
                   className={styles.cancelBtn}
-                  onClick={() => router.push("/inventory/stock-transfers")}
+                  onClick={() => router.push(scopePath("/inventory/stock-transfers"))}
                 >
                   ยกเลิก
                 </Button>

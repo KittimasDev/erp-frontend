@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, DatePicker, Input, Pagination, Select, Space, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -13,6 +13,10 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import {
+  readWarehouseGroup,
+  withWarehouseGroup,
+} from "@/components/inventory/warehouse-group-scope";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockTransfersQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
 import type { StockTransfer } from "@/types/stock-transfers";
@@ -42,6 +46,8 @@ function StatusPill({ status }: { status: string }) {
 
 export default function StockTransfersListPage() {
   const router = useRouter();
+  const warehouseGroup = readWarehouseGroup(useSearchParams());
+  const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
   const [transferNo, setTransferNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [transferDate, setTransferDate] = useState<dayjs.Dayjs | null>(null);
@@ -59,22 +65,30 @@ export default function StockTransfersListPage() {
   const canAdd = screenActions.canAdd;
   const canEdit = screenActions.canEdit;
 
-  const query = useStockTransfersQuery({ ...applied, page, limit });
-  const allQuery = useStockTransfersQuery({ page: 1, limit: 1 });
+  const query = useStockTransfersQuery({
+    ...applied,
+    page,
+    limit,
+    warehouseGroup,
+  });
+  const allQuery = useStockTransfersQuery({ page: 1, limit: 1, warehouseGroup });
   const draftQuery = useStockTransfersQuery({
     status: "DRAFT",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
   const postedQuery = useStockTransfersQuery({
     status: "POSTED",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
   const cancelledQuery = useStockTransfersQuery({
     status: "CANCELLED",
     page: 1,
     limit: 1,
+    warehouseGroup,
   });
 
   const rows = query.data?.data.items ?? [];
@@ -161,7 +175,7 @@ export default function StockTransfersListPage() {
               type="button"
               className={styles.actionBtn}
               title="ดูรายละเอียด"
-              onClick={() => router.push(`/inventory/stock-transfers/${row.id}`)}
+              onClick={() => router.push(scopePath(`/inventory/stock-transfers/${row.id}`))}
             >
               <EyeOutlined />
             </button>
@@ -171,7 +185,7 @@ export default function StockTransfersListPage() {
                 className={styles.actionBtn}
                 title="แก้ไข"
                 onClick={() =>
-                  router.push(`/inventory/stock-transfers/${row.id}/edit`)
+                  router.push(scopePath(`/inventory/stock-transfers/${row.id}/edit`))
                 }
               >
                 <EditOutlined />
@@ -204,7 +218,7 @@ export default function StockTransfersListPage() {
             <Button
               className={styles.primaryBtn}
               icon={<PlusOutlined />}
-              onClick={() => router.push("/inventory/stock-transfers/create")}
+              onClick={() => router.push(scopePath("/inventory/stock-transfers/create"))}
             >
               สร้างใบโอนย้าย
             </Button>
@@ -335,7 +349,7 @@ export default function StockTransfersListPage() {
           pagination={false}
           className={styles.table}
           onRow={(row) => ({
-            onClick: () => router.push(`/inventory/stock-transfers/${row.id}`),
+            onClick: () => router.push(scopePath(`/inventory/stock-transfers/${row.id}`)),
           })}
           locale={{
             emptyText: (

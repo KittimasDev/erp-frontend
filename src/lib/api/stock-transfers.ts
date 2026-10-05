@@ -15,6 +15,9 @@ function buildQuery(params?: StockTransferQueryParams) {
   if (params.status?.trim()) search.set("status", params.status.trim());
   if (params.dateFrom) search.set("dateFrom", params.dateFrom);
   if (params.dateTo) search.set("dateTo", params.dateTo);
+  if (params.warehouseGroup) {
+    search.set("warehouseGroup", params.warehouseGroup);
+  }
   if (params.page != null) search.set("page", String(params.page));
   if (params.limit != null) search.set("limit", String(params.limit));
   const qs = search.toString();

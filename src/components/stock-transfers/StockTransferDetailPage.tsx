@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Spin } from "antd";
 import {
   ArrowLeftOutlined,
@@ -12,6 +12,10 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import {
+  readWarehouseGroup,
+  withWarehouseGroup,
+} from "@/components/inventory/warehouse-group-scope";
 import {
   useApproveStockTransferMutation,
   useCancelStockTransferMutation,
@@ -41,6 +45,8 @@ function statusClass(status: string) {
 
 export default function StockTransferDetailPage({ id }: Props) {
   const router = useRouter();
+  const warehouseGroup = readWarehouseGroup(useSearchParams());
+  const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
   const { modal } = App.useApp();
   const query = useStockTransferQuery(id);
   const approveMutation = useApproveStockTransferMutation();
@@ -66,7 +72,7 @@ export default function StockTransferDetailPage({ id }: Props) {
       <div className={styles.emptyCard}>
         ไม่พบใบโอนย้ายสินค้า
         <div style={{ marginTop: 12 }}>
-          <Link href="/inventory/stock-transfers">กลับรายการ</Link>
+          <Link href={scopePath("/inventory/stock-transfers")}>กลับรายการ</Link>
         </div>
       </div>
     );
@@ -90,7 +96,7 @@ export default function StockTransferDetailPage({ id }: Props) {
         <div className={styles.headerActions}>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/inventory/stock-transfers")}
+            onClick={() => router.push(scopePath("/inventory/stock-transfers"))}
           >
             กลับ
           </Button>
@@ -227,7 +233,7 @@ export default function StockTransferDetailPage({ id }: Props) {
                   className={styles.secondaryBtn}
                   icon={<EditOutlined />}
                   onClick={() =>
-                    router.push(`/inventory/stock-transfers/${data.id}/edit`)
+                    router.push(scopePath(`/inventory/stock-transfers/${data.id}/edit`))
                   }
                 >
                   แก้ไข

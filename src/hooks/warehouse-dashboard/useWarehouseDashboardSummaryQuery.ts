@@ -13,10 +13,12 @@ export const warehouseDashboardQueryKey = [
 
 export function useWarehouseDashboardSummaryQuery(options?: {
   enabled?: boolean;
+  warehouseGroup?: string;
 }) {
   return useQuery({
-    queryKey: warehouseDashboardQueryKey,
-    queryFn: () => getWarehouseDashboardSummary(getAccessToken()),
+    queryKey: [...warehouseDashboardQueryKey, options?.warehouseGroup ?? "all"],
+    queryFn: () =>
+      getWarehouseDashboardSummary(getAccessToken(), options?.warehouseGroup),
     enabled: (options?.enabled ?? true) && hasAccessToken(),
     retry: false,
   });
