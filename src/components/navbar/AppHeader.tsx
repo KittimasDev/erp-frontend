@@ -975,6 +975,18 @@ const finishedGoodsWarehouseMenus: MenuItem[] = [
           ROLE.ACCOUNTING_OFFICER,
         ],
       },
+      {
+        key: "return-inspections",
+        screenCode: "RETURN_INSPECTIONS",
+        label: "รอตรวจสอบ",
+        href: "/return-notes/inspections",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {

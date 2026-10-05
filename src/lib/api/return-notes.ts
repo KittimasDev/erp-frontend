@@ -7,6 +7,8 @@ import type {
   ReturnNoteApiResponse,
   ReturnNoteListApiResponse,
   ReturnNoteQueryParams,
+  SaveReturnInspectionLineBody,
+  SortDestinationWarehousesApiResponse,
   ReturnSourcePickingDetailApiResponse,
   ReturnSourcePickingListApiResponse,
   ReturnSourceSalesOrderListApiResponse,
@@ -31,6 +33,49 @@ export function getReturnNotes(token: string, params?: ReturnNoteQueryParams) {
   return apiFetch<ReturnNoteListApiResponse>(
     `/api/return-notes${buildQuery(params)}`,
     { token },
+  );
+}
+
+export function getPendingInspections(
+  token: string,
+  params?: ReturnNoteQueryParams,
+) {
+  return apiFetch<ReturnNoteListApiResponse>(
+    `/api/return-notes/inspections${buildQuery(params)}`,
+    { token },
+  );
+}
+
+export function getInspectionDetail(token: string, id: string) {
+  return apiFetch<ReturnNoteApiResponse>(
+    `/api/return-notes/inspections/${id}`,
+    { token },
+  );
+}
+
+export function getSortDestinations(token: string) {
+  return apiFetch<SortDestinationWarehousesApiResponse>(
+    "/api/return-notes/inspection-destinations",
+    { token },
+  );
+}
+
+export function saveReturnInspectionLine(
+  token: string,
+  noteId: string,
+  itemId: string,
+  body: SaveReturnInspectionLineBody,
+) {
+  return apiFetch<ReturnNoteApiResponse>(
+    `/api/return-notes/${noteId}/items/${itemId}/inspection`,
+    { method: "PUT", token, body },
+  );
+}
+
+export function confirmReturnInspection(token: string, noteId: string) {
+  return apiFetch<ReturnNoteApiResponse>(
+    `/api/return-notes/${noteId}/inspection/confirm`,
+    { method: "POST", token },
   );
 }
 

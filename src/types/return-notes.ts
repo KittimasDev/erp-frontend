@@ -22,6 +22,18 @@ export type ReturnNoteItem = {
   lotNo?: string;
   returnQty: string;
   sortOrder: number;
+  goodQty?: string;
+  scrapQty?: string;
+  goodWarehouseId?: string;
+  goodWarehouseCode?: string;
+  goodWarehouseName?: string;
+  goodLocationId?: string;
+  scrapWarehouseId?: string;
+  scrapWarehouseCode?: string;
+  scrapWarehouseName?: string;
+  scrapLocationId?: string;
+  inspectionRemark?: string;
+  inspectedAt?: string;
 };
 
 export type ReturnNote = {
@@ -51,6 +63,9 @@ export type ReturnNote = {
   rejectedByName?: string;
   rejectedAt?: string;
   rejectReason?: string;
+  inspectionStatus?: "PENDING" | "CONFIRMED" | string;
+  inspectionConfirmedAt?: string;
+  inspectionConfirmedByName?: string;
   totalReturnQty: string;
   items: ReturnNoteItem[];
   createdAt: string;
@@ -74,6 +89,28 @@ export type CreateReturnNoteBody = {
   remark?: string;
   items: Array<{ pickingItemId: string; returnQty: number }>;
 };
+
+export type SaveReturnInspectionLineBody = {
+  goodQty: number;
+  scrapQty: number;
+  goodWarehouseId?: string;
+  goodLocationId?: string;
+  scrapWarehouseId?: string;
+  scrapLocationId?: string;
+  remark?: string;
+};
+
+export type SortDestinationWarehouse = {
+  id: string;
+  warehouseCode: string;
+  warehouseName: string;
+  locations: Array<{ id: string; locationCode: string; locationName: string }>;
+};
+
+export type SortDestinationWarehousesApiResponse = Envelope<{
+  goodWarehouses: SortDestinationWarehouse[];
+  scrapWarehouses: SortDestinationWarehouse[];
+}>;
 
 export type ApproveReturnNoteBody = {
   warehouseId?: string;

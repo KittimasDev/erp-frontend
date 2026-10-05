@@ -5,14 +5,17 @@ import { App } from "antd";
 
 import {
   approveReturnNote,
+  confirmReturnInspection,
   createReturnNote,
   rejectReturnNote,
+  saveReturnInspectionLine,
 } from "@/lib/api/return-notes";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   ApproveReturnNoteBody,
   CreateReturnNoteBody,
   RejectReturnNoteBody,
+  SaveReturnInspectionLineBody,
 } from "@/types/return-notes";
 import { returnNotesQueryKey } from "./useReturnNotesQuery";
 
@@ -63,6 +66,44 @@ export function useRejectReturnNoteMutation() {
     },
     onError: (err: Error) => {
       message.error(err.message || "ไม่อนุมัติไม่สำเร็จ");
+    },
+  });
+}
+
+export function useSaveInspectionLineMutation(noteId: string) {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationFn: ({
+      itemId,
+      body,
+    }: {
+      itemId: string;
+      body: SaveReturnInspectionLineBody;
+    }) => saveReturnInspectionLine(getAccessToken(), noteId, itemId, body),
+    onSuccess: (res) => {
+      message.success(res.message || "บันทึกผลการคัดแยกแล้ว");
+      void queryClient.invalidateQueries({ queryKey: returnNotesQueryKey });
+    },
+    onError: (err: Error) => {
+      message.error(err.message || "บันทึกผลการคัดแยกไม่สำเร็จ");
+    },
+  });
+}
+
+export function useConfirmInspectionMutation(noteId: string) {
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  return useMutation({
+    mutationFn: () => confirmReturnInspection(getAccessToken(), noteId),
+    onSuccess: (res) => {
+      message.success(res.message || "ยืนยันผลการตรวจแล้ว");
+      void queryClient.invalidateQueries({ queryKey: returnNotesQueryKey });
+    },
+    onError: (err: Error) => {
+      message.error(err.message || "ยืนยันผลการตรวจไม่สำเร็จ");
     },
   });
 }

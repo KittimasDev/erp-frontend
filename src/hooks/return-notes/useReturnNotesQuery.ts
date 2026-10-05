@@ -4,7 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   getInspectionWarehouses,
+  getInspectionDetail,
+  getPendingInspections,
   getReturnNote,
+  getSortDestinations,
   getReturnNotes,
   getReturnSourcePickingDetail,
   getReturnSourcePickings,
@@ -40,6 +43,29 @@ export function useReturnNotesQuery(params?: ReturnNoteQueryParams) {
   return useQuery({
     queryKey: [...returnNotesQueryKey, "list", params ?? {}],
     queryFn: () => getReturnNotes(getAccessToken(), params),
+  });
+}
+
+export function usePendingInspectionsQuery(params?: ReturnNoteQueryParams) {
+  return useQuery({
+    queryKey: [...returnNotesQueryKey, "inspections", params ?? {}],
+    queryFn: () => getPendingInspections(getAccessToken(), params),
+  });
+}
+
+export function useSortDestinationsQuery(enabled = true) {
+  return useQuery({
+    queryKey: [...returnNotesQueryKey, "inspection-destinations"],
+    queryFn: () => getSortDestinations(getAccessToken()),
+    enabled,
+  });
+}
+
+export function useInspectionDetailQuery(id?: string) {
+  return useQuery({
+    queryKey: [...returnNotesQueryKey, "inspection", id],
+    queryFn: () => getInspectionDetail(getAccessToken(), id as string),
+    enabled: Boolean(id),
   });
 }
 

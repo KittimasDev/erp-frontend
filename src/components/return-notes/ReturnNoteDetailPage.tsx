@@ -223,6 +223,16 @@ export default function ReturnNoteDetailPage({ id }: Props) {
                   <span>อนุมัติเมื่อ</span>
                   <strong>{formatDateTime(data.approvedAt)}</strong>
                 </div>
+                <div className={styles.sideRow}>
+                  <span>ผลการตรวจ</span>
+                  <strong>
+                    <Link href={`/return-notes/inspections/${data.id}`}>
+                      {data.inspectionStatus === "CONFIRMED"
+                        ? "ตรวจสอบแล้ว"
+                        : "รอตรวจสอบ"}
+                    </Link>
+                  </strong>
+                </div>
               </>
             ) : null}
             {data.status === "REJECTED" ? (
