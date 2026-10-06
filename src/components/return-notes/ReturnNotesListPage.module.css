@@ -298,6 +298,18 @@
   background: #9ca3af;
 }
 
+.statusInspection {
+  background: #e6f4ff;
+  border: 1px solid #91caff;
+  color: #0958d9;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.statusInspection .statusDot {
+  background: #1677ff;
+}
+
 .table :global(.ant-table) {
   background: transparent;
 }

@@ -33,6 +33,13 @@ export default function ReturnInspectionsListPage() {
   const columns: ColumnsType<ReturnNote> = useMemo(
     () => [
       {
+        title: "ลำดับ",
+        key: "no",
+        width: 72,
+        align: "center",
+        render: (_v, _r, index) => (page - 1) * limit + index + 1,
+      },
+      {
         title: "เลขที่ใบคืน",
         dataIndex: "returnNoteNo",
         key: "returnNoteNo",
@@ -70,7 +77,12 @@ export default function ReturnInspectionsListPage() {
         title: "สถานะ",
         key: "inspectionStatus",
         width: 140,
-        render: () => "รอตรวจสอบ",
+        render: () => (
+          <span className={`${styles.statusPill} ${styles.statusInspection}`}>
+            <span className={styles.statusDot} aria-hidden />
+            รอตรวจสอบ
+          </span>
+        ),
       },
       {
         title: "",
@@ -88,7 +100,7 @@ export default function ReturnInspectionsListPage() {
         ),
       },
     ],
-    [router],
+    [router, page, limit],
   );
 
   return (
