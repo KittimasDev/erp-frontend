@@ -72,7 +72,17 @@ export default function StockTransferFormPage({ mode, id }: Props) {
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
   const lotsQuery = useInventoryLotsQuery({ hasStock: true });
 
-  const items = (itemsQuery.data?.data ?? []).filter((item) => item.isIssueItem);
+  // สินค้าที่อยู่ในใบเดิมต้องคงไว้ ไม่งั้นช่องสินค้า/หน่วยของบรรทัดเดิมหาข้อมูลไม่เจอ
+  const lineItemIds = new Set(
+    (detailQuery.data?.data?.items ?? []).map((line) => line.itemId),
+  );
+  const items = (itemsQuery.data?.data ?? []).filter((item) => {
+    if (!item.isIssueItem) return false;
+    if (lineItemIds.has(item.id)) return true;
+    if (warehouseGroup === "RAW_MATERIAL") return !item.isFinishedGood;
+    if (warehouseGroup === "FINISHED_GOODS") return item.isFinishedGood;
+    return true;
+  });
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
   /*
     เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**
