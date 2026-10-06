@@ -1,11 +1,21 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Select } from "antd";
+import { Alert, Form, Input, InputNumber, Modal, Select } from "antd";
 
 import { useSortDestinationsQuery } from "@/hooks/return-notes/useReturnNotesQuery";
 import { useSaveInspectionLineMutation } from "@/hooks/return-notes/useReturnNoteMutations";
 import type { ReturnNoteItem } from "@/types/return-notes";
+
+const QTY_EPSILON = 0.0005;
+
+function roundQty(value: number) {
+  return Math.round(value * 1000) / 1000;
+}
+
+function formatQty(value: number) {
+  return value.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+}
 
 type Props = {
   noteId: string;
@@ -23,6 +33,16 @@ export default function ReturnInspectionSortModal({
   const save = useSaveInspectionLineMutation(noteId);
   const goodQty = Form.useWatch("goodQty", form) as number | undefined;
   const scrapQty = Form.useWatch("scrapQty", form) as number | undefined;
+  const returnQty = item ? Number(item.returnQty) : 0;
+
+  const fillCounterpart = (
+    field: "goodQty" | "scrapQty",
+    value: number | null,
+  ) => {
+    if (value == null) return;
+    form.setFieldValue(field, Math.max(roundQty(returnQty - value), 0));
+    void form.validateFields(["scrapQty"]).catch(() => undefined);
+  };
 
   useEffect(() => {
     if (!item) return;
@@ -87,21 +107,72 @@ export default function ReturnInspectionSortModal({
         >
           <p>
             {item.itemCode} {item.itemNameTh} · Lot {item.lotNo ?? "—"} · คืน{" "}
-            {Number(item.returnQty).toLocaleString("th-TH")}
+            {formatQty(returnQty)}
           </p>
+          <p style={{ color: "#64748b" }}>
+            ดี {formatQty(Number(goodQty ?? 0))} + เสีย{" "}
+            {formatQty(Number(scrapQty ?? 0))} ={" "}
+            {formatQty(roundQty(Number(goodQty ?? 0) + Number(scrapQty ?? 0)))}{" "}
+            จากคืน {formatQty(returnQty)}
+          </p>
+          {destinations.isError ? (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginBottom: 16 }}
+              title="โหลดรายการคลังปลายทางไม่สำเร็จ"
+              description={destinations.error?.message}
+            />
+          ) : null}
           <Form.Item
             label="จำนวนใช้งานได้"
             name="goodQty"
             rules={[{ required: true, message: "ระบุจำนวนใช้งานได้" }]}
           >
-            <InputNumber min={0} style={{ width: "100%" }} />
+            <InputNumber
+              min={0}
+              max={returnQty}
+              precision={3}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                fillCounterpart("scrapQty", value as number | null)
+              }
+            />
           </Form.Item>
           <Form.Item
             label="จำนวนเสีย"
             name="scrapQty"
-            rules={[{ required: true, message: "ระบุจำนวนเสีย" }]}
+            dependencies={["goodQty"]}
+            rules={[
+              { required: true, message: "ระบุจำนวนเสีย" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  const good = getFieldValue("goodQty");
+                  if (value == null || good == null) return Promise.resolve();
+                  if (
+                    Math.abs(Number(good) + Number(value) - returnQty) >
+                    QTY_EPSILON
+                  ) {
+                    return Promise.reject(
+                      new Error(
+                        `จำนวนใช้งานได้รวมจำนวนเสียต้องเท่ากับจำนวนคืน (${formatQty(returnQty)})`,
+                      ),
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              }),
+            ]}
           >
-            <InputNumber min={0} style={{ width: "100%" }} />
+            <InputNumber
+              min={0}
+              max={returnQty}
+              precision={3}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                fillCounterpart("goodQty", value as number | null)
+              }
+            />
           </Form.Item>
           {(goodQty ?? 0) > 0 ? (
             <>
@@ -111,6 +182,8 @@ export default function ReturnInspectionSortModal({
                 rules={[{ required: true, message: "เลือกคลังสำเร็จรูป" }]}
               >
                 <Select
+                  loading={destinations.isLoading}
+                  notFoundContent="ยังไม่มีคลังประเภท FINISHED_GOODS ที่เปิดใช้งาน — ตั้งค่าที่ข้อมูลหลักคลังสินค้า"
                   options={goodWarehouses.map((row) => ({
                     value: row.id,
                     label: `${row.warehouseCode} — ${row.warehouseName}`,
@@ -142,6 +215,8 @@ export default function ReturnInspectionSortModal({
                 rules={[{ required: true, message: "เลือกคลังของเสีย" }]}
               >
                 <Select
+                  loading={destinations.isLoading}
+                  notFoundContent="ยังไม่มีคลังประเภท REJECT ที่เปิดใช้งาน — ตั้งค่าที่ข้อมูลหลักคลังสินค้า"
                   options={scrapWarehouses.map((row) => ({
                     value: row.id,
                     label: `${row.warehouseCode} — ${row.warehouseName}`,
