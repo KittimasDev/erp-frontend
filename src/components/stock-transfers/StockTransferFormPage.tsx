@@ -88,7 +88,18 @@ export default function StockTransferFormPage({ mode, id }: Props) {
   const locations = Array.isArray(locationsQuery.data?.data)
     ? locationsQuery.data.data
     : [];
-  const lots = lotsQuery.data?.data ?? [];
+  // backend ปฏิเสธคลังนอกกลุ่ม (assertWarehousesInGroup) — ต้นทางต้องกรองด้วยชุดเดียวกับปลายทาง
+  const scopedWarehouseIds = warehouseGroup
+    ? new Set(warehouses.map((w) => w.id))
+    : null;
+  const lots = (lotsQuery.data?.data ?? []).filter(
+    (lot) => !scopedWarehouseIds || scopedWarehouseIds.has(lot.warehouseId),
+  );
+  const warehouseEmptyText = warehousesQuery.isError
+    ? "โหลดรายชื่อคลังไม่สำเร็จ"
+    : warehouseGroup
+      ? `ไม่มีคลังที่เปิดใช้งานในกลุ่ม ${warehouseGroup} — ตั้งที่ ข้อมูลหลัก > คลังสินค้า`
+      : "ไม่มีคลังที่เปิดใช้งาน";
 
   const watchedItems = Form.useWatch("items", form) ?? [];
 
@@ -492,12 +503,24 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                     showSearch
                                     optionFilterProp="label"
                                     disabled={!line?.itemId}
+                                    loading={
+                                      warehousesQuery.isLoading || lotsQuery.isLoading
+                                    }
                                     placeholder={
                                       !line?.itemId
                                         ? "เลือกสินค้าก่อน"
-                                        : fromWarehouseOptions.length === 0
-                                          ? "ไม่มีสต๊อกคงเหลือสำหรับสินค้านี้"
-                                          : "เลือกคลังต้นทาง"
+                                        : scopedWarehouseIds &&
+                                            scopedWarehouseIds.size === 0 &&
+                                            !warehousesQuery.isLoading
+                                          ? warehouseEmptyText
+                                          : fromWarehouseOptions.length === 0
+                                            ? "ไม่มีสต๊อกคงเหลือสำหรับสินค้านี้"
+                                            : "เลือกคลังต้นทาง"
+                                    }
+                                    notFoundContent={
+                                      scopedWarehouseIds && scopedWarehouseIds.size === 0
+                                        ? warehouseEmptyText
+                                        : "ไม่มีสต๊อกคงเหลือสำหรับสินค้านี้"
                                     }
                                     options={fromWarehouseOptions}
                                     onChange={() => {
@@ -578,6 +601,8 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                   <Select
                                     showSearch
                                     optionFilterProp="label"
+                                    loading={warehousesQuery.isLoading}
+                                    notFoundContent={warehouseEmptyText}
                                     options={warehouses.map((w) => ({
                                       value: w.id,
                                       label: `${w.warehouseCode} — ${w.warehouseName}`,
