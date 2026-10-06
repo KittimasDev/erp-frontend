@@ -65,7 +65,7 @@ export default function StockCountFormPage({ mode, id }: Props) {
   const itemsQuery = useItemsQuery({ isActive: true });
   const warehousesQuery = useWarehousesQuery({
     isActive: true,
-    warehouseGroup,
+    menuScope: warehouseGroup,
   });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
 

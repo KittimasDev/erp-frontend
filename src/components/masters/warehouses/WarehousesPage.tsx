@@ -31,6 +31,7 @@ import {
   useDeactivateWarehouseMutation,
 } from "@/hooks/warehouses/useActivateDeactivateWarehouseMutation";
 import { useCreateWarehouseMutation } from "@/hooks/warehouses/useCreateWarehouseMutation";
+import { useWarehouseTypesQuery } from "@/hooks/warehouse-types/useWarehouseTypesQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type {
   CreateWarehouseRequest,
@@ -195,6 +196,11 @@ export default function WarehousesPage() {
   const activateMutation = useActivateWarehouseMutation();
   const deactivateMutation = useDeactivateWarehouseMutation();
 
+  const warehouseTypesQuery = useWarehouseTypesQuery();
+  const warehouseTypeByCode = new Map(
+    (warehouseTypesQuery.data?.data ?? []).map((type) => [type.code, type]),
+  );
+
   const warehouses = warehousesQuery.data?.data ?? [];
   const activeCount = warehouses.filter((item) => item.isActive).length;
   const inactiveCount = warehouses.filter((item) => !item.isActive).length;
@@ -270,13 +276,23 @@ export default function WarehousesPage() {
       ),
     },
     {
-      title: "กลุ่มคลัง",
-      dataIndex: "warehouseGroup",
-      key: "warehouseGroup",
-      width: 140,
-      render: (value?: string) => (
-        <span className={styles.symbolText}>{value || "-"}</span>
-      ),
+      title: "ประเภทคลัง",
+      key: "warehouseType",
+      width: 200,
+      render: (_value, record) => {
+        const code = record.warehouseType ?? record.warehouseGroup;
+        const type = code ? warehouseTypeByCode.get(code) : undefined;
+        return (
+          <Space size={4} wrap>
+            <span className={styles.symbolText}>
+              {type ? type.name : code || "-"}
+            </span>
+            {record.isDefaultReturnInspection ? (
+              <Tag color="gold">รอตรวจของคืนตั้งต้น</Tag>
+            ) : null}
+          </Space>
+        );
+      },
     },
     {
       title: "ยอดติดลบ",
@@ -469,8 +485,19 @@ export default function WarehousesPage() {
             </Col>
 
             <Col xs={24} sm={12} lg={6}>
-              <Form.Item name="warehouseGroup" label="กลุ่มคลัง">
-                <Input allowClear placeholder="เช่น RAW_MATERIAL" />
+              <Form.Item name="warehouseGroup" label="ประเภทคลัง">
+                <Select
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="ทั้งหมด"
+                  options={(warehouseTypesQuery.data?.data ?? []).map(
+                    (type) => ({
+                      value: type.code,
+                      label: `${type.name} (${type.code})`,
+                    }),
+                  )}
+                />
               </Form.Item>
             </Col>
 

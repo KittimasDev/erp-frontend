@@ -1604,6 +1604,14 @@ const masterMenus: MenuItem[] = [
     roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
   },
   {
+    key: "warehouse-types",
+    screenCode: "MASTERS_WAREHOUSE_TYPES",
+    label: "ประเภทคลัง",
+    href: "/masters/warehouse-types",
+    icon: <IconWarehouse />,
+    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
+  },
+  {
     key: "warehouse-locations",
     screenCode: "WAREHOUSE_LOCATIONS",
     label: "ตำแหน่งจัดเก็บ",

@@ -26,6 +26,10 @@ function buildWarehousesQuery(params?: WarehouseQueryParams) {
     search.set("warehouseGroup", params.warehouseGroup.trim());
   }
 
+  if (params.menuScope?.trim()) {
+    search.set("menuScope", params.menuScope.trim());
+  }
+
   if (params.description?.trim()) {
     search.set("description", params.description.trim());
   }

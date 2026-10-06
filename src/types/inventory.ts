@@ -174,6 +174,7 @@ export type InventoryLotBalanceRow = {
   quantityOnHand: string;
   quantityAvailable: string;
   quantityReserved: string;
+  quantityOnHold?: string;
   averageCost: string;
   expiryDate?: string;
   expirySource?: "LOT" | "CALCULATED";

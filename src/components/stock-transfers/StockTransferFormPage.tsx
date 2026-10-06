@@ -28,7 +28,9 @@ import {
   readWarehouseGroup,
   withWarehouseGroup,
 } from "@/components/inventory/warehouse-group-scope";
+import { useWarehouseTypesQuery } from "@/hooks/warehouse-types/useWarehouseTypesQuery";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
+import type { InventoryLotBalanceRow } from "@/types/inventory";
 import type { CreateStockTransferBody } from "@/types/stock-transfers";
 import styles from "./StockTransferFormPage.module.css";
 
@@ -67,10 +69,11 @@ export default function StockTransferFormPage({ mode, id }: Props) {
   const itemsQuery = useItemsQuery({ isActive: true });
   const warehousesQuery = useWarehousesQuery({
     isActive: true,
-    warehouseGroup,
+    menuScope: warehouseGroup,
   });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
   const lotsQuery = useInventoryLotsQuery({ hasStock: true });
+  const warehouseTypesQuery = useWarehouseTypesQuery();
 
   // สินค้าที่อยู่ในใบเดิมต้องคงไว้ ไม่งั้นช่องสินค้า/หน่วยของบรรทัดเดิมหาข้อมูลไม่เจอ
   const lineItemIds = new Set(
@@ -105,10 +108,27 @@ export default function StockTransferFormPage({ mode, id }: Props) {
   const lots = (lotsQuery.data?.data ?? []).filter(
     (lot) => !scopedWarehouseIds || scopedWarehouseIds.has(lot.warehouseId),
   );
+  // คลังที่ประเภทตั้ง "รับเข้าเป็นยอดพัก" — backend ตัดโอนออกจาก quantityOnHold แทน quantityAvailable
+  const holdTypeCodes = new Set(
+    (warehouseTypesQuery.data?.data ?? [])
+      .filter((type) => type.receiveAsOnHold)
+      .map((type) => type.code),
+  );
+  const holdWarehouseIds = new Set(
+    warehouses
+      .filter((w) => holdTypeCodes.has(w.warehouseType ?? w.warehouseGroup ?? ""))
+      .map((w) => w.id),
+  );
+  const lotFreeQty = (lot: InventoryLotBalanceRow) =>
+    Number(
+      holdWarehouseIds.has(lot.warehouseId)
+        ? (lot.quantityOnHold ?? 0)
+        : lot.quantityAvailable,
+    ) || 0;
   const warehouseEmptyText = warehousesQuery.isError
     ? "โหลดรายชื่อคลังไม่สำเร็จ"
     : warehouseGroup
-      ? `ไม่มีคลังที่เปิดใช้งานในกลุ่ม ${warehouseGroup} — ตั้งที่ ข้อมูลหลัก > คลังสินค้า`
+      ? `ไม่มีคลังที่เปิดใช้งานในเมนู ${warehouseGroup} — ตั้ง "แสดงในเมนู" ที่ ข้อมูลหลัก > ประเภทคลัง`
       : "ไม่มีคลังที่เปิดใช้งาน";
 
   const watchedItems = Form.useWatch("items", form) ?? [];
@@ -311,7 +331,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                           { code: string; name: string; qty: number }
                         >();
                         for (const lot of itemLots) {
-                          const qty = Number(lot.quantityAvailable);
+                          const qty = lotFreeQty(lot);
                           const existing = fromWarehouseStock.get(lot.warehouseId);
                           if (existing) {
                             existing.qty += qty;
@@ -336,7 +356,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                         >();
                         for (const lot of itemLots) {
                           if (lot.warehouseId !== line?.fromWarehouseId) continue;
-                          const qty = Number(lot.quantityAvailable);
+                          const qty = lotFreeQty(lot);
                           const existing = fromLocationStock.get(lot.locationId);
                           if (existing) {
                             existing.qty += qty;
@@ -359,7 +379,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                           (lot) => lot.lotId === line?.lotId,
                         );
                         const selectedLotBaseQty = selectedLot
-                          ? Number(selectedLot.quantityAvailable)
+                          ? lotFreeQty(selectedLot)
                           : undefined;
                         /*
                           ยอดคงเหลือของ Lot เป็นหน่วยฐาน — ต้องแปลงเป็นหน่วยที่ผู้ใช้
@@ -591,7 +611,11 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                     }
                                     options={availableLots.map((lot) => ({
                                       value: lot.lotId,
-                                      label: `${lot.lotNo} — คงเหลือ ${lot.quantityAvailable}`,
+                                      label: `${lot.lotNo} — ${
+                                        holdWarehouseIds.has(lot.warehouseId)
+                                          ? "ยอดพัก"
+                                          : "คงเหลือ"
+                                      } ${lotFreeQty(lot).toFixed(3)}`,
                                     }))}
                                   />
                                 </Form.Item>

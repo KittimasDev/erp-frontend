@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, type MutableRefObject } from "react";
-import { Form, Input, Modal, Select, Switch, type FormInstance } from "antd";
+import { Form, Input, Modal, Switch, type FormInstance } from "antd";
 
-import { WAREHOUSE_TYPE_OPTIONS } from "@/components/masters/warehouses/warehouse-type-options";
+import WarehouseTypeFields from "@/components/masters/warehouses/WarehouseTypeFields";
 import type { CreateWarehouseRequest, Warehouse } from "@/types/warehouses";
 import styles from "@/components/masters/shared/master-page.module.css";
 
@@ -14,6 +14,7 @@ type WarehouseFormValues = {
   description?: string;
   allowNegativeStock: boolean;
   isQcRequired: boolean;
+  isDefaultReturnInspection?: boolean;
   isActive: boolean;
 };
 
@@ -34,10 +35,13 @@ function getInitialValues(
     return {
       code: initialWarehouse.warehouseCode,
       name: initialWarehouse.warehouseName,
-      warehouseGroup: initialWarehouse.warehouseGroup,
+      warehouseGroup:
+        initialWarehouse.warehouseType ?? initialWarehouse.warehouseGroup,
       description: initialWarehouse.description,
       allowNegativeStock: initialWarehouse.allowNegativeStock,
       isQcRequired: initialWarehouse.isQcRequired,
+      isDefaultReturnInspection:
+        initialWarehouse.isDefaultReturnInspection ?? false,
       isActive: initialWarehouse.isActive,
     };
   }
@@ -49,6 +53,7 @@ function getInitialValues(
     description: "",
     allowNegativeStock: false,
     isQcRequired: false,
+    isDefaultReturnInspection: false,
     isActive: true,
   };
 }
@@ -138,17 +143,14 @@ function WarehouseFormBody({
           />
         </Form.Item>
 
-        <Form.Item
-          label="ประเภทคลัง"
-          name="warehouseGroup"
-          rules={[{ required: true, message: "กรุณาเลือกประเภทคลัง" }]}
-        >
-          <Select
-            size="large"
-            placeholder="เลือกประเภทคลัง"
-            options={[...WAREHOUSE_TYPE_OPTIONS]}
-          />
-        </Form.Item>
+        <WarehouseTypeFields
+          currentTypeCode={
+            mode === "edit"
+              ? (initialWarehouse?.warehouseType ??
+                initialWarehouse?.warehouseGroup)
+              : undefined
+          }
+        />
 
         <Form.Item
           label="รายละเอียด"
@@ -238,6 +240,9 @@ export default function WarehouseFormModal({
       description: values.description?.trim() || undefined,
       allowNegativeStock: values.allowNegativeStock,
       isQcRequired: values.isQcRequired,
+      isDefaultReturnInspection: formRef.current?.getFieldValue(
+        "isDefaultReturnInspection",
+      ),
       isActive: values.isActive,
     });
   };

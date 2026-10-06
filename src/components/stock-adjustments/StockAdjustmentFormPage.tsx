@@ -85,7 +85,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
   const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
   const warehousesQuery = useWarehousesQuery({
     isActive: true,
-    warehouseGroup,
+    menuScope: warehouseGroup,
   });
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
   const lotsQuery = useInventoryLotsQuery({});

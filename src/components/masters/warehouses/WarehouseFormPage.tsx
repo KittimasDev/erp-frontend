@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Form, Input, Select, Space, Switch, Typography } from "antd";
+import { Button, Form, Input, Space, Switch, Typography } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
-import { WAREHOUSE_TYPE_OPTIONS } from "@/components/masters/warehouses/warehouse-type-options";
+import WarehouseTypeFields from "@/components/masters/warehouses/WarehouseTypeFields";
 import { useCreateWarehouseMutation } from "@/hooks/warehouses/useCreateWarehouseMutation";
 import { useUpdateWarehouseMutation } from "@/hooks/warehouses/useUpdateWarehouseMutation";
 import { useWarehouseQuery } from "@/hooks/warehouses/useWarehouseQuery";
@@ -20,6 +20,7 @@ type WarehouseFormValues = {
   description?: string;
   allowNegativeStock: boolean;
   isQcRequired: boolean;
+  isDefaultReturnInspection?: boolean;
   isActive: boolean;
 };
 
@@ -53,6 +54,7 @@ export default function WarehouseFormPage({
         description: "",
         allowNegativeStock: false,
         isQcRequired: false,
+        isDefaultReturnInspection: false,
         isActive: true,
       });
       return;
@@ -65,10 +67,11 @@ export default function WarehouseFormPage({
     form.setFieldsValue({
       code: warehouse.warehouseCode,
       name: warehouse.warehouseName,
-      warehouseGroup: warehouse.warehouseGroup,
+      warehouseGroup: warehouse.warehouseType ?? warehouse.warehouseGroup,
       description: warehouse.description,
       allowNegativeStock: warehouse.allowNegativeStock,
       isQcRequired: warehouse.isQcRequired,
+      isDefaultReturnInspection: warehouse.isDefaultReturnInspection ?? false,
       isActive: warehouse.isActive,
     });
   }, [form, isCreateMode, warehouse]);
@@ -84,6 +87,7 @@ export default function WarehouseFormPage({
       description: values.description?.trim() || undefined,
       allowNegativeStock: values.allowNegativeStock,
       isQcRequired: values.isQcRequired,
+      isDefaultReturnInspection: form.getFieldValue("isDefaultReturnInspection"),
       isActive: values.isActive,
     };
 
@@ -175,17 +179,11 @@ export default function WarehouseFormPage({
               />
             </Form.Item>
 
-            <Form.Item
-              label="ประเภทคลัง"
-              name="warehouseGroup"
-              rules={[{ required: true, message: "กรุณาเลือกประเภทคลัง" }]}
-            >
-              <Select
-                size="large"
-                placeholder="เลือกประเภทคลัง"
-                options={[...WAREHOUSE_TYPE_OPTIONS]}
-              />
-            </Form.Item>
+            <WarehouseTypeFields
+              currentTypeCode={
+                warehouse?.warehouseType ?? warehouse?.warehouseGroup
+              }
+            />
 
             <Form.Item
               label="รายละเอียด"
