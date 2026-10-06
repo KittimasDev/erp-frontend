@@ -75,7 +75,6 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     prefix: "/inventory/material-issues",
     screenCodes: ["MATERIAL_ISSUES"],
   },
-  { prefix: "/inventory/chemical-issues", screenCodes: ["CHEMICAL_ISSUES"] },
   {
     prefix: "/inventory/tire-prep-issues",
     screenCodes: ["TIRE_PREP_ISSUES"],
@@ -92,7 +91,6 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: [
       "INVENTORY_ISSUES",
       "MATERIAL_ISSUES",
-      "CHEMICAL_ISSUES",
       "TIRE_PREP_ISSUES",
     ],
   },
@@ -275,10 +273,6 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   // Reports
   { prefix: "/reports/procurement", screenCodes: ["REPORTS_PROCUREMENT"] },
   { prefix: "/reports/receiving", screenCodes: ["REPORTS_RECEIVING"] },
-  {
-    prefix: "/reports/chemical-consumption",
-    screenCodes: ["REPORTS_CHEMICAL_CONSUMPTION"],
-  },
   { prefix: "/reports/ar-aging", screenCodes: ["REPORTS_AR_AGING"] },
   {
     prefix: "/reports/sales-invoices",
@@ -463,7 +457,6 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   INVENTORY_LOTS: "/inventory/lots",
   FG_INVENTORY_LOTS: "/inventory/lots?isFinishedGood=true",
   MATERIAL_ISSUES: "/inventory/material-issues",
-  CHEMICAL_ISSUES: "/inventory/chemical-issues",
   TIRE_PREP_ISSUES: "/inventory/tire-prep-issues",
   INVENTORY_ISSUES: "/inventory/issues",
   STOCK_INQUIRY: "/inventory/stock-inquiry",
@@ -523,7 +516,6 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   PURCHASE_PAYMENTS: "/purchase-payments",
   REPORTS_PROCUREMENT: "/reports/procurement",
   REPORTS_RECEIVING: "/reports/receiving",
-  REPORTS_CHEMICAL_CONSUMPTION: "/reports/chemical-consumption",
   REPORTS_AR_AGING: "/reports/ar-aging",
   REPORTS_SALES_INVOICES: "/reports/sales-invoices",
   REPORTS_SALES_PAYMENTS: "/reports/sales-payments",

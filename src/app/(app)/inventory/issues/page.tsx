@@ -1,7 +1,5 @@
-"use client";
-
-import InventoryIssuesHubPage from "@/components/warehouse/InventoryIssuesHubPage";
+import { redirect } from "next/navigation";
 
 export default function InventoryIssuesRoutePage() {
-  return <InventoryIssuesHubPage />;
+  redirect("/inventory/material-issues");
 }

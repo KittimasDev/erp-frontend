@@ -3,7 +3,6 @@
 import type { UseQueryOptions } from "@tanstack/react-query";
 
 import { PORTAL_MODULES } from "@/components/home/portal-modules";
-import { pendingChemicalIssuesCountOptions } from "@/hooks/chemical-issues/useChemicalIssuesQuery";
 import { readyPackingsForDeliveryCountOptions } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
 import { pendingLabReviewsCountOptions } from "@/hooks/laboratory/useLaboratoryQuery";
 import { pendingLeaveApprovalsCountOptions } from "@/hooks/leave/useLeaveQueries";
@@ -283,23 +282,11 @@ export const MENU_BADGE_REGISTRY: readonly MenuBadgeEntry[] = [
   // สร้างแล้วรออนุมัติเลย และอนุมัติ = ตัดสต๊อกจริง จึงเป็นคิวที่ต้องเคลียร์
   {
     menuKey: "inventory-issues",
-    screenCode: "INVENTORY_ISSUES",
+    screenCode: "MATERIAL_ISSUES",
     kind: "approval",
     label: "ใบเบิกของออกจากคลังรออนุมัติ",
     options: (ctx) =>
       pendingStockIssuesCountOptions(ctx) as UseQueryOptions<
-        unknown,
-        Error,
-        number
-      >,
-  },
-  {
-    menuKey: "chemical-issues",
-    screenCode: "CHEMICAL_ISSUES",
-    kind: "approval",
-    label: "ใบเบิกจ่ายสารเคมีรออนุมัติ",
-    options: (ctx) =>
-      pendingChemicalIssuesCountOptions(ctx) as UseQueryOptions<
         unknown,
         Error,
         number

@@ -114,7 +114,6 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "STOCK_BALANCES",
       "INVENTORY_LOTS",
       "MATERIAL_ISSUES",
-      "CHEMICAL_ISSUES",
       "TIRE_PREP_ISSUES",
       "INVENTORY_ISSUES",
       "STOCK_TRANSFERS",
@@ -302,7 +301,6 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     screenCodes: [
       "REPORTS_PROCUREMENT",
       "REPORTS_RECEIVING",
-      "REPORTS_CHEMICAL_CONSUMPTION",
       "REPORTS_AR_AGING",
       "REPORTS_SALES_INVOICES",
       "REPORTS_SALES_PAYMENTS",
@@ -435,7 +433,7 @@ export function resolvePortalHref(mod: PortalModuleDef): string {
       userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
       userHasRole(RoleCode.WAREHOUSE_MANAGER)
     ) {
-      return "/reports/chemical-consumption";
+      return "/reports/inventory";
     }
     return "/reports/receiving";
   }

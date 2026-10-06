@@ -72,15 +72,6 @@ const SECTIONS: WarehouseHubSection[] = [
         badgeMenuKeys: ["inventory-issues"],
       },
       {
-        key: "chemical-issues",
-        title: "เบิกจ่ายสารเคมี",
-        description: "ใบเบิกสารเคมีพร้อมบันทึกวัตถุประสงค์การใช้",
-        href: "/inventory/chemical-issues",
-        icon: <ExperimentOutlined />,
-        screenCodes: ["CHEMICAL_ISSUES"],
-        badgeMenuKeys: ["chemical-issues"],
-      },
-      {
         key: "tire-prep-issues",
         title: "เบิกยางเข้ากระบวนการเตรียมยาง",
         description: "ใบเบิกยางจากคลังเข้าสายเตรียมยางก่อนผลิต",

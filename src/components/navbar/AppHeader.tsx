@@ -611,7 +611,7 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
     label: "รับและเบิกสินค้า",
     href: "menu://rm-receive-issue",
     icon: <IconReceiving />,
-    badgeMenuKeys: ["inventory-issues", "chemical-issues"],
+    badgeMenuKeys: ["inventory-issues"],
     children: [
       {
         key: "goods-receipts",
@@ -630,22 +630,16 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
       },
       {
         key: "inventory-issues",
+        screenCode: "MATERIAL_ISSUES",
         label: "เบิกจ่ายสินค้า",
-        href: "/inventory/issues",
+        href: "/inventory/material-issues",
         icon: <IconMaterialIssue />,
-        screenCodes: [
-          "INVENTORY_ISSUES",
-          "MATERIAL_ISSUES",
-          "CHEMICAL_ISSUES",
-          "TIRE_PREP_ISSUES",
-        ],
         matchHrefs: [
           "/inventory/issues",
           "/inventory/material-issues",
-          "/inventory/chemical-issues",
           "/inventory/tire-prep-issues",
         ],
-        badgeMenuKeys: ["inventory-issues", "chemical-issues"],
+        badgeMenuKeys: ["inventory-issues"],
         // PRODUCTION_OFFICER มาจากเมนูเบิกยางเข้าเตรียมยางที่ยุบเข้ามา
         roles: [
           ROLE.WAREHOUSE_OFFICER,
@@ -1378,14 +1372,6 @@ const reportMenus: MenuItem[] = [
     ],
   },
   {
-    key: "reports-chemical-consumption",
-    screenCode: "REPORTS_CHEMICAL_CONSUMPTION",
-    label: "รายงานการใช้สารเคมี",
-    href: "/reports/chemical-consumption",
-    icon: <IconReport />,
-    roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
-  },
-  {
     key: "reports-ar-aging",
     screenCode: "REPORTS_AR_AGING",
     label: "รายงานลูกหนี้คงค้าง",
@@ -1749,7 +1735,7 @@ const ALL_MENU_ITEMS = flattenMenus([
 
 /*
   ยุบเมนูลูกเข้า hub แล้ว `menuKey` ใน MENU_BADGE_REGISTRY จะไม่ตรงกับ MenuItem.key
-  อีกต่อไป (เช่น chemical-issues) — ยอดค้างจะเงียบหายโดยไม่มีใครรู้
+  อีกต่อไป (เช่น rm-stock-transfers) — ยอดค้างจะเงียบหายโดยไม่มีใครรู้
   ตัวนี้จับกรณีนั้นตั้งแต่ตอน dev
 */
 if (process.env.NODE_ENV !== "production") {
