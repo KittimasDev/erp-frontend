@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type {
+  AiOcrAvailabilityApiResponse,
   AiOcrConnectionTestApiResponse,
   AiOcrSettingsApiResponse,
   UpdateAiOcrSettingsRequest,
@@ -9,6 +10,14 @@ const BASE = "/api/settings/ai-ocr";
 
 export function getAiOcrSettings(token: string) {
   return apiFetch<AiOcrSettingsApiResponse>(BASE, { method: "GET", token });
+}
+
+/** เปิดตั๋วจากรูปได้หรือยัง — ไม่ดึงคีย์ และเจ้าหน้าที่รับซื้อเรียกได้ */
+export function getAiOcrAvailability(token: string) {
+  return apiFetch<AiOcrAvailabilityApiResponse>(`${BASE}/availability`, {
+    method: "GET",
+    token,
+  });
 }
 
 export function updateAiOcrSettings(

@@ -46,7 +46,10 @@ import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
 
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import T2900OutboundTicketsPanel from "@/components/weighbridge/T2900OutboundTicketsPanel";
+import { useAiOcrAvailabilityQuery } from "@/hooks/ai-ocr-settings/useAiOcrSettingsQueries";
 import { useScanWeighTicketOcrStandaloneMutation } from "@/hooks/weighbridge-tickets/useScanWeighTicketOcrStandaloneMutation";
+import { canAccessScreen } from "@/lib/auth/permissions-access";
+import { isAdministrator } from "@/lib/auth/session";
 import type { WeighTicketOcrResult } from "@/types/weighbridge-ocr";
 
 import CreateTicketFromOcrModal from "./CreateTicketFromOcrModal";
@@ -54,6 +57,55 @@ import WeighTicketOcrCaptureButton from "./WeighTicketOcrCaptureButton";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
 const { RangePicker } = DatePicker;
+
+/**
+ * ปุ่มเปิดตั๋วจากรูป — ยังไม่ตั้ง AI จะไม่เปิดกล้อง
+ * คนที่เข้าหน้าตั้งค่าได้จะถูกพาไปกรอก คนที่เข้าไม่ได้เห็นข้อความให้แจ้งผู้ดูแล
+ */
+function OpenTicketFromImageAction({
+  pending,
+  onScan,
+}: {
+  pending: boolean;
+  onScan: (file: File, previewUrl: string) => void;
+}) {
+  const router = useRouter();
+  const availability = useAiOcrAvailabilityQuery();
+  const canOpenSettings =
+    isAdministrator() || canAccessScreen("SETTINGS_AI_OCR");
+
+  if (availability.isSuccess && availability.data.data.configured) {
+    return (
+      <WeighTicketOcrCaptureButton
+        label="เปิดตั๋วจากรูปใบชั่ง"
+        pending={pending}
+        onScan={onScan}
+      />
+    );
+  }
+
+  if (availability.isPending) {
+    return (
+      <Button disabled loading>
+        เปิดตั๋วจากรูปใบชั่ง
+      </Button>
+    );
+  }
+
+  if (canOpenSettings) {
+    return (
+      <Button onClick={() => router.push("/settings/ai-ocr")}>
+        ไปตั้งค่า AI อ่านเอกสาร
+      </Button>
+    );
+  }
+
+  return (
+    <Typography.Text type="secondary">
+      ยังไม่ได้ตั้งค่า AI อ่านเอกสาร ให้แจ้งผู้ดูแลระบบ
+    </Typography.Text>
+  );
+}
 
 type OpenTicketFormValues = {
   sellerId: string;
@@ -1114,8 +1166,7 @@ export default function WeighbridgeDashboardPage() {
               Dashboard
             </Button>
             {tab === "tickets" ? (
-              <WeighTicketOcrCaptureButton
-                label="เปิดตั๋วจากรูปใบชั่ง"
+              <OpenTicketFromImageAction
                 pending={scanOcrMutation.isPending}
                 onScan={handleScanFromDashboard}
               />

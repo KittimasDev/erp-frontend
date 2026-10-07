@@ -5,6 +5,7 @@ import { App } from "antd";
 
 import {
   deleteAiOcrApiKey,
+  getAiOcrAvailability,
   getAiOcrSettings,
   testAiOcrConnection,
   updateAiOcrSettings,
@@ -14,6 +15,20 @@ import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
 import type { UpdateAiOcrSettingsRequest } from "@/types/ai-ocr-settings";
 
 export const aiOcrSettingsQueryKey = ["settings", "ai-ocr"] as const;
+export const aiOcrAvailabilityQueryKey = [
+  "settings",
+  "ai-ocr",
+  "availability",
+] as const;
+
+export function useAiOcrAvailabilityQuery(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: aiOcrAvailabilityQueryKey,
+    queryFn: () => getAiOcrAvailability(getAccessToken()),
+    enabled: (options?.enabled ?? true) && hasAccessToken(),
+    retry: false,
+  });
+}
 
 export function useAiOcrSettingsQuery(options?: { enabled?: boolean }) {
   return useQuery({

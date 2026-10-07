@@ -66,6 +66,17 @@ export interface AiOcrSettingsApiResponse {
   data: AiOcrSettings;
 }
 
+/** มุมมองแคบสำหรับหน้ารับซื้อ — ไม่มีคีย์ */
+export interface AiOcrAvailability {
+  configured: boolean;
+}
+
+export interface AiOcrAvailabilityApiResponse {
+  statusCode: number;
+  message: string;
+  data: AiOcrAvailability;
+}
+
 export interface AiOcrConnectionTestApiResponse {
   statusCode: number;
   message: string;
