@@ -23,6 +23,7 @@ import {
 import { useStockCountQuery } from "@/hooks/stock-counts/useStockCountsQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import {
+  itemInWarehouseGroup,
   readWarehouseGroup,
   withWarehouseGroup,
 } from "@/components/inventory/warehouse-group-scope";
@@ -76,7 +77,14 @@ export default function StockCountFormPage({ mode, id }: Props) {
     locationId: headerLocationId || undefined,
   });
 
-  const items = itemsQuery.data?.data ?? [];
+  // สินค้าที่อยู่ในใบเดิมต้องคงไว้ ไม่งั้นช่องสินค้า/หน่วยของบรรทัดเดิมหาข้อมูลไม่เจอ
+  const lineItemIds = new Set(
+    (detailQuery.data?.data?.items ?? []).map((line) => line.itemId),
+  );
+  const items = (itemsQuery.data?.data ?? []).filter(
+    (item) =>
+      lineItemIds.has(item.id) || itemInWarehouseGroup(item, warehouseGroup),
+  );
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
   /*
     เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**

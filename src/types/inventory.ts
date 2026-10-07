@@ -208,6 +208,9 @@ export type InventoryLotQueryParams = {
   q?: string;
   hasStock?: boolean;
   nearExpiry?: boolean;
+  /** วันที่รับเข้า Lot (YYYY-MM-DD) รวมวันต้น/ปลาย */
+  dateFrom?: string;
+  dateTo?: string;
   /** กรองเฉพาะ Lot ของ Batch นี้ — ฟอร์มใบแปรสภาพ **ไม่ใช้ตัวนี้** ดูที่ `batchNo` ของแต่ละแถวแทน */
   batchNo?: string;
 };

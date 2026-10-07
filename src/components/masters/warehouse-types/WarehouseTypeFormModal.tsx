@@ -230,12 +230,12 @@ export default function WarehouseTypeFormModal({
         <Form.Item
           label="แสดงในเมนู"
           name="menuScope"
-          extra="คลังประเภทนี้จะขึ้นให้เลือกในเมนูโอนย้าย/ปรับปรุง/ตรวจนับของกลุ่มนั้น"
+          extra="คลังประเภทนี้จะขึ้นให้เลือกในเมนูโอนย้าย/ปรับปรุง/ตรวจนับของกลุ่มนั้น — เว้นว่าง = อยู่ในเมนูคลังวัตถุดิบ เฉพาะประเภทที่ตั้งเป็น FG ถึงไปอยู่เมนูคลังสินค้าสำเร็จรูป"
         >
           <Select
             allowClear
             size="large"
-            placeholder="ไม่ผูกเมนู"
+            placeholder="เมนูคลังวัตถุดิบ (ค่าเริ่มต้น)"
             options={MENU_SCOPE_OPTIONS}
           />
         </Form.Item>

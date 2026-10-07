@@ -10,6 +10,16 @@ export function readWarehouseGroup(
   return undefined;
 }
 
+/** เมนูคลังวัตถุดิบ = ทุกสินค้าที่ไม่ใช่สินค้าสำเร็จรูป · เมนู FG = เฉพาะสินค้าสำเร็จรูป */
+export function itemInWarehouseGroup(
+  item: { isFinishedGood?: boolean | null },
+  warehouseGroup?: ScopedWarehouseGroup,
+) {
+  if (warehouseGroup === "RAW_MATERIAL") return !item.isFinishedGood;
+  if (warehouseGroup === "FINISHED_GOODS") return !!item.isFinishedGood;
+  return true;
+}
+
 export function withWarehouseGroup(path: string, warehouseGroup?: string) {
   if (!warehouseGroup) {
     return path;

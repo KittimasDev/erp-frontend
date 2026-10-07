@@ -25,6 +25,7 @@ import {
 import { useStockTransferQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import {
+  itemInWarehouseGroup,
   readWarehouseGroup,
   withWarehouseGroup,
 } from "@/components/inventory/warehouse-group-scope";
@@ -82,9 +83,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
   const items = (itemsQuery.data?.data ?? []).filter((item) => {
     if (!item.isIssueItem) return false;
     if (lineItemIds.has(item.id)) return true;
-    if (warehouseGroup === "RAW_MATERIAL") return !item.isFinishedGood;
-    if (warehouseGroup === "FINISHED_GOODS") return item.isFinishedGood;
-    return true;
+    return itemInWarehouseGroup(item, warehouseGroup);
   });
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
   /*

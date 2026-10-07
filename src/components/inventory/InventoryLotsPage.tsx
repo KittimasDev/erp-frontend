@@ -2,10 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button, Input, Select, Switch, Table, Typography } from "antd";
+import {
+  Alert,
+  Button,
+  DatePicker,
+  Input,
+  Select,
+  Switch,
+  Table,
+  Typography,
+} from "antd";
 import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
@@ -120,6 +129,7 @@ export default function InventoryLotsPage() {
     q: string;
     hasStock: boolean;
     nearExpiry: boolean;
+    receivedRange?: [Dayjs | null, Dayjs | null] | null;
   }>({
     q: "",
     hasStock: true,
@@ -226,6 +236,9 @@ export default function InventoryLotsPage() {
     filters.status ? `สถานะ ${filters.status}` : null,
     filters.hasStock === false ? "รวมยอดศูนย์" : "เฉพาะมียอด",
     filters.nearExpiry ? "ใกล้หมดอายุ" : null,
+    filters.dateFrom || filters.dateTo
+      ? `รับเข้า ${filters.dateFrom ? formatDate(filters.dateFrom) : "…"} – ${filters.dateTo ? formatDate(filters.dateTo) : "…"}`
+      : null,
     filters.q ? `ค้นหา “${filters.q}”` : null,
   ]
     .filter(Boolean)
@@ -239,10 +252,18 @@ export default function InventoryLotsPage() {
       render: (_, row) => (
         <div className={styles.itemCell}>
           <span className={styles.lotChip}>{row.lotNo}</span>
-          <span className={styles.metaMuted}>
-            รับเข้า {formatDate(row.receivedDate)}
-          </span>
         </div>
+      ),
+    },
+    {
+      title: "วันที่รับเข้า",
+      dataIndex: "receivedDate",
+      key: "receivedDate",
+      width: 120,
+      sorter: (a, b) =>
+        (a.receivedDate ?? "").localeCompare(b.receivedDate ?? ""),
+      render: (value?: string) => (
+        <span className={styles.itemName}>{formatDate(value)}</span>
       ),
     },
     {
@@ -366,6 +387,8 @@ export default function InventoryLotsPage() {
       q: draft.q.trim() || undefined,
       hasStock: draft.hasStock,
       nearExpiry: draft.nearExpiry || undefined,
+      dateFrom: draft.receivedRange?.[0]?.format("YYYY-MM-DD"),
+      dateTo: draft.receivedRange?.[1]?.format("YYYY-MM-DD"),
       ...scopeFilter,
     });
   };
@@ -513,6 +536,19 @@ export default function InventoryLotsPage() {
               />
             </div>
             <div className={styles.filterField}>
+              <span className={styles.filterLabel}>วันที่รับเข้า</span>
+              <DatePicker.RangePicker
+                allowEmpty={[true, true]}
+                className={styles.filterControl}
+                format="DD/MM/YYYY"
+                placeholder={["ตั้งแต่", "ถึง"]}
+                value={draft.receivedRange ?? null}
+                onChange={(range) =>
+                  setDraft((prev) => ({ ...prev, receivedRange: range }))
+                }
+              />
+            </div>
+            <div className={styles.filterField}>
               <span className={styles.filterLabel}>ค้นหา</span>
               <Input
                 allowClear
@@ -578,7 +614,7 @@ export default function InventoryLotsPage() {
                 showTotal: (total) => `ทั้งหมด ${total} รายการ`,
                 hideOnSinglePage: true,
               }}
-              scroll={{ x: 1280 }}
+              scroll={{ x: 1400 }}
               locale={{
                 emptyText: (
                   <div className={styles.emptyState}>

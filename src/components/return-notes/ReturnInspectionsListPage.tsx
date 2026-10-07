@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Pagination, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EyeOutlined, SearchOutlined } from "@ant-design/icons";
+import { FileSearchOutlined, SearchOutlined } from "@ant-design/icons";
 
 import { usePendingInspectionsQuery } from "@/hooks/return-notes/useReturnNotesQuery";
 import type { ReturnNote } from "@/types/return-notes";
@@ -87,15 +87,20 @@ export default function ReturnInspectionsListPage() {
       {
         title: "",
         key: "actions",
-        width: 80,
+        width: 130,
+        align: "center",
         render: (_: unknown, row) => (
           <button
             type="button"
-            className={styles.actionBtn}
+            className={styles.inspectBtn}
             title="ตรวจสอบและคัดแยก"
-            onClick={() => router.push(`/return-notes/inspections/${row.id}`)}
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/return-notes/inspections/${row.id}`);
+            }}
           >
-            <EyeOutlined />
+            <FileSearchOutlined />
+            ตรวจสอบ
           </button>
         ),
       },
