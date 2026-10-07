@@ -1157,6 +1157,19 @@ const salesMenus: MenuItem[] = [
     ],
   },
   {
+    key: "sales-credit-notes",
+    screenCode: "SALES_CREDIT_NOTES",
+    label: "ใบลดหนี้",
+    href: "/sales-credit-notes",
+    icon: <IconPayment />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "sales-tracking",
     screenCode: "SALES_TRACKING",
     label: "ติดตามการขายและจัดส่ง",

@@ -247,6 +247,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["SALES_INVOICES_PENDING"],
   },
   { prefix: "/sales-invoices", screenCodes: ["SALES_INVOICES"] },
+  { prefix: "/sales-credit-notes", screenCodes: ["SALES_CREDIT_NOTES"] },
   { prefix: "/sales-tracking", screenCodes: ["SALES_TRACKING"] },
 
   // Lab / oil / maintenance
@@ -498,6 +499,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   RETURN_NOTES: "/return-notes",
   RETURN_INSPECTIONS: "/return-notes/inspections",
   SALES_INVOICES: "/sales-invoices",
+  SALES_CREDIT_NOTES: "/sales-credit-notes",
   SALES_INVOICES_PENDING: "/sales-invoices/pending",
   SALES_TRACKING: "/sales-tracking",
   LAB_SAMPLES: "/laboratory/samples",
