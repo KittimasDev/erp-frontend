@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import {
+  getDuePurchaseOrders,
   getGoodsReceipt,
   getGoodsReceipts,
   getGoodsReceiptsByPo,
@@ -24,6 +25,13 @@ export function useGoodsReceiptQuery(id?: string) {
     queryKey: [...goodsReceiptsQueryKey, "detail", id],
     queryFn: () => getGoodsReceipt(getAccessToken(), id as string),
     enabled: Boolean(id),
+  });
+}
+
+export function useDuePurchaseOrdersQuery() {
+  return useQuery({
+    queryKey: [...goodsReceiptsQueryKey, "due-purchase-orders"],
+    queryFn: () => getDuePurchaseOrders(getAccessToken()),
   });
 }
 

@@ -27,6 +27,7 @@ import { useGoodsReceiptsQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQu
 import type { GoodsReceipt } from "@/types/goods-receipts";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
+import DuePurchaseOrdersSection from "./DuePurchaseOrdersSection";
 import styles from "./GoodsReceiptsListPage.module.css";
 
 function formatDate(value?: string) {
@@ -262,6 +263,8 @@ export default function GoodsReceiptsListPage() {
           </Link>
         </div>
       </header>
+
+      <DuePurchaseOrdersSection canAdd={canAdd} />
 
       <div className={styles.statRow}>
         <button

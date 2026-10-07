@@ -183,3 +183,30 @@ export type GoodsReceiptByPoApiResponse = {
   message: string;
   data: GoodsReceipt[];
 };
+
+export type DuePurchaseOrderGroup = "OVERDUE" | "DUE_SOON";
+
+/** รอบจัดส่ง PO ที่ใกล้ถึงกำหนดรับ (ภายใน 2 วัน) หรือเลยกำหนดแต่ยังรับไม่ครบ */
+export type DuePurchaseOrderRound = {
+  /** ว่างเมื่อเป็น PO เก่าที่ยังไม่มีแถวรอบจัดส่ง */
+  scheduleId?: string;
+  purchaseOrderId: string;
+  poNo: string;
+  creditorCode?: string;
+  creditorName?: string;
+  roundNo: number;
+  deliveryDate: string;
+  /** ติดลบ = เลยกำหนดมาแล้ว */
+  daysUntilDue: number;
+  dueGroup: DuePurchaseOrderGroup;
+  receiveStatus: string;
+  itemCount: number;
+  draftGoodsReceiptId?: string;
+  draftGoodsReceiptNo?: string;
+};
+
+export type DuePurchaseOrderListApiResponse = {
+  statusCode: number;
+  message: string;
+  data: DuePurchaseOrderRound[];
+};

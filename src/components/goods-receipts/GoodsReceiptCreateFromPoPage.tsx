@@ -127,12 +127,15 @@ type Props = {
   purchaseOrderId: string;
   backHref?: string;
   pageTitle?: string;
+  /** รอบจัดส่งที่ให้เลือกไว้ก่อน — ใช้เมื่อเป็นรอบที่ยังรับได้เท่านั้น */
+  initialScheduleId?: string;
 };
 
 export default function GoodsReceiptCreateFromPoPage({
   purchaseOrderId,
   backHref,
   pageTitle = "รับของจากใบสั่งซื้อ",
+  initialScheduleId,
 }: Props) {
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
@@ -332,6 +335,7 @@ export default function GoodsReceiptCreateFromPoPage({
   // meta ขึ้นกับ query หลายตัวที่โหลดเสร็จไม่พร้อมกัน — ถ้าไม่กันไว้
   // effect จะยิงซ้ำแล้วทับค่าที่ผู้ใช้กรอกไปแล้ว
   const prefilledForRef = useRef<string | undefined>(undefined);
+  const initialScheduleAppliedRef = useRef(false);
 
   useEffect(() => {
     if (!redirectToDraft || !latestDraftGr) return;
@@ -382,6 +386,14 @@ export default function GoodsReceiptCreateFromPoPage({
     itemsQuery.isLoading,
     unitsQuery.isLoading,
   ]);
+
+  useEffect(() => {
+    if (!initialScheduleId || initialScheduleAppliedRef.current) return;
+    if (!listsReady || !receivable) return;
+    if (!openSchedules.some((round) => round.id === initialScheduleId)) return;
+    initialScheduleAppliedRef.current = true;
+    form.setFieldValue("purchaseOrderDeliveryScheduleId", initialScheduleId);
+  }, [form, initialScheduleId, listsReady, receivable, openSchedules]);
 
   if (!canView) {
     return (

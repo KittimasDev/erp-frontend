@@ -1,6 +1,7 @@
 import { apiFetch } from "./client";
 import type {
   CreateGoodsReceiptFromPoBody,
+  DuePurchaseOrderListApiResponse,
   GoodsReceiptApiResponse,
   GoodsReceiptByPoApiResponse,
   GoodsReceiptListApiResponse,
@@ -45,6 +46,13 @@ export function getGoodsReceiptsByPo(
 ) {
   return apiFetch<GoodsReceiptByPoApiResponse>(
     `/api/goods-receipts/by-po/${purchaseOrderId}`,
+    { token },
+  );
+}
+
+export function getDuePurchaseOrders(token: string) {
+  return apiFetch<DuePurchaseOrderListApiResponse>(
+    "/api/goods-receipts/due-purchase-orders",
     { token },
   );
 }
