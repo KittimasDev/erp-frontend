@@ -34,6 +34,8 @@ export type PurchaseOrderPdfRoundItem = {
 export type PurchaseOrderPdfRound = {
   roundNo: number;
   deliveryDate: string;
+  /** วันกำหนดส่งก่อนเลื่อน — มีค่าเมื่อรอบนี้ถูกเลื่อนแล้ว */
+  originalDeliveryDate?: string;
   items: PurchaseOrderPdfRoundItem[];
 };
 
@@ -203,7 +205,10 @@ function scheduleSectionHeadHtml() {
 }
 
 function scheduleRoundHeadingHtml(round: PurchaseOrderPdfRound) {
-  return `<div class="group-heading">รอบที่ ${round.roundNo} — กำหนดส่ง ${escapeHtml(round.deliveryDate)}</div>`;
+  const label = round.originalDeliveryDate
+    ? `รอบที่ ${round.roundNo} กำหนดส่ง ${escapeHtml(round.originalDeliveryDate)} เลื่อนเป็น ${escapeHtml(round.deliveryDate)}`
+    : `รอบที่ ${round.roundNo} — กำหนดส่ง ${escapeHtml(round.deliveryDate)}`;
+  return `<div class="group-heading">${label}</div>`;
 }
 
 function scheduleTheadHtml() {

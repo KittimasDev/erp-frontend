@@ -103,6 +103,14 @@ function formatDate(value?: string) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
+/** หัวรอบใน PDF ใช้ปี พ.ศ. เช่น 09/10/2569 */
+function formatBuddhistDate(value?: string) {
+  if (!value) return "—";
+  const day = dayjs(value);
+  if (!day.isValid()) return "—";
+  return `${day.format("DD/MM")}/${day.year() + 543}`;
+}
+
 function formatDateTime(value?: string) {
   if (!value) return "—";
   return dayjs(value).format("DD/MM/YYYY HH:mm");
@@ -121,18 +129,28 @@ function toPdfDeliveryRounds(schedules: PoDeliverySchedule[]) {
   return [...schedules]
     .filter((schedule) => schedule.status !== "CANCELLED")
     .sort((a, b) => a.roundNo - b.roundNo)
-    .map((schedule) => ({
-      roundNo: schedule.roundNo,
-      deliveryDate: formatDate(schedule.effectiveDeliveryDate),
-      items: schedule.items
-        .filter((item) => Number(item.quantity) > 0)
-        .map((item) => ({
-          itemCode: item.itemCode ?? "—",
-          itemName: item.itemNameTh ?? "—",
-          qty: Number(item.quantity) || 0,
-          unit: item.unitCode ?? "—",
-        })),
-    }))
+    .map((schedule) => {
+      const originalDay = schedule.originalDeliveryDate
+        ? dayjs(schedule.originalDeliveryDate).format("YYYY-MM-DD")
+        : undefined;
+      const currentDay = dayjs(schedule.deliveryDate).format("YYYY-MM-DD");
+      const postponed = !!originalDay && originalDay !== currentDay;
+      return {
+        roundNo: schedule.roundNo,
+        deliveryDate: formatBuddhistDate(schedule.effectiveDeliveryDate),
+        originalDeliveryDate: postponed
+          ? formatBuddhistDate(schedule.originalDeliveryDate)
+          : undefined,
+        items: schedule.items
+          .filter((item) => Number(item.quantity) > 0)
+          .map((item) => ({
+            itemCode: item.itemCode ?? "—",
+            itemName: item.itemNameTh ?? "—",
+            qty: Number(item.quantity) || 0,
+            unit: item.unitCode ?? "—",
+          })),
+      };
+    })
     .filter((round) => round.items.length > 0);
 }
 
