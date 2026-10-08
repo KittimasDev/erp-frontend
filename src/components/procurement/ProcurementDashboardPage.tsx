@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Button,
@@ -349,6 +350,18 @@ export default function ProcurementDashboardPage() {
             </p>
           </div>
         </header>
+
+        <nav className={styles.reportMenu} aria-label="รายงาน">
+          <Link href="/reports/procurement/stock-balance">
+            รายงานแสดงสินค้าคงเหลือ
+          </Link>
+          <Link href="/reports/procurement/stock-movements">
+            รายงานแสดงสรุปยอดเคลื่อนไหวสินค้า
+          </Link>
+          <Link href="/reports/procurement/sales-by-item">
+            รายงานสรุปยอดขาย
+          </Link>
+        </nav>
 
         <div className={styles.toolbar}>
           <label className={styles.filterField}>
