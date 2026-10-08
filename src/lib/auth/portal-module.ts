@@ -280,7 +280,11 @@ export function inferPortalModuleFromPathname(
     }
     return "hrm";
   }
-  if (pathname.startsWith("/purchase-payments")) {
+  if (
+    pathname.startsWith("/purchase-payments") ||
+    pathname.startsWith("/sales-credit-notes") ||
+    pathname.startsWith("/finance")
+  ) {
     return "finance";
   }
   if (pathname.startsWith("/reports")) {

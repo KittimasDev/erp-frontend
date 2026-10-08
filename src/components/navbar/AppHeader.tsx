@@ -59,7 +59,7 @@ type MenuItem = {
   matchHrefs?: string[];
   /** รวมยอด badge ของเมนูลูกที่ถูกยุบเข้า hub นี้ — ไม่ระบุ = ใช้ [key] */
   badgeMenuKeys?: string[];
-  /** เมนูย่อยแบบพับได้ — ตัวแม่ไม่นำทางเอง */
+  /** เมนูย่อยแบบพับได้ — กดแถวหรือลูกศรเพื่อกางลูกเมนู รายการใบงานค่อยเปิดหน้า */
   children?: MenuItem[];
 };
 
@@ -1157,19 +1157,6 @@ const salesMenus: MenuItem[] = [
     ],
   },
   {
-    key: "sales-credit-notes",
-    screenCode: "SALES_CREDIT_NOTES",
-    label: "ใบลดหนี้",
-    href: "/sales-credit-notes",
-    icon: <IconPayment />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
     key: "sales-tracking",
     screenCode: "SALES_TRACKING",
     label: "ติดตามการขายและจัดส่ง",
@@ -1332,7 +1319,287 @@ const hrmMenus: MenuItem[] = [
   },
 ];
 
+const FINANCE_MENU_ROLES = [
+  ROLE.ACCOUNTING_OFFICER,
+  ROLE.PROCUREMENT_MANAGER,
+  ROLE.EXECUTIVE,
+  ROLE.SALES_OFFICER,
+  ROLE.SALES_MANAGER,
+];
+
 const financeMenus: MenuItem[] = [
+  {
+    key: "finance-dashboard",
+    screenCode: "FINANCE_DASHBOARD",
+    label: "ภาพรวมการเงิน",
+    href: "/finance/dashboard",
+    icon: <IconPayment />,
+    roles: FINANCE_MENU_ROLES,
+  },
+  {
+    key: "finance-payables",
+    screenCode: "FINANCE_PAYABLES",
+    label: "การจ่ายเงิน",
+    href: "menu://finance-payables",
+    icon: <IconPayment />,
+    roles: FINANCE_MENU_ROLES,
+    children: [
+      {
+        key: "finance-payable-creditors",
+        screenCode: "FINANCE_PAYABLE_CREDITORS",
+        label: "รายการเจ้าหนี้",
+        href: "/finance/payables/creditors",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-payable-adjustments",
+        screenCode: "FINANCE_PAYABLE_ADJUSTMENTS",
+        label: "เอกสารปรับหนี้",
+        href: "/finance/payables/adjustment-documents",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+        children: [
+          {
+            key: "finance-ap-invoices",
+            screenCode: "FINANCE_AP_INVOICES",
+            label: "ใบตั้งหนี้เจ้าหนี้",
+            href: "/finance/payables/ap-invoices",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+          {
+            key: "finance-payable-debit-notes",
+            screenCode: "FINANCE_PAYABLE_DEBIT_NOTES",
+            label: "ใบเพิ่มหนี้",
+            href: "/finance/payables/debit-notes",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+          {
+            key: "finance-payable-credit-notes",
+            screenCode: "FINANCE_PAYABLE_CREDIT_NOTES",
+            label: "ใบลดหนี้",
+            href: "/finance/payables/credit-notes",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+        ],
+      },
+      {
+        key: "finance-payable-billing",
+        screenCode: "FINANCE_PAYABLE_BILLING",
+        label: "วางบิลและใบสำคัญจ่าย",
+        href: "/finance/payables/billing-and-vouchers",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+        children: [
+          {
+            key: "finance-billing-notes",
+            screenCode: "FINANCE_BILLING_NOTES",
+            label: "ใบวางบิล",
+            href: "/finance/payables/billing-notes",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+          {
+            key: "finance-payment-vouchers",
+            screenCode: "FINANCE_PAYMENT_VOUCHERS",
+            label: "ใบสำคัญจ่าย",
+            href: "/finance/payables/payment-vouchers",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+        ],
+      },
+      {
+        key: "finance-payment-records",
+        screenCode: "FINANCE_PAYMENT_RECORDS",
+        label: "บันทึกจ่ายเงิน",
+        href: "/finance/payables/payment-records",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-payable-payment-history",
+        screenCode: "FINANCE_PAYABLE_PAYMENT_HISTORY",
+        label: "ประวัติการจ่ายเงิน",
+        href: "/finance/payables/payment-history",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+      },
+    ],
+  },
+  {
+    key: "finance-receivables",
+    screenCode: "FINANCE_RECEIVABLES",
+    label: "การรับเงิน",
+    href: "menu://finance-receivables",
+    icon: <IconPayment />,
+    roles: FINANCE_MENU_ROLES,
+    children: [
+      {
+        key: "finance-receivable-customers",
+        screenCode: "FINANCE_RECEIVABLE_CUSTOMERS",
+        label: "รายการลูกหนี้",
+        href: "/finance/receivables/customers",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-receivable-sales-tax",
+        screenCode: "FINANCE_RECEIVABLE_SALES_TAX",
+        label: "เอกสารขายและภาษี",
+        href: "/finance/receivables/sales-tax-documents",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+        children: [
+          {
+            key: "finance-ar-invoices",
+            screenCode: "FINANCE_AR_INVOICES",
+            label: "ใบตั้งลูกหนี้",
+            href: "/finance/receivables/ar-invoices",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+          {
+            key: "finance-tax-invoices",
+            screenCode: "FINANCE_TAX_INVOICES",
+            label: "ใบกำกับภาษี",
+            href: "/finance/receivables/tax-invoices",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+        ],
+      },
+      {
+        key: "finance-receivable-adjustments",
+        screenCode: "FINANCE_RECEIVABLE_ADJUSTMENTS",
+        label: "เอกสารปรับหนี้",
+        href: "/finance/receivables/adjustment-documents",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+        children: [
+          {
+            key: "finance-receivable-debit-notes",
+            screenCode: "FINANCE_RECEIVABLE_DEBIT_NOTES",
+            label: "ใบเพิ่มหนี้",
+            href: "/finance/receivables/debit-notes",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+          {
+            key: "finance-receivable-credit-notes",
+            screenCode: "FINANCE_RECEIVABLE_CREDIT_NOTES",
+            label: "ใบลดหนี้",
+            href: "/finance/receivables/credit-notes",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+        ],
+      },
+      {
+        key: "finance-collections",
+        screenCode: "FINANCE_COLLECTIONS",
+        label: "รับชำระและใบเสร็จ",
+        href: "/finance/receivables/collections-and-receipts",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+        children: [
+          {
+            key: "finance-payment-receipts",
+            screenCode: "FINANCE_PAYMENT_RECEIPTS",
+            label: "รับชำระเงิน",
+            href: "/finance/receivables/payment-receipts",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+          {
+            key: "finance-receipts",
+            screenCode: "FINANCE_RECEIPTS",
+            label: "ใบเสร็จรับเงิน",
+            href: "/finance/receivables/receipts",
+            icon: <IconPayment />,
+            roles: FINANCE_MENU_ROLES,
+          },
+        ],
+      },
+      {
+        key: "finance-refunds",
+        screenCode: "FINANCE_REFUNDS",
+        label: "คืนเงิน",
+        href: "/finance/receivables/refunds",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-receivable-payment-history",
+        screenCode: "FINANCE_RECEIVABLE_PAYMENT_HISTORY",
+        label: "ประวัติการรับชำระ",
+        href: "/finance/receivables/payment-history",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+      },
+    ],
+  },
+  {
+    key: "finance-reports",
+    screenCode: "FINANCE_REPORTS",
+    label: "รายงานการเงิน",
+    href: "menu://finance-reports",
+    icon: <IconReport />,
+    roles: FINANCE_MENU_ROLES,
+    children: [
+      {
+        key: "finance-report-payables",
+        screenCode: "FINANCE_REPORT_PAYABLES",
+        label: "รายงานเจ้าหนี้",
+        href: "/finance/reports/payables",
+        icon: <IconReport />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-report-receivables",
+        screenCode: "FINANCE_REPORT_RECEIVABLES",
+        label: "รายงานลูกหนี้",
+        href: "/finance/reports/receivables",
+        icon: <IconReport />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-report-payments",
+        screenCode: "FINANCE_REPORT_PAYMENTS",
+        label: "รายงานการจ่ายเงิน",
+        href: "/finance/reports/payments",
+        icon: <IconReport />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-report-collections",
+        screenCode: "FINANCE_REPORT_COLLECTIONS",
+        label: "รายงานการรับเงิน",
+        href: "/finance/reports/collections",
+        icon: <IconReport />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-report-debit-credit-notes",
+        screenCode: "FINANCE_REPORT_DEBIT_CREDIT_NOTES",
+        label: "รายงานใบเพิ่มหนี้ / ใบลดหนี้",
+        href: "/finance/reports/debit-credit-notes",
+        icon: <IconReport />,
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
+        key: "finance-report-sales-tax",
+        screenCode: "FINANCE_REPORT_SALES_TAX",
+        label: "รายงานภาษีขาย",
+        href: "/finance/reports/sales-tax",
+        icon: <IconReport />,
+        roles: FINANCE_MENU_ROLES,
+      },
+    ],
+  },
   {
     key: "purchase-payments-pending",
     screenCode: "PURCHASE_PAYMENTS_PENDING",
@@ -1350,6 +1617,19 @@ const financeMenus: MenuItem[] = [
     roles: [
       ROLE.ACCOUNTING_OFFICER,
       ROLE.PROCUREMENT_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "sales-credit-notes",
+    screenCode: "SALES_CREDIT_NOTES",
+    label: "ใบลดหนี้",
+    href: "/sales-credit-notes",
+    icon: <IconPayment />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
       ROLE.EXECUTIVE,
     ],
   },
@@ -1811,7 +2091,7 @@ function resolveActiveMenuHref(
   let best: { href: string; matchLen: number } | null = null;
 
   for (const item of ALL_MENU_ITEMS) {
-    if (item.children?.length) {
+    if (item.href.startsWith("menu://")) {
       continue;
     }
     const itemIsFg = isFgInventoryMenu(item);
@@ -1849,6 +2129,17 @@ function resolveActiveMenuHref(
   }
 
   return best?.href ?? null;
+}
+
+function branchActive(
+  item: MenuItem,
+  pathname: string,
+  searchParams?: URLSearchParams,
+): boolean {
+  if (isActive(item, pathname, searchParams)) return true;
+  return (item.children ?? []).some((child) =>
+    branchActive(child, pathname, searchParams),
+  );
 }
 
 function isReceivingStageMenu(item: MenuItem) {
@@ -2164,14 +2455,25 @@ export default function AppHeader({
   useEffect(() => {
     const params = new URLSearchParams(searchKey);
     const next: Record<string, boolean> = {};
-    for (const item of [
+    const visit = (items: MenuItem[]) => {
+      for (const item of items) {
+        if (!item.children?.length) continue;
+        if (
+          isActive(item, pathname, params) ||
+          item.children.some((child) =>
+            branchActive(child, pathname, params),
+          )
+        ) {
+          next[item.key] = true;
+        }
+        visit(item.children);
+      }
+    };
+    visit([
       ...rawMaterialWarehouseMenus,
       ...finishedGoodsWarehouseMenus,
-    ]) {
-      if (item.children?.some((child) => isActive(child, pathname, params))) {
-        next[item.key] = true;
-      }
-    }
+      ...financeMenus,
+    ]);
     if (Object.keys(next).length === 0) {
       return;
     }
@@ -2182,6 +2484,117 @@ export default function AppHeader({
       return unchanged ? prev : { ...prev, ...next };
     });
   }, [pathname, searchKey]);
+
+  const renderMenuLeaf = (item: MenuItem) => {
+    const active = isActive(item, pathname, searchParams);
+    const childBadgeKeys = item.badgeMenuKeys?.length
+      ? item.badgeMenuKeys
+      : [item.key];
+    const childRaw = childBadgeKeys.reduce(
+      (sum, key) => sum + (badgeCounts?.[key] ?? 0),
+      0,
+    );
+    const childCount = childRaw > 0 ? childRaw : 0;
+    return (
+      <button
+        key={item.key}
+        type="button"
+        className={`${styles.subMenuItem} ${
+          active ? styles.subMenuItemActive : ""
+        }`}
+        onClick={() => handleGo(item.href)}
+      >
+        <span className={styles.subMenuIcon}>{item.icon}</span>
+        <span className={styles.menuItemText}>{item.label}</span>
+        {childCount > 0 ? (
+          <span
+            className={styles.menuBadge}
+            aria-label={`${childCount} รายการ${badgeLabelForMenuKeys(childBadgeKeys)}`}
+          >
+            {childCount > 99 ? "99+" : childCount}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
+
+  const renderMenuBranch = (item: MenuItem, depth: number) => {
+    const selfActive = isActive(item, pathname, searchParams);
+    const descendantActive = (item.children ?? []).some((child) =>
+      branchActive(child, pathname, searchParams),
+    );
+    const open = openMenuKeys[item.key] ?? descendantActive;
+    const badgeKeys = item.badgeMenuKeys?.length
+      ? item.badgeMenuKeys
+      : [item.key];
+    const raw = badgeKeys.reduce(
+      (sum, key) => sum + (badgeCounts?.[key] ?? 0),
+      0,
+    );
+    const count = raw > 0 ? raw : 0;
+    const toggle = () => {
+      if (collapsed) {
+        expandSidebar(true);
+        setOpenMenuKeys((prev) => ({ ...prev, [item.key]: true }));
+        return;
+      }
+      setOpenMenuKeys((prev) => ({ ...prev, [item.key]: !open }));
+    };
+    const rowClass =
+      depth === 0
+        ? `${styles.menuItem} ${styles.parentMenuItem} ${
+            selfActive || descendantActive ? styles.menuItemActive : ""
+          }`
+        : `${styles.subMenuItem} ${
+            selfActive ? styles.subMenuItemActive : ""
+          }`;
+
+    return (
+      <div key={item.key} className={styles.branchRow}>
+        <button
+          type="button"
+          title={collapsed ? item.label : undefined}
+          className={rowClass}
+          aria-expanded={open}
+          onClick={toggle}
+        >
+          <span className={depth === 0 ? styles.menuItemIcon : styles.subMenuIcon}>
+            {item.icon}
+          </span>
+          <span className={styles.menuItemText}>{item.label}</span>
+          {count > 0 ? (
+            <span
+              className={styles.menuBadge}
+              aria-label={`${count} รายการ${badgeLabelForMenuKeys(badgeKeys)}`}
+            >
+              {count > 99 ? "99+" : count}
+            </span>
+          ) : null}
+          {!collapsed ? <span className={styles.chevronSpacer} /> : null}
+        </button>
+        {!collapsed ? (
+          <button
+            type="button"
+            className={styles.chevronButton}
+            aria-expanded={open}
+            aria-label={open ? "พับเมนูย่อย" : "กางเมนูย่อย"}
+            onClick={toggle}
+          >
+            <IconChevron open={open} />
+          </button>
+        ) : null}
+        {!collapsed && open ? (
+          <div className={styles.subMenu}>
+            {(item.children ?? []).map((child) =>
+              child.children?.length
+                ? renderMenuBranch(child, depth + 1)
+                : renderMenuLeaf(child),
+            )}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   const renderMenuEntry = (item: MenuItem) => {
     if (!item.children?.length) {
@@ -2195,89 +2608,7 @@ export default function AppHeader({
       );
     }
 
-    const childActive = item.children.some((child) =>
-      isActive(child, pathname, searchParams),
-    );
-    const open = openMenuKeys[item.key] ?? childActive;
-    const badgeKeys = item.badgeMenuKeys?.length
-      ? item.badgeMenuKeys
-      : [item.key];
-    const raw = badgeKeys.reduce(
-      (sum, key) => sum + (badgeCounts?.[key] ?? 0),
-      0,
-    );
-    const count = raw > 0 ? raw : 0;
-
-    return (
-      <div key={item.key}>
-        <button
-          type="button"
-          title={collapsed ? item.label : undefined}
-          className={`${styles.menuItem} ${styles.parentMenuItem} ${
-            childActive ? styles.menuItemActive : ""
-          }`}
-          onClick={() => {
-            if (collapsed) {
-              expandSidebar(true);
-              setOpenMenuKeys((prev) => ({ ...prev, [item.key]: true }));
-              return;
-            }
-            setOpenMenuKeys((prev) => ({ ...prev, [item.key]: !open }));
-          }}
-          aria-expanded={open}
-        >
-          <span className={styles.menuItemIcon}>{item.icon}</span>
-          <span className={styles.menuItemText}>{item.label}</span>
-          {count > 0 ? (
-            <span
-              className={styles.menuBadge}
-              aria-label={`${count} รายการ${badgeLabelForMenuKeys(badgeKeys)}`}
-            >
-              {count > 99 ? "99+" : count}
-            </span>
-          ) : null}
-          <span className={styles.chevron}>
-            <IconChevron open={open} />
-          </span>
-        </button>
-        {!collapsed && open ? (
-          <div className={styles.subMenu}>
-            {item.children.map((child) => {
-              const active = isActive(child, pathname, searchParams);
-              const childBadgeKeys = child.badgeMenuKeys?.length
-                ? child.badgeMenuKeys
-                : [child.key];
-              const childRaw = childBadgeKeys.reduce(
-                (sum, key) => sum + (badgeCounts?.[key] ?? 0),
-                0,
-              );
-              const childCount = childRaw > 0 ? childRaw : 0;
-              return (
-                <button
-                  key={child.key}
-                  type="button"
-                  className={`${styles.subMenuItem} ${
-                    active ? styles.subMenuItemActive : ""
-                  }`}
-                  onClick={() => handleGo(child.href)}
-                >
-                  <span className={styles.subMenuIcon}>{child.icon}</span>
-                  <span className={styles.menuItemText}>{child.label}</span>
-                  {childCount > 0 ? (
-                    <span
-                      className={styles.menuBadge}
-                      aria-label={`${childCount} รายการ${badgeLabelForMenuKeys(childBadgeKeys)}`}
-                    >
-                      {childCount > 99 ? "99+" : childCount}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-      </div>
-    );
+    return renderMenuBranch(item, 0);
   };
 
   const handleBackToPortal = () => {
@@ -2585,14 +2916,7 @@ export default function AppHeader({
 
               <div className={styles.groupItems}>
                 {visibleFinanceMenus.map((item) =>
-                  renderMenuButton(
-                    item,
-                    pathname,
-                    collapsed,
-                    handleGo,
-                    searchParams,
-                    badgeCounts,
-                  ),
+                  renderMenuEntry(item),
                 )}
               </div>
             </div>

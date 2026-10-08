@@ -86,6 +86,7 @@ const MODULE_SECTIONS: Array<{ code: string; label: string }> = [
   { code: "OIL_TANK_FARM", label: "ถังน้ำมัน" },
   { code: "MAINTENANCE", label: "ซ่อมบำรุง" },
   { code: "HRM", label: "บุคคล" },
+  { code: "FINANCE", label: "การเงิน" },
   { code: "REPORTS", label: "รายงาน" },
   { code: "MASTERS", label: "Master Data" },
   { code: "SECURITY", label: "ระบบ · ความปลอดภัย" },

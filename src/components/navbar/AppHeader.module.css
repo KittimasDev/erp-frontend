@@ -349,6 +349,38 @@
   box-shadow: 0 0 0 2px #eeece6;
 }
 
+.branchRow {
+  position: relative;
+}
+
+.chevronSpacer {
+  width: 16px;
+  flex: none;
+}
+
+.chevronButton {
+  position: absolute;
+  top: 8px;
+  right: 6px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.chevronButton:hover {
+  background: rgba(0, 0, 0, 0.06);
+  opacity: 1;
+}
+
 .chevron {
   display: inline-flex;
   color: inherit;
@@ -380,6 +412,10 @@
   margin: 2px 0 6px;
   padding-left: 10px;
   animation: subMenuIn 0.2s ease;
+}
+
+.subMenu .subMenu {
+  padding-left: 16px;
 }
 
 @keyframes subMenuIn {

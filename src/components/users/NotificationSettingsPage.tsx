@@ -45,6 +45,7 @@ const NOTIFICATION_MENU_GROUP_ORDER = [
   "ห้องปฏิบัติการ",
   "ถังน้ำมัน",
   "บุคคล",
+  "การเงิน",
 ] as const;
 
 function groupEventsByMenu(events: NotificationEventSummary[]) {

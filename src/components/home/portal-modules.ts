@@ -281,14 +281,53 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     key: "finance",
     code: "FIN",
     label: "การเงิน",
-    description: "จ่าย Supplier · ประวัติจ่าย",
-    href: "/purchase-payments",
+    description: "ภาพรวม · จ่าย · รับ · รายงาน",
+    href: "/finance",
     tone: "slate",
-    screenCodes: ["PURCHASE_PAYMENTS_PENDING", "PURCHASE_PAYMENTS"],
+    screenCodes: [
+      "FINANCE_HOME",
+      "FINANCE_DASHBOARD",
+      "FINANCE_PAYABLES",
+      "FINANCE_PAYABLE_CREDITORS",
+      "FINANCE_PAYABLE_ADJUSTMENTS",
+      "FINANCE_AP_INVOICES",
+      "FINANCE_PAYABLE_DEBIT_NOTES",
+      "FINANCE_PAYABLE_CREDIT_NOTES",
+      "FINANCE_PAYABLE_BILLING",
+      "FINANCE_BILLING_NOTES",
+      "FINANCE_PAYMENT_VOUCHERS",
+      "FINANCE_PAYMENT_RECORDS",
+      "FINANCE_PAYABLE_PAYMENT_HISTORY",
+      "FINANCE_RECEIVABLES",
+      "FINANCE_RECEIVABLE_CUSTOMERS",
+      "FINANCE_RECEIVABLE_SALES_TAX",
+      "FINANCE_AR_INVOICES",
+      "FINANCE_TAX_INVOICES",
+      "FINANCE_RECEIVABLE_ADJUSTMENTS",
+      "FINANCE_RECEIVABLE_DEBIT_NOTES",
+      "FINANCE_RECEIVABLE_CREDIT_NOTES",
+      "FINANCE_COLLECTIONS",
+      "FINANCE_PAYMENT_RECEIPTS",
+      "FINANCE_RECEIPTS",
+      "FINANCE_REFUNDS",
+      "FINANCE_RECEIVABLE_PAYMENT_HISTORY",
+      "FINANCE_REPORTS",
+      "FINANCE_REPORT_PAYABLES",
+      "FINANCE_REPORT_RECEIVABLES",
+      "FINANCE_REPORT_PAYMENTS",
+      "FINANCE_REPORT_COLLECTIONS",
+      "FINANCE_REPORT_DEBIT_CREDIT_NOTES",
+      "FINANCE_REPORT_SALES_TAX",
+      "PURCHASE_PAYMENTS_PENDING",
+      "PURCHASE_PAYMENTS",
+      "SALES_CREDIT_NOTES",
+    ],
     roles: [
       RoleCode.ACCOUNTING_OFFICER,
       RoleCode.PROCUREMENT_MANAGER,
       RoleCode.EXECUTIVE,
+      RoleCode.SALES_OFFICER,
+      RoleCode.SALES_MANAGER,
     ],
   },
   {
@@ -400,10 +439,7 @@ export function resolvePortalHref(mod: PortalModuleDef): string {
   }
 
   if (mod.key === "finance") {
-    if (userHasRole(RoleCode.ACCOUNTING_OFFICER)) {
-      return "/purchase-payments/pending";
-    }
-    return "/purchase-payments";
+    return "/finance";
   }
 
   if (mod.key === "master") {
