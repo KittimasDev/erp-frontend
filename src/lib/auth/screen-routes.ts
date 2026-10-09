@@ -360,6 +360,12 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
 
   // Reports
   { prefix: "/reports/procurement", screenCodes: ["REPORTS_PROCUREMENT"] },
+  { prefix: "/reports/stock-balance", screenCodes: ["REPORTS_STOCK_BALANCE"] },
+  {
+    prefix: "/reports/stock-movements",
+    screenCodes: ["REPORTS_STOCK_MOVEMENTS"],
+  },
+  { prefix: "/reports/sales-by-item", screenCodes: ["REPORTS_SALES_BY_ITEM"] },
   { prefix: "/reports/receiving", screenCodes: ["REPORTS_RECEIVING"] },
   { prefix: "/reports/ar-aging", screenCodes: ["REPORTS_AR_AGING"] },
   {
@@ -637,6 +643,9 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   FINANCE_REPORT_DEBIT_CREDIT_NOTES: "/finance/reports/debit-credit-notes",
   FINANCE_REPORT_SALES_TAX: "/finance/reports/sales-tax",
   REPORTS_PROCUREMENT: "/reports/procurement",
+  REPORTS_STOCK_BALANCE: "/reports/stock-balance",
+  REPORTS_STOCK_MOVEMENTS: "/reports/stock-movements",
+  REPORTS_SALES_BY_ITEM: "/reports/sales-by-item",
   REPORTS_RECEIVING: "/reports/receiving",
   REPORTS_AR_AGING: "/reports/ar-aging",
   REPORTS_SALES_INVOICES: "/reports/sales-invoices",

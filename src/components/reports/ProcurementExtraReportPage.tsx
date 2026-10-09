@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Alert, App, Button, DatePicker, Input, Pagination, Select, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { DownloadOutlined } from "@ant-design/icons";
@@ -10,12 +9,10 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import {
   useProcurementSalesByItemReportQuery,
-  useProcurementStockBalanceReportQuery,
   useProcurementStockMovementReportQuery,
 } from "@/hooks/procurement-reports/useProcurementReportQueries";
 import {
   exportProcurementSalesByItemReport,
-  exportProcurementStockBalanceReport,
   exportProcurementStockMovementReport,
 } from "@/lib/api/procurement-reports";
 import {
@@ -26,7 +23,6 @@ import { getAccessToken } from "@/lib/auth/token";
 import type {
   ProcurementReportQuery,
   ProcurementSalesByItemRow,
-  ProcurementStockBalanceRow,
   ProcurementStockMovementRow,
 } from "@/types/procurement-reports";
 import {
@@ -36,15 +32,16 @@ import {
 
 import styles from "./ProcurementExtraReportPage.module.css";
 
-export type ProcurementReportKind =
-  | "stock-balance"
-  | "stock-movements"
-  | "sales-by-item";
+export type ProcurementReportKind = "stock-movements" | "sales-by-item";
 
 const TITLES: Record<ProcurementReportKind, string> = {
-  "stock-balance": "รายงานแสดงสินค้าคงเหลือ",
   "stock-movements": "รายงานแสดงสรุปยอดเคลื่อนไหวสินค้า",
   "sales-by-item": "รายงานสรุปยอดขาย",
+};
+
+const SCREEN_CODES: Record<ProcurementReportKind, string> = {
+  "stock-movements": "REPORTS_STOCK_MOVEMENTS",
+  "sales-by-item": "REPORTS_SALES_BY_ITEM",
 };
 
 function formatQty(value: string) {
@@ -64,34 +61,6 @@ function formatMoney(value: string) {
 function formatDateTime(value: string) {
   const parsed = dayjs(value);
   return parsed.isValid() ? parsed.format("DD/MM/YYYY HH:mm") : value;
-}
-
-function balanceColumns(): ColumnsType<ProcurementStockBalanceRow> {
-  return [
-    { title: "รหัสสินค้า", dataIndex: "itemCode" },
-    { title: "ชื่อสินค้า", dataIndex: "itemName" },
-    { title: "คลัง", dataIndex: "warehouseName" },
-    { title: "ตำแหน่ง", dataIndex: "locationName" },
-    { title: "หน่วย", dataIndex: "unitCode" },
-    {
-      title: "คงเหลือ",
-      dataIndex: "quantityOnHand",
-      align: "right",
-      render: formatQty,
-    },
-    {
-      title: "จอง",
-      dataIndex: "quantityReserved",
-      align: "right",
-      render: formatQty,
-    },
-    {
-      title: "พร้อมใช้",
-      dataIndex: "quantityAvailable",
-      align: "right",
-      render: formatQty,
-    },
-  ];
 }
 
 function movementColumns(): ColumnsType<ProcurementStockMovementRow> {
@@ -143,24 +112,6 @@ function salesColumns(): ColumnsType<ProcurementSalesByItemRow> {
   ];
 }
 
-function toBalanceSheet(rows: ProcurementStockBalanceRow[]): TabularReport {
-  return {
-    title: TITLES["stock-balance"],
-    filename: "stock-balance",
-    headers: ["รหัสสินค้า", "ชื่อสินค้า", "คลัง", "ตำแหน่ง", "หน่วย", "คงเหลือ", "จอง", "พร้อมใช้"],
-    rows: rows.map((row) => [
-      row.itemCode,
-      row.itemName,
-      row.warehouseName,
-      row.locationName,
-      row.unitCode,
-      row.quantityOnHand,
-      row.quantityReserved,
-      row.quantityAvailable,
-    ]),
-  };
-}
-
 function toMovementSheet(rows: ProcurementStockMovementRow[]): TabularReport {
   return {
     title: TITLES["stock-movements"],
@@ -191,29 +142,6 @@ function toMovementSheet(rows: ProcurementStockMovementRow[]): TabularReport {
     ]),
   };
 }
-
-const SAMPLE_BALANCE: ProcurementStockBalanceRow[] = [
-  {
-    itemCode: "RM-001",
-    itemName: "ยางดิบ",
-    warehouseName: "คลังวัตถุดิบ",
-    locationName: "ลาน A",
-    unitCode: "KG",
-    quantityOnHand: "120.000",
-    quantityReserved: "20.000",
-    quantityAvailable: "100.000",
-  },
-  {
-    itemCode: "CH-014",
-    itemName: "สารเคมีผสม",
-    warehouseName: "คลังสารเคมี",
-    locationName: "ชั้น 2",
-    unitCode: "L",
-    quantityOnHand: "48.500",
-    quantityReserved: "0.000",
-    quantityAvailable: "48.500",
-  },
-];
 
 const SAMPLE_MOVEMENTS: ProcurementStockMovementRow[] = [
   {
@@ -305,10 +233,6 @@ export default function ProcurementExtraReportPage({
 
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const queryParams = { ...applied, page, limit };
-  const balanceQuery = useProcurementStockBalanceReportQuery(
-    queryParams,
-    kind === "stock-balance",
-  );
   const movementQuery = useProcurementStockMovementReportQuery(
     queryParams,
     kind === "stock-movements",
@@ -318,42 +242,27 @@ export default function ProcurementExtraReportPage({
     kind === "sales-by-item",
   );
 
-  const activeQuery =
-    kind === "stock-balance"
-      ? balanceQuery
-      : kind === "stock-movements"
-        ? movementQuery
-        : salesQuery;
+  const activeQuery = kind === "stock-movements" ? movementQuery : salesQuery;
   const total = activeQuery.data?.data.total ?? 0;
   const showingSample = activeQuery.isSuccess && total === 0;
   const rowPrefix = showingSample ? `sample-${kind}` : `${kind}-${page}`;
   const tableRows =
-    kind === "stock-balance"
+    kind === "stock-movements"
       ? withRowKey(
           showingSample
-            ? SAMPLE_BALANCE
-            : (balanceQuery.data?.data.items ?? []),
+            ? SAMPLE_MOVEMENTS
+            : (movementQuery.data?.data.items ?? []),
           rowPrefix,
         )
-      : kind === "stock-movements"
-        ? withRowKey(
-            showingSample
-              ? SAMPLE_MOVEMENTS
-              : (movementQuery.data?.data.items ?? []),
-            rowPrefix,
-          )
-        : withRowKey(
-            showingSample
-              ? SAMPLE_SALES
-              : (salesQuery.data?.data.items ?? []),
-            rowPrefix,
-          );
+      : withRowKey(
+          showingSample ? SAMPLE_SALES : (salesQuery.data?.data.items ?? []),
+          rowPrefix,
+        );
   const canExport =
     !isMatrixPermissionMode() ||
-    hasPermission("REPORTS_PROCUREMENT.EXPORT");
+    hasPermission(`${SCREEN_CODES[kind]}.EXPORT`);
 
   const columns = useMemo(() => {
-    if (kind === "stock-balance") return balanceColumns();
     if (kind === "stock-movements") return movementColumns();
     return salesColumns();
   }, [kind]);
@@ -363,14 +272,8 @@ export default function ProcurementExtraReportPage({
     setApplied({
       q: keyword.trim() || undefined,
       warehouseId: kind === "sales-by-item" ? undefined : warehouseId,
-      dateFrom:
-        kind === "stock-balance"
-          ? undefined
-          : dateRange[0].format("YYYY-MM-DD"),
-      dateTo:
-        kind === "stock-balance"
-          ? undefined
-          : dateRange[1].format("YYYY-MM-DD"),
+      dateFrom: dateRange[0].format("YYYY-MM-DD"),
+      dateTo: dateRange[1].format("YYYY-MM-DD"),
     });
   };
 
@@ -379,18 +282,7 @@ export default function ProcurementExtraReportPage({
     try {
       const token = getAccessToken();
       const filters = { ...applied };
-      if (kind === "stock-balance") {
-        const exported = await exportProcurementStockBalanceReport(token, filters);
-        if (exported.data.truncated) {
-          message.warning("ส่งออกได้ 5,000 แถวแรกของชุดที่กรอง");
-        }
-        const items =
-          exported.data.items.length > 0 ? exported.data.items : SAMPLE_BALANCE;
-        if (exported.data.items.length === 0) {
-          message.info("ไม่มีข้อมูลจริง ส่งออกเป็นรายการตัวอย่าง");
-        }
-        await downloadTabularReport(format, toBalanceSheet(items));
-      } else if (kind === "stock-movements") {
+      if (kind === "stock-movements") {
         const exported = await exportProcurementStockMovementReport(token, filters);
         if (exported.data.truncated) {
           message.warning("ส่งออกได้ 5,000 แถวแรกของชุดที่กรอง");
@@ -425,10 +317,7 @@ export default function ProcurementExtraReportPage({
   return (
     <section className={styles.page}>
       <div className={styles.heading}>
-        <div>
-          <Link href="/reports/procurement">กลับหน้ารายงานจัดซื้อ</Link>
-          <h1>{TITLES[kind]}</h1>
-        </div>
+        <h1>{TITLES[kind]}</h1>
         {canExport ? (
           <div className={styles.exports}>
             <Button
@@ -477,18 +366,16 @@ export default function ProcurementExtraReportPage({
             onChange={setWarehouseId}
           />
         ) : null}
-        {kind !== "stock-balance" ? (
-          <DatePicker.RangePicker
-            allowClear={false}
-            value={dateRange}
-            format="DD/MM/YYYY"
-            onChange={(value) => {
-              if (value?.[0] && value[1]) {
-                setDateRange([value[0], value[1]]);
-              }
-            }}
-          />
-        ) : null}
+        <DatePicker.RangePicker
+          allowClear={false}
+          value={dateRange}
+          format="DD/MM/YYYY"
+          onChange={(value) => {
+            if (value?.[0] && value[1]) {
+              setDateRange([value[0], value[1]]);
+            }
+          }}
+        />
         <Button type="primary" onClick={applySearch}>
           ค้นหา
         </Button>

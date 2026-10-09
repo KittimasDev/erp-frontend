@@ -8,16 +8,17 @@ import {
   getProcurementStockMovementReport,
 } from "@/lib/api/procurement-reports";
 import { getAccessToken } from "@/lib/auth/token";
-import type { ProcurementReportQuery } from "@/types/procurement-reports";
+import type {
+  ProcurementReportQuery,
+  StockBalanceReportQuery,
+} from "@/types/procurement-reports";
 
 export function useProcurementStockBalanceReportQuery(
-  params: ProcurementReportQuery,
-  enabled = true,
+  params: StockBalanceReportQuery,
 ) {
   return useQuery({
     queryKey: ["reports", "procurement", "stock-balance", params],
     queryFn: () => getProcurementStockBalanceReport(getAccessToken(), params),
-    enabled,
   });
 }
 

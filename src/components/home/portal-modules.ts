@@ -339,6 +339,9 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     tone: "stone",
     screenCodes: [
       "REPORTS_PROCUREMENT",
+      "REPORTS_STOCK_BALANCE",
+      "REPORTS_STOCK_MOVEMENTS",
+      "REPORTS_SALES_BY_ITEM",
       "REPORTS_RECEIVING",
       "REPORTS_AR_AGING",
       "REPORTS_SALES_INVOICES",

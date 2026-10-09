@@ -5,11 +5,13 @@ import type {
   ProcurementReportPage,
   ProcurementReportQuery,
   ProcurementSalesByItemRow,
-  ProcurementStockBalanceRow,
   ProcurementStockMovementRow,
+  StockBalanceReportExport,
+  StockBalanceReportPage,
+  StockBalanceReportQuery,
 } from "@/types/procurement-reports";
 
-function queryString(params: ProcurementReportQuery) {
+function queryString(params: ProcurementReportQuery | StockBalanceReportQuery) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== "") {
@@ -20,7 +22,11 @@ function queryString(params: ProcurementReportQuery) {
   return qs ? `?${qs}` : "";
 }
 
-function getReport<T>(token: string | null, path: string, params: ProcurementReportQuery) {
+function getReport<T>(
+  token: string | null,
+  path: string,
+  params: ProcurementReportQuery | StockBalanceReportQuery,
+) {
   return apiFetch<ProcurementReportEnvelope<T>>(
     `/api/reports/procurement/${path}${queryString(params)}`,
     { token },
@@ -29,20 +35,16 @@ function getReport<T>(token: string | null, path: string, params: ProcurementRep
 
 export function getProcurementStockBalanceReport(
   token: string | null,
-  params: ProcurementReportQuery,
+  params: StockBalanceReportQuery,
 ) {
-  return getReport<ProcurementReportPage<ProcurementStockBalanceRow>>(
-    token,
-    "stock-balance",
-    params,
-  );
+  return getReport<StockBalanceReportPage>(token, "stock-balance", params);
 }
 
 export function exportProcurementStockBalanceReport(
   token: string | null,
-  params: ProcurementReportQuery,
+  params: StockBalanceReportQuery,
 ) {
-  return getReport<ProcurementReportExport<ProcurementStockBalanceRow>>(
+  return getReport<StockBalanceReportExport>(
     token,
     "stock-balance/export",
     params,

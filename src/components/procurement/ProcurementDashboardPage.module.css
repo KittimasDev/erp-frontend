@@ -12,21 +12,6 @@
   padding-bottom: 8px;
 }
 
-.reportMenu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.reportMenu a {
-  padding: 8px 12px;
-  border: 1px solid var(--pd-border);
-  border-radius: 999px;
-  background: #fff;
-  color: var(--pd-text);
-  font-weight: 600;
-}
-
 .pageHeader {
   position: relative;
   display: grid;

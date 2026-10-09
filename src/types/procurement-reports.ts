@@ -1,12 +1,49 @@
-export type ProcurementStockBalanceRow = {
+export type StockBalanceLotRow = {
+  /** ไม่มี Lot = "ไม่ระบุ Lot" */
+  lotNo: string;
+  warehouseName: string;
+  quantityOnHand: string;
+  quantityReserved: string;
+  quantityAvailable: string;
+};
+
+export type StockBalanceGroup = {
   itemCode: string;
   itemName: string;
-  warehouseName: string;
-  locationName: string;
+  itemCategoryName: string;
   unitCode: string;
   quantityOnHand: string;
   quantityReserved: string;
   quantityAvailable: string;
+  lots: StockBalanceLotRow[];
+};
+
+export type StockBalanceReportPage = {
+  asOfDate: string;
+  /** จำนวนกลุ่มสินค้า ไม่ใช่จำนวน Lot */
+  total: number;
+  page: number;
+  limit: number;
+  items: StockBalanceGroup[];
+};
+
+export type StockBalanceReportExport = {
+  asOfDate: string;
+  total: number;
+  items: StockBalanceGroup[];
+};
+
+export type StockBalanceStatusFilter = "ALL" | "IN_STOCK" | "OUT_OF_STOCK";
+
+export type StockBalanceReportQuery = {
+  page?: number;
+  limit?: number;
+  q?: string;
+  asOfDate?: string;
+  warehouseId?: string;
+  itemCategoryId?: string;
+  lotNo?: string;
+  stockStatus?: StockBalanceStatusFilter;
 };
 
 export type ProcurementStockMovementRow = {
