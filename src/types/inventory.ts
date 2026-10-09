@@ -176,6 +176,16 @@ export type InventoryLotBalanceRow = {
   quantityReserved: string;
   quantityOnHold?: string;
   averageCost: string;
+  /** หน่วยหลักของสินค้า (master) — แปลงไม่ได้ = หน่วยที่บันทึกไว้ */
+  baseUnitId?: string;
+  baseUnitCode?: string;
+  /** ยอดในหน่วยหลัก ใช้แสดงผลเท่านั้น — ตรวจยอดตอนตัดสต๊อกใช้ quantity* */
+  baseQuantityOnHand?: string;
+  baseQuantityAvailable?: string;
+  /** แถวนี้บันทึกไว้ด้วยหน่วยที่ไม่ใช่หน่วยหลัก */
+  recordedInOtherUnit?: boolean;
+  /** false = ไม่มีกฎแปลงไปหน่วยหลัก ช่อง base* ยังเป็นหน่วยเดิม */
+  baseUnitConvertible?: boolean;
   expiryDate?: string;
   expirySource?: "LOT" | "CALCULATED";
   daysUntilExpiry?: number;

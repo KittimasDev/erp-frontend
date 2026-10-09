@@ -10,9 +10,14 @@ import {
   Select,
   Switch,
   Table,
+  Tooltip,
   Typography,
 } from "antd";
-import { ClearOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  ClearOutlined,
+  SearchOutlined,
+  WarningOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -83,6 +88,25 @@ function expiryRowClass(status?: string) {
     return styles.expiryWarningRow;
   }
   return "";
+}
+
+function OtherUnitWarning({ row }: { row: InventoryLotBalanceRow }) {
+  if (!row.recordedInOtherUnit) {
+    return null;
+  }
+  const recorded = `${formatQty(row.quantityOnHand)} ${row.unitCode ?? ""}`.trim();
+  const title =
+    row.baseUnitConvertible === false
+      ? `บันทึกเป็น ${row.unitCode ?? "หน่วยอื่น"} และยังไม่มีกฎแปลงเป็นหน่วยหลักของสินค้า — ตั้งกฎที่ ข้อมูลหลัก > กฎแปลงหน่วยนับ`
+      : `บันทึกในระบบเป็น ${recorded} — แสดงเป็นหน่วยหลัก ${row.baseUnitCode ?? ""}`;
+  return (
+    <Tooltip title={title}>
+      <WarningOutlined
+        aria-label={title}
+        style={{ color: "#d48806", marginRight: 4 }}
+      />
+    </Tooltip>
+  );
 }
 
 function formatDaysUntilExpiry(days?: number) {
@@ -170,8 +194,10 @@ export default function InventoryLotsPage() {
     for (const row of rows) {
       lotIds.add(row.lotId);
       itemIds.add(row.itemId);
-      totalOnHand += Number(row.quantityOnHand || 0);
-      totalAvailable += Number(row.quantityAvailable || 0);
+      totalOnHand += Number(row.baseQuantityOnHand ?? row.quantityOnHand ?? 0);
+      totalAvailable += Number(
+        row.baseQuantityAvailable ?? row.quantityAvailable ?? 0,
+      );
       if ((row.lotStatus ?? "").toUpperCase() === "ACTIVE") {
         activeLots += 1;
       }
@@ -298,8 +324,11 @@ export default function InventoryLotsPage() {
       width: 110,
       render: (value: string, row) => (
         <span className={styles.qtyCell}>
-          {formatQty(value)}
-          <span className={styles.summaryUnit}>{row.unitCode || ""}</span>
+          <OtherUnitWarning row={row} />
+          {formatQty(row.baseQuantityOnHand ?? value)}
+          <span className={styles.summaryUnit}>
+            {row.baseUnitCode ?? row.unitCode ?? ""}
+          </span>
         </span>
       ),
     },
@@ -309,9 +338,9 @@ export default function InventoryLotsPage() {
       key: "quantityAvailable",
       align: "right",
       width: 110,
-      render: (value: string) => (
+      render: (value: string, row) => (
         <span className={`${styles.qtyCell} ${styles.qtyAvailable}`}>
-          {formatQty(value)}
+          {formatQty(row.baseQuantityAvailable ?? value)}
         </span>
       ),
     },
