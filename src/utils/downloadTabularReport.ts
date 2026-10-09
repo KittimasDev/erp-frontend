@@ -18,6 +18,8 @@ export type TabularReport = {
   rows: string[][];
   /** index ของแถวสรุปใน `rows` — Excel/PDF ทำตัวหนา */
   groupRows?: number[];
+  /** แถวหัวกลุ่มย่อยใต้แถวสรุป (เช่น SO ใต้ลูกค้า) — ตัวหนา พื้นอ่อนกว่าแถวสรุป */
+  subGroupRows?: number[];
   /** คอลัมน์เฉพาะ PDF — ไม่ส่ง = ใช้ headers กว้างเท่ากัน */
   pdfColumns?: TabularPdfColumn[];
 };
@@ -68,10 +70,22 @@ async function downloadExcel(report: TabularReport) {
   }
   sheet.addRow(report.headers).font = { bold: true };
   const groupRows = new Set(report.groupRows ?? []);
+  const subGroupRows = new Set(report.subGroupRows ?? []);
+  // พื้นสีแยกชั้นเฉพาะเมื่อมีกลุ่มย่อย รายงานสองชั้นเดิมคงหน้าตาเดิม
+  const groupFill = subGroupRows.size ? "FFEEF4E4" : null;
   report.rows.forEach((row, index) => {
     const added = sheet.addRow(row);
-    if (groupRows.has(index)) {
+    if (groupRows.has(index) || subGroupRows.has(index)) {
       added.font = { bold: true };
+    }
+    if (groupFill && groupRows.has(index)) {
+      added.eachCell({ includeEmpty: true }, (cell) => {
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: groupFill },
+        };
+      });
     }
   });
   const buffer = await workbook.xlsx.writeBuffer();

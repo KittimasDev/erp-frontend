@@ -12,7 +12,11 @@ import {
   Table,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DownloadOutlined } from "@ant-design/icons";
+import {
+  DownloadOutlined,
+  MinusSquareOutlined,
+  PlusSquareOutlined,
+} from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
@@ -306,9 +310,11 @@ export default function StockBalanceReportPage() {
           ),
     [showingSample, reportQuery.data, page, limit],
   );
-  const expandedRowKeys = tableRows
-    .filter((row) => row.children && !collapsed.has(row.key))
+  const asOfDate = reportQuery.data?.data.asOfDate || applied.asOfDate;
+  const expandableKeys = tableRows
+    .filter((row) => row.children)
     .map((row) => row.key);
+  const expandedRowKeys = expandableKeys.filter((key) => !collapsed.has(key));
 
   const canExport =
     !isMatrixPermissionMode() ||
@@ -381,64 +387,89 @@ export default function StockBalanceReportPage() {
         ) : null}
       </div>
 
-      <div className={styles.filters}>
-        <DatePicker
-          allowClear={false}
-          value={asOf}
-          format="DD/MM/YYYY"
-          aria-label="วันที่รายงาน"
-          onChange={(value) => {
-            if (value) setAsOf(value);
-          }}
-        />
-        <Select
-          allowClear
-          placeholder="คลังสินค้า"
-          style={{ minWidth: 200 }}
-          value={warehouseId}
-          loading={warehousesQuery.isLoading}
-          options={(warehousesQuery.data?.data ?? []).map((warehouse) => ({
-            value: warehouse.id,
-            label: warehouse.warehouseName,
-          }))}
-          onChange={setWarehouseId}
-        />
-        <Select
-          allowClear
-          placeholder="ประเภทสินค้า"
-          style={{ minWidth: 200 }}
-          value={itemCategoryId}
-          loading={categoriesQuery.isLoading}
-          options={(categoriesQuery.data?.data ?? []).map((category) => ({
-            value: category.id,
-            label: category.nameTh,
-          }))}
-          onChange={setItemCategoryId}
-        />
-        <Input
-          allowClear
-          placeholder="รหัสหรือชื่อสินค้า"
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          onPressEnter={applySearch}
-        />
-        <Input
-          allowClear
-          placeholder="Lot No."
-          value={lotNo}
-          onChange={(event) => setLotNo(event.target.value)}
-          onPressEnter={applySearch}
-        />
-        <Select
-          style={{ minWidth: 140 }}
-          value={stockStatus}
-          options={STATUS_OPTIONS}
-          onChange={setStockStatus}
-          aria-label="สถานะสินค้า"
-        />
-        <Button type="primary" onClick={applySearch}>
-          ค้นหา
-        </Button>
+      <div className={styles.filterArea}>
+        <div className={`${styles.filterBar} ${styles.filterBarSeven}`}>
+          <DatePicker
+            allowClear={false}
+            value={asOf}
+            format="DD/MM/YYYY"
+            aria-label="วันที่รายงาน"
+            onChange={(value) => {
+              if (value) setAsOf(value);
+            }}
+          />
+          <Select
+            allowClear
+            placeholder="คลังสินค้า"
+            value={warehouseId}
+            loading={warehousesQuery.isLoading}
+            options={(warehousesQuery.data?.data ?? []).map((warehouse) => ({
+              value: warehouse.id,
+              label: warehouse.warehouseName,
+            }))}
+            onChange={setWarehouseId}
+          />
+          <Select
+            allowClear
+            placeholder="ประเภทสินค้า"
+            value={itemCategoryId}
+            loading={categoriesQuery.isLoading}
+            options={(categoriesQuery.data?.data ?? []).map((category) => ({
+              value: category.id,
+              label: category.nameTh,
+            }))}
+            onChange={setItemCategoryId}
+          />
+          <Input
+            allowClear
+            placeholder="รหัสหรือชื่อสินค้า"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            onPressEnter={applySearch}
+          />
+          <Input
+            allowClear
+            placeholder="Lot No."
+            value={lotNo}
+            onChange={(event) => setLotNo(event.target.value)}
+            onPressEnter={applySearch}
+          />
+          <Select
+            value={stockStatus}
+            options={STATUS_OPTIONS}
+            onChange={setStockStatus}
+            aria-label="สถานะสินค้า"
+          />
+          <Button type="primary" onClick={applySearch}>
+            ค้นหา
+          </Button>
+        </div>
+      </div>
+
+      <div className={styles.tableToolbar}>
+        {asOfDate ? (
+          <p className={styles.range}>
+            ข้อมูล ณ วันที่ {dayjs(asOfDate).format("DD/MM/YYYY")}
+          </p>
+        ) : (
+          <span />
+        )}
+        <div className={styles.toolbarActions}>
+          <Button
+            icon={<PlusSquareOutlined />}
+            disabled={expandedRowKeys.length === expandableKeys.length}
+            onClick={() => setCollapsed(new Set())}
+          >
+            ขยายทั้งหมด
+          </Button>
+          <Button
+            icon={<MinusSquareOutlined />}
+            disabled={expandedRowKeys.length === 0}
+            onClick={() => setCollapsed(new Set(expandableKeys))}
+          >
+            ยุบทั้งหมด
+          </Button>
+        </div>
       </div>
 
       {showingSample ? (
@@ -479,6 +510,7 @@ export default function StockBalanceReportPage() {
           onChange={(nextPage, nextLimit) => {
             setPage(nextPage);
             setLimit(nextLimit);
+            setCollapsed(new Set());
           }}
         />
       )}

@@ -115,18 +115,43 @@ export type SalesSummaryLine = {
   salesAmount: string;
   deliveredAmount: string;
   outstandingAmount: string;
+  /** ยกเลิกจนสั่งขายเป็น 0 และไม่เคยส่ง — มาเฉพาะเมื่อ includeCancelled ไม่นับในยอด */
+  cancelled: boolean;
+  /** จำนวนในรอบส่งที่ยกเลิกถึงวันสิ้นสุดรายงาน */
+  cancelledQty: string;
 };
 
-export type SalesSummaryCustomerGroup = {
-  customerCode: string;
-  customerName: string;
+/** จำนวนรวมของกลุ่ม — null = หน่วยปนกัน รวมไม่ได้ */
+export type SalesSummaryQtyRollup = {
+  unitCode: string | null;
+  orderedQty: string | null;
+  deliveredQty: string | null;
+  outstandingQty: string | null;
+};
+
+export type SalesSummaryOrder = SalesSummaryQtyRollup & {
+  salesOrderId: string;
+  soNo: string;
+  soDate: string;
+  status: string;
+  /** ทุกรายการที่แสดงถูกยกเลิก (รวม SO ที่ยกเลิกทั้งใบ) */
+  cancelled: boolean;
   salesAmount: string;
   deliveredAmount: string;
   outstandingAmount: string;
   lines: SalesSummaryLine[];
 };
 
-export type SalesSummaryTotals = {
+export type SalesSummaryCustomerGroup = SalesSummaryQtyRollup & {
+  customerCode: string;
+  customerName: string;
+  salesAmount: string;
+  deliveredAmount: string;
+  outstandingAmount: string;
+  orders: SalesSummaryOrder[];
+};
+
+export type SalesSummaryTotals = SalesSummaryQtyRollup & {
   salesAmount: string;
   deliveredAmount: string;
   outstandingAmount: string;
@@ -169,6 +194,8 @@ export type SalesSummaryReportQuery = {
   itemCategoryId?: string;
   soStatus?: string;
   deliveryStatus?: SalesDeliveryStatusFilter;
+  /** แสดงรายการ/SO ที่ยกเลิกจนเหลือ 0 ด้วย */
+  includeCancelled?: boolean;
 };
 
 export type ProcurementReportEnvelope<T> = {

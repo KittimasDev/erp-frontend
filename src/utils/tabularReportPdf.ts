@@ -19,7 +19,8 @@ const SAFETY_PX = 6;
 const NEGATIVE = /^-\d/;
 
 /**
- * จัดแถวลงหน้า: แถวไม่ถูกตัดข้ามหน้า และไม่ทิ้งแถวสรุปไว้ท้ายหน้าโดยแยกจากรายละเอียดของมัน
+ * จัดแถวลงหน้า: แถวไม่ถูกตัดข้ามหน้า และไม่ทิ้งแถวหัวกลุ่มไว้ท้ายหน้าโดยแยกจากแถวในกลุ่มของมัน
+ * (หัวกลุ่มซ้อนกัน เช่น ลูกค้า → SO ยกไปหน้าใหม่ด้วยกัน)
  * คืน [start, end) ต่อหน้า — ไม่มีแถวเลยได้ 1 หน้าว่าง
  */
 export function paginateRows(
@@ -27,7 +28,11 @@ export function paginateRows(
   groupRows: Set<number>,
   firstBudget: number,
   nextBudget: number,
+  subGroupRows: Set<number> = new Set(),
 ): Array<[number, number]> {
+  // ชั้นของแถว: สรุป 1 → กลุ่มย่อย 2 → รายละเอียด 3 · แถวที่ชั้นน้อยกว่าแถวถัดไปคือหัวของแถวนั้น
+  const level = (index: number) =>
+    groupRows.has(index) ? 1 : subGroupRows.has(index) ? 2 : 3;
   const pages: Array<[number, number]> = [];
   let start = 0;
   while (start < rowHeights.length) {
@@ -42,14 +47,12 @@ export function paginateRows(
       used += rowHeights[end];
       end += 1;
     }
-    const last = end - 1;
-    if (
+    while (
       end < rowHeights.length &&
       end - start > 1 &&
-      groupRows.has(last) &&
-      !groupRows.has(end)
+      level(end - 1) < level(end)
     ) {
-      end = last;
+      end -= 1;
     }
     pages.push([start, end]);
     start = end;
@@ -158,8 +161,14 @@ function styles() {
         font-weight: 600;
         border-top: 1px solid #9ca3af;
       }
+      .tr-table tr.sub td {
+        background: #f7f9f3;
+        font-weight: 600;
+      }
+      .tr-table tr.sub td.lead { padding-left: 12px; }
       .tr-table tr.detail td { color: #4b5563; }
       .tr-table tr.detail td.lead { padding-left: 17px; }
+      .tr-table.nested tr.detail td.lead { padding-left: 24px; }
       .tr-table td.neg,
       .tr-table tr.detail td.neg { color: #dc2626; }
       .tr-table .code { font-weight: 600; color: #111827; }
@@ -190,6 +199,10 @@ function buildParts(report: TabularReport): PageParts {
   const columns = resolveColumns(report);
   const lead = leadColumnIndex(columns);
   const groupRows = new Set(report.groupRows ?? []);
+  const subGroupRows = new Set(report.subGroupRows ?? []);
+  const rowClass = (index: number) =>
+    groupRows.has(index) ? "group" : subGroupRows.has(index) ? "sub" : "detail";
+  const tableClass = subGroupRows.size ? "tr-table nested" : "tr-table";
   const printedAt = dayjs().format("DD/MM/YYYY HH:mm");
 
   const colgroup = `<colgroup>${columns
@@ -203,7 +216,7 @@ function buildParts(report: TabularReport): PageParts {
     .join("");
   const rows = report.rows.map(
     (row, index) =>
-      `<tr class="${groupRows.has(index) ? "group" : "detail"}">${columns
+      `<tr class="${rowClass(index)}">${columns
         .map((col, colIndex) => cellHtml(row, col, colIndex === lead))
         .join("")}</tr>`,
   );
@@ -215,7 +228,7 @@ function buildParts(report: TabularReport): PageParts {
     }</div>`,
     nextHead: `<div class="tr-head tr-head-next">${escapeHtml(report.title)} (ต่อ)</div>`,
     table: (bodyRows) =>
-      `<div class="tr-body"><table class="tr-table">${colgroup}<thead><tr>${head}</tr></thead><tbody>${
+      `<div class="tr-body"><table class="${tableClass}">${colgroup}<thead><tr>${head}</tr></thead><tbody>${
         bodyRows ||
         `<tr><td class="tr-empty" colspan="${columns.length}">ไม่มีข้อมูล</td></tr>`
       }</tbody></table></div>`,
@@ -263,6 +276,7 @@ export async function openTabularReportPdf(report: TabularReport) {
     new Set(report.groupRows ?? []),
     firstBudget,
     nextBudget,
+    new Set(report.subGroupRows ?? []),
   );
 
   const pagesHtml = pages.map(([start, end], index) => {

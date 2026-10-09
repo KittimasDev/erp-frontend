@@ -64,6 +64,30 @@
   .filterBar > :last-child {
     width: auto;
   }
+
+  /* 7 ช่อง (วันที่เดี่ยว + 5 ตัวเลือก + ปุ่ม) */
+  .filterBar.filterBarSeven {
+    grid-template-columns: minmax(150px, 1fr) repeat(5, minmax(0, 1fr)) auto;
+  }
+
+  /* 8 ช่อง (วันที่ + 6 ตัวเลือก + ปุ่ม) ยังไม่พอแถวเดียว — คง 3 ต่อแถว */
+  .filterBar.filterBarWide {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .filterBar.filterBarWide > :last-child {
+    width: 100%;
+  }
+}
+
+@container (min-width: 1500px) {
+  .filterBar.filterBarWide {
+    grid-template-columns: minmax(220px, 1.3fr) repeat(6, minmax(0, 1fr)) auto;
+  }
+
+  .filterBar.filterBarWide > :last-child {
+    width: auto;
+  }
 }
 
 .range {
