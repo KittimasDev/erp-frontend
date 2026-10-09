@@ -32,3 +32,32 @@
 .filters > :first-child {
   width: min(280px, 100%);
 }
+
+.range {
+  margin: 0;
+  font-weight: 600;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.cardLabel {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.cardValue {
+  font-size: 20px;
+}

@@ -1,7 +1,7 @@
 "use client";
 
-import ProcurementExtraReportPage from "@/components/reports/ProcurementExtraReportPage";
+import SalesSummaryReportPage from "@/components/reports/SalesSummaryReportPage";
 
 export default function Page() {
-  return <ProcurementExtraReportPage kind="sales-by-item" />;
+  return <SalesSummaryReportPage />;
 }

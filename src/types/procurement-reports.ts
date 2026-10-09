@@ -46,52 +46,132 @@ export type StockBalanceReportQuery = {
   stockStatus?: StockBalanceStatusFilter;
 };
 
-export type ProcurementStockMovementRow = {
-  movementDate: string;
-  movementType: string;
-  movementTypeLabel: string;
-  referenceDocNo: string;
-  itemCode: string;
-  itemName: string;
-  warehouseName: string;
-  locationName: string;
-  unitCode: string;
-  quantityIn: string;
-  quantityOut: string;
+export type StockMovementSummaryLot = {
+  lotId: string | null;
+  /** ไม่มี Lot = "ไม่ระบุ Lot" */
+  lotNo: string;
+  /** คลังที่ Lot นี้มียอดหรือเคลื่อนไหวในช่วง */
+  warehouseNames: string[];
+  openingQty: string;
+  receivedQty: string;
+  issuedQty: string;
+  /** ปรับปรุงสุทธิ ติดลบได้ */
+  adjustedQty: string;
+  closingQty: string;
 };
 
-export type ProcurementSalesByItemRow = {
+export type StockMovementSummaryGroup = {
   itemCode: string;
   itemName: string;
+  itemCategoryName: string;
   unitCode: string;
-  quantity: string;
-  amount: string;
+  openingQty: string;
+  receivedQty: string;
+  issuedQty: string;
+  adjustedQty: string;
+  closingQty: string;
+  lots: StockMovementSummaryLot[];
 };
 
-export type ProcurementReportPage<T> = {
-  items: T[];
+export type StockMovementSummaryReportPage = {
+  dateFrom: string;
+  dateTo: string;
+  /** จำนวนกลุ่มสินค้า ไม่ใช่จำนวน Lot */
   total: number;
   page: number;
   limit: number;
+  items: StockMovementSummaryGroup[];
 };
 
-export type ProcurementReportExport<T> = {
-  items: T[];
+export type StockMovementSummaryReportExport = {
+  dateFrom: string;
+  dateTo: string;
   total: number;
-  truncated: boolean;
+  items: StockMovementSummaryGroup[];
+};
+
+export type StockMovementSummaryReportQuery = {
+  page?: number;
+  limit?: number;
+  q?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  warehouseId?: string;
+  itemCategoryId?: string;
+  lotNo?: string;
+};
+
+export type SalesSummaryLine = {
+  itemCode: string;
+  itemName: string;
+  itemCategoryName: string;
+  unitCode: string;
+  orderedQty: string;
+  /** ส่งมอบสำเร็จสุทธิ หักตีกลับแล้ว */
+  deliveredQty: string;
+  /** สั่งขาย - ส่งแล้ว - ยอดตีกลับที่ปิดการส่ง */
+  outstandingQty: string;
+  /** หลังหักส่วนลด ไม่รวม VAT */
+  salesAmount: string;
+  deliveredAmount: string;
+  outstandingAmount: string;
+};
+
+export type SalesSummaryCustomerGroup = {
+  customerCode: string;
+  customerName: string;
+  salesAmount: string;
+  deliveredAmount: string;
+  outstandingAmount: string;
+  lines: SalesSummaryLine[];
+};
+
+export type SalesSummaryTotals = {
+  salesAmount: string;
+  deliveredAmount: string;
+  outstandingAmount: string;
+  salesOrderCount: number;
+};
+
+export type SalesSummaryReportPage = {
+  dateFrom: string;
+  dateTo: string;
+  /** ยอดรวมทุกหน้า */
+  summary: SalesSummaryTotals;
+  /** จำนวนลูกค้า */
+  total: number;
+  page: number;
+  limit: number;
+  items: SalesSummaryCustomerGroup[];
+};
+
+export type SalesSummaryReportExport = {
+  dateFrom: string;
+  dateTo: string;
+  summary: SalesSummaryTotals;
+  total: number;
+  items: SalesSummaryCustomerGroup[];
+};
+
+export type SalesDeliveryStatusFilter =
+  | "ALL"
+  | "NOT_DELIVERED"
+  | "PARTIAL"
+  | "DELIVERED";
+
+export type SalesSummaryReportQuery = {
+  page?: number;
+  limit?: number;
+  dateFrom?: string;
+  dateTo?: string;
+  customerId?: string;
+  itemId?: string;
+  itemCategoryId?: string;
+  soStatus?: string;
+  deliveryStatus?: SalesDeliveryStatusFilter;
 };
 
 export type ProcurementReportEnvelope<T> = {
   message: string;
   data: T;
-};
-
-export type ProcurementReportQuery = {
-  page?: number;
-  limit?: number;
-  q?: string;
-  warehouseId?: string;
-  itemId?: string;
-  dateFrom?: string;
-  dateTo?: string;
 };

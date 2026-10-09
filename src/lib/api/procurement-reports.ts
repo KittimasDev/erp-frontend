@@ -1,17 +1,23 @@
 import { apiFetch } from "@/lib/api/client";
 import type {
   ProcurementReportEnvelope,
-  ProcurementReportExport,
-  ProcurementReportPage,
-  ProcurementReportQuery,
-  ProcurementSalesByItemRow,
-  ProcurementStockMovementRow,
+  SalesSummaryReportExport,
+  SalesSummaryReportPage,
+  SalesSummaryReportQuery,
   StockBalanceReportExport,
   StockBalanceReportPage,
   StockBalanceReportQuery,
+  StockMovementSummaryReportExport,
+  StockMovementSummaryReportPage,
+  StockMovementSummaryReportQuery,
 } from "@/types/procurement-reports";
 
-function queryString(params: ProcurementReportQuery | StockBalanceReportQuery) {
+type ReportQuery =
+  | StockMovementSummaryReportQuery
+  | StockBalanceReportQuery
+  | SalesSummaryReportQuery;
+
+function queryString(params: ReportQuery) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== "") {
@@ -22,11 +28,7 @@ function queryString(params: ProcurementReportQuery | StockBalanceReportQuery) {
   return qs ? `?${qs}` : "";
 }
 
-function getReport<T>(
-  token: string | null,
-  path: string,
-  params: ProcurementReportQuery | StockBalanceReportQuery,
-) {
+function getReport<T>(token: string | null, path: string, params: ReportQuery) {
   return apiFetch<ProcurementReportEnvelope<T>>(
     `/api/reports/procurement/${path}${queryString(params)}`,
     { token },
@@ -53,9 +55,9 @@ export function exportProcurementStockBalanceReport(
 
 export function getProcurementStockMovementReport(
   token: string | null,
-  params: ProcurementReportQuery,
+  params: StockMovementSummaryReportQuery,
 ) {
-  return getReport<ProcurementReportPage<ProcurementStockMovementRow>>(
+  return getReport<StockMovementSummaryReportPage>(
     token,
     "stock-movements",
     params,
@@ -64,9 +66,9 @@ export function getProcurementStockMovementReport(
 
 export function exportProcurementStockMovementReport(
   token: string | null,
-  params: ProcurementReportQuery,
+  params: StockMovementSummaryReportQuery,
 ) {
-  return getReport<ProcurementReportExport<ProcurementStockMovementRow>>(
+  return getReport<StockMovementSummaryReportExport>(
     token,
     "stock-movements/export",
     params,
@@ -75,20 +77,16 @@ export function exportProcurementStockMovementReport(
 
 export function getProcurementSalesByItemReport(
   token: string | null,
-  params: ProcurementReportQuery,
+  params: SalesSummaryReportQuery,
 ) {
-  return getReport<ProcurementReportPage<ProcurementSalesByItemRow>>(
-    token,
-    "sales-by-item",
-    params,
-  );
+  return getReport<SalesSummaryReportPage>(token, "sales-by-item", params);
 }
 
 export function exportProcurementSalesByItemReport(
   token: string | null,
-  params: ProcurementReportQuery,
+  params: SalesSummaryReportQuery,
 ) {
-  return getReport<ProcurementReportExport<ProcurementSalesByItemRow>>(
+  return getReport<SalesSummaryReportExport>(
     token,
     "sales-by-item/export",
     params,

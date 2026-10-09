@@ -1,7 +1,7 @@
 "use client";
 
-import ProcurementExtraReportPage from "@/components/reports/ProcurementExtraReportPage";
+import StockMovementSummaryReportPage from "@/components/reports/StockMovementSummaryReportPage";
 
 export default function Page() {
-  return <ProcurementExtraReportPage kind="stock-movements" />;
+  return <StockMovementSummaryReportPage />;
 }

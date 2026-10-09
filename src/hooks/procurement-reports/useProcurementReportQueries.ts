@@ -9,8 +9,9 @@ import {
 } from "@/lib/api/procurement-reports";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
-  ProcurementReportQuery,
+  SalesSummaryReportQuery,
   StockBalanceReportQuery,
+  StockMovementSummaryReportQuery,
 } from "@/types/procurement-reports";
 
 export function useProcurementStockBalanceReportQuery(
@@ -23,23 +24,19 @@ export function useProcurementStockBalanceReportQuery(
 }
 
 export function useProcurementStockMovementReportQuery(
-  params: ProcurementReportQuery,
-  enabled = true,
+  params: StockMovementSummaryReportQuery,
 ) {
   return useQuery({
     queryKey: ["reports", "procurement", "stock-movements", params],
     queryFn: () => getProcurementStockMovementReport(getAccessToken(), params),
-    enabled,
   });
 }
 
 export function useProcurementSalesByItemReportQuery(
-  params: ProcurementReportQuery,
-  enabled = true,
+  params: SalesSummaryReportQuery,
 ) {
   return useQuery({
     queryKey: ["reports", "procurement", "sales-by-item", params],
     queryFn: () => getProcurementSalesByItemReport(getAccessToken(), params),
-    enabled,
   });
 }
