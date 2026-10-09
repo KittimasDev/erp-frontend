@@ -33,9 +33,56 @@
   width: min(280px, 100%);
 }
 
+/* วัดความกว้างพื้นที่เนื้อหาจริง (หัก sidebar) ไม่ใช่ viewport */
+.filterArea {
+  container-type: inline-size;
+}
+
+.filterBar {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+
+.filterBar > * {
+  width: 100%;
+  min-width: 0;
+}
+
+@container (min-width: 560px) {
+  .filterBar {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 1100px) {
+  .filterBar {
+    grid-template-columns: minmax(220px, 1.3fr) repeat(4, minmax(0, 1fr)) auto;
+  }
+
+  .filterBar > :last-child {
+    width: auto;
+  }
+}
+
 .range {
   margin: 0;
   font-weight: 600;
+}
+
+.tableToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+
+.toolbarActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .cards {

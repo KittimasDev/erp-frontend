@@ -36,6 +36,7 @@ import {
 } from "@/types/sales-orders";
 import {
   downloadTabularReport,
+  type TabularPdfColumn,
   type TabularReport,
 } from "@/utils/downloadTabularReport";
 
@@ -73,6 +74,19 @@ const EXPORT_HEADERS = [
   "มูลค่ายอดขาย",
   "มูลค่าส่งแล้ว",
   "มูลค่าค้างส่ง",
+];
+
+/** index ใน cells ตรงกับลำดับช่องของ EXPORT_HEADERS */
+const PDF_COLUMNS: TabularPdfColumn[] = [
+  { header: "ลำดับ", cells: [0], width: 26, align: "center" },
+  { header: "ลูกค้า / สินค้า", cells: [1], width: 218 },
+  { header: "หน่วย", cells: [2], width: 40, align: "center" },
+  ...EXPORT_HEADERS.slice(3).map((header, index) => ({
+    header,
+    cells: [3 + index],
+    width: index < 3 ? 74 : 80,
+    numeric: true,
+  })),
 ];
 
 const DASH = "–";
@@ -287,6 +301,7 @@ function toSheet(
     headers: EXPORT_HEADERS,
     rows,
     groupRows,
+    pdfColumns: PDF_COLUMNS,
   };
 }
 

@@ -31,6 +31,7 @@ import type {
 } from "@/types/procurement-reports";
 import {
   downloadTabularReport,
+  type TabularPdfColumn,
   type TabularReport,
 } from "@/utils/downloadTabularReport";
 
@@ -54,6 +55,18 @@ const EXPORT_HEADERS = [
   "คงเหลือ",
   "จอง",
   "พร้อมใช้",
+];
+
+/** index ใน cells ตรงกับลำดับช่องของ EXPORT_HEADERS */
+const PDF_COLUMNS: TabularPdfColumn[] = [
+  { header: "ลำดับ", cells: [0], width: 26, align: "center" },
+  { header: "สินค้า / Lot", cells: [1, 2], width: 236 },
+  { header: "ประเภท", cells: [3], width: 72 },
+  { header: "คลัง", cells: [4], width: 120 },
+  { header: "หน่วย", cells: [5], width: 40, align: "center" },
+  { header: "คงเหลือ", cells: [6], width: 84, numeric: true },
+  { header: "จอง", cells: [7], width: 84, numeric: true },
+  { header: "พร้อมใช้", cells: [8], width: 84, numeric: true },
 ];
 
 type BalanceRow = {
@@ -211,6 +224,7 @@ function toSheet(
     headers: EXPORT_HEADERS,
     rows,
     groupRows,
+    pdfColumns: PDF_COLUMNS,
   };
 }
 

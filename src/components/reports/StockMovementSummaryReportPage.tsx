@@ -12,7 +12,11 @@ import {
   Table,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DownloadOutlined } from "@ant-design/icons";
+import {
+  DownloadOutlined,
+  MinusSquareOutlined,
+  PlusSquareOutlined,
+} from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
@@ -30,6 +34,7 @@ import type {
 } from "@/types/procurement-reports";
 import {
   downloadTabularReport,
+  type TabularPdfColumn,
   type TabularReport,
 } from "@/utils/downloadTabularReport";
 
@@ -57,6 +62,21 @@ const EXPORT_HEADERS = [
   ...QTY_FIELDS.map(([title]) => title),
 ];
 
+/** index ใน cells ตรงกับลำดับช่องของ EXPORT_HEADERS */
+const PDF_COLUMNS: TabularPdfColumn[] = [
+  { header: "ลำดับ", cells: [0], width: 26, align: "center" },
+  { header: "สินค้า / Lot", cells: [1, 2], width: 190 },
+  { header: "ประเภท", cells: [3], width: 66 },
+  { header: "คลัง", cells: [4], width: 98 },
+  { header: "หน่วย", cells: [5], width: 36, align: "center" },
+  ...QTY_FIELDS.map(([title], index) => ({
+    header: title,
+    cells: [6 + index],
+    width: 66,
+    numeric: true,
+  })),
+];
+
 type MovementRow = {
   key: string;
   isGroup: boolean;
@@ -66,6 +86,7 @@ type MovementRow = {
   itemCategoryName: string;
   warehouseName: string;
   unitCode: string;
+  children?: MovementRow[];
 } & Record<QtyField, string>;
 
 const SAMPLE_GROUPS: StockMovementSummaryGroup[] = [
@@ -186,6 +207,38 @@ function qtyValues(row: Record<QtyField, string>): Record<QtyField, string> {
   };
 }
 
+function itemRow(
+  group: StockMovementSummaryGroup,
+  key: string,
+  seq: number,
+): MovementRow {
+  return {
+    key,
+    isGroup: true,
+    seq,
+    itemCode: group.itemCode,
+    label: group.itemName,
+    itemCategoryName: group.itemCategoryName,
+    warehouseName: "รวม",
+    unitCode: group.unitCode,
+    ...qtyValues(group),
+  };
+}
+
+function lotRows(group: StockMovementSummaryGroup, key: string): MovementRow[] {
+  return group.lots.map((lot, lotIndex) => ({
+    key: `${key}-lot-${lotIndex + 1}`,
+    isGroup: false,
+    itemCode: "",
+    label: `↳ ${lot.lotNo}`,
+    itemCategoryName: "",
+    warehouseName: lot.warehouseNames.join(", ") || "–",
+    unitCode: group.unitCode,
+    ...qtyValues(lot),
+  }));
+}
+
+/** แถวแบน สินค้าตามด้วย Lot ทุกแถว — ใช้ส่งออกไฟล์ */
 function toTableRows(
   groups: StockMovementSummaryGroup[],
   startSeq: number,
@@ -193,29 +246,23 @@ function toTableRows(
 ): MovementRow[] {
   return groups.flatMap((group, index) => {
     const key = `${prefix}-${index + 1}`;
-    return [
-      {
-        key,
-        isGroup: true,
-        seq: startSeq + index,
-        itemCode: group.itemCode,
-        label: group.itemName,
-        itemCategoryName: group.itemCategoryName,
-        warehouseName: "รวม",
-        unitCode: group.unitCode,
-        ...qtyValues(group),
-      },
-      ...group.lots.map((lot, lotIndex) => ({
-        key: `${key}-lot-${lotIndex + 1}`,
-        isGroup: false,
-        itemCode: "",
-        label: `↳ ${lot.lotNo}`,
-        itemCategoryName: "",
-        warehouseName: lot.warehouseNames.join(", ") || "–",
-        unitCode: group.unitCode,
-        ...qtyValues(lot),
-      })),
-    ];
+    return [itemRow(group, key, startSeq + index), ...lotRows(group, key)];
+  });
+}
+
+/** แถวสินค้าที่มี Lot เป็น children — ตารางบนจอขยาย/ยุบทีละสินค้า */
+function toTreeRows(
+  groups: StockMovementSummaryGroup[],
+  startSeq: number,
+  prefix: string,
+): MovementRow[] {
+  return groups.map((group, index) => {
+    const key = `${prefix}-${index + 1}`;
+    const children = lotRows(group, key);
+    return {
+      ...itemRow(group, key, startSeq + index),
+      children: children.length ? children : undefined,
+    };
   });
 }
 
@@ -249,6 +296,7 @@ function toSheet(
     headers: EXPORT_HEADERS,
     rows,
     groupRows,
+    pdfColumns: PDF_COLUMNS,
   };
 }
 
@@ -306,6 +354,7 @@ export default function StockMovementSummaryReportPage() {
   );
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [exporting, setExporting] = useState<"csv" | "xlsx" | "pdf" | null>(
     null,
   );
@@ -326,14 +375,21 @@ export default function StockMovementSummaryReportPage() {
   const tableRows = useMemo(
     () =>
       showingSample
-        ? toTableRows(SAMPLE_GROUPS, 1, "sample")
-        : toTableRows(
+        ? toTreeRows(SAMPLE_GROUPS, 1, "sample")
+        : toTreeRows(
             report?.items ?? [],
             (page - 1) * limit + 1,
             `item-${page}`,
           ),
     [showingSample, report, page, limit],
   );
+  const expandableKeys = tableRows
+    .filter((row) => row.children)
+    .map((row) => row.key);
+  const expandedRowKeys = expandableKeys.filter((key) => expanded.has(key));
+  const allExpanded =
+    expandableKeys.length > 0 &&
+    expandedRowKeys.length === expandableKeys.length;
 
   const canExport =
     !isMatrixPermissionMode() ||
@@ -341,6 +397,7 @@ export default function StockMovementSummaryReportPage() {
 
   const applySearch = () => {
     setPage(1);
+    setExpanded(new Set());
     setApplied({
       dateFrom: dateRange[0].format("YYYY-MM-DD"),
       dateTo: dateRange[1].format("YYYY-MM-DD"),
@@ -408,63 +465,84 @@ export default function StockMovementSummaryReportPage() {
         ) : null}
       </div>
 
-      <div className={styles.filters}>
-        <DatePicker.RangePicker
-          allowClear={false}
-          value={dateRange}
-          format="DD/MM/YYYY"
-          onChange={(value) => {
-            if (value?.[0] && value[1]) {
-              setDateRange([value[0], value[1]]);
-            }
-          }}
-        />
-        <Select
-          allowClear
-          placeholder="คลังสินค้าทั้งหมด"
-          style={{ minWidth: 200 }}
-          value={warehouseId}
-          loading={warehousesQuery.isLoading}
-          options={(warehousesQuery.data?.data ?? []).map((warehouse) => ({
-            value: warehouse.id,
-            label: warehouse.warehouseName,
-          }))}
-          onChange={setWarehouseId}
-        />
-        <Select
-          allowClear
-          placeholder="ประเภทสินค้าทั้งหมด"
-          style={{ minWidth: 200 }}
-          value={itemCategoryId}
-          loading={categoriesQuery.isLoading}
-          options={(categoriesQuery.data?.data ?? []).map((category) => ({
-            value: category.id,
-            label: category.nameTh,
-          }))}
-          onChange={setItemCategoryId}
-        />
-        <Input
-          allowClear
-          placeholder="รหัสหรือชื่อสินค้า"
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          onPressEnter={applySearch}
-        />
-        <Input
-          allowClear
-          placeholder="Lot No."
-          value={lotNo}
-          onChange={(event) => setLotNo(event.target.value)}
-          onPressEnter={applySearch}
-        />
-        <Button type="primary" onClick={applySearch}>
-          ค้นหา
-        </Button>
+      <div className={styles.filterArea}>
+        <div className={styles.filterBar}>
+          <DatePicker.RangePicker
+            allowClear={false}
+            value={dateRange}
+            format="DD/MM/YYYY"
+            aria-label="ช่วงวันที่"
+            onChange={(value) => {
+              if (value?.[0] && value[1]) {
+                setDateRange([value[0], value[1]]);
+              }
+            }}
+          />
+          <Select
+            allowClear
+            placeholder="คลังสินค้าทั้งหมด"
+            value={warehouseId}
+            loading={warehousesQuery.isLoading}
+            options={(warehousesQuery.data?.data ?? []).map((warehouse) => ({
+              value: warehouse.id,
+              label: warehouse.warehouseName,
+            }))}
+            onChange={setWarehouseId}
+          />
+          <Select
+            allowClear
+            placeholder="ประเภทสินค้าทั้งหมด"
+            value={itemCategoryId}
+            loading={categoriesQuery.isLoading}
+            options={(categoriesQuery.data?.data ?? []).map((category) => ({
+              value: category.id,
+              label: category.nameTh,
+            }))}
+            onChange={setItemCategoryId}
+          />
+          <Input
+            allowClear
+            placeholder="รหัสหรือชื่อสินค้า"
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            onPressEnter={applySearch}
+          />
+          <Input
+            allowClear
+            placeholder="Lot No."
+            value={lotNo}
+            onChange={(event) => setLotNo(event.target.value)}
+            onPressEnter={applySearch}
+          />
+          <Button type="primary" onClick={applySearch}>
+            ค้นหา
+          </Button>
+        </div>
       </div>
 
-      {dateFrom && dateTo ? (
-        <p className={styles.range}>{rangeLabel(dateFrom, dateTo)}</p>
-      ) : null}
+      <div className={styles.tableToolbar}>
+        {dateFrom && dateTo ? (
+          <p className={styles.range}>{rangeLabel(dateFrom, dateTo)}</p>
+        ) : (
+          <span />
+        )}
+        <div className={styles.toolbarActions}>
+          <Button
+            icon={<PlusSquareOutlined />}
+            disabled={expandableKeys.length === 0 || allExpanded}
+            onClick={() => setExpanded(new Set(expandableKeys))}
+          >
+            ขยายทั้งหมด
+          </Button>
+          <Button
+            icon={<MinusSquareOutlined />}
+            disabled={expandedRowKeys.length === 0}
+            onClick={() => setExpanded(new Set())}
+          >
+            ยุบทั้งหมด
+          </Button>
+        </div>
+      </div>
 
       {showingSample ? (
         <Alert
@@ -482,6 +560,17 @@ export default function StockMovementSummaryReportPage() {
         dataSource={tableRows}
         pagination={false}
         scroll={{ x: 1280 }}
+        expandable={{
+          expandedRowKeys,
+          onExpand: (isExpanded, row) => {
+            setExpanded((prev) => {
+              const next = new Set(prev);
+              if (isExpanded) next.add(row.key);
+              else next.delete(row.key);
+              return next;
+            });
+          },
+        }}
       />
       {showingSample ? null : (
         <Pagination
@@ -493,6 +582,7 @@ export default function StockMovementSummaryReportPage() {
           onChange={(nextPage, nextLimit) => {
             setPage(nextPage);
             setLimit(nextLimit);
+            setExpanded(new Set());
           }}
         />
       )}

@@ -1,3 +1,14 @@
+export type TabularPdfColumn = {
+  header: string;
+  /** index ของช่องใน rows — หลายช่องรวมเป็นช่องเดียว เช่น [รหัส, ชื่อ] → "RM-001 ยางรถยนต์" (รหัสตัวหนา) */
+  cells: number[];
+  /** px บนกระดาษกว้าง 794 (พื้นที่ตาราง 746) */
+  width: number;
+  align?: "left" | "center" | "right";
+  /** ตัวเลข: ชิดขวา, ไม่ตัดบรรทัด, tabular-nums, ค่าลบสีแดง */
+  numeric?: boolean;
+};
+
 export type TabularReport = {
   title: string;
   filename: string;
@@ -7,15 +18,9 @@ export type TabularReport = {
   rows: string[][];
   /** index ของแถวสรุปใน `rows` — Excel/PDF ทำตัวหนา */
   groupRows?: number[];
+  /** คอลัมน์เฉพาะ PDF — ไม่ส่ง = ใช้ headers กว้างเท่ากัน */
+  pdfColumns?: TabularPdfColumn[];
 };
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 function csvCell(value: string) {
   if (/[",\n]/.test(value)) {
@@ -79,43 +84,8 @@ async function downloadExcel(report: TabularReport) {
 }
 
 async function downloadPdf(report: TabularReport) {
-  const { openPdfFromHtml } = await import("@/utils/pdf-common");
-  const groupRows = new Set(report.groupRows ?? []);
-  const head = report.headers
-    .map((header) => `<th>${escapeHtml(header)}</th>`)
-    .join("");
-  const body = report.rows
-    .map(
-      (row, index) =>
-        `<tr${groupRows.has(index) ? ' class="group"' : ""}>${row
-          .map((cell) => `<td>${escapeHtml(cell)}</td>`)
-          .join("")}</tr>`,
-    )
-    .join("");
-  const meta = (report.meta ?? [])
-    .map((line) => `<div>${escapeHtml(line)}</div>`)
-    .join("");
-  const html = `
-    <section id="procurement-report-pdf" style="width:794px;padding:24px;background:#fff;color:#222;font-family:Tahoma,sans-serif;">
-      <h1 style="margin:0 0 8px;font-size:18px;">${escapeHtml(report.title)}</h1>
-      ${meta ? `<div style="margin:0 0 12px;font-size:11px;">${meta}</div>` : ""}
-      <table style="width:100%;border-collapse:collapse;font-size:11px;">
-        <thead><tr>${head}</tr></thead>
-        <tbody>${body}</tbody>
-      </table>
-      <style>
-        #procurement-report-pdf th,
-        #procurement-report-pdf td {
-          border: 1px solid #d9d9d9;
-          padding: 4px 6px;
-          text-align: left;
-          vertical-align: top;
-        }
-        #procurement-report-pdf th { background: #f3f6ee; }
-        #procurement-report-pdf tr.group td { font-weight: 700; background: #fafafa; }
-      </style>
-    </section>`;
-  await openPdfFromHtml("procurement-report-pdf", html);
+  const { openTabularReportPdf } = await import("@/utils/tabularReportPdf");
+  await openTabularReportPdf(report);
 }
 
 export async function downloadTabularReport(
