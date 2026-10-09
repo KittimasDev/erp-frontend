@@ -9,7 +9,6 @@ import {
   Button,
   DatePicker,
   Input,
-  InputNumber,
   Select,
   Spin,
   Table,
@@ -39,23 +38,20 @@ import {
 } from "@/hooks/pickings/usePickingMutations";
 import { usePickingQuery } from "@/hooks/pickings/usePickingsQuery";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
-import { useAvailableLocationsQuery } from "@/hooks/dispatch-orders/useDispatchOrdersQuery";
-import {
-  useSalesOrderAvailableWarehousesQuery,
-  useSalesOrderStockVerificationQuery,
-} from "@/hooks/sales-orders/useSalesOrdersQuery";
+import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import AccessDenied from "@/components/auth/AccessDenied";
+import { ApiError } from "@/lib/api/client";
 import { getFifoLotSuggestion } from "@/lib/api/dispatch-orders";
 import { getAccessToken } from "@/lib/auth/token";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
 import type { PickingItem } from "@/types/pickings";
 import { PICKING_STATUS_LABEL } from "@/types/pickings";
-import type { SalesOrderStockVerificationLine } from "@/types/sales-orders";
 import styles from "./PickingFormPage.module.css";
 
 type Props = { id: string; mode: "view" | "edit" };
 
+/** คลัง/ตำแหน่ง/จำนวนยึดตามของที่จองไว้ — ในฟอร์มแก้ได้แค่ Lot */
 type RowEdit = {
   id: string;
   warehouseId?: string;
@@ -65,6 +61,12 @@ type RowEdit = {
   pickedQty: number;
   availableHint?: string;
 };
+
+function formatQty(value?: string | number) {
+  const num = Number(value ?? 0);
+  if (Number.isNaN(num)) return "-";
+  return num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
+}
 
 const FIFO_TOOLTIP = (
   <div style={{ maxWidth: 280 }}>
@@ -76,45 +78,6 @@ const FIFO_TOOLTIP = (
   </div>
 );
 
-function sourceFromVerification(
-  line: SalesOrderStockVerificationLine | undefined,
-  requiresLot?: boolean,
-): Pick<
-  RowEdit,
-  "warehouseId" | "locationId" | "lotId" | "lotNo" | "availableHint"
-> {
-  if (!line) return {};
-  if (requiresLot && line.availableLots?.length) {
-    const lot = line.availableLots[0];
-    return {
-      warehouseId: lot.warehouseId,
-      locationId: lot.locationId,
-      lotId: lot.lotId,
-      lotNo: lot.lotNo,
-      availableHint: lot.availableQty,
-    };
-  }
-  if (line.availableLocations?.length) {
-    const loc = line.availableLocations[0];
-    return {
-      warehouseId: loc.warehouseId,
-      locationId: loc.locationId,
-      availableHint: loc.availableQty,
-    };
-  }
-  if (line.availableLots?.length) {
-    const lot = line.availableLots[0];
-    return {
-      warehouseId: lot.warehouseId,
-      locationId: lot.locationId,
-      lotId: lot.lotId,
-      lotNo: lot.lotNo,
-      availableHint: lot.availableQty,
-    };
-  }
-  return {};
-}
-
 export default function PickingFormPage({ id, mode }: Props) {
   const router = useRouter();
   const { modal } = App.useApp();
@@ -124,10 +87,6 @@ export default function PickingFormPage({ id, mode }: Props) {
   const cancelMutation = useCancelPickingMutation();
 
   const data = query.data?.data;
-  const warehousesQuery = useSalesOrderAvailableWarehousesQuery(
-    data?.salesOrderId,
-  );
-  const verifyQuery = useSalesOrderStockVerificationQuery(data?.salesOrderId);
   const trackingQuery = useSalesTrackingDetailQuery(data?.salesOrderId);
 
   const pickingActions = useScreenActionPermissions("PICKINGS");
@@ -178,35 +137,6 @@ export default function PickingFormPage({ id, mode }: Props) {
     );
   }
 
-  /**
-   * เติมคลัง/ล็อตจากผลตรวจสต๊อกให้อัตโนมัติ ครั้งเดียวต่อการโหลดข้อมูลหนึ่งรอบ
-   * ใช้ตัว data ที่เติมแล้วเป็นตัวกันซ้ำ แทน useRef ที่เดิมถูกแก้ค่าใน effect
-   */
-  const verify = verifyQuery.data?.data;
-  const [prefilledData, setPrefilledData] = useState<typeof data | null>(null);
-  if (editable && data && verify && prefilledData !== data) {
-    setPrefilledData(data);
-    if (data.items.some((item) => !item.warehouseId)) {
-      const bySoItem = new Map(
-        verify.lines.map((line) => [line.salesOrderItemId, line]),
-      );
-      setRows((prev) =>
-        prev.map((row) => {
-          if (row.warehouseId) return row;
-          const item = data.items.find((i) => i.id === row.id);
-          if (!item) return row;
-          const source = sourceFromVerification(
-            bySoItem.get(item.salesOrderItemId),
-            item.requiresLotControl,
-          );
-          return { ...row, ...source };
-        }),
-      );
-    }
-  }
-
-  const warehouses = warehousesQuery.data?.data ?? [];
-
   const updateRow = (itemId: string, patch: Partial<RowEdit>) => {
     setRows((prev) =>
       prev.map((row) => (row.id === itemId ? { ...row, ...patch } : row)),
@@ -238,21 +168,32 @@ export default function PickingFormPage({ id, mode }: Props) {
     }
   };
 
-  const handleSave = async () => {
-    await updateMutation.mutateAsync({
-      id,
-      body: {
-        pickingDate: pickingDate?.format("YYYY-MM-DD"),
-        remark,
-        items: rows.map((row) => ({
-          id: row.id,
-          warehouseId: row.warehouseId,
-          locationId: row.locationId,
-          lotId: row.lotId ?? null,
-          pickedQty: row.pickedQty,
-        })),
-      },
-    });
+  /** คืน false ถ้าบันทึกไม่ผ่าน — toast แจ้งจาก mutation แล้ว */
+  const handleSave = async (): Promise<boolean> => {
+    const lotControlled = new Set(
+      (data?.items ?? [])
+        .filter((item) => item.requiresLotControl)
+        .map((item) => item.id),
+    );
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        body: {
+          pickingDate: pickingDate?.format("YYYY-MM-DD"),
+          remark,
+          items: rows
+            .filter((row) => lotControlled.has(row.id) && row.lotId)
+            .map((row) => ({ id: row.id, lotId: row.lotId })),
+        },
+      });
+      return true;
+    } catch (error) {
+      // 409 = แถวถูกปรับตามยอดจองล่าสุดแล้ว ต้องโหลดใบใหม่ก่อน
+      if (error instanceof ApiError && error.status === 409) {
+        await query.refetch();
+      }
+      return false;
+    }
   };
 
   if (query.isLoading || !data) {
@@ -328,7 +269,7 @@ export default function PickingFormPage({ id, mode }: Props) {
     if (editable) {
       return (
         <span className={styles.lotHint}>
-          สินค้าควบคุม Lot — เลือกคลัง/ตำแหน่งแล้วกด &quot;แนะนำ FIFO&quot;
+          สินค้าควบคุม Lot — เลือก Lot หรือกด &quot;แนะนำ FIFO&quot;
         </span>
       );
     }
@@ -358,84 +299,20 @@ export default function PickingFormPage({ id, mode }: Props) {
       title: "หยิบ",
       key: "picked",
       width: 110,
-      render: (_v, item) => {
-        const row = rows.find((r) => r.id === item.id);
-        if (!editable || !row) return item.pickedQty;
-        return (
-          <InputNumber
-            min={0.001}
-            value={row.pickedQty}
-            style={{ width: "100%" }}
-            onChange={(v) => updateRow(item.id, { pickedQty: Number(v) || 0 })}
-          />
-        );
-      },
+      align: "right",
+      render: (_v, item) => formatQty(item.pickedQty),
     },
     {
       title: "คลัง",
       key: "wh",
-      width: 170,
-      render: (_v, item) => {
-        const row = rows.find((r) => r.id === item.id);
-        if (!editable || !row) return item.warehouseCode ?? "—";
-        const options = warehouses.map((w) => ({
-          value: w.warehouseId,
-          label: `${w.warehouseCode ?? ""} — ${w.warehouseName ?? ""}`,
-        }));
-        if (
-          row.warehouseId &&
-          !options.some((o) => o.value === row.warehouseId)
-        ) {
-          options.unshift({
-            value: row.warehouseId,
-            label: item.warehouseCode ?? row.warehouseId,
-          });
-        }
-        return (
-          <Select
-            showSearch
-            optionFilterProp="label"
-            style={{ width: "100%" }}
-            placeholder="คลังที่มีสต๊อก"
-            value={row.warehouseId}
-            options={options}
-            onChange={(warehouseId) =>
-              updateRow(item.id, {
-                warehouseId,
-                locationId: undefined,
-                lotId: undefined,
-                lotNo: undefined,
-                availableHint: undefined,
-              })
-            }
-          />
-        );
-      },
+      width: 140,
+      render: (_v, item) => item.warehouseCode ?? "—",
     },
     {
       title: "ตำแหน่ง",
       key: "loc",
-      width: 150,
-      render: (_v, item) => {
-        const row = rows.find((r) => r.id === item.id);
-        if (!editable || !row) return item.locationCode ?? "—";
-        return (
-          <LocationSelect
-            itemId={item.itemId}
-            warehouseId={row.warehouseId}
-            value={row.locationId}
-            onChange={(locationId) => {
-              updateRow(item.id, {
-                locationId,
-                lotId: undefined,
-                lotNo: undefined,
-                availableHint: undefined,
-              });
-              void suggestLot(item, { ...row, locationId });
-            }}
-          />
-        );
-      },
+      width: 130,
+      render: (_v, item) => item.locationCode ?? "—",
     },
     {
       title: (
@@ -452,22 +329,24 @@ export default function PickingFormPage({ id, mode }: Props) {
       width: 210,
       render: (_v, item) => {
         const row = rows.find((r) => r.id === item.id);
-        if (!editable || !row) {
+        if (!editable || !row || !item.requiresLotControl) {
           return item.lotNo ?? item.lotId ?? "—";
         }
-        const lotLabel = row.lotNo ?? row.lotId;
         return (
           <div>
-            <span
-              className={`${styles.lotBadge} ${
-                lotLabel ? "" : styles.lotBadgeEmpty
-              }`}
-            >
-              {lotLabel ?? "ยังไม่เลือก Lot"}
-            </span>
+            <LotSelect
+              itemId={item.itemId}
+              warehouseId={row.warehouseId}
+              locationId={row.locationId}
+              value={row.lotId}
+              valueLabel={row.lotNo}
+              onChange={(lotId, lotNo, onHand) =>
+                updateRow(item.id, { lotId, lotNo, availableHint: onHand })
+              }
+            />
             {row.availableHint ? (
               <div className={styles.lotMeta}>
-                คงเหลือใน Lot {Number(row.availableHint).toLocaleString("th-TH")}
+                คงเหลือใน Lot {formatQty(row.availableHint)}
               </div>
             ) : null}
             <div className={styles.lotActions}>
@@ -613,7 +492,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                         ? "ของจองครบแล้ว — ระบบจะตัดจากของที่จองไว้สำหรับใบจ่ายนี้และสร้าง stock movement ไม่ได้ตัด available ซ้ำจากคลังว่าง"
                         : "ยืนยันตัดสต๊อกจริงจากของที่จองไว้สำหรับใบจ่ายนี้ และสร้าง stock movement",
                       onOk: async () => {
-                        await handleSave();
+                        if (!(await handleSave())) return;
                         await confirmMutation.mutateAsync(id);
                         router.push(`/pickings/${id}`);
                       },
@@ -742,11 +621,11 @@ export default function PickingFormPage({ id, mode }: Props) {
             <div className={styles.tipSteps}>
               <span className={styles.tipStep}>
                 <span className={styles.tipStepNum}>1</span>
-                เลือกคลัง / ตำแหน่ง
+                ตรวจคลัง / ตำแหน่งที่จองไว้
               </span>
               <span className={styles.tipStep}>
                 <span className={styles.tipStepNum}>2</span>
-                กด “แนะนำ FIFO”
+                เลือก Lot หรือกด “แนะนำ FIFO”
               </span>
               <span className={styles.tipStep}>
                 <span className={styles.tipStepNum}>3</span>
@@ -789,7 +668,7 @@ export default function PickingFormPage({ id, mode }: Props) {
             <p className={styles.toolbarHint}>
               {reservationReady
                 ? "คลัง / ตำแหน่ง / Lot ถูกจัดตามของที่จองไว้แล้ว — กดยืนยันตัดสต๊อกได้ทันที"
-                : "คลังและตำแหน่งถูกเติมจากของที่จองไว้ — เปลี่ยนได้เฉพาะเมื่อจำเป็น"}
+                : "คลัง/ตำแหน่ง/จำนวนยึดตามของที่จองไว้ — เปลี่ยนได้เฉพาะ Lot ในตำแหน่งเดียวกัน"}
             </p>
           </div>
         </div>
@@ -870,39 +749,48 @@ export default function PickingFormPage({ id, mode }: Props) {
   );
 }
 
-function LocationSelect({
+/** Lot ที่มีของอยู่ในคลัง/ตำแหน่งที่จองไว้ของแถวนั้น — backend ตรวจ onHand ซ้ำตอนบันทึก */
+function LotSelect({
   itemId,
   warehouseId,
+  locationId,
   value,
+  valueLabel,
   onChange,
 }: {
   itemId: string;
   warehouseId?: string;
+  locationId?: string;
   value?: string;
-  onChange: (id: string) => void;
+  valueLabel?: string;
+  onChange: (lotId: string, lotNo: string, onHand: string) => void;
 }) {
-  const locationsQuery = useAvailableLocationsQuery({
-    itemId,
-    warehouseId,
-  });
-  const locations = locationsQuery.data?.data ?? [];
-  const options = locations.map((loc) => ({
-    value: loc.locationId,
-    label: `${loc.locationCode ?? loc.locationId} (${loc.quantityAvailable})`,
+  const lotsQuery = useInventoryLotsQuery(
+    { itemId, warehouseId, locationId, hasStock: true },
+    { enabled: Boolean(warehouseId && locationId) },
+  );
+  const lots = lotsQuery.data?.data ?? [];
+  const options = lots.map((lot) => ({
+    value: lot.lotId,
+    label: `${lot.lotNo} (คงเหลือ ${formatQty(lot.quantityOnHand)})`,
   }));
   if (value && !options.some((o) => o.value === value)) {
-    options.unshift({ value, label: value });
+    options.unshift({ value, label: valueLabel ?? value });
   }
   return (
     <Select
       showSearch
       optionFilterProp="label"
       style={{ width: "100%" }}
-      disabled={!warehouseId}
-      placeholder={warehouseId ? "ตำแหน่งที่มีสต๊อก" : "เลือกคลังก่อน"}
+      loading={lotsQuery.isFetching}
+      disabled={!warehouseId || !locationId}
+      placeholder="เลือก Lot"
       value={value}
       options={options}
-      onChange={onChange}
+      onChange={(lotId: string) => {
+        const lot = lots.find((row) => row.lotId === lotId);
+        onChange(lotId, lot?.lotNo ?? lotId, lot?.quantityOnHand ?? "");
+      }}
     />
   );
 }
