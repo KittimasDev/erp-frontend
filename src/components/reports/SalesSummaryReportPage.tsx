@@ -99,11 +99,12 @@ const EXPORT_HEADERS = [
 ];
 
 /** index ใน cells ตรงกับลำดับช่องของ EXPORT_HEADERS */
+/* ความกว้างรวมต้องคงที่ 746 — ขยาย "ลำดับ" ให้พ้นการตัดบรรทัด แล้วหักคืนจากช่องชื่อ */
 const PDF_COLUMNS: TabularPdfColumn[] = [
-  { header: "ลำดับ", cells: [0], width: 26, align: "center" },
-  { header: "ลูกค้า / SO / สินค้า", cells: [1], width: 176 },
-  { header: "วันที่ SO", cells: [2], width: 58, align: "center" },
-  { header: "หน่วย", cells: [3], width: 36, align: "center" },
+  { header: "ลำดับ", cells: [0], width: 36, align: "center" },
+  { header: "ลูกค้า / SO / สินค้า", cells: [1], width: 154 },
+  { header: "วันที่ SO", cells: [2], width: 66, align: "center" },
+  { header: "หน่วย", cells: [3], width: 40, align: "center" },
   ...QTY_COLUMNS.map(([title], index) => ({
     header: title,
     cells: [4 + index],

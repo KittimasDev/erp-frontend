@@ -62,11 +62,19 @@ const EXPORT_HEADERS = [
 ];
 
 /** index ใน cells ตรงกับลำดับช่องของ EXPORT_HEADERS */
+/*
+  ความกว้างรวมต้องเป็น 746 (TABLE_WIDTH ของ tabularReportPdf) การเพิ่มช่องหนึ่ง
+  ต้องหักอีกช่องเสมอ · ตัวเลขพวกนี้คุมว่าหัวตารางตัดบรรทัดไหม จึงอย่าแก้ทีละช่อง
+
+  ลำดับ 26 -> 36 : เดิมเหลือเนื้อที่ ~14px แต่คำว่า "ลำดับ" กว้างกว่านั้น เลยตัดสองบรรทัด
+  คลัง 120 -> 132 : ให้ "คลังสินค้าสำเร็จรูป" อยู่บรรทัดเดียว
+  สินค้า / Lot ยอมหด 236 -> 214 เพราะเป็นช่องที่ตัดบรรทัดได้โดยไม่เสียความหมาย
+*/
 const PDF_COLUMNS: TabularPdfColumn[] = [
-  { header: "ลำดับ", cells: [0], width: 26, align: "center" },
-  { header: "สินค้า / Lot", cells: [1, 2], width: 236 },
+  { header: "ลำดับ", cells: [0], width: 36, align: "center" },
+  { header: "สินค้า / Lot", cells: [1, 2], width: 214 },
   { header: "ประเภท", cells: [3], width: 72 },
-  { header: "คลัง", cells: [4], width: 120 },
+  { header: "คลัง", cells: [4], width: 132 },
   { header: "หน่วย", cells: [5], width: 40, align: "center" },
   { header: "คงเหลือ", cells: [6], width: 84, numeric: true },
   { header: "จอง", cells: [7], width: 84, numeric: true },

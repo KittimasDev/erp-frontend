@@ -63,16 +63,22 @@ const EXPORT_HEADERS = [
 ];
 
 /** index ใน cells ตรงกับลำดับช่องของ EXPORT_HEADERS */
+/*
+  "ปรับปรุง (+/-)" ยาวกว่าหัวอื่นในกลุ่มตัวเลข ถ้าใช้ 66 เท่ากันหมดจะตัดสองบรรทัด
+  ความกว้างรวมต้องคงที่ 746 จึงหักคืนจากช่อง "สินค้า / Lot" ซึ่งตัดบรรทัดได้
+*/
+const QTY_COL_WIDTH: Record<string, number> = { "ปรับปรุง (+/-)": 72 };
+
 const PDF_COLUMNS: TabularPdfColumn[] = [
-  { header: "ลำดับ", cells: [0], width: 26, align: "center" },
-  { header: "สินค้า / Lot", cells: [1, 2], width: 190 },
-  { header: "ประเภท", cells: [3], width: 66 },
+  { header: "ลำดับ", cells: [0], width: 36, align: "center" },
+  { header: "สินค้า / Lot", cells: [1, 2], width: 168 },
+  { header: "ประเภท", cells: [3], width: 72 },
   { header: "คลัง", cells: [4], width: 98 },
   { header: "หน่วย", cells: [5], width: 36, align: "center" },
   ...QTY_FIELDS.map(([title], index) => ({
     header: title,
     cells: [6 + index],
-    width: 66,
+    width: QTY_COL_WIDTH[title] ?? 66,
     numeric: true,
   })),
 ];

@@ -2,6 +2,9 @@ import dayjs from "dayjs";
 
 import type { TabularPdfColumn, TabularReport } from "./downloadTabularReport";
 import {
+  companyBrandName,
+  companyHeaderHtml,
+  ensureCompanyInfo,
   escapeHtml,
   openMultiPagePdfFromHtml,
   PDF_PAGE_HEIGHT_PX,
@@ -79,11 +82,15 @@ function cellHtml(
   row: string[],
   column: TabularPdfColumn,
   isLead: boolean,
+  isFirst: boolean,
 ): string {
   const parts = column.cells
     .map((index) => row[index] ?? "")
     .filter((value) => value.trim() !== "");
   const classes: string[] = [];
+  // แถบสีของหัวกลุ่มต้องเกาะขอบซ้ายจริงของแถว ไม่ใช่คอลัมน์ข้อความแรก
+  // (รายงานที่มีคอลัมน์ "ลำดับ" นำหน้า แถบจะไปโผล่กลางแถว)
+  if (isFirst) classes.push("first");
   if (isLead) classes.push("lead");
   if (column.align === "center") classes.push("c");
   if (column.align === "right") classes.push("r");
@@ -112,39 +119,150 @@ function styles() {
         height: ${PDF_PAGE_HEIGHT_PX}px;
         padding: ${PAD_TOP}px ${PAD_X}px ${PAD_BOTTOM}px;
         background: #fff;
-        color: #111827;
+        color: #1f2430;
         font-family: "Sarabun", "Tahoma", "Segoe UI", sans-serif;
         font-size: 9.5px;
-        line-height: 1.3;
+        line-height: 1.35;
         display: flex;
         flex-direction: column;
         overflow: hidden;
       }
       .tr-page.tr-measure { height: auto; overflow: visible; }
-      .tr-head { padding-bottom: 8px; }
-      .tr-title { font-size: 15px; font-weight: 600; }
-      .tr-meta { margin-top: 2px; color: #4b5563; }
-      .tr-head-next { font-size: 10px; font-weight: 600; color: #4b5563; }
+
+      /* ───── หัวจดหมายบริษัท (หน้าแรก) ─────
+         ใช้ companyHeaderHtml() ร่วมกับเอกสารใบอื่น แต่สไตล์เขียนเองเพราะ
+         รายงานชุดนี้ไม่ได้โหลด basePdfStyles() (includeBaseStyles: false) */
+      .tr-head { padding-bottom: 10px; }
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo-box {
+        flex: 0 0 auto;
+        width: 46px;
+        height: 46px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .logo { max-width: 46px; max-height: 46px; object-fit: contain; }
+      .company { min-width: 0; }
+      .company-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #1f2430;
+        line-height: 1.25;
+      }
+      .company-address {
+        margin-top: 1px;
+        font-size: 8.5px;
+        color: #6b7280;
+        line-height: 1.35;
+      }
+      .header-rule {
+        margin-top: 8px;
+        height: 2px;
+        background: linear-gradient(90deg, #8ab933 0%, #d7e4bd 55%, #eef2e6 100%);
+        border-radius: 2px;
+      }
+
+      /* ───── ชื่อรายงาน ───── */
+      .tr-titlewrap { margin-top: 9px; }
+      .tr-title {
+        font-size: 15.5px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: #1f2430;
+      }
+      .tr-meta {
+        margin-top: 3px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      /* เงื่อนไขรายงานเป็นป้ายแยกชิ้น อ่านง่ายกว่าประโยคยาวคั่นด้วยจุด */
+      .tr-chip {
+        /*
+          ⚠️ padding บน/ล่าง **ไม่เท่ากันโดยตั้งใจ** (2px / 4px) — อย่า "แก้" ให้เท่ากัน
+
+          PDF ชุดนี้เรนเดอร์ผ่าน html2canvas ซึ่งไม่ได้ใช้ layout ของเบราว์เซอร์วาด
+          ข้อความ แต่คำนวณตำแหน่ง baseline เองจาก font metrics · กับฟอนต์ไทยมันวาง
+          ตัวอักษรต่ำกว่าที่เบราว์เซอร์วาง ทำให้ข้อความไปชิดขอบล่างของกรอบ
+          และ align-items:center ของ flex ก็ไม่ช่วย เพราะมันไม่ได้อ่านค่านั้น
+
+          วัดจากภาพที่ html2canvas เรนเดอร์จริงด้วยข้อความจริงของรายงาน 3 แบบ
+          (scale 2, ค่าเบี่ยง = ช่องว่างบน − ล่าง เป็นพิกเซล):
+            padding 3/3 (เท่ากัน) → +3.67  ชิดล่าง ← ของเดิมที่ถูกร้องเรียน
+            padding 2.5/3.5       → +1.33
+            padding 2/4           →  0.00  ← ใช้ค่านี้
+            padding 3.5/2.5       → +6.00
+          ถ้าเปลี่ยนขนาดฟอนต์หรือ line-height ของป้ายนี้ ต้องวัดใหม่
+        */
+        display: inline-block;
+        padding: 2px 8px 4px;
+        border: 1px solid #e3e8da;
+        border-radius: 999px;
+        background: #f7faf1;
+        color: #55606f;
+        font-size: 8.5px;
+        line-height: 1.1;
+      }
+
+      /* หน้าต่อ ๆ ไป — แถบบางพอให้รู้ว่าเอกสารอะไร ไม่กินที่ตาราง */
+      .tr-head-next {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 7px;
+        border-bottom: 1.5px solid #8ab933;
+        font-size: 10px;
+        font-weight: 600;
+        color: #39414f;
+      }
+      .tr-head-next .tr-cont { font-weight: 400; color: #8a9199; font-size: 9px; }
+
       .tr-body { flex: 1 1 auto; min-height: 0; }
       .tr-table {
         width: ${TABLE_WIDTH}px;
         border-collapse: collapse;
         table-layout: fixed;
       }
+      /* เส้นแนวนอนอย่างเดียว ไม่ตีกรอบทุกช่อง — ตารางเลขอ่านลื่นกว่าแบบตาราง grid */
       .tr-table th,
       .tr-table td {
-        border: 1px solid #e5e7eb;
-        padding: 3px 5px;
+        border: 0;
+        border-bottom: 1px solid #edf0e8;
+        padding: 4px 6px;
         text-align: left;
         vertical-align: top;
         overflow-wrap: anywhere;
         word-break: break-word;
       }
       .tr-table th {
-        background: #f3f6ee;
+        background: #f2f6e9;
+        color: #44506a;
         font-weight: 600;
+        font-size: 8.5px;
+        letter-spacing: -0.01em;
         vertical-align: bottom;
+        border-bottom: 1.5px solid #8ab933;
+        /*
+          หัวตารางต้องอยู่บรรทัดเดียวเสมอ — หัวที่ตัดสองบรรทัดดันแถวแรกให้สูงขึ้น
+          และทำให้ความสูงหัวตารางไม่เท่ากันระหว่างหน้า
+          padding แคบกว่าช่องข้อมูลเพื่อเผื่อที่ให้ตัวอักษร · ellipsis เป็นตาข่ายกันพลาด
+          ถ้าวันหลังมีใครตั้งหัวยาวเกินความกว้างคอลัมน์ จะได้ไม่ล้นไปทับช่องข้างๆ
+        */
+        padding: 3px 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        overflow-wrap: normal;
+        word-break: normal;
       }
+      .tr-table th:first-child { border-top-left-radius: 5px; }
+      .tr-table th:last-child { border-top-right-radius: 5px; }
       .tr-table .c { text-align: center; }
       .tr-table .r { text-align: right; }
       .tr-table td.num {
@@ -152,37 +270,58 @@ function styles() {
         white-space: nowrap;
         overflow-wrap: normal;
         word-break: normal;
-        padding: 3px 4px;
+        padding: 4px 6px;
         font-size: 9px;
         font-variant-numeric: tabular-nums;
       }
+
+      /* แถวสลับสีอ่อนมาก — ช่วยกวาดสายตาตามแถวยาว ๆ โดยไม่ทำให้หน้าเลอะ */
+      .tr-table tr.detail:nth-child(even) td { background: #fafbf7; }
+      .tr-table tr.detail td { color: #55606f; }
+      .tr-table tr.detail td.lead { padding-left: 18px; }
+      .tr-table.nested tr.detail td.lead { padding-left: 26px; }
+
+      /* หัวกลุ่ม — ใช้แถบสีซ้ายแทนการถมพื้นทั้งแถว ดูเบากว่าและยังแยกกลุ่มชัด */
       .tr-table tr.group td {
         background: #eef4e4;
+        color: #1f2430;
         font-weight: 600;
-        border-top: 1px solid #9ca3af;
+        border-top: 1px solid #c3d49b;
+        border-bottom: 1px solid #c3d49b;
       }
+      .tr-table tr.group td.first { box-shadow: inset 3px 0 0 #8ab933; }
       .tr-table tr.sub td {
-        background: #f7f9f3;
+        background: #f6f9f0;
+        color: #39414f;
         font-weight: 600;
       }
-      .tr-table tr.sub td.lead { padding-left: 12px; }
-      .tr-table tr.detail td { color: #4b5563; }
-      .tr-table tr.detail td.lead { padding-left: 17px; }
-      .tr-table.nested tr.detail td.lead { padding-left: 24px; }
+      .tr-table tr.sub td.first { box-shadow: inset 2px 0 0 #c3d49b; }
+      .tr-table tr.sub td.lead { padding-left: 13px; }
+
       .tr-table td.neg,
-      .tr-table tr.detail td.neg { color: #dc2626; }
-      .tr-table .code { font-weight: 600; color: #111827; }
+      .tr-table tr.detail td.neg { color: #d4380d; }
+      .tr-table .code { font-weight: 600; color: #1f2430; }
       .tr-table td.tr-empty {
         text-align: center;
         color: #9ca3af;
-        padding: 24px 0;
+        padding: 26px 0;
       }
+
       .tr-foot {
         display: flex;
+        align-items: center;
         justify-content: space-between;
+        gap: 10px;
+        margin-top: 7px;
         padding-top: 6px;
-        font-size: 8.5px;
-        color: #6b7280;
+        border-top: 1px solid #edf0e8;
+        font-size: 8px;
+        color: #8a9199;
+      }
+      .tr-foot .tr-foot-brand { font-weight: 600; color: #6b7280; }
+      .tr-foot .tr-foot-page {
+        color: #55606f;
+        font-variant-numeric: tabular-nums;
       }
     </style>`;
 }
@@ -217,23 +356,39 @@ function buildParts(report: TabularReport): PageParts {
   const rows = report.rows.map(
     (row, index) =>
       `<tr class="${rowClass(index)}">${columns
-        .map((col, colIndex) => cellHtml(row, col, colIndex === lead))
+        .map((col, colIndex) =>
+          cellHtml(row, col, colIndex === lead, colIndex === 0),
+        )
         .join("")}</tr>`,
   );
-  const meta = (report.meta ?? []).map(escapeHtml).join(" · ");
+  /* เงื่อนไขรายงานเป็นป้ายแยกชิ้น — เดิมต่อกันเป็นประโยคยาวคั่นด้วย " · " */
+  const metaChips = (report.meta ?? [])
+    .map((item) => `<span class="tr-chip">${escapeHtml(item)}</span>`)
+    .join("");
+  const brand = escapeHtml(companyBrandName() ?? "");
 
   return {
-    firstHead: `<div class="tr-head"><div class="tr-title">${escapeHtml(report.title)}</div>${
-      meta ? `<div class="tr-meta">${meta}</div>` : ""
-    }</div>`,
-    nextHead: `<div class="tr-head tr-head-next">${escapeHtml(report.title)} (ต่อ)</div>`,
+    firstHead: `<div class="tr-head">${companyHeaderHtml()}<div class="tr-titlewrap"><div class="tr-title">${escapeHtml(
+      report.title,
+    )}</div>${
+      metaChips ? `<div class="tr-meta">${metaChips}</div>` : ""
+    }</div></div>`,
+    /*
+      หน้าต่อไปไม่ซ้ำหัวจดหมายเต็ม ๆ — รายงานยาวหลายสิบหน้าจะเสียพื้นที่ตาราง
+      ไปกับโลโก้ทุกหน้า เอาแค่ชื่อบริษัทกับชื่อรายงานพอให้รู้ว่าแผ่นนี้ของเอกสารไหน
+    */
+    nextHead: `<div class="tr-head tr-head-next"><span>${
+      brand ? `${brand} · ` : ""
+    }${escapeHtml(report.title)}</span><span class="tr-cont">(ต่อ)</span></div>`,
     table: (bodyRows) =>
       `<div class="tr-body"><table class="${tableClass}">${colgroup}<thead><tr>${head}</tr></thead><tbody>${
         bodyRows ||
         `<tr><td class="tr-empty" colspan="${columns.length}">ไม่มีข้อมูล</td></tr>`
       }</tbody></table></div>`,
     foot: (pageNo, total) =>
-      `<div class="tr-foot"><span>พิมพ์ ${escapeHtml(printedAt)}</span><span>หน้า ${pageNo}/${total}</span></div>`,
+      `<div class="tr-foot"><span class="tr-foot-brand">${brand}</span><span>พิมพ์ ${escapeHtml(
+        printedAt,
+      )}</span><span class="tr-foot-page">หน้า ${pageNo} / ${total}</span></div>`,
     rows,
   };
 }
@@ -269,6 +424,12 @@ async function measure(parts: PageParts) {
 }
 
 export async function openTabularReportPdf(report: TabularReport) {
+  /*
+    ต้องโหลดก่อนสร้าง HTML — companyHeaderHtml() อ่านจาก snapshot ที่ตัวนี้เติมให้
+    ถ้าไม่เรียก หัวจดหมายจะว่างเปล่าแบบไม่มี error (เหมือน PDF ใบอื่นในระบบ)
+  */
+  await ensureCompanyInfo();
+
   const parts = buildParts(report);
   const { rowHeights, firstBudget, nextBudget } = await measure(parts);
   const pages = paginateRows(
