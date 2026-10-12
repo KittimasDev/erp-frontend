@@ -262,6 +262,14 @@ export default function StockMovementsPage() {
       },
     },
     {
+      title: "ต้นทุน",
+      dataIndex: "amount",
+      key: "amount",
+      align: "right",
+      width: 130,
+      render: (value: string) => formatMoney(value),
+    },
+    {
       title: "ยอดคงเหลือ",
       dataIndex: "balanceQuantityAfter",
       key: "balanceQuantityAfter",
@@ -465,7 +473,7 @@ export default function StockMovementsPage() {
             showTotal: (t) => `ทั้งหมด ${t} รายการ`,
             showSizeChanger: false,
           }}
-          scroll={{ x: 1530 }}
+          scroll={{ x: 1660 }}
           locale={{ emptyText: "ยังไม่มีการเคลื่อนไหวตามเงื่อนไข" }}
         />
       </section>
