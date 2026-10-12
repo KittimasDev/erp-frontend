@@ -415,3 +415,11 @@
   background: #f2f6e9 !important;
   font-weight: 600;
 }
+
+/* ปุ่มขยาย/ยุบทั้งหมดบน toolbar ของตาราง (รายงานสต๊อก/ยอดขาย) */
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}

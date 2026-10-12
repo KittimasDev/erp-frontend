@@ -2,24 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Alert,
-  App,
-  Button,
-  DatePicker,
-  Pagination,
-  Select,
-  Table,
-  Tag,
-} from "antd";
+import { Alert, App, Button, DatePicker, Pagination, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
-  DownloadOutlined,
+  BarChartOutlined,
   MinusSquareOutlined,
   PlusSquareOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
+import ReportExportButtons, {
+  type ReportExportFormat,
+} from "@/components/reports/ReportExportButtons";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
@@ -46,7 +41,7 @@ import {
   type TabularReport,
 } from "@/utils/downloadTabularReport";
 
-import styles from "./ProcurementExtraReportPage.module.css";
+import styles from "./RawTirePurchaseReportPage.module.css";
 
 const TITLE = "รายงานสรุปยอดขาย";
 
@@ -583,9 +578,7 @@ export default function SalesSummaryReportPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
-  const [exporting, setExporting] = useState<"csv" | "xlsx" | "pdf" | null>(
-    null,
-  );
+  const [exporting, setExporting] = useState<ReportExportFormat | null>(null);
 
   const customersQuery = useCustomersQuery({ isActive: true });
   const itemsQuery = useItemsQuery({ isActive: true, isSalesItem: true });
@@ -644,7 +637,27 @@ export default function SalesSummaryReportPage() {
     });
   };
 
-  const handleExport = async (format: "csv" | "xlsx" | "pdf") => {
+  const clearFilters = () => {
+    const from = dayjs().startOf("month");
+    const to = dayjs();
+    setDateRange([from, to]);
+    setCustomerId(undefined);
+    setItemId(undefined);
+    setItemCategoryId(undefined);
+    setSoStatus(undefined);
+    setDeliveryStatus("ALL");
+    setCancelledFilter("ACTIVE");
+    setPage(1);
+    setCollapsed(new Set());
+    setApplied({
+      dateFrom: from.format("YYYY-MM-DD"),
+      dateTo: to.format("YYYY-MM-DD"),
+      deliveryStatus: "ALL",
+      includeCancelled: false,
+    });
+  };
+
+  const handleExport = async (format: ReportExportFormat) => {
     setExporting(format);
     try {
       const exported = await exportProcurementSalesByItemReport(
@@ -683,153 +696,147 @@ export default function SalesSummaryReportPage() {
     },
   ];
 
+  const filterItem = (label: string, control: React.ReactNode) => (
+    <div className={styles.filterItem}>
+      <label>{label}</label>
+      {control}
+    </div>
+  );
+
   return (
-    <section className={styles.page}>
-      <div className={styles.heading}>
-        <h1>{TITLE}</h1>
-        {canExport ? (
-          <div className={styles.exports}>
-            <Button
-              icon={<DownloadOutlined />}
-              loading={exporting === "pdf"}
-              onClick={() => void handleExport("pdf")}
-            >
-              PDF
-            </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              loading={exporting === "xlsx"}
-              onClick={() => void handleExport("xlsx")}
-            >
-              Excel
-            </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              loading={exporting === "csv"}
-              onClick={() => void handleExport("csv")}
-            >
-              CSV
-            </Button>
+    <div className={styles.page}>
+      <header className={styles.hero}>
+        <div className={styles.heroMain}>
+          <div className={styles.heroBadge}>
+            <span className={styles.heroBadgeIcon} aria-hidden>
+              <BarChartOutlined />
+            </span>
+            Reports · Sales by Item
           </div>
-        ) : null}
-      </div>
-
-      <div className={styles.filterArea}>
-        <div className={`${styles.filterBar} ${styles.filterBarWide}`}>
-          <DatePicker.RangePicker
-            allowClear={false}
-            value={dateRange}
-            format="DD/MM/YYYY"
-            aria-label="ช่วงวันที่"
-            onChange={(value) => {
-              if (value?.[0] && value[1]) {
-                setDateRange([value[0], value[1]]);
-              }
-            }}
-          />
-          <Select
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            placeholder="ลูกค้าทั้งหมด"
-            value={customerId}
-            loading={customersQuery.isLoading}
-            options={(customersQuery.data?.data ?? []).map((customer) => ({
-              value: customer.id,
-              label: `${customer.customerCode} ${customer.nameTh}`,
-            }))}
-            onChange={setCustomerId}
-          />
-          <Select
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            placeholder="สินค้าทั้งหมด"
-            value={itemId}
-            loading={itemsQuery.isLoading}
-            options={(itemsQuery.data?.data ?? []).map((item) => ({
-              value: item.id,
-              label: `${item.itemCode} ${item.itemNameTh}`,
-            }))}
-            onChange={setItemId}
-          />
-          <Select
-            allowClear
-            placeholder="ประเภทสินค้าทั้งหมด"
-            value={itemCategoryId}
-            loading={categoriesQuery.isLoading}
-            options={(categoriesQuery.data?.data ?? []).map((category) => ({
-              value: category.id,
-              label: category.nameTh,
-            }))}
-            onChange={setItemCategoryId}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะ SO ทั้งหมด"
-            value={soStatus}
-            options={CONFIRMED_STATUSES.map((status) => ({
-              value: status,
-              label: SALES_ORDER_STATUS_LABEL[status],
-            }))}
-            onChange={setSoStatus}
-          />
-          <Select
-            value={deliveryStatus}
-            options={DELIVERY_STATUS_OPTIONS}
-            onChange={setDeliveryStatus}
-            aria-label="สถานะการส่งมอบ"
-          />
-          <Select
-            value={cancelledFilter}
-            options={CANCELLED_OPTIONS}
-            onChange={setCancelledFilter}
-            aria-label="การแสดงรายการที่ยกเลิก"
-          />
-          <Button type="primary" onClick={applySearch}>
-            ค้นหา
-          </Button>
+          <h1 className={styles.pageTitle}>{TITLE}</h1>
+          <p className={styles.pageSubtitle}>
+            ยอดขายจากใบสั่งขายที่ยืนยันแล้ว แยกตามลูกค้า ใบสั่งขาย และสินค้า พร้อมยอดส่งมอบและยอดค้างส่ง
+          </p>
         </div>
-      </div>
+        <div className={styles.heroActions}>
+          <ReportExportButtons
+            canExport={canExport}
+            csvRequiresExport
+            downloading={exporting}
+            onExport={(format) => void handleExport(format)}
+          />
+        </div>
+      </header>
 
-      <div className={styles.cards}>
+      <div className={styles.statRow} style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
         {cards.map((card) => (
-          <div key={card.label} className={styles.card}>
-            <span className={styles.cardLabel}>{card.label}</span>
-            <strong className={styles.cardValue}>
+          <div key={card.label} className={styles.statChip}>
+            <span className={styles.statLabel}>{card.label}</span>
+            <span className={styles.statValue}>
               {card.value === undefined
                 ? "–"
                 : card.money
                   ? formatMoney(card.value)
                   : Number(card.value).toLocaleString("th-TH")}
-            </strong>
+            </span>
+            <span className={styles.statHint}>{card.money ? "บาท" : "ใบ"}</span>
           </div>
         ))}
       </div>
 
-      <div className={styles.tableToolbar}>
-        {dateFrom && dateTo ? (
-          <p className={styles.range}>{rangeLabel(dateFrom, dateTo)}</p>
-        ) : (
-          <span />
-        )}
-        <div className={styles.toolbarActions}>
-          <Button
-            icon={<PlusSquareOutlined />}
-            disabled={expandedRowKeys.length === expandableKeys.length}
-            onClick={() => setCollapsed(new Set())}
-          >
-            ขยายทั้งหมด
-          </Button>
-          <Button
-            icon={<MinusSquareOutlined />}
-            disabled={expandableKeys.length === 0 || allCollapsed}
-            onClick={() => setCollapsed(new Set(expandableKeys))}
-          >
-            ยุบทั้งหมด
+      <section className={styles.filterCard}>
+        <div className={styles.filterGrid}>
+          {filterItem(
+            "ช่วงวันที่",
+            <DatePicker.RangePicker
+              allowClear={false}
+              style={{ width: "100%" }}
+              value={dateRange}
+              format="DD/MM/YYYY"
+              onChange={(value) => {
+                if (value?.[0] && value[1]) {
+                  setDateRange([value[0], value[1]]);
+                }
+              }}
+            />,
+          )}
+          {filterItem(
+            "ลูกค้า",
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทั้งหมด"
+              value={customerId}
+              loading={customersQuery.isLoading}
+              options={(customersQuery.data?.data ?? []).map((customer) => ({
+                value: customer.id,
+                label: `${customer.customerCode} ${customer.nameTh}`,
+              }))}
+              onChange={setCustomerId}
+            />,
+          )}
+          {filterItem(
+            "สินค้า",
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทั้งหมด"
+              value={itemId}
+              loading={itemsQuery.isLoading}
+              options={(itemsQuery.data?.data ?? []).map((item) => ({
+                value: item.id,
+                label: `${item.itemCode} ${item.itemNameTh}`,
+              }))}
+              onChange={setItemId}
+            />,
+          )}
+          {filterItem(
+            "ประเภทสินค้า",
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทั้งหมด"
+              value={itemCategoryId}
+              loading={categoriesQuery.isLoading}
+              options={(categoriesQuery.data?.data ?? []).map((category) => ({
+                value: category.id,
+                label: category.nameTh,
+              }))}
+              onChange={setItemCategoryId}
+            />,
+          )}
+          {filterItem(
+            "สถานะ SO",
+            <Select
+              allowClear
+              placeholder="ทั้งหมด"
+              value={soStatus}
+              options={CONFIRMED_STATUSES.map((status) => ({
+                value: status,
+                label: SALES_ORDER_STATUS_LABEL[status],
+              }))}
+              onChange={setSoStatus}
+            />,
+          )}
+          {filterItem(
+            "สถานะการส่งมอบ",
+            <Select value={deliveryStatus} options={DELIVERY_STATUS_OPTIONS} onChange={setDeliveryStatus} />,
+          )}
+          {filterItem(
+            "รายการที่ยกเลิก",
+            <Select value={cancelledFilter} options={CANCELLED_OPTIONS} onChange={setCancelledFilter} />,
+          )}
+        </div>
+        <div className={styles.filterActions}>
+          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
+            ค้นหา
           </Button>
         </div>
-      </div>
+      </section>
 
       {showingSample ? (
         <Alert
@@ -840,61 +847,100 @@ export default function SalesSummaryReportPage() {
         />
       ) : null}
 
-      <Table<SummaryRow>
-        rowKey="key"
-        loading={reportQuery.isLoading}
-        columns={columns}
-        dataSource={tableRows}
-        pagination={false}
-        scroll={{ x: 1200 }}
-        expandable={{
-          expandedRowKeys,
-          onExpand: (isExpanded, row) => {
-            setCollapsed((prev) => {
-              const next = new Set(prev);
-              if (isExpanded) next.delete(row.key);
-              else next.add(row.key);
-              return next;
-            });
-          },
-        }}
-        summary={() =>
-          summary ? (
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={3}>
-                <strong>รวมทั้งหมด</strong>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={3}>
-                <strong>{summary.unitCode ?? ""}</strong>
-              </Table.Summary.Cell>
-              {QTY_COLUMNS.map(([title, field], index) => (
-                <Table.Summary.Cell key={title} index={4 + index} align="right">
-                  <strong>{qtyText(summary[field])}</strong>
-                </Table.Summary.Cell>
-              ))}
-              {MONEY_COLUMNS.map(([title, field], index) => (
-                <Table.Summary.Cell key={title} index={7 + index} align="right">
-                  <strong>{formatMoney(summary[field])}</strong>
-                </Table.Summary.Cell>
-              ))}
-            </Table.Summary.Row>
-          ) : null
-        }
-      />
-      {showingSample ? null : (
-        <Pagination
-          current={page}
-          pageSize={limit}
-          total={total}
-          showSizeChanger
-          showTotal={(count) => `${count.toLocaleString("th-TH")} ลูกค้า`}
-          onChange={(nextPage, nextLimit) => {
-            setPage(nextPage);
-            setLimit(nextLimit);
-            setCollapsed(new Set());
+      <section className={styles.tableCard}>
+        <div className={styles.tableToolbar}>
+          <div className={styles.toolbarLeft}>
+            พบทั้งหมด <strong>{showingSample ? 0 : total.toLocaleString("th-TH")}</strong> ลูกค้า
+            {dateFrom && dateTo ? <span> · {rangeLabel(dateFrom, dateTo)}</span> : null}
+          </div>
+          <div className={styles.toolbarActions}>
+            <Button
+              icon={<PlusSquareOutlined />}
+              disabled={expandedRowKeys.length === expandableKeys.length}
+              onClick={() => setCollapsed(new Set())}
+            >
+              ขยายทั้งหมด
+            </Button>
+            <Button
+              icon={<MinusSquareOutlined />}
+              disabled={expandableKeys.length === 0 || allCollapsed}
+              onClick={() => setCollapsed(new Set(expandableKeys))}
+            >
+              ยุบทั้งหมด
+            </Button>
+          </div>
+        </div>
+
+        <Table<SummaryRow>
+          rowKey="key"
+          loading={reportQuery.isLoading}
+          columns={columns}
+          dataSource={tableRows}
+          pagination={false}
+          className={styles.table}
+          scroll={{ x: 1200 }}
+          locale={{
+            emptyText: (
+              <div className={styles.emptyState}>
+                <strong>ไม่พบใบสั่งขายตามเงื่อนไขที่ค้นหา</strong>
+                ลองปรับช่วงวันที่หรือตัวกรองอื่น
+              </div>
+            ),
           }}
+          expandable={{
+            expandedRowKeys,
+            onExpand: (isExpanded, row) => {
+              setCollapsed((prev) => {
+                const next = new Set(prev);
+                if (isExpanded) next.delete(row.key);
+                else next.add(row.key);
+                return next;
+              });
+            },
+          }}
+          summary={() =>
+            summary ? (
+              <Table.Summary.Row className={styles.totalRow}>
+                <Table.Summary.Cell index={0} colSpan={3}>
+                  รวมทั้งหมด
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={3}>{summary.unitCode ?? ""}</Table.Summary.Cell>
+                {QTY_COLUMNS.map(([title, field], index) => (
+                  <Table.Summary.Cell key={title} index={4 + index} align="right">
+                    {qtyText(summary[field])}
+                  </Table.Summary.Cell>
+                ))}
+                {MONEY_COLUMNS.map(([title, field], index) => (
+                  <Table.Summary.Cell key={title} index={7 + index} align="right">
+                    {formatMoney(summary[field])}
+                  </Table.Summary.Cell>
+                ))}
+              </Table.Summary.Row>
+            ) : null
+          }
         />
-      )}
-    </section>
+
+        {showingSample ? null : (
+          <div className={styles.tableFooter}>
+            <div className={styles.footerText}>
+              แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–{Math.min(page * limit, total)} จาก{" "}
+              {total.toLocaleString("th-TH")} ลูกค้า
+            </div>
+            <Pagination
+              size="small"
+              current={page}
+              pageSize={limit}
+              total={total}
+              showSizeChanger
+              onChange={(nextPage, nextLimit) => {
+                setPage(nextPage);
+                setLimit(nextLimit);
+                setCollapsed(new Set());
+              }}
+            />
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

@@ -11,6 +11,8 @@ type Props = {
   /** รูปแบบที่กำลังดาวน์โหลด — กดซ้อนไม่ได้ระหว่างนี้ */
   downloading: ReportExportFormat | null;
   onExport: (format: ReportExportFormat) => void;
+  /** true = ซ่อน CSV ด้วยเมื่อไม่มีสิทธิ์ EXPORT (รายงานที่ endpoint CSV ผูกสิทธิ์ EXPORT) */
+  csvRequiresExport?: boolean;
 };
 
 /**
@@ -19,7 +21,12 @@ type Props = {
  * CSV แสดงเสมอเหมือนเดิม — endpoint CSV ของ backend เช็คแค่สิทธิ์ VIEW
  * PDF / Excel ที่เพิ่มทีหลังผูก EXPORT ตามรายงานตัวอื่นในระบบ
  */
-export default function ReportExportButtons({ canExport, downloading, onExport }: Props) {
+export default function ReportExportButtons({
+  canExport,
+  downloading,
+  onExport,
+  csvRequiresExport = false,
+}: Props) {
   const button = (format: ReportExportFormat, label: string) => (
     <Button
       key={format}
@@ -35,7 +42,7 @@ export default function ReportExportButtons({ canExport, downloading, onExport }
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", flex: "none" }}>
       {canExport ? [button("pdf", "PDF"), button("xlsx", "Excel")] : null}
-      {button("csv", "CSV")}
+      {canExport || !csvRequiresExport ? button("csv", "CSV") : null}
     </div>
   );
 }

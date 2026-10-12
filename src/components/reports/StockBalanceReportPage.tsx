@@ -1,24 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Alert,
-  App,
-  Button,
-  DatePicker,
-  Input,
-  Pagination,
-  Select,
-  Table,
-} from "antd";
+import { Alert, App, Button, DatePicker, Input, Pagination, Select, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
-  DownloadOutlined,
+  InboxOutlined,
   MinusSquareOutlined,
   PlusSquareOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
+import ReportExportButtons, {
+  type ReportExportFormat,
+} from "@/components/reports/ReportExportButtons";
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
 import { useProcurementStockBalanceReportQuery } from "@/hooks/procurement-reports/useProcurementReportQueries";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
@@ -39,7 +34,7 @@ import {
   type TabularReport,
 } from "@/utils/downloadTabularReport";
 
-import styles from "./ProcurementExtraReportPage.module.css";
+import styles from "./RawTirePurchaseReportPage.module.css";
 
 const TITLE = "รายงานแสดงสินค้าคงเหลือ";
 
@@ -293,9 +288,7 @@ export default function StockBalanceReportPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
-  const [exporting, setExporting] = useState<"csv" | "xlsx" | "pdf" | null>(
-    null,
-  );
+  const [exporting, setExporting] = useState<ReportExportFormat | null>(null);
 
   const warehousesQuery = useWarehousesQuery({ isActive: true });
   const categoriesQuery = useItemCategoriesQuery({ isActive: true });
@@ -341,7 +334,20 @@ export default function StockBalanceReportPage() {
     });
   };
 
-  const handleExport = async (format: "csv" | "xlsx" | "pdf") => {
+  const clearFilters = () => {
+    const today = dayjs();
+    setAsOf(today);
+    setWarehouseId(undefined);
+    setItemCategoryId(undefined);
+    setKeyword("");
+    setLotNo("");
+    setStockStatus("ALL");
+    setPage(1);
+    setCollapsed(new Set());
+    setApplied({ asOfDate: today.format("YYYY-MM-DD"), stockStatus: "ALL" });
+  };
+
+  const handleExport = async (format: ReportExportFormat) => {
     setExporting(format);
     try {
       const exported = await exportProcurementStockBalanceReport(
@@ -364,121 +370,136 @@ export default function StockBalanceReportPage() {
     }
   };
 
+  const filterItem = (label: string, control: React.ReactNode) => (
+    <div className={styles.filterItem}>
+      <label>{label}</label>
+      {control}
+    </div>
+  );
+
   return (
-    <section className={styles.page}>
-      <div className={styles.heading}>
-        <h1>{TITLE}</h1>
-        {canExport ? (
-          <div className={styles.exports}>
-            <Button
-              icon={<DownloadOutlined />}
-              loading={exporting === "pdf"}
-              onClick={() => void handleExport("pdf")}
-            >
-              PDF
-            </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              loading={exporting === "xlsx"}
-              onClick={() => void handleExport("xlsx")}
-            >
-              Excel
-            </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              loading={exporting === "csv"}
-              onClick={() => void handleExport("csv")}
-            >
-              CSV
-            </Button>
+    <div className={styles.page}>
+      <header className={styles.hero}>
+        <div className={styles.heroMain}>
+          <div className={styles.heroBadge}>
+            <span className={styles.heroBadgeIcon} aria-hidden>
+              <InboxOutlined />
+            </span>
+            Reports · Stock Balance
           </div>
-        ) : null}
+          <h1 className={styles.pageTitle}>{TITLE}</h1>
+          <p className={styles.pageSubtitle}>
+            ยอดคงเหลือ ณ สิ้นวันที่เลือก แยกตามสินค้า Lot และคลัง พร้อมยอดจองและยอดพร้อมใช้
+          </p>
+        </div>
+        <div className={styles.heroActions}>
+          <ReportExportButtons
+            canExport={canExport}
+            csvRequiresExport
+            downloading={exporting}
+            onExport={(format) => void handleExport(format)}
+          />
+        </div>
+      </header>
+
+      <div className={styles.statRow}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>จำนวนสินค้า</span>
+          <span className={styles.statValue}>{showingSample ? 0 : total.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>ตามเงื่อนไขที่กรอง</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ข้อมูล ณ วันที่</span>
+          <span className={styles.statValue}>{asOfDate ? dayjs(asOfDate).format("DD/MM/YYYY") : "—"}</span>
+          <span className={styles.statHint}>ยอดสิ้นวัน</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>สถานะสินค้า</span>
+          <span className={styles.statValue}>
+            {STATUS_OPTIONS.find((o) => o.value === (applied.stockStatus ?? "ALL"))?.label}
+          </span>
+          <span className={styles.statHint}>ตัวกรองที่ใช้อยู่</span>
+        </div>
       </div>
 
-      <div className={styles.filterArea}>
-        <div className={`${styles.filterBar} ${styles.filterBarSeven}`}>
-          <DatePicker
-            allowClear={false}
-            value={asOf}
-            format="DD/MM/YYYY"
-            aria-label="วันที่รายงาน"
-            onChange={(value) => {
-              if (value) setAsOf(value);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="คลังสินค้า"
-            value={warehouseId}
-            loading={warehousesQuery.isLoading}
-            options={(warehousesQuery.data?.data ?? []).map((warehouse) => ({
-              value: warehouse.id,
-              label: warehouse.warehouseName,
-            }))}
-            onChange={setWarehouseId}
-          />
-          <Select
-            allowClear
-            placeholder="ประเภทสินค้า"
-            value={itemCategoryId}
-            loading={categoriesQuery.isLoading}
-            options={(categoriesQuery.data?.data ?? []).map((category) => ({
-              value: category.id,
-              label: category.nameTh,
-            }))}
-            onChange={setItemCategoryId}
-          />
-          <Input
-            allowClear
-            placeholder="รหัสหรือชื่อสินค้า"
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            onPressEnter={applySearch}
-          />
-          <Input
-            allowClear
-            placeholder="Lot No."
-            value={lotNo}
-            onChange={(event) => setLotNo(event.target.value)}
-            onPressEnter={applySearch}
-          />
-          <Select
-            value={stockStatus}
-            options={STATUS_OPTIONS}
-            onChange={setStockStatus}
-            aria-label="สถานะสินค้า"
-          />
-          <Button type="primary" onClick={applySearch}>
+      <section className={styles.filterCard}>
+        <div className={styles.filterGrid}>
+          {filterItem(
+            "วันที่รายงาน",
+            <DatePicker
+              allowClear={false}
+              style={{ width: "100%" }}
+              value={asOf}
+              format="DD/MM/YYYY"
+              onChange={(value) => {
+                if (value) setAsOf(value);
+              }}
+            />,
+          )}
+          {filterItem(
+            "คลังสินค้า",
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทั้งหมด"
+              value={warehouseId}
+              loading={warehousesQuery.isLoading}
+              options={(warehousesQuery.data?.data ?? []).map((warehouse) => ({
+                value: warehouse.id,
+                label: warehouse.warehouseName,
+              }))}
+              onChange={setWarehouseId}
+            />,
+          )}
+          {filterItem(
+            "ประเภทสินค้า",
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทั้งหมด"
+              value={itemCategoryId}
+              loading={categoriesQuery.isLoading}
+              options={(categoriesQuery.data?.data ?? []).map((category) => ({
+                value: category.id,
+                label: category.nameTh,
+              }))}
+              onChange={setItemCategoryId}
+            />,
+          )}
+          {filterItem(
+            "สินค้า",
+            <Input
+              allowClear
+              placeholder="รหัสหรือชื่อสินค้า"
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+              onPressEnter={applySearch}
+            />,
+          )}
+          {filterItem(
+            "Lot",
+            <Input
+              allowClear
+              placeholder="ค้นเลข Lot"
+              value={lotNo}
+              onChange={(event) => setLotNo(event.target.value)}
+              onPressEnter={applySearch}
+            />,
+          )}
+          {filterItem(
+            "สถานะสินค้า",
+            <Select value={stockStatus} options={STATUS_OPTIONS} onChange={setStockStatus} />,
+          )}
+        </div>
+        <div className={styles.filterActions}>
+          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
             ค้นหา
           </Button>
         </div>
-      </div>
-
-      <div className={styles.tableToolbar}>
-        {asOfDate ? (
-          <p className={styles.range}>
-            ข้อมูล ณ วันที่ {dayjs(asOfDate).format("DD/MM/YYYY")}
-          </p>
-        ) : (
-          <span />
-        )}
-        <div className={styles.toolbarActions}>
-          <Button
-            icon={<PlusSquareOutlined />}
-            disabled={expandedRowKeys.length === expandableKeys.length}
-            onClick={() => setCollapsed(new Set())}
-          >
-            ขยายทั้งหมด
-          </Button>
-          <Button
-            icon={<MinusSquareOutlined />}
-            disabled={expandedRowKeys.length === 0}
-            onClick={() => setCollapsed(new Set(expandableKeys))}
-          >
-            ยุบทั้งหมด
-          </Button>
-        </div>
-      </div>
+      </section>
 
       {showingSample ? (
         <Alert
@@ -489,39 +510,79 @@ export default function StockBalanceReportPage() {
         />
       ) : null}
 
-      <Table<BalanceRow>
-        rowKey="key"
-        loading={reportQuery.isLoading}
-        columns={columns}
-        dataSource={tableRows}
-        pagination={false}
-        scroll={{ x: 1080 }}
-        expandable={{
-          expandedRowKeys,
-          onExpand: (expanded, row) => {
-            setCollapsed((prev) => {
-              const next = new Set(prev);
-              if (expanded) next.delete(row.key);
-              else next.add(row.key);
-              return next;
-            });
-          },
-        }}
-      />
-      {showingSample ? null : (
-        <Pagination
-          current={page}
-          pageSize={limit}
-          total={total}
-          showSizeChanger
-          showTotal={(count) => `${count.toLocaleString("th-TH")} รายการสินค้า`}
-          onChange={(nextPage, nextLimit) => {
-            setPage(nextPage);
-            setLimit(nextLimit);
-            setCollapsed(new Set());
+      <section className={styles.tableCard}>
+        <div className={styles.tableToolbar}>
+          <div className={styles.toolbarLeft}>
+            พบทั้งหมด <strong>{showingSample ? 0 : total.toLocaleString("th-TH")}</strong> รายการสินค้า
+          </div>
+          <div className={styles.toolbarActions}>
+            <Button
+              icon={<PlusSquareOutlined />}
+              disabled={expandedRowKeys.length === expandableKeys.length}
+              onClick={() => setCollapsed(new Set())}
+            >
+              ขยายทั้งหมด
+            </Button>
+            <Button
+              icon={<MinusSquareOutlined />}
+              disabled={expandedRowKeys.length === 0}
+              onClick={() => setCollapsed(new Set(expandableKeys))}
+            >
+              ยุบทั้งหมด
+            </Button>
+          </div>
+        </div>
+
+        <Table<BalanceRow>
+          rowKey="key"
+          loading={reportQuery.isLoading}
+          columns={columns}
+          dataSource={tableRows}
+          pagination={false}
+          className={styles.table}
+          scroll={{ x: 1080 }}
+          locale={{
+            emptyText: (
+              <div className={styles.emptyState}>
+                <strong>ไม่พบสินค้าตามเงื่อนไขที่ค้นหา</strong>
+                ลองปรับตัวกรองอื่น
+              </div>
+            ),
+          }}
+          expandable={{
+            expandedRowKeys,
+            onExpand: (expanded, row) => {
+              setCollapsed((prev) => {
+                const next = new Set(prev);
+                if (expanded) next.delete(row.key);
+                else next.add(row.key);
+                return next;
+              });
+            },
           }}
         />
-      )}
-    </section>
+
+        {showingSample ? null : (
+          <div className={styles.tableFooter}>
+            <div className={styles.footerText}>
+              แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–{Math.min(page * limit, total)} จาก{" "}
+              {total.toLocaleString("th-TH")}
+            </div>
+            <Pagination
+              size="small"
+              current={page}
+              pageSize={limit}
+              total={total}
+              showSizeChanger
+              onChange={(nextPage, nextLimit) => {
+                setPage(nextPage);
+                setLimit(nextLimit);
+                setCollapsed(new Set());
+              }}
+            />
+          </div>
+        )}
+      </section>
+    </div>
   );
 }
