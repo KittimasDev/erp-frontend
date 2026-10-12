@@ -259,11 +259,13 @@ export default function StockBalanceItemDetailDrawer({
           <div className={styles.drawerFooter}>
             <Link
               href={`/inventory/lots?itemId=${item.itemId}${
-                filters.isFinishedGood
+                filters.isFinishedGood === true
                   ? "&isFinishedGood=true"
-                  : filters.itemCategoryCode
-                    ? `&itemCategoryCode=${encodeURIComponent(filters.itemCategoryCode)}`
-                    : ""
+                  : filters.isFinishedGood === false
+                    ? "&isFinishedGood=false"
+                    : filters.itemCategoryCode
+                      ? `&itemCategoryCode=${encodeURIComponent(filters.itemCategoryCode)}`
+                      : ""
               }`}
               className={styles.drawerLink}
             >

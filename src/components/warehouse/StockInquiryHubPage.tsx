@@ -15,11 +15,11 @@ export default function StockInquiryHubPage() {
   /*
     เมนู "ตรวจสอบสต๊อก FG" ชี้มาที่ hub เดียวกันพร้อม `?isFinishedGood=true`
     ต้องส่ง scope ต่อไปให้การ์ดทุกใบ ไม่งั้นกดจาก FG แล้วไปโผล่หน้า RM
-    ฝั่งคลังวัตถุดิบกรองเฉพาะหมวด RAW_MATERIAL (TOR Phase 1 ข้อ 6.4 "แสดงรายการวัตถุดิบ")
-    เดิมไม่ส่งอะไรเลย หน้าปลายทางเลยแสดงสินค้าทุกชนิดรวม FG ปนกัน
+    ฝั่งคลังวัตถุดิบแสดงทุกสินค้าที่ไม่ใช่สินค้าสำเร็จรูป
+    เดิมกรองเฉพาะหมวด RAW_MATERIAL จึงเห็นแค่ยางเก่า
   */
   const isFg = isFgInventoryScope(searchParams);
-  const scopeQuery = isFg ? "?isFinishedGood=true" : "?itemCategoryCode=RAW_MATERIAL";
+  const scopeQuery = isFg ? "?isFinishedGood=true" : "?isFinishedGood=false";
 
   return (
     <WarehouseHubPage

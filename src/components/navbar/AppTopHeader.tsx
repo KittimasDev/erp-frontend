@@ -14,7 +14,10 @@ import {
 import { useStoredUser } from "@/hooks/auth/useStoredUser";
 import { initialsFromUser } from "@/lib/auth/session";
 import { hasAccessToken } from "@/lib/auth/token";
-import { isFgInventoryScope } from "@/components/inventory/inventory-page-copy";
+import {
+  isFgInventoryScope,
+  isRmInventoryScope,
+} from "@/components/inventory/inventory-page-copy";
 import type { AppNotification } from "@/types/notifications";
 
 import styles from "./AppTopHeader.module.css";
@@ -210,24 +213,16 @@ function inventoryScopeTitle(
     return fgTitleMap[pathname] ?? null;
   }
 
-  const itemCategoryCode = searchParams?.get("itemCategoryCode")?.trim();
-  if (!itemCategoryCode || itemCategoryCode.includes(",")) {
-    return null;
+  const rmTitleMap: Record<string, string> = {
+    "/inventory/stock-balances": "ยอดคงเหลือวัตถุดิบ",
+    "/inventory/lots": "Lot วัตถุดิบ",
+    "/inventory/stock-movements": "ความเคลื่อนไหววัตถุดิบ",
+  };
+  if (isRmInventoryScope(searchParams)) {
+    return rmTitleMap[pathname] ?? null;
   }
 
-  const titleMap: Record<string, Record<string, string>> = {
-    "/inventory/stock-balances": {
-      RAW_MATERIAL: "ยอดคงเหลือวัตถุดิบ",
-    },
-    "/inventory/lots": {
-      RAW_MATERIAL: "Lot วัตถุดิบ",
-    },
-    "/inventory/stock-movements": {
-      RAW_MATERIAL: "ความเคลื่อนไหววัตถุดิบ",
-    },
-  };
-
-  return titleMap[pathname]?.[itemCategoryCode] ?? null;
+  return null;
 }
 
 function resolvePageTitle(

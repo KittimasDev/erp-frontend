@@ -105,7 +105,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     code: "RM",
     label: "คลังวัตถุดิบ",
     description: "ยอดคงเหลือ · เบิก · โอน · นับ",
-    href: "/inventory/stock-balances?itemCategoryCode=RAW_MATERIAL",
+    href: "/inventory/stock-balances?isFinishedGood=false",
     tone: "green",
     /* STOCK_INQUIRY มาก่อน — resolvePortalHref ไล่ตามลำดับนี้ กล่องหน้าแรก
        จะได้เปิดเข้าหน้ารวม ไม่ใช่หน้าใบเดียว */

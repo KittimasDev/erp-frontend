@@ -8,6 +8,11 @@ const FG_SCOPE: InventoryPageScope = {
   title: "คลังสินค้าสำเร็จรูป",
 };
 
+const RM_SCOPE: InventoryPageScope = {
+  eyebrow: "คลังวัตถุดิบ",
+  title: "คลังวัตถุดิบ",
+};
+
 /**
  * หน้าคลัง FG ใช้ `isFinishedGood=true`
  * ยังอ่าน URL เก่า `itemCategoryCode=FINISHED_GOODS` เพื่อบุ๊กมาร์กไม่หลุด
@@ -24,6 +29,22 @@ export function isFgInventoryScope(
   return searchParams.get("itemCategoryCode")?.trim() === "FINISHED_GOODS";
 }
 
+/**
+ * หน้าคลังวัตถุดิบใช้ `isFinishedGood=false` — ทุกสินค้าที่ไม่ใช่สินค้าสำเร็จรูป
+ * ยังอ่าน URL เก่า `itemCategoryCode=RAW_MATERIAL` เพื่อบุ๊กมาร์กไม่หลุด
+ */
+export function isRmInventoryScope(
+  searchParams?: { get(name: string): string | null } | null,
+): boolean {
+  if (!searchParams || isFgInventoryScope(searchParams)) {
+    return false;
+  }
+  if (searchParams.get("isFinishedGood") === "false") {
+    return true;
+  }
+  return searchParams.get("itemCategoryCode")?.trim() === "RAW_MATERIAL";
+}
+
 /** Resolve warehouse-scope eyebrow/title from URL. */
 export function getInventoryPageScope(
   searchParams?: { get(name: string): string | null } | null,
@@ -31,6 +52,9 @@ export function getInventoryPageScope(
 ): InventoryPageScope | null {
   if (isFgInventoryScope(searchParams)) {
     return FG_SCOPE;
+  }
+  if (isRmInventoryScope(searchParams)) {
+    return RM_SCOPE;
   }
 
   const value = itemCategoryCode?.trim();
@@ -51,10 +75,7 @@ export function getInventoryPageScope(
   }
 
   if (values[0] === "RAW_MATERIAL") {
-    return {
-      eyebrow: "คลังวัตถุดิบ",
-      title: "คลังวัตถุดิบ",
-    };
+    return RM_SCOPE;
   }
 
   return {
@@ -68,6 +89,9 @@ export function inventoryScopeApiFilter(
 ): { isFinishedGood?: boolean; itemCategoryCode?: string } {
   if (isFgInventoryScope(searchParams)) {
     return { isFinishedGood: true };
+  }
+  if (isRmInventoryScope(searchParams)) {
+    return { isFinishedGood: false };
   }
   const itemCategoryCode = searchParams?.get("itemCategoryCode")?.trim();
   return itemCategoryCode ? { itemCategoryCode } : {};
