@@ -44,6 +44,8 @@ const MOVEMENT_OPTIONS = Object.entries(STOCK_MOVEMENT_TYPE_LABEL).map(
   ([value, label]) => ({ value, label: `${value} — ${label}` }),
 );
 
+const PAGE_SIZE = 20;
+
 function formatQty(value?: string) {
   const n = Number(value ?? 0);
   if (Number.isNaN(n) || Math.abs(n) < 1e-9) return "—";
@@ -118,6 +120,7 @@ export default function StockMovementsPage() {
   const [filters, setFilters] = useState<StockMovementQueryParams>({
     ...scopeFilter,
   });
+  const [page, setPage] = useState(1);
 
   const movementsQuery = useStockMovementsQuery({
     ...filters,
@@ -166,6 +169,13 @@ export default function StockMovementsPage() {
   }, [rows]);
 
   const columns: ColumnsType<StockMovementRow> = [
+    {
+      title: "ลำดับ",
+      key: "index",
+      width: 72,
+      align: "center",
+      render: (_value, _row, index) => (page - 1) * PAGE_SIZE + index + 1,
+    },
     {
       title: "วันเวลา",
       dataIndex: "movementDate",
@@ -312,6 +322,7 @@ export default function StockMovementsPage() {
   ];
 
   const applySearch = () => {
+    setPage(1);
     setFilters({
       warehouseId: draft.warehouseId,
       movementType: draft.movementType,
@@ -323,6 +334,7 @@ export default function StockMovementsPage() {
   };
 
   const clearFilters = () => {
+    setPage(1);
     setDraft({ q: "", range: null });
     setFilters({ ...scopeFilter });
   };
@@ -469,11 +481,13 @@ export default function StockMovementsPage() {
           dataSource={rows}
           loading={movementsQuery.isFetching}
           pagination={{
-            pageSize: 20,
+            current: page,
+            pageSize: PAGE_SIZE,
             showTotal: (t) => `ทั้งหมด ${t} รายการ`,
             showSizeChanger: false,
+            onChange: (next) => setPage(next),
           }}
-          scroll={{ x: 1660 }}
+          scroll={{ x: 1732 }}
           locale={{ emptyText: "ยังไม่มีการเคลื่อนไหวตามเงื่อนไข" }}
         />
       </section>
