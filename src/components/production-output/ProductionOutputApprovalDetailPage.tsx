@@ -8,6 +8,7 @@ import {
   AuditOutlined,
   CheckOutlined,
   CloseOutlined,
+  FilePdfOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
@@ -130,6 +131,52 @@ export default function ProductionOutputApprovalDetailPage({
           ]
         : [];
 
+  const handlePrint = async () => {
+    if (!request) return;
+    const { generateProductionOutputReceiptPdf } = await import(
+      "@/utils/generateProductionOutputReceiptPdf"
+    );
+    const statusLabel =
+      PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL[request.status] ?? request.status;
+    void generateProductionOutputReceiptPdf({
+      requestNo: request.requestNo,
+      postingDate: formatDate(request.postingDate),
+      statusLabel,
+      draftBanner: isApproved
+        ? undefined
+        : isPending
+          ? "รออนุมัติ — ยังไม่ได้เพิ่มสต๊อก"
+          : isRejected
+            ? `ไม่อนุมัติ${request.rejectReason ? ` — ${request.rejectReason}` : ""}`
+            : `${statusLabel} — ไม่มีผลกับสต๊อก`,
+      productionOrderNo: request.productionOrderNo ?? "-",
+      referenceNos: refs
+        .map((ref) => ref.referenceDocNo)
+        .filter((no): no is string => Boolean(no)),
+      materialIssueNos: (request.linkedMaterialIssues ?? []).map(
+        (issue) => issue.issueNo,
+      ),
+      warehouse: request.warehouseCode
+        ? `${request.warehouseCode} — ${request.warehouseName ?? ""}`
+        : "-",
+      location: request.locationCode
+        ? `${request.locationCode} — ${request.locationName ?? ""}`
+        : "-",
+      lotNo: request.lotNo || "สร้างตอนอนุมัติ",
+      requestedBy: `${request.requestedByName ?? "-"} · ${formatDateTime(request.requestedAt)}`,
+      approvedBy: request.approvedByName
+        ? `${request.approvedByName} · ${formatDateTime(request.approvedAt)}`
+        : "-",
+      remark: request.remark?.trim() || "",
+      item: {
+        itemCode: request.itemCode ?? "-",
+        itemName: request.itemNameTh ?? "-",
+        unit: request.unitCode || request.unitNameTh || "-",
+        qty: Number(request.quantity) || 0,
+      },
+    });
+  };
+
   const handleApprove = () => {
     approveMutation.mutate(requestId, {
       onSuccess: () => {
@@ -189,6 +236,15 @@ export default function ProductionOutputApprovalDetailPage({
             >
               {backLabel}
             </Button>
+            {request ? (
+              <Button
+                icon={<FilePdfOutlined />}
+                className={styles.backButton}
+                onClick={() => void handlePrint()}
+              >
+                พิมพ์ PDF
+              </Button>
+            ) : null}
           </div>
         </div>
 

@@ -8,6 +8,7 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   CloseOutlined,
+  FilePdfOutlined,
   RollbackOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -89,6 +90,53 @@ export default function ReturnNoteDetailPage({ id }: Props) {
             onClick={() => router.push("/return-notes")}
           >
             กลับ
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={async () => {
+              const { generateReturnNotePdf } = await import(
+                "@/utils/generateReturnNotePdf"
+              );
+              const statusLabel =
+                RETURN_NOTE_STATUS_LABEL[data.status as ReturnNoteStatus] ?? data.status;
+              void generateReturnNotePdf({
+                returnNoteNo: data.returnNoteNo,
+                docDate: dayjs(data.createdAt).format("DD/MM/YYYY"),
+                statusLabel,
+                draftBanner:
+                  data.status === "APPROVED"
+                    ? undefined
+                    : data.status === "REJECTED"
+                      ? `ไม่อนุมัติ${data.rejectReason ? ` — ${data.rejectReason}` : ""}`
+                      : "รอคลังอนุมัติ — ยังไม่ได้รับคืนเข้าสต๊อก",
+                customerName: data.customerName ?? "—",
+                salesOrderNo: data.salesOrderNo ?? "—",
+                deliveryOrderNo: data.deliveryOrderNo ?? "—",
+                pickingNo: data.pickingNo ?? "—",
+                reason: data.reason || "—",
+                warehouse: data.warehouseCode
+                  ? `${data.warehouseCode}${data.locationCode ? ` / ${data.locationCode}` : ""}`
+                  : "—",
+                createdBy: data.createdByName ?? "—",
+                approvedBy: data.approvedByName
+                  ? `${data.approvedByName} · ${formatDateTime(data.approvedAt)}`
+                  : "—",
+                remark: data.remark?.trim() || "",
+                items: data.items.map((item, index) => ({
+                  no: index + 1,
+                  itemCode: item.itemCode ?? "—",
+                  itemName: item.itemNameTh ?? "—",
+                  unit: item.unitCode ?? "—",
+                  qty: Number(item.returnQty) || 0,
+                  lotNo: item.lotNo,
+                  /** ยึดเวลาตรวจ ไม่ใช่ว่าเลขว่าง — ก่อนตรวจอาจได้ "0.000" มาแทน null */
+                  goodQty: item.inspectedAt ? Number(item.goodQty ?? 0) : undefined,
+                  scrapQty: item.inspectedAt ? Number(item.scrapQty ?? 0) : undefined,
+                })),
+              });
+            }}
+          >
+            พิมพ์ PDF
           </Button>
         </div>
       </header>

@@ -2,18 +2,30 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, DatePicker, Select, Table, Tag } from "antd";
-import { DownloadOutlined } from "@ant-design/icons";
+import { App, DatePicker, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useArAgingReportQuery } from "@/hooks/sales-reports/useSalesReportsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import { downloadArAgingReportCsv } from "@/lib/api/sales-reports";
+import {
+  downloadArAgingReportCsv,
+  fetchAllReportRows,
+  getArAgingReport,
+} from "@/lib/api/sales-reports";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
 import { AGING_BUCKET_LABEL } from "@/types/sales-reports";
 import type { ArAgingRow } from "@/types/sales-reports";
 import { SALES_INVOICE_PAYMENT_STATUS_LABEL } from "@/types/sales-invoices";
+import ReportExportButtons, {
+  type ReportExportFormat,
+} from "@/components/reports/ReportExportButtons";
+import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import { toArAgingSheet } from "@/utils/salesReportSheets";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
 const BUCKET_COLOR: Record<string, string> = {
@@ -41,7 +53,11 @@ export default function ArAgingReportPage() {
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
+  const { message } = App.useApp();
+  /** CSV เดิมไม่ผูกสิทธิ์ (backend เช็คแค่ VIEW) — Excel/PDF ที่เพิ่มใหม่ผูก EXPORT เหมือนรายงานตัวอื่น */
+  const canExport =
+    !isMatrixPermissionMode() || hasPermission("REPORTS_AR_AGING.EXPORT");
 
   const customersQuery = useCustomersQuery({ isActive: true });
 
@@ -60,12 +76,34 @@ export default function ArAgingReportPage() {
   const data = reportQuery.data?.data;
   const summary = data?.summary;
 
-  const handleExport = async () => {
-    setDownloading(true);
+  const handleExport = async (format: ReportExportFormat) => {
+    setDownloading(format);
     try {
-      await downloadArAgingReportCsv(getAccessToken(), queryParams);
+      if (format === "csv") {
+        await downloadArAgingReportCsv(getAccessToken(), queryParams);
+        return;
+      }
+      const all = await fetchAllReportRows((exportPage, limit) =>
+        getArAgingReport(getAccessToken(), { ...queryParams, page: exportPage, limit }),
+      );
+      if (all.truncated) {
+        message.warning(`มี ${all.total.toLocaleString("th-TH")} ใบ — ไฟล์มีเฉพาะ 5,000 ใบแรก`);
+      }
+      const customer = (customersQuery.data?.data ?? []).find((c) => c.id === customerId);
+      await downloadTabularReport(
+        format,
+        toArAgingSheet(all.rows, all.first.summary, {
+          dateFrom: queryParams.dateFrom,
+          dateTo: queryParams.dateTo,
+          filters: customer ? [`ลูกค้า: ${customer.customerCode} — ${customer.nameTh}`] : [],
+          total: all.total,
+          truncated: all.truncated,
+        }),
+      );
+    } catch {
+      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   };
 
@@ -144,13 +182,11 @@ export default function ArAgingReportPage() {
             ใบแจ้งหนี้ที่ยังไม่ชำระครบ พร้อมช่วงอายุหนี้
           </span>
         </div>
-        <Button
-          icon={<DownloadOutlined />}
-          loading={downloading}
-          onClick={handleExport}
-        >
-          ส่งออก CSV
-        </Button>
+        <ReportExportButtons
+          canExport={canExport}
+          downloading={downloading}
+          onExport={(format) => void handleExport(format)}
+        />
       </div>
 
       <div className={masterStyles.summaryRow} style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>

@@ -2,20 +2,32 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, DatePicker, Select, Table, Tag } from "antd";
-import { DownloadOutlined } from "@ant-design/icons";
+import { App, DatePicker, Select, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useSalesInvoiceSummaryReportQuery } from "@/hooks/sales-reports/useSalesReportsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import { downloadSalesInvoiceSummaryReportCsv } from "@/lib/api/sales-reports";
+import {
+  downloadSalesInvoiceSummaryReportCsv,
+  fetchAllReportRows,
+  getSalesInvoiceSummaryReport,
+} from "@/lib/api/sales-reports";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
 import type { SalesInvoiceSummaryRow } from "@/types/sales-reports";
 import {
   SALES_INVOICE_PAYMENT_STATUS_LABEL,
   SALES_INVOICE_STATUS_LABEL,
 } from "@/types/sales-invoices";
+import ReportExportButtons, {
+  type ReportExportFormat,
+} from "@/components/reports/ReportExportButtons";
+import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import { toSalesInvoiceSheet } from "@/utils/salesReportSheets";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
 function formatMoney(value?: string) {
@@ -43,7 +55,11 @@ export default function SalesInvoiceSummaryReportPage() {
   const [status, setStatus] = useState<string | undefined>();
   const [paymentStatus, setPaymentStatus] = useState<string | undefined>();
   const [page, setPage] = useState(1);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
+  const { message } = App.useApp();
+  /** CSV เดิมไม่ผูกสิทธิ์ (backend เช็คแค่ VIEW) — Excel/PDF ที่เพิ่มใหม่ผูก EXPORT เหมือนรายงานตัวอื่น */
+  const canExport =
+    !isMatrixPermissionMode() || hasPermission("REPORTS_SALES_INVOICES.EXPORT");
 
   const customersQuery = useCustomersQuery({ isActive: true });
 
@@ -64,12 +80,40 @@ export default function SalesInvoiceSummaryReportPage() {
   const data = reportQuery.data?.data;
   const summary = data?.summary;
 
-  const handleExport = async () => {
-    setDownloading(true);
+  const handleExport = async (format: ReportExportFormat) => {
+    setDownloading(format);
     try {
-      await downloadSalesInvoiceSummaryReportCsv(getAccessToken(), queryParams);
+      if (format === "csv") {
+        await downloadSalesInvoiceSummaryReportCsv(getAccessToken(), queryParams);
+        return;
+      }
+      const all = await fetchAllReportRows((exportPage, limit) =>
+        getSalesInvoiceSummaryReport(getAccessToken(), { ...queryParams, page: exportPage, limit }),
+      );
+      if (all.truncated) {
+        message.warning(`มี ${all.total.toLocaleString("th-TH")} ใบ — ไฟล์มีเฉพาะ 5,000 ใบแรก`);
+      }
+      const customer = (customersQuery.data?.data ?? []).find((c) => c.id === customerId);
+      await downloadTabularReport(
+        format,
+        toSalesInvoiceSheet(all.rows, {
+          dateFrom: queryParams.dateFrom,
+          dateTo: queryParams.dateTo,
+          filters: [
+            customer ? `ลูกค้า: ${customer.customerCode} — ${customer.nameTh}` : "",
+            status ? `สถานะเอกสาร: ${SALES_INVOICE_STATUS_LABEL[status] ?? status}` : "",
+            paymentStatus
+              ? `สถานะชำระเงิน: ${SALES_INVOICE_PAYMENT_STATUS_LABEL[paymentStatus] ?? paymentStatus}`
+              : "",
+          ].filter(Boolean),
+          total: all.total,
+          truncated: all.truncated,
+        }),
+      );
+    } catch {
+      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   };
 
@@ -145,13 +189,11 @@ export default function SalesInvoiceSummaryReportPage() {
             ใบแจ้งหนี้ทุกสถานะ กรองตามลูกค้า/วันที่/สถานะได้
           </span>
         </div>
-        <Button
-          icon={<DownloadOutlined />}
-          loading={downloading}
-          onClick={handleExport}
-        >
-          ส่งออก CSV
-        </Button>
+        <ReportExportButtons
+          canExport={canExport}
+          downloading={downloading}
+          onExport={(format) => void handleExport(format)}
+        />
       </div>
 
       <div className={masterStyles.summaryRow}>

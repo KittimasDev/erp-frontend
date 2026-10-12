@@ -2,17 +2,29 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Button, DatePicker, Select, Table } from "antd";
-import { DownloadOutlined } from "@ant-design/icons";
+import { App, DatePicker, Select, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useSalesPaymentReportQuery } from "@/hooks/sales-reports/useSalesReportsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
-import { downloadSalesPaymentReportCsv } from "@/lib/api/sales-reports";
+import {
+  downloadSalesPaymentReportCsv,
+  fetchAllReportRows,
+  getSalesPaymentReport,
+} from "@/lib/api/sales-reports";
+import {
+  hasPermission,
+  isMatrixPermissionMode,
+} from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
 import type { SalesPaymentReportRow } from "@/types/sales-reports";
 import { SALES_INVOICE_PAYMENT_METHOD_LABEL } from "@/types/sales-invoices";
+import ReportExportButtons, {
+  type ReportExportFormat,
+} from "@/components/reports/ReportExportButtons";
+import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import { toSalesPaymentSheet } from "@/utils/salesReportSheets";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
 function formatMoney(value?: string) {
@@ -33,7 +45,11 @@ export default function SalesPaymentReportPage() {
   const [customerId, setCustomerId] = useState<string | undefined>();
   const [paymentMethod, setPaymentMethod] = useState<string | undefined>();
   const [page, setPage] = useState(1);
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
+  const { message } = App.useApp();
+  /** CSV เดิมไม่ผูกสิทธิ์ (backend เช็คแค่ VIEW) — Excel/PDF ที่เพิ่มใหม่ผูก EXPORT เหมือนรายงานตัวอื่น */
+  const canExport =
+    !isMatrixPermissionMode() || hasPermission("REPORTS_SALES_PAYMENTS.EXPORT");
 
   const customersQuery = useCustomersQuery({ isActive: true });
 
@@ -53,12 +69,39 @@ export default function SalesPaymentReportPage() {
   const data = reportQuery.data?.data;
   const summary = data?.summary;
 
-  const handleExport = async () => {
-    setDownloading(true);
+  const handleExport = async (format: ReportExportFormat) => {
+    setDownloading(format);
     try {
-      await downloadSalesPaymentReportCsv(getAccessToken(), queryParams);
+      if (format === "csv") {
+        await downloadSalesPaymentReportCsv(getAccessToken(), queryParams);
+        return;
+      }
+      const all = await fetchAllReportRows((exportPage, limit) =>
+        getSalesPaymentReport(getAccessToken(), { ...queryParams, page: exportPage, limit }),
+      );
+      if (all.truncated) {
+        message.warning(`มี ${all.total.toLocaleString("th-TH")} รายการ — ไฟล์มีเฉพาะ 5,000 รายการแรก`);
+      }
+      const customer = (customersQuery.data?.data ?? []).find((c) => c.id === customerId);
+      await downloadTabularReport(
+        format,
+        toSalesPaymentSheet(all.rows, {
+          dateFrom: queryParams.dateFrom,
+          dateTo: queryParams.dateTo,
+          filters: [
+            customer ? `ลูกค้า: ${customer.customerCode} — ${customer.nameTh}` : "",
+            paymentMethod
+              ? `วิธีรับชำระ: ${SALES_INVOICE_PAYMENT_METHOD_LABEL[paymentMethod] ?? paymentMethod}`
+              : "",
+          ].filter(Boolean),
+          total: all.total,
+          truncated: all.truncated,
+        }),
+      );
+    } catch {
+      message.error("ดาวน์โหลดรายงานไม่สำเร็จ");
     } finally {
-      setDownloading(false);
+      setDownloading(null);
     }
   };
 
@@ -121,13 +164,11 @@ export default function SalesPaymentReportPage() {
             ประวัติการรับชำระทุกรายการ รวม partial payment
           </span>
         </div>
-        <Button
-          icon={<DownloadOutlined />}
-          loading={downloading}
-          onClick={handleExport}
-        >
-          ส่งออก CSV
-        </Button>
+        <ReportExportButtons
+          canExport={canExport}
+          downloading={downloading}
+          onExport={(format) => void handleExport(format)}
+        />
       </div>
 
       <div className={masterStyles.summaryRow} style={{ gridTemplateColumns: "repeat(2, 1fr)" }}>

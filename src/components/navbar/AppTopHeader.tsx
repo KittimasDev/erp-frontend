@@ -250,6 +250,17 @@ function resolvePageTitle(
     }
   }
 
+  // ใบตั้งหนี้ / ใบเพิ่มหนี้เจ้าหนี้ — หน้าย่อยของ /finance/payables/{ap-invoices,debit-notes}
+  for (const [base, label] of [
+    ["/finance/payables/ap-invoices", "ใบตั้งหนี้"],
+    ["/finance/payables/debit-notes", "ใบเพิ่มหนี้"],
+  ] as const) {
+    if (!pathname.startsWith(`${base}/`)) continue;
+    if (pathname === `${base}/create`) return `สร้าง${label}`;
+    if (pathname.endsWith("/edit")) return `แก้ไข${label}`;
+    return `รายละเอียด${label}`;
+  }
+
   if (pathname.startsWith("/purchase-requests/") && pathname.endsWith("/edit")) {
     return "แก้ไขใบขอซื้อ";
   }

@@ -7,6 +7,7 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   EditOutlined,
+  FilePdfOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -92,6 +93,44 @@ export default function MaterialIssueDetailPage({ id }: Props) {
             onClick={() => router.push("/inventory/material-issues")}
           >
             กลับ
+          </Button>
+          <Button
+            icon={<FilePdfOutlined />}
+            onClick={async () => {
+              const { generateMaterialIssuePdf } = await import(
+                "@/utils/generateMaterialIssuePdf"
+              );
+              void generateMaterialIssuePdf({
+                issueNo: data.issueNo,
+                issueDate: formatDate(data.issueDate),
+                statusLabel: STOCK_ISSUE_STATUS_LABEL[data.status] ?? data.status,
+                draftBanner:
+                  data.status === "POSTED"
+                    ? undefined
+                    : data.status === "CANCELLED"
+                      ? "ยกเลิกแล้ว — ไม่มีผลกับสต๊อก"
+                      : "แบบร่าง — ยังไม่ได้ตัดสต๊อก",
+                requestedByName: data.requestedBy?.displayName ?? "—",
+                issuedByName: data.issuedBy?.displayName ?? "—",
+                postedAt: data.postedAt
+                  ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
+                  : "—",
+                remark: data.remark?.trim() || "",
+                items: (data.items ?? []).map((item, index) => ({
+                  no: index + 1,
+                  itemCode: item.itemCode ?? "—",
+                  itemName: item.itemNameTh ?? "—",
+                  unit: item.unitNameTh ?? item.unitCode ?? "—",
+                  qty: Number(item.quantity) || 0,
+                  warehouse: item.warehouse
+                    ? `${item.warehouse.warehouseCode}/${item.location?.locationCode ?? "—"}`
+                    : undefined,
+                  lotNo: item.lotNo,
+                })),
+              });
+            }}
+          >
+            พิมพ์ PDF
           </Button>
         </div>
       </header>

@@ -546,9 +546,10 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   RECEIVING: "/receiving",
   FLOOR_SCALE_TICKETS: "/weighbridge/floor-scale-tickets",
   STOCK_POSTING_APPROVALS: "/warehouse/stock-posting-approvals",
-  STOCK_BALANCES: "/inventory/stock-balances",
+  /** ฝั่งคลังวัตถุดิบ — กรองเฉพาะหมวด RAW_MATERIAL (FG ใช้รหัส FG_* ของตัวเอง) */
+  STOCK_BALANCES: "/inventory/stock-balances?itemCategoryCode=RAW_MATERIAL",
   FG_STOCK_BALANCES: "/inventory/stock-balances?isFinishedGood=true",
-  INVENTORY_LOTS: "/inventory/lots",
+  INVENTORY_LOTS: "/inventory/lots?itemCategoryCode=RAW_MATERIAL",
   FG_INVENTORY_LOTS: "/inventory/lots?isFinishedGood=true",
   MATERIAL_ISSUES: "/inventory/material-issues",
   TIRE_PREP_ISSUES: "/inventory/tire-prep-issues",
@@ -558,7 +559,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   STOCK_CONTROL: "/inventory/stock-control",
   STOCK_COUNTS: "/inventory/stock-counts",
   STOCK_ADJUSTMENTS: "/inventory/stock-adjustments",
-  STOCK_MOVEMENTS: "/inventory/stock-movements",
+  STOCK_MOVEMENTS: "/inventory/stock-movements?itemCategoryCode=RAW_MATERIAL",
   FG_STOCK_MOVEMENTS:
     "/inventory/stock-movements?isFinishedGood=true",
   GOODS_RECEIPTS: "/goods-receipts",
