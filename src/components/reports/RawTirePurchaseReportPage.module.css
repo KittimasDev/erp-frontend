@@ -150,7 +150,8 @@
 
 .filterGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* 5 ตัวกรอง — auto-fit ให้ตัดแถวเองตามความกว้าง ช่วงวันที่ต้องการอย่างน้อย ~210px */
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 12px 14px;
 }
 
@@ -372,4 +373,45 @@
   .filterGrid {
     grid-template-columns: 1fr;
   }
+}
+
+/* สลับรายวัน / รายเดือน */
+.modeBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.modeHint {
+  color: var(--rp-muted, #6b7280);
+  font-size: 13px;
+}
+
+/* แถวหัววันในตารางรายวัน */
+.dayRow > td {
+  background: #f2f6e9 !important;
+  border-top: 1px solid #dce6c6;
+}
+
+.dayHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.dayChip {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #dce6c6;
+  font-size: 12px;
+  color: var(--rp-ink, #2f343a);
+}
+
+/* แถวรวมท้ายตารางรายเดือน */
+.totalRow > td {
+  background: #f2f6e9 !important;
+  font-weight: 600;
 }

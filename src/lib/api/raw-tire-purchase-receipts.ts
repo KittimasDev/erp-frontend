@@ -19,6 +19,7 @@ import type {
 } from "@/types/raw-tire-payment";
 import type {
   RawTirePurchaseReportListApiResponse,
+  RawTirePurchaseReportMonthlyApiResponse,
   RawTirePurchaseReportQueryParams,
 } from "@/types/raw-tire-purchase-reports";
 
@@ -195,6 +196,8 @@ function buildReportQuery(params?: RawTirePurchaseReportQueryParams) {
   if (params.tireClassificationId)
     search.set("tireClassificationId", params.tireClassificationId);
   if (params.paymentStatus) search.set("paymentStatus", params.paymentStatus);
+  if (params.stockPostingStatus)
+    search.set("stockPostingStatus", params.stockPostingStatus);
   if (params.page != null) search.set("page", String(params.page));
   if (params.limit != null) search.set("limit", String(params.limit));
   const qs = search.toString();
@@ -207,6 +210,17 @@ export function getRawTirePurchaseReport(
 ) {
   return apiFetch<RawTirePurchaseReportListApiResponse>(
     `/api/raw-tire-purchase/receipts/report${buildReportQuery(params)}`,
+    { method: "GET", token },
+  );
+}
+
+/** รายเดือน — ตัวกรองชุดเดียวกับรายการ (ไม่ใช้ page/limit) */
+export function getRawTirePurchaseMonthlyReport(
+  token: string,
+  params?: RawTirePurchaseReportQueryParams,
+) {
+  return apiFetch<RawTirePurchaseReportMonthlyApiResponse>(
+    `/api/raw-tire-purchase/receipts/report/monthly${buildReportQuery({ ...params, page: undefined, limit: undefined })}`,
     { method: "GET", token },
   );
 }

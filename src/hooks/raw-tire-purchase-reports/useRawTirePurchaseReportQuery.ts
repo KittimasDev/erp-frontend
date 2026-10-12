@@ -12,9 +12,12 @@ export const rawTirePurchaseReportQueryKey = [
 
 export function useRawTirePurchaseReportQuery(
   params?: RawTirePurchaseReportQueryParams,
+  /** ปิดเมื่อหน้าอยู่โหมดรายเดือน — ไม่ต้องยิงรายการที่ไม่ได้แสดง */
+  enabled = true,
 ) {
   return useQuery({
     queryKey: [...rawTirePurchaseReportQueryKey, params ?? {}],
     queryFn: () => getRawTirePurchaseReport(getAccessToken(), params),
+    enabled,
   });
 }
