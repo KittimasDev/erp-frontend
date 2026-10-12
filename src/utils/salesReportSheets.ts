@@ -5,18 +5,12 @@ import {
   AGING_BUCKET_LABEL,
   type ArAgingRow,
   type ArAgingSummary,
-  type SalesInvoiceSummaryRow,
-  type SalesPaymentReportRow,
 } from "@/types/sales-reports";
-import {
-  SALES_INVOICE_PAYMENT_METHOD_LABEL,
-  SALES_INVOICE_PAYMENT_STATUS_LABEL,
-  SALES_INVOICE_STATUS_LABEL,
-} from "@/types/sales-invoices";
+import { SALES_INVOICE_PAYMENT_STATUS_LABEL } from "@/types/sales-invoices";
 import type { TabularPdfColumn, TabularReport } from "@/utils/downloadTabularReport";
 
 /**
- * แปลงรายงานลูกหนี้ / ใบแจ้งหนี้ / รับชำระ เป็นตารางสำหรับ Excel + PDF
+ * แปลงรายงานสถานะลูกหนี้เป็นตารางสำหรับ Excel + PDF
  *
  * หัวคอลัมน์ยึดตาม CSV ที่ backend สร้าง (`reports.service.ts`) ไฟล์ทุกแบบจะได้คอลัมน์เดียวกัน
  * ต่างกันแค่ CSV พิมพ์รหัสดิบ (UNPAID, 31_60) ส่วนสองแบบนี้แปลงเป็นป้ายภาษาไทยให้อ่านได้
@@ -75,7 +69,7 @@ function stamp(context: SalesReportExportContext) {
     : dayjs().format("YYYY-MM-DD");
 }
 
-// ---------- รายงานลูกหนี้คงค้าง (P1.7.7) ----------
+// ---------- รายงานสถานะลูกหนี้ (P1.7.7) ----------
 
 const AR_HEADERS = [
   "เลขที่ใบแจ้งหนี้",
@@ -141,7 +135,7 @@ export function toArAgingSheet(
     "",
   ];
   return {
-    title: "รายงานลูกหนี้คงค้าง",
+    title: "รายงานสถานะลูกหนี้",
     filename: `ar-aging-report-${stamp(context)}`,
     meta: [
       ...baseMeta(context, "ใบ"),
@@ -151,140 +145,5 @@ export function toArAgingSheet(
     rows: [...body, totalRow],
     groupRows: [body.length],
     pdfColumns: AR_PDF_COLUMNS,
-  };
-}
-
-// ---------- รายงานใบแจ้งหนี้ขาย (P1.7.4 สมุดรายวันขาย) ----------
-
-const INVOICE_HEADERS = [
-  "เลขที่ใบแจ้งหนี้",
-  "วันที่ออกใบแจ้งหนี้",
-  "รหัสลูกค้า",
-  "ชื่อลูกค้า",
-  "เลขที่ใบสั่งขาย",
-  "เลขที่ใบส่งสินค้า",
-  "ยอดรวม",
-  "ชำระแล้ว",
-  "คงค้าง",
-  "สถานะเอกสาร",
-  "สถานะชำระเงิน",
-];
-
-/**
- * รวม 746px — วัดแบบเดียวกับรายงานลูกหนี้ ("แบบร่างเอกสาร" ต้องการ 74)
- * เลข SO กับ DO รวมไว้ช่องเดียว (ซ้อน 2 บรรทัด) — แยกกันแล้วช่องลูกค้าเหลือแค่ 60px
- * Excel/CSV ยังแยกเป็นคนละคอลัมน์ตามเดิม
- */
-const INVOICE_PDF_COLUMNS: TabularPdfColumn[] = [
-  { header: "เลขที่ใบแจ้งหนี้", cells: [0], width: 104 },
-  { header: "วันที่ออก", cells: [1], width: 64, align: "center" },
-  { header: "ลูกค้า", cells: [2, 3], width: 126 },
-  { header: "SO / ใบส่งสินค้า", cells: [4, 5], width: 96 },
-  { header: "ยอดรวม", cells: [6], width: 72, numeric: true },
-  { header: "ชำระแล้ว", cells: [7], width: 72, numeric: true },
-  { header: "คงค้าง", cells: [8], width: 72, numeric: true },
-  { header: "สถานะ", cells: [9], width: 74, align: "center" },
-  { header: "การชำระ", cells: [10], width: 66, align: "center" },
-];
-
-export function toSalesInvoiceSheet(
-  rows: SalesInvoiceSummaryRow[],
-  context: SalesReportExportContext,
-): TabularReport {
-  const body = rows.map((row) => [
-    row.invoiceNo,
-    formatBeDate(row.invoiceDate),
-    row.customerCode ?? "",
-    row.customerName ?? "",
-    row.salesOrderNo ?? "",
-    row.deliveryOrderNo ?? "",
-    formatMoney(row.totalAmount),
-    formatMoney(row.paidAmount),
-    formatMoney(row.outstandingAmount),
-    SALES_INVOICE_STATUS_LABEL[row.status] ?? row.status,
-    row.paymentStatus
-      ? (SALES_INVOICE_PAYMENT_STATUS_LABEL[row.paymentStatus] ?? row.paymentStatus)
-      : "",
-  ]);
-  const totalRow = [
-    "รวม",
-    "",
-    "",
-    "",
-    "",
-    "",
-    formatMoney(sum(rows.map((r) => r.totalAmount))),
-    formatMoney(sum(rows.map((r) => r.paidAmount))),
-    formatMoney(sum(rows.map((r) => r.outstandingAmount))),
-    "",
-    "",
-  ];
-  return {
-    title: "รายงานใบแจ้งหนี้ขาย",
-    filename: `sales-invoice-summary-report-${stamp(context)}`,
-    meta: baseMeta(context, "ใบ"),
-    headers: INVOICE_HEADERS,
-    rows: [...body, totalRow],
-    groupRows: [body.length],
-    pdfColumns: INVOICE_PDF_COLUMNS,
-  };
-}
-
-// ---------- รายงานรับชำระเงิน (P1.7.5 สมุดรายวันรับ) ----------
-
-const PAYMENT_HEADERS = [
-  "วันที่รับชำระ",
-  "เลขที่ใบแจ้งหนี้",
-  "รหัสลูกค้า",
-  "ชื่อลูกค้า",
-  "จำนวนเงิน",
-  "วิธีรับชำระ",
-  "เลขอ้างอิง",
-  "ผู้บันทึก",
-];
-
-/** รวม 746px — เลขที่ใบแจ้งหนี้เป็นคอลัมน์ lead (วันที่จัดกลาง) จึงต้องเผื่อ padding ซ้าย 18px */
-const PAYMENT_PDF_COLUMNS: TabularPdfColumn[] = [
-  { header: "วันที่รับชำระ", cells: [0], width: 64, align: "center" },
-  { header: "เลขที่ใบแจ้งหนี้", cells: [1], width: 104 },
-  { header: "ลูกค้า", cells: [2, 3], width: 182 },
-  { header: "จำนวนเงิน", cells: [4], width: 90, numeric: true },
-  { header: "วิธีรับชำระ", cells: [5], width: 84, align: "center" },
-  { header: "เลขอ้างอิง", cells: [6], width: 118 },
-  { header: "ผู้บันทึก", cells: [7], width: 104 },
-];
-
-export function toSalesPaymentSheet(
-  rows: SalesPaymentReportRow[],
-  context: SalesReportExportContext,
-): TabularReport {
-  const body = rows.map((row) => [
-    formatBeDate(row.paymentDate.slice(0, 10)),
-    row.invoiceNo,
-    row.customerCode ?? "",
-    row.customerName ?? "",
-    formatMoney(row.amount),
-    SALES_INVOICE_PAYMENT_METHOD_LABEL[row.paymentMethod] ?? row.paymentMethod,
-    row.transactionRef ?? "",
-    row.createdByName ?? "",
-  ]);
-  const totalRow = [
-    "รวม",
-    "",
-    "",
-    "",
-    formatMoney(sum(rows.map((r) => r.amount))),
-    "",
-    "",
-    "",
-  ];
-  return {
-    title: "รายงานรับชำระเงิน",
-    filename: `sales-payment-report-${stamp(context)}`,
-    meta: baseMeta(context, "รายการ"),
-    headers: PAYMENT_HEADERS,
-    rows: [...body, totalRow],
-    groupRows: [body.length],
-    pdfColumns: PAYMENT_PDF_COLUMNS,
   };
 }

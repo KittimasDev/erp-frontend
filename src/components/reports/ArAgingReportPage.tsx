@@ -177,7 +177,7 @@ export default function ArAgingReportPage() {
         <div className={masterStyles.headerAccent}>AR</div>
         <div className={masterStyles.headerContent}>
           <div className={masterStyles.eyebrow}>REPORTS · ACCOUNTS RECEIVABLE</div>
-          <h2 className={masterStyles.pageTitle}>รายงานลูกหนี้คงค้าง</h2>
+          <h2 className={masterStyles.pageTitle}>รายงานสถานะลูกหนี้</h2>
           <span className={masterStyles.pageSubtitle}>
             ใบแจ้งหนี้ที่ยังไม่ชำระครบ พร้อมช่วงอายุหนี้
           </span>

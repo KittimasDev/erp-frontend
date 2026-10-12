@@ -2,10 +2,6 @@ import { apiFetch } from "./client";
 import type {
   ArAgingReportApiResponse,
   QueryArAgingReportParams,
-  QuerySalesInvoiceSummaryReportParams,
-  QuerySalesPaymentReportParams,
-  SalesInvoiceSummaryReportApiResponse,
-  SalesPaymentReportApiResponse,
 } from "@/types/sales-reports";
 
 function buildQuery(params?: Record<string, unknown>) {
@@ -102,49 +98,5 @@ export function downloadArAgingReportCsv(
     token,
     params,
     "ar-aging-report.csv",
-  );
-}
-
-export function getSalesInvoiceSummaryReport(
-  token: string,
-  params?: QuerySalesInvoiceSummaryReportParams,
-) {
-  return apiFetch<SalesInvoiceSummaryReportApiResponse>(
-    `/api/reports/sales-invoices${buildQuery(params)}`,
-    { method: "GET", token },
-  );
-}
-
-export function downloadSalesInvoiceSummaryReportCsv(
-  token: string,
-  params?: QuerySalesInvoiceSummaryReportParams,
-) {
-  return downloadCsv(
-    "/api/reports/sales-invoices/export",
-    token,
-    params,
-    "sales-invoice-summary-report.csv",
-  );
-}
-
-export function getSalesPaymentReport(
-  token: string,
-  params?: QuerySalesPaymentReportParams,
-) {
-  return apiFetch<SalesPaymentReportApiResponse>(
-    `/api/reports/sales-payments${buildQuery(params)}`,
-    { method: "GET", token },
-  );
-}
-
-export function downloadSalesPaymentReportCsv(
-  token: string,
-  params?: QuerySalesPaymentReportParams,
-) {
-  return downloadCsv(
-    "/api/reports/sales-payments/export",
-    token,
-    params,
-    "sales-payment-report.csv",
   );
 }

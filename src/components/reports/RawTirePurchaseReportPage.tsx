@@ -229,7 +229,7 @@ export default function RawTirePurchaseReportPage() {
             </span>
             Reports · Raw Tire Purchase
           </div>
-          <h1 className={styles.pageTitle}>รายงานรับซื้อยาง</h1>
+          <h1 className={styles.pageTitle}>รายงานรับซื้อรายวัน / รายเดือน</h1>
           <p className={styles.pageSubtitle}>
             สรุปใบรับซื้อยางที่อนุมัติแล้ว (CONFIRMED) กรองตามช่วงวันที่ ผู้ขาย
             ประเภทยาง และสถานะชำระเงิน

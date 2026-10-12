@@ -334,20 +334,20 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     key: "reports",
     code: "RPT",
     label: "รายงาน",
-    description: "จัดซื้อ · รับยาง · ขาย · ลูกหนี้",
-    href: "/reports/procurement",
+    description: "จัดซื้อ · คลัง · ขาย · ลูกหนี้ · สมุดบัญชี",
+    href: "/reports/receiving",
     tone: "stone",
     screenCodes: [
-      "REPORTS_PROCUREMENT",
+      "REPORTS_RECEIVING",
+      "REPORTS_RAW_MATERIAL_COST",
       "REPORTS_STOCK_BALANCE",
       "REPORTS_STOCK_MOVEMENTS",
       "REPORTS_SALES_BY_ITEM",
-      "REPORTS_RECEIVING",
       "REPORTS_AR_AGING",
-      "REPORTS_SALES_INVOICES",
-      "REPORTS_SALES_PAYMENTS",
-      "REPORTS_INVENTORY",
-      "REPORTS_PAYMENTS",
+      "REPORTS_JOURNAL_PURCHASES",
+      "REPORTS_JOURNAL_SALES",
+      "REPORTS_JOURNAL_RECEIPTS",
+      "REPORTS_JOURNAL_PAYMENTS",
     ],
     roles: [
       RoleCode.PROCUREMENT_OFFICER,
@@ -457,7 +457,7 @@ export function resolvePortalHref(mod: PortalModuleDef): string {
       userHasRole(RoleCode.PROCUREMENT_OFFICER) ||
       userHasRole(RoleCode.PROCUREMENT_MANAGER)
     ) {
-      return "/reports/procurement";
+      return "/reports/stock-balance";
     }
     if (userHasRole(RoleCode.WEIGHBRIDGE_OFFICER)) {
       return "/reports/receiving";
@@ -472,7 +472,7 @@ export function resolvePortalHref(mod: PortalModuleDef): string {
       userHasRole(RoleCode.WAREHOUSE_OFFICER) ||
       userHasRole(RoleCode.WAREHOUSE_MANAGER)
     ) {
-      return "/reports/inventory";
+      return "/reports/stock-balance";
     }
     return "/reports/receiving";
   }

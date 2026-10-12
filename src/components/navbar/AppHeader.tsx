@@ -1635,136 +1635,159 @@ const financeMenus: MenuItem[] = [
   },
 ];
 
+const JOURNAL_REPORT_ROLES = [ROLE.ACCOUNTING_OFFICER, ROLE.EXECUTIVE];
+
 const reportMenus: MenuItem[] = [
   {
-    key: "reports-procurement",
-    screenCode: "REPORTS_PROCUREMENT",
-    label: "รายงานจัดซื้อ",
-    href: "/reports/procurement",
+    key: "reports-purchasing",
+    label: "การจัดซื้อ",
+    href: "menu://reports-purchasing",
     icon: <IconReport />,
-    roles: [
-      ROLE.PROCUREMENT_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
+    children: [
+      {
+        key: "reports-receiving",
+        screenCode: "REPORTS_RECEIVING",
+        label: "รายงานรับซื้อรายวัน / รายเดือน",
+        href: "/reports/receiving",
+        icon: <IconReport />,
+        roles: [
+          ROLE.WEIGHBRIDGE_OFFICER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "reports-raw-material-cost",
+        screenCode: "REPORTS_RAW_MATERIAL_COST",
+        label: "รายงานต้นทุนวัตถุดิบ",
+        href: "/reports/raw-material-cost",
+        icon: <IconReport />,
+        roles: [
+          ROLE.PROCUREMENT_OFFICER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {
-    key: "reports-stock-balance",
-    screenCode: "REPORTS_STOCK_BALANCE",
-    label: "รายงานแสดงสินค้าคงเหลือ",
-    href: "/reports/stock-balance",
+    key: "reports-inventory-group",
+    label: "สินค้าคงคลัง",
+    href: "menu://reports-inventory-group",
     icon: <IconReport />,
-    roles: [
-      ROLE.PROCUREMENT_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
+    children: [
+      {
+        key: "reports-stock-balance",
+        screenCode: "REPORTS_STOCK_BALANCE",
+        label: "รายงานแสดงสินค้าคงเหลือ",
+        href: "/reports/stock-balance",
+        icon: <IconReport />,
+        roles: [
+          ROLE.PROCUREMENT_OFFICER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "reports-stock-movements",
+        screenCode: "REPORTS_STOCK_MOVEMENTS",
+        label: "รายงานแสดงสรุปยอดเคลื่อนไหวสินค้า",
+        href: "/reports/stock-movements",
+        icon: <IconReport />,
+        roles: [
+          ROLE.PROCUREMENT_OFFICER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {
-    key: "reports-stock-movements",
-    screenCode: "REPORTS_STOCK_MOVEMENTS",
-    label: "รายงานแสดงสรุปยอดเคลื่อนไหวสินค้า",
-    href: "/reports/stock-movements",
+    key: "reports-sales",
+    label: "การขาย",
+    href: "menu://reports-sales",
     icon: <IconReport />,
-    roles: [
-      ROLE.PROCUREMENT_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
+    children: [
+      {
+        key: "reports-sales-by-item",
+        screenCode: "REPORTS_SALES_BY_ITEM",
+        label: "รายงานสรุปยอดขาย",
+        href: "/reports/sales-by-item",
+        icon: <IconReport />,
+        roles: [
+          ROLE.PROCUREMENT_OFFICER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {
-    key: "reports-sales-by-item",
-    screenCode: "REPORTS_SALES_BY_ITEM",
-    label: "รายงานสรุปยอดขาย",
-    href: "/reports/sales-by-item",
+    key: "reports-finance",
+    label: "การเงิน",
+    href: "menu://reports-finance",
     icon: <IconReport />,
-    roles: [
-      ROLE.PROCUREMENT_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
+    children: [
+      {
+        key: "reports-ar-aging",
+        screenCode: "REPORTS_AR_AGING",
+        label: "รายงานสถานะลูกหนี้",
+        href: "/reports/ar-aging",
+        icon: <IconReport />,
+        roles: [
+          ROLE.SALES_OFFICER,
+          ROLE.SALES_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {
-    key: "reports-receiving",
-    screenCode: "REPORTS_RECEIVING",
-    label: "รายงานรับซื้อยาง",
-    href: "/reports/receiving",
+    key: "reports-journals",
+    label: "สมุดบัญชี",
+    href: "menu://reports-journals",
     icon: <IconReport />,
-    roles: [
-      ROLE.WEIGHBRIDGE_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "reports-ar-aging",
-    screenCode: "REPORTS_AR_AGING",
-    label: "รายงานลูกหนี้คงค้าง",
-    href: "/reports/ar-aging",
-    icon: <IconReport />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "reports-sales-invoices",
-    screenCode: "REPORTS_SALES_INVOICES",
-    label: "รายงานใบแจ้งหนี้",
-    href: "/reports/sales-invoices",
-    icon: <IconReport />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "reports-sales-payments",
-    screenCode: "REPORTS_SALES_PAYMENTS",
-    label: "รายงานรับชำระเงิน",
-    href: "/reports/sales-payments",
-    icon: <IconReport />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "reports-inventory",
-    screenCode: "REPORTS_INVENTORY",
-    label: "รายงานคลัง",
-    href: "/reports/inventory",
-    icon: <IconReport />,
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "reports-payments",
-    screenCode: "REPORTS_PAYMENTS",
-    label: "รายงานจ่ายเงิน",
-    href: "/reports/payments",
-    icon: <IconReport />,
-    roles: [
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.EXECUTIVE,
+    children: [
+      {
+        key: "reports-journal-purchases",
+        screenCode: "REPORTS_JOURNAL_PURCHASES",
+        label: "สมุดรายวันซื้อ",
+        href: "/reports/journals/purchases",
+        icon: <IconReport />,
+        roles: JOURNAL_REPORT_ROLES,
+      },
+      {
+        key: "reports-journal-sales",
+        screenCode: "REPORTS_JOURNAL_SALES",
+        label: "สมุดรายวันขาย",
+        href: "/reports/journals/sales",
+        icon: <IconReport />,
+        roles: JOURNAL_REPORT_ROLES,
+      },
+      {
+        key: "reports-journal-receipts",
+        screenCode: "REPORTS_JOURNAL_RECEIPTS",
+        label: "สมุดรายวันรับ",
+        href: "/reports/journals/receipts",
+        icon: <IconReport />,
+        roles: JOURNAL_REPORT_ROLES,
+      },
+      {
+        key: "reports-journal-payments",
+        screenCode: "REPORTS_JOURNAL_PAYMENTS",
+        label: "สมุดรายวันจ่าย",
+        href: "/reports/journals/payments",
+        icon: <IconReport />,
+        roles: JOURNAL_REPORT_ROLES,
+      },
     ],
   },
 ];
@@ -2274,9 +2297,6 @@ function filterMenus(items: MenuItem[]): MenuItem[] {
   const HIDDEN_MENU_KEYS = new Set([
     "sales-invoices",
     "sales-invoices-pending",
-    "reports-sales-invoices",
-    "reports-sales-payments",
-    "reports-ar-aging",
   ]);
   return items.flatMap((item) => {
     if (HIDDEN_MENU_KEYS.has(item.key)) {
@@ -2966,16 +2986,7 @@ export default function AppHeader({
               <div className={styles.groupTitle}>รายงาน</div>
 
               <div className={styles.groupItems}>
-                {visibleReportMenus.map((item) =>
-                  renderMenuButton(
-                    item,
-                    pathname,
-                    collapsed,
-                    handleGo,
-                    searchParams,
-                    badgeCounts,
-                  ),
-                )}
+                {visibleReportMenus.map((item) => renderMenuEntry(item))}
               </div>
             </div>
           ) : null}
