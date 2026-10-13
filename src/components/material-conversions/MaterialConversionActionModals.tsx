@@ -7,14 +7,24 @@ import {
   Input,
   InputNumber,
   Modal,
+  Select,
   Space,
   Tag,
   Typography,
 } from "antd";
 
-import type { MaterialConversionRun } from "@/types/material-conversion";
-import { OUTPUT_TYPE_COLOR, OUTPUT_TYPE_LABEL } from "@/types/material-conversion";
+import type {
+  CompleteMaterialConversionBody,
+  MaterialConversionRun,
+} from "@/types/material-conversion";
+import {
+  OUTPUT_TYPE_COLOR,
+  OUTPUT_TYPE_LABEL,
+  PACKAGING_TYPES,
+  PACKAGING_TYPE_LABEL,
+} from "@/types/material-conversion";
 import { OUTPUT_VARIANCE_WARN_PERCENT } from "@/lib/production/constants";
+import { useConversionScaleTicketsQuery } from "@/hooks/material-conversions/useMaterialConversionQueries";
 import styles from "./MaterialConversionPage.module.css";
 
 const { Text } = Typography;
@@ -192,9 +202,16 @@ type CompleteModalProps = {
   loading?: boolean;
   onCancel: () => void;
   onConfirm: (payload: {
-    outputs: Array<{ lineId: string; actualQty: number }>;
+    outputs: NonNullable<CompleteMaterialConversionBody["outputs"]>;
     remark?: string;
   }) => void;
+};
+
+type PackState = {
+  type?: string;
+  count?: number | null;
+  gross?: number | null;
+  tare?: number | null;
 };
 
 export function CompleteConversionModal(props: CompleteModalProps) {
@@ -226,6 +243,57 @@ function CompleteModalBody({
     return initial;
   });
   const [remark, setRemark] = useState("");
+  // M7.5: ข้อมูลภาชนะบรรจุต่อบรรทัด — ใส่ gross แล้วน้ำหนักสุทธิ (gross − tare) ใช้แทนจำนวนที่กรอก
+  const [pack, setPack] = useState<Record<string, PackState>>(() => {
+    const initial: Record<string, PackState> = {};
+    for (const line of run.outputs) {
+      initial[line.id] = {
+        type: line.packagingType,
+        count: line.packageCount ?? null,
+        gross: line.grossQty === undefined ? null : Number(line.grossQty),
+        tare: line.tareQty === undefined ? null : Number(line.tareQty),
+      };
+    }
+    return initial;
+  });
+  const [packOpen, setPackOpen] = useState<Record<string, boolean>>({});
+  // M4.3: ตั๋วชั่ง Floor Scale ต่อบรรทัด — เลือกแล้วน้ำหนักสุทธิตามตั๋วถูกใช้ (Auto) · กรอกเองต่างจากตั๋วได้ถ้ามีเหตุผล
+  const ticketsQuery = useConversionScaleTicketsQuery();
+  const tickets = ticketsQuery.data?.data ?? [];
+  const [scale, setScale] = useState<
+    Record<string, { ticketId?: string; override?: boolean; reason?: string }>
+  >({});
+  const patchScale = (
+    lineId: string,
+    value: { ticketId?: string; override?: boolean; reason?: string },
+  ) => setScale((prev) => ({ ...prev, [lineId]: { ...prev[lineId], ...value } }));
+  const usedTicketIds = new Set(
+    Object.values(scale)
+      .map((s) => s.ticketId)
+      .filter(Boolean),
+  );
+  /** น้ำหนักตามตั๋วในหน่วยของบรรทัด — รู้ค่าเฉพาะหน่วย KG (หน่วยอื่น backend แปลงให้ตอนบันทึก) */
+  const ticketQtyOf = (lineId: string, unitCode?: string): number | null => {
+    const id = scale[lineId]?.ticketId;
+    const ticket = tickets.find((t) => t.id === id);
+    if (!ticket) return null;
+    return unitCode?.toUpperCase() === "KG" ? Number(ticket.netWeightKg) : null;
+  };
+  const netOf = (lineId: string): number => {
+    const sc = scale[lineId];
+    if (sc?.ticketId && !sc.override) {
+      const unit = run.outputs.find((l) => l.id === lineId)?.unitCode;
+      const t = ticketQtyOf(lineId, unit);
+      if (t !== null) return t;
+    }
+    const p = pack[lineId];
+    if (p?.gross !== undefined && p.gross !== null) {
+      return Math.max(Number(p.gross) - Number(p.tare ?? 0), 0);
+    }
+    return Number(quantities[lineId]) || 0;
+  };
+  const patchPack = (lineId: string, value: Partial<PackState>) =>
+    setPack((prev) => ({ ...prev, [lineId]: { ...prev[lineId], ...value } }));
 
   const totalInput = useMemo(
     () => run.inputs.reduce((acc, line) => acc + Number(line.actualQty), 0),
@@ -249,7 +317,7 @@ function CompleteModalBody({
 
   const totalOutput = run.outputs
     .filter((line) => line.postsToStock)
-    .reduce((acc, line) => acc + (Number(quantities[line.id]) || 0), 0);
+    .reduce((acc, line) => acc + netOf(line.id), 0);
   const totalWaste = run.outputs
     .filter((line) => !line.postsToStock)
     .reduce((acc, line) => acc + (Number(quantities[line.id]) || 0), 0);
@@ -290,7 +358,15 @@ function CompleteModalBody({
               style={{ width: "100%" }}
               min={0}
               precision={3}
-              value={quantities[line.id]}
+              value={
+                pack[line.id]?.gross !== undefined && pack[line.id]?.gross !== null
+                  ? netOf(line.id)
+                  : quantities[line.id]
+              }
+              disabled={
+                (pack[line.id]?.gross !== undefined && pack[line.id]?.gross !== null) ||
+                Boolean(scale[line.id]?.ticketId && !scale[line.id]?.override)
+              }
               onChange={(value) =>
                 setQuantities((prev) => ({
                   ...prev,
@@ -306,6 +382,133 @@ function CompleteModalBody({
             ตามแผน {fmtQty(line.plannedQty)}
             {line.postsToStock ? "" : " · ไม่เข้าสต๊อก"}
           </Text>
+          {line.postsToStock && tickets.length + (scale[line.id]?.ticketId ? 1 : 0) > 0 ? (
+            <div
+              style={{
+                gridColumn: "1 / -1",
+                display: "flex",
+                gap: 8,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="ตั๋วชั่ง Floor Scale (ดึงน้ำหนักสุทธิอัตโนมัติ)"
+                style={{ minWidth: 280 }}
+                value={scale[line.id]?.ticketId}
+                onChange={(value) =>
+                  patchScale(line.id, { ticketId: value, override: false, reason: "" })
+                }
+                options={tickets
+                  .filter((t) => t.id === scale[line.id]?.ticketId || !usedTicketIds.has(t.id))
+                  .map((t) => ({
+                    value: t.id,
+                    label: `${t.ticketNo} · ${fmtQty(t.netWeightKg)} กก.${t.scaleCode ? " · " + t.scaleCode : ""}`,
+                  }))}
+              />
+              {scale[line.id]?.ticketId ? (
+                <>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {ticketQtyOf(line.id, line.unitCode) === null
+                      ? "น้ำหนักตามตั๋ว — ระบบแปลงเป็นหน่วยของบรรทัดตอนบันทึก"
+                      : "ใช้น้ำหนักสุทธิตามตั๋ว"}
+                  </Text>
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() =>
+                      patchScale(line.id, { override: !scale[line.id]?.override })
+                    }
+                  >
+                    {scale[line.id]?.override ? "ใช้ตามตั๋ว" : "กรอกน้ำหนักเองต่างจากตั๋ว"}
+                  </Button>
+                  {scale[line.id]?.override ? (
+                    <Input
+                      style={{ minWidth: 260, flex: 1 }}
+                      maxLength={500}
+                      placeholder="เหตุผลที่น้ำหนักต่างจากตั๋ว (บังคับ)"
+                      value={scale[line.id]?.reason}
+                      onChange={(e) => patchScale(line.id, { reason: e.target.value })}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </div>
+          ) : null}
+          {line.postsToStock ? (
+            run.stepCode === "PACKING" ||
+            line.packagingType ||
+            packOpen[line.id] ? (
+              <div
+                style={{
+                  gridColumn: "1 / -1",
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <Select
+                  allowClear
+                  placeholder="ภาชนะ"
+                  style={{ width: 130 }}
+                  value={pack[line.id]?.type}
+                  onChange={(value) => patchPack(line.id, { type: value })}
+                  options={PACKAGING_TYPES.map((value) => ({
+                    value,
+                    label: PACKAGING_TYPE_LABEL[value],
+                  }))}
+                />
+                <InputNumber
+                  min={1}
+                  precision={0}
+                  placeholder="จำนวนถุง"
+                  style={{ width: 110 }}
+                  value={pack[line.id]?.count ?? null}
+                  onChange={(value) => patchPack(line.id, { count: value })}
+                />
+                <InputNumber
+                  min={0}
+                  precision={3}
+                  placeholder="น้ำหนักรวม (gross)"
+                  style={{ width: 160 }}
+                  value={pack[line.id]?.gross ?? null}
+                  onChange={(value) => patchPack(line.id, { gross: value })}
+                />
+                <InputNumber
+                  min={0}
+                  precision={3}
+                  placeholder="น้ำหนักภาชนะ (tare)"
+                  style={{ width: 160 }}
+                  value={pack[line.id]?.tare ?? null}
+                  onChange={(value) => patchPack(line.id, { tare: value })}
+                />
+                {pack[line.id]?.gross !== undefined &&
+                pack[line.id]?.gross !== null ? (
+                  <Text strong>
+                    สุทธิ {fmtQty(String(netOf(line.id)))} {line.unitCode ?? ""}
+                    {pack[line.id]?.count
+                      ? ` · เฉลี่ย ${fmtQty(
+                          String(netOf(line.id) / Number(pack[line.id]?.count)),
+                        )}/ถุง`
+                      : ""}
+                  </Text>
+                ) : null}
+              </div>
+            ) : (
+              <Button
+                type="link"
+                size="small"
+                style={{ gridColumn: "1 / -1", justifySelf: "start", padding: 0 }}
+                onClick={() => setPackOpen((prev) => ({ ...prev, [line.id]: true }))}
+              >
+                + บันทึกการบรรจุภาชนะ (Big Bag / ถุง)
+              </Button>
+            )
+          ) : null}
         </div>
       ))}
 
@@ -363,12 +566,43 @@ function CompleteModalBody({
           loading={loading}
           onClick={() =>
             onConfirm({
-              outputs: run.outputs.map((line) => ({
-                lineId: line.id,
-                actualQty: Number(
-                  quantities[line.id] ?? line.actualQty ?? line.plannedQty,
-                ),
-              })),
+              outputs: run.outputs.map((line) => {
+                const p = pack[line.id];
+                const hasGross =
+                  line.postsToStock &&
+                  p?.gross !== undefined &&
+                  p.gross !== null;
+                const hasPackMeta =
+                  line.postsToStock && (p?.type || p?.count || hasGross);
+                const sc = scale[line.id];
+                const ticketId = line.postsToStock ? sc?.ticketId : undefined;
+                return {
+                  lineId: line.id,
+                  ...(ticketId
+                    ? {
+                        floorScaleTicketId: ticketId,
+                        weightDiffReason: sc?.override ? sc.reason?.trim() || undefined : undefined,
+                      }
+                    : {}),
+                  actualQty: ticketId
+                    ? sc?.override
+                      ? Number(quantities[line.id])
+                      : undefined
+                    : hasGross
+                      ? undefined
+                      : Number(
+                          quantities[line.id] ?? line.actualQty ?? line.plannedQty,
+                        ),
+                  ...(hasPackMeta
+                    ? {
+                        packagingType: p?.type || undefined,
+                        packageCount: p?.count || undefined,
+                        grossQty: hasGross ? Number(p?.gross) : undefined,
+                        tareQty: hasGross ? Number(p?.tare ?? 0) : undefined,
+                      }
+                    : {}),
+                };
+              }),
               remark: remark.trim() || undefined,
             })
           }

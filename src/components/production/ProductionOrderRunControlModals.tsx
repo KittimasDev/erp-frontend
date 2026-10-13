@@ -6,6 +6,7 @@ import { Modal } from "antd";
 
 import {
   PRODUCTION_DOWNTIME_CATEGORY_LABEL,
+  PRODUCTION_STOP_TYPE_LABEL,
   type CancelProductionOrderBody,
   type PauseProductionOrderBody,
 } from "@/types/production-order";
@@ -35,6 +36,8 @@ type PauseModalProps = {
 function PauseModalBody(props: Omit<PauseModalProps, "open">) {
   const [reason, setReason] = useState("");
   const [category, setCategory] = useState<string | undefined>(undefined);
+  const [stopType, setStopType] = useState<"PLANNED" | "UNPLANNED">("UNPLANNED");
+  const [rootCause, setRootCause] = useState("");
 
   const trimmed = reason.trim();
 
@@ -47,6 +50,18 @@ function PauseModalBody(props: Omit<PauseModalProps, "open">) {
         title="นาฬิกา Cycle ไม่หยุดเดิน"
         description="เตา 48 ชั่วโมงคือ 48 ชั่วโมงตามนาฬิกาจริง เวลาที่หยุดจะถูกบันทึกแยกไว้เป็นชั่วโมง Downtime ไม่ได้หักออกจาก Cycle"
       />
+
+      <div className={styles.cellStack} style={{ marginBottom: 12 }}>
+        <span className={styles.cellMuted}>ประเภทการหยุด</span>
+        <Select
+          value={stopType}
+          onChange={setStopType}
+          options={(["UNPLANNED", "PLANNED"] as const).map((value) => ({
+            value,
+            label: PRODUCTION_STOP_TYPE_LABEL[value],
+          }))}
+        />
+      </div>
 
       <div className={styles.cellStack}>
         <span className={styles.cellMuted}>หมวดสาเหตุ (ใช้ทำกราฟ Pareto)</span>
@@ -71,13 +86,32 @@ function PauseModalBody(props: Omit<PauseModalProps, "open">) {
         />
       </div>
 
+      <div className={styles.cellStack} style={{ marginTop: 12 }}>
+        <span className={styles.cellMuted}>Root Cause — สาเหตุราก (ไม่บังคับ กรอกทีหลังได้)</span>
+        <Input.TextArea
+          rows={2}
+          maxLength={500}
+          showCount
+          value={rootCause}
+          onChange={(e) => setRootCause(e.target.value)}
+          placeholder="เช่น ซีลสึกหรอเกินอายุใช้งาน ไม่ได้เปลี่ยนตามรอบ PM"
+        />
+      </div>
+
       <div className={styles.footer}>
         <Button onClick={props.onCancel}>ปิด</Button>
         <Button
           type="primary"
           disabled={!trimmed}
           loading={props.loading}
-          onClick={() => props.onConfirm({ reason: trimmed, category })}
+          onClick={() =>
+            props.onConfirm({
+              reason: trimmed,
+              category,
+              stopType,
+              rootCause: rootCause.trim() || undefined,
+            })
+          }
         >
           หยุดเดินเครื่อง
         </Button>

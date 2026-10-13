@@ -425,9 +425,43 @@ export type ShiftAutoPlanPositionInput = {
   userIds?: string[];
 };
 
+/** รอบวางกะ (ค่าเริ่มต้น 45 วัน) นับต่อเนื่องจากวันเริ่มรอบ */
+export type ShiftCycleRange = {
+  /** 0 = รอบที่เริ่มที่วันเริ่มรอบ · ติดลบ = ก่อนวันเริ่มรอบ */
+  index: number;
+  dateFrom: string;
+  dateTo: string;
+  lengthDays: number;
+};
+
+export type ShiftPlanCycle = {
+  /** false = ยังไม่ได้ตั้งวันเริ่มรอบ */
+  configured: boolean;
+  cycleStartDate?: string | null;
+  cycleLengthDays: number;
+  today: string;
+  current?: ShiftCycleRange | null;
+  previous?: ShiftCycleRange | null;
+  next?: ShiftCycleRange | null;
+};
+
+export type ShiftPlanCycleApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: ShiftPlanCycle;
+};
+
+export type UpdateShiftPlanCycleRequest = {
+  cycleStartDate: string;
+  cycleLengthDays: number;
+};
+
 export type ShiftAutoPlanRequest = {
-  /** `YYYY-MM` */
-  month: string;
+  /** `YYYY-MM` — จัดทั้งเดือน (ถ้าส่ง dateFrom+dateTo มาด้วย ช่วงวันที่ชนะ) */
+  month?: string;
+  /** ช่วงที่จะจัด เช่น รอบ 45 วัน — ต้องส่งคู่กัน ยาวไม่เกิน 62 วัน */
+  dateFrom?: string;
+  dateTo?: string;
   positions: ShiftAutoPlanPositionInput[];
   /** กรองเอาเฉพาะคนที่มีบทบาทเหล่านี้ — ไม่ส่ง = เอาทุกคน */
   roleIds?: string[];
@@ -587,9 +621,13 @@ export type ShiftAutoPlanWorkload = {
 };
 
 export type ShiftAutoPlan = {
-  month: string;
+  /** มีเฉพาะตอนจัดเป็นรายเดือน */
+  month?: string;
   dateFrom: string;
   dateTo: string;
+  /** จำนวนวันของช่วงที่จัด */
+  dayCount: number;
+  /** @deprecated ค่าเดียวกับ dayCount */
   daysInMonth: number;
   workingDays: number;
   totalSlots: number;

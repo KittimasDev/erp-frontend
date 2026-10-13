@@ -18,6 +18,8 @@ import type {
   ShiftAutoPlanPositionsParams,
   ShiftAutoPlanRequest,
   ShiftAutoPlanRoleOptionsApiResponse,
+  ShiftPlanCycleApiResponse,
+  UpdateShiftPlanCycleRequest,
   ShiftRosterApiResponse,
   ShiftScheduleApiResponse,
   UpdateShiftRequest,
@@ -173,7 +175,25 @@ export function bulkCreateShiftSchedules(
   );
 }
 
-/* ---------- จัดตารางกะรายเดือนอัตโนมัติ ---------- */
+/* ---------- จัดตารางกะอัตโนมัติ (รายเดือน / ช่วงวันที่ / รอบ 45 วัน) ---------- */
+
+/** รอบวางกะ: ปัจจุบัน / ก่อนหน้า / ถัดไป */
+export function getShiftPlanCycle(token: string) {
+  return apiFetch<ShiftPlanCycleApiResponse>(
+    "/api/hrm/shift-schedules/cycle",
+    { method: "GET", token },
+  );
+}
+
+export function updateShiftPlanCycle(
+  token: string,
+  body: UpdateShiftPlanCycleRequest,
+) {
+  return apiFetch<ShiftPlanCycleApiResponse>(
+    "/api/hrm/shift-schedules/cycle",
+    { method: "PUT", token, body },
+  );
+}
 
 /** บทบาททั้งหมด + จำนวนคน — ใช้เป็นตัวกรองก่อนจัดตาราง */
 export function getShiftAutoPlanRoles(token: string) {

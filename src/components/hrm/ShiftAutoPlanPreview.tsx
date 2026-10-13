@@ -146,7 +146,7 @@ export default function ShiftAutoPlanPreview({
       {/* ---------- สรุปยอด ---------- */}
       <div className={styles.summaryGrid}>
         <div className={styles.summaryCard}>
-          <span>กะทั้งเดือน (ตามปฏิทิน)</span>
+          <span>กะทั้งช่วง (ตามปฏิทิน)</span>
           <strong>{plan.totalSlots}</strong>
         </div>
         <div className={styles.summaryCard}>
@@ -168,9 +168,9 @@ export default function ShiftAutoPlanPreview({
           </strong>
         </div>
         <div className={styles.summaryCard}>
-          <span>วันทำงาน / วันในเดือน</span>
+          <span>วันทำงาน / วันในช่วง</span>
           <strong>
-            {plan.workingDays} / {plan.daysInMonth}
+            {plan.workingDays} / {plan.dayCount ?? plan.daysInMonth}
           </strong>
         </div>
         <div className={styles.summaryCard}>
@@ -247,7 +247,7 @@ export default function ShiftAutoPlanPreview({
                 </span>
               </span>
               <span className={styles.positionRow}>
-                <span>กะทั้งเดือน</span>
+                <span>กะทั้งช่วง</span>
                 <span>{group.totalSlots} ช่อง</span>
               </span>
               <span className={styles.positionRow}>
@@ -498,7 +498,7 @@ export default function ShiftAutoPlanPreview({
       </div>
 
       <p className={styles.footnote}>
-        กะที่ข้ามคืนของวันสุดท้ายจะคาบไปถึงเช้าวันแรกของเดือนถัดไป —
+        กะที่ข้ามคืนของวันสุดท้ายจะคาบไปถึงเช้าวันถัดจากช่วงที่จัด —
         รอบกะยังบันทึกไว้ที่วันที่เริ่มกะเหมือนเดิม
       </p>
     </div>

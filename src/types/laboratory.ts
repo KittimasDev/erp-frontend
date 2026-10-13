@@ -12,6 +12,165 @@ export const LAB_SAMPLE_STATUS_LABEL: Record<string, string> = {
   REJECTED: "ปฏิเสธ",
 };
 
+/** ประเภทตัวอย่าง (M8.1) — ต้องตรงกับ `lab-sample-types.ts` ฝั่ง backend */
+export const LAB_SAMPLE_TYPES = [
+  "PRODUCTION",
+  "RAW_MATERIAL",
+  "CHEMICAL",
+  "FINISHED_GOODS",
+  "OIL",
+] as const;
+
+export const LAB_SAMPLE_TYPE_LABEL: Record<string, string> = {
+  PRODUCTION: "ตัวอย่างจากการผลิต",
+  RAW_MATERIAL: "วัตถุดิบ",
+  CHEMICAL: "สารเคมี",
+  FINISHED_GOODS: "สินค้าสำเร็จรูป",
+  OIL: "น้ำมัน",
+};
+
+/** หมวดสินค้าที่ใช้กรองรายการ Lot ตอนเลือกประเภท */
+export const LAB_SAMPLE_TYPE_ITEM_CATEGORY: Record<string, string> = {
+  RAW_MATERIAL: "RAW_MATERIAL",
+  CHEMICAL: "CHEMICAL",
+  FINISHED_GOODS: "FINISHED_GOODS",
+};
+
+export type CreateLabSampleBody = {
+  sampleType: string;
+  collectedDate: string;
+  lotId?: string;
+  remark?: string;
+};
+
+/** ผลตัดสินเทียบเกณฑ์ (M8.3) */
+export const LAB_JUDGEMENT_LABEL: Record<string, string> = {
+  PASS: "ผ่าน",
+  FAIL: "ไม่ผ่าน",
+  NA: "ไม่มีเกณฑ์",
+};
+
+export const LAB_JUDGEMENT_COLOR: Record<string, string> = {
+  PASS: "success",
+  FAIL: "error",
+  NA: "default",
+};
+
+export const LOT_QC_LABEL: Record<string, string> = {
+  PENDING: "รอ QC",
+  HOLD: "พักไว้ (Hold)",
+  APPROVED: "ผ่าน (Approved)",
+  REJECTED: "ไม่ผ่าน (Rejected)",
+};
+
+export const LOT_QC_COLOR: Record<string, string> = {
+  PENDING: "gold",
+  HOLD: "orange",
+  APPROVED: "green",
+  REJECTED: "red",
+};
+
+export type LabSignature = {
+  id: string;
+  action: "APPROVE" | "REJECT" | string;
+  signedByName: string;
+  signedAt: string;
+  meaning: string;
+  resultsHash: string;
+  remark?: string;
+};
+
+export type LabCoa = {
+  id: string;
+  coaNo: string;
+  sampleId: string;
+  sampleNo: string;
+  version: number;
+  status: "ISSUED" | "VOIDED" | string;
+  lotId?: string;
+  lotNo?: string;
+  issuedAt: string;
+  issuedByName?: string;
+  voidReason?: string;
+  voidedAt?: string;
+};
+
+export type LabSpecParameter = {
+  id: string;
+  parameterName: string;
+  unit?: string;
+  specMin?: string;
+  specMax?: string;
+  isRequired: boolean;
+  sortOrder: number;
+};
+
+export type LabSpec = {
+  id: string;
+  sampleType: string;
+  itemId?: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  nameTh: string;
+  isActive: boolean;
+  parameters: LabSpecParameter[];
+};
+
+export type LabSpecParameterInput = {
+  parameterName: string;
+  unit?: string;
+  specMin?: string;
+  specMax?: string;
+  isRequired?: boolean;
+  sortOrder?: number;
+};
+
+export type CreateLabSpecBody = {
+  sampleType: string;
+  itemId?: string;
+  nameTh: string;
+  parameters: LabSpecParameterInput[];
+};
+
+export type UpdateLabSpecBody = {
+  nameTh?: string;
+  isActive?: boolean;
+  parameters?: LabSpecParameterInput[];
+};
+
+export type AddLabResultLine = {
+  specParameterId?: string;
+  parameterName: string;
+  resultValue: string;
+  unit?: string;
+  specMin?: string;
+  specMax?: string;
+  remark?: string;
+};
+
+export type UpdateLabResultBody = {
+  resultValue?: string;
+  unit?: string;
+  specMin?: string;
+  specMax?: string;
+  remark?: string;
+};
+
+export type ReviewLabSampleBody = {
+  password: string;
+  remark?: string;
+  failReason?: string;
+};
+
+export type LabCoaQueryParams = {
+  coaNo?: string;
+  lotNo?: string;
+  sampleNo?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
 export type LabTestResult = {
   id: string;
   parameterName: string;
@@ -19,6 +178,8 @@ export type LabTestResult = {
   unit?: string;
   specMin?: string;
   specMax?: string;
+  judgement: "PASS" | "FAIL" | "NA" | string;
+  specParameterId?: string;
   remark?: string;
   testedById?: string;
   testedAt: string;
@@ -31,6 +192,20 @@ export type LabSample = {
   referenceDocType?: string;
   referenceDocId?: string;
   referenceDocNo?: string;
+  lotId?: string;
+  lotNo?: string;
+  batchNo?: string;
+  itemId?: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  /** คำเตือนตอนสร้าง เช่น ประเภทไม่ตรงหมวดสินค้าของ Lot */
+  warning?: string;
+  specId?: string;
+  failApproveReason?: string;
+  /** สถานะ QC ของ Lot ต้นทาง */
+  lotQcStatus?: string;
+  signatures?: LabSignature[];
+  coas?: LabCoa[];
   collectedDate: string;
   status: LabSampleStatus;
   remark?: string;
@@ -47,6 +222,10 @@ export type LabSampleCoa = {
   sample: LabSample;
   approvedByName?: string;
   approvedAt?: string;
+  coaNo?: string;
+  coaVersion?: number;
+  coaIssuedAt?: string;
+  signature?: LabSignature;
 };
 
 export type LabSampleQrCode = {
@@ -58,6 +237,7 @@ export type LabSampleQueryParams = {
   sampleNo?: string;
   status?: string;
   sampleType?: string;
+  lotId?: string;
   referenceDocId?: string;
 };
 

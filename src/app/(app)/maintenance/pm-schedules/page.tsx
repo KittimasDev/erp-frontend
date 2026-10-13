@@ -1,12 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import PmSchedulesPage from "@/components/maintenance/PmSchedulesPage";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage
-      module="ซ่อมบำรุง"
-      title="แผนบำรุงรักษา (PM)"
-    />
-  );
+  return <PmSchedulesPage />;
 }

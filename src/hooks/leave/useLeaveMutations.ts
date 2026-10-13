@@ -66,13 +66,16 @@ export function useReviewLeaveRequestMutation() {
       id,
       action,
       remark,
+      acknowledgeShortage,
     }: {
       id: string;
       action: "approve" | "reject";
       remark?: string;
+      /** เฉพาะตอนอนุมัติ — รับทราบว่ากำลังคนในกะต่ำกว่าขั้นต่ำ */
+      acknowledgeShortage?: boolean;
     }) =>
       action === "approve"
-        ? approveLeaveRequest(getAccessToken(), id, remark)
+        ? approveLeaveRequest(getAccessToken(), id, remark, acknowledgeShortage)
         : rejectLeaveRequest(getAccessToken(), id, remark),
     onSuccess: (res) => {
       message.success(res.message || "บันทึกผลการพิจารณาแล้ว");

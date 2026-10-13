@@ -20,6 +20,8 @@ import { CheckOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import ChemicalUsagePanel from "./ChemicalUsagePanel";
+import RunTeamFields from "./RunTeamFields";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useCancelMaterialConversionJobMutation,
@@ -286,6 +288,8 @@ export default function MaterialConversionJobDetailPage({
                 cancelJobMutation.isPending
               }
             />
+
+            <ChemicalUsagePanel batchNo={job.batchNo} />
 
             {job.currentRouteStepCount !== undefined &&
             job.currentRouteStepCount !== job.plannedStepCount ? (
@@ -724,6 +728,8 @@ function StepRunLines({ runId }: { runId: string }) {
 
 type FillFormValues = {
   runDate: Dayjs;
+  equipmentId?: string;
+  operatorIds?: string[];
   remark?: string;
   inputs: InputLineValues[];
   outputs: OutputLineValues[];
@@ -790,6 +796,8 @@ function FillStepDrawerBody({
         stepId: step.stepId,
         runDate: values.runDate.format("YYYY-MM-DD"),
         jobId: job.id,
+        equipmentId: values.equipmentId || undefined,
+        operatorIds: values.operatorIds?.length ? values.operatorIds : undefined,
         // ไม่ส่ง batchNo — backend บังคับใช้ Batch ของใบงานอยู่แล้ว
         inputs: payload.inputs,
         outputs: payload.outputs,
@@ -838,6 +846,8 @@ function FillStepDrawerBody({
         inputValues={watchedInputs}
         outputValues={watchedOutputs}
       />
+
+      <RunTeamFields />
 
       <div className={styles.formSection}>
         <Form.Item name="remark" label="หมายเหตุ">

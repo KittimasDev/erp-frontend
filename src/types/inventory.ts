@@ -155,6 +155,9 @@ export type InventoryLotBalanceRow = {
   lotNo: string;
   lotStatus?: string;
   qcStatus?: string;
+  /** เลขอ้างอิง COA ของ Lot */
+  coaReference?: string;
+  coaStatus?: string;
   sourceDocumentType?: string;
   sourceDocumentNo?: string;
   /** เลข Batch ที่ประทับตอนรับเข้า — ใช้รู้ว่า Lot นี้เป็นผลผลิตของงานสายไหน */

@@ -11,6 +11,7 @@ import {
   InputNumber,
   Modal,
   Popconfirm,
+  Segmented,
   Select,
   Space,
   Switch,
@@ -21,15 +22,17 @@ import {
   PlusOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
-import type { Dayjs } from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 
 import {
   useShiftAutoPlanPositionsQuery,
   useShiftAutoPlanRolesQuery,
+  useShiftPlanCycleQuery,
 } from "@/hooks/shifts/useShiftQueries";
 import {
   useApplyShiftAutoPlanMutation,
   useShiftAutoPlanPreviewMutation,
+  useUpdateShiftPlanCycleMutation,
 } from "@/hooks/shifts/useShiftMutations";
 import type {
   Shift,
@@ -39,6 +42,15 @@ import type {
 
 import ShiftAutoPlanPreview from "./ShiftAutoPlanPreview";
 import styles from "./ShiftAutoPlanModal.module.css";
+
+/** ช่วงที่จะจัด: รอบวางกะ (45 วัน) / ทั้งเดือน / กำหนดช่วงวันที่เอง */
+type PeriodMode = "cycle" | "month" | "custom";
+
+/** ช่วงวันที่เป็น พ.ศ. แบบสั้น เช่น 01/10/2569 */
+function formatBeShort(isoDate: string) {
+  const d = dayjs(isoDate);
+  return `${d.format("DD/MM/")}${d.year() + 543}`;
+}
 
 type DemandDraft = {
   key: number;
@@ -55,7 +67,7 @@ type PositionDraft = {
 type Props = {
   open: boolean;
   shifts: Shift[];
-  /** เดือนที่ปฏิทินเปิดอยู่ — ใช้เป็นค่าเริ่มต้น */
+  /** เดือนที่ปฏิทินเปิดอยู่ — ใช้เป็นค่าเริ่มต้นของโหมด "ทั้งเดือน" */
   month: Dayjs;
   onClose: () => void;
 };
@@ -85,6 +97,11 @@ export default function ShiftAutoPlanModal({
   // โมดัลถูก mount ใหม่ทุกครั้งที่เปิด (หน้าปฏิทิน render แบบมีเงื่อนไข)
   // จึงตั้งค่าเริ่มต้นตอนสร้าง state ได้เลย ไม่ต้องมี effect รีเซ็ต
   const [targetMonth, setTargetMonth] = useState<Dayjs>(month);
+  const [periodMode, setPeriodMode] = useState<PeriodMode>("cycle");
+  const [cycleIndex, setCycleIndex] = useState<number | null>(null);
+  const [customRange, setCustomRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [cycleDraftStart, setCycleDraftStart] = useState<Dayjs | null>(null);
+  const [cycleDraftLength, setCycleDraftLength] = useState<number>(45);
   const [positions, setPositions] = useState<PositionDraft[]>(() => [
     { key: newKey(), demands: initialDemands(shifts) },
   ]);
@@ -99,6 +116,9 @@ export default function ShiftAutoPlanModal({
   const [includeEmployeesWithoutRole, setIncludeEmployeesWithoutRole] =
     useState(false);
 
+  const cycleQuery = useShiftPlanCycleQuery(open);
+  const updateCycleMutation = useUpdateShiftPlanCycleMutation();
+  const cycle = cycleQuery.data?.data;
   const rolesQuery = useShiftAutoPlanRolesQuery(open);
   const previewMutation = useShiftAutoPlanPreviewMutation();
   const applyMutation = useApplyShiftAutoPlanMutation();
@@ -136,6 +156,57 @@ export default function ShiftAutoPlanModal({
 
   /** แก้ค่าอะไรก็ตามหลังกดดูตัวอย่าง = ตัวอย่างเก่าใช้ไม่ได้แล้ว ต้องคำนวณใหม่ */
   const invalidatePlan = () => setPlan(null);
+
+  /** รอบที่เลือกได้: ก่อนหน้า / ปัจจุบัน / ถัดไป — ไม่เลือกเอง = รอบปัจจุบัน */
+  const cycleChoices = useMemo(
+    () =>
+      cycle?.configured
+        ? [cycle.previous, cycle.current, cycle.next].filter(
+            (item): item is NonNullable<typeof item> => Boolean(item),
+          )
+        : [],
+    [cycle],
+  );
+  const selectedCycle =
+    cycleChoices.find((item) => item.index === cycleIndex) ?? cycle?.current;
+
+  /**
+   * ช่วงที่จะส่งให้ backend — รอบ/กำหนดเอง ส่ง dateFrom+dateTo · รายเดือนส่ง month
+   * ใช้ชุดเดียวกันทั้ง preview และ apply (ไม่งั้นบันทึกคนละช่วงกับที่เพิ่งดู)
+   */
+  const period = useMemo(() => {
+    if (periodMode === "month") {
+      const from = targetMonth.startOf("month");
+      return {
+        payload: { month: targetMonth.format("YYYY-MM") },
+        label: targetMonth.format("MM/YYYY"),
+        days: targetMonth.daysInMonth(),
+        from: from.format("YYYY-MM-DD"),
+        to: targetMonth.endOf("month").format("YYYY-MM-DD"),
+      };
+    }
+    if (periodMode === "cycle") {
+      if (!selectedCycle) return null;
+      return {
+        payload: { dateFrom: selectedCycle.dateFrom, dateTo: selectedCycle.dateTo },
+        label: `${formatBeShort(selectedCycle.dateFrom)} – ${formatBeShort(selectedCycle.dateTo)}`,
+        days: selectedCycle.lengthDays,
+        from: selectedCycle.dateFrom,
+        to: selectedCycle.dateTo,
+      };
+    }
+    if (!customRange) return null;
+    const from = customRange[0].format("YYYY-MM-DD");
+    const to = customRange[1].format("YYYY-MM-DD");
+    return {
+      payload: { dateFrom: from, dateTo: to },
+      label: `${formatBeShort(from)} – ${formatBeShort(to)}`,
+      days: customRange[1].diff(customRange[0], "day") + 1,
+      from,
+      to,
+    };
+  }, [periodMode, targetMonth, selectedCycle, customRange]);
+  const periodTooLong = Boolean(period && period.days > 62);
 
   const shiftOptions = shifts.map((shift) => ({
     value: shift.id,
@@ -188,7 +259,7 @@ export default function ShiftAutoPlanModal({
       .filter((item) => item.demands.length > 0);
 
   const requestPositions = buildRequestPositions();
-  const canPreview = requestPositions.length > 0;
+  const canPreview = requestPositions.length > 0 && Boolean(period) && !periodTooLong;
 
   /**
    * ตัวกรองต้องส่งเหมือนกันทั้ง preview และ apply
@@ -202,7 +273,7 @@ export default function ShiftAutoPlanModal({
   const handlePreview = async () => {
     try {
       const response = await previewMutation.mutateAsync({
-        month: targetMonth.format("YYYY-MM"),
+        ...period!.payload,
         positions: requestPositions,
         ...filterPayload,
         skipHolidays,
@@ -226,7 +297,7 @@ export default function ShiftAutoPlanModal({
   const handleApply = async (forcePublish = false) => {
     try {
       const response = await applyMutation.mutateAsync({
-        month: targetMonth.format("YYYY-MM"),
+        ...period!.payload,
         positions: requestPositions,
         ...filterPayload,
         skipHolidays,
@@ -258,7 +329,7 @@ export default function ShiftAutoPlanModal({
   return (
     <Modal
       open={open}
-      title="จัดตารางกะรายเดือนอัตโนมัติ"
+      title="จัดตารางกะอัตโนมัติ"
       width={plan ? 1120 : 720}
       onCancel={onClose}
       destroyOnHidden
@@ -273,7 +344,7 @@ export default function ShiftAutoPlanModal({
               <Button onClick={() => setPlan(null)}>กลับไปแก้ค่า</Button>
               {plan.coverage.pass ? (
                 <Popconfirm
-                  title={`บันทึกตารางกะเดือน ${targetMonth.format("MM/YYYY")}`}
+                  title={`บันทึกตารางกะ ${period?.label ?? ""}`}
                   description={
                     <div className={styles.ruleList}>
                       <p>
@@ -529,19 +600,112 @@ export default function ShiftAutoPlanModal({
           />
 
           <div className={styles.field}>
-            <span className={styles.label}>เดือนที่จะจัด</span>
-            <DatePicker
-              picker="month"
-              allowClear={false}
-              format="MM/YYYY"
-              value={targetMonth}
+            <span className={styles.label}>ช่วงที่จะจัด</span>
+            <Segmented<PeriodMode>
+              value={periodMode}
               onChange={(value) => {
-                if (value) {
-                  setTargetMonth(value);
-                  invalidatePlan();
-                }
+                setPeriodMode(value);
+                invalidatePlan();
               }}
+              options={[
+                { label: `รอบวางกะ (${cycle?.cycleLengthDays ?? 45} วัน)`, value: "cycle" },
+                { label: "ทั้งเดือน", value: "month" },
+                { label: "กำหนดช่วงเอง", value: "custom" },
+              ]}
             />
+
+            {periodMode === "month" ? (
+              <DatePicker
+                picker="month"
+                allowClear={false}
+                format="MM/YYYY"
+                value={targetMonth}
+                onChange={(value) => {
+                  if (value) {
+                    setTargetMonth(value);
+                    invalidatePlan();
+                  }
+                }}
+              />
+            ) : null}
+
+            {periodMode === "custom" ? (
+              <DatePicker.RangePicker
+                format="DD/MM/YYYY"
+                value={customRange}
+                onChange={(values) => {
+                  setCustomRange(values?.[0] && values[1] ? [values[0], values[1]] : null);
+                  invalidatePlan();
+                }}
+              />
+            ) : null}
+
+            {periodMode === "cycle" && cycle?.configured ? (
+              <Select
+                value={selectedCycle?.index}
+                onChange={(value) => {
+                  setCycleIndex(value);
+                  invalidatePlan();
+                }}
+                options={cycleChoices.map((item) => ({
+                  value: item.index,
+                  label: `${
+                    item.index === cycle.current?.index
+                      ? "รอบปัจจุบัน"
+                      : item.index < (cycle.current?.index ?? 0)
+                        ? "รอบก่อนหน้า"
+                        : "รอบถัดไป"
+                  } · ${formatBeShort(item.dateFrom)} – ${formatBeShort(item.dateTo)}`,
+                }))}
+              />
+            ) : null}
+
+            {periodMode === "cycle" && cycle && !cycle.configured ? (
+              <Alert
+                type="warning"
+                showIcon
+                title="ยังไม่ได้ตั้งวันเริ่มรอบวางกะ"
+                description={
+                  <Space wrap>
+                    <span>วันเริ่มรอบ</span>
+                    <DatePicker
+                      format="DD/MM/YYYY"
+                      value={cycleDraftStart}
+                      onChange={setCycleDraftStart}
+                    />
+                    <span>ยาว</span>
+                    <InputNumber
+                      min={7}
+                      max={62}
+                      value={cycleDraftLength}
+                      onChange={(value) => setCycleDraftLength(value ?? 45)}
+                    />
+                    <span>วัน</span>
+                    <Button
+                      type="primary"
+                      disabled={!cycleDraftStart}
+                      loading={updateCycleMutation.isPending}
+                      onClick={() =>
+                        updateCycleMutation.mutate({
+                          cycleStartDate: cycleDraftStart!.format("YYYY-MM-DD"),
+                          cycleLengthDays: cycleDraftLength,
+                        })
+                      }
+                    >
+                      บันทึกรอบ
+                    </Button>
+                  </Space>
+                }
+              />
+            ) : null}
+
+            {period ? (
+              <span className={periodTooLong ? styles.label : undefined}>
+                {periodTooLong
+                  ? `ช่วงยาว ${period.days} วัน — จัดได้ไม่เกิน 62 วัน`
+                  : `ช่วงที่จะจัด ${period.label} · ${period.days} วัน`}
+              </span>
+            ) : null}
           </div>
 
           {positions.map((item) => {

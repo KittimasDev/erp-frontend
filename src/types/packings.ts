@@ -32,6 +32,9 @@ export type Packing = {
   customerName?: string;
   packingDate: string;
   packageType?: string;
+  /** Tank Loading: ใบจ่ายน้ำมันจากถังที่ผูกไว้ */
+  oilDispatchId?: string | null;
+  oilDispatchNo?: string;
   packageCount?: number;
   grossWeight?: string;
   netWeight?: string;
@@ -76,6 +79,7 @@ export type CreatePackingFromPickingBody = {
 export type UpdatePackingBody = {
   packingDate?: string;
   packageType?: string;
+  oilDispatchId?: string | null;
   packageCount?: number;
   grossWeight?: number;
   netWeight?: number;
@@ -105,3 +109,19 @@ export type ReadyPickingListApiResponse = {
   message: string;
   data: ReadyPicking[];
 };
+
+/** ประเภทบรรจุภัณฑ์มาตรฐาน — เก็บเป็นรหัส · ข้อมูลเก่าที่เป็นข้อความอิสระยังแสดงตามเดิม */
+export const PACKAGE_TYPE_OPTIONS = [
+  { value: "BIG_BAG", label: "Big Bag" },
+  { value: "BAG", label: "Bag (ถุง)" },
+  { value: "TANK", label: "Tank Loading (บรรจุลงถัง/รถบรรทุกถัง)" },
+  { value: "DRUM", label: "ถังบรรจุ (Drum)" },
+  { value: "PALLET", label: "พาเลท" },
+  { value: "BOX", label: "กล่อง" },
+  { value: "OTHER", label: "อื่น ๆ" },
+] as const;
+
+export function packageTypeLabel(value?: string | null): string {
+  if (!value) return "—";
+  return PACKAGE_TYPE_OPTIONS.find((o) => o.value === value)?.label ?? value;
+}

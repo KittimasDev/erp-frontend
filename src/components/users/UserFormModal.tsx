@@ -5,20 +5,29 @@ import { DatePicker, Form, Input, Modal, Select, Switch } from "antd";
 import dayjs from "dayjs";
 
 import { useDepartmentsQuery } from "@/hooks/departments/useDepartmentsQuery";
-import type {
-  AppUser,
-  CreateUserRequest,
-  Role,
-  UpdateUserRequest,
+import { usePositionsQuery } from "@/hooks/positions/usePositionsQuery";
+import { useSectionsQuery } from "@/hooks/sections/useSectionsQuery";
+import { useUsersQuery } from "@/hooks/users/useUsersQuery";
+import {
+  EMPLOYMENT_TYPE_OPTIONS,
+  type AppUser,
+  type CreateUserRequest,
+  type EmploymentType,
+  type Role,
+  type UpdateUserRequest,
 } from "@/types/users";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 type UserFormValues = {
   username: string;
-  displayName: string;
+  firstName: string;
+  lastName?: string;
   employeeCode?: string;
   departmentId?: string;
-  position?: string;
+  sectionId?: string;
+  supervisorId?: string;
+  positionId?: string;
+  employmentType?: EmploymentType;
   hireDate?: dayjs.Dayjs;
   employmentRemark?: string;
   canLogin: boolean;
@@ -52,6 +61,14 @@ export default function UserFormModal({
   const canLogin = Form.useWatch("canLogin", form) ?? true;
   const departmentsQuery = useDepartmentsQuery({ isActive: true });
   const departments = departmentsQuery.data?.data ?? [];
+  const positionsQuery = usePositionsQuery();
+  const positions = positionsQuery.data?.data ?? [];
+  const departmentId = Form.useWatch("departmentId", form);
+  const sectionsQuery = useSectionsQuery();
+  const sections = sectionsQuery.data?.data ?? [];
+  // หัวหน้างาน: เลือกจากพนักงานที่ใช้งานอยู่ (ไม่รวมตัวเอง) — backend ตรวจสายวนเป็นวงกลมอีกชั้น
+  const supervisorsQuery = useUsersQuery({ isActive: true });
+  const supervisorUsers = supervisorsQuery.data?.data?.items ?? [];
 
   useEffect(() => {
     if (!open) {
@@ -61,10 +78,15 @@ export default function UserFormModal({
     if (mode === "edit" && initialUser) {
       form.setFieldsValue({
         username: initialUser.username,
-        displayName: initialUser.displayName,
+        // บัญชีเก่าที่ยังไม่มี first_name → ใช้ชื่อที่แสดงเดิมเป็นชื่อ (ไม่แยกเดาให้)
+        firstName: initialUser.firstName || initialUser.displayName,
+        lastName: initialUser.lastName,
         employeeCode: initialUser.employeeCode,
         departmentId: initialUser.departmentId,
-        position: initialUser.position,
+        sectionId: initialUser.sectionId,
+        supervisorId: initialUser.supervisorId,
+        positionId: initialUser.positionId,
+        employmentType: initialUser.employmentType,
         hireDate: initialUser.hireDate
           ? dayjs(initialUser.hireDate)
           : undefined,
@@ -81,10 +103,14 @@ export default function UserFormModal({
 
     form.setFieldsValue({
       username: "",
-      displayName: "",
+      firstName: "",
+      lastName: undefined,
       employeeCode: undefined,
       departmentId: undefined,
-      position: undefined,
+      sectionId: undefined,
+      supervisorId: undefined,
+      positionId: undefined,
+      employmentType: undefined,
       hireDate: undefined,
       employmentRemark: undefined,
       canLogin: true,
@@ -105,10 +131,14 @@ export default function UserFormModal({
     if (mode === "create") {
       onSubmit({
         username: values.canLogin ? values.username.trim() : undefined,
-        displayName: values.displayName.trim(),
+        firstName: values.firstName.trim(),
+        lastName: values.lastName?.trim() || undefined,
         employeeCode: values.employeeCode?.trim() || undefined,
         departmentId: values.departmentId,
-        position: values.position?.trim() || undefined,
+        sectionId: values.sectionId,
+        supervisorId: values.supervisorId,
+        positionId: values.positionId,
+        employmentType: values.employmentType,
         hireDate,
         employmentRemark: values.employmentRemark?.trim() || undefined,
         canLogin: values.canLogin,
@@ -123,10 +153,18 @@ export default function UserFormModal({
 
     onSubmit({
       username: values.canLogin ? values.username.trim() : undefined,
-      displayName: values.displayName.trim(),
+      firstName: values.firstName.trim(),
+      // ส่งสตริงว่างเมื่อเคลียร์ช่อง — undefined จะถูกมองว่า "ไม่แก้"
+      lastName: values.lastName?.trim() ?? "",
       employeeCode: values.employeeCode?.trim() || undefined,
       departmentId: values.departmentId,
-      position: values.position?.trim() || undefined,
+      // เคลียร์ช่อง = null · ถ้าไม่เคยตั้งมาก่อนแล้วปล่อยว่างให้ไม่ส่ง (undefined = ไม่แก้)
+      sectionId: values.sectionId ?? (initialUser?.sectionId ? null : undefined),
+      supervisorId:
+        values.supervisorId ?? (initialUser?.supervisorId ? null : undefined),
+      // เคลียร์ช่อง = null · แต่ถ้าคนนี้ไม่เคยผูก master (ยังมีแค่ตำแหน่งแบบข้อความเดิม) ห้ามส่ง null — จะลบตำแหน่งเดิมทิ้ง
+      positionId: values.positionId ?? (initialUser?.positionId ? null : undefined),
+      employmentType: values.employmentType,
       hireDate,
       employmentRemark: values.employmentRemark?.trim() || undefined,
       canLogin: values.canLogin,
@@ -177,14 +215,18 @@ export default function UserFormModal({
         </Form.Item>
 
         <Form.Item
-          label="ชื่อ-นามสกุล"
-          name="displayName"
+          label="ชื่อ"
+          name="firstName"
           rules={[
-            { required: true, message: "กรุณากรอกชื่อ-นามสกุล" },
-            { max: 255 },
+            { required: true, message: "กรุณากรอกชื่อ" },
+            { max: 100 },
           ]}
         >
-          <Input placeholder="ชื่อที่แสดงในระบบ" />
+          <Input placeholder="เช่น สมชาย" />
+        </Form.Item>
+
+        <Form.Item label="นามสกุล" name="lastName" rules={[{ max: 100 }]}>
+          <Input placeholder="เช่น ใจดี" />
         </Form.Item>
 
         <Form.Item label="แผนก" name="departmentId">
@@ -198,11 +240,71 @@ export default function UserFormModal({
               value: dept.id,
               label: `${dept.code} — ${dept.nameTh}`,
             }))}
+            onChange={() => form.setFieldValue("sectionId", undefined)}
           />
         </Form.Item>
 
-        <Form.Item label="ตำแหน่ง" name="position" rules={[{ max: 255 }]}>
-          <Input placeholder="เช่น ช่างเทคนิค" />
+        <Form.Item label="แผนกย่อย" name="sectionId">
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder={departmentId ? "เลือกแผนกย่อย" : "เลือกแผนกก่อน"}
+            disabled={!departmentId}
+            loading={sectionsQuery.isLoading}
+            options={sections
+              .filter(
+                (item) =>
+                  item.departmentId === departmentId &&
+                  (item.isActive || item.id === initialUser?.sectionId),
+              )
+              .map((item) => ({
+                value: item.id,
+                label: item.isActive ? item.nameTh : `${item.nameTh} (ปิดใช้งาน)`,
+              }))}
+          />
+        </Form.Item>
+
+        <Form.Item label="หัวหน้างาน" name="supervisorId">
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="เลือกหัวหน้างานโดยตรง"
+            loading={supervisorsQuery.isLoading}
+            options={supervisorUsers
+              .filter((item) => item.id !== initialUser?.id)
+              .map((item) => ({
+                value: item.id,
+                label: item.employeeCode
+                  ? `${item.employeeCode} — ${item.displayName}`
+                  : item.displayName,
+              }))}
+          />
+        </Form.Item>
+
+        <Form.Item label="ตำแหน่ง" name="positionId">
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="เลือกตำแหน่ง (จัดการได้ที่แท็บ ตำแหน่ง)"
+            loading={positionsQuery.isLoading}
+            options={positions
+              .filter((item) => item.isActive || item.id === initialUser?.positionId)
+              .map((item) => ({
+                value: item.id,
+                label: item.isActive ? item.nameTh : `${item.nameTh} (ปิดใช้งาน)`,
+              }))}
+          />
+        </Form.Item>
+
+        <Form.Item label="ประเภทการจ้าง" name="employmentType">
+          <Select
+            allowClear
+            placeholder="เลือกประเภทการจ้าง"
+            options={EMPLOYMENT_TYPE_OPTIONS}
+          />
         </Form.Item>
 
         <Form.Item label="วันที่เริ่มงาน" name="hireDate">

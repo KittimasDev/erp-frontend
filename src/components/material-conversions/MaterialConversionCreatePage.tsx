@@ -22,6 +22,7 @@ import {
 import { useCreateMaterialConversionMutation } from "@/hooks/material-conversions/useMaterialConversionMutations";
 import type { MaterialConversionRouteStep } from "@/types/material-conversion";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import RunTeamFields from "./RunTeamFields";
 import MaterialConversionRunLinesFields, {
   buildRunLinesPayload,
   EMPTY_INPUT,
@@ -39,6 +40,8 @@ type FormValues = {
   stepId?: string;
   runDate: Dayjs;
   batchNo?: string;
+  equipmentId?: string;
+  operatorIds?: string[];
   remark?: string;
   inputs: InputLineValues[];
   outputs: OutputLineValues[];
@@ -134,6 +137,8 @@ export default function MaterialConversionCreatePage() {
         stepId: values.stepId as string,
         runDate: values.runDate.format("YYYY-MM-DD"),
         batchNo: values.batchNo?.trim() || undefined,
+        equipmentId: values.equipmentId || undefined,
+        operatorIds: values.operatorIds?.length ? values.operatorIds : undefined,
         inputs,
         outputs,
         remark: values.remark?.trim() || undefined,
@@ -259,6 +264,8 @@ export default function MaterialConversionCreatePage() {
               inputValues={watchedInputs}
               outputValues={watchedOutputs}
             />
+
+            <RunTeamFields />
 
             <div className={styles.formSection}>
               <Form.Item name="remark" label="หมายเหตุเอกสาร">

@@ -10,6 +10,7 @@ import {
   DatePicker,
   Input,
   InputNumber,
+  Select,
   Space,
   Spin,
   Table,
@@ -40,12 +41,17 @@ import {
   useConfirmPackingMutation,
   useUpdatePackingMutation,
 } from "@/hooks/packings/usePackingMutations";
+import { useOilDispatchesQuery } from "@/hooks/packings/useOilDispatchesQuery";
 import { usePackingQuery } from "@/hooks/packings/usePackingsQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useSalesTrackingDetailQuery } from "@/hooks/sales-tracking/useSalesTrackingQuery";
 import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
 import type { PackingItem } from "@/types/packings";
-import { PACKING_STATUS_LABEL } from "@/types/packings";
+import {
+  PACKAGE_TYPE_OPTIONS,
+  PACKING_STATUS_LABEL,
+  packageTypeLabel,
+} from "@/types/packings";
 import styles from "./PackingFormPage.module.css";
 
 type Props = { id: string; mode: "view" | "edit" };
@@ -111,6 +117,8 @@ export default function PackingFormPage({ id, mode }: Props) {
 
   const [packingDate, setPackingDate] = useState<dayjs.Dayjs | null>(null);
   const [packageType, setPackageType] = useState("");
+  const [oilDispatchId, setOilDispatchId] = useState<string | undefined>();
+  const oilDispatchesQuery = useOilDispatchesQuery(editable && packageType === "TANK");
   const [packageCount, setPackageCount] = useState<number | null>(null);
   const [grossWeight, setGrossWeight] = useState<number | null>(null);
   const [netWeight, setNetWeight] = useState<number | null>(null);
@@ -139,6 +147,7 @@ export default function PackingFormPage({ id, mode }: Props) {
     setSyncedData(data);
     setPackingDate(dayjs(data.packingDate));
     setPackageType(data.packageType ?? "");
+    setOilDispatchId(data.oilDispatchId ?? undefined);
     setPackageCount(data.packageCount ?? null);
     setGrossWeight(data.grossWeight ? Number(data.grossWeight) : null);
     setNetWeight(data.netWeight ? Number(data.netWeight) : null);
@@ -165,6 +174,7 @@ export default function PackingFormPage({ id, mode }: Props) {
       body: {
         packingDate: packingDate?.format("YYYY-MM-DD"),
         packageType: packageType || undefined,
+        oilDispatchId: packageType === "TANK" ? (oilDispatchId ?? null) : null,
         packageCount: packageCount ?? undefined,
         grossWeight: grossWeight ?? undefined,
         netWeight: netWeight ?? undefined,
@@ -364,7 +374,7 @@ export default function PackingFormPage({ id, mode }: Props) {
                 pickingNo: data.pickingNo ?? "—",
                 salesOrderNo: data.salesOrderNo ?? "—",
                 customerName: data.customerName ?? "—",
-                packageType: data.packageType ?? "—",
+                packageType: packageTypeLabel(data.packageType),
                 packageCount:
                   data.packageCount != null ? String(data.packageCount) : "—",
                 remark: data.remark?.trim() || "",
@@ -559,15 +569,47 @@ export default function PackingFormPage({ id, mode }: Props) {
           <label className={styles.field}>
             <span>ประเภทบรรจุภัณฑ์</span>
             {editable ? (
-              <Input
-                value={packageType}
-                onChange={(e) => setPackageType(e.target.value)}
-                placeholder="เช่น กล่อง, พาเลท"
+              <Select
+                value={packageType || undefined}
+                onChange={(value) => setPackageType(value ?? "")}
+                allowClear
+                placeholder="เลือกประเภทบรรจุ"
+                style={{ width: "100%" }}
+                options={[
+                  ...PACKAGE_TYPE_OPTIONS,
+                  // ข้อมูลเก่าที่พิมพ์เป็นข้อความอิสระ — คงไว้ให้เลือกค้างได้ ไม่ทำให้ค่าหาย
+                  ...(packageType && !PACKAGE_TYPE_OPTIONS.some((o) => o.value === packageType)
+                    ? [{ value: packageType, label: packageType }]
+                    : []),
+                ]}
               />
             ) : (
-              <div className={styles.fieldValue}>{data.packageType || "—"}</div>
+              <div className={styles.fieldValue}>{packageTypeLabel(data.packageType)}</div>
             )}
           </label>
+          {packageType === "TANK" ? (
+            <label className={styles.field}>
+              <span>ใบจ่ายน้ำมันจากถัง (Tank Loading)</span>
+              {editable ? (
+                <Select
+                  showSearch
+                  allowClear
+                  optionFilterProp="label"
+                  value={oilDispatchId}
+                  onChange={(value) => setOilDispatchId(value)}
+                  loading={oilDispatchesQuery.isLoading}
+                  placeholder="เลือกใบจ่ายน้ำมัน"
+                  style={{ width: "100%" }}
+                  options={(oilDispatchesQuery.data?.data ?? []).map((d) => ({
+                    value: d.id,
+                    label: `${d.dispatchNo} · ${Number(d.quantityLiters).toLocaleString("th-TH")} ลิตร (${d.status})`,
+                  }))}
+                />
+              ) : (
+                <div className={styles.fieldValue}>{data.oilDispatchNo || "—"}</div>
+              )}
+            </label>
+          ) : null}
           <label className={styles.field}>
             <span>จำนวนหน่วยบรรจุ</span>
             {editable ? (

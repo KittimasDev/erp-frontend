@@ -42,6 +42,7 @@ type ItemFormValues = {
   requiresExpiryDate: boolean;
   allowNegativeStock: boolean;
   isQcRequired: boolean;
+  requiresCoa: boolean;
   isActive: boolean;
 };
 
@@ -66,6 +67,7 @@ type ToggleField = Extract<
   | "requiresExpiryDate"
   | "allowNegativeStock"
   | "isQcRequired"
+  | "requiresCoa"
 >;
 
 /** กลุ่มที่ช่องราคาขายไปเกาะอยู่ด้วย */
@@ -92,6 +94,7 @@ const TOGGLE_GROUPS: Array<{
       ["requiresExpiryDate", "มีวันหมดอายุ"],
       ["allowNegativeStock", "ติดลบได้"],
       ["isQcRequired", "เข้าคลังต้อง QC"],
+      ["requiresCoa", "ต้องมี COA ก่อนส่งมอบ"],
     ],
   },
 ];
@@ -157,6 +160,7 @@ export default function ItemFormModal({
         requiresExpiryDate: initialItem.requiresExpiryDate,
         allowNegativeStock: initialItem.allowNegativeStock,
         isQcRequired: initialItem.isQcRequired,
+        requiresCoa: initialItem.requiresCoa ?? false,
         isActive: initialItem.isActive,
       });
       return;
@@ -182,6 +186,7 @@ export default function ItemFormModal({
       requiresExpiryDate: false,
       allowNegativeStock: false,
       isQcRequired: false,
+      requiresCoa: false,
       isActive: true,
     });
   }, [open, mode, initialItem, form]);
@@ -216,6 +221,7 @@ export default function ItemFormModal({
       requiresExpiryDate: values.requiresExpiryDate,
       allowNegativeStock: values.allowNegativeStock,
       isQcRequired: values.isQcRequired,
+      requiresCoa: values.requiresCoa,
       isActive: values.isActive,
     });
   };

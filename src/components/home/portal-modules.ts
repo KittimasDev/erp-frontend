@@ -253,7 +253,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     description: "อุปกรณ์ · ใบงาน · PM",
     href: "/maintenance/equipment",
     tone: "slate",
-    screenCodes: ["EQUIPMENT", "WORK_ORDERS", "PM_SCHEDULES"],
+    screenCodes: ["EQUIPMENT", "WORK_ORDERS", "PM_SCHEDULES", "MAINTENANCE_SHUTDOWN"],
     roles: [
       RoleCode.WAREHOUSE_OFFICER,
       RoleCode.WAREHOUSE_MANAGER,
@@ -271,7 +271,11 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     screenCodes: [
       "USERS",
       "ROLES",
+      "HRM_SHUTDOWN",
+      "HRM_COMPENSATION",
+      "HRM_PAYROLL",
       "HRM_ATTENDANCE",
+      "HRM_ATTENDANCE_DEVICES",
       "HRM_OVERTIME",
       "HRM_LEAVE",
     ],
@@ -370,6 +374,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     tone: "slate",
     screenCodes: [
       "MASTERS_ITEMS",
+      "MASTERS_CHEMICALS",
       "MASTERS_VENDORS",
       "MASTERS_CUSTOMERS",
       "USERS",

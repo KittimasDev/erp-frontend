@@ -36,6 +36,9 @@ import {
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useReviewLeaveRequestMutation } from "@/hooks/leave/useLeaveMutations";
+import { getLeaveStaffingCheck } from "@/lib/api/leave";
+import { getAccessToken } from "@/lib/auth/token";
+import MinStaffingModal from "./MinStaffingModal";
 import {
   useLeaveRequestsQuery,
   useLeaveSummaryQuery,
@@ -60,6 +63,7 @@ const TYPE_CHART_COLOR: Record<string, string> = {
   ANNUAL: "#8ab933",
   SICK: "#fa541c",
   PERSONAL: "#1677ff",
+  MATERNITY: "#eb2f96",
   OTHER: "#bfbfbf",
 };
 
@@ -108,6 +112,7 @@ export default function LeaveRequestsPage() {
 
   const reviewMutation = useReviewLeaveRequestMutation();
   const isPendingTab = tab === "DRAFT";
+  const [minStaffingOpen, setMinStaffingOpen] = useState(false);
 
   const typeChartData = useMemo(
     () =>
@@ -131,21 +136,70 @@ export default function LeaveRequestsPage() {
     ids: string[],
     action: "approve" | "reject",
     remark?: string,
+    acknowledgeShortage?: boolean,
   ) => {
     for (const id of ids) {
-      await reviewMutation.mutateAsync({ id, action, remark });
+      await reviewMutation.mutateAsync({ id, action, remark, acknowledgeShortage });
     }
     setSelectedIds([]);
   };
 
-  const confirmApprove = (ids: string[]) => {
+  /**
+   * ตรวจกำลังคนขั้นต่ำก่อนอนุมัติ — ถ้าอนุมัติแล้วกะไหนเหลือน้อยกว่าขั้นต่ำ แสดงรายการให้รับทราบก่อน
+   * (ไม่บล็อก ผู้อนุมัติตัดสินใจเอง · backend ก็ตอบ 409 ถ้าไม่รับทราบ)
+   */
+  const confirmApprove = async (ids: string[], names: string[]) => {
+    const token = getAccessToken();
+    let warnings: Array<{ name: string; messages: string[] }> = [];
+    try {
+      const checks = await Promise.all(ids.map((id) => getLeaveStaffingCheck(token, id)));
+      warnings = checks
+        .map((check, index) => ({
+          name: names[index] ?? "พนักงาน",
+          messages: check.data.messages,
+        }))
+        .filter((item) => item.messages.length > 0);
+    } catch {
+      // ตรวจไม่ได้ (เช่น เครือข่าย) — ปล่อยให้ backend เป็นด่านสุดท้าย (ตอบ 409 ถ้าไม่พอ)
+    }
+
+    if (warnings.length === 0) {
+      modal.confirm({
+        title: `อนุมัติคำขอลา ${ids.length} รายการ`,
+        content: "ยืนยันอนุมัติคำขอที่เลือกทั้งหมด?",
+        okText: "อนุมัติ",
+        cancelText: "ยกเลิก",
+        centered: true,
+        onOk: () => review(ids, "approve"),
+      });
+      return;
+    }
+
     modal.confirm({
-      title: `อนุมัติคำขอลา ${ids.length} รายการ`,
-      content: "ยืนยันอนุมัติคำขอที่เลือกทั้งหมด?",
-      okText: "อนุมัติ",
+      title: "กำลังคนในกะต่ำกว่าขั้นต่ำ — รับทราบก่อนอนุมัติ",
+      width: 560,
+      content: (
+        <div className={styles.rejectBody}>
+          <p>
+            อนุมัติแล้วกะต่อไปนี้จะเหลือคน (ตำแหน่งเดียวกัน หักคนที่ลาอยู่) น้อยกว่าขั้นต่ำที่ตั้งไว้ —
+            อนุมัติได้ ระบบจะบันทึกว่าคุณรับทราบ
+          </p>
+          {warnings.map((item) => (
+            <div key={item.name}>
+              <strong>{item.name}</strong>
+              <ul style={{ margin: "4px 0 8px", paddingLeft: 18 }}>
+                {item.messages.map((message) => (
+                  <li key={message}>{message}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      ),
+      okText: "รับทราบและอนุมัติ",
       cancelText: "ยกเลิก",
       centered: true,
-      onOk: () => review(ids, "approve"),
+      onOk: () => review(ids, "approve", undefined, true),
     });
   };
 
@@ -254,6 +308,18 @@ export default function LeaveRequestsPage() {
             <Tag color={LEAVE_STATUS_COLOR[value]}>
               {LEAVE_STATUS_LABEL[value] ?? value}
             </Tag>
+            {row.staffingWarning?.length ? (
+              <Tooltip
+                title={row.staffingWarning
+                  .map(
+                    (item) =>
+                      `${dayjs(item.date).format("DD/MM")} ${item.position} กะ${item.shiftName} เหลือ ${item.remaining} (ขั้นต่ำ ${item.minHeadcount})`,
+                  )
+                  .join(" · ")}
+              >
+                <small className={styles.remarkHint}>รับทราบกำลังคนต่ำกว่าขั้นต่ำ</small>
+              </Tooltip>
+            ) : null}
             {row.reviewRemark ? (
               <Tooltip title={row.reviewRemark}>
                 <small className={styles.remarkHint}>ดูเหตุผล</small>
@@ -294,7 +360,7 @@ export default function LeaveRequestsPage() {
                 type="primary"
                 icon={<CheckOutlined />}
                 disabled={reviewMutation.isPending}
-                onClick={() => confirmApprove([row.id])}
+                onClick={() => void confirmApprove([row.id], [row.displayName ?? "พนักงาน"])}
               >
                 อนุมัติ
               </Button>
@@ -332,6 +398,7 @@ export default function LeaveRequestsPage() {
               หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้
             </p>
           </div>
+          <Button onClick={() => setMinStaffingOpen(true)}>ตั้งกำลังคนขั้นต่ำ</Button>
         </header>
 
         <div className={styles.summaryGrid}>
@@ -446,7 +513,12 @@ export default function LeaveRequestsPage() {
                 type="primary"
                 icon={<CheckOutlined />}
                 loading={reviewMutation.isPending}
-                onClick={() => confirmApprove(selectedIds)}
+                onClick={() =>
+                  void confirmApprove(
+                    selectedIds,
+                    selectedIds.map((id) => rows.find((r) => r.id === id)?.displayName ?? "พนักงาน"),
+                  )
+                }
               >
                 อนุมัติที่เลือก
               </Button>
@@ -610,6 +682,8 @@ export default function LeaveRequestsPage() {
             </div>
           </div>
         </div>
+
+        <MinStaffingModal open={minStaffingOpen} onClose={() => setMinStaffingOpen(false)} />
       </div>
     </MasterPageGate>
   );

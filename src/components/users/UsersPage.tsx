@@ -38,13 +38,16 @@ import {
   useResetUserPasswordMutation,
   useUpdateUserMutation,
 } from "@/hooks/users/useUserMutations";
+import { usePositionsQuery } from "@/hooks/positions/usePositionsQuery";
 import { useRolesQuery } from "@/hooks/users/useRolesQuery";
 import { useUsersQuery } from "@/hooks/users/useUsersQuery";
-import type {
-  AppUser,
-  CreateUserRequest,
-  UpdateUserRequest,
-  UserQueryParams,
+import {
+  EMPLOYMENT_TYPE_LABEL,
+  EMPLOYMENT_TYPE_OPTIONS,
+  type AppUser,
+  type CreateUserRequest,
+  type UpdateUserRequest,
+  type UserQueryParams,
 } from "@/types/users";
 
 import ResetPasswordModal from "./ResetPasswordModal";
@@ -57,9 +60,11 @@ type FilterFormValues = {
   q?: string;
   isActive?: boolean | null;
   roleId?: string | null;
+  positionId?: string | null;
+  employmentType?: string | null;
 };
 
-const FILTER_KEYS = ["q", "isActive", "roleId"] as const;
+const FILTER_KEYS = ["q", "isActive", "roleId", "positionId", "employmentType"] as const;
 
 type UsersPageProps = {
   /** Hide outer page header when shown as a tab */
@@ -81,6 +86,14 @@ function parseFilters(searchParams: URLSearchParams): UserQueryParams {
   const roleId = searchParams.get("roleId")?.trim();
   if (roleId) {
     params.roleId = roleId;
+  }
+  const positionId = searchParams.get("positionId")?.trim();
+  if (positionId) {
+    params.positionId = positionId;
+  }
+  const employmentType = searchParams.get("employmentType")?.trim();
+  if (employmentType) {
+    params.employmentType = employmentType;
   }
   return params;
 }
@@ -121,6 +134,8 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
 
   const usersQuery = useUsersQuery(filters);
   const rolesQuery = useRolesQuery();
+  const positionsQuery = usePositionsQuery();
+  const positions = positionsQuery.data?.data ?? [];
   const createMutation = useCreateUserMutation();
   const updateMutation = useUpdateUserMutation();
   const resetMutation = useResetUserPasswordMutation();
@@ -135,6 +150,8 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
       q: filters.q,
       isActive: filters.isActive,
       roleId: filters.roleId,
+      positionId: filters.positionId,
+      employmentType: filters.employmentType,
     });
   }, [filters, form]);
 
@@ -160,6 +177,12 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
     }
     if (values.roleId) {
       next.set("roleId", values.roleId);
+    }
+    if (values.positionId) {
+      next.set("positionId", values.positionId);
+    }
+    if (values.employmentType) {
+      next.set("employmentType", values.employmentType);
     }
     // แท็บ users เป็นค่าเริ่มต้น — อย่าพก tab=departments ไว้
     const query = next.toString();
@@ -201,7 +224,7 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
     {
       title: "รหัส / แผนก",
       key: "hr",
-      width: 180,
+      width: 220,
       render: (_, record) => (
         <div className={styles.contactCell}>
           <span className={styles.contactPrimary}>
@@ -209,6 +232,29 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
           </span>
           <span className={styles.contactSecondary}>
             {record.departmentName?.trim() || "ไม่ระบุแผนก"}
+            {record.sectionName ? ` › ${record.sectionName}` : ""}
+          </span>
+          {record.supervisorName ? (
+            <span className={styles.contactSecondary}>
+              หัวหน้า: {record.supervisorName}
+            </span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      title: "ตำแหน่ง / ประเภทจ้าง",
+      key: "positionType",
+      width: 190,
+      render: (_, record) => (
+        <div className={styles.contactCell}>
+          <span className={styles.contactPrimary}>
+            {record.position?.trim() || "—"}
+          </span>
+          <span className={styles.contactSecondary}>
+            {record.employmentType
+              ? EMPLOYMENT_TYPE_LABEL[record.employmentType] ?? record.employmentType
+              : "ไม่ระบุประเภทจ้าง"}
           </span>
         </div>
       ),
@@ -445,7 +491,13 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
             layout="vertical"
             className={masterStyles.filterForm}
             onFinish={applyFilters}
-            initialValues={{ q: "", isActive: null, roleId: null }}
+            initialValues={{
+              q: "",
+              isActive: null,
+              roleId: null,
+              positionId: null,
+              employmentType: null,
+            }}
           >
             <Row gutter={[14, 0]}>
               <Col xs={24} md={8}>
@@ -469,6 +521,29 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
                       value: role.id,
                       label: `${role.roleCode} — ${role.roleName}`,
                     }))}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={6}>
+                <Form.Item name="positionId" label="ตำแหน่ง">
+                  <Select
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    placeholder="ทั้งหมด"
+                    options={positions.map((item) => ({
+                      value: item.id,
+                      label: item.nameTh,
+                    }))}
+                  />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={6}>
+                <Form.Item name="employmentType" label="ประเภทการจ้าง">
+                  <Select
+                    allowClear
+                    placeholder="ทั้งหมด"
+                    options={EMPLOYMENT_TYPE_OPTIONS}
                   />
                 </Form.Item>
               </Col>

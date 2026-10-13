@@ -80,10 +80,20 @@ export function updateGoodsReceipt(
   });
 }
 
-export function confirmGoodsReceipt(token: string, id: string) {
+export function confirmGoodsReceipt(
+  token: string,
+  id: string,
+  acknowledgeIncompatibleStorage?: boolean,
+) {
   return apiFetch<GoodsReceiptApiResponse>(
     `/api/goods-receipts/${id}/confirm`,
-    { method: "POST", token },
+    {
+      method: "POST",
+      token,
+      body: acknowledgeIncompatibleStorage
+        ? { acknowledgeIncompatibleStorage: true }
+        : undefined,
+    },
   );
 }
 

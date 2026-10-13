@@ -22,6 +22,7 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import LotQcModal from "./LotQcModal";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
@@ -270,6 +271,8 @@ export default function InventoryLotsPage() {
     .filter(Boolean)
     .join(" · ");
 
+  const [qcLot, setQcLot] = useState<InventoryLotBalanceRow | null>(null);
+
   const columns: ColumnsType<InventoryLotBalanceRow> = [
     {
       title: "Lot",
@@ -387,8 +390,24 @@ export default function InventoryLotsPage() {
           </span>
           <span className={styles.metaMuted}>
             QC {row.qcStatus || "-"}
+            {row.coaReference ? ` · COA ${row.coaReference}` : ""}
           </span>
         </div>
+      ),
+    },
+    {
+      title: "",
+      key: "qc",
+      width: 110,
+      fixed: "right",
+      render: (_, row) => (
+        <Button
+          size="small"
+          type={row.qcStatus === "PENDING" || row.qcStatus === "HOLD" ? "primary" : "default"}
+          onClick={() => setQcLot(row)}
+        >
+          {row.qcStatus === "PENDING" || row.qcStatus === "HOLD" ? "ตรวจ QC" : "QC / COA"}
+        </Button>
       ),
     },
     {
@@ -657,6 +676,20 @@ export default function InventoryLotsPage() {
             />
           </div>
         </div>
+        {qcLot ? (
+          <LotQcModal
+            key={qcLot.lotId}
+            lot={{
+              lotId: qcLot.lotId,
+              lotNo: qcLot.lotNo,
+              itemCode: qcLot.itemCode,
+              itemNameTh: qcLot.itemNameTh,
+              qcStatus: qcLot.qcStatus,
+              coaReference: qcLot.coaReference,
+            }}
+            onClose={() => setQcLot(null)}
+          />
+        ) : null}
       </section>
     </MasterPageGate>
   );

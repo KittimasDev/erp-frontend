@@ -1,6 +1,12 @@
 import { apiFetch } from "@/lib/api/client";
 import type {
+  ConversionLookups,
+  ConversionScaleTicket,
+  EndRunDowntimeBody,
+  RunDowntimeList,
+  StartRunDowntimeBody,
   CancelMaterialConversionBody,
+  ChemicalUsageApiResponse,
   CompleteMaterialConversionBody,
   CreateMaterialConversionBody,
   MaterialConversionApiResponse,
@@ -60,6 +66,57 @@ export function checkStepSkip(
   return apiFetch<StepSkipCheckApiResponse>(
     `${BASE}/step-skip-check?${search.toString()}`,
     { token },
+  );
+}
+
+/** สรุปสารเคมีที่ใช้ — ส่ง runId หรือ batchNo อย่างใดอย่างหนึ่ง */
+export function getChemicalUsage(
+  token: string,
+  params: { runId?: string; batchNo?: string },
+) {
+  const search = new URLSearchParams();
+  if (params.runId) search.set("runId", params.runId);
+  if (params.batchNo?.trim()) search.set("batchNo", params.batchNo.trim());
+  return apiFetch<ChemicalUsageApiResponse>(
+    `${BASE}/chemical-usage?${search.toString()}`,
+    { token },
+  );
+}
+
+/** เครื่องจักร + พนักงาน สำหรับฟอร์มใบแปรสภาพ (คนผลิตไม่ต้องมีสิทธิ์หน้าเครื่องจักร/ผู้ใช้) */
+export function getConversionLookups(token: string) {
+  return apiFetch<{ message: string; data: ConversionLookups }>(`${BASE}/lookups`, { token });
+}
+
+/** ตั๋วชั่ง Floor Scale ที่ยังไม่ถูกผูกกับบรรทัดผลผลิต (M4.3) */
+export function getConversionScaleTickets(token: string) {
+  return apiFetch<{ message: string; data: ConversionScaleTicket[] }>(
+    `${BASE}/floor-scale-tickets`,
+    { token },
+  );
+}
+
+export function getRunDowntimes(token: string, id: string) {
+  return apiFetch<{ message: string; data: RunDowntimeList }>(`${BASE}/${id}/downtimes`, { token });
+}
+
+export function startRunDowntime(token: string, id: string, body: StartRunDowntimeBody) {
+  return apiFetch<{ message: string; data: RunDowntimeList }>(`${BASE}/${id}/downtimes`, {
+    method: "POST",
+    token,
+    body,
+  });
+}
+
+export function endRunDowntime(
+  token: string,
+  id: string,
+  downtimeId: string,
+  body: EndRunDowntimeBody,
+) {
+  return apiFetch<{ message: string; data: RunDowntimeList }>(
+    `${BASE}/${id}/downtimes/${downtimeId}/end`,
+    { method: "POST", token, body },
   );
 }
 

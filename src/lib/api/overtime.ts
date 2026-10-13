@@ -1,6 +1,8 @@
 import { apiFetch } from "./client";
 import type {
   CreateMyOvertimeRequest,
+  OtSettings,
+  OtSettingsApiResponse,
   OvertimeQueryParams,
   OvertimeRequestApiResponse,
   OvertimeRequestListApiResponse,
@@ -73,15 +75,32 @@ export function getOvertimeSummary(
   );
 }
 
+/** dayType ไม่ส่ง = ตัดสินจากปฏิทิน · ระบุเองได้ (เช่น ทำงานวันหยุดประจำสัปดาห์ของคนนั้น) */
 export function approveOvertimeRequest(
   token: string,
   id: string,
   remark?: string,
+  dayType?: string,
 ) {
   return apiFetch<OvertimeRequestApiResponse>(`${BASE}/${id}/approve`, {
     method: "POST",
     token,
-    body: remark ? { remark } : {},
+    body: { ...(remark ? { remark } : {}), ...(dayType ? { dayType } : {}) },
+  });
+}
+
+export function getOtSettings(token: string) {
+  return apiFetch<OtSettingsApiResponse>(`${BASE}/settings`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function updateOtSettings(token: string, body: OtSettings) {
+  return apiFetch<OtSettingsApiResponse>(`${BASE}/settings`, {
+    method: "PUT",
+    token,
+    body,
   });
 }
 

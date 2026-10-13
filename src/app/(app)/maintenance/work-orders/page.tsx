@@ -1,12 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import WorkOrdersPage from "@/components/maintenance/WorkOrdersPage";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage
-      module="ซ่อมบำรุง"
-      title="ใบสั่งงานซ่อมบำรุง"
-    />
-  );
+  return <WorkOrdersPage />;
 }

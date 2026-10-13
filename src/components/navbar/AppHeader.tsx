@@ -648,6 +648,31 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
           ROLE.EXECUTIVE,
         ],
       },
+      {
+        key: "chemical-issues",
+        screenCode: "MATERIAL_ISSUES",
+        label: "เบิกสารเคมี",
+        href: "/inventory/chemical-issues",
+        icon: <IconMaterialIssue />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.PRODUCTION_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "chemical-lots",
+        screenCode: "INVENTORY_LOTS",
+        label: "Lot สารเคมี / ตรวจ COA",
+        href: "/inventory/chemical-lots",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {
@@ -732,6 +757,32 @@ const productionMenus: MenuItem[] = [
     roles: [
       ROLE.PRODUCTION_OFFICER,
       ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "production-cycles",
+    screenCode: "PRODUCTION_CYCLES",
+    label: "รอบผลิต (Cycle 45+3 วัน)",
+    href: "/production/cycles",
+    icon: <IconWarehouse />,
+    matchHrefs: ["/production/cycles"],
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "machine-devices",
+    screenCode: "MACHINE_DEVICES",
+    label: "อุปกรณ์เครื่องจักร (Machine Integration)",
+    href: "/production/machine-integration",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
       ROLE.WAREHOUSE_MANAGER,
       ROLE.EXECUTIVE,
     ],
@@ -1188,6 +1239,19 @@ const laboratoryMenus: MenuItem[] = [
       ROLE.EXECUTIVE,
     ],
   },
+  {
+    key: "lab-specs",
+    screenCode: "LAB_SPECS",
+    label: "Spec การตรวจ (LIMS)",
+    href: "/laboratory/specs",
+    icon: <IconChemical />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
 ];
 
 const OIL_TANK_ROLES = [
@@ -1264,6 +1328,14 @@ const maintenanceMenus: MenuItem[] = [
     icon: <IconReport />,
     roles: [...MAINTENANCE_ROLES],
   },
+  {
+    key: "maintenance-shutdown-plans",
+    screenCode: "MAINTENANCE_SHUTDOWN",
+    label: "แผนซ่อมบำรุงช่วง Shutdown",
+    href: "/maintenance/shutdown-plans",
+    icon: <IconReport />,
+    roles: [...MAINTENANCE_ROLES],
+  },
 ];
 
 const HRM_ROLES = [ROLE.ADMINISTRATOR, ROLE.EXECUTIVE] as const;
@@ -1294,10 +1366,42 @@ const hrmMenus: MenuItem[] = [
     roles: [...HRM_ROLES],
   },
   {
+    key: "hrm-shutdown-plans",
+    screenCode: "HRM_SHUTDOWN",
+    label: "แผนกำลังคนช่วง Shutdown",
+    href: "/hrm/shutdown-plans",
+    icon: <IconCalendar />,
+    roles: [...HRM_ROLES],
+  },
+  {
+    key: "hrm-compensation",
+    screenCode: "HRM_COMPENSATION",
+    label: "ฐานค่าจ้างพนักงาน",
+    href: "/hrm/compensation",
+    icon: <IconReport />,
+    roles: [...HRM_ROLES],
+  },
+  {
+    key: "hrm-payroll",
+    screenCode: "HRM_PAYROLL",
+    label: "เงินเดือน",
+    href: "/hrm/payroll",
+    icon: <IconReport />,
+    roles: [...HRM_ROLES],
+  },
+  {
     key: "hrm-attendance",
     screenCode: "HRM_ATTENDANCE",
     label: "บันทึกเวลาเข้า-ออกงาน",
     href: "/hrm/attendance",
+    icon: <IconReport />,
+    roles: [...HRM_ROLES],
+  },
+  {
+    key: "hrm-attendance-devices",
+    screenCode: "HRM_ATTENDANCE_DEVICES",
+    label: "เครื่องสแกนนิ้ว/RFID",
+    href: "/hrm/attendance-devices",
     icon: <IconReport />,
     roles: [...HRM_ROLES],
   },
@@ -1871,6 +1975,19 @@ const masterMenus: MenuItem[] = [
     screenCode: "MASTERS_ITEMS",
     label: "สินค้า / วัตถุดิบ",
     href: "/masters/items",
+    icon: <IconItem />,
+    roles: [
+      ROLE.PROCUREMENT_OFFICER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+    ],
+  },
+  {
+    key: "chemicals",
+    screenCode: "MASTERS_CHEMICALS",
+    label: "สารเคมี",
+    href: "/masters/chemicals",
     icon: <IconItem />,
     roles: [
       ROLE.PROCUREMENT_OFFICER,

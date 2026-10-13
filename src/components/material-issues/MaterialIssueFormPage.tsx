@@ -47,9 +47,14 @@ type FormValues = {
 type Props = {
   mode: "create" | "edit";
   id?: string;
+  /**
+   * หน้าเบิกสารเคมีแยก (TOR M9.4): เลือกได้เฉพาะสินค้าประเภทสารเคมี และเสนอเฉพาะ Lot ที่ยังไม่หมดอายุ
+   * (Lot ที่ COA ยังไม่ผ่านไม่มียอดพร้อมใช้อยู่แล้ว จึงไม่โผล่ในตัวเลือก) — ระบบหลังบ้านตรวจซ้ำตอนบันทึก/อนุมัติ
+   */
+  chemicalOnly?: boolean;
 };
 
-export default function MaterialIssueFormPage({ mode, id }: Props) {
+export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }: Props) {
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const detailQuery = useStockIssueQuery(mode === "edit" ? id : undefined);
@@ -60,7 +65,9 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
   const lotsQuery = useInventoryLotsQuery({ hasStock: true });
   const productionOrdersQuery = useProductionOrdersQuery({ limit: 100 });
 
-  const items = (itemsQuery.data?.data ?? []).filter((item) => item.isIssueItem);
+  const items = (itemsQuery.data?.data ?? []).filter((item) =>
+    chemicalOnly ? item.itemType === "CHEMICAL" : item.isIssueItem,
+  );
   // dropdown หน่วยต้องเสนอเท่าที่ backend โดเมนนี้รับได้ = หน่วยหลักของสินค้าเท่านั้น
   /*
     เปิดให้เลือกหน่วยอื่นได้เมื่อ backend โดเมนนี้แปลงหน่วยจริงแล้ว **และ**
@@ -70,7 +77,9 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
   const canPickUnit = useDomainConvertsUnits("STOCK_ISSUES");
   const { resolveUnitField } = useUnitFieldResolver(items, canPickUnit);
   const resolveCeiling = useEnteredUnitCeiling();
-  const lots = lotsQuery.data?.data ?? [];
+  const lots = (lotsQuery.data?.data ?? []).filter(
+    (lot) => !chemicalOnly || lot.expiryStatus !== "EXPIRED",
+  );
   const productionOrders = productionOrdersQuery.data?.data.items ?? [];
 
   const watchedItems = Form.useWatch("items", form) ?? [];
@@ -159,12 +168,18 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
           <SwapOutlined />
         </div>
         <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Material Issue</p>
+          <p className={styles.eyebrow}>{chemicalOnly ? "Chemical Issue" : "Material Issue"}</p>
           <h1 className={styles.pageTitle}>
-            {mode === "create" ? "สร้างใบเบิกของ" : "แก้ไขใบเบิกของ"}
+            {chemicalOnly
+              ? "เบิกสารเคมี"
+              : mode === "create"
+                ? "สร้างใบเบิกของ"
+                : "แก้ไขใบเบิกของ"}
           </h1>
           <p className={styles.pageSubtitle}>
-            เลือกสินค้า/Lot ที่มีสต๊อกพอ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด
+            {chemicalOnly
+              ? "เลือกสารเคมีและ Lot (ผ่านการตรวจ COA และยังไม่หมดอายุ) ผูกใบสั่งผลิตที่นำไปใช้ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด — ใบเบิกอยู่ในรายการใบเบิกของตามปกติ"
+              : "เลือกสินค้า/Lot ที่มีสต๊อกพอ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด"}
           </p>
         </div>
         <div className={styles.backLink}>
@@ -528,7 +543,9 @@ export default function MaterialIssueFormPage({ mode, id }: Props) {
                                   }
                                   options={availableLots.map((lot) => ({
                                     value: lot.lotId,
-                                    label: `${lot.lotNo} — คงเหลือ ${lot.quantityAvailable}`,
+                                    label: chemicalOnly
+                                      ? `${lot.lotNo}${lot.batchNo ? ` (Batch ${lot.batchNo})` : ""} — คงเหลือ ${lot.quantityAvailable}${lot.expiryDate ? ` · หมดอายุ ${lot.expiryDate}` : ""}${lot.expiryStatus === "CRITICAL" || lot.expiryStatus === "WARNING" ? " ⚠ ใกล้หมดอายุ" : ""}`
+                                      : `${lot.lotNo} — คงเหลือ ${lot.quantityAvailable}`,
                                   }))}
                                 />
                               </Form.Item>

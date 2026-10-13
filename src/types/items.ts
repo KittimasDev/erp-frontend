@@ -29,6 +29,8 @@ export type Item = {
   defaultShelfLifeDays?: number;
   allowNegativeStock: boolean;
   isQcRequired: boolean;
+  /** ต้องมีเลขอ้างอิง/ไฟล์ COA ของ Lot ก่อนส่งมอบลูกค้า */
+  requiresCoa?: boolean;
   isActive: boolean;
   /** มีเอกสารหรือความเคลื่อนไหวแล้ว — ห้ามแก้รหัส หน่วยนับ คุม Lot วันหมดอายุ */
   hasTransactions: boolean;
@@ -72,6 +74,7 @@ export type CreateItemRequest = {
   defaultShelfLifeDays?: number;
   allowNegativeStock?: boolean;
   isQcRequired?: boolean;
+  requiresCoa?: boolean;
   isActive?: boolean;
 };
 

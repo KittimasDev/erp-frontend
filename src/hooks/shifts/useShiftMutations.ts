@@ -16,6 +16,7 @@ import {
   removeWorkCalendarHoliday,
   setShiftScheduleMembers,
   updateShift,
+  updateShiftPlanCycle,
   updateShiftSchedule,
 } from "@/lib/api/shifts";
 import { getAccessToken } from "@/lib/auth/token";
@@ -26,6 +27,7 @@ import type {
   CreateWorkCalendarDayRequest,
   ShiftAutoPlanApplyRequest,
   ShiftAutoPlanRequest,
+  UpdateShiftPlanCycleRequest,
   UpdateShiftRequest,
   UpdateShiftScheduleRequest,
 } from "@/types/shifts";
@@ -42,6 +44,24 @@ function useInvalidateShifts() {
 
 function errorMessage(error: Error, fallback: string) {
   return error instanceof ApiError ? error.message : fallback;
+}
+
+/** ตั้งวันเริ่มรอบ/จำนวนวันต่อรอบ — ไม่กระทบรอบกะที่จัดไว้แล้ว */
+export function useUpdateShiftPlanCycleMutation() {
+  const { message } = App.useApp();
+  const invalidate = useInvalidateShifts();
+
+  return useMutation({
+    mutationFn: (body: UpdateShiftPlanCycleRequest) =>
+      updateShiftPlanCycle(getAccessToken(), body),
+    onSuccess: (res) => {
+      message.success(res.message || "บันทึกรอบวางกะแล้ว");
+      invalidate();
+    },
+    onError: (error: Error) => {
+      message.error(errorMessage(error, "บันทึกรอบวางกะไม่สำเร็จ"));
+    },
+  });
 }
 
 /* ---------- กะมาตรฐาน ---------- */

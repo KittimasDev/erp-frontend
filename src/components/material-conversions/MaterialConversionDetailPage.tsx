@@ -24,6 +24,7 @@ import {
   MATERIAL_CONVERSION_STATUS_LABEL,
   OUTPUT_TYPE_COLOR,
   OUTPUT_TYPE_LABEL,
+  PACKAGING_TYPE_LABEL,
 } from "@/types/material-conversion";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import {
@@ -32,6 +33,8 @@ import {
   StartConversionModal,
 } from "./MaterialConversionActionModals";
 import styles from "./MaterialConversionPage.module.css";
+import ChemicalUsagePanel from "./ChemicalUsagePanel";
+import RunDowntimePanel from "./RunDowntimePanel";
 
 const ROUTE_BASE = "/production/material-conversions";
 
@@ -172,6 +175,50 @@ export default function MaterialConversionDetailPage({
             <span className={styles.cellMuted}>ยังไม่ปิดงาน</span>
           ) : (
             `${fmtQty(row.actualQty)} ${row.unitCode ?? ""}`
+          ),
+      },
+      {
+        title: "น้ำหนักจาก",
+        key: "weightSource",
+        width: 170,
+        render: (_v, row) =>
+          row.floorScaleTicketNo ? (
+            <div className={styles.cellStack}>
+              <span>
+                <Tag color={row.weightSource === "SCALE_OVERRIDE" ? "orange" : "green"}>
+                  {row.weightSource === "SCALE_OVERRIDE" ? "ตั๋วชั่ง (กรอกต่าง)" : "ตั๋วชั่ง"}
+                </Tag>
+                {row.floorScaleTicketNo}
+              </span>
+              {row.weightDiffReason ? (
+                <span className={styles.cellMuted}>{row.weightDiffReason}</span>
+              ) : null}
+            </div>
+          ) : row.weightSource === "MANUAL" ? (
+            <span className={styles.cellMuted}>กรอกมือ</span>
+          ) : (
+            <span className={styles.cellMuted}>-</span>
+          ),
+      },
+      {
+        title: "ภาชนะบรรจุ",
+        key: "packaging",
+        width: 170,
+        render: (_v, row) =>
+          row.packagingType ? (
+            <div className={styles.cellStack}>
+              <span>
+                {PACKAGING_TYPE_LABEL[row.packagingType] ?? row.packagingType}
+                {row.packageCount ? ` × ${row.packageCount}` : ""}
+              </span>
+              {row.grossQty !== undefined ? (
+                <span className={styles.cellMuted}>
+                  รวม {fmtQty(row.grossQty)} − ภาชนะ {fmtQty(row.tareQty)}
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <span className={styles.cellMuted}>-</span>
           ),
       },
       {
@@ -392,6 +439,35 @@ export default function MaterialConversionDetailPage({
             pagination={false}
             locale={{ emptyText: "ไม่มีบรรทัดผลผลิต" }}
           />
+        </div>
+
+        <ChemicalUsagePanel
+          runId={run.id}
+          enabled={run.status !== "DRAFT" && run.status !== "CANCELLED"}
+        />
+
+        <RunDowntimePanel run={run} canEdit={canOperate} />
+
+        <div className={styles.detailSection}>
+          <h3>เครื่องจักรและผู้ปฏิบัติงาน</h3>
+          <div className={styles.infoGrid}>
+            <InfoItem
+              label="เครื่องจักร"
+              value={
+                run.equipment
+                  ? `${run.equipment.equipmentCode} — ${run.equipment.name}`
+                  : "ไม่ได้ระบุ"
+              }
+            />
+            <InfoItem
+              label="ผู้ปฏิบัติงาน"
+              value={
+                run.operators && run.operators.length > 0
+                  ? run.operators.map((o) => o.displayName).join(", ")
+                  : "ไม่ได้ระบุ"
+              }
+            />
+          </div>
         </div>
 
         <div className={styles.detailSection}>

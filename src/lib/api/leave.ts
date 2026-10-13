@@ -6,6 +6,9 @@ import type {
   LeaveRequestListApiResponse,
   LeaveSummaryApiResponse,
   LeaveSummaryParams,
+  MinStaffingItem,
+  MinStaffingListApiResponse,
+  StaffingCheckApiResponse,
 } from "@/types/leave";
 
 const BASE = "/api/hrm/leave-requests";
@@ -74,15 +77,43 @@ export function getLeaveSummary(
   );
 }
 
+/** acknowledgeShortage = true: รับทราบว่าอนุมัติแล้วกำลังคนในกะต่ำกว่าขั้นต่ำ (ไม่ส่งแล้วมีกะที่ไม่พอ → 409) */
 export function approveLeaveRequest(
   token: string,
   id: string,
   remark?: string,
+  acknowledgeShortage?: boolean,
 ) {
   return apiFetch<LeaveRequestApiResponse>(`${BASE}/${id}/approve`, {
     method: "POST",
     token,
-    body: remark ? { remark } : {},
+    body: {
+      ...(remark ? { remark } : {}),
+      ...(acknowledgeShortage ? { acknowledgeShortage: true } : {}),
+    },
+  });
+}
+
+/** ตรวจกำลังคนขั้นต่ำก่อนอนุมัติ — ไม่เขียนอะไร */
+export function getLeaveStaffingCheck(token: string, id: string) {
+  return apiFetch<StaffingCheckApiResponse>(`${BASE}/${id}/staffing-check`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function getMinStaffing(token: string) {
+  return apiFetch<MinStaffingListApiResponse>(`${BASE}/min-staffing`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function setMinStaffing(token: string, items: MinStaffingItem[]) {
+  return apiFetch<MinStaffingListApiResponse>(`${BASE}/min-staffing`, {
+    method: "PUT",
+    token,
+    body: { items },
   });
 }
 

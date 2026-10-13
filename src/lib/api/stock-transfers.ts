@@ -70,9 +70,19 @@ export function cancelStockTransfer(token: string, id: string) {
   );
 }
 
-export function approveStockTransfer(token: string, id: string) {
+export function approveStockTransfer(
+  token: string,
+  id: string,
+  acknowledgeIncompatibleStorage?: boolean,
+) {
   return apiFetch<StockTransferApiResponse>(
     `/api/stock-transfers/${id}/approve`,
-    { method: "POST", token },
+    {
+      method: "POST",
+      token,
+      body: acknowledgeIncompatibleStorage
+        ? { acknowledgeIncompatibleStorage: true }
+        : undefined,
+    },
   );
 }

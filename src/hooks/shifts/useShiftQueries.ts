@@ -9,6 +9,7 @@ import {
   getShiftAutoPlanRoles,
   getShiftRoster,
   getShiftCalendar,
+  getShiftPlanCycle,
   getShiftSchedule,
   getShifts,
 } from "@/lib/api/shifts";
@@ -91,6 +92,17 @@ export function useShiftAutoPlanRolesQuery(enabled = true) {
   return useQuery({
     queryKey: shiftAutoPlanRolesQueryKey(),
     queryFn: () => getShiftAutoPlanRoles(getAccessToken()),
+    enabled,
+  });
+}
+
+export const shiftPlanCycleQueryKey = ["shifts", "plan-cycle"] as const;
+
+/** รอบวางกะ (ค่าเริ่มต้น 45 วัน) — โมดัลจัดกะอัตโนมัติใช้เลือกช่วงที่จะจัด */
+export function useShiftPlanCycleQuery(enabled = true) {
+  return useQuery({
+    queryKey: shiftPlanCycleQueryKey,
+    queryFn: () => getShiftPlanCycle(getAccessToken()),
     enabled,
   });
 }

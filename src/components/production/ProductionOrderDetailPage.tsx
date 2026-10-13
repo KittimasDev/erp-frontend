@@ -70,6 +70,8 @@ import type { CreateProductionOutputStockRequestFromOrderBody } from "@/types/pr
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ProductionOrderStartModal from "./ProductionOrderStartModal";
+import ShiftRecordsPanel from "@/components/production-cycles/ShiftRecordsPanel";
+import Link from "next/link";
 import ProductionOrderYieldCard from "./ProductionOrderYieldCard";
 import ProductionOrderFormulaModal from "./ProductionOrderFormulaModal";
 import {
@@ -718,6 +720,23 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 <span className={styles.infoValue}>{order.batchNo || "-"}</span>
               </div>
               <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>รอบผลิต</span>
+                <span className={styles.infoValue}>
+                  {order.cycleId ? (
+                    <Link href={`/production/cycles/${order.cycleId}`}>{order.cycleNo ?? "ดูรอบ"}</Link>
+                  ) : (
+                    "ไม่ได้สังกัดรอบ"
+                  )}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
+                <span className={styles.infoLabel}>ผู้ปฏิบัติงานหลัก / กะ</span>
+                <span className={styles.infoValue}>
+                  {order.leadOperatorName ?? "-"}
+                  {order.shiftName ? ` · ${order.shiftName}` : ""}
+                </span>
+              </div>
+              <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>สูตรที่ใช้</span>
                 <span className={styles.infoValue}>
                   {order.productionFormulaCode ?? "กรอกเอง (ไม่ได้ใช้สูตร)"}
@@ -905,6 +924,17 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
+                <h3>บันทึกการผลิตรายกะ</h3>
+              </div>
+              <ShiftRecordsPanel
+                orderId={order.id}
+                canEdit={orderActions.canEdit}
+                started={isRunning || order.status === ProductionOrderStatus.COMPLETED}
+              />
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
                 <h3>Downtime</h3>
               </div>
               <Table
@@ -932,7 +962,19 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                         ? PRODUCTION_DOWNTIME_CATEGORY_LABEL[v] ?? v
                         : PRODUCTION_DOWNTIME_UNCATEGORIZED_LABEL,
                   },
+                  {
+                    title: "ประเภทการหยุด",
+                    dataIndex: "stopType",
+                    key: "stopType",
+                    render: (v: string) => (v === "PLANNED" ? "ตามแผน" : "ไม่ตามแผน"),
+                  },
                   { title: "เหตุผล", dataIndex: "reason", key: "reason" },
+                  {
+                    title: "Root Cause",
+                    dataIndex: "rootCause",
+                    key: "rootCause",
+                    render: (v?: string) => v ?? "-",
+                  },
                   {
                     title: "ผู้บันทึก",
                     dataIndex: "recordedByName",

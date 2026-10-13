@@ -299,6 +299,26 @@ export default function StockBalancesPage() {
       ),
     },
     {
+      title: "รอตรวจ (Hold)",
+      dataIndex: "quantityOnHold",
+      key: "quantityOnHold",
+      align: "right",
+      width: 120,
+      render: (value?: string) => (
+        <span className={styles.qtyCell}>{formatQty(value ?? "0")}</span>
+      ),
+    },
+    {
+      title: "ถูกบล็อก",
+      dataIndex: "quantityBlocked",
+      key: "quantityBlocked",
+      align: "right",
+      width: 110,
+      render: (value?: string) => (
+        <span className={styles.qtyCell}>{formatQty(value ?? "0")}</span>
+      ),
+    },
+    {
       title: "จอง",
       dataIndex: "quantityReserved",
       key: "quantityReserved",
@@ -543,7 +563,7 @@ export default function StockBalancesPage() {
                         showTotal: (total) => `ทั้งหมด ${total} สินค้า`,
                         hideOnSinglePage: true,
                       }}
-                      scroll={{ x: 900 }}
+                      scroll={{ x: 1150 }}
                       locale={{
                         emptyText: (
                           <div className={styles.emptyState}>

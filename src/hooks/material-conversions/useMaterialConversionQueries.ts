@@ -4,6 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 
 import {
   checkStepSkip,
+  getChemicalUsage,
+  getConversionLookups,
+  getConversionScaleTickets,
+  getRunDowntimes,
   getMaterialConversion,
   getMaterialConversions,
 } from "@/lib/api/material-conversions";
@@ -30,6 +34,45 @@ export function useMaterialConversionQuery(id?: string) {
     queryKey: [...materialConversionsKey, "detail", id],
     queryFn: () => getMaterialConversion(getAccessToken(), id as string),
     enabled: Boolean(id),
+  });
+}
+
+/** เครื่องจักร + พนักงาน สำหรับเลือกในฟอร์ม (M4.2) */
+export function useConversionLookupsQuery() {
+  return useQuery({
+    queryKey: [...materialConversionsKey, "lookups"],
+    queryFn: () => getConversionLookups(getAccessToken()),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** ตั๋วชั่ง Floor Scale ที่ยังว่างให้ผูกน้ำหนัก (M4.3) */
+export function useConversionScaleTicketsQuery(enabled = true) {
+  return useQuery({
+    queryKey: [...materialConversionsKey, "scale-tickets"],
+    queryFn: () => getConversionScaleTickets(getAccessToken()),
+    enabled,
+  });
+}
+
+/** เครื่องหยุด (Downtime) ของใบ (M4.5) */
+export function useRunDowntimesQuery(runId?: string, enabled = true) {
+  return useQuery({
+    queryKey: [...materialConversionsKey, "downtimes", runId],
+    queryFn: () => getRunDowntimes(getAccessToken(), runId as string),
+    enabled: enabled && Boolean(runId),
+  });
+}
+
+/** สรุปสารเคมีที่ใช้ต่อใบ/ต่อ Batch (M7.4) */
+export function useChemicalUsageQuery(
+  params: { runId?: string; batchNo?: string },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [...materialConversionsKey, "chemical-usage", params],
+    queryFn: () => getChemicalUsage(getAccessToken(), params),
+    enabled: enabled && Boolean(params.runId || params.batchNo?.trim()),
   });
 }
 

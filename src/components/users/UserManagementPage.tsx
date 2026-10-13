@@ -6,12 +6,15 @@ import { Tabs, Typography } from "antd";
 import {
   ApartmentOutlined,
   BellOutlined,
+  IdcardOutlined,
   SafetyCertificateOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import DepartmentsPage from "@/components/masters/departments/DepartmentsPage";
+import PositionsPage from "@/components/masters/positions/PositionsPage";
+import SectionsPage from "@/components/masters/sections/SectionsPage";
 import PermissionMatrixPage from "@/components/permissions/PermissionMatrixPage";
 import { isAdministrator } from "@/lib/auth/session";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
@@ -22,11 +25,19 @@ import UsersPage from "./UsersPage";
 import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./UserManagementPage.module.css";
 
-type ManagementTab = "users" | "departments" | "roles" | "notifications";
+type ManagementTab =
+  | "users"
+  | "departments"
+  | "sections"
+  | "positions"
+  | "roles"
+  | "notifications";
 
 function resolveTab(raw: string | null): ManagementTab {
   if (
     raw === "departments" ||
+    raw === "sections" ||
+    raw === "positions" ||
     raw === "roles" ||
     raw === "notifications"
   ) {
@@ -107,10 +118,10 @@ export default function UserManagementPage() {
           <div className={masterStyles.headerContent}>
             <div className={masterStyles.eyebrow}>SECURITY · ORGANIZATION</div>
             <Typography.Title level={2} className={masterStyles.pageTitle}>
-              บุคคล / ผู้ใช้งาน · แผนก · บทบาท
+              บุคคล / ผู้ใช้งาน · แผนก · แผนกย่อย · ตำแหน่ง · บทบาท
             </Typography.Title>
             <Typography.Text className={masterStyles.pageSubtitle}>
-              บุคคล = ข้อมูล HR + บัญชี login ที่เดียวกัน · แผนก = ส่วนงาน ·
+              บุคคล = ข้อมูล HR + บัญชี login ที่เดียวกัน · แผนก = ส่วนงาน · แผนกย่อย = หน่วยย่อยใต้แผนก · ตำแหน่ง = ตำแหน่งงาน ·
               บทบาท = สิทธิ์ใช้งานระบบ
             </Typography.Text>
           </div>
@@ -141,6 +152,26 @@ export default function UserManagementPage() {
                 </span>
               ),
               children: <DepartmentsPage embedded />,
+            },
+            {
+              key: "sections",
+              label: (
+                <span className={styles.tabLabel}>
+                  <ApartmentOutlined />
+                  แผนกย่อย
+                </span>
+              ),
+              children: <SectionsPage />,
+            },
+            {
+              key: "positions",
+              label: (
+                <span className={styles.tabLabel}>
+                  <IdcardOutlined />
+                  ตำแหน่ง
+                </span>
+              ),
+              children: <PositionsPage />,
             },
             {
               key: "roles",

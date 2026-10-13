@@ -1,5 +1,11 @@
 import { apiFetch } from "./client";
 import type {
+  AddLabResultLine,
+  CreateLabSampleBody,
+  LabCoa,
+  LabCoaQueryParams,
+  ReviewLabSampleBody,
+  UpdateLabResultBody,
   LabSampleApiResponse,
   LabSampleCoaApiResponse,
   LabSampleListApiResponse,
@@ -14,6 +20,7 @@ function buildQuery(params?: LabSampleQueryParams) {
   if (params.status) search.set("status", params.status);
   if (params.sampleType) search.set("sampleType", params.sampleType);
   if (params.referenceDocId) search.set("referenceDocId", params.referenceDocId);
+  if (params.lotId) search.set("lotId", params.lotId);
   const qs = search.toString();
   return qs ? `?${qs}` : "";
 }
@@ -21,6 +28,82 @@ function buildQuery(params?: LabSampleQueryParams) {
 export function getLabSamples(token: string, params?: LabSampleQueryParams) {
   return apiFetch<LabSampleListApiResponse>(
     `/api/laboratory/samples${buildQuery(params)}`,
+    { token },
+  );
+}
+
+/** ลงทะเบียนตัวอย่างใหม่ (M8.1) — ส่ง lotId แล้ว backend ดึงสินค้า/Batch ให้ */
+export function createLabSample(token: string, body: CreateLabSampleBody) {
+  return apiFetch<LabSampleApiResponse>("/api/laboratory/samples", {
+    method: "POST",
+    token,
+    body,
+  });
+}
+
+/** บันทึกผลตรวจ — ส่ง specParameterId แล้ว backend ดึงหน่วย/เกณฑ์และตัดสิน PASS/FAIL ให้ */
+export function addLabResults(
+  token: string,
+  id: string,
+  results: AddLabResultLine[],
+) {
+  return apiFetch<LabSampleApiResponse>(`/api/laboratory/samples/${id}/results`, {
+    method: "POST",
+    token,
+    body: { results },
+  });
+}
+
+export function updateLabResult(
+  token: string,
+  id: string,
+  resultId: string,
+  body: UpdateLabResultBody,
+) {
+  return apiFetch<LabSampleApiResponse>(
+    `/api/laboratory/samples/${id}/results/${resultId}`,
+    { method: "PATCH", token, body },
+  );
+}
+
+export function deleteLabResult(token: string, id: string, resultId: string) {
+  return apiFetch<LabSampleApiResponse>(
+    `/api/laboratory/samples/${id}/results/${resultId}`,
+    { method: "DELETE", token },
+  );
+}
+
+/** อนุมัติ/ตีกลับผลตรวจ — ต้องยืนยันรหัสผ่าน (ลายเซ็นอิเล็กทรอนิกส์) */
+export function reviewLabSample(
+  token: string,
+  id: string,
+  action: "approve" | "reject",
+  body: ReviewLabSampleBody,
+) {
+  return apiFetch<LabSampleApiResponse>(
+    `/api/laboratory/samples/${id}/${action}`,
+    { method: "POST", token, body },
+  );
+}
+
+export function reissueLabCoa(token: string, id: string, reason: string) {
+  return apiFetch<{ message: string; data: LabCoa }>(
+    `/api/laboratory/samples/${id}/coa/reissue`,
+    { method: "POST", token, body: { reason } },
+  );
+}
+
+export function getLabCoaHistory(token: string, params?: LabCoaQueryParams) {
+  const search = new URLSearchParams();
+  if (params?.coaNo?.trim()) search.set("coaNo", params.coaNo.trim());
+  if (params?.lotNo?.trim()) search.set("lotNo", params.lotNo.trim());
+  if (params?.sampleNo?.trim()) search.set("sampleNo", params.sampleNo.trim());
+  if (params?.status) search.set("status", params.status);
+  if (params?.dateFrom) search.set("dateFrom", params.dateFrom);
+  if (params?.dateTo) search.set("dateTo", params.dateTo);
+  const qs = search.toString();
+  return apiFetch<{ message: string; data: LabCoa[] }>(
+    `/api/laboratory/samples/coas/history${qs ? `?${qs}` : ""}`,
     { token },
   );
 }

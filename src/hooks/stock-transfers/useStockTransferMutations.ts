@@ -9,6 +9,10 @@ import {
   createStockTransfer,
   updateStockTransfer,
 } from "@/lib/api/stock-transfers";
+import {
+  confirmIncompatibleStorage,
+  parseIncompatibleStorage,
+} from "@/lib/chemicals/incompatible-storage";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   CreateStockTransferBody,
@@ -73,16 +77,30 @@ export function useCancelStockTransferMutation() {
 
 export function useApproveStockTransferMutation() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
 
-  return useMutation({
-    mutationFn: (id: string) => approveStockTransfer(getAccessToken(), id),
+  const mutation = useMutation({
+    mutationFn: (vars: string | { id: string; acknowledge?: boolean }) => {
+      const { id, acknowledge } =
+        typeof vars === "string" ? { id: vars, acknowledge: false } : vars;
+      return approveStockTransfer(getAccessToken(), id, acknowledge);
+    },
     onSuccess: (res) => {
       message.success(res.message || "อนุมัติและโอนย้ายสต๊อกสำเร็จ");
       void queryClient.invalidateQueries({ queryKey: stockTransfersQueryKey });
     },
-    onError: (err: Error) => {
+    onError: (err: Error, vars) => {
+      // สารเคมีที่เก็บตำแหน่งเดียวกันไม่ได้ → ให้ผู้ใช้รับทราบแล้วยิงซ้ำ (M9.3)
+      const conflicts = parseIncompatibleStorage(err);
+      if (conflicts) {
+        const id = typeof vars === "string" ? vars : vars.id;
+        confirmIncompatibleStorage(modal, conflicts, () =>
+          mutation.mutate({ id, acknowledge: true }),
+        );
+        return;
+      }
       message.error(err.message || "อนุมัติใบโอนย้ายสินค้าไม่สำเร็จ");
     },
   });
+  return mutation;
 }

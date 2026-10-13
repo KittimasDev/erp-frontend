@@ -53,6 +53,15 @@ export const OUTPUT_TYPE_COLOR: Record<string, string> = {
   WASTE: "default",
 };
 
+/** ภาชนะบรรจุ (M7.5) — ต้องตรงกับ `packaging.constants.ts` ฝั่ง backend */
+export const PACKAGING_TYPES = ["BIG_BAG", "BAG", "OTHER"] as const;
+
+export const PACKAGING_TYPE_LABEL: Record<string, string> = {
+  BIG_BAG: "Big Bag",
+  BAG: "ถุง (Bag)",
+  OTHER: "อื่น ๆ",
+};
+
 /** ของเสียไม่เข้าสต๊อก — ใช้ตัดสินใจว่าต้องกรอกคลังหรือไม่ */
 export function outputPostsToStock(outputType?: string): boolean {
   return outputType !== undefined && outputType !== "WASTE";
@@ -117,12 +126,91 @@ export type MaterialConversionOutputLine = {
   lotId?: string;
   lotNo?: string;
   disposalStatus?: string;
+  floorScaleTicketId?: string;
+  floorScaleTicketNo?: string;
+  /** MANUAL | SCALE | SCALE_OVERRIDE */
+  weightSource?: string;
+  weightDiffReason?: string;
+  packagingType?: string;
+  packageCount?: number;
+  grossQty?: string;
+  tareQty?: string;
   remark?: string;
   sortOrder: number;
 };
 
+export type ConversionEquipmentOption = {
+  id: string;
+  equipmentCode: string;
+  name: string;
+};
+
+export type ConversionOperatorOption = {
+  id: string;
+  displayName: string;
+  employeeCode?: string;
+  position?: string;
+};
+
+export type ConversionLookups = {
+  equipment: ConversionEquipmentOption[];
+  operators: ConversionOperatorOption[];
+};
+
+export type ConversionScaleTicket = {
+  id: string;
+  ticketNo: string;
+  netWeightKg: string;
+  scaleCode?: string;
+  createdAt: string;
+};
+
+export type RunDowntime = {
+  id: string;
+  equipmentId: string;
+  equipmentCode: string;
+  equipmentName: string;
+  category: string;
+  startAt: string;
+  endAt?: string;
+  reason: string;
+  rootCauseCategory?: string;
+  rootCause?: string;
+  durationMinutes: number;
+  isOpen: boolean;
+};
+
+export type RunDowntimeList = { items: RunDowntime[]; totalMinutes: number };
+
+export type StartRunDowntimeBody = {
+  equipmentId?: string;
+  startAt?: string;
+  reason: string;
+  rootCauseCategory?: string;
+};
+
+export type EndRunDowntimeBody = {
+  endAt?: string;
+  rootCauseCategory?: string;
+  rootCause?: string;
+};
+
+export const DOWNTIME_ROOT_CAUSE_LABEL: Record<string, string> = {
+  MECHANICAL: "เครื่องกล",
+  ELECTRICAL: "ไฟฟ้า",
+  INSTRUMENT: "เครื่องมือวัด/ควบคุม",
+  OPERATION: "การใช้งาน/ผู้ปฏิบัติ",
+  MATERIAL: "วัตถุดิบ/วัสดุ",
+  UTILITY: "สาธารณูปโภค",
+  OTHER: "อื่น ๆ",
+};
+
 export type MaterialConversionRun = {
   id: string;
+  /** เครื่องจักรที่ใช้ (M4.2) */
+  equipment?: { id: string; equipmentCode: string; name: string };
+  /** ผู้ปฏิบัติงานจริง (ไม่ใช่ผู้กดปุ่ม) */
+  operators?: Array<{ id: string; displayName: string; employeeCode?: string }>;
   runNo: string;
   routeId: string;
   routeCode?: string;
@@ -240,6 +328,10 @@ export type CreateMaterialConversionBody = {
   stepId: string;
   runDate: string;
   batchNo?: string;
+  /** เครื่องจักรที่ใช้ (M4.2) */
+  equipmentId?: string;
+  /** ผู้ปฏิบัติงานจริง หลายคนได้ (M4.2) */
+  operatorIds?: string[];
   productionOrderId?: string;
   /** ส่งมาแล้ว backend จะบังคับ Batch ของใบงานทับ `batchNo` เสมอ */
   jobId?: string;
@@ -254,8 +346,54 @@ export type StartMaterialConversionBody = {
 };
 
 export type CompleteMaterialConversionBody = {
-  outputs?: Array<{ lineId: string; actualQty: number; remark?: string }>;
+  outputs?: Array<{
+    lineId: string;
+    /** ไม่ต้องส่งเมื่อส่ง grossQty — backend คำนวณ gross − tare ให้ */
+    actualQty?: number;
+    remark?: string;
+    /** ตั๋วชั่ง Floor Scale — backend ใช้น้ำหนักสุทธิตามตั๋ว (M4.3) */
+    floorScaleTicketId?: string;
+    /** บังคับเมื่อ actualQty ที่กรอกต่างจากตั๋ว */
+    weightDiffReason?: string;
+    packagingType?: string;
+    packageCount?: number;
+    grossQty?: number;
+    tareQty?: number;
+  }>;
   remark?: string;
+};
+
+/** สรุปสารเคมีที่ใช้ (M7.4) */
+export type ChemicalUsageItem = {
+  itemId: string;
+  itemCode: string;
+  itemNameTh: string;
+  unitCode: string;
+  usedQty: number;
+  expectedQty?: number;
+  variancePct?: number;
+  overTolerance?: boolean;
+  lots: Array<{
+    lotId: string;
+    lotNo: string;
+    qcStatus?: string;
+    runNo: string;
+    qty: number;
+  }>;
+};
+
+export type ChemicalUsage = {
+  scope: "RUN" | "BATCH";
+  runId?: string;
+  batchNo?: string;
+  tolerancePct: number;
+  items: ChemicalUsageItem[];
+};
+
+export type ChemicalUsageApiResponse = {
+  success: boolean;
+  message: string;
+  data: ChemicalUsage;
 };
 
 export type CancelMaterialConversionBody = {

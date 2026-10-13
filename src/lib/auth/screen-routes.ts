@@ -71,6 +71,8 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   { prefix: "/inventory/stock-balances", screenCodes: ["STOCK_BALANCES"] },
   { prefix: "/inventory/lots", screenCodes: ["INVENTORY_LOTS"] },
+  { prefix: "/inventory/chemical-lots", screenCodes: ["INVENTORY_LOTS"] },
+  { prefix: "/inventory/chemical-issues", screenCodes: ["MATERIAL_ISSUES"] },
   {
     prefix: "/inventory/material-issues",
     screenCodes: ["MATERIAL_ISSUES"],
@@ -159,6 +161,14 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   {
     prefix: "/production/production-orders",
     screenCodes: ["PRODUCTION_ORDERS"],
+  },
+  {
+    prefix: "/production/cycles",
+    screenCodes: ["PRODUCTION_CYCLES"],
+  },
+  {
+    prefix: "/production/machine-integration",
+    screenCodes: ["MACHINE_DEVICES"],
   },
   {
     prefix: "/production/tire-prep-stages",
@@ -252,6 +262,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
 
   // Lab / oil / maintenance
   { prefix: "/laboratory/samples", screenCodes: ["LAB_SAMPLES"] },
+  { prefix: "/laboratory/specs", screenCodes: ["LAB_SPECS"] },
   { prefix: "/laboratory", screenCodes: ["LAB_SAMPLES"] },
   { prefix: "/oil-tank-farm/tanks", screenCodes: ["OIL_TANKS"] },
   { prefix: "/oil-tank-farm/receivings", screenCodes: ["OIL_RECEIVINGS"] },
@@ -260,8 +271,13 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/maintenance/equipment", screenCodes: ["EQUIPMENT"] },
   { prefix: "/maintenance/work-orders", screenCodes: ["WORK_ORDERS"] },
   { prefix: "/maintenance/pm-schedules", screenCodes: ["PM_SCHEDULES"] },
+  { prefix: "/maintenance/shutdown-plans", screenCodes: ["MAINTENANCE_SHUTDOWN"] },
 
   // HRM / finance
+  { prefix: "/hrm/shutdown-plans", screenCodes: ["HRM_SHUTDOWN"] },
+  { prefix: "/hrm/compensation", screenCodes: ["HRM_COMPENSATION"] },
+  { prefix: "/hrm/payroll", screenCodes: ["HRM_PAYROLL"] },
+  { prefix: "/hrm/attendance-devices", screenCodes: ["HRM_ATTENDANCE_DEVICES"] },
   { prefix: "/hrm/attendance", screenCodes: ["HRM_ATTENDANCE"] },
   { prefix: "/hrm/overtime-requests", screenCodes: ["HRM_OVERTIME"] },
   { prefix: "/hrm/leave-requests", screenCodes: ["HRM_LEAVE"] },
@@ -400,6 +416,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/users", screenCodes: ["USERS", "ROLES", "PERMISSIONS"] },
   { prefix: "/masters/vendors", screenCodes: ["MASTERS_VENDORS"] },
   { prefix: "/masters/items", screenCodes: ["MASTERS_ITEMS"] },
+  { prefix: "/masters/chemicals", screenCodes: ["MASTERS_CHEMICALS"] },
   {
     prefix: "/masters/item-categories",
     screenCodes: ["MASTERS_ITEM_CATEGORIES"],
@@ -576,6 +593,8 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   PRODUCTION_REQUESTS: "/production/production-requests",
   PRODUCTION_DASHBOARD: "/production/dashboard",
   PRODUCTION_ORDERS: "/production/production-orders",
+  PRODUCTION_CYCLES: "/production/cycles",
+  MACHINE_DEVICES: "/production/machine-integration",
   PRODUCTION_OUTPUT_STOCK_REQUESTS:
     "/receiving/production-output/stock-requests",
   PENDING_PRODUCTION_OUTPUT: "/receiving/pending-production-output",
@@ -606,6 +625,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   SALES_INVOICES_PENDING: "/sales-invoices/pending",
   SALES_TRACKING: "/sales-tracking",
   LAB_SAMPLES: "/laboratory/samples",
+  LAB_SPECS: "/laboratory/specs",
   OIL_TANKS: "/oil-tank-farm/tanks",
   OIL_RECEIVINGS: "/oil-tank-farm/receivings",
   OIL_TRANSFERS: "/oil-tank-farm/transfers",
@@ -613,8 +633,13 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   EQUIPMENT: "/maintenance/equipment",
   WORK_ORDERS: "/maintenance/work-orders",
   PM_SCHEDULES: "/maintenance/pm-schedules",
+  MAINTENANCE_SHUTDOWN: "/maintenance/shutdown-plans",
   USERS: "/users",
+  HRM_SHUTDOWN: "/hrm/shutdown-plans",
+  HRM_COMPENSATION: "/hrm/compensation",
+  HRM_PAYROLL: "/hrm/payroll",
   HRM_ATTENDANCE: "/hrm/attendance",
+  HRM_ATTENDANCE_DEVICES: "/hrm/attendance-devices",
   HRM_OVERTIME: "/hrm/overtime-requests",
   HRM_LEAVE: "/hrm/leave-requests",
   PURCHASE_PAYMENTS_PENDING: "/purchase-payments/pending",
@@ -669,6 +694,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   SETTINGS_AI_OCR: "/settings/ai-ocr",
   MASTERS_VENDORS: "/masters/vendors",
   MASTERS_ITEMS: "/masters/items",
+  MASTERS_CHEMICALS: "/masters/chemicals",
   MASTERS_ITEM_CATEGORIES: "/masters/item-categories",
   MASTERS_UNITS: "/masters/units",
   MASTERS_UNIT_CONVERSIONS: "/masters/unit-conversions",

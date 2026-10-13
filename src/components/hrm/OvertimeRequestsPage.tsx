@@ -8,6 +8,7 @@ import {
   Empty,
   Input,
   Segmented,
+  Select,
   Space,
   Table,
   Tag,
@@ -20,6 +21,7 @@ import {
   FieldTimeOutlined,
   ReloadOutlined,
   SearchOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import {
@@ -40,12 +42,14 @@ import {
   useOvertimeSummaryQuery,
 } from "@/hooks/overtime/useOvertimeQueries";
 import {
+  OT_DAY_TYPE_LABEL,
   OVERTIME_SOURCE_LABEL,
   OVERTIME_STATUS_COLOR,
   OVERTIME_STATUS_LABEL,
   type OvertimeRequest,
 } from "@/types/overtime";
 
+import OtSettingsModal from "./OtSettingsModal";
 import styles from "./OvertimeRequestsPage.module.css";
 
 const GREEN = "#8ab933";
@@ -54,6 +58,13 @@ const MUTED = "#77777C";
 
 /** DRAFT = รออนุมัติ — ตั้งเป็นแท็บแรกเพราะเป็นงานที่ต้องทำ */
 type StatusTab = "DRAFT" | "APPROVED" | "REJECTED" | "CANCELLED" | "ALL";
+
+function formatMoney(value: number) {
+  return value.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 function formatHours(value: string | number) {
   const n = Number(value);
@@ -74,6 +85,7 @@ export default function OvertimeRequestsPage() {
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const rangeParams = {
     dateFrom: range[0].format("YYYY-MM-DD"),
@@ -107,21 +119,43 @@ export default function OvertimeRequestsPage() {
     ids: string[],
     action: "approve" | "reject",
     remark?: string,
+    dayType?: string,
   ) => {
     for (const id of ids) {
-      await reviewMutation.mutateAsync({ id, action, remark });
+      await reviewMutation.mutateAsync({ id, action, remark, dayType });
     }
     setSelectedIds([]);
   };
 
   const confirmApprove = (ids: string[]) => {
+    // ว่าง = ให้ระบบตัดสินจากปฏิทิน (วันหยุด / Shutdown / วันปกติ)
+    let dayType: string | undefined;
     modal.confirm({
       title: `อนุมัติคำขอ OT ${ids.length} รายการ`,
-      content: "ยืนยันอนุมัติคำขอที่เลือกทั้งหมด?",
+      content: (
+        <div className={styles.rejectBody}>
+          <p>
+            ระบบคิดเงิน OT ตอนอนุมัติ — ประเภทวันตัดสินจากปฏิทินให้อัตโนมัติ
+            ถ้าเป็นการทำงานวันหยุดประจำสัปดาห์ของพนักงานคนนั้น ให้เลือกประเภทวันเอง
+          </p>
+          <Select
+            allowClear
+            style={{ width: "100%" }}
+            placeholder="อัตโนมัติ (ตามปฏิทิน)"
+            onChange={(value) => {
+              dayType = value;
+            }}
+            options={Object.entries(OT_DAY_TYPE_LABEL).map(([value, label]) => ({
+              value,
+              label,
+            }))}
+          />
+        </div>
+      ),
       okText: "อนุมัติ",
       cancelText: "ยกเลิก",
       centered: true,
-      onOk: () => review(ids, "approve"),
+      onOk: () => review(ids, "approve", undefined, dayType),
     });
   };
 
@@ -182,6 +216,55 @@ export default function OvertimeRequestsPage() {
         render: (value: string) => (
           <strong className={styles.hoursValue}>{formatHours(value)}</strong>
         ),
+      },
+      {
+        title: "ประเภทวัน",
+        dataIndex: "dayType",
+        key: "dayType",
+        width: 110,
+        render: (value: string | undefined) =>
+          value ? (
+            <Tag color={value === "NORMAL" ? "default" : "orange"}>
+              {OT_DAY_TYPE_LABEL[value] ?? value}
+            </Tag>
+          ) : (
+            "—"
+          ),
+      },
+      {
+        title: "ยอดเงิน OT (บาท)",
+        dataIndex: "otAmount",
+        key: "otAmount",
+        width: 150,
+        align: "right",
+        render: (value: number | null | undefined, row) => {
+          if (row.status !== "APPROVED") return "—";
+          if (value == null) {
+            return (
+              <Tooltip title={row.calcDetail?.note ?? "คิดเงินไม่ได้"}>
+                <Tag color="red">ไม่มีฐานค่าจ้าง</Tag>
+              </Tooltip>
+            );
+          }
+          const lines = row.calcDetail?.lines ?? [];
+          return (
+            <Tooltip
+              title={
+                <div>
+                  <div>ค่าแรง {formatMoney(row.hourlyRate ?? 0)} บาท/ชม.</div>
+                  {lines.map((line) => (
+                    <div key={line.label}>
+                      {line.label}: {formatHours(line.hours)} ชม. × {line.multiplier} ={" "}
+                      {formatMoney(line.amount)}
+                    </div>
+                  ))}
+                </div>
+              }
+            >
+              <strong>{formatMoney(value)}</strong>
+            </Tooltip>
+          );
+        },
       },
       {
         title: "เหตุผล",
@@ -297,6 +380,9 @@ export default function OvertimeRequestsPage() {
               หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้
             </p>
           </div>
+          <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
+            ตั้งค่าอัตรา OT
+          </Button>
         </header>
 
         <div className={styles.summaryGrid}>
@@ -309,6 +395,15 @@ export default function OvertimeRequestsPage() {
             <span>อนุมัติแล้วในช่วงนี้</span>
             <strong>{summary?.approvedCount ?? 0} คำขอ</strong>
             <small>{formatHours(summary?.approvedHours ?? 0)} ชม.</small>
+          </div>
+          <div className={styles.summaryCard}>
+            <span>ยอดเงิน OT ที่อนุมัติในช่วงนี้</span>
+            <strong>{formatMoney(summary?.approvedAmount ?? 0)} บาท</strong>
+            <small>
+              {summary?.unpricedCount
+                ? `ไม่รวม ${summary.unpricedCount} คำขอที่ไม่มีฐานค่าจ้าง`
+                : "คิดเงินได้ครบทุกคำขอ"}
+            </small>
           </div>
           <div className={styles.summaryCard}>
             <span>ปฏิเสธในช่วงนี้</span>
@@ -424,7 +519,7 @@ export default function OvertimeRequestsPage() {
             columns={columns}
             dataSource={rows}
             loading={listQuery.isFetching}
-            scroll={{ x: 1120 }}
+            scroll={{ x: 1380 }}
             rowSelection={
               isPendingTab
                 ? {
@@ -508,6 +603,8 @@ export default function OvertimeRequestsPage() {
             )}
           </div>
         </div>
+
+        <OtSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       </div>
     </MasterPageGate>
   );

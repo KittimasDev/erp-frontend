@@ -30,6 +30,44 @@ export const OVERTIME_SOURCE_LABEL: Record<string, string> = {
   MANUAL: "บันทึกให้",
 };
 
+/** ประเภทวันที่ใช้คิดเงิน OT — ตัดสินตอนอนุมัติ */
+export type OtDayType = "NORMAL" | "HOLIDAY" | "SHUTDOWN";
+
+export const OT_DAY_TYPE_LABEL: Record<string, string> = {
+  NORMAL: "วันปกติ",
+  HOLIDAY: "วันหยุด",
+  SHUTDOWN: "ช่วง Shutdown",
+};
+
+export type OvertimeCalcLine = {
+  label: string;
+  hours: number;
+  multiplier: number;
+  amount: number;
+};
+
+export type OvertimeCalcDetail = {
+  payType: string;
+  lines: OvertimeCalcLine[];
+  /** เหตุที่คิดเงินไม่ได้ เช่น ไม่มีฐานค่าจ้าง */
+  note?: string;
+};
+
+/** ตัวคูณและสูตรค่าแรงต่อชั่วโมง — ค่าเริ่มต้นตามกฎหมายคุ้มครองแรงงาน */
+export type OtSettings = {
+  daysPerMonth: number;
+  hoursPerDay: number;
+  normalMultiplier: number;
+  holidayWorkMonthlyMultiplier: number;
+  holidayWorkDailyMultiplier: number;
+  holidayOtMultiplier: number;
+  shutdownWorkMonthlyMultiplier: number;
+  shutdownWorkDailyMultiplier: number;
+  shutdownOtMultiplier: number;
+};
+
+export type OtSettingsApiResponse = ApiEnvelope<OtSettings>;
+
 export type OvertimeRequest = {
   id: string;
   userId: string;
@@ -48,6 +86,12 @@ export type OvertimeRequest = {
   approvedByName?: string;
   approvedAt?: string;
   reviewRemark?: string;
+  /** ฟิลด์เงินมีเฉพาะฝั่งฝ่ายบุคคล และเฉพาะคำขอที่อนุมัติแล้ว (หน้าพนักงานไม่ได้รับ) */
+  dayType?: string;
+  hourlyRate?: number | null;
+  /** null = อนุมัติแล้วแต่คิดเงินไม่ได้ (ไม่มีฐานค่าจ้าง) */
+  otAmount?: number | null;
+  calcDetail?: OvertimeCalcDetail;
   createdAt: string;
 };
 
@@ -63,6 +107,7 @@ export type OvertimeUserSummary = {
   displayName?: string;
   requests: number;
   approvedHours: number;
+  approvedAmount: number;
 };
 
 export type OvertimeSummary = {
@@ -73,6 +118,10 @@ export type OvertimeSummary = {
   pendingHours: number;
   approvedCount: number;
   approvedHours: number;
+  /** ยอดเงิน OT ที่อนุมัติแล้วในช่วง (เฉพาะคำขอที่คิดเงินได้) */
+  approvedAmount: number;
+  /** อนุมัติแล้วแต่คิดเงินไม่ได้ (ไม่มีฐานค่าจ้าง) */
+  unpricedCount: number;
   rejectedCount: number;
   cancelledCount: number;
   daily: OvertimeDailyPoint[];

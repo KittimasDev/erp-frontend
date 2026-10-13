@@ -1,9 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import ReceivingsPage from "@/components/oil-tank-farm/ReceivingsPage";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage module="ถังน้ำมัน" title="รับน้ำมันเข้าถัง" />
-  );
+  return <ReceivingsPage />;
 }

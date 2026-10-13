@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Alert, Button, Input, InputNumber, Modal, Space, Table } from "antd";
+import { Alert, Button, Input, InputNumber, Modal, Select, Space, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
+import { useProductionOrderLookupsQuery } from "@/hooks/production-cycles/useProductionCycles";
 import type {
   ProductionOrder,
   ProductionOrderInputItem,
@@ -81,6 +82,10 @@ function StartModalBody({
     })),
   );
   const [reason, setReason] = useState("");
+  // M5.2: ผู้ปฏิบัติงานหลักและกะที่เริ่มผลิต (ไม่บังคับ)
+  const lookups = useProductionOrderLookupsQuery();
+  const [leadOperatorId, setLeadOperatorId] = useState<string | undefined>(order.leadOperatorId);
+  const [shiftId, setShiftId] = useState<string | undefined>(order.shiftId);
 
   const totals = useMemo(() => {
     let planned = 0;
@@ -215,6 +220,8 @@ function StartModalBody({
 
   const submit = () =>
     onConfirm({
+      leadOperatorId,
+      shiftId,
       inputLines: lines.map((line) => ({
         inputItemId: line.item.id,
         actualQty: line.actualQty ?? 0,
@@ -240,6 +247,39 @@ function StartModalBody({
         dataSource={lines}
         columns={columns}
       />
+
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "12px 0" }}>
+        <div className={styles.cellStack} style={{ flex: 2, minWidth: 240 }}>
+          <span className={styles.cellMuted}>ผู้ปฏิบัติงานหลัก (ไม่บังคับ)</span>
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="เลือกพนักงาน"
+            loading={lookups.isLoading}
+            value={leadOperatorId}
+            onChange={setLeadOperatorId}
+            options={(lookups.data?.data.operators ?? []).map((o) => ({
+              value: o.id,
+              label: `${o.employeeCode ? o.employeeCode + " " : ""}${o.displayName}${o.position ? " · " + o.position : ""}`,
+            }))}
+          />
+        </div>
+        <div className={styles.cellStack} style={{ flex: 1, minWidth: 180 }}>
+          <span className={styles.cellMuted}>กะที่เริ่มผลิต (ไม่บังคับ)</span>
+          <Select
+            allowClear
+            placeholder="เลือกกะ"
+            loading={lookups.isLoading}
+            value={shiftId}
+            onChange={setShiftId}
+            options={(lookups.data?.data.shifts ?? []).map((s) => ({
+              value: s.id,
+              label: `${s.name} (${s.startTime}–${s.endTime})`,
+            }))}
+          />
+        </div>
+      </div>
 
       <div className={styles.totals}>
         <Total label="รวมตามแผน" value={fmt(totals.planned)} />

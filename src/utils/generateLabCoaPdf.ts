@@ -16,12 +16,19 @@ export type LabCoaPdfData = {
   approvedAt: string;
   remark: string;
   qrCodeDataUri?: string;
+  /** เลขที่ COA และฉบับที่ (M8.6) */
+  coaNo?: string;
+  coaVersion?: number;
+  /** ข้อความลายเซ็นอิเล็กทรอนิกส์ เช่น "ลงนามอิเล็กทรอนิกส์ 13/10/2026 14:30" (M8.5) */
+  signatureNote?: string;
   results: Array<{
     parameterName: string;
     resultValue: string;
     unit: string;
     specMin: string;
     specMax: string;
+    /** PASS | FAIL | NA — FAIL ติดเครื่องหมาย ✗ (M8.3) */
+    judgement?: string;
   }>;
 };
 
@@ -99,6 +106,7 @@ function firstBlockHtml(data: LabCoaPdfData) {
         <section class="info-card">
           <div class="card-title">การอนุมัติผล</div>
           <div class="info-grid">
+            ${data.coaNo ? infoRow("เลขที่ COA :", data.coaNo + (data.coaVersion && data.coaVersion > 1 ? " (ฉบับที่ " + data.coaVersion + ")" : "")) : ""}
             ${infoRow("ผู้อนุมัติ :", data.approvedByName)}
             ${infoRow("วันที่อนุมัติ :", data.approvedAt)}
           </div>
@@ -132,7 +140,7 @@ function rowHtml(row: LabCoaResult, no: number) {
         <div class="tr tbody">
           <div class="cell center">${no}</div>
           <div class="cell cell-name">${escapeHtml(row.parameterName)}</div>
-          <div class="cell center">${escapeHtml(row.resultValue)}</div>
+          <div class="cell center">${escapeHtml(row.resultValue)}${row.judgement === "FAIL" ? " ✗" : ""}</div>
           <div class="cell center">${escapeHtml(row.unit)}</div>
           <div class="cell center">${escapeHtml(row.specMin)}</div>
           <div class="cell center">${escapeHtml(row.specMax)}</div>
@@ -172,7 +180,7 @@ function pageEndHtml(data: LabCoaPdfData) {
             <div>ผู้อนุมัติ (Approved By)</div>
             <div class="line"></div>
             <div class="name">${escapeHtml(data.approvedByName)}</div>
-            <div class="date">วันที่ ___/___/___</div>
+            <div class="date">${data.signatureNote ? escapeHtml(data.signatureNote) : "วันที่ ___/___/___"}</div>
           </div>
           <div class="sig">
             <div>ลูกค้า / ผู้รับ (Received By)</div>

@@ -66,13 +66,16 @@ export function useReviewOvertimeRequestMutation() {
       id,
       action,
       remark,
+      dayType,
     }: {
       id: string;
       action: "approve" | "reject";
       remark?: string;
+      /** เฉพาะตอนอนุมัติ — ไม่ส่ง = ตัดสินจากปฏิทิน */
+      dayType?: string;
     }) =>
       action === "approve"
-        ? approveOvertimeRequest(getAccessToken(), id, remark)
+        ? approveOvertimeRequest(getAccessToken(), id, remark, dayType)
         : rejectOvertimeRequest(getAccessToken(), id, remark),
     onSuccess: (res) => {
       message.success(res.message || "บันทึกผลการพิจารณาแล้ว");

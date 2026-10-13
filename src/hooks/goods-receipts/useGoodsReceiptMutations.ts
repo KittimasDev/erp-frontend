@@ -9,6 +9,10 @@ import {
   createGoodsReceiptFromPo,
   updateGoodsReceipt,
 } from "@/lib/api/goods-receipts";
+import {
+  confirmIncompatibleStorage,
+  parseIncompatibleStorage,
+} from "@/lib/chemicals/incompatible-storage";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   CreateGoodsReceiptFromPoBody,
@@ -68,20 +72,34 @@ export function useUpdateGoodsReceiptMutation() {
 
 export function useConfirmGoodsReceiptMutation() {
   const queryClient = useQueryClient();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
 
-  return useMutation({
-    mutationFn: (id: string) => confirmGoodsReceipt(getAccessToken(), id),
+  const mutation = useMutation({
+    mutationFn: (vars: string | { id: string; acknowledge?: boolean }) => {
+      const { id, acknowledge } =
+        typeof vars === "string" ? { id: vars, acknowledge: false } : vars;
+      return confirmGoodsReceipt(getAccessToken(), id, acknowledge);
+    },
     onSuccess: (res) => {
       message.success(res.message || "Confirm ใบรับของสำเร็จ");
       void queryClient.invalidateQueries({ queryKey: goodsReceiptsQueryKey });
       void queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
       void queryClient.invalidateQueries({ queryKey: purchasePaymentsQueryKey });
     },
-    onError: (err: Error) => {
+    onError: (err: Error, vars) => {
+      // สารเคมีที่เก็บตำแหน่งเดียวกันไม่ได้ → ให้ผู้ใช้รับทราบแล้วยิงซ้ำ (M9.3)
+      const conflicts = parseIncompatibleStorage(err);
+      if (conflicts) {
+        const id = typeof vars === "string" ? vars : vars.id;
+        confirmIncompatibleStorage(modal, conflicts, () =>
+          mutation.mutate({ id, acknowledge: true }),
+        );
+        return;
+      }
       message.error(err.message || "Confirm ใบรับของไม่สำเร็จ");
     },
   });
+  return mutation;
 }
 
 export function useCancelGoodsReceiptMutation() {

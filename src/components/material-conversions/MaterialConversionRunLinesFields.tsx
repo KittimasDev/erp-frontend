@@ -17,6 +17,8 @@ import {
   OUTPUT_TYPE_COLOR,
   OUTPUT_TYPE_LABEL,
   OUTPUT_TYPES,
+  PACKAGING_TYPES,
+  PACKAGING_TYPE_LABEL,
   outputPostsToStock,
 } from "@/types/material-conversion";
 import styles from "./MaterialConversionPage.module.css";
@@ -42,6 +44,7 @@ export type InputLineValues = {
 
 export type OutputLineValues = {
   outputType?: string;
+  packagingType?: string;
   itemId?: string;
   unitId?: string;
   warehouseId?: string;
@@ -188,6 +191,7 @@ export function buildRunLinesPayload(
         warehouseId?: string;
         locationId?: string;
         plannedQty: number;
+        packagingType?: string;
         remark?: string;
         sortOrder: number;
       }>;
@@ -225,6 +229,7 @@ export function buildRunLinesPayload(
       warehouseId: posts ? line.warehouseId : undefined,
       locationId: posts ? line.locationId : undefined,
       plannedQty: Number(line.plannedQty ?? 0),
+      packagingType: posts ? line.packagingType || undefined : undefined,
       remark: line.remark?.trim() || undefined,
       sortOrder: index,
     };
@@ -626,6 +631,20 @@ export default function MaterialConversionRunLinesFields({
                               options={lineLocations.map((loc) => ({
                                 value: loc.id,
                                 label: `${loc.locationCode} — ${loc.locationName}`,
+                              }))}
+                            />
+                          </Form.Item>
+                          <Form.Item
+                            name={[field.name, "packagingType"]}
+                            label="ภาชนะบรรจุ"
+                            extra="ใช้กับขั้นบรรจุ — กรอกจำนวนถุงและน้ำหนักตอนปิดงาน"
+                          >
+                            <Select
+                              allowClear
+                              placeholder="ไม่ระบุ"
+                              options={PACKAGING_TYPES.map((value) => ({
+                                value,
+                                label: PACKAGING_TYPE_LABEL[value],
                               }))}
                             />
                           </Form.Item>

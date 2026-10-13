@@ -1,12 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import TransfersPage from "@/components/oil-tank-farm/TransfersPage";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage
-      module="ถังน้ำมัน"
-      title="โอนย้ายน้ำมันระหว่างถัง"
-    />
-  );
+  return <TransfersPage />;
 }

@@ -98,6 +98,10 @@ export type ProductionOrderDowntime = {
   reason: string;
   /** NULL ในแถวที่บันทึกก่อนมีหมวด — โชว์เป็น "ไม่ระบุประเภท" */
   category?: string;
+  /** PLANNED = หยุดตามแผน · UNPLANNED = ไม่ตามแผน (M5.8) */
+  stopType: "PLANNED" | "UNPLANNED" | string;
+  /** Root Cause แยกจากเหตุผลที่หน้างานบันทึก */
+  rootCause?: string;
   recordedById?: string;
   recordedByName?: string;
 };
@@ -113,6 +117,14 @@ export type ProductionOrderLog = {
 export type ProductionOrder = {
   id: string;
   orderNo: string;
+  /** รอบผลิต 45+3 วันที่ใบนี้สังกัด (M5.1) */
+  cycleId?: string;
+  cycleNo?: string;
+  /** ผู้ปฏิบัติงานหลักและกะที่เริ่มผลิต (M5.2) */
+  leadOperatorId?: string;
+  leadOperatorName?: string;
+  shiftId?: string;
+  shiftName?: string;
   productionRequestId?: string;
   productionRequestNo?: string;
   /** สูตรที่ใช้วางแผนใบนี้ — ว่างคือกรอกมือ */
@@ -264,6 +276,8 @@ export type StartProductionOrderInputLineBody = {
 /** ไม่ส่ง inputLines = ตัดตามแผนทุกบรรทัด (พฤติกรรมเดิม) */
 export type StartProductionOrderBody = {
   inputLines?: StartProductionOrderInputLineBody[];
+  leadOperatorId?: string;
+  shiftId?: string;
 };
 
 export type CreateProductionOrderInputItemBody = {
@@ -347,6 +361,15 @@ export type RecordDowntimeBody = {
   startAt?: string;
   reason: string;
   category?: string;
+  /** PLANNED = หยุดตามแผน · ไม่ส่ง = UNPLANNED (M5.8) */
+  stopType?: "PLANNED" | "UNPLANNED";
+  /** Root Cause (M5.8) */
+  rootCause?: string;
+};
+
+export const PRODUCTION_STOP_TYPE_LABEL: Record<string, string> = {
+  PLANNED: "หยุดตามแผน (Planned Stop)",
+  UNPLANNED: "หยุดไม่ตามแผน (Unplanned / Breakdown)",
 };
 
 export type EndDowntimeBody = {

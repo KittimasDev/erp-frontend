@@ -25,6 +25,7 @@ export const ATTENDANCE_EDITABLE_STATUS_OPTIONS = [
 export const ATTENDANCE_SOURCE_LABEL: Record<string, string> = {
   SELF: "พนักงานกดเอง",
   MANUAL: "บันทึกให้",
+  DEVICE: "เครื่องสแกน",
 };
 
 export type AttendanceRecord = {
