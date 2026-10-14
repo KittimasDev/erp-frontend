@@ -17,6 +17,7 @@ function useInvalidateOvertime() {
   const queryClient = useQueryClient();
   return () => {
     void queryClient.invalidateQueries({ queryKey: ["overtime"] });
+    void queryClient.invalidateQueries({ queryKey: ["shifts", "assignments"] });
   };
 }
 

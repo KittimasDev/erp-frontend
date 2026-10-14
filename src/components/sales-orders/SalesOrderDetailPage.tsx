@@ -290,7 +290,7 @@ function buildSalesOrderPdfDataFromOrder(
     customerName: order.customer?.nameTh ?? "—",
     customerCode: order.customer?.customerCode ?? "—",
     customerTaxId: order.customer?.taxId,
-    customerAddress: order.customer?.address,
+    customerAddress: order.customerAddress ?? order.customer?.address,
     customerPhone: order.customer?.contactPhone,
     contactName:
       header?.contactName ??
@@ -1596,7 +1596,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>ที่อยู่</span>
                 <div className={styles.metaValue}>
-                  {data.customer?.address ?? "—"}
+                  {data.customerAddress ?? data.customer?.address ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>

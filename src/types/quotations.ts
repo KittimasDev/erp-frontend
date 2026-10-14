@@ -69,6 +69,8 @@ export type Quotation = {
   taxRate?: QuotationTaxRateSummary;
   vatMode?: string;
   contactName?: string;
+  /** ที่อยู่บนใบ (แก้ได้ ไม่เขียนกลับ master) — ใบเก่า backend เติมจาก master ให้ */
+  customerAddress?: string;
   preparedByPhone?: string;
   withholdingTaxType?: string;
   withholdingTaxPercent?: string;
@@ -112,6 +114,7 @@ export type CreateQuotationBody = {
   quotationDate: string;
   customerId: string;
   contactName?: string;
+  customerAddress?: string;
   preparedByPhone?: string;
   paymentTermId?: string;
   vatMode?: string;

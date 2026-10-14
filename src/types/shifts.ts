@@ -129,9 +129,19 @@ export type CreateWorkCalendarDayRequest = {
 
 /* ---------- ปฏิทินรวม ---------- */
 
+/** RUN = ปฏิบัติงานปกติ · SHUTDOWN = ช่วงสิ้นสุดรอบผลิต · EXTRA_OFF = หยุดผลิตเพิ่มเติม */
+export type ShiftCalendarProductionDayType = "RUN" | "SHUTDOWN" | "EXTRA_OFF";
+
+export type ShiftCalendarProductionDay = {
+  dayType: ShiftCalendarProductionDayType;
+  roundNo: string;
+};
+
 export type ShiftCalendarDay = {
   date: string;
   holiday?: WorkCalendarDay;
+  /** ประเภทวันจากรอบการผลิตที่ยืนยันแล้ว — ไม่มี = ไม่อยู่ในรอบใด */
+  productionDay?: ShiftCalendarProductionDay;
   schedules: ShiftSchedule[];
   totalMembers: number;
 };
@@ -251,8 +261,10 @@ export type ShiftAssignmentUser = {
   leaveDays: number;
   /** วันที่ถูกจัดกะแล้วมีใบลารออนุมัติทับอยู่ */
   pendingLeaveDays: number;
-  /** ชั่วโมง OT ที่อนุมัติแล้วในวันที่ถูกจัดกะ */
+  /** ชั่วโมง OT ที่อนุมัติแล้วทั้งหมดในช่วง (รวมวันที่ไม่ได้ถูกจัดกะ) */
   overtimeHours: number;
+  /** ส่วนของ overtimeHours ที่ตกวันที่ไม่ได้ถูกจัดกะ เช่น วันหยุดประจำสัปดาห์ */
+  offShiftOvertimeHours: number;
   /** ชั่วโมงกะรวมของคนนี้ (นาที) */
   workMinutes: number;
   firstDate?: string;
@@ -465,8 +477,7 @@ export type ShiftAutoPlanRequest = {
   /** ช่วงที่จะจัด เช่น รอบ 45 วัน — ต้องส่งคู่กัน ยาวไม่เกิน 62 วัน */
   dateFrom?: string;
   dateTo?: string;
-  /** จัดตามรอบการผลิตที่ยืนยันแล้ว — ต้องส่งคู่กับ productionPhase · ชนะ month/dateFrom/dateTo */
-  productionRoundId?: string;
+  /** จัดเฉพาะวันในเดือน (month) ที่ประเภทวันตรงกัน — ต้องส่งคู่กับ month · ไม่สนใจ skipHolidays */
   productionPhase?: ShiftAutoPlanProductionPhase;
   positions: ShiftAutoPlanPositionInput[];
   /** กรองเอาเฉพาะคนที่มีบทบาทเหล่านี้ — ไม่ส่ง = เอาทุกคน */

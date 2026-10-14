@@ -168,7 +168,7 @@ export default function QuotationDetailPage({ id }: Props) {
       customerName: data.customer?.nameTh ?? "—",
       customerCode: data.customer?.customerCode ?? "—",
       customerTaxId: data.customer?.taxId,
-      customerAddress: data.customer?.address,
+      customerAddress: data.customerAddress ?? data.customer?.address,
       customerPhone: data.customer?.contactPhone,
       contactName: data.contactName,
       paymentTerm: data.paymentTerm?.name ?? "—",
@@ -280,7 +280,7 @@ export default function QuotationDetailPage({ id }: Props) {
               <div className={`${styles.metaItem} ${styles.metaItemWide}`}>
                 <span className={styles.metaLabel}>ที่อยู่</span>
                 <div className={styles.metaValue}>
-                  {displayDash(data.customer?.address)}
+                  {displayDash(data.customerAddress ?? data.customer?.address)}
                 </div>
               </div>
               <div className={styles.metaItem}>

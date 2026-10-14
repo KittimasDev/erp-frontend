@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import {
+  Alert,
   Button,
   DatePicker,
   Empty,
@@ -137,6 +138,22 @@ export default function ShiftAssignmentsPage() {
   const byUser = useMemo(() => data?.byUser ?? [], [data]);
   const byShift = useMemo(() => data?.byShift ?? [], [data]);
   const events = useMemo(() => data?.events ?? [], [data]);
+  /** แถวรายวันมีแค่วันที่ถูกจัดกะ — OT วันอื่นไม่มีแถวให้เกาะ ต้องบอกแยก */
+  const offShiftOvertime = useMemo(() => {
+    const items = events.filter(
+      (event) =>
+        event.kind === "OVERTIME" &&
+        event.status === "APPROVED" &&
+        !event.hasShift,
+    );
+    return {
+      count: items.length,
+      hours:
+        Math.round(
+          items.reduce((sum, event) => sum + (event.hours ?? 0), 0) * 100,
+        ) / 100,
+    };
+  }, [events]);
 
   /** กดชื่อในตารางรายวัน — หาสรุปของคนนั้นจากผลลัพธ์ที่โหลดมาแล้ว */
   const openPerson = useCallback(
@@ -404,8 +421,19 @@ export default function ShiftAssignmentsPage() {
         width: 100,
         align: "right",
         sorter: (a, b) => a.overtimeHours - b.overtimeHours,
-        render: (value: number) =>
-          value ? `${value} ชม.` : <span className={styles.noteCell}>—</span>,
+        render: (value: number, row) =>
+          value ? (
+            <span className={styles.shiftTags}>
+              {value} ชม.
+              {row.offShiftOvertimeHours ? (
+                <Tooltip title="OT ในวันที่ไม่ได้ถูกจัดกะ เช่น วันหยุดประจำสัปดาห์">
+                  <Tag color="gold">นอกวันกะ {row.offShiftOvertimeHours} ชม.</Tag>
+                </Tooltip>
+              ) : null}
+            </span>
+          ) : (
+            <span className={styles.noteCell}>—</span>
+          ),
       },
       {
         title: "ที่ต้องดู",
@@ -1047,6 +1075,21 @@ export default function ShiftAssignmentsPage() {
               onChange={(value) => setView(value as ViewMode)}
             />
           </div>
+
+          {view === "day" && offShiftOvertime.count > 0 ? (
+            <Alert
+              className={styles.offShiftAlert}
+              type="info"
+              showIcon
+              title={`มี OT อนุมัติแล้วนอกวันเข้ากะ ${offShiftOvertime.count} รายการ (${offShiftOvertime.hours} ชม.)`}
+              description="เช่น OT วันหยุดประจำสัปดาห์ — ไม่มีแถวกะให้แสดงในตารางนี้ แต่นับรวมในสรุปรายคนแล้ว"
+              action={
+                <Button size="small" onClick={() => setView("events")}>
+                  ดูในแท็บ ลา / OT
+                </Button>
+              }
+            />
+          ) : null}
 
           <div className={styles.tableWrap}>
             {view === "roster" ? (

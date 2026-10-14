@@ -107,6 +107,8 @@ export type SalesOrder = {
   withholdingTaxPercent?: string;
   withholdingTaxAmount?: string;
   contactName?: string;
+  /** ที่อยู่ที่คัดลอกจากใบเสนอราคา (แสดงอย่างเดียว) */
+  customerAddress?: string;
   paymentMethod?: string;
   paymentDueDate?: string;
   status: SalesOrderStatus | string;

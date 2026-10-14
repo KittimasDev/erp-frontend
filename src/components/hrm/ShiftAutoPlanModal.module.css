@@ -62,6 +62,26 @@
   gap: 8px;
 }
 
+.columnLabel {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ant-color-text, #1e293b);
+}
+
+.demandHeader {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ant-color-text-secondary, #64748b);
+}
+
+.demandActionSpacer {
+  width: 32px;
+  flex-shrink: 0;
+}
+
 .demandRow {
   display: flex;
   gap: 8px;

@@ -72,6 +72,7 @@ type FormValues = {
   quotationDate: dayjs.Dayjs;
   customerId: string;
   contactName?: string;
+  customerAddress?: string;
   preparedByPhone?: string;
   paymentTermId?: string;
   vatMode: VatMode;
@@ -221,6 +222,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
       quotationDate: dayjs(data.quotationDate),
       customerId: data.customerId,
       contactName: data.contactName,
+      customerAddress: data.customerAddress,
       preparedByPhone: data.preparedByPhone,
       paymentTermId: data.paymentTermId,
       vatMode: resolveVatMode(data.vatMode),
@@ -304,7 +306,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
       customerName: selectedCustomer?.nameTh ?? "—",
       customerCode: selectedCustomer?.customerCode ?? "—",
       customerTaxId: selectedCustomer?.taxId,
-      customerAddress: selectedCustomer?.address,
+      customerAddress: values.customerAddress?.trim() || undefined,
       customerPhone: selectedCustomer?.contactPhone,
       contactName: values.contactName?.trim() || "—",
       paymentTerm:
@@ -378,6 +380,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
       quotationDate: values.quotationDate.format("YYYY-MM-DD"),
       customerId: values.customerId,
       contactName: values.contactName?.trim() || undefined,
+      customerAddress: values.customerAddress?.trim() ?? "",
       preparedByPhone: values.preparedByPhone?.trim() || undefined,
       paymentTermId: values.paymentTermId,
       vatMode,
@@ -504,6 +507,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               "contactName",
                               customer?.contactName?.trim() || undefined,
                             );
+                            form.setFieldValue(
+                              "customerAddress",
+                              customer?.address?.trim() || undefined,
+                            );
                           }}
                           popupRender={(menu) => (
                             <>
@@ -557,12 +564,14 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   </Form.Item>
                   <Form.Item
                     className={styles.formGridFull}
+                    name="customerAddress"
                     label="ที่อยู่"
+                    extra="ใช้ต่อในใบสั่งขายและเป็นค่าเริ่มต้นที่อยู่จัดส่งของใบส่งสินค้า"
                   >
                     <Input.TextArea
-                      disabled
                       rows={2}
-                      value={displayDash(selectedCustomer?.address)}
+                      maxLength={2000}
+                      placeholder="ดึงจากข้อมูลลูกค้า แล้วแก้ได้"
                     />
                   </Form.Item>
                   <Form.Item name="contactName" label="ผู้ติดต่อ">
@@ -925,6 +934,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
           form.setFieldValue(
             "contactName",
             customer.contactName?.trim() || undefined,
+          );
+          form.setFieldValue(
+            "customerAddress",
+            customer.address?.trim() || undefined,
           );
           void customersQuery.refetch();
         }}

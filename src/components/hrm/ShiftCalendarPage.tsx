@@ -18,13 +18,25 @@ import {
   useShiftCalendarQuery,
   useShiftsQuery,
 } from "@/hooks/shifts/useShiftQueries";
-import type { ShiftCalendarDay } from "@/types/shifts";
+import type {
+  ShiftCalendarDay,
+  ShiftCalendarProductionDayType,
+} from "@/types/shifts";
 
 import ShiftAutoPlanModal from "./ShiftAutoPlanModal";
 import ShiftBulkModal from "./ShiftBulkModal";
 import ShiftDayDrawer from "./ShiftDayDrawer";
 import ShiftMasterModal from "./ShiftMasterModal";
 import styles from "./ShiftCalendarPage.module.css";
+
+const PRODUCTION_DAY_META: Record<
+  ShiftCalendarProductionDayType,
+  { label: string; className: string }
+> = {
+  RUN: { label: "ปฏิบัติงานปกติ", className: styles.productionRun },
+  SHUTDOWN: { label: "สิ้นสุดรอบผลิต", className: styles.productionShutdown },
+  EXTRA_OFF: { label: "หยุดผลิต", className: styles.productionOff },
+};
 
 /** ปฏิทินโหลดเผื่อหัว-ท้ายเดือน เพราะช่องแรก/ท้ายตารางเป็นวันของเดือนข้างเคียง */
 function monthRange(month: Dayjs) {
@@ -100,8 +112,22 @@ export default function ShiftCalendarPage() {
       return null;
     }
 
+    const production = day.productionDay
+      ? PRODUCTION_DAY_META[day.productionDay.dayType]
+      : null;
+
     return (
       <div className={styles.cell}>
+        {production && day.productionDay ? (
+          <Tooltip title={`รอบการผลิต ${day.productionDay.roundNo}`}>
+            <span
+              className={`${styles.productionTag} ${production.className}`}
+            >
+              {production.label}
+            </span>
+          </Tooltip>
+        ) : null}
+
         {day.holiday ? (
           <div
             className={`${styles.cellHoliday} ${
@@ -244,6 +270,15 @@ export default function ShiftCalendarPage() {
           />
 
           <div className={styles.legend}>
+            {Object.values(PRODUCTION_DAY_META).map((meta) => (
+              <span key={meta.label} className={styles.legendItem}>
+                <span
+                  className={`${styles.legendSwatch} ${meta.className}`}
+                  aria-hidden
+                />
+                {meta.label}
+              </span>
+            ))}
             {shifts.map((shift) => (
               <span key={shift.id} className={styles.legendItem}>
                 <Badge color={shift.color || "#8ab933"} />

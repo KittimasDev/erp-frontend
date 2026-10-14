@@ -246,6 +246,10 @@
   max-width: 100%;
 }
 
+.offShiftAlert {
+  margin: 0 4px 12px;
+}
+
 /* ---------- เซลล์ในตาราง ---------- */
 
 .dateCell {
