@@ -456,12 +456,18 @@ export type UpdateShiftPlanCycleRequest = {
   cycleLengthDays: number;
 };
 
+/** RUN = ปฏิบัติงานปกติ (วันผลิต) · SHUTDOWN = ช่วงสิ้นสุดรอบผลิต */
+export type ShiftAutoPlanProductionPhase = "RUN" | "SHUTDOWN";
+
 export type ShiftAutoPlanRequest = {
   /** `YYYY-MM` — จัดทั้งเดือน (ถ้าส่ง dateFrom+dateTo มาด้วย ช่วงวันที่ชนะ) */
   month?: string;
   /** ช่วงที่จะจัด เช่น รอบ 45 วัน — ต้องส่งคู่กัน ยาวไม่เกิน 62 วัน */
   dateFrom?: string;
   dateTo?: string;
+  /** จัดตามรอบการผลิตที่ยืนยันแล้ว — ต้องส่งคู่กับ productionPhase · ชนะ month/dateFrom/dateTo */
+  productionRoundId?: string;
+  productionPhase?: ShiftAutoPlanProductionPhase;
   positions: ShiftAutoPlanPositionInput[];
   /** กรองเอาเฉพาะคนที่มีบทบาทเหล่านี้ — ไม่ส่ง = เอาทุกคน */
   roleIds?: string[];

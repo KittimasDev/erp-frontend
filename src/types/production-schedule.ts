@@ -77,6 +77,8 @@ export type ConfirmedProductionRound = {
   endDate: string;
   shutdownStartDate: string;
   shutdownEndDate: string;
+  /** วันหยุดผลิตเพิ่มเติมที่อยู่ในช่วงผลิต — จัดกะช่วงปฏิบัติงานปกติจะข้าม */
+  extraOffDates: string[];
 };
 
 export type CreateProductionPlanBody = {

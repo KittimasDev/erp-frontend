@@ -39,6 +39,7 @@ import type {
   Shift,
   ShiftAutoPlan,
   ShiftAutoPlanPositionInput,
+  ShiftAutoPlanProductionPhase,
 } from "@/types/shifts";
 
 import ShiftAutoPlanPreview from "./ShiftAutoPlanPreview";
@@ -101,6 +102,8 @@ export default function ShiftAutoPlanModal({
   const [periodMode, setPeriodMode] = useState<PeriodMode>("cycle");
   const [cycleIndex, setCycleIndex] = useState<number | null>(null);
   const [productionRoundId, setProductionRoundId] = useState<string | null>(null);
+  const [productionPhase, setProductionPhase] =
+    useState<ShiftAutoPlanProductionPhase>("RUN");
   const [customRange, setCustomRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [cycleDraftStart, setCycleDraftStart] = useState<Dayjs | null>(null);
   const [cycleDraftLength, setCycleDraftLength] = useState<number>(45);
@@ -203,11 +206,27 @@ export default function ShiftAutoPlanModal({
     }
     if (periodMode === "production") {
       if (!selectedProduction) return null;
-      const from = selectedProduction.startDate;
-      const to = selectedProduction.endDate;
+      const shutdown = productionPhase === "SHUTDOWN";
+      const from = shutdown
+        ? selectedProduction.shutdownStartDate
+        : selectedProduction.startDate;
+      const to = shutdown
+        ? selectedProduction.shutdownEndDate
+        : selectedProduction.endDate;
+      const extraOffCount = shutdown
+        ? 0
+        : (selectedProduction.extraOffDates ?? []).length;
       return {
-        payload: { dateFrom: from, dateTo: to },
-        label: `${selectedProduction.roundNo} · ${formatBeShort(from)} – ${formatBeShort(to)}`,
+        // backend หาช่วงวันจากรอบเอง — ส่งแค่รอบกับช่วง
+        payload: {
+          productionRoundId: selectedProduction.id,
+          productionPhase,
+        },
+        label: `${selectedProduction.roundNo} · ${
+          shutdown ? "Shutdown" : "ปฏิบัติงานปกติ"
+        } ${formatBeShort(from)} – ${formatBeShort(to)}${
+          extraOffCount > 0 ? ` (ไม่รวมวันหยุดผลิตเพิ่มเติม ${extraOffCount} วัน)` : ""
+        }`,
         days: dayjs(to).diff(dayjs(from), "day") + 1,
         from,
         to,
@@ -223,7 +242,16 @@ export default function ShiftAutoPlanModal({
       from,
       to,
     };
-  }, [periodMode, targetMonth, selectedCycle, selectedProduction, customRange]);
+  }, [
+    periodMode,
+    targetMonth,
+    selectedCycle,
+    selectedProduction,
+    productionPhase,
+    customRange,
+  ]);
+  const shutdownPhase =
+    periodMode === "production" && productionPhase === "SHUTDOWN";
   const periodTooLong = Boolean(period && period.days > 62);
 
   const shiftOptions = shifts.map((shift) => ({
@@ -661,8 +689,23 @@ export default function ShiftAutoPlanModal({
                 notFoundContent="ยังไม่มีรอบการผลิตที่ยืนยันแล้ว"
                 options={confirmedRounds.map((item) => ({
                   value: item.id,
-                  label: `${item.roundNo} · ${formatBeShort(item.startDate)} – ${formatBeShort(item.endDate)}`,
+                  label: `${item.roundNo} · ผลิต ${formatBeShort(item.startDate)} – ${formatBeShort(item.endDate)} · Shutdown ${formatBeShort(item.shutdownStartDate)} – ${formatBeShort(item.shutdownEndDate)}`,
                 }))}
+              />
+            ) : null}
+
+            {periodMode === "production" ? (
+              <Segmented<ShiftAutoPlanProductionPhase>
+                aria-label="ช่วงของรอบการผลิต"
+                value={productionPhase}
+                onChange={(value) => {
+                  setProductionPhase(value);
+                  invalidatePlan();
+                }}
+                options={[
+                  { label: "ปฏิบัติงานปกติ (วันผลิต)", value: "RUN" },
+                  { label: "ช่วงสิ้นสุดรอบผลิต (Shutdown)", value: "SHUTDOWN" },
+                ]}
               />
             ) : null}
 
@@ -751,7 +794,9 @@ export default function ShiftAutoPlanModal({
                 sum + (demand.shiftId ? Math.max(demand.headcount, 0) : 0),
               0,
             );
-            const minimumEmployees = Math.ceil((dailyHeadcount * 7) / 6);
+            const minimumEmployees = shutdownPhase
+              ? dailyHeadcount
+              : Math.ceil((dailyHeadcount * 7) / 6);
             const available = item.position
               ? (employeeCountByPosition.get(item.position) ?? 0)
               : 0;
@@ -859,8 +904,11 @@ export default function ShiftAutoPlanModal({
 
                 <p className={styles.positionSummary}>
                   ต้องใช้ <strong>{dailyHeadcount}</strong> คน/วัน · ขั้นต่ำ{" "}
-                  <strong>{minimumEmployees}</strong> คน (ปัดขึ้นจาก{" "}
-                  {dailyHeadcount} × 7 ÷ 6) ·{" "}
+                  <strong>{minimumEmployees}</strong> คน (
+                  {shutdownPhase
+                    ? "ไม่มีวันหยุดประจำสัปดาห์"
+                    : `ปัดขึ้นจาก ${dailyHeadcount} × 7 ÷ 6`}
+                  ) ·{" "}
                   {item.position ? (
                     <>
                       มีพนักงาน{" "}
@@ -901,7 +949,9 @@ export default function ShiftAutoPlanModal({
           </Button>
 
           <div className={styles.field}>
-            <span className={styles.label}>ข้ามวันหยุด / วันซ่อมเครื่อง</span>
+            <span className={styles.label}>
+              {shutdownPhase ? "ข้ามวันหยุดบริษัท" : "ข้ามวันหยุด / วันซ่อมเครื่อง"}
+            </span>
             <Switch
               checked={skipHolidays}
               onChange={(value) => {
@@ -909,6 +959,11 @@ export default function ShiftAutoPlanModal({
                 invalidatePlan();
               }}
             />
+            {shutdownPhase ? (
+              <span className={styles.hint}>
+                ช่วง Shutdown จัดกะทุกวันแม้เป็นวันซ่อมเครื่อง และไม่มีวันหยุดประจำสัปดาห์
+              </span>
+            ) : null}
           </div>
 
           <div className={styles.field}>
@@ -934,7 +989,9 @@ export default function ShiftAutoPlanModal({
                   กำหนดจำนวนคนที่ต้องใช้ต่อ <strong>ตำแหน่ง + กะ</strong> แล้วแบ่งพนักงานไปคนละกะทั้งเดือน
                 </li>
                 <li>
-                  วันหยุดประจำสัปดาห์เวียนด้วย % 7 ในกลุ่มตำแหน่ง + กะนั้น (คนที่ 1 ของกะหยุดจันทร์)
+                  {shutdownPhase
+                    ? "ช่วง Shutdown ไม่มีวันหยุดประจำสัปดาห์ — ขั้นต่ำต่อกะเท่ากับจำนวนคนที่ต้องใช้"
+                    : "วันหยุดประจำสัปดาห์เวียนด้วย % 7 ในกลุ่มตำแหน่ง + กะนั้น (คนที่ 1 ของกะหยุดจันทร์)"}
                 </li>
                 <li>
                   คนที่ลาอนุมัติแล้วหรือติดกะอื่นวันนั้นจะไม่ถูกเลือก — เลือกคนที่ทำงานน้อยสุดก่อน

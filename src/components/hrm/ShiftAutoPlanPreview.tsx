@@ -433,7 +433,10 @@ export default function ShiftAutoPlanPreview({
                             {employee.role === "MAIN"
                               ? `คนหลัก · ${employee.primaryShiftName ?? "-"}`
                               : "คนเสริม"}{" "}
-                            · หยุด{employee.dayOffLabel}
+                            ·{" "}
+                            {employee.dayOffWeekday < 0
+                              ? "ไม่มีวันหยุดประจำสัปดาห์"
+                              : `หยุด${employee.dayOffLabel}`}
                           </span>
                         </th>
                         {plan.days.map((day) => {
