@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input, InputNumber, Modal, Switch } from "antd";
+import { Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 
-import type {
-  CreatePaymentTermRequest,
-  PaymentTerm,
+import {
+  PAYMENT_TERM_TYPE_LABEL,
+  type CreatePaymentTermRequest,
+  type PaymentTerm,
+  type PaymentTermType,
 } from "@/types/payment-terms";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 type PaymentTermFormValues = {
   code: string;
   name: string;
+  termType: PaymentTermType;
   creditDays: number;
+  advancePercent: number;
   isActive: boolean;
 };
 
@@ -25,6 +29,10 @@ type PaymentTermFormModalProps = {
   onSubmit: (values: CreatePaymentTermRequest) => void;
 };
 
+const TERM_TYPE_OPTIONS = (
+  Object.entries(PAYMENT_TERM_TYPE_LABEL) as [PaymentTermType, string][]
+).map(([value, label]) => ({ value, label }));
+
 export default function PaymentTermFormModal({
   open,
   mode,
@@ -34,6 +42,7 @@ export default function PaymentTermFormModal({
   onSubmit,
 }: PaymentTermFormModalProps) {
   const [form] = Form.useForm<PaymentTermFormValues>();
+  const termType = Form.useWatch("termType", form);
 
   useEffect(() => {
     if (!open) {
@@ -41,10 +50,15 @@ export default function PaymentTermFormModal({
     }
 
     if (mode === "edit" && initialPaymentTerm) {
+      const creditDays = initialPaymentTerm.creditDays ?? 0;
       form.setFieldsValue({
         code: initialPaymentTerm.code,
         name: initialPaymentTerm.name,
-        creditDays: initialPaymentTerm.creditDays ?? 0,
+        termType:
+          initialPaymentTerm.termType ??
+          (creditDays > 0 ? "CREDIT" : "ON_RECEIPT"),
+        creditDays,
+        advancePercent: initialPaymentTerm.advancePercent ?? 100,
         isActive: initialPaymentTerm.isActive,
       });
       return;
@@ -53,7 +67,9 @@ export default function PaymentTermFormModal({
     form.setFieldsValue({
       code: "",
       name: "",
-      creditDays: 0,
+      termType: "CREDIT",
+      creditDays: 30,
+      advancePercent: 100,
       isActive: true,
     });
   }, [open, mode, initialPaymentTerm, form]);
@@ -64,7 +80,10 @@ export default function PaymentTermFormModal({
     onSubmit({
       code: values.code.trim(),
       name: values.name.trim(),
-      creditDays: values.creditDays ?? 0,
+      termType: values.termType,
+      creditDays: values.termType === "CREDIT" ? (values.creditDays ?? 0) : 0,
+      advancePercent:
+        values.termType === "ADVANCE" ? (values.advancePercent ?? 100) : 100,
       isActive: values.isActive,
     });
   };
@@ -119,7 +138,7 @@ export default function PaymentTermFormModal({
           <span className={styles.sectionLine} />
           <div>
             <strong>ข้อมูลเงื่อนไข</strong>
-            <span>ระบุรหัส ชื่อ และจำนวนวันเครดิต</span>
+            <span>ระบุรหัส ชื่อ ประเภท และจำนวนวันเครดิต / % ชำระล่วงหน้า</span>
           </div>
         </div>
 
@@ -154,25 +173,63 @@ export default function PaymentTermFormModal({
         </Form.Item>
 
         <Form.Item
-          label="วันเครดิต"
-          name="creditDays"
-          rules={[
-            { required: true, message: "กรุณากรอกจำนวนวันเครดิต" },
-            {
-              type: "number",
-              min: 0,
-              message: "วันเครดิตต้องไม่ติดลบ",
-            },
-          ]}
+          label="ประเภทเงื่อนไข"
+          name="termType"
+          rules={[{ required: true, message: "กรุณาเลือกประเภทเงื่อนไข" }]}
+          extra="ใช้คำนวณยอดที่ต้องชำระและวันครบกำหนดในหน้ารายการจ่ายเงิน"
         >
-          <InputNumber
-            size="large"
-            min={0}
-            precision={0}
-            style={{ width: "100%" }}
-            placeholder="เช่น 30"
-          />
+          <Select size="large" options={TERM_TYPE_OPTIONS} />
         </Form.Item>
+
+        {termType === "CREDIT" ? (
+          <Form.Item
+            label="วันเครดิต"
+            name="creditDays"
+            rules={[
+              { required: true, message: "กรุณากรอกจำนวนวันเครดิต" },
+              {
+                type: "number",
+                min: 1,
+                message: "วันเครดิตต้องอย่างน้อย 1 วัน",
+              },
+            ]}
+          >
+            <InputNumber
+              size="large"
+              min={1}
+              precision={0}
+              style={{ width: "100%" }}
+              placeholder="เช่น 30"
+            />
+          </Form.Item>
+        ) : null}
+
+        {termType === "ADVANCE" ? (
+          <Form.Item
+            label="% ที่ต้องชำระล่วงหน้า"
+            name="advancePercent"
+            rules={[
+              { required: true, message: "กรุณากรอก % ที่ต้องชำระล่วงหน้า" },
+              {
+                type: "number",
+                min: 0.01,
+                max: 100,
+                message: "ต้องอยู่ระหว่าง 0.01 - 100",
+              },
+            ]}
+            extra="ชำระเต็มจำนวนก่อนรับสินค้าให้ใส่ 100 · มัดจำ 30% ให้ใส่ 30"
+          >
+            <InputNumber
+              size="large"
+              min={0.01}
+              max={100}
+              precision={2}
+              suffix="%"
+              style={{ width: "100%" }}
+              placeholder="เช่น 30"
+            />
+          </Form.Item>
+        ) : null}
 
         <div className={styles.statusBox}>
           <div className={styles.statusContent}>

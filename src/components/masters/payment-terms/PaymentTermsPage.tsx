@@ -30,10 +30,13 @@ import { useCreatePaymentTermMutation } from "@/hooks/payment-terms/useCreatePay
 import { useDeletePaymentTermMutation } from "@/hooks/payment-terms/useDeletePaymentTermMutation";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
 import { useUpdatePaymentTermMutation } from "@/hooks/payment-terms/useUpdatePaymentTermMutation";
-import type {
-  CreatePaymentTermRequest,
-  PaymentTerm,
-  PaymentTermQueryParams,
+import {
+  PAYMENT_TERM_TYPE_COLOR,
+  PAYMENT_TERM_TYPE_LABEL,
+  type CreatePaymentTermRequest,
+  type PaymentTerm,
+  type PaymentTermQueryParams,
+  type PaymentTermType,
 } from "@/types/payment-terms";
 
 import PaymentTermFormModal from "./PaymentTermFormModal";
@@ -247,6 +250,21 @@ export default function PaymentTermsPage() {
           <span>{value}</span>
         </div>
       ),
+    },
+    {
+      title: "ประเภท",
+      dataIndex: "termType",
+      key: "termType",
+      width: 200,
+      render: (value: PaymentTermType | undefined, record) =>
+        value ? (
+          <Tag color={PAYMENT_TERM_TYPE_COLOR[value]}>
+            {PAYMENT_TERM_TYPE_LABEL[value]}
+            {value === "ADVANCE" ? ` ${record.advancePercent}%` : ""}
+          </Tag>
+        ) : (
+          "-"
+        ),
     },
     {
       title: "วันเครดิต",
@@ -510,7 +528,7 @@ export default function PaymentTermsPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 910 }}
+            scroll={{ x: 1110 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบเงื่อนไขตามเงื่อนไขที่ค้นหา"
