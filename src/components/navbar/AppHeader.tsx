@@ -1456,7 +1456,7 @@ const financeMenus: MenuItem[] = [
       {
         key: "finance-payable-creditors",
         screenCode: "FINANCE_PAYABLE_CREDITORS",
-        label: "รายการเจ้าหนี้",
+        label: "รายการจ่ายเงิน",
         href: "/finance/payables/creditors",
         icon: <IconPayment />,
         roles: FINANCE_MENU_ROLES,
@@ -1550,7 +1550,7 @@ const financeMenus: MenuItem[] = [
       {
         key: "finance-receivable-customers",
         screenCode: "FINANCE_RECEIVABLE_CUSTOMERS",
-        label: "รายการลูกหนี้",
+        label: "รายการรับเงิน",
         href: "/finance/receivables/customers",
         icon: <IconPayment />,
         roles: FINANCE_MENU_ROLES,
