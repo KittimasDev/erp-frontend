@@ -40,6 +40,10 @@ export type AppUser = {
   employmentType?: EmploymentType;
   hireDate?: string;
   employmentRemark?: string;
+  /** ฐานค่าจ้าง: รายเดือน = เงินเดือน, รายวัน = ค่าแรงต่อวัน — มีเฉพาะ API จัดการผู้ใช้งาน */
+  basePay?: number | null;
+  /** หักประกันสังคมในงวดเงินเดือนหรือไม่ */
+  socialSecurityEnabled?: boolean;
   canLogin: boolean;
   isActive: boolean;
   isLocked: boolean;
@@ -82,6 +86,8 @@ export type CreateUserRequest = {
   employmentType?: EmploymentType;
   hireDate?: string;
   employmentRemark?: string;
+  basePay?: number | null;
+  socialSecurityEnabled?: boolean;
   canLogin?: boolean;
   password?: string;
   roleIds?: string[];
@@ -107,6 +113,9 @@ export type UpdateUserRequest = {
   employmentType?: EmploymentType;
   hireDate?: string;
   employmentRemark?: string;
+  /** null = เคลียร์ฐานค่าจ้าง · ไม่ส่ง = ไม่แก้ */
+  basePay?: number | null;
+  socialSecurityEnabled?: boolean;
   canLogin?: boolean;
   isActive?: boolean;
   roleIds?: string[];

@@ -712,25 +712,6 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
 
 const productionMenus: MenuItem[] = [
   {
-    key: "production-requests",
-    screenCode: "PRODUCTION_REQUESTS",
-    label: "ใบขอผลิต (จากใบสั่งขาย)",
-    href: "/production/production-requests",
-    icon: <IconWarehouse />,
-    matchHrefs: [
-      "/production/production-requests",
-      "/production/production-requests/create",
-    ],
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.PRODUCTION_OFFICER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
     /*
       วางในกลุ่มการผลิต ไม่ใช่ dashboardMenus — 2 ใน 3 ของกลุ่มนั้นยังเป็น stub
       การเอาหน้าจริงไปวางที่นั่นคือฝังมันไว้กับลิงก์ตาย และห่างจากคนที่อยู่ใน
@@ -762,67 +743,30 @@ const productionMenus: MenuItem[] = [
     ],
   },
   {
+    key: "production-requests",
+    screenCode: "PRODUCTION_REQUESTS",
+    label: "ใบขอผลิต (จากใบสั่งขาย)",
+    href: "/production/production-requests",
+    icon: <IconWarehouse />,
+    matchHrefs: [
+      "/production/production-requests",
+      "/production/production-requests/create",
+    ],
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "production-orders",
     screenCode: "PRODUCTION_ORDERS",
     label: "ใบสั่งผลิต (Pyrolysis)",
     href: "/production/production-orders",
     icon: <IconWarehouse />,
-    roles: [
-      ROLE.PRODUCTION_OFFICER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "production-cycles",
-    screenCode: "PRODUCTION_CYCLES",
-    label: "รอบผลิต (Cycle 45+3 วัน)",
-    href: "/production/cycles",
-    icon: <IconWarehouse />,
-    matchHrefs: ["/production/cycles"],
-    roles: [
-      ROLE.PRODUCTION_OFFICER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "machine-devices",
-    screenCode: "MACHINE_DEVICES",
-    label: "อุปกรณ์เครื่องจักร (Machine Integration)",
-    href: "/production/machine-integration",
-    icon: <IconWarehouse />,
-    roles: [
-      ROLE.PRODUCTION_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "production-output-stock-requests",
-    screenCode: "PRODUCTION_OUTPUT_STOCK_REQUESTS",
-    label: "ขอรับผลผลิตเข้าคลัง",
-    href: "/production/output-stock-requests",
-    icon: <IconReceiving />,
-    matchHrefs: [
-      "/production/output-stock-requests",
-      "/production/output-stock-requests/create",
-    ],
-    roles: [
-      ROLE.PRODUCTION_OFFICER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "pending-production-output",
-    screenCode: "PENDING_PRODUCTION_OUTPUT",
-    label: "ใบสั่งผลิตรอรับเข้าคลัง",
-    href: "/receiving/pending-production-output",
-    icon: <IconReceiving />,
     roles: [
       ROLE.PRODUCTION_OFFICER,
       ROLE.WAREHOUSE_OFFICER,
@@ -860,6 +804,62 @@ const productionMenus: MenuItem[] = [
     ],
     icon: <IconWarehouse />,
     roles: [ROLE.PRODUCTION_OFFICER, ROLE.WAREHOUSE_MANAGER, ROLE.EXECUTIVE],
+  },
+  {
+    key: "production-output-stock-requests",
+    screenCode: "PRODUCTION_OUTPUT_STOCK_REQUESTS",
+    label: "ขอรับผลผลิตเข้าคลัง",
+    href: "/production/output-stock-requests",
+    icon: <IconReceiving />,
+    matchHrefs: [
+      "/production/output-stock-requests",
+      "/production/output-stock-requests/create",
+    ],
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "pending-production-output",
+    screenCode: "PENDING_PRODUCTION_OUTPUT",
+    label: "ใบสั่งผลิตรอรับเข้าคลัง",
+    href: "/receiving/pending-production-output",
+    icon: <IconReceiving />,
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "production-cycles",
+    screenCode: "PRODUCTION_CYCLES",
+    label: "รอบผลิต (Cycle 45+3 วัน)",
+    href: "/production/cycles",
+    icon: <IconWarehouse />,
+    matchHrefs: ["/production/cycles"],
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
+    key: "machine-devices",
+    screenCode: "MACHINE_DEVICES",
+    label: "อุปกรณ์เครื่องจักร (Machine Integration)",
+    href: "/production/machine-integration",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
   },
 ];
 
@@ -1384,14 +1384,6 @@ const hrmMenus: MenuItem[] = [
     label: "แผนกำลังคนช่วง Shutdown",
     href: "/hrm/shutdown-plans",
     icon: <IconCalendar />,
-    roles: [...HRM_ROLES],
-  },
-  {
-    key: "hrm-compensation",
-    screenCode: "HRM_COMPENSATION",
-    label: "ฐานค่าจ้างพนักงาน",
-    href: "/hrm/compensation",
-    icon: <IconReport />,
     roles: [...HRM_ROLES],
   },
   {

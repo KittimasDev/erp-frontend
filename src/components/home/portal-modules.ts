@@ -273,7 +273,6 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "USERS",
       "ROLES",
       "HRM_SHUTDOWN",
-      "HRM_COMPENSATION",
       "HRM_PAYROLL",
       "HRM_ATTENDANCE",
       "HRM_ATTENDANCE_DEVICES",

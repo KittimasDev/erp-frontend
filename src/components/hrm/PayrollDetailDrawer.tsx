@@ -77,7 +77,13 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
       width: 90,
       render: (_v, s) => (s.payType === "DAILY" ? "รายวัน" : "รายเดือน"),
     },
-    { title: "ฐานค่าจ้าง", key: "base", width: 110, align: "right", render: (_v, s) => money(s.basePay) },
+    {
+      title: "เงินเดือน / ค่าแรงรายวัน",
+      key: "base",
+      width: 150,
+      align: "right",
+      render: (_v, s) => `${money(s.basePay)} ${s.payType === "DAILY" ? "/วัน" : "/เดือน"}`,
+    },
     {
       title: "วัน (มา/ขาด/ลาจ่าย/ลาไม่จ่าย)",
       key: "days",
@@ -210,7 +216,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
             columns={columns}
             dataSource={run.slips}
             pagination={{ pageSize: 50, showTotal: (t) => `ทั้งหมด ${t} คน` }}
-            scroll={{ x: 1400 }}
+            scroll={{ x: 1440 }}
           />
           <PayrollAdjustmentsModal
             key={adjusting?.userId ?? "none"}

@@ -26,7 +26,6 @@ export function useUpdateOtSettingsMutation() {
     onSuccess: (res) => {
       message.success(res.message || "บันทึกตั้งค่าอัตรา OT แล้ว");
       void queryClient.invalidateQueries({ queryKey: ["overtime"] });
-      void queryClient.invalidateQueries({ queryKey: ["compensation"] });
     },
     onError: (error: Error) => {
       message.error(error instanceof ApiError ? error.message : "บันทึกตั้งค่าไม่สำเร็จ");

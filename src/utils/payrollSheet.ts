@@ -60,7 +60,7 @@ export function toPayrollSheet(run: PayrollRunDetail): TabularReport {
       "ตำแหน่ง",
       "แผนก",
       "ประเภทค่าจ้าง",
-      "ฐานค่าจ้าง",
+      "เงินเดือน / ค่าแรงรายวัน",
       "วันจ่าย",
       "ค่าจ้างปกติ",
       "หักขาด/ลาไม่รับเงิน",

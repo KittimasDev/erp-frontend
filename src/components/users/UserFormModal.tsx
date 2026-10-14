@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { DatePicker, Form, Input, Modal, Select, Switch } from "antd";
+import { DatePicker, Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 import dayjs from "dayjs";
 
 import { useDepartmentsQuery } from "@/hooks/departments/useDepartmentsQuery";
+import { useOtSettingsQuery } from "@/hooks/overtime/useOtSettings";
 import { usePositionsQuery } from "@/hooks/positions/usePositionsQuery";
 import { useSectionsQuery } from "@/hooks/sections/useSectionsQuery";
 import { useUsersQuery } from "@/hooks/users/useUsersQuery";
@@ -18,6 +19,12 @@ import {
 } from "@/types/users";
 import styles from "@/components/masters/shared/master-page.module.css";
 
+const DEFAULT_DAYS_PER_MONTH = 30;
+const DEFAULT_HOURS_PER_DAY = 8;
+
+const money = (value: number) =>
+  value.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 type UserFormValues = {
   username: string;
   firstName: string;
@@ -30,6 +37,8 @@ type UserFormValues = {
   employmentType?: EmploymentType;
   hireDate?: dayjs.Dayjs;
   employmentRemark?: string;
+  basePay?: number | null;
+  socialSecurityEnabled: boolean;
   canLogin: boolean;
   email?: string;
   phone?: string;
@@ -69,6 +78,16 @@ export default function UserFormModal({
   // หัวหน้างาน: เลือกจากพนักงานที่ใช้งานอยู่ (ไม่รวมตัวเอง) — backend ตรวจสายวนเป็นวงกลมอีกชั้น
   const supervisorsQuery = useUsersQuery({ isActive: true });
   const supervisorUsers = supervisorsQuery.data?.data?.items ?? [];
+  const otSettingsQuery = useOtSettingsQuery(open);
+  const employmentType = Form.useWatch("employmentType", form);
+  const basePay = Form.useWatch("basePay", form);
+  const isDaily = employmentType === "DAILY";
+  const daysPerMonth = otSettingsQuery.data?.data?.daysPerMonth ?? DEFAULT_DAYS_PER_MONTH;
+  const hoursPerDay = otSettingsQuery.data?.data?.hoursPerDay ?? DEFAULT_HOURS_PER_DAY;
+  const hourlyRate =
+    typeof basePay === "number" && basePay > 0
+      ? (isDaily ? basePay : basePay / daysPerMonth) / hoursPerDay
+      : null;
 
   useEffect(() => {
     if (!open) {
@@ -91,6 +110,8 @@ export default function UserFormModal({
           ? dayjs(initialUser.hireDate)
           : undefined,
         employmentRemark: initialUser.employmentRemark,
+        basePay: initialUser.basePay ?? null,
+        socialSecurityEnabled: initialUser.socialSecurityEnabled !== false,
         canLogin: initialUser.canLogin,
         email: initialUser.email,
         phone: initialUser.phone,
@@ -113,6 +134,8 @@ export default function UserFormModal({
       employmentType: undefined,
       hireDate: undefined,
       employmentRemark: undefined,
+      basePay: null,
+      socialSecurityEnabled: true,
       canLogin: true,
       email: undefined,
       phone: undefined,
@@ -141,6 +164,8 @@ export default function UserFormModal({
         employmentType: values.employmentType,
         hireDate,
         employmentRemark: values.employmentRemark?.trim() || undefined,
+        basePay: values.basePay ?? undefined,
+        socialSecurityEnabled: values.socialSecurityEnabled,
         canLogin: values.canLogin,
         email: values.email?.trim() || undefined,
         phone: values.phone?.trim() || undefined,
@@ -167,6 +192,9 @@ export default function UserFormModal({
       employmentType: values.employmentType,
       hireDate,
       employmentRemark: values.employmentRemark?.trim() || undefined,
+      // เคลียร์ช่อง = null · ถ้าไม่เคยตั้งมาก่อนแล้วปล่อยว่างให้ไม่ส่ง
+      basePay: values.basePay ?? (initialUser?.basePay != null ? null : undefined),
+      socialSecurityEnabled: values.socialSecurityEnabled,
       canLogin: values.canLogin,
       email: values.email?.trim() || undefined,
       phone: values.phone?.trim() || undefined,
@@ -205,7 +233,7 @@ export default function UserFormModal({
         </div>
       </div>
 
-      <Form form={form} layout="vertical" requiredMark={false}>
+      <Form form={form} layout="vertical" requiredMark={false} className={styles.form}>
         <Form.Item
           label="รหัสพนักงาน"
           name="employeeCode"
@@ -309,6 +337,39 @@ export default function UserFormModal({
 
         <Form.Item label="วันที่เริ่มงาน" name="hireDate">
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+        </Form.Item>
+
+        <Form.Item
+          label={isDaily ? "ค่าแรงรายวัน (บาท)" : "เงินเดือน (บาท)"}
+          name="basePay"
+          extra="ใช้คำนวณเงิน OT และเงินเดือน · คำขอ OT ที่อนุมัติไปแล้วไม่ถูกคำนวณใหม่"
+        >
+          <InputNumber
+            style={{ width: "100%" }}
+            min={0}
+            max={99999999}
+            precision={2}
+            placeholder={isDaily ? "กรอกค่าแรงรายวัน" : "กรอกเงินเดือน"}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="ค่าแรง/ชม. (บาท)"
+          extra={
+            isDaily
+              ? `ค่าแรงรายวัน ÷ ${hoursPerDay} ชม.`
+              : `เงินเดือน ÷ ${daysPerMonth} วัน ÷ ${hoursPerDay} ชม.`
+          }
+        >
+          <Input value={hourlyRate === null ? "—" : money(hourlyRate)} disabled />
+        </Form.Item>
+
+        <Form.Item
+          label="ประกันสังคม"
+          name="socialSecurityEnabled"
+          valuePropName="checked"
+        >
+          <Switch checkedChildren="มี" unCheckedChildren="ไม่มี" />
         </Form.Item>
 
         <Form.Item label="หมายเหตุ HR" name="employmentRemark">

@@ -63,7 +63,6 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/hrm/shifts", title: "ตารางกะการทำงาน" },
   { href: "/hrm/shift-assignments", title: "รายการเข้ากะ" },
   { href: "/hrm/shutdown-plans", title: "แผนกำลังคนช่วง Shutdown" },
-  { href: "/hrm/compensation", title: "ฐานค่าจ้างพนักงาน" },
   { href: "/hrm/payroll", title: "เงินเดือน" },
   { href: "/hrm/attendance", title: "บันทึกเวลาเข้า-ออกงาน" },
   { href: "/hrm/attendance-devices", title: "เครื่องสแกนนิ้ว/RFID" },

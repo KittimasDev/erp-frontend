@@ -279,7 +279,6 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
 
   // HRM / finance
   { prefix: "/hrm/shutdown-plans", screenCodes: ["HRM_SHUTDOWN"] },
-  { prefix: "/hrm/compensation", screenCodes: ["HRM_COMPENSATION"] },
   { prefix: "/hrm/payroll", screenCodes: ["HRM_PAYROLL"] },
   { prefix: "/hrm/attendance-devices", screenCodes: ["HRM_ATTENDANCE_DEVICES"] },
   { prefix: "/hrm/attendance", screenCodes: ["HRM_ATTENDANCE"] },
@@ -641,7 +640,6 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   MAINTENANCE_SHUTDOWN: "/maintenance/shutdown-plans",
   USERS: "/users",
   HRM_SHUTDOWN: "/hrm/shutdown-plans",
-  HRM_COMPENSATION: "/hrm/compensation",
   HRM_PAYROLL: "/hrm/payroll",
   HRM_ATTENDANCE: "/hrm/attendance",
   HRM_ATTENDANCE_DEVICES: "/hrm/attendance-devices",

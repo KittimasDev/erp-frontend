@@ -67,7 +67,7 @@ export default function ResetPasswordModal({
         </div>
       </div>
 
-      <Form form={form} layout="vertical" requiredMark={false}>
+      <Form form={form} layout="vertical" requiredMark={false} className={styles.form}>
         <Form.Item
           label="รหัสผ่านใหม่"
           name="newPassword"
