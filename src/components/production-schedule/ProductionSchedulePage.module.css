@@ -1,0 +1,109 @@
+.page {
+  display: grid;
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #6b7280;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 12px;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.chip {
+  display: grid;
+  gap: 1px;
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.chip strong {
+  font-weight: 600;
+}
+
+.prod {
+  background: #e7f6d8;
+  color: #3f6212;
+}
+
+.shutdown {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.extra {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.pending {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #f87171;
+}
+
+.draftList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.draftRow {
+  display: grid;
+  grid-template-columns: 28px 72px minmax(140px, 180px) 1fr;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.draftMeta {
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.gapBanner {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #dbeafe;
+  color: #1e40af;
+  font-size: 13px;
+}

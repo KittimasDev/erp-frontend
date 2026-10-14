@@ -79,6 +79,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/oil-tank-farm/dispatches", title: "จ่ายน้ำมันออกจากถัง" },
   { href: "/production/production-requests", title: "ใบขอผลิต (จากใบสั่งขาย)" },
   { href: "/production/dashboard", title: "แดชบอร์ดการผลิต" },
+  { href: "/production/schedule", title: "ตารางการผลิต" },
   { href: "/production/production-orders", title: "ใบสั่งผลิต (Pyrolysis)" },
   { href: "/production/cycles", title: "รอบผลิต (Cycle 45+3 วัน)" },
   { href: "/production/machine-integration", title: "อุปกรณ์เครื่องจักร (Machine Integration)" },

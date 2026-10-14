@@ -29,6 +29,7 @@ import {
   useShiftAutoPlanRolesQuery,
   useShiftPlanCycleQuery,
 } from "@/hooks/shifts/useShiftQueries";
+import { useConfirmedProductionRoundsQuery } from "@/hooks/production-schedule/useProductionSchedule";
 import {
   useApplyShiftAutoPlanMutation,
   useShiftAutoPlanPreviewMutation,
@@ -43,8 +44,8 @@ import type {
 import ShiftAutoPlanPreview from "./ShiftAutoPlanPreview";
 import styles from "./ShiftAutoPlanModal.module.css";
 
-/** ช่วงที่จะจัด: รอบวางกะ (45 วัน) / ทั้งเดือน / กำหนดช่วงวันที่เอง */
-type PeriodMode = "cycle" | "month" | "custom";
+/** ช่วงที่จะจัด: รอบวางกะ / รอบการผลิตที่ยืนยันแล้ว / ทั้งเดือน / กำหนดช่วงวันที่เอง */
+type PeriodMode = "cycle" | "production" | "month" | "custom";
 
 /** ช่วงวันที่เป็น พ.ศ. แบบสั้น เช่น 01/10/2569 */
 function formatBeShort(isoDate: string) {
@@ -99,6 +100,7 @@ export default function ShiftAutoPlanModal({
   const [targetMonth, setTargetMonth] = useState<Dayjs>(month);
   const [periodMode, setPeriodMode] = useState<PeriodMode>("cycle");
   const [cycleIndex, setCycleIndex] = useState<number | null>(null);
+  const [productionRoundId, setProductionRoundId] = useState<string | null>(null);
   const [customRange, setCustomRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [cycleDraftStart, setCycleDraftStart] = useState<Dayjs | null>(null);
   const [cycleDraftLength, setCycleDraftLength] = useState<number>(45);
@@ -117,6 +119,7 @@ export default function ShiftAutoPlanModal({
     useState(false);
 
   const cycleQuery = useShiftPlanCycleQuery(open);
+  const confirmedRoundsQuery = useConfirmedProductionRoundsQuery(open);
   const updateCycleMutation = useUpdateShiftPlanCycleMutation();
   const cycle = cycleQuery.data?.data;
   const rolesQuery = useShiftAutoPlanRolesQuery(open);
@@ -169,6 +172,9 @@ export default function ShiftAutoPlanModal({
   );
   const selectedCycle =
     cycleChoices.find((item) => item.index === cycleIndex) ?? cycle?.current;
+  const confirmedRounds = confirmedRoundsQuery.data?.data ?? [];
+  const selectedProduction =
+    confirmedRounds.find((item) => item.id === productionRoundId) ?? null;
 
   /**
    * ช่วงที่จะส่งให้ backend — รอบ/กำหนดเอง ส่ง dateFrom+dateTo · รายเดือนส่ง month
@@ -195,6 +201,18 @@ export default function ShiftAutoPlanModal({
         to: selectedCycle.dateTo,
       };
     }
+    if (periodMode === "production") {
+      if (!selectedProduction) return null;
+      const from = selectedProduction.startDate;
+      const to = selectedProduction.endDate;
+      return {
+        payload: { dateFrom: from, dateTo: to },
+        label: `${selectedProduction.roundNo} · ${formatBeShort(from)} – ${formatBeShort(to)}`,
+        days: dayjs(to).diff(dayjs(from), "day") + 1,
+        from,
+        to,
+      };
+    }
     if (!customRange) return null;
     const from = customRange[0].format("YYYY-MM-DD");
     const to = customRange[1].format("YYYY-MM-DD");
@@ -205,7 +223,7 @@ export default function ShiftAutoPlanModal({
       from,
       to,
     };
-  }, [periodMode, targetMonth, selectedCycle, customRange]);
+  }, [periodMode, targetMonth, selectedCycle, selectedProduction, customRange]);
   const periodTooLong = Boolean(period && period.days > 62);
 
   const shiftOptions = shifts.map((shift) => ({
@@ -609,6 +627,7 @@ export default function ShiftAutoPlanModal({
               }}
               options={[
                 { label: `รอบวางกะ (${cycle?.cycleLengthDays ?? 45} วัน)`, value: "cycle" },
+                { label: "รอบการผลิตที่ยืนยันแล้ว", value: "production" },
                 { label: "ทั้งเดือน", value: "month" },
                 { label: "กำหนดช่วงเอง", value: "custom" },
               ]}
@@ -626,6 +645,24 @@ export default function ShiftAutoPlanModal({
                     invalidatePlan();
                   }
                 }}
+              />
+            ) : null}
+
+            {periodMode === "production" ? (
+              <Select
+                aria-label="รอบการผลิตที่ยืนยันแล้ว"
+                placeholder="เลือกรอบการผลิตที่ยืนยันแล้ว"
+                loading={confirmedRoundsQuery.isLoading}
+                value={productionRoundId ?? undefined}
+                onChange={(value) => {
+                  setProductionRoundId(value);
+                  invalidatePlan();
+                }}
+                notFoundContent="ยังไม่มีรอบการผลิตที่ยืนยันแล้ว"
+                options={confirmedRounds.map((item) => ({
+                  value: item.id,
+                  label: `${item.roundNo} · ${formatBeShort(item.startDate)} – ${formatBeShort(item.endDate)}`,
+                }))}
               />
             ) : null}
 

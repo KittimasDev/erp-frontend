@@ -749,6 +749,19 @@ const productionMenus: MenuItem[] = [
     ],
   },
   {
+    key: "production-schedule",
+    screenCode: "PRODUCTION_SCHEDULE",
+    label: "ตารางการผลิต",
+    href: "/production/schedule",
+    icon: <IconCalendar />,
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "production-orders",
     screenCode: "PRODUCTION_ORDERS",
     label: "ใบสั่งผลิต (Pyrolysis)",

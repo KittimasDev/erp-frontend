@@ -74,6 +74,9 @@ export type DeliveryOrder = {
   vehiclePlate?: string;
   driverName?: string;
   driverPhone?: string;
+  vehicleWeightBeforeKg?: string;
+  vehicleWeightAfterKg?: string;
+  cargoNetWeightKg?: string;
   status: DeliveryOrderStatus | string;
   remark?: string;
   confirmedAt?: string;
@@ -145,6 +148,9 @@ export type CreateDeliveryOrderFromPackingBody = {
   vehiclePlate?: string;
   driverName?: string;
   driverPhone?: string;
+  vehicleWeightBeforeKg?: number | null;
+  vehicleWeightAfterKg?: number | null;
+  cargoNetWeightKg?: number | null;
   remark?: string;
 };
 

@@ -138,6 +138,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     tone: "teal",
     screenCodes: [
       "PRODUCTION_DASHBOARD",
+      "PRODUCTION_SCHEDULE",
       "PRODUCTION_REQUESTS",
       "PRODUCTION_ORDERS",
       "PRODUCTION_OUTPUT_STOCK_REQUESTS",

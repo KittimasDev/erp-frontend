@@ -9,6 +9,7 @@ import {
   Button,
   DatePicker,
   Input,
+  InputNumber,
   Spin,
   Table,
   Tag,
@@ -52,6 +53,27 @@ import {
 import DeliveryResultModal from "./DeliveryResultModal";
 import styles from "./DeliveryOrderFormPage.module.css";
 
+function formatWeightKg(value?: string) {
+  if (value == null || value === "") return "—";
+  const n = Number(value);
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+}
+
+function weightInputValue(value: string): number | null {
+  if (value === "") return null;
+  const n = Number(value);
+  return Number.isNaN(n) ? null : n;
+}
+
+type WeightField =
+  | "vehicleWeightBeforeKg"
+  | "vehicleWeightAfterKg"
+  | "cargoNetWeightKg";
+
 type Props = { id: string; mode: "view" | "edit" };
 
 export default function DeliveryOrderFormPage({ id, mode }: Props) {
@@ -84,6 +106,9 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     vehiclePlate: "",
     driverName: "",
     driverPhone: "",
+    vehicleWeightBeforeKg: "",
+    vehicleWeightAfterKg: "",
+    cargoNetWeightKg: "",
     remark: "",
   });
 
@@ -112,6 +137,9 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       vehiclePlate: data.vehiclePlate ?? "",
       driverName: data.driverName ?? "",
       driverPhone: data.driverPhone ?? "",
+      vehicleWeightBeforeKg: data.vehicleWeightBeforeKg ?? "",
+      vehicleWeightAfterKg: data.vehicleWeightAfterKg ?? "",
+      cargoNetWeightKg: data.cargoNetWeightKg ?? "",
       remark: data.remark ?? "",
     });
   }
@@ -150,6 +178,22 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
   const packingNosText =
     packingRefs.map((ref) => ref.packingNo ?? ref.packingId).join(", ") || "—";
 
+  const setWeight = (field: WeightField, value: number | null) => {
+    setForm((current) => {
+      const next = {
+        ...current,
+        [field]: value == null ? "" : value.toFixed(3),
+      };
+      if (field === "cargoNetWeightKg") return next;
+      const before = weightInputValue(next.vehicleWeightBeforeKg);
+      const after = weightInputValue(next.vehicleWeightAfterKg);
+      if (before != null && after != null) {
+        next.cargoNetWeightKg = (after - before).toFixed(3);
+      }
+      return next;
+    });
+  };
+
   const save = async () => {
     await updateMutation.mutateAsync({
       id,
@@ -162,6 +206,9 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
         vehiclePlate: form.vehiclePlate,
         driverName: form.driverName,
         driverPhone: form.driverPhone,
+        vehicleWeightBeforeKg: weightInputValue(form.vehicleWeightBeforeKg),
+        vehicleWeightAfterKg: weightInputValue(form.vehicleWeightAfterKg),
+        cargoNetWeightKg: weightInputValue(form.cargoNetWeightKg),
         remark: form.remark,
       },
     });
@@ -361,6 +408,9 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 carrierName: data.carrierName ?? "—",
                 vehiclePlate: data.vehiclePlate ?? "—",
                 driverName: data.driverName ?? "—",
+                vehicleWeightBeforeKg: formatWeightKg(data.vehicleWeightBeforeKg),
+                vehicleWeightAfterKg: formatWeightKg(data.vehicleWeightAfterKg),
+                cargoNetWeightKg: formatWeightKg(data.cargoNetWeightKg),
                 remark: data.remark?.trim() || "",
                 items: (data.items ?? []).map((item, index) => ({
                   no: index + 1,
@@ -713,6 +763,30 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               </div>
             )}
           </label>
+          {(
+            [
+              ["vehicleWeightBeforeKg", "น้ำหนักรถก่อนบรรทุก (กก.)"],
+              ["vehicleWeightAfterKg", "น้ำหนักรถหลังบรรทุก (กก.)"],
+              ["cargoNetWeightKg", "น้ำหนักสินค้าสุทธิ (กก.)"],
+            ] as const
+          ).map(([field, label]) => (
+            <label key={field} className={styles.field}>
+              <span>{label}</span>
+              {editable ? (
+                <InputNumber
+                  value={weightInputValue(form[field])}
+                  min={0}
+                  precision={3}
+                  style={{ width: "100%" }}
+                  onChange={(value) => setWeight(field, value)}
+                />
+              ) : (
+                <div className={styles.fieldValue}>
+                  {formatWeightKg(form[field])}
+                </div>
+              )}
+            </label>
+          ))}
         </div>
       </section>
 

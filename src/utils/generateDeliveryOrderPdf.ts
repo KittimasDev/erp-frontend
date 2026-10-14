@@ -16,6 +16,9 @@ export type DeliveryOrderPdfData = {
   carrierName: string;
   vehiclePlate: string;
   driverName: string;
+  vehicleWeightBeforeKg: string;
+  vehicleWeightAfterKg: string;
+  cargoNetWeightKg: string;
   remark: string;
   items: SalesLinePdfItem[];
 };
@@ -36,6 +39,9 @@ export async function generateDeliveryOrderPdf(data: DeliveryOrderPdfData) {
       { label: "ขนส่ง", value: data.carrierName },
       { label: "ทะเบียนรถ", value: data.vehiclePlate },
       { label: "คนขับ", value: data.driverName },
+      { label: "น้ำหนักรถก่อนบรรทุก (กก.)", value: data.vehicleWeightBeforeKg },
+      { label: "น้ำหนักรถหลังบรรทุก (กก.)", value: data.vehicleWeightAfterKg },
+      { label: "น้ำหนักสินค้าสุทธิ (กก.)", value: data.cargoNetWeightKg },
       {
         label: "ที่อยู่จัดส่ง",
         value: data.shippingAddress,

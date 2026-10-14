@@ -262,6 +262,16 @@ function formatQty(value?: string) {
   });
 }
 
+function formatWeightKg(value?: string) {
+  if (value == null || value === "") return "—";
+  const n = Number(value);
+  if (Number.isNaN(n)) return "—";
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 3,
+  });
+}
+
 function isReturnResult(result?: string): boolean {
   return result === "FULL_RETURN" || result === "PARTIAL_RETURN";
 }
@@ -722,6 +732,9 @@ export default function SalesTrackingPage() {
         carrierName: data.carrierName ?? "—",
         vehiclePlate: data.vehiclePlate ?? "—",
         driverName: data.driverName ?? "—",
+        vehicleWeightBeforeKg: formatWeightKg(data.vehicleWeightBeforeKg),
+        vehicleWeightAfterKg: formatWeightKg(data.vehicleWeightAfterKg),
+        cargoNetWeightKg: formatWeightKg(data.cargoNetWeightKg),
         remark: data.remark?.trim() || "",
         items: (data.items ?? []).map((item, index) => ({
           no: index + 1,
