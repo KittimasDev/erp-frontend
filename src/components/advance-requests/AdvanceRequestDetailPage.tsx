@@ -21,6 +21,9 @@ import {
 } from "@/types/advance-payment-requests";
 import { ADVANCE_BASE_PATH, ADVANCE_SCREEN } from "./AdvanceRequestsListPage";
 
+/** หน้าใบสำคัญจ่าย — ยังเป็นหน้าเปล่า จะชี้ไปหน้ารายละเอียด PV เมื่อสร้างหน้านั้น */
+const PV_PATH = "/finance/payables/payment-vouchers";
+
 /** รายละเอียดรายการขอจ่ายล่วงหน้า / มัดจำ (อ่านอย่างเดียว) */
 export default function AdvanceRequestDetailPage({ id }: { id: string }) {
   const router = useRouter();
@@ -47,7 +50,11 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
             {r.status === "DRAFT" && (perms.canEdit || perms.canApprove) ? (
               <Button type="primary" onClick={() => router.push(`${ADVANCE_BASE_PATH}/${r.id}/edit`)}>แก้ไข / ตรวจ WHT / ยืนยัน</Button>
             ) : null}
-            {r.status !== "CANCELLED" && perms.canDelete ? (
+            {r.status === "PV_CREATED" ? (
+              <Button type="primary" onClick={() => router.push(PV_PATH)}>ดูใบสำคัญจ่าย</Button>
+            ) : null}
+            {/* ยกเลิกได้เฉพาะสถานะร่าง — ยืนยันแล้วหรือสร้าง PV แล้วดูรายละเอียดได้อย่างเดียว */}
+            {r.status === "DRAFT" && perms.canDelete ? (
               <Button danger onClick={() => setCancelling(true)}>ยกเลิกรายการ</Button>
             ) : null}
           </Space>
@@ -56,6 +63,14 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
 
       {r.status === "PENDING_PV" ? (
         <Alert type="success" showIcon title="ยืนยันรายการแล้ว — พร้อมนำไปสร้างใบสำคัญจ่าย (PV) ขั้นตอนถัดไป" description={r.confirmedAt ? `ยืนยันเมื่อ ${dayjs(r.confirmedAt).format("DD/MM/YYYY HH:mm")}` : undefined} />
+      ) : null}
+      {r.status === "PV_CREATED" ? (
+        <Alert
+          type="success"
+          showIcon
+          title={`สร้างใบสำคัญจ่ายแล้ว${r.paymentVoucherNo ? ` — ${r.paymentVoucherNo}` : ""}`}
+          description={r.pvCreatedAt ? `สร้างเมื่อ ${dayjs(r.pvCreatedAt).format("DD/MM/YYYY HH:mm")} · รายการนี้แก้ไขหรือยกเลิกไม่ได้ (ถ้าต้องยกเลิกให้ทำที่ใบสำคัญจ่าย)` : undefined}
+        />
       ) : null}
       {r.status === "CANCELLED" ? (
         <Alert type="error" showIcon title={`ยกเลิกเมื่อ ${r.cancelledAt ? dayjs(r.cancelledAt).format("DD/MM/YYYY HH:mm") : "-"}`} description={r.cancelReason} />

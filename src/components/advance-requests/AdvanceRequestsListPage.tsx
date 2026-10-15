@@ -45,6 +45,7 @@ export default function AdvanceRequestsListPage() {
     { title: "WHT", dataIndex: "whtAmount", align: "right", render: (v: number, r) => (r.whtApplicable ? money.format(v) : "—") },
     { title: "ยอดโอนจริง", dataIndex: "netTransferAmount", align: "right", render: (v: number) => money.format(v) },
     { title: "วันที่ต้องการจ่าย", dataIndex: "desiredPayDate", width: 130, render: (v?: string) => formatThaiDate(v) },
+    { title: "ใบสำคัญจ่าย", dataIndex: "paymentVoucherNo", width: 150, render: (v?: string) => v ?? "—" },
     {
       title: "สถานะ",
       dataIndex: "status",

@@ -1,14 +1,16 @@
-export type AdvanceRequestStatus = "DRAFT" | "PENDING_PV" | "CANCELLED";
+export type AdvanceRequestStatus = "DRAFT" | "PENDING_PV" | "PV_CREATED" | "CANCELLED";
 
 export const ADVANCE_STATUS_LABEL: Record<string, string> = {
   DRAFT: "ร่าง",
   PENDING_PV: "รอสร้างใบสำคัญจ่าย",
+  PV_CREATED: "สร้างใบสำคัญจ่ายแล้ว",
   CANCELLED: "ยกเลิก",
 };
 
 export const ADVANCE_STATUS_COLOR: Record<string, string> = {
   DRAFT: "default",
-  PENDING_PV: "green",
+  PENDING_PV: "gold",
+  PV_CREATED: "green",
   CANCELLED: "red",
 };
 
@@ -74,6 +76,10 @@ export type AdvanceRequest = {
   whtVerifiedAt?: string;
   requestedById?: string;
   requestedByName?: string;
+  /** ใบสำคัญจ่ายที่สร้างจากรายการนี้ (สถานะ PV_CREATED) */
+  paymentVoucherId?: string;
+  paymentVoucherNo?: string;
+  pvCreatedAt?: string;
   confirmedAt?: string;
   cancelledAt?: string;
   cancelReason?: string;
