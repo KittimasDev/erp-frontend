@@ -260,6 +260,7 @@ function resolvePageTitle(
   for (const [base, label] of [
     ["/finance/payables/ap-invoices", "ใบตั้งหนี้"],
     ["/finance/payables/debit-notes", "ใบเพิ่มหนี้"],
+    ["/finance/payables/creditors", "รายการจ่ายเงิน"],
   ] as const) {
     if (!pathname.startsWith(`${base}/`)) continue;
     if (pathname === `${base}/create`) return `สร้าง${label}`;

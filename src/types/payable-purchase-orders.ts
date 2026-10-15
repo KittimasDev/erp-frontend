@@ -53,7 +53,46 @@ export type PayablePurchaseOrderLine = {
   amount: number;
 };
 
+export type PaymentInstallmentKind =
+  | "DEPOSIT"
+  | "BALANCE"
+  | "ON_RECEIPT"
+  | "CREDIT"
+  | "FULL";
+
+/** งวดในแผนการจ่ายตาม PO — ไม่ใช่ประวัติการจ่ายจริง */
+export type PaymentInstallment = {
+  seq: number;
+  kind: PaymentInstallmentKind;
+  label: string;
+  percent: number;
+  amount: number;
+  dueDate: string | null;
+  dueNote: string;
+};
+
+export type CreditBaseSource = "EXPECTED_DELIVERY" | "PO_DATE";
+
+export const CREDIT_BASE_SOURCE_LABEL: Record<CreditBaseSource, string> = {
+  EXPECTED_DELIVERY: "วันส่งมอบที่ระบุใน PO",
+  PO_DATE: "วันที่ PO (PO ไม่ระบุวันส่งมอบ)",
+};
+
+export type PaymentPlan = {
+  termType: PaymentTermType | null;
+  depositPercent: number | null;
+  depositAmount: number | null;
+  remainingAmount: number | null;
+  creditDays: number | null;
+  creditBaseDate: string | null;
+  creditBaseSource: CreditBaseSource | null;
+  installments: PaymentInstallment[];
+};
+
 export type PayablePurchaseOrderDetail = PayablePurchaseOrder & {
+  currency: string;
+  amountBeforeVat: number;
+  paymentPlan: PaymentPlan;
   vatMode: string;
   subtotalAmount: number;
   discountAmount: number;

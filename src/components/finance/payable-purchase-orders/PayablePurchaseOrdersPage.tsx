@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { App, Button, Card, Input, Select, Space, Table, Tag, Typography } from "antd";
 import { EyeOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -23,7 +24,6 @@ import {
 import { PAYMENT_TERM_TYPE_COLOR, PAYMENT_TERM_TYPE_LABEL } from "@/types/payment-terms";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 
-import PayablePurchaseOrderDetailDrawer from "./PayablePurchaseOrderDetailDrawer";
 import {
   describeTerm,
   formatThaiDate,
@@ -34,15 +34,16 @@ import {
 } from "./payableFormat";
 
 const PAGE_SIZE = 20;
+const DETAIL_BASE_PATH = "/finance/payables/creditors";
 
 export default function PayablePurchaseOrdersPage() {
+  const router = useRouter();
   const { message } = App.useApp();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
   const [termType, setTermType] = useState<PayableTermTypeFilter | undefined>();
   const [status, setStatus] = useState<PayableItemStatus | undefined>();
-  const [detailId, setDetailId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const canExport = !isMatrixPermissionMode() || hasPermission(`${SCREEN_CODE}.EXPORT`);
 
@@ -175,7 +176,14 @@ export default function PayablePurchaseOrdersPage() {
       align: "center",
       fixed: "right",
       render: (_, row) => (
-        <Button size="small" icon={<EyeOutlined />} onClick={() => setDetailId(row.id)}>
+        <Button
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={(event) => {
+            event.stopPropagation();
+            router.push(`${DETAIL_BASE_PATH}/${row.id}`);
+          }}
+        >
           ดูรายละเอียด
         </Button>
       ),
@@ -259,9 +267,12 @@ export default function PayablePurchaseOrdersPage() {
             showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`,
           }}
           locale={{ emptyText: "ไม่มีใบสั่งซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก" }}
+          onRow={(record) => ({
+            onClick: () => router.push(`${DETAIL_BASE_PATH}/${record.id}`),
+            style: { cursor: "pointer" },
+          })}
         />
       )}
-      <PayablePurchaseOrderDetailDrawer id={detailId} onClose={() => setDetailId(null)} />
     </Card>
   );
 }
