@@ -191,7 +191,7 @@ export default function ProductionSchedulePage() {
               const pending = !day.confirmed;
               return (
                 <Tooltip
-                  title={`${day.roundNo} · ${DAY_LABEL[day.dayType]} · ${STATUS_LABEL[day.displayStatus]}`}
+                  title={`${day.roundNo} · ${DAY_LABEL[day.dayType]} · ${STATUS_LABEL[day.displayStatus]}${day.note ? ` · ${day.note}` : ""}`}
                 >
                   <div className={`${styles.chip} ${pending ? styles.pending : DAY_CLASS[day.dayType]}`}>
                     <strong>{day.roundNo}</strong>

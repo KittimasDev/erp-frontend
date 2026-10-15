@@ -48,11 +48,28 @@ export function roundWindow(startDate: string) {
   };
 }
 
-export type DraftRound = PlannedRound & { selected: boolean };
+export type DraftHoliday = { date: string; note: string };
+
+export type DraftRound = PlannedRound & { selected: boolean; holidays: DraftHoliday[] };
 
 export function draftFromFirstStart(startDate: string): DraftRound[] {
-  return previewSixRounds(startDate).map((round) => ({ ...round, selected: true }));
+  return previewSixRounds(startDate).map((round) => ({
+    ...round,
+    selected: true,
+    holidays: [],
+  }));
 }
+
+/** วันหยุดของรอบเลือกได้ตั้งแต่วันเริ่มผลิตถึงวันสุดท้ายของ Shutdown */
+export function isWithinRound(round: PlannedRound, iso: string) {
+  return iso >= round.startDate && iso <= round.shutdownEndDate;
+}
+
+export function isShutdownDay(round: PlannedRound, iso: string) {
+  return iso >= round.shutdownStartDate && iso <= round.shutdownEndDate;
+}
+
+export type DroppedHoliday = { index: number; date: string; note: string };
 
 export type ExistingWindow = {
   roundNo: string;
@@ -67,17 +84,23 @@ function rangesOverlap(
   return a.startDate <= b.shutdownEndDate && b.startDate <= a.shutdownEndDate;
 }
 
-/** เปลี่ยนวันเริ่มรอบที่ index แล้วจัดรอบถัดไปให้ชิดกัน รอบก่อนหน้าไม่เปลี่ยน */
+/**
+ * เปลี่ยนวันเริ่มรอบที่ index แล้วจัดรอบถัดไปให้ชิดกัน รอบก่อนหน้าไม่เปลี่ยน
+ * วันหยุดที่หลุดช่วงใหม่ถูกตัดทิ้งและคืนใน dropped
+ */
 export function shiftDraftStart(
   rounds: DraftRound[],
   index: number,
   newStart: string,
   existing: ExistingWindow[],
-): { ok: true; rounds: DraftRound[] } | { ok: false; message: string } {
+):
+  | { ok: true; rounds: DraftRound[]; dropped: DroppedHoliday[] }
+  | { ok: false; message: string } {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(newStart)) {
     return { ok: false, message: "วันเริ่มไม่ถูกต้อง" };
   }
   const next = rounds.map((round) => ({ ...round }));
+  const dropped: DroppedHoliday[] = [];
   let cursor = newStart;
   for (let i = index; i < next.length; i += 1) {
     const window = roundWindow(cursor);
@@ -89,10 +112,15 @@ export function shiftDraftStart(
     if (clash) {
       return { ok: false, message: `ช่วงวันทับกับรอบ ${clash.roundNo}` };
     }
-    next[i] = { ...next[i], ...window };
+    const moved = { ...next[i], ...window };
+    const kept = moved.holidays.filter((holiday) => isWithinRound(moved, holiday.date));
+    for (const holiday of moved.holidays) {
+      if (!kept.includes(holiday)) dropped.push({ index: moved.index, ...holiday });
+    }
+    next[i] = { ...moved, holidays: kept };
     cursor = addIsoDays(window.shutdownEndDate, 1);
   }
-  return { ok: true, rounds: next };
+  return { ok: true, rounds: next, dropped };
 }
 
 /** ช่วงว่างระหว่าง Shutdown ของรอบก่อนกับวันเริ่มรอบนี้ ไม่มีเมื่อรอบชิดกัน */

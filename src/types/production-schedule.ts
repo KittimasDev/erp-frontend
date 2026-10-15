@@ -2,6 +2,13 @@ export type ScheduleDisplayStatus = "PENDING" | "CONFIRMED" | "OVERDUE";
 
 export type ScheduleDayType = "PRODUCTION" | "SHUTDOWN" | "EXTRA_OFF";
 
+export type ScheduleHolidayInput = { date: string; note: string };
+
+/** EXTRA_OFF = วันหยุดผลิตเพิ่มในช่วงผลิต · SHUTDOWN = ตรงกับวัน Shutdown (ยังนับเป็น Shutdown) */
+export type ScheduleHoliday = ScheduleHolidayInput & {
+  dayType: "EXTRA_OFF" | "SHUTDOWN";
+};
+
 export type ScheduleRound = {
   id: string;
   planId: string;
@@ -14,6 +21,7 @@ export type ScheduleRound = {
   runDays: number;
   shutdownDays: number;
   extraOffDates: string[];
+  holidays: ScheduleHoliday[];
   status: "PENDING" | "CONFIRMED";
   displayStatus: ScheduleDisplayStatus;
   confirmByDate: string;
@@ -57,6 +65,7 @@ export type ScheduleCalendarDay = {
   dayType: ScheduleDayType;
   displayStatus: ScheduleDisplayStatus;
   confirmed: boolean;
+  note?: string | null;
 };
 
 export type ScheduleCalendar = {
@@ -82,7 +91,7 @@ export type ConfirmedProductionRound = {
 };
 
 export type CreateProductionPlanBody = {
-  rounds: { startDate: string }[];
+  rounds: { startDate: string; holidays?: ScheduleHolidayInput[] }[];
 };
 
 export type UpdateScheduleRoundBody = {

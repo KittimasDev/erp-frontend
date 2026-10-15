@@ -26,6 +26,7 @@ export default function EditProductionRoundModal({ round, onClose }: Props) {
   const update = useUpdateScheduleRoundMutation();
   const [extraDates, setExtraDates] = useState<string[]>(round.extraOffDates);
   const [picker, setPicker] = useState<Dayjs | null>(null);
+  const noteByDate = new Map(round.holidays.map((holiday) => [holiday.date, holiday.note]));
   const start = Form.useWatch("startDate", form);
   const window = start ? roundWindow(start.format("YYYY-MM-DD")) : null;
   const outside = window ? extraDates.filter((date) => date > window.endDate) : [];
@@ -127,6 +128,7 @@ export default function EditProductionRoundModal({ round, onClose }: Props) {
             onClose={() => setExtraDates((prev) => prev.filter((item) => item !== date))}
           >
             {fmtDate(date)}
+            {noteByDate.get(date) ? ` · ${noteByDate.get(date)}` : ""}
           </Tag>
         ))}
       </div>

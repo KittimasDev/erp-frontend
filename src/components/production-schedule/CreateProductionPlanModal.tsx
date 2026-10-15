@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { App, Checkbox, DatePicker, Modal } from "antd";
+import { App, Button, Checkbox, DatePicker, Input, Modal, Tag } from "antd";
+import { DeleteOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useCreateProductionPlanMutation } from "@/hooks/production-schedule/useProductionSchedule";
@@ -12,7 +13,10 @@ import {
   draftFromFirstStart,
   fmtDate,
   gapBetween,
+  isShutdownDay,
+  isWithinRound,
   shiftDraftStart,
+  type DraftHoliday,
   type DraftRound,
 } from "./schedule-dates";
 import styles from "./ProductionSchedulePage.module.css";
@@ -50,6 +54,29 @@ export default function CreateProductionPlanModal({
   }, [open, previous]);
 
   const selectedCount = rounds.filter((round) => round.selected).length;
+  const missingNote = rounds.some(
+    (round) => round.selected && round.holidays.some((holiday) => !holiday.note.trim()),
+  );
+
+  const updateHolidays = (
+    roundIndex: number,
+    change: (holidays: DraftHoliday[]) => DraftHoliday[],
+  ) =>
+    setRounds((current) =>
+      current.map((item) =>
+        item.index === roundIndex ? { ...item, holidays: change(item.holidays) } : item,
+      ),
+    );
+
+  const addHoliday = (roundIndex: number, value: Dayjs | null) => {
+    if (!value) return;
+    const iso = value.format("YYYY-MM-DD");
+    updateHolidays(roundIndex, (holidays) =>
+      holidays.some((holiday) => holiday.date === iso)
+        ? holidays
+        : [...holidays, { date: iso, note: "" }].sort((a, b) => a.date.localeCompare(b.date)),
+    );
+  };
 
   const onStartChange = (index: number, value: Dayjs | null) => {
     if (!value) return;
@@ -96,6 +123,16 @@ export default function CreateProductionPlanModal({
               );
             })}
           </ul>
+          {result.dropped.length > 0 ? (
+            <p>
+              วันหยุดที่หลุดช่วงและจะถูกตัดออก:{" "}
+              {result.dropped
+                .map((holiday) =>
+                  `รอบ ${holiday.index} ${fmtDate(holiday.date)}${holiday.note.trim() ? ` (${holiday.note.trim()})` : ""}`,
+                )
+                .join(", ")}
+            </p>
+          ) : null}
         </div>
       ),
       onOk: () => setRounds(result.rounds),
@@ -111,13 +148,21 @@ export default function CreateProductionPlanModal({
       destroyOnHidden
       width={860}
       confirmLoading={create.isPending}
-      okButtonProps={{ disabled: selectedCount === 0 }}
+      okButtonProps={{ disabled: selectedCount === 0 || missingNote }}
       onCancel={onClose}
       onOk={() => {
         const selected = rounds.filter((round) => round.selected);
-        if (selected.length === 0) return;
+        if (selected.length === 0 || missingNote) return;
         create.mutate(
-          { rounds: selected.map((round) => ({ startDate: round.startDate })) },
+          {
+            rounds: selected.map((round) => ({
+              startDate: round.startDate,
+              holidays: round.holidays.map((holiday) => ({
+                date: holiday.date,
+                note: holiday.note.trim(),
+              })),
+            })),
+          },
           { onSuccess: onCreated },
         );
       }}
@@ -167,6 +212,72 @@ export default function CreateProductionPlanModal({
                   ผลิต {fmtDate(round.startDate)} – {fmtDate(round.endDate)}
                   {" · "}Shutdown {fmtDate(round.shutdownStartDate)} – {fmtDate(round.shutdownEndDate)}
                 </span>
+              </div>
+              <div className={styles.holidayBlock}>
+                <div className={styles.holidayHeader}>
+                  <span>วันหยุดผลิตเพิ่มเติม</span>
+                  <DatePicker
+                    size="small"
+                    aria-label={`เพิ่มวันหยุดผลิตเพิ่มเติมรอบที่ ${round.index}`}
+                    placeholder="เพิ่มวันหยุด"
+                    value={null}
+                    format="DD/MM/YYYY"
+                    defaultPickerValue={dayjs(round.startDate)}
+                    disabledDate={(current) => {
+                      const iso = current.format("YYYY-MM-DD");
+                      return (
+                        !isWithinRound(round, iso) ||
+                        round.holidays.some((holiday) => holiday.date === iso)
+                      );
+                    }}
+                    onChange={(value) => addHoliday(round.index, value)}
+                  />
+                </div>
+                {round.holidays.map((holiday) => {
+                  const empty = !holiday.note.trim();
+                  return (
+                    <div key={holiday.date} className={styles.holidayRow}>
+                      <span>{fmtDate(holiday.date)}</span>
+                      {isShutdownDay(round, holiday.date) ? (
+                        <Tag color="orange">Shutdown</Tag>
+                      ) : (
+                        <Tag color="blue">ผลิต</Tag>
+                      )}
+                      <Input
+                        size="small"
+                        aria-label={`หมายเหตุวันหยุด ${fmtDate(holiday.date)}`}
+                        placeholder="เช่น วันปีใหม่"
+                        maxLength={200}
+                        value={holiday.note}
+                        status={empty ? "error" : undefined}
+                        onChange={(event) =>
+                          updateHolidays(round.index, (holidays) =>
+                            holidays.map((item) =>
+                              item.date === holiday.date
+                                ? { ...item, note: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                      />
+                      <Button
+                        size="small"
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        aria-label={`ลบวันหยุด ${fmtDate(holiday.date)}`}
+                        onClick={() =>
+                          updateHolidays(round.index, (holidays) =>
+                            holidays.filter((item) => item.date !== holiday.date),
+                          )
+                        }
+                      />
+                    </div>
+                  );
+                })}
+                {round.selected && round.holidays.some((holiday) => !holiday.note.trim()) ? (
+                  <span className={styles.holidayHint}>ระบุหมายเหตุของวันหยุดทุกวัน</span>
+                ) : null}
               </div>
             </div>
           );

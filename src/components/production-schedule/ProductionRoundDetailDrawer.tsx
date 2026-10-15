@@ -44,7 +44,27 @@ export default function ProductionRoundDetailDrawer({ round, onClose }: Props) {
             {fmtDate(round.shutdownStartDate)} – {fmtDate(round.shutdownEndDate)} ({round.shutdownDays} วัน)
           </Descriptions.Item>
           <Descriptions.Item label="วันหยุดผลิตเพิ่มเติม">
-            {round.extraOffDates.length > 0 ? round.extraOffDates.map(fmtDate).join(", ") : "—"}
+            {round.extraOffDates.length === 0 && round.holidays.length === 0 ? (
+              "—"
+            ) : (
+              <div style={{ display: "grid", gap: 4 }}>
+                {round.holidays.map((holiday) => (
+                  <div key={holiday.date}>
+                    {fmtDate(holiday.date)} – {holiday.note}
+                    {holiday.dayType === "SHUTDOWN" ? (
+                      <Tag color="orange" style={{ marginInlineStart: 8 }}>
+                        Shutdown
+                      </Tag>
+                    ) : null}
+                  </div>
+                ))}
+                {round.extraOffDates
+                  .filter((date) => !round.holidays.some((holiday) => holiday.date === date))
+                  .map((date) => (
+                    <div key={date}>{fmtDate(date)}</div>
+                  ))}
+              </div>
+            )}
           </Descriptions.Item>
           <Descriptions.Item label="สถานะ">
             <Tag color={STATUS_COLOR[round.displayStatus]}>{STATUS_LABEL[round.displayStatus]}</Tag>
