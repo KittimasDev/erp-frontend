@@ -291,6 +291,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/purchase-payments", screenCodes: ["PURCHASE_PAYMENTS"] },
   { prefix: "/finance/dashboard", screenCodes: ["FINANCE_DASHBOARD"] },
   { prefix: "/finance/payables/creditors", screenCodes: ["FINANCE_PAYABLE_CREDITORS"] },
+  { prefix: "/finance/payables/advance-requests", screenCodes: ["FINANCE_ADVANCE_REQUESTS"] },
   {
     prefix: "/finance/payables/adjustment-documents",
     screenCodes: ["FINANCE_PAYABLE_ADJUSTMENTS"],
@@ -651,6 +652,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   FINANCE_DASHBOARD: "/finance/dashboard",
   FINANCE_PAYABLES: "/finance/payables",
   FINANCE_PAYABLE_CREDITORS: "/finance/payables/creditors",
+  FINANCE_ADVANCE_REQUESTS: "/finance/payables/advance-requests",
   FINANCE_PAYABLE_ADJUSTMENTS: "/finance/payables/adjustment-documents",
   FINANCE_AP_INVOICES: "/finance/payables/ap-invoices",
   FINANCE_PAYABLE_DEBIT_NOTES: "/finance/payables/debit-notes",

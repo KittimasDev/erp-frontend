@@ -1462,6 +1462,18 @@ const financeMenus: MenuItem[] = [
         roles: FINANCE_MENU_ROLES,
       },
       {
+        key: "finance-advance-requests",
+        screenCode: "FINANCE_ADVANCE_REQUESTS",
+        label: "รายการขอจ่ายล่วงหน้า / มัดจำ",
+        href: "/finance/payables/advance-requests",
+        icon: <IconPayment />,
+        matchHrefs: [
+          "/finance/payables/advance-requests",
+          "/finance/payables/advance-requests/create",
+        ],
+        roles: FINANCE_MENU_ROLES,
+      },
+      {
         key: "finance-payable-adjustments",
         screenCode: "FINANCE_PAYABLE_ADJUSTMENTS",
         label: "เอกสารปรับหนี้",

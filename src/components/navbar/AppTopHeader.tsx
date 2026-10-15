@@ -131,6 +131,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/finance/payables/payment-records", title: "บันทึกจ่ายเงิน" },
   { href: "/finance/payables/payment-history", title: "ประวัติการจ่ายเงิน" },
   { href: "/finance/payables/creditors", title: "รายการจ่ายเงิน" },
+  { href: "/finance/payables/advance-requests", title: "รายการขอจ่ายล่วงหน้า / มัดจำ" },
   { href: "/finance/receivables/sales-tax-documents", title: "เอกสารขายและภาษี" },
   { href: "/finance/receivables/adjustment-documents", title: "เอกสารปรับหนี้" },
   { href: "/finance/receivables/collections-and-receipts", title: "รับชำระและใบเสร็จ" },
@@ -261,6 +262,7 @@ function resolvePageTitle(
     ["/finance/payables/ap-invoices", "ใบตั้งหนี้"],
     ["/finance/payables/debit-notes", "ใบเพิ่มหนี้"],
     ["/finance/payables/creditors", "รายการจ่ายเงิน"],
+    ["/finance/payables/advance-requests", "ขอจ่ายล่วงหน้า / มัดจำ"],
   ] as const) {
     if (!pathname.startsWith(`${base}/`)) continue;
     if (pathname === `${base}/create`) return `สร้าง${label}`;
