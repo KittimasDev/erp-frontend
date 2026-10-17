@@ -1,7 +1,7 @@
 "use client";
 
-import ApDocumentsListPage from "@/components/ap-documents/ApDocumentsListPage";
+import ApInvoicesPage from "@/components/ap-documents/ApInvoicesPage";
 
 export default function Page() {
-  return <ApDocumentsListPage kind="invoice" />;
+  return <ApInvoicesPage />;
 }

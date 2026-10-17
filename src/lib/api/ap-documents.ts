@@ -1,6 +1,15 @@
 import { apiFetch } from "./client";
 import type {
   ApDocumentKind,
+  CreatedAp,
+  CreatedApList,
+  ApAdjustmentCandidate,
+  ApInvoiceDetail,
+  CreatedApQuery,
+  DepositInfo,
+  GrnCreateInfo,
+  PendingGrnList,
+  PendingGrnQuery,
   ApDocumentListResponse,
   ApDocumentQueryParams,
   ApDocumentResponse,
@@ -96,4 +105,81 @@ export function getApInvoiceOptions(token: string, creditorId: string) {
     `${BASE.debitNote}/invoice-options${buildQuery({ creditorId })}`,
     { token },
   );
+}
+
+type Res<T> = { message: string; data: T };
+
+/** ตารางรอสร้างใบตั้งหนี้ — GRN ที่ยืนยันแล้ว */
+export function getPendingGrns(token: string, params?: PendingGrnQuery) {
+  return apiFetch<Res<PendingGrnList>>(`${BASE.invoice}/pending-grns${buildQuery(params)}`, { token });
+}
+
+/** ข้อมูล GRN → PO → รายการจ่ายเงิน ที่หน้าสร้างใบตั้งหนี้เติมให้อัตโนมัติ */
+export function getGrnCreateInfo(token: string, grnId: string, excludeApId?: string) {
+  return apiFetch<Res<GrnCreateInfo>>(`${BASE.invoice}/grn-options/${grnId}${buildQuery({ excludeApId })}`, { token });
+}
+
+/** รายละเอียดใบตั้งหนี้ครบทุก section */
+export function getApInvoiceDetail(token: string, id: string) {
+  return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}`, { token });
+}
+
+/** มัดจำที่บันทึกจ่ายจริงแล้วของรายการจ่ายเงิน (PO) */
+export function getDepositInfo(token: string, purchaseOrderId: string, excludeApId?: string) {
+  return apiFetch<Res<DepositInfo>>(`${BASE.invoice}/deposit-info${buildQuery({ purchaseOrderId, excludeApId })}`, { token });
+}
+
+export function submitApInvoice(token: string, id: string) {
+  return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}/submit`, { method: "POST", token });
+}
+
+export function approveApInvoice(token: string, id: string) {
+  return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}/approve`, { method: "POST", token });
+}
+
+export function rejectApInvoice(token: string, id: string, reason: string) {
+  return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}/reject`, { method: "POST", token, body: { reason } });
+}
+
+export function cancelApInvoice(token: string, id: string, reason?: string) {
+  return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}/cancel`, {
+    method: "POST",
+    token,
+    body: { reason: reason?.trim() || undefined },
+  });
+}
+
+export function getAdjustmentCandidates(token: string, id: string) {
+  return apiFetch<Res<ApAdjustmentCandidate[]>>(`${BASE.invoice}/${id}/adjustment-candidates`, { token });
+}
+
+export function applyAdjustments(token: string, id: string, documentIds: string[]) {
+  return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}/adjustments`, {
+    method: "POST",
+    token,
+    body: { documentIds },
+  });
+}
+
+/** ออกใบสำคัญจ่ายจาก AP — ส่งยอดเข้าคิวรอสร้าง PV (บางส่วนได้) */
+export function issueApInvoicePv(token: string, id: string, body: { amount: number; desiredPayDate?: string }) {
+  return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}/issue-pv`, { method: "POST", token, body });
+}
+
+/** ยกเลิกรายการรอสร้าง PV ที่ออกจาก AP นี้ */
+export function cancelApPvQueueItem(token: string, id: string, queueItemId: string) {
+  return apiFetch<Res<ApInvoiceDetail>>(`${BASE.invoice}/${id}/pv-queue/${queueItemId}/cancel`, {
+    method: "POST",
+    token,
+  });
+}
+
+/** ตารางใบตั้งหนี้ที่สร้างแล้ว */
+export function getCreatedAps(token: string, params?: CreatedApQuery) {
+  return apiFetch<Res<CreatedApList>>(`${BASE.invoice}/created${buildQuery(params)}`, { token });
+}
+
+/** ข้อมูลส่งออกตามตัวกรองปัจจุบัน (ไม่แบ่งหน้า) */
+export function getCreatedApsExport(token: string, params?: Omit<CreatedApQuery, "page" | "limit">) {
+  return apiFetch<Res<CreatedAp[]>>(`${BASE.invoice}/created/export${buildQuery(params)}`, { token });
 }

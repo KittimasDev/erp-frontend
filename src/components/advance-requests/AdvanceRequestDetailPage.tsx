@@ -21,7 +21,7 @@ import {
 } from "@/types/advance-payment-requests";
 import { ADVANCE_BASE_PATH, ADVANCE_SCREEN } from "./AdvanceRequestsListPage";
 
-/** หน้าใบสำคัญจ่าย — ยังเป็นหน้าเปล่า จะชี้ไปหน้ารายละเอียด PV เมื่อสร้างหน้านั้น */
+/** หน้าใบสำคัญจ่าย (2 ตาราง) — ปุ่ม "ดูใบสำคัญจ่าย" ไปรายละเอียด PV ที่สร้างจากรายการนี้ ถ้ายังไม่มี id ไปหน้ารายการ */
 const PV_PATH = "/finance/payables/payment-vouchers";
 
 /** รายละเอียดรายการขอจ่ายล่วงหน้า / มัดจำ (อ่านอย่างเดียว) */
@@ -51,7 +51,7 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
               <Button type="primary" onClick={() => router.push(`${ADVANCE_BASE_PATH}/${r.id}/edit`)}>แก้ไข / ตรวจ WHT / ยืนยัน</Button>
             ) : null}
             {r.status === "PV_CREATED" ? (
-              <Button type="primary" onClick={() => router.push(PV_PATH)}>ดูใบสำคัญจ่าย</Button>
+              <Button type="primary" onClick={() => router.push(r.paymentVoucherId ? `${PV_PATH}/${r.paymentVoucherId}` : PV_PATH)}>ดูใบสำคัญจ่าย</Button>
             ) : null}
             {/* ยกเลิกได้เฉพาะสถานะร่าง — ยืนยันแล้วหรือสร้าง PV แล้วดูรายละเอียดได้อย่างเดียว */}
             {r.status === "DRAFT" && perms.canDelete ? (

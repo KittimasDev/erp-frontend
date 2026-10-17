@@ -52,15 +52,34 @@ export function formatThaiDate(value?: string | null) {
  * (สูตรและการปัดเหมือนกันทุกตัว) ยอดจริงที่บันทึกคิดที่ backend เสมอ
  */
 export function previewTotals(
-  lines: Array<{ quantity?: number; unitPrice?: number }>,
+  lines: Array<{ quantity?: number; unitPrice?: number; discountAmount?: number }>,
   vatMode: string,
   vatRate: number,
 ) {
   const totals = calcDocumentTotals(
-    lines.map((line) => calcLineAmount(line.quantity ?? 0, line.unitPrice ?? 0, 0)),
+    lines.map((line) => calcLineAmount(line.quantity ?? 0, line.unitPrice ?? 0, line.discountAmount ?? 0)),
     0,
     resolveVatMode(vatMode),
     vatRate,
   );
   return { subtotal: totals.taxableBase, vat: totals.vat, total: totals.total };
+}
+
+/** เงื่อนไขการชำระ: ล่วงหน้า/มัดจำ, เมื่อรับสินค้า, เครดิต X วัน (ข้อความเดียวกับหน้ารายการจ่ายเงิน) */
+export function termText(term: {
+  termType?: string;
+  name?: string;
+  creditDays: number;
+  advancePercent: number;
+}): string {
+  switch (term.termType) {
+    case "ADVANCE":
+      return term.advancePercent >= 100 ? "ชำระล่วงหน้าเต็มจำนวน" : `มัดจำ ${term.advancePercent}%`;
+    case "ON_RECEIPT":
+      return "ชำระเมื่อรับสินค้า";
+    case "CREDIT":
+      return `เครดิต ${term.creditDays} วัน`;
+    default:
+      return term.name ?? "ไม่ระบุเงื่อนไข";
+  }
 }

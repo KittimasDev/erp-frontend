@@ -3,12 +3,12 @@
 import { Suspense } from "react";
 import { Spin } from "antd";
 
-import ApDocumentFormPage from "@/components/ap-documents/ApDocumentFormPage";
+import ApInvoiceFormPage from "@/components/ap-documents/ApInvoiceFormPage";
 
 export default function Page() {
   return (
     <Suspense fallback={<Spin />}>
-      <ApDocumentFormPage kind="invoice" />
+      <ApInvoiceFormPage />
     </Suspense>
   );
 }

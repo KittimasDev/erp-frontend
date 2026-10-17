@@ -5,16 +5,20 @@
 
 export type ApDocumentKind = "invoice" | "debitNote";
 
-export type ApDocumentStatus = "DRAFT" | "APPROVED" | "CANCELLED";
+export type ApDocumentStatus = "DRAFT" | "PENDING_APPROVAL" | "REJECTED" | "APPROVED" | "CANCELLED";
 
 export const AP_DOCUMENT_STATUS_LABEL: Record<string, string> = {
   DRAFT: "ร่าง",
+  PENDING_APPROVAL: "รออนุมัติ",
+  REJECTED: "ไม่อนุมัติ",
   APPROVED: "อนุมัติแล้ว",
   CANCELLED: "ยกเลิก",
 };
 
 export const AP_DOCUMENT_STATUS_COLOR: Record<string, string> = {
   DRAFT: "default",
+  PENDING_APPROVAL: "gold",
+  REJECTED: "red",
   APPROVED: "success",
   CANCELLED: "error",
 };
@@ -35,6 +39,8 @@ export type ApDocumentItem = {
   unitPrice: number;
   amount: number;
   sortOrder: number;
+  goodsReceiptItemId?: string | null;
+  discountAmount?: number;
 };
 
 export type ApDocumentLink = {
@@ -72,6 +78,11 @@ export type ApDocument = {
   subtotalAmount: number;
   vatAmount: number;
   totalAmount: number;
+  /** ยอดหักมัดจำ (Task หน้าสร้าง AP เป็นผู้กรอก) */
+  depositDeductAmount?: number;
+  /** GRN ที่ตั้งหนี้ (ถ้าตั้งจาก GRN) */
+  goodsReceiptId?: string | null;
+  goodsReceiptNo?: string | null;
   createdByName: string | null;
   approvedByName: string | null;
   approvedAt: string | null;
@@ -110,6 +121,9 @@ export type ApDocumentLineBody = {
   quantity: number;
   unitLabel?: string;
   unitPrice: number;
+  /** บรรทัดของ GRN — backend กันตั้งเกินจำนวนรับจริง */
+  goodsReceiptItemId?: string;
+  discountAmount?: number;
 };
 
 type ApDocumentBaseBody = {
@@ -127,6 +141,12 @@ export type SaveApInvoiceBody = ApDocumentBaseBody & {
   dueDate?: string;
   /** บังคับ — ต้องเป็น PO ที่ยืนยันแล้วของเจ้าหนี้รายเดียวกัน */
   purchaseOrderId: string;
+  /** GRN ที่ตั้งหนี้ (มาจากปุ่ม "สร้างใบตั้งหนี้" ในตารางรอสร้าง) */
+  goodsReceiptId?: string;
+  taxInvoiceNo?: string;
+  taxInvoiceDate?: string;
+  /** ยอดเงินล่วงหน้า/มัดจำที่นำมาหัก (ไม่ส่ง = ไม่หัก) */
+  depositDeductAmount?: number;
 };
 
 export type SaveApDebitNoteBody = ApDocumentBaseBody & {
@@ -162,3 +182,277 @@ export type ApDocumentResponse = Envelope<ApDocument>;
 export type ApDocumentListResponse = Envelope<ApDocumentList>;
 export type ApPurchaseOrderOptionsResponse = Envelope<ApPurchaseOrderOption[]>;
 export type ApInvoiceOptionsResponse = Envelope<ApInvoiceOption[]>;
+
+// ─── หน้ารายการใบตั้งหนี้ 2 ส่วน ─────────────────────────────────────────────
+
+export const AP_PAYMENT_STATUS_LABEL: Record<string, string> = {
+  UNPAID: "ยังไม่ชำระ",
+  PARTIAL: "ชำระบางส่วน",
+  PAID: "ชำระครบแล้ว",
+};
+
+export const AP_PAYMENT_STATUS_COLOR: Record<string, string> = {
+  UNPAID: "default",
+  PARTIAL: "gold",
+  PAID: "success",
+};
+
+/** เงื่อนไขการชำระ (ประเภท) ของใบสั่งซื้อ */
+export const AP_TERM_TYPE_LABEL: Record<string, string> = {
+  ADVANCE: "ล่วงหน้า / มัดจำ",
+  ON_RECEIPT: "เมื่อรับสินค้า",
+  CREDIT: "เครดิต",
+};
+
+export type PendingGrnPaymentTerm = {
+  termType?: string;
+  name?: string;
+  creditDays: number;
+  advancePercent: number;
+};
+
+export type PendingGrn = {
+  grnId: string;
+  grnNo: string;
+  /** วันที่รับสินค้า */
+  grnDate: string;
+  /** วัน-เวลาที่ยืนยัน GRN */
+  confirmedAt?: string;
+  purchaseOrderId: string;
+  poNo: string;
+  creditorId: string;
+  creditorCode: string;
+  creditorName: string;
+  grnTotalAmount: number;
+  /** มูลค่ารอสร้างใบตั้งหนี้ (เฉพาะส่วนที่ยังไม่ได้ตั้งหนี้) */
+  pendingAmount: number;
+  paymentTerm: PendingGrnPaymentTerm;
+  /** CONTINUE_DRAFT = มีใบตั้งหนี้ร่างอยู่แล้ว ให้ดำเนินการต่อ */
+  action: "CREATE" | "CONTINUE_DRAFT" | string;
+  draftApId?: string;
+  draftApNo?: string;
+};
+
+export type PendingGrnList = { items: PendingGrn[]; total: number; page: number; limit: number };
+
+export type PendingGrnQuery = {
+  search?: string;
+  receivedFrom?: string;
+  receivedTo?: string;
+  termType?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type GrnCreateItem = {
+  goodsReceiptItemId: string;
+  itemId?: string;
+  itemCode?: string;
+  description: string;
+  /** จำนวนที่ตั้งหนี้ได้ (ค่าเริ่มต้น = จำนวนรับจริงที่ยังไม่ได้ตั้งหนี้) */
+  quantity: number;
+  receivedQuantity: number;
+  remainingQuantity: number;
+  unitLabel?: string;
+  unitPrice: number;
+  discountAmount: number;
+  amount: number;
+};
+
+export type GrnCreateInfo = {
+  grnId: string;
+  grnNo: string;
+  grnDate: string;
+  purchaseOrderId: string;
+  poNo: string;
+  creditorId: string;
+  creditorCode: string;
+  creditorName: string;
+  vatMode: string;
+  taxRateId?: string;
+  paymentTerm: PendingGrnPaymentTerm;
+  suggestedDueDate?: string;
+  pendingAmount: number;
+  items: GrnCreateItem[];
+  draftApId?: string;
+};
+
+export type CreatedAp = {
+  id: string;
+  docNo: string;
+  docDate: string;
+  creditorId: string;
+  creditorCode: string;
+  creditorName: string;
+  poNo?: string;
+  /** เลขที่รายการจ่ายเงิน (= เลขที่ PO ต้นทาง) */
+  paymentListNo?: string;
+  grnNos: string[];
+  totalAmount: number;
+  vatAmount: number;
+  depositDeductAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  dueDate?: string;
+  status: ApDocumentStatus | string;
+  paymentStatus: "UNPAID" | "PARTIAL" | "PAID" | string;
+  createdAt: string;
+};
+
+export type CreatedApList = { items: CreatedAp[]; total: number; page: number; limit: number };
+
+export type CreatedApQuery = {
+  search?: string;
+  docDateFrom?: string;
+  docDateTo?: string;
+  status?: string;
+  paymentStatus?: string;
+  dueFrom?: string;
+  dueTo?: string;
+  page?: number;
+  limit?: number;
+};
+
+// ─── หน้าสร้าง / รายละเอียดใบตั้งหนี้ (มัดจำ ปรับหนี้ วางบิล) ──────────────────
+
+export const AP_EVENT_LABEL: Record<string, string> = {
+  CREATE: "สร้างใบตั้งหนี้",
+  UPDATE: "แก้ไข",
+  SUBMIT: "ส่งอนุมัติ",
+  APPROVE: "อนุมัติ",
+  REJECT: "ไม่อนุมัติ",
+  CANCEL: "ยกเลิก",
+  ADJUST: "ปรับหนี้",
+  ISSUE_PV: "ออกใบสำคัญจ่าย (เข้าคิว)",
+  CANCEL_PV_QUEUE: "ยกเลิกรายการรอสร้างใบสำคัญจ่าย",
+  DEPOSIT_ALLOCATED: "จัดสรรมัดจำ",
+  BILLING_RESERVE: "นำไปวางบิล",
+  BILLING_RELEASE: "คืนยอดวางบิล",
+};
+
+export type DepositSource = {
+  voucherId: string;
+  voucherNo: string;
+  paymentNo?: string;
+  paymentDate?: string;
+  amount: number;
+  whtAmount: number;
+};
+
+export type DepositInfo = {
+  totalPaid: number;
+  usedByOthers: number;
+  /** มัดจำคงเหลือที่ใช้ได้กับ AP ใบนี้ */
+  available: number;
+  whtWithheld: number;
+  sources: DepositSource[];
+};
+
+export type ApDepositSection = DepositInfo & {
+  thisDeduct: number;
+  remainingAfterThis: number;
+};
+
+export type ApAdjustmentCandidate = {
+  id: string;
+  docNo: string;
+  docType: "DEBIT_NOTE" | "CREDIT_NOTE" | string;
+  docDate: string;
+  supplierDocNo?: string;
+  reason?: string;
+  totalAmount: number;
+  /** ใบเพิ่มหนี้ = +, ใบลดหนี้ = − */
+  signedAmount: number;
+  referenceDocumentNo?: string;
+  creditorCode?: string;
+  creditorName?: string;
+  status: string;
+  /** OFFSET_AP = หักกับ AP · REFUND/SUPPLIER_CREDIT = ติดตามแยก ไม่หัก AP ซ้ำ */
+  settlementMethod: string;
+  selectable: boolean;
+  unselectableReason?: string;
+};
+
+export type ApAdjustmentHistory = ApAdjustmentCandidate & { appliedAt: string; appliedByName?: string };
+
+export type ApBillingLink = {
+  id: string;
+  billingNoteId: string;
+  billingNoteNo: string;
+  billingNoteDate?: string;
+  amount: number;
+  status: string;
+  billingNoteStatus?: string;
+  pvStatus?: string;
+};
+
+export type ApPaymentRef = {
+  voucherId: string;
+  voucherNo: string;
+  paymentId?: string;
+  paymentNo?: string;
+  paymentDate?: string;
+  amount: number;
+};
+
+/** เอกสารการจ่ายเงินของ AP: PV ที่ออกแล้ว + รายการรอสร้าง PV */
+export type ApVoucherRef = {
+  voucherId?: string;
+  voucherNo?: string;
+  queueItemId?: string;
+  queueNo?: string;
+  docDate: string;
+  amount: number;
+  /** สถานะ PV หรือ WAITING_PV = รอสร้างใบสำคัญจ่าย */
+  status: string;
+  paymentStatus: "UNPAID" | "PAID" | string;
+  paymentId?: string;
+  paymentNo?: string;
+  paymentDate?: string;
+  sourceType: string;
+  canCancelQueue: boolean;
+};
+
+export type ApEvent = {
+  id: string;
+  action: string;
+  fromStatus?: string;
+  toStatus?: string;
+  note?: string;
+  performedByName?: string;
+  performedAt: string;
+};
+
+export type ApInvoiceDetail = ApDocument & {
+  paymentListNo?: string;
+  paymentTerm: PendingGrnPaymentTerm;
+  deposit: ApDepositSection;
+  adjustments: ApAdjustmentHistory[];
+  adjustmentNet: number;
+  appliedDebits: number;
+  appliedCredits: number;
+  adjustedTotal: number;
+  paidAmount: number;
+  netPayableAmount: number;
+  remainingAmount: number;
+  paymentStatus: "UNPAID" | "PARTIAL" | "PAID" | string;
+  billedAmount: number;
+  billableAmount: number;
+  canIssueBilling: boolean;
+  billingBlockReason?: string;
+  billingNotes: ApBillingLink[];
+  payments: ApPaymentRef[];
+  vouchers: ApVoucherRef[];
+  pvOpenAmount: number;
+  issuablePvAmount: number;
+  canIssuePv: boolean;
+  pvBlockReason?: string;
+  events: ApEvent[];
+  submittedByName?: string;
+  submittedAt?: string;
+  rejectedByName?: string;
+  rejectedAt?: string;
+  rejectReason?: string;
+  taxInvoiceNo?: string;
+  taxInvoiceDate?: string;
+};

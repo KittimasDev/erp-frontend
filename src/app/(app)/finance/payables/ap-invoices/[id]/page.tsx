@@ -2,9 +2,9 @@
 
 import { use } from "react";
 
-import ApDocumentDetailPage from "@/components/ap-documents/ApDocumentDetailPage";
+import ApInvoiceDetailPage from "@/components/ap-documents/ApInvoiceDetailPage";
 
 export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  return <ApDocumentDetailPage kind="invoice" id={id} />;
+  return <ApInvoiceDetailPage id={id} />;
 }

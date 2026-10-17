@@ -27,6 +27,7 @@ import {
   useApDocumentQuery,
   useApInvoiceOptionsQuery,
   useApPurchaseOrderOptionsQuery,
+  useGrnCreateInfoQuery,
   useSaveApDocumentMutation,
 } from "@/hooks/ap-documents/useApDocuments";
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
@@ -83,6 +84,15 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
   const existing = existingQuery.data;
   const saveMutation = useSaveApDocumentMutation(kind, id);
 
+  /* มาจากปุ่ม "สร้างใบตั้งหนี้" ในตารางรอสร้าง (?grnId=) — ดึง GRN → PO → ผู้ขาย → รายการ → เงื่อนไขชำระให้เอง ไม่ต้องเลือกซ้ำ */
+  const grnId = !id && isInvoice ? searchParams.get("grnId") : null;
+  const grnQuery = useGrnCreateInfoQuery(grnId);
+  const grnInfo = grnQuery.data;
+  /** GRN ที่ผูกอยู่ (สร้างใหม่จาก GRN หรือร่างที่ตั้งจาก GRN) — ล็อกเจ้าหนี้/PO ไม่ให้เปลี่ยน */
+  const linkedGrnId = grnId ?? existing?.goodsReceiptId ?? undefined;
+  const lockedByGrn = Boolean(linkedGrnId);
+  const grnNo = grnInfo?.grnNo ?? existing?.goodsReceiptNo ?? undefined;
+
   const creditorId = Form.useWatch("creditorId", form);
   const vatMode = Form.useWatch("vatMode", form) ?? "EXCLUSIVE";
   const taxRateId = Form.useWatch("taxRateId", form);
@@ -137,6 +147,34 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
       referenceDocumentId: searchParams.get("invoiceId") ?? undefined,
     });
   }, [existing, form, id, searchParams]);
+
+  const grnSeeded = useRef(false);
+  useEffect(() => {
+    if (!grnInfo || grnSeeded.current) return;
+    grnSeeded.current = true;
+    if (grnInfo.draftApId) {
+      // มีร่างของ GRN นี้อยู่แล้ว — เปิดร่างเดิมแทนการสร้างซ้ำ
+      router.replace(`${config.basePath}/${grnInfo.draftApId}/edit`);
+      return;
+    }
+    form.setFieldsValue({
+      creditorId: grnInfo.creditorId,
+      purchaseOrderId: grnInfo.purchaseOrderId,
+      vatMode: grnInfo.vatMode,
+      taxRateId: grnInfo.taxRateId,
+      docDate: dayjs(),
+      dueDate: grnInfo.suggestedDueDate ? dayjs(grnInfo.suggestedDueDate) : undefined,
+      items:
+        grnInfo.items.length > 0
+          ? grnInfo.items.map((item) => ({
+              description: item.description,
+              quantity: item.quantity,
+              unitLabel: item.unitLabel,
+              unitPrice: item.unitPrice,
+            }))
+          : [EMPTY_LINE],
+    });
+  }, [config.basePath, form, grnInfo, router]);
 
   /*
     มาจากปุ่ม "ออกใบเพิ่มหนี้" — ใบตั้งหนี้ถูกเลือกไว้ก่อนตัวเลือกโหลดเสร็จ onChange จึงไม่ทำงาน
@@ -193,6 +231,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           creditorId: values.creditorId as string,
           purchaseOrderId: values.purchaseOrderId as string,
           dueDate: toDate(values.dueDate),
+          goodsReceiptId: linkedGrnId,
         }
       : {
           ...common,
@@ -209,6 +248,17 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
   };
 
   if (id && existingQuery.isLoading) return <Spin />;
+  if (grnId && grnQuery.isLoading) return <Spin />;
+  if (grnId && grnQuery.isError) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        title={grnQuery.error instanceof Error ? grnQuery.error.message : "ดึงข้อมูลจาก GRN ไม่สำเร็จ"}
+        action={<Button onClick={() => router.push(config.basePath)}>กลับ</Button>}
+      />
+    );
+  }
   if (id && existing && existing.status !== "DRAFT") {
     return (
       <Alert
@@ -235,6 +285,19 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           showIcon
           style={{ marginBottom: 16 }}
           title={`บัญชีนี้ไม่มีสิทธิ์${id ? "แก้ไข" : "สร้าง"}${config.shortLabel}`}
+        />
+      ) : null}
+      {lockedByGrn ? (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title={`ตั้งหนี้จากใบรับสินค้า ${grnNo ?? ""}${grnInfo ? ` · ใบสั่งซื้อ ${grnInfo.poNo} (รายการจ่ายเงิน)` : ""}`}
+          description={
+            grnInfo
+              ? `ยอดรอตั้งหนี้ ${money.format(grnInfo.pendingAmount)} บาท · ข้อมูลเจ้าหนี้/ใบสั่งซื้อ/รายการดึงจาก GRN แล้ว ไม่ต้องเลือกซ้ำ — ยอดตั้งหนี้ต้องไม่เกินยอดที่ยังตั้งได้`
+              : "เจ้าหนี้และใบสั่งซื้อล็อกตาม GRN ที่ตั้งหนี้ไว้"
+          }
         />
       ) : null}
       {!isInvoice ? (
@@ -264,6 +327,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                 optionFilterProp="label"
                 placeholder="เลือกเจ้าหนี้"
                 loading={vendorsQuery.isLoading}
+                disabled={lockedByGrn}
                 onChange={onCreditorChange}
                 options={(vendorsQuery.data?.data ?? []).map((vendor) => ({
                   value: vendor.id,
@@ -283,7 +347,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                 <Select
                   showSearch
                   optionFilterProp="label"
-                  disabled={!creditorId || !allowed}
+                  disabled={!creditorId || !allowed || lockedByGrn}
                   placeholder={creditorId ? "เลือกใบสั่งซื้อ" : "เลือกเจ้าหนี้ก่อน"}
                   loading={poOptionsQuery.isFetching}
                   notFoundContent="เจ้าหนี้รายนี้ยังไม่มีใบสั่งซื้อที่ยืนยันแล้ว"
