@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import {
+  Alert,
   Button,
   Col,
   Form,
@@ -30,6 +32,7 @@ import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useCreateItemMutation } from "@/hooks/items/useCreateItemMutation";
 import { useDeleteItemMutation } from "@/hooks/items/useDeleteItemMutation";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { useItemStockSummaryQuery } from "@/hooks/items/useItemStockSummaryQuery";
 import { useUpdateItemMutation } from "@/hooks/items/useUpdateItemMutation";
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
@@ -41,6 +44,7 @@ import type {
   CreateItemRequest,
   Item,
   ItemQueryParams,
+  ItemStockLevel,
 } from "@/types/items";
 
 import ItemFormModal from "./ItemFormModal";
@@ -56,6 +60,7 @@ type ItemFilterFormValues = {
   isPurchaseItem?: boolean | null;
   isStockItem?: boolean | null;
   isFinishedGood?: boolean | null;
+  lowStock?: boolean | null;
 };
 
 const FILTER_KEYS = [
@@ -68,6 +73,7 @@ const FILTER_KEYS = [
   "isPurchaseItem",
   "isStockItem",
   "isFinishedGood",
+  "lowStock",
 ] as const;
 
 function parseFiltersFromSearch(
@@ -128,8 +134,14 @@ function parseFiltersFromSearch(
     params.isFinishedGood = false;
   }
 
+  if (searchParams.get("lowStock") === "true") {
+    params.lowStock = true;
+  }
+
   return params;
 }
+
+const qty = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 3 });
 
 function toFormValues(params: ItemQueryParams): ItemFilterFormValues {
   return {
@@ -142,6 +154,7 @@ function toFormValues(params: ItemQueryParams): ItemFilterFormValues {
     isPurchaseItem: params.isPurchaseItem,
     isStockItem: params.isStockItem,
     isFinishedGood: params.isFinishedGood,
+    lowStock: params.lowStock,
   };
 }
 
@@ -182,6 +195,10 @@ function buildSearchFromForm(values: ItemFilterFormValues): URLSearchParams {
 
   if (values.isFinishedGood === true || values.isFinishedGood === false) {
     next.set("isFinishedGood", String(values.isFinishedGood));
+  }
+
+  if (values.lowStock === true) {
+    next.set("lowStock", "true");
   }
 
   return next;
@@ -227,6 +244,12 @@ export default function ItemsPage() {
   const deleteMutation = useDeleteItemMutation();
 
   const items = itemsQuery.data?.data ?? [];
+  // ยอดคงเหลือของสินค้าในหน้าที่แสดง (รวมทุกคลัง) + จำนวนที่ต่ำทั้งระบบสำหรับแบนเนอร์
+  const pageItemIds = items.slice((page - 1) * pageSize, page * pageSize).map((i) => i.id);
+  const stockQuery = useItemStockSummaryQuery(pageItemIds);
+  const stockById = new Map((stockQuery.data?.items ?? []).map((r) => [r.itemId, r]));
+  const lowCount = stockQuery.data?.summary.lowCount ?? 0;
+  const outCount = stockQuery.data?.summary.outCount ?? 0;
   const categories = categoriesQuery.data?.data ?? [];
   const units = unitsQuery.data?.data ?? [];
   const activeItems = items.filter((item) => item.isActive).length;
@@ -366,6 +389,54 @@ export default function ItemsPage() {
           {record.unit?.code || "-"}
         </span>
       ),
+    },
+    {
+      title: "คงเหลือ (ทุกคลัง)",
+      key: "onHand",
+      width: 150,
+      align: "right",
+      render: (_, record) => {
+        const s = stockById.get(record.id);
+        if (!s || (!record.isStockItem && s.level === "NONE")) {
+          return <span className={styles.symbolText}>{stockQuery.isLoading ? "…" : "-"}</span>;
+        }
+        const low = s.level === "OUT" || s.level === "LOW";
+        return <span className={low ? styles.stockQtyLow : undefined}>{qty.format(s.totalOnHand)}</span>;
+      },
+    },
+    {
+      title: "ขั้นต่ำ",
+      key: "minimum",
+      width: 110,
+      align: "right",
+      render: (_, record) => {
+        const s = stockById.get(record.id);
+        return s && s.minimumStockQty > 0 ? (
+          qty.format(s.minimumStockQty)
+        ) : (
+          <span className={styles.symbolText}>-</span>
+        );
+      },
+    },
+    {
+      title: "สถานะสต๊อก",
+      key: "stockLevel",
+      width: 190,
+      align: "center",
+      render: (_, record) => {
+        const s = stockById.get(record.id);
+        const level: ItemStockLevel | undefined = s?.level;
+        if (!s || level === "NONE") {
+          return <span className={styles.symbolText}>-</span>;
+        }
+        if (level === "OUT") {
+          return <Tag className={`${styles.statusTag} ${styles.stockBadgeOut}`}>หมดสต๊อก · ขาด {qty.format(s.shortageQty)}</Tag>;
+        }
+        if (level === "LOW") {
+          return <Tag className={`${styles.statusTag} ${styles.stockBadgeLow}`}>ต่ำกว่าขั้นต่ำ · ขาด {qty.format(s.shortageQty)}</Tag>;
+        }
+        return <Tag className={`${styles.statusTag} ${styles.stockBadgeOk}`}>ปกติ</Tag>;
+      },
     },
     {
       title: "สถานะ",
@@ -516,6 +587,30 @@ export default function ItemsPage() {
         </div>
       </div>
 
+      {lowCount > 0 ? (
+        <Alert
+          className={styles.stockBanner}
+          type="error"
+          showIcon
+          title={`มีสินค้า ${lowCount} รายการต่ำกว่าสต๊อกขั้นต่ำ${outCount > 0 ? ` (หมดสต๊อก ${outCount} รายการ)` : ""}`}
+          description="ยอดนับรวมทุกคลังเทียบกับสต๊อกขั้นต่ำที่ตั้งไว้ที่สินค้า — ควรสั่งซื้อหรือผลิตเพิ่ม"
+          action={
+            <Space orientation="vertical" size={4}>
+              {filters.lowStock ? (
+                <Button size="small" onClick={handleClearFilters}>
+                  แสดงสินค้าทั้งหมด
+                </Button>
+              ) : (
+                <Button size="small" danger onClick={() => router.replace(`${pathname}?lowStock=true`)}>
+                  ดูเฉพาะรายการที่ต่ำ
+                </Button>
+              )}
+              <Link href="/inventory/stock-balances">ดูยอดคงเหลือสต๊อก</Link>
+            </Space>
+          }
+        />
+      ) : null}
+
       <div className={styles.filterCard}>
         <div className={styles.filterHeader}>
           <div>
@@ -645,6 +740,16 @@ export default function ItemsPage() {
               </Form.Item>
             </Col>
 
+            <Col xs={24} sm={12} lg={6}>
+              <Form.Item name="lowStock" label="สถานะสต๊อก">
+                <Select
+                  allowClear
+                  placeholder="ทั้งหมด"
+                  options={[{ value: true, label: "ต่ำกว่าขั้นต่ำ" }]}
+                />
+              </Form.Item>
+            </Col>
+
             <Col xs={24}>
               <Form.Item label=" " colon={false}>
                 <Space wrap>
@@ -700,6 +805,10 @@ export default function ItemsPage() {
             className={styles.dataTable}
             columns={columns}
             dataSource={items}
+            rowClassName={(record) => {
+              const level = stockById.get(record.id)?.level;
+              return level === "OUT" || level === "LOW" ? styles.lowStockRow : "";
+            }}
             loading={itemsQuery.isLoading || itemsQuery.isFetching}
             pagination={{
               current: page,
@@ -708,7 +817,7 @@ export default function ItemsPage() {
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,
               onChange: setPage,
             }}
-            scroll={{ x: 1130 }}
+            scroll={{ x: 1560 }}
             locale={{
               emptyText: hasFilters
                 ? "ไม่พบสินค้าตามเงื่อนไขที่ค้นหา"

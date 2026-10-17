@@ -1,9 +1,7 @@
 "use client";
 
-import ErpModulePlaceholderPage from "@/components/common/ErpModulePlaceholderPage";
+import ExecutiveDashboardPage from "@/components/dashboard/ExecutiveDashboardPage";
 
 export default function Page() {
-  return (
-    <ErpModulePlaceholderPage module="แดชบอร์ด" title="ภาพรวมผู้บริหาร" />
-  );
+  return <ExecutiveDashboardPage />;
 }

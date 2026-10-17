@@ -4,6 +4,7 @@ import type {
   ItemApiResponse,
   ItemListApiResponse,
   ItemQueryParams,
+  ItemStockSummary,
   UpdateItemRequest,
 } from "@/types/items";
 
@@ -61,8 +62,21 @@ function buildItemsQuery(params?: ItemQueryParams) {
     search.set("isFinishedGood", String(params.isFinishedGood));
   }
 
+  if (params.lowStock === true) {
+    search.set("lowStock", "true");
+  }
+
   const query = search.toString();
   return query ? `?${query}` : "";
+}
+
+/** ยอดคงเหลือรวมทุกคลังเทียบสต๊อกขั้นต่ำของสินค้าที่ระบุ + จำนวนที่ต่ำทั้งระบบ */
+export function getItemStockSummary(token: string, itemIds: string[]) {
+  const qs = itemIds.length ? `?itemIds=${itemIds.join(",")}` : "";
+  return apiFetch<{ message: string; data: ItemStockSummary }>(
+    `/api/master-data/items/stock-summary${qs}`,
+    { method: "GET", token },
+  );
 }
 
 export function getItems(token: string, params?: ItemQueryParams) {

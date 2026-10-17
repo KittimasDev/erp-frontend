@@ -138,6 +138,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     tone: "teal",
     screenCodes: [
       "PRODUCTION_DASHBOARD",
+      "CONTROL_ROOM_DASHBOARD",
       "PRODUCTION_SCHEDULE",
       "PRODUCTION_REQUESTS",
       "PRODUCTION_ORDERS",
@@ -201,6 +202,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "SALES_INVOICES_PENDING",
       "SALES_INVOICES",
       "SALES_TRACKING",
+      "SALES_DASHBOARD",
     ],
     roles: [
       RoleCode.SALES_OFFICER,
@@ -218,7 +220,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     description: "ตัวอย่างตรวจสอบ (LIMS)",
     href: "/laboratory/samples",
     tone: "rose",
-    screenCodes: ["LAB_SAMPLES"],
+    screenCodes: ["LAB_SAMPLES", "LAB_DASHBOARD"],
     roles: [
       RoleCode.WAREHOUSE_OFFICER,
       RoleCode.WAREHOUSE_MANAGER,
@@ -254,7 +256,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     description: "อุปกรณ์ · ใบงาน · PM",
     href: "/maintenance/equipment",
     tone: "slate",
-    screenCodes: ["EQUIPMENT", "WORK_ORDERS", "PM_SCHEDULES", "MAINTENANCE_SHUTDOWN"],
+    screenCodes: ["EQUIPMENT", "WORK_ORDERS", "PM_SCHEDULES", "MAINTENANCE_SHUTDOWN", "MAINTENANCE_DASHBOARD"],
     roles: [
       RoleCode.WAREHOUSE_OFFICER,
       RoleCode.WAREHOUSE_MANAGER,
@@ -273,6 +275,7 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "USERS",
       "ROLES",
       "HRM_SHUTDOWN",
+      "HRM_DASHBOARD",
       "HRM_PAYROLL",
       "HRM_ATTENDANCE",
       "HRM_ATTENDANCE_DEVICES",

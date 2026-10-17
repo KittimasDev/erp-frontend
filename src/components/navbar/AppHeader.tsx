@@ -730,6 +730,19 @@ const productionMenus: MenuItem[] = [
     ],
   },
   {
+    key: "control-room",
+    screenCode: "CONTROL_ROOM_DASHBOARD",
+    label: "Control Room (ห้องควบคุมการผลิต)",
+    href: "/production/control-room",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "production-schedule",
     screenCode: "PRODUCTION_SCHEDULE",
     label: "ตารางการผลิต",
@@ -1235,9 +1248,38 @@ const salesMenus: MenuItem[] = [
       ROLE.ACCOUNTING_OFFICER,
     ],
   },
+  {
+    key: "sales-dashboard",
+    screenCode: "SALES_DASHBOARD",
+    label: "แดชบอร์ดฝ่ายขาย",
+    href: "/sales/dashboard",
+    icon: <IconReport />,
+    roles: [
+      ROLE.SALES_OFFICER,
+      ROLE.SALES_MANAGER,
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.EXECUTIVE,
+      ROLE.ACCOUNTING_OFFICER,
+    ],
+  },
 ];
 
 const laboratoryMenus: MenuItem[] = [
+  {
+    key: "lab-dashboard",
+    screenCode: "LAB_DASHBOARD",
+    label: "แดชบอร์ดห้องแล็บ",
+    href: "/laboratory/dashboard",
+    icon: <IconChemical />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PROCUREMENT_MANAGER,
+      ROLE.ACCOUNTING_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
   {
     key: "lab-samples",
     screenCode: "LAB_SAMPLES",
@@ -1342,6 +1384,14 @@ const maintenanceMenus: MenuItem[] = [
     roles: [...MAINTENANCE_ROLES],
   },
   {
+    key: "maintenance-dashboard",
+    screenCode: "MAINTENANCE_DASHBOARD",
+    label: "แดชบอร์ดซ่อมบำรุง",
+    href: "/maintenance/dashboard",
+    icon: <IconReport />,
+    roles: [...MAINTENANCE_ROLES],
+  },
+  {
     key: "maintenance-shutdown-plans",
     screenCode: "MAINTENANCE_SHUTDOWN",
     label: "แผนซ่อมบำรุงช่วง Shutdown",
@@ -1376,6 +1426,14 @@ const hrmMenus: MenuItem[] = [
     label: "รายการเข้ากะ",
     href: "/hrm/shift-assignments",
     icon: <IconUsers />,
+    roles: [...HRM_ROLES],
+  },
+  {
+    key: "hrm-dashboard",
+    screenCode: "HRM_DASHBOARD",
+    label: "แดชบอร์ดบุคคล (HR)",
+    href: "/hrm/dashboard",
+    icon: <IconReport />,
     roles: [...HRM_ROLES],
   },
   {

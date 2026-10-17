@@ -19,6 +19,7 @@ import {
 } from "recharts";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import ProductionDailySection from "@/components/dashboard/ProductionDailySection";
 import {
   useProductionDashboardSummaryQuery,
   useProductionDowntimeQuery,
@@ -511,6 +512,9 @@ export default function ProductionDashboardPage() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* M15.2: Input Tire / ผลผลิต 4 ชนิด / Mass Balance / Efficiency / วันที่ N จาก 45 */}
+        <ProductionDailySection params={params} />
       </section>
     </MasterPageGate>
   );

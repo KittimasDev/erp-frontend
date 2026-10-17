@@ -1,0 +1,340 @@
+"use client";
+
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Alert, App, Button, Progress, Select, Switch, Table, Tag, Typography } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { FullscreenExitOutlined, FullscreenOutlined, ReloadOutlined } from "@ant-design/icons";
+import dayjs from "dayjs";
+
+import { formatThaiDate } from "@/components/ap-documents/apDocumentConfig";
+import StatusLight from "@/components/common/StatusLight";
+import { DashboardExportButtons } from "@/components/dashboard/DashboardKit";
+import { buildControlRoomReport } from "@/utils/dashboardExport";
+import { useControlRoomQuery } from "@/hooks/control-room/useControlRoomQuery";
+import type {
+  ControlRoomCycle,
+  ControlRoomEquipment,
+  ControlRoomOrder,
+  ControlRoomOutputRow,
+} from "@/types/control-room";
+
+import styles from "./ControlRoomPage.module.css";
+
+const REFRESH_OPTIONS = [1, 2, 3, 5] as const;
+const DEFAULT_REFRESH_MIN = 1;
+const STORAGE_KEY = "control-room-refresh-min";
+const REFRESH_EVENT = "control-room-refresh-change";
+
+const num = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 1 });
+const qty = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 3 });
+
+/** รอบรีเฟรช (นาที) ที่ผู้ใช้เลือก — จำไว้ในเครื่องนี้ (localStorage อาจใช้ไม่ได้ จึงครอบ try/catch) */
+function readRefreshMin(): number {
+  try {
+    const v = Number(window.localStorage.getItem(STORAGE_KEY));
+    return (REFRESH_OPTIONS as readonly number[]).includes(v) ? v : DEFAULT_REFRESH_MIN;
+  } catch {
+    return DEFAULT_REFRESH_MIN;
+  }
+}
+
+function subscribeRefresh(cb: () => void) {
+  window.addEventListener(REFRESH_EVENT, cb);
+  window.addEventListener("storage", cb);
+  return () => {
+    window.removeEventListener(REFRESH_EVENT, cb);
+    window.removeEventListener("storage", cb);
+  };
+}
+
+function saveRefreshMin(min: number) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, String(min));
+  } catch {
+    /* ใช้ค่าเดิมต่อไปในหน้านี้ */
+  }
+  window.dispatchEvent(new Event(REFRESH_EVENT));
+}
+
+const subscribeFullscreen = (cb: () => void) => {
+  document.addEventListener("fullscreenchange", cb);
+  return () => document.removeEventListener("fullscreenchange", cb);
+};
+
+const downtimeText = (minutes: number) =>
+  minutes >= 60 ? `${Math.floor(minutes / 60)} ชม. ${minutes % 60} นาที` : `${minutes} นาที`;
+
+function cycleLine(c: ControlRoomCycle): string {
+  switch (c.phase) {
+    case "RUNNING":
+      return `เหลืออีก ${c.daysToShutdown ?? 0} วันถึง Shutdown (เริ่ม ${formatThaiDate(c.shutdownStartDate)})`;
+    case "NOT_STARTED":
+      return `รอบจะเริ่ม ${formatThaiDate(c.startDate)} · อีก ${c.daysToShutdown ?? 0} วันถึง Shutdown`;
+    case "SHUTDOWN":
+      return `อยู่ในช่วง Shutdown ถึง ${formatThaiDate(c.shutdownEndDate)}`;
+    case "OVERDUE":
+      return `เลยวันสิ้นสุดรอบ (${formatThaiDate(c.shutdownEndDate)}) แต่ยังไม่ปิดรอบ`;
+    default:
+      return "";
+  }
+}
+
+function OutputList({ rows, empty }: { rows: ControlRoomOutputRow[]; empty: string }) {
+  if (rows.length === 0) return <Typography.Text className={styles.muted}>{empty}</Typography.Text>;
+  return (
+    <div>
+      {rows.map((r) => (
+        <div key={`${r.itemCode ?? r.itemName}-${r.unit ?? ""}`} className={styles.alertItem}>
+          <strong>{r.itemName}</strong>
+          <span>
+            {qty.format(r.quantity)} {r.unit ?? ""}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Control Room (M15.3–15.6): สถานะการผลิตสด · เต็มจอ/TV · รีเฟรชอัตโนมัติ 1–5 นาที · ไฟเขียว/เหลือง/แดง
+ */
+export default function ControlRoomPage() {
+  const { message } = App.useApp();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const refreshMin = useSyncExternalStore(subscribeRefresh, readRefreshMin, () => DEFAULT_REFRESH_MIN);
+  const isFullscreen = useSyncExternalStore(
+    subscribeFullscreen,
+    () => document.fullscreenElement !== null,
+    () => false,
+  );
+  const [onlyProblems, setOnlyProblems] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const query = useControlRoomQuery(refreshMin * 60_000);
+  const data = query.data;
+
+  // นับถอยหลังถึงรอบรีเฟรชถัดไป (ตั้งค่าใน callback ของ interval ไม่ใช่ใน body ของ effect)
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const secondsLeft = Math.max(Math.ceil((refreshMin * 60_000 - (nowMs - query.dataUpdatedAt)) / 1000), 0);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await rootRef.current?.requestFullscreen();
+    } catch {
+      message.error("เบราว์เซอร์นี้เปิดโหมดเต็มจอไม่ได้");
+    }
+  };
+
+  const orderColumns: ColumnsType<ControlRoomOrder> = [
+    { title: "สถานะ", dataIndex: "light", width: 150, render: (_v, r) => <StatusLight light={r.light} /> },
+    { title: "ใบสั่งผลิต", dataIndex: "orderNo", render: (v: string) => <strong>{v}</strong> },
+    { title: "Batch", dataIndex: "batchNo", render: (v?: string) => v ?? "—" },
+    {
+      title: "เดินมาแล้ว (ชม.)",
+      dataIndex: "elapsedHours",
+      align: "right",
+      render: (v: number, r) => `${num.format(v)} (สุทธิ ${num.format(r.netRunHours)})`,
+    },
+    {
+      title: "ความคืบหน้า",
+      dataIndex: "cycleProgressPercent",
+      width: 180,
+      render: (v: number | null | undefined, r) =>
+        v === null || v === undefined ? (
+          "—"
+        ) : (
+          <Progress
+            percent={Math.min(Math.round(v), 100)}
+            size="small"
+            status={r.light === "RED" ? "exception" : undefined}
+            format={() => `${Math.round(v)}%`}
+          />
+        ),
+    },
+    {
+      title: "เหตุผล",
+      dataIndex: "reasons",
+      render: (v: string[]) => (v.length ? v.join(" · ") : <span className={styles.muted}>—</span>),
+    },
+  ];
+
+  if (!data) {
+    return query.isError ? (
+      <Alert type="error" showIcon title="โหลดข้อมูลห้องควบคุมไม่สำเร็จ" description={query.error instanceof Error ? query.error.message : undefined} />
+    ) : (
+      <Typography.Text className={styles.muted}>กำลังโหลดข้อมูลห้องควบคุม…</Typography.Text>
+    );
+  }
+
+  const equipment: ControlRoomEquipment[] = onlyProblems ? data.equipment.filter((e) => e.light !== "GREEN") : data.equipment;
+  const feed = data.production.feedRate;
+
+  return (
+    <div ref={rootRef} className={`${styles.root} ${isFullscreen ? styles.tv : ""}`}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <Typography.Title level={3} className={styles.title}>
+            Control Room — ห้องควบคุมการผลิต
+          </Typography.Title>
+          <StatusLight light={data.overallLight} size="lg" />
+          <div className={styles.counts} aria-label="สรุปจำนวนตามสถานะ">
+            <span className={`${styles.count} ${styles.countRed}`}>หยุด/เสีย {data.counts.red}</span>
+            <span className={`${styles.count} ${styles.countYellow}`}>เฝ้าระวัง {data.counts.yellow}</span>
+            <span className={`${styles.count} ${styles.countGreen}`}>ปกติ {data.counts.green}</span>
+          </div>
+        </div>
+        <div className={styles.controls}>
+          <span className={styles.updated}>
+            อัปเดต {dayjs(data.asOf).format("HH:mm:ss")} · รีเฟรชอีก {secondsLeft} วินาที
+          </span>
+          <Select
+            aria-label="รอบรีเฟรชอัตโนมัติ"
+            value={refreshMin}
+            style={{ width: 150 }}
+            onChange={saveRefreshMin}
+            options={REFRESH_OPTIONS.map((m) => ({ value: m, label: `รีเฟรชทุก ${m} นาที` }))}
+          />
+          <DashboardExportButtons screenCode="CONTROL_ROOM_DASHBOARD" build={() => buildControlRoomReport(data)} />
+          <Button icon={<ReloadOutlined />} loading={query.isFetching} onClick={() => void query.refetch()}>
+            รีเฟรชทันที
+          </Button>
+          <Button
+            type="primary"
+            icon={isFullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+            onClick={() => void toggleFullscreen()}
+          >
+            {isFullscreen ? "ออกจากเต็มจอ" : "เต็มจอ / TV"}
+          </Button>
+        </div>
+      </div>
+
+      {query.isError ? (
+        <Alert
+          type="warning"
+          showIcon
+          title={`รีเฟรชไม่สำเร็จ — กำลังแสดงข้อมูลเมื่อ ${dayjs(data.asOf).format("HH:mm:ss")} (จะลองใหม่ตามรอบ)`}
+        />
+      ) : null}
+
+      <div className={styles.card}>
+        <h3 className={styles.cardTitle}>รอบการผลิต (Cycle Counter)</h3>
+        {data.cycle ? (
+          <div>
+            <div className={styles.cycleBig}>
+              {data.cycle.phase === "NOT_STARTED" ? "ยังไม่เริ่มรอบ" : `วันที่ ${data.cycle.runDay} จาก ${data.cycle.runDays}`}
+              <span className={styles.kpiNote}> · {data.cycle.cycleNo}</span>
+            </div>
+            <Progress percent={Math.round(data.cycle.progressPercent)} status={data.cycle.phase === "OVERDUE" ? "exception" : "active"} />
+            <Typography.Text>{cycleLine(data.cycle)}</Typography.Text>
+          </div>
+        ) : (
+          <Typography.Text className={styles.muted}>ไม่มีรอบผลิตที่เปิดอยู่</Typography.Text>
+        )}
+      </div>
+
+      <div className={styles.kpis}>
+        <div className={styles.card}>
+          <div className={styles.kpiLabel}>Feed Rate</div>
+          <div className={styles.kpiValue}>
+            {feed.value === null || feed.value === undefined ? "—" : `${num.format(feed.value)} ${feed.unit}`}
+          </div>
+          <StatusLight light={feed.light} />
+          <div className={styles.kpiNote}>
+            {feed.source === "LIVE"
+              ? "ค่าสดจากอุปกรณ์"
+              : feed.source === "SHIFT"
+                ? `จากบันทึกกะล่าสุด${feed.recordedAt ? ` (${dayjs(feed.recordedAt).format("DD/MM HH:mm")})` : ""}`
+                : "ยังไม่มีข้อมูล"}
+            {feed.cycleAvg ? ` · เฉลี่ยรอบ ${num.format(feed.cycleAvg)}` : ""}
+          </div>
+        </div>
+        <div className={styles.card}>
+          <div className={styles.kpiLabel}>ยางที่ป้อนวันนี้</div>
+          <div className={styles.kpiValue}>{num.format(data.production.inputTodayKg)} kg</div>
+          <div className={styles.kpiNote}>จากบันทึกกะ</div>
+        </div>
+        <div className={styles.card}>
+          <div className={styles.kpiLabel}>ชั่วโมงเดินเครื่องวันนี้</div>
+          <div className={styles.kpiValue}>{num.format(data.production.operatingHoursToday)} ชม.</div>
+          <div className={styles.kpiNote}>จากบันทึกกะ</div>
+        </div>
+      </div>
+
+      <div className={styles.grid2}>
+        <div className={styles.card}>
+          <h3 className={styles.cardTitle}>ผลผลิตวันนี้ (อนุมัติรับเข้าคลังแล้ว)</h3>
+          <OutputList rows={data.outputs.today} empty="ยังไม่มีผลผลิตรับเข้าคลังวันนี้" />
+        </div>
+        <div className={styles.card}>
+          <h3 className={styles.cardTitle}>ผลผลิตสะสมของรอบนี้</h3>
+          <OutputList rows={data.outputs.cycleTotal} empty="ยังไม่มีผลผลิตสะสมของรอบนี้" />
+        </div>
+      </div>
+
+      <div className={styles.card}>
+        <h3 className={styles.cardTitle}>ใบสั่งผลิตที่กำลังเดิน</h3>
+        <Table<ControlRoomOrder>
+          rowKey="id"
+          size="small"
+          columns={orderColumns}
+          dataSource={data.production.runningOrders}
+          pagination={false}
+          scroll={{ x: 800 }}
+          locale={{ emptyText: "ไม่มีการผลิตตอนนี้" }}
+        />
+      </div>
+
+      <div className={styles.card}>
+        <h3 className={styles.cardTitle}>
+          Downtime ที่ยังไม่ปิด{" "}
+          {data.downtimeAlerts.length > 0 ? <Tag color="red">{data.downtimeAlerts.length} รายการ</Tag> : null}
+        </h3>
+        {data.downtimeAlerts.length === 0 ? (
+          <Typography.Text className={styles.muted}>ไม่มี Downtime ค้างอยู่</Typography.Text>
+        ) : (
+          data.downtimeAlerts.map((d) => (
+            <div key={`${d.source}-${d.ref}-${d.startedAt}`} className={styles.alertItem}>
+              <Tag color={d.source === "PRODUCTION" ? "volcano" : "red"}>{d.source === "PRODUCTION" ? "การผลิต" : "เครื่องจักร"}</Tag>
+              <strong>{d.ref}</strong>
+              <span>{d.reason ?? "ไม่ระบุเหตุผล"}</span>
+              <span className={styles.muted}>หยุดมาแล้ว {downtimeText(d.minutesOpen)}</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className={styles.card}>
+        <h3 className={styles.cardTitle}>
+          สถานะเครื่องจักรแต่ละชุด{" "}
+          <span style={{ marginLeft: 12, fontWeight: 400 }}>
+            <Switch size="small" checked={onlyProblems} onChange={setOnlyProblems} aria-label="แสดงเฉพาะที่ไม่ปกติ" /> เฉพาะที่ไม่ปกติ
+          </span>
+        </h3>
+        {equipment.length === 0 ? (
+          <Typography.Text className={styles.muted}>
+            {onlyProblems ? "ทุกเครื่องปกติ" : "ยังไม่มีทะเบียนเครื่องจักร"}
+          </Typography.Text>
+        ) : (
+          <div className={styles.equipmentGrid}>
+            {equipment.map((e) => (
+              <div key={e.id} className={`${styles.equipmentCard} ${styles[`equip${e.light}` as keyof typeof styles]}`}>
+                <StatusLight light={e.light} />
+                <div className={styles.equipmentName}>
+                  {e.code} · {e.name}
+                </div>
+                {e.reasons.map((r) => (
+                  <div key={r} className={styles.reason}>
+                    {r}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

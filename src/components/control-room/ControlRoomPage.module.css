@@ -1,0 +1,190 @@
+.root {
+  display: grid;
+  gap: 16px;
+  padding: 4px 0 12px;
+  background: transparent;
+  color: #2f343a;
+}
+
+/* เต็มจอ / จอ TV: พื้นหลังทึบ ตัวอักษรใหญ่ เลื่อนดูได้ */
+.tv {
+  padding: 20px 28px;
+  overflow: auto;
+  background: #f5f6f8;
+  font-size: 1.3em;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding: 16px 20px;
+  border: 1px solid #e8eaed;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.headerLeft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.title {
+  margin: 0 !important;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.updated {
+  color: #8a9199;
+  font-size: 0.85em;
+}
+
+.counts {
+  display: flex;
+  gap: 8px;
+}
+
+.count {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
+.countRed {
+  color: #cf1322;
+  background: #fff1f0;
+}
+
+.countYellow {
+  color: #ad6800;
+  background: #fffbe6;
+}
+
+.countGreen {
+  color: #389e0d;
+  background: #f6ffed;
+}
+
+.card {
+  padding: 16px 20px;
+  border: 1px solid #e8eaed;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.cardTitle {
+  margin: 0 0 12px;
+  font-size: 1em;
+  font-weight: 700;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.kpiLabel {
+  color: #8a9199;
+  font-size: 0.85em;
+}
+
+.kpiValue {
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.kpiNote {
+  color: #8a9199;
+  font-size: 0.8em;
+}
+
+.cycleBig {
+  font-size: 2.4em;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.equipmentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.equipmentCard {
+  padding: 12px 14px;
+  border: 1px solid #e8eaed;
+  border-left-width: 6px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.equipRED {
+  border-left-color: #cf1322;
+  background: #fff1f0;
+}
+
+.equipYELLOW {
+  border-left-color: #d48806;
+  background: #fffbe6;
+}
+
+.equipGREEN {
+  border-left-color: #389e0d;
+}
+
+.equipmentName {
+  margin: 4px 0 2px;
+  font-weight: 600;
+}
+
+.reason {
+  color: #595959;
+  font-size: 0.85em;
+}
+
+.alertItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.alertItem:last-child {
+  border-bottom: 0;
+}
+
+.muted {
+  color: #8a9199;
+}
+
+@media (max-width: 760px) {
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .tv {
+    padding: 12px;
+    font-size: 1.1em;
+  }
+}

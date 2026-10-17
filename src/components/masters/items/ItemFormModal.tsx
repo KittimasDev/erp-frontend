@@ -404,7 +404,11 @@ export default function ItemFormModal({
           </Col>
 
           <Col xs={24} sm={6}>
-            <Form.Item label="สต๊อกขั้นต่ำ" name="minimumStockQty">
+            <Form.Item
+              label="สต๊อกขั้นต่ำ"
+              name="minimumStockQty"
+              extra="ยอดรวมทุกคลังต่ำกว่าค่านี้ จะขึ้นสีแดงในหน้ารายการสินค้าและแจ้งเตือน (0 = ไม่เตือน)"
+            >
               <InputNumber
                 size="large"
                 min={0}

@@ -159,6 +159,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["PRODUCTION_DASHBOARD"],
   },
   {
+    prefix: "/production/control-room",
+    screenCodes: ["CONTROL_ROOM_DASHBOARD"],
+  },
+  {
     prefix: "/production/schedule",
     screenCodes: ["PRODUCTION_SCHEDULE"],
   },
@@ -263,8 +267,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/sales-invoices", screenCodes: ["SALES_INVOICES"] },
   { prefix: "/sales-credit-notes", screenCodes: ["SALES_CREDIT_NOTES"] },
   { prefix: "/sales-tracking", screenCodes: ["SALES_TRACKING"] },
+  { prefix: "/sales/dashboard", screenCodes: ["SALES_DASHBOARD"] },
 
   // Lab / oil / maintenance
+  { prefix: "/laboratory/dashboard", screenCodes: ["LAB_DASHBOARD"] },
   { prefix: "/laboratory/samples", screenCodes: ["LAB_SAMPLES"] },
   { prefix: "/laboratory/specs", screenCodes: ["LAB_SPECS"] },
   { prefix: "/laboratory", screenCodes: ["LAB_SAMPLES"] },
@@ -275,9 +281,11 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   { prefix: "/maintenance/equipment", screenCodes: ["EQUIPMENT"] },
   { prefix: "/maintenance/work-orders", screenCodes: ["WORK_ORDERS"] },
   { prefix: "/maintenance/pm-schedules", screenCodes: ["PM_SCHEDULES"] },
+  { prefix: "/maintenance/dashboard", screenCodes: ["MAINTENANCE_DASHBOARD"] },
   { prefix: "/maintenance/shutdown-plans", screenCodes: ["MAINTENANCE_SHUTDOWN"] },
 
   // HRM / finance
+  { prefix: "/hrm/dashboard", screenCodes: ["HRM_DASHBOARD"] },
   { prefix: "/hrm/shutdown-plans", screenCodes: ["HRM_SHUTDOWN"] },
   { prefix: "/hrm/payroll", screenCodes: ["HRM_PAYROLL"] },
   { prefix: "/hrm/attendance-devices", screenCodes: ["HRM_ATTENDANCE_DEVICES"] },
@@ -596,6 +604,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   WAREHOUSE_APPROVALS: "/warehouse/approvals",
   PRODUCTION_REQUESTS: "/production/production-requests",
   PRODUCTION_DASHBOARD: "/production/dashboard",
+  CONTROL_ROOM_DASHBOARD: "/production/control-room",
   PRODUCTION_SCHEDULE: "/production/schedule",
   PRODUCTION_ORDERS: "/production/production-orders",
   PRODUCTION_CYCLES: "/production/cycles",
@@ -629,7 +638,9 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   SALES_CREDIT_NOTES: "/sales-credit-notes",
   SALES_INVOICES_PENDING: "/sales-invoices/pending",
   SALES_TRACKING: "/sales-tracking",
+  SALES_DASHBOARD: "/sales/dashboard",
   LAB_SAMPLES: "/laboratory/samples",
+  LAB_DASHBOARD: "/laboratory/dashboard",
   LAB_SPECS: "/laboratory/specs",
   OIL_TANKS: "/oil-tank-farm/tanks",
   OIL_RECEIVINGS: "/oil-tank-farm/receivings",
@@ -639,8 +650,10 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   WORK_ORDERS: "/maintenance/work-orders",
   PM_SCHEDULES: "/maintenance/pm-schedules",
   MAINTENANCE_SHUTDOWN: "/maintenance/shutdown-plans",
+  MAINTENANCE_DASHBOARD: "/maintenance/dashboard",
   USERS: "/users",
   HRM_SHUTDOWN: "/hrm/shutdown-plans",
+  HRM_DASHBOARD: "/hrm/dashboard",
   HRM_PAYROLL: "/hrm/payroll",
   HRM_ATTENDANCE: "/hrm/attendance",
   HRM_ATTENDANCE_DEVICES: "/hrm/attendance-devices",

@@ -871,3 +871,41 @@
   color: var(--unit-gray-dark);
   font-weight: 500;
 }
+
+/* ── สต๊อกต่ำกว่าขั้นต่ำ (หน้าสินค้า) ── */
+.lowStockRow > td {
+  background: #fff1f0 !important;
+}
+
+.lowStockRow:hover > td {
+  background: #ffe4e1 !important;
+}
+
+.stockQtyLow {
+  color: #cf1322;
+  font-weight: 700;
+}
+
+.stockBadgeOut {
+  color: #fff !important;
+  border-color: #a8071a !important;
+  background: #cf1322 !important;
+  font-weight: 600;
+}
+
+.stockBadgeLow {
+  color: #cf1322 !important;
+  border-color: #ffa39e !important;
+  background: #fff1f0 !important;
+  font-weight: 600;
+}
+
+.stockBadgeOk {
+  color: var(--unit-green-dark) !important;
+  border-color: rgba(115, 152, 22, 0.22) !important;
+  background: var(--unit-green-soft) !important;
+}
+
+.stockBanner {
+  margin-bottom: 16px;
+}

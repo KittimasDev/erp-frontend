@@ -50,6 +50,26 @@ export type ItemQueryParams = {
   isStockItem?: boolean;
   isSalesItem?: boolean;
   isFinishedGood?: boolean;
+  /** true = เฉพาะสินค้าที่ยอดคงเหลือรวมทุกคลังต่ำกว่าสต๊อกขั้นต่ำ */
+  lowStock?: boolean;
+};
+
+/** OUT = หมดสต๊อก · LOW = ต่ำกว่าขั้นต่ำ · OK = ปกติ · NONE = ไม่ได้ตั้งขั้นต่ำ */
+export type ItemStockLevel = "OUT" | "LOW" | "OK" | "NONE";
+
+export type ItemStockSummaryRow = {
+  itemId: string;
+  /** ยอดคงเหลือรวมทุกคลัง */
+  totalOnHand: number;
+  minimumStockQty: number;
+  shortageQty: number;
+  level: ItemStockLevel;
+};
+
+export type ItemStockSummary = {
+  items: ItemStockSummaryRow[];
+  /** นับทั้งระบบ (สินค้าใช้งานอยู่ที่ตั้งขั้นต่ำไว้) */
+  summary: { lowCount: number; outCount: number };
 };
 
 export type CreateItemRequest = {
