@@ -62,24 +62,3 @@ export type T2900OutboundTicketsQuery = {
 export type ImportFromT2900Request = {
   tckNo: string;
 };
-
-export type GenerateT2900BatchRequest = {
-  date?: string;
-};
-
-export type T2900GeneratedBatchData = {
-  count: number;
-  items: T2900OutboundTicketSummary[];
-};
-
-export type T2900GeneratedBatchApiResponse = {
-  statusCode?: number;
-  message: string;
-  data: T2900GeneratedBatchData;
-};
-
-export type T2900DeletedTicketApiResponse = {
-  statusCode?: number;
-  message: string;
-  data: { tckNo: string };
-};

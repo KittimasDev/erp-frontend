@@ -1,14 +1,10 @@
 "use client";
 
-import { Button, Popconfirm, Space, Table, Tag, Typography } from "antd";
+import { Button, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
 
 import { useImportT2900TicketMutation } from "@/hooks/weighbridge-tickets/useImportT2900TicketMutation";
-import {
-  useDeleteT2900TicketMutation,
-  useGenerateT2900TicketsMutation,
-} from "@/hooks/weighbridge-tickets/useT2900MockMutations";
 import { useT2900OutboundTicketsQuery } from "@/hooks/weighbridge-tickets/useT2900OutboundTicketsQuery";
 import type { T2900ErpOutboundTicket, T2900RecordStatus } from "@/types/t2900";
 
@@ -54,8 +50,6 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
     limit: 200,
   });
   const importMutation = useImportT2900TicketMutation();
-  const generateMutation = useGenerateT2900TicketsMutation();
-  const deleteMutation = useDeleteT2900TicketMutation();
 
   const rows = ticketsQuery.data?.data.items ?? [];
 
@@ -149,7 +143,7 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
     {
       title: "ดำเนินการ",
       key: "action",
-      width: 250,
+      width: 180,
       render: (_value, record) => (
         <Space
           size={8}
@@ -171,25 +165,6 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
             {record.erpActionLabel ||
               (record.alreadyImported ? "ไปคัดแยก" : "เปิดตั๋วและคัดแยก")}
           </Button>
-          <Popconfirm
-            title="ลบบัตรชั่งจากรายการ mock?"
-            description={`ลบ ${record.TckNo} — ไม่ลบตั๋วรับซื้อใน ERP ถ้าเปิดไปแล้ว`}
-            okText="ลบ"
-            cancelText="ยกเลิก"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => deleteMutation.mutateAsync(record.TckNo)}
-          >
-            <Button
-              size="small"
-              danger
-              loading={
-                deleteMutation.isPending &&
-                deleteMutation.variables === record.TckNo
-              }
-            >
-              ลบ
-            </Button>
-          </Popconfirm>
         </Space>
       ),
     },
@@ -197,17 +172,6 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
 
   return (
     <>
-      <div className={styles.t2900Toolbar}>
-        <Button
-          type="primary"
-          loading={generateMutation.isPending}
-          onClick={() =>
-            void generateMutation.mutateAsync({ date: dateTo })
-          }
-        >
-          สร้าง 5 ใบ
-        </Button>
-      </div>
       <div className={styles.cardBody}>
         {ticketsQuery.isError ? (
           <Typography.Text type="danger">
@@ -223,7 +187,7 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
             dataSource={rows}
             loading={ticketsQuery.isFetching}
             pagination={{ pageSize: 10, showSizeChanger: false }}
-            scroll={{ x: 1320 }}
+            scroll={{ x: 1250 }}
             locale={{ emptyText: "ไม่พบบัตรชั่งในช่วงวันที่เลือก" }}
             onRow={(record) => ({
               onClick: () => {
