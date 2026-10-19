@@ -106,6 +106,29 @@ export type PurchaseOrderItem = {
   sortOrder: number;
 };
 
+export type PoPaymentAdjustmentItem = {
+  id: string;
+  docNo: string;
+  docType: "DEBIT_NOTE" | "CREDIT_NOTE";
+  docDate: string;
+  totalAmount: number;
+  signedAmount: number;
+  appliedAt: string;
+  apDocumentId: string;
+  apDocumentNo: string;
+};
+
+/** สรุปยอดชำระหลังรวมใบปรับหนี้ — ไม่แก้ totalAmount ของ PO */
+export type PoPaymentAdjustment = {
+  originalAmount: number;
+  appliedDebits: number;
+  appliedCredits: number;
+  payableAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  adjustments: PoPaymentAdjustmentItem[];
+};
+
 export type PurchaseOrder = {
   id: string;
   poNo: string;
@@ -131,6 +154,8 @@ export type PurchaseOrder = {
   paymentStatus?: string;
   /** ยอดจ่ายจริงสะสมจาก supplier_payments (หน้า detail) */
   paidAmount?: string;
+  /** สรุปการชำระเงินและการปรับหนี้ (หน้า detail — ไม่แก้ยอด PO ต้นฉบับ) */
+  paymentAdjustment?: PoPaymentAdjustment;
   subtotalAmount: string;
   discountAmount: string;
   vatAmount: string;

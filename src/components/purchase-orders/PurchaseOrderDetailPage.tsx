@@ -3,8 +3,9 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Input, Modal, Spin, Upload } from "antd";
+import { App, Button, Descriptions, Input, Modal, Spin, Table, Typography, Upload } from "antd";
 import type { UploadProps } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   ArrowLeftOutlined,
   CheckOutlined,
@@ -55,7 +56,9 @@ import {
   isPoReceivableStatus,
   listPurchaseRequests,
   purchaseOrderStatusLabel,
+  type PoPaymentAdjustmentItem,
 } from "@/types/purchase-orders";
+import { AP_DOCUMENT_CONFIG } from "@/components/ap-documents/apDocumentConfig";
 import {
   calcDocumentTotals,
   resolveVatMode,
@@ -78,6 +81,51 @@ type Props = { id: string };
 const PO_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
 
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+
+const adjustmentColumns: ColumnsType<PoPaymentAdjustmentItem> = [
+  {
+    title: "ประเภท",
+    dataIndex: "docType",
+    width: 110,
+    render: (v: PoPaymentAdjustmentItem["docType"]) =>
+      v === "CREDIT_NOTE" ? "ใบลดหนี้" : "ใบเพิ่มหนี้",
+  },
+  {
+    title: "เลขที่เอกสาร",
+    dataIndex: "docNo",
+    width: 180,
+    render: (_v, row) => {
+      const base =
+        row.docType === "CREDIT_NOTE"
+          ? AP_DOCUMENT_CONFIG.creditNote.basePath
+          : AP_DOCUMENT_CONFIG.debitNote.basePath;
+      return <Link href={`${base}/${row.id}`}>{row.docNo}</Link>;
+    },
+  },
+  {
+    title: "วันที่",
+    dataIndex: "docDate",
+    width: 120,
+    render: (v: string) => formatDate(v),
+  },
+  {
+    title: "อ้างอิง AP",
+    dataIndex: "apDocumentNo",
+    width: 160,
+    render: (_v, row) => (
+      <Link href={`${AP_DOCUMENT_CONFIG.invoice.basePath}/${row.apDocumentId}`}>
+        {row.apDocumentNo}
+      </Link>
+    ),
+  },
+  {
+    title: "ยอด (บาท)",
+    dataIndex: "signedAmount",
+    align: "right",
+    width: 120,
+    render: (v: number) => formatMoney(v),
+  },
+];
 const ALLOWED_ATTACHMENT_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -644,6 +692,55 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             </div>
           )}
 
+          {data.paymentAdjustment ? (
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h2 className={styles.sectionTitle}>สรุปการชำระเงินและการปรับหนี้</h2>
+              </div>
+              <p className={styles.sectionHint}>
+                ยอดสุทธิของใบสั่งซื้อด้านขวาเป็นมูลค่า PO ต้นฉบับ — ส่วนนี้แสดงยอดเจ้าหนี้หลังรวมใบเพิ่มหนี้/ลดหนี้ที่นำไปปรับ AP แล้ว
+              </p>
+              <Descriptions
+                bordered
+                size="small"
+                column={{ xs: 1, md: 2, xl: 3 }}
+                style={{ marginBottom: 12 }}
+              >
+                <Descriptions.Item label="ยอด PO เดิม">
+                  {formatMoney(data.paymentAdjustment.originalAmount)}
+                </Descriptions.Item>
+                <Descriptions.Item label="ยอดใบเพิ่มหนี้ (+)">
+                  {formatMoney(data.paymentAdjustment.appliedDebits)}
+                </Descriptions.Item>
+                <Descriptions.Item label="ยอดใบลดหนี้ (−)">
+                  {formatMoney(data.paymentAdjustment.appliedCredits)}
+                </Descriptions.Item>
+                <Descriptions.Item label="ยอดที่ต้องชำระหลังปรับหนี้">
+                  <Typography.Text strong>
+                    {formatMoney(data.paymentAdjustment.payableAmount)}
+                  </Typography.Text>
+                </Descriptions.Item>
+                <Descriptions.Item label="ยอดชำระแล้ว">
+                  {formatMoney(data.paymentAdjustment.paidAmount)}
+                </Descriptions.Item>
+                <Descriptions.Item label="ยอดคงเหลือ">
+                  <Typography.Text strong>
+                    {formatMoney(data.paymentAdjustment.remainingAmount)}
+                  </Typography.Text>
+                </Descriptions.Item>
+              </Descriptions>
+              <Table<PoPaymentAdjustmentItem>
+                size="small"
+                rowKey={(row) => `${row.id}-${row.apDocumentId}-${row.appliedAt}`}
+                pagination={false}
+                locale={{ emptyText: "ยังไม่มีเอกสารปรับหนี้ที่นำไปปรับ AP ของใบสั่งซื้อนี้" }}
+                dataSource={data.paymentAdjustment.adjustments}
+                columns={adjustmentColumns}
+                scroll={{ x: 720 }}
+              />
+            </div>
+          ) : null}
+
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>
@@ -982,7 +1079,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             </div>
           ) : null}
 
-          {data.paymentStatus || data.paidAmount ? (
+          {data.paymentStatus || data.paidAmount || data.paymentAdjustment ? (
             <div className={styles.flowNote}>
               <strong>สถานะการจ่ายเงิน</strong>
               <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
@@ -992,9 +1089,11 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     : data.paymentStatus === "PARTIAL"
                       ? "จ่ายบางส่วน"
                       : "ยังไม่จ่าย"}
-                  {data.paidAmount != null
-                    ? ` · จ่ายแล้ว ${formatMoney(data.paidAmount)} / ${formatMoney(data.totalAmount)}`
-                    : null}
+                  {data.paymentAdjustment
+                    ? ` · จ่ายแล้ว ${formatMoney(data.paymentAdjustment.paidAmount)} / ${formatMoney(data.paymentAdjustment.payableAmount)}`
+                    : data.paidAmount != null
+                      ? ` · จ่ายแล้ว ${formatMoney(data.paidAmount)} / ${formatMoney(data.totalAmount)}`
+                      : null}
                 </li>
               </ul>
             </div>
