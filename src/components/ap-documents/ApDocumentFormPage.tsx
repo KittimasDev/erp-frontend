@@ -449,8 +449,22 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                   <Input />
                 </Form.Item>
                 <Form.Item
-                  label={isCredit ? "ใบตั้งหนี้ที่อ้างอิง (AP)" : "ใบตั้งหนี้ที่จะเพิ่มหนี้"}
-                  tooltip={isCredit ? "บังคับเมื่อเลือกวิธี “หักยอดเจ้าหนี้คงค้าง” · วิธีอื่นอ้างหรือไม่ก็ได้" : undefined}
+                  label={
+                    !isCredit
+                      ? "ใบตั้งหนี้ที่จะเพิ่มหนี้"
+                      : settlementMethod === "SUPPLIER_CREDIT"
+                        ? "ใบตั้งหนี้ต้นทาง (เก็บประวัติ)"
+                        : "ใบตั้งหนี้ที่อ้างอิง (AP)"
+                  }
+                  tooltip={
+                    isCredit
+                      ? settlementMethod === "SUPPLIER_CREDIT"
+                        ? "บันทึกว่าเครดิตเกิดจาก AP ใบนี้ · หลังอนุมัติใช้หักกับใบตั้งหนี้ใดก็ได้ของผู้ขายเดียวกัน"
+                        : settlementMethod === "OFFSET_AP"
+                          ? "บังคับเมื่อเลือกวิธี “หักยอดเจ้าหนี้คงค้าง”"
+                          : "อ้างใบตั้งหนี้หรือไม่ก็ได้"
+                      : undefined
+                  }
                   required={!isCredit || settlementMethod === "OFFSET_AP"}
                 >
                   <Space orientation="vertical" style={{ width: "100%" }} size={4}>
