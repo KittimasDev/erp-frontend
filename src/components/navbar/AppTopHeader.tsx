@@ -135,6 +135,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/finance/payables/payment-vouchers", title: "ใบสำคัญจ่าย" },
   { href: "/finance/payables/payment-records", title: "บันทึกจ่ายเงิน" },
   { href: "/finance/payables/payment-history", title: "ประวัติการจ่ายเงิน" },
+  { href: "/finance/payables/creditor-balances", title: "รายการเจ้าหนี้" },
   { href: "/finance/payables/creditors", title: "รายการจ่ายเงิน" },
   { href: "/finance/payables/advance-requests", title: "รายการขอจ่ายล่วงหน้า / มัดจำ" },
   { href: "/finance/receivables/sales-tax-documents", title: "เอกสารขายและภาษี" },

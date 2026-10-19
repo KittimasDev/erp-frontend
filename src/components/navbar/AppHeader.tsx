@@ -1607,6 +1607,14 @@ const financeMenus: MenuItem[] = [
         icon: <IconPayment />,
         roles: FINANCE_MENU_ROLES,
       },
+      {
+        key: "finance-creditor-balances",
+        screenCode: "FINANCE_CREDITOR_BALANCES",
+        label: "รายการเจ้าหนี้",
+        href: "/finance/payables/creditor-balances",
+        icon: <IconPayment />,
+        roles: FINANCE_MENU_ROLES,
+      },
     ],
   },
   {

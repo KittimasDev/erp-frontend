@@ -330,6 +330,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     prefix: "/finance/payables/payment-history",
     screenCodes: ["FINANCE_PAYABLE_PAYMENT_HISTORY"],
   },
+  {
+    prefix: "/finance/payables/creditor-balances",
+    screenCodes: ["FINANCE_CREDITOR_BALANCES"],
+  },
   { prefix: "/finance/payables", screenCodes: ["FINANCE_PAYABLES"] },
   {
     prefix: "/finance/receivables/customers",
@@ -675,6 +679,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   FINANCE_PAYMENT_VOUCHERS: "/finance/payables/payment-vouchers",
   FINANCE_PAYMENT_RECORDS: "/finance/payables/payment-records",
   FINANCE_PAYABLE_PAYMENT_HISTORY: "/finance/payables/payment-history",
+  FINANCE_CREDITOR_BALANCES: "/finance/payables/creditor-balances",
   FINANCE_RECEIVABLES: "/finance/receivables",
   FINANCE_RECEIVABLE_CUSTOMERS: "/finance/receivables/customers",
   FINANCE_RECEIVABLE_SALES_TAX: "/finance/receivables/sales-tax-documents",
