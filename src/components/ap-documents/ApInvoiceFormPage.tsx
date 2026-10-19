@@ -496,7 +496,7 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
             <Descriptions.Item label="มัดจำที่ใช้ไปแล้ว (AP ใบอื่น)">{money.format(depositInfo?.usedByOthers ?? 0)}</Descriptions.Item>
             <Descriptions.Item label="มัดจำคงเหลือที่ใช้ได้">{money.format(available)}</Descriptions.Item>
             <Descriptions.Item label="มัดจำที่เลือกนำมาหัก">{money.format(deduct)}</Descriptions.Item>
-            <Descriptions.Item label="ยอดคงเหลือที่ต้องจ่าย" span={2}>
+            <Descriptions.Item label="ยอดคงเหลือที่ต้องจ่าย" span="filled">
               <Typography.Text strong>{money.format(netAfterDeposit)}</Typography.Text>
             </Descriptions.Item>
           </Descriptions>
