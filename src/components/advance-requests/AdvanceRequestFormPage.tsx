@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
   App,
@@ -84,6 +84,8 @@ type Props = { id?: string };
 /** สร้าง/แก้ไขรายการขอจ่ายล่วงหน้า / มัดจำ — รวมการตรวจภาษีหัก ณ ที่จ่ายในฟอร์มเดียว */
 export default function AdvanceRequestFormPage({ id }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const presetPoId = searchParams.get("poId");
   const { message } = App.useApp();
   const isEdit = Boolean(id);
   const perms = useScreenActionPermissions(ADVANCE_SCREEN);
@@ -93,6 +95,7 @@ export default function AdvanceRequestFormPage({ id }: Props) {
   const [search, setSearch] = useState("");
   const eligible = useEligiblePayablesQuery(search, !isEdit);
   const [source, setSource] = useState<EligiblePayable | undefined>();
+  const poPresetApplied = useRef(false);
 
   const create = useCreateAdvanceRequestMutation();
   const update = useUpdateAdvanceRequestMutation();
@@ -107,6 +110,14 @@ export default function AdvanceRequestFormPage({ id }: Props) {
   const wApplicable = Form.useWatch("whtApplicable", whtForm);
   const wRate = Form.useWatch("whtRate", whtForm);
   const wBase = Form.useWatch("whtBaseAmount", whtForm);
+
+  useEffect(() => {
+    if (isEdit || poPresetApplied.current || !presetPoId) return;
+    const picked = (eligible.data?.data ?? []).find((p) => p.purchaseOrderId === presetPoId);
+    if (!picked) return;
+    poPresetApplied.current = true;
+    setSource(picked);
+  }, [isEdit, presetPoId, eligible.data?.data]);
 
   useEffect(() => {
     if (request) {
@@ -245,11 +256,12 @@ export default function AdvanceRequestFormPage({ id }: Props) {
             value={source?.purchaseOrderId}
             onChange={(v) => setSource((eligible.data?.data ?? []).find((p) => p.purchaseOrderId === v))}
             notFoundContent="ไม่พบรายการจ่ายเงินที่มีเงื่อนไขชำระล่วงหน้า / มัดจำ"
-            options={(eligible.data?.data ?? []).map((p) => ({
-              value: p.purchaseOrderId,
-              disabled: p.remainingAmount <= 0,
-              label: `${p.poNo} — ${p.creditorName} · ยอดคงเหลือที่ต้องชำระ ${money.format(p.remainingAmount)}${p.remainingAmount <= 0 ? " (ขอครบวงเงินแล้ว)" : ""}`,
-            }))}
+            options={(eligible.data?.data ?? [])
+              .filter((p) => p.remainingAmount > 0)
+              .map((p) => ({
+                value: p.purchaseOrderId,
+                label: `${p.poNo} — ${p.creditorName} · ยอดคงเหลือที่ต้องชำระ ${money.format(p.remainingAmount)}`,
+              }))}
           />
         ) : null}
         {src && (request || source) ? (

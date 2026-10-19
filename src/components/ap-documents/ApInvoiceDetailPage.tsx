@@ -48,7 +48,6 @@ import {
 } from "@/types/ap-documents";
 
 import AdjustDebtModal from "./AdjustDebtModal";
-import IssueApPvModal from "./IssueApPvModal";
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money, termText } from "./apDocumentConfig";
 
 const config = AP_DOCUMENT_CONFIG.invoice;
@@ -65,7 +64,7 @@ const dt = (value?: string | null) => {
 
 /**
  * รายละเอียดใบตั้งหนี้ (read-only ตามสถานะ) 11 section
- * หลังอนุมัติ: ปุ่ม "ปรับหนี้" / "ออกใบสำคัญจ่าย" (ส่งยอดเข้าคิวรอสร้าง PV) / "ออกใบวางบิล" — ทำงานแยกกัน ไม่ต้องปรับหนี้ก่อนออก PV
+ * หลังอนุมัติ: ปุ่ม "ปรับหนี้" / "ออกใบวางบิล" (primary) — ออก PV จาก flow วางบิล
  */
 export default function ApInvoiceDetailPage({ id }: { id: string }) {
   const router = useRouter();
@@ -74,7 +73,6 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
   const query = useApInvoiceDetailQuery(id);
   const action = useApInvoiceActionMutation(id);
   const [adjustOpen, setAdjustOpen] = useState(false);
-  const [issueOpen, setIssueOpen] = useState(false);
   const { cancelQueue } = useApInvoicePvMutation(id);
   const [reasonFor, setReasonFor] = useState<"reject" | "cancel" | null>(null);
   const [reason, setReason] = useState("");
@@ -315,16 +313,10 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
             {status === "APPROVED" && perms.canEdit ? (
               <>
                 <Button onClick={() => setAdjustOpen(true)}>ปรับหนี้</Button>
-                <Tooltip title={d.pvBlockReason}>
-                  <span>
-                    <Button type="primary" disabled={!d.canIssuePv} onClick={() => setIssueOpen(true)}>
-                      ออกใบสำคัญจ่าย
-                    </Button>
-                  </span>
-                </Tooltip>
                 <Tooltip title={billingDisabledReason}>
                   <span>
                     <Button
+                      type="primary"
                       disabled={!d.canIssueBilling}
                       onClick={() => router.push(`${BILLING_CREATE_PATH}?apId=${id}`)}
                     >
@@ -347,9 +339,6 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
         ) : null}
         {status === "CANCELLED" ? (
           <Alert type="warning" showIcon title={`ยกเลิกเมื่อ ${dt(d.cancelledAt)}${d.cancelledByName ? ` โดย ${d.cancelledByName}` : ""}`} description={d.cancelReason ?? undefined} />
-        ) : null}
-        {status === "APPROVED" && !d.canIssuePv && d.pvBlockReason ? (
-          <Alert type="info" showIcon title={`ปุ่มออกใบสำคัญจ่ายปิดอยู่: ${d.pvBlockReason}`} style={{ marginBottom: 8 }} />
         ) : null}
         {status === "APPROVED" && !d.canIssueBilling && billingDisabledReason ? (
           <Alert type="info" showIcon title={`ปุ่มออกใบวางบิลปิดอยู่: ${billingDisabledReason}`} />
@@ -493,7 +482,6 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
       </Card>
 
       <AdjustDebtModal open={adjustOpen} detail={d} onClose={() => setAdjustOpen(false)} />
-      <IssueApPvModal open={issueOpen} detail={d} onClose={() => setIssueOpen(false)} />
 
       <Modal
         open={reasonFor !== null}

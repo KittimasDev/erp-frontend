@@ -36,6 +36,7 @@ import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
 import { describeTerm, formatThaiDate, money } from "./payableFormat";
 
 const LIST_PATH = "/finance/payables/creditors";
+const ADVANCE_REQUESTS_PATH = "/finance/payables/advance-requests";
 
 /**
  * Section ของหน้า — Phase ถัดไปเพิ่ม `goodsReceipts` / `apDocuments` / `payments` / `history`
@@ -117,9 +118,16 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
           </Space>
         }
         extra={
-          <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
-            กลับ
-          </Button>
+          <Space wrap>
+            {po.paymentTerm?.termType === "ADVANCE" && po.payableStatus !== "PAID" ? (
+              <Button type="primary" onClick={() => router.push(ADVANCE_REQUESTS_PATH)}>
+                ขอจ่ายมัดจำ
+              </Button>
+            ) : null}
+            <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
+              กลับ
+            </Button>
+          </Space>
         }
       >
         <Alert

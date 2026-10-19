@@ -8,11 +8,15 @@ import type { ColumnsType } from "antd/es/table";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import { useAdvanceRequestsQuery } from "@/hooks/advance-payment-requests/useAdvanceRequests";
+import {
+  useAdvanceRequestsQuery,
+  useEligiblePayablesQuery,
+} from "@/hooks/advance-payment-requests/useAdvanceRequests";
 import {
   ADVANCE_STATUS_COLOR,
   ADVANCE_STATUS_LABEL,
   type AdvanceRequest,
+  type EligiblePayable,
 } from "@/types/advance-payment-requests";
 
 export const ADVANCE_BASE_PATH = "/finance/payables/advance-requests";
@@ -27,6 +31,71 @@ export default function AdvanceRequestsListPage() {
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
   const query = useAdvanceRequestsQuery({ page, limit: 20, status, search: keyword });
+  const eligible = useEligiblePayablesQuery("", true);
+
+  const eligibleColumns: ColumnsType<EligiblePayable> = [
+    {
+      title: "เลขที่ PO",
+      dataIndex: "poNo",
+      render: (v: string) => <Typography.Text strong>{v}</Typography.Text>,
+    },
+    { title: "วันที่ PO", dataIndex: "poDate", width: 120, render: formatThaiDate },
+    {
+      title: "ผู้ขาย",
+      key: "cr",
+      render: (_v, r) => (
+        <span>
+          <Typography.Text type="secondary">{r.creditorCode}</Typography.Text> {r.creditorName}
+        </span>
+      ),
+    },
+    {
+      title: "% มัดจำ",
+      dataIndex: "advancePercent",
+      width: 90,
+      align: "right",
+      render: (v: number) => `${v}%`,
+    },
+    {
+      title: "วงเงินมัดจำ",
+      dataIndex: "advanceLimitAmount",
+      align: "right",
+      render: (v: number) => money.format(v),
+    },
+    {
+      title: "ขอไปแล้ว",
+      dataIndex: "alreadyRequestedAmount",
+      align: "right",
+      render: (v: number) => money.format(v),
+    },
+    {
+      title: "คงเหลือ",
+      dataIndex: "remainingAmount",
+      align: "right",
+      render: (v: number) => money.format(v),
+    },
+    ...(canAdd
+      ? [
+          {
+            title: "",
+            key: "action",
+            width: 140,
+            render: (_: unknown, r: EligiblePayable) => (
+              <Button
+                type="link"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`${ADVANCE_BASE_PATH}/create?poId=${r.purchaseOrderId}`);
+                }}
+              >
+                สร้างคำขอจ่าย
+              </Button>
+            ),
+          } satisfies ColumnsType<EligiblePayable>[number],
+        ]
+      : []),
+  ];
 
   const columns: ColumnsType<AdvanceRequest> = [
     { title: "เลขที่รายการ", dataIndex: "requestNo", render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
@@ -76,7 +145,28 @@ export default function AdvanceRequestsListPage() {
           ) : null}
         </div>
       </Card>
-      <Card>
+
+      <Card title="รอจ่ายมัดจำ">
+        <Table
+          rowKey="purchaseOrderId"
+          loading={eligible.isLoading}
+          columns={eligibleColumns}
+          dataSource={eligible.data?.data ?? []}
+          pagination={false}
+          scroll={{ x: 900 }}
+          locale={{ emptyText: "ไม่มีรายการรอขอมัดจำ" }}
+          onRow={
+            canAdd
+              ? (r) => ({
+                  onClick: () => router.push(`${ADVANCE_BASE_PATH}/create?poId=${r.purchaseOrderId}`),
+                  style: { cursor: "pointer" },
+                })
+              : undefined
+          }
+        />
+      </Card>
+
+      <Card title="รายการที่ดำเนินการแล้ว">
         <Space wrap style={{ marginBottom: 12 }}>
           <Input.Search
             allowClear

@@ -276,6 +276,8 @@ export type ApInvoiceOption = {
   totalAmount: number;
   vatMode: string;
   taxRateId: string | null;
+  /** ยอดเจ้าหนี้คงเหลือ — ถ้า ≤ 0 ไม่ให้เลือกหักยอด (OFFSET_AP) */
+  remainingAmount: number;
 };
 
 type Envelope<T> = { statusCode?: number; message: string; data: T };

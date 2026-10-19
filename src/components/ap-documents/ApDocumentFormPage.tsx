@@ -100,6 +100,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
 
   const creditorId = Form.useWatch("creditorId", form);
   const settlementMethod = Form.useWatch("settlementMethod", form);
+  const referenceDocumentId = Form.useWatch("referenceDocumentId", form);
   const vatMode = Form.useWatch("vatMode", form) ?? "EXCLUSIVE";
   const taxRateId = Form.useWatch("taxRateId", form);
   const watchedLines = Form.useWatch("items", form);
@@ -121,6 +122,20 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
         ? Number(taxRates.find((rate) => rate.id === taxRateId)?.rate ?? STANDARD_VAT_PERCENT)
         : STANDARD_VAT_PERCENT;
   const totals = useMemo(() => previewTotals(lines, vatMode, vatRate), [lines, vatMode, vatRate]);
+
+  /** AP ที่เลือก — ถ้าจ่ายครบแล้วไม่ให้เลือกหักยอดเจ้าหนี้คงค้าง */
+  const selectedAp = useMemo(
+    () => (invoiceOptionsQuery.data ?? []).find((option) => option.id === referenceDocumentId),
+    [invoiceOptionsQuery.data, referenceDocumentId],
+  );
+  const canOffsetSelectedAp = selectedAp == null || Number(selectedAp.remainingAmount) > 0;
+  const settlementMethodOptions = useMemo(
+    () =>
+      Object.entries(AP_SETTLEMENT_METHOD_LABEL)
+        .filter(([value]) => canOffsetSelectedAp || value !== "OFFSET_AP")
+        .map(([value, label]) => ({ value, label })),
+    [canOffsetSelectedAp],
+  );
 
   /* เติมค่าครั้งเดียว — แก้ใบเดิม หรือกด "ออกใบเพิ่มหนี้" มาจากหน้าใบตั้งหนี้ (?creditorId=&invoiceId=) */
   const seeded = useRef(false);
@@ -216,9 +231,24 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
     const picked = invoiceOptionsQuery.data?.find((option) => option.id === invoiceId);
     if (picked) {
       // ใบเพิ่มหนี้ตั้งต้นการคิด VAT ตามใบตั้งหนี้ที่อ้าง — แก้ได้ถ้าผู้ขายออกต่างไป
-      form.setFieldsValue({ vatMode: picked.vatMode, taxRateId: picked.taxRateId ?? undefined });
+      const patch: Partial<FormValues> = {
+        vatMode: picked.vatMode,
+        taxRateId: picked.taxRateId ?? undefined,
+      };
+      // AP จ่ายครบแล้ว — เคลียร์หักยอดเจ้าหนี้คงค้าง (หักไม่ได้)
+      if (isCredit && Number(picked.remainingAmount) <= 0 && settlementMethod === "OFFSET_AP") {
+        patch.settlementMethod = undefined;
+      }
+      form.setFieldsValue(patch);
     }
   };
+
+  /* AP ที่เลือกจ่ายครบแล้วแต่ยังติด OFFSET_AP อยู่ (เช่น โหลดจาก draft) → เคลียร์ */
+  useEffect(() => {
+    if (!isCredit || !selectedAp || Number(selectedAp.remainingAmount) > 0) return;
+    if (settlementMethod !== "OFFSET_AP") return;
+    form.setFieldsValue({ settlementMethod: undefined });
+  }, [form, isCredit, selectedAp, settlementMethod]);
 
   const submit = async (values: FormValues) => {
     const common = {
@@ -459,11 +489,13 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                 name="settlementMethod"
                 label="วิธีจัดการยอดลดหนี้"
                 rules={[{ required: true, message: "เลือกวิธีจัดการยอด" }]}
+                extra={
+                  !canOffsetSelectedAp
+                    ? "ใบตั้งหนี้ที่เลือกจ่ายครบแล้ว — หักยอดเจ้าหนี้คงค้างไม่ได้ เลือกวิธีรับเงินคืนหรือเครดิตผู้ขายแทน"
+                    : undefined
+                }
               >
-                <Select
-                  placeholder="เลือกวิธีจัดการยอด"
-                  options={Object.entries(AP_SETTLEMENT_METHOD_LABEL).map(([value, label]) => ({ value, label }))}
-                />
+                <Select placeholder="เลือกวิธีจัดการยอด" options={settlementMethodOptions} />
               </Form.Item>
             </Col>
           ) : null}
