@@ -114,7 +114,9 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
   const doc = query.data;
   const bankQuery = useCompanyBankAccountsQuery(isCredit && doc?.settlementMethod === "REFUND");
   const apOptionsQuery = useApInvoiceOptionsQuery(
-    isCredit && doc?.settlementMethod === "SUPPLIER_CREDIT" && creditOpen ? doc.creditorId : undefined,
+    isCredit && doc?.settlementMethod === "SUPPLIER_CREDIT" && creditOpen
+      ? { creditorId: doc.creditorId, billingStatus: "ALL", page: 1, limit: 100 }
+      : undefined,
     "creditNote",
   );
 
@@ -859,7 +861,7 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
               loading={apOptionsQuery.isFetching}
               placeholder="เลือกใบตั้งหนี้"
               notFoundContent="ผู้ขายรายนี้ยังไม่มีใบตั้งหนี้ที่อนุมัติแล้ว"
-              options={(apOptionsQuery.data ?? []).map((invoice) => ({
+              options={(apOptionsQuery.data?.items ?? []).map((invoice) => ({
                 value: invoice.id,
                 label: `${invoice.docNo}${invoice.supplierDocNo ? ` (${invoice.supplierDocNo})` : ""} · ${money.format(invoice.totalAmount)}`,
               }))}

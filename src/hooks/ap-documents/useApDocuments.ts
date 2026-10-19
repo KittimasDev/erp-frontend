@@ -35,6 +35,7 @@ import {
 import { getAccessToken } from "@/lib/auth/token";
 import type {
   ApDocumentKind,
+  ApInvoiceOptionsQuery,
   CreatedApQuery,
   PendingGrnQuery,
   ApDocumentQueryParams,
@@ -125,14 +126,14 @@ export function useApPurchaseOrderOptionsQuery(creditorId?: string) {
 }
 
 export function useApInvoiceOptionsQuery(
-  creditorId?: string,
+  params: ApInvoiceOptionsQuery | undefined,
   kind: "debitNote" | "creditNote" = "debitNote",
 ) {
   return useQuery({
-    queryKey: [...apDocumentsQueryKey, "invoice-options", kind, creditorId],
-    queryFn: async () =>
-      (await getApInvoiceOptions(getAccessToken(), creditorId as string, kind)).data,
-    enabled: Boolean(creditorId),
+    queryKey: [...apDocumentsQueryKey, "invoice-options", kind, params ?? {}],
+    queryFn: async () => (await getApInvoiceOptions(getAccessToken(), kind, params as ApInvoiceOptionsQuery)).data,
+    enabled: Boolean(params?.creditorId),
+    placeholderData: keepPreviousData,
   });
 }
 

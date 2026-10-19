@@ -13,6 +13,7 @@ import type {
   ApDocumentListResponse,
   ApDocumentQueryParams,
   ApDocumentResponse,
+  ApInvoiceOptionsQuery,
   ApInvoiceOptionsResponse,
   ApPurchaseOrderOptionsResponse,
   ApSupplierCreditCandidate,
@@ -146,11 +147,11 @@ export function getApPurchaseOrderOptions(token: string, creditorId: string) {
 
 export function getApInvoiceOptions(
   token: string,
-  creditorId: string,
   kind: "debitNote" | "creditNote" = "debitNote",
+  params: ApInvoiceOptionsQuery,
 ) {
   return apiFetch<ApInvoiceOptionsResponse>(
-    `${BASE[kind]}/invoice-options${buildQuery({ creditorId })}`,
+    `${BASE[kind]}/invoice-options${buildQuery(params as unknown as Record<string, unknown>)}`,
     { token },
   );
 }

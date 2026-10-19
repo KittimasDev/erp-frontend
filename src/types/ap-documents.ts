@@ -268,16 +268,51 @@ export type ApPurchaseOrderOption = {
   totalAmount: number;
 };
 
+export type ApInvoiceBillingStatus = "UNBILLED" | "BILLED";
+export type ApInvoiceBillingStatusFilter = ApInvoiceBillingStatus | "ALL";
+
 export type ApInvoiceOption = {
   id: string;
   docNo: string;
   docDate: string;
   supplierDocNo: string | null;
+  poNo: string | null;
+  creditorCode: string;
+  creditorName: string;
   totalAmount: number;
   vatMode: string;
   taxRateId: string | null;
   /** ยอดเจ้าหนี้คงเหลือ — ถ้า ≤ 0 ไม่ให้เลือกหักยอด (OFFSET_AP) */
   remainingAmount: number;
+  paymentStatus: string;
+  billedAmount: number;
+  billingStatus: ApInvoiceBillingStatus | string;
+};
+
+export type ApInvoiceOptionList = {
+  items: ApInvoiceOption[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type ApInvoiceOptionsQuery = {
+  creditorId: string;
+  search?: string;
+  billingStatus?: ApInvoiceBillingStatusFilter;
+  paymentStatus?: "UNPAID" | "PARTIAL" | "PAID";
+  page?: number;
+  limit?: number;
+};
+
+export const AP_BILLING_STATUS_LABEL: Record<string, string> = {
+  UNBILLED: "ยังไม่วางบิล",
+  BILLED: "วางบิลแล้ว",
+};
+
+export const AP_BILLING_STATUS_COLOR: Record<string, string> = {
+  UNBILLED: "default",
+  BILLED: "blue",
 };
 
 type Envelope<T> = { statusCode?: number; message: string; data: T };
@@ -285,7 +320,7 @@ type Envelope<T> = { statusCode?: number; message: string; data: T };
 export type ApDocumentResponse = Envelope<ApDocument>;
 export type ApDocumentListResponse = Envelope<ApDocumentList>;
 export type ApPurchaseOrderOptionsResponse = Envelope<ApPurchaseOrderOption[]>;
-export type ApInvoiceOptionsResponse = Envelope<ApInvoiceOption[]>;
+export type ApInvoiceOptionsResponse = Envelope<ApInvoiceOptionList>;
 
 // ─── หน้ารายการใบตั้งหนี้ 2 ส่วน ─────────────────────────────────────────────
 

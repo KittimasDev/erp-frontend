@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Alert,
@@ -37,6 +37,7 @@ import { STANDARD_VAT_PERCENT, VAT_MODE_OPTIONS } from "@/lib/money/vat-totals";
 import {
   AP_SETTLEMENT_METHOD_LABEL,
   type ApDocumentKind,
+  type ApInvoiceOption,
   type SaveApCreditNoteBody,
   type SaveApDebitNoteBody,
   type SaveApInvoiceBody,
@@ -44,6 +45,7 @@ import {
 import { purchaseOrderStatusLabel } from "@/types/purchase-orders";
 
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money, previewTotals } from "./apDocumentConfig";
+import ApInvoicePickerModal from "./ApInvoicePickerModal";
 
 type Props = { kind: ApDocumentKind; id?: string };
 
@@ -109,9 +111,16 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
   const vendorsQuery = useVendorsQuery({ isActive: true });
   const taxRatesQuery = useTaxRatesQuery({ isActive: true });
   const poOptionsQuery = useApPurchaseOrderOptionsQuery(isInvoice ? creditorId : undefined);
-  const invoiceOptionsQuery = useApInvoiceOptionsQuery(
-    isInvoice ? undefined : creditorId,
-    isCredit ? "creditNote" : "debitNote",
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selectedAp, setSelectedAp] = useState<ApInvoiceOption | null>(null);
+  const noteKind = isCredit ? "creditNote" : "debitNote";
+  /** โหลด AP ที่ preset จาก URL / แก้ไข — billingStatus ALL เพื่อหาได้แม้วางบิลแล้ว */
+  const presetInvoiceId = !isInvoice ? (referenceDocumentId || searchParams.get("invoiceId") || undefined) : undefined;
+  const presetOptionsQuery = useApInvoiceOptionsQuery(
+    !isInvoice && creditorId && presetInvoiceId && (!selectedAp || selectedAp.id !== presetInvoiceId)
+      ? { creditorId, billingStatus: "ALL", page: 1, limit: 100 }
+      : undefined,
+    noteKind,
   );
 
   const taxRates = taxRatesQuery.data?.data ?? [];
@@ -123,12 +132,10 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
         : STANDARD_VAT_PERCENT;
   const totals = useMemo(() => previewTotals(lines, vatMode, vatRate), [lines, vatMode, vatRate]);
 
-  /** AP ที่เลือก — ถ้าจ่ายครบแล้วไม่ให้เลือกหักยอดเจ้าหนี้คงค้าง */
-  const selectedAp = useMemo(
-    () => (invoiceOptionsQuery.data ?? []).find((option) => option.id === referenceDocumentId),
-    [invoiceOptionsQuery.data, referenceDocumentId],
-  );
-  const canOffsetSelectedAp = selectedAp == null || Number(selectedAp.remainingAmount) > 0;
+  /** AP ที่เลือก — หักยอดได้เฉพาะยังไม่วางบิลและมียอดคงเหลือ */
+  const canOffsetSelectedAp =
+    selectedAp == null ||
+    (Number(selectedAp.remainingAmount) > 0 && selectedAp.billingStatus !== "BILLED");
   const settlementMethodOptions = useMemo(
     () =>
       Object.entries(AP_SETTLEMENT_METHOD_LABEL)
@@ -201,22 +208,22 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
     });
   }, [config.basePath, form, grnInfo, router]);
 
-  /*
-    มาจากปุ่ม "ออกใบเพิ่มหนี้" — ใบตั้งหนี้ถูกเลือกไว้ก่อนตัวเลือกโหลดเสร็จ onChange จึงไม่ทำงาน
-    ตั้งการคิด VAT ตามใบตั้งหนี้ให้ครั้งเดียวเมื่อรายการตัวเลือกมาถึง (เฉพาะใบใหม่ ไม่ทับใบที่กำลังแก้)
-  */
+  /* preset จาก URL หรือแก้ไข — หา AP จากรายการ ALL แล้ว seed VAT / selectedAp */
   const vatSeededFromInvoice = useRef(false);
   useEffect(() => {
-    if (id || isInvoice || vatSeededFromInvoice.current || !invoiceOptionsQuery.data) return;
-    const preset = searchParams.get("invoiceId");
-    const picked = invoiceOptionsQuery.data.find((option) => option.id === preset);
+    if (isInvoice || !presetInvoiceId || !presetOptionsQuery.data) return;
+    const picked = presetOptionsQuery.data.items.find((option) => option.id === presetInvoiceId);
     if (!picked) return;
-    vatSeededFromInvoice.current = true;
-    form.setFieldsValue({ vatMode: picked.vatMode, taxRateId: picked.taxRateId ?? undefined });
-  }, [form, id, invoiceOptionsQuery.data, isInvoice, searchParams]);
+    setSelectedAp(picked);
+    if (!id && !vatSeededFromInvoice.current) {
+      vatSeededFromInvoice.current = true;
+      form.setFieldsValue({ vatMode: picked.vatMode, taxRateId: picked.taxRateId ?? undefined });
+    }
+  }, [form, id, isInvoice, presetInvoiceId, presetOptionsQuery.data]);
 
   const onCreditorChange = () => {
     form.setFieldsValue({ purchaseOrderId: undefined, referenceDocumentId: undefined });
+    setSelectedAp(null);
   };
 
   /* ตั้งหนี้จาก PO — ตั้งต้นการคิด VAT ตาม PO ให้ แก้ต่อได้ถ้าใบแจ้งหนี้ผู้ขายออกต่างไป */
@@ -227,28 +234,31 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
     }
   };
 
-  const onInvoicePicked = (invoiceId?: string) => {
-    const picked = invoiceOptionsQuery.data?.find((option) => option.id === invoiceId);
-    if (picked) {
-      // ใบเพิ่มหนี้ตั้งต้นการคิด VAT ตามใบตั้งหนี้ที่อ้าง — แก้ได้ถ้าผู้ขายออกต่างไป
-      const patch: Partial<FormValues> = {
-        vatMode: picked.vatMode,
-        taxRateId: picked.taxRateId ?? undefined,
-      };
-      // AP จ่ายครบแล้ว — เคลียร์หักยอดเจ้าหนี้คงค้าง (หักไม่ได้)
-      if (isCredit && Number(picked.remainingAmount) <= 0 && settlementMethod === "OFFSET_AP") {
-        patch.settlementMethod = undefined;
-      }
-      form.setFieldsValue(patch);
+  const onInvoicePicked = (picked: ApInvoiceOption) => {
+    setSelectedAp(picked);
+    const patch: Partial<FormValues> = {
+      referenceDocumentId: picked.id,
+      vatMode: picked.vatMode,
+      taxRateId: picked.taxRateId ?? undefined,
+    };
+    const cannotOffset = Number(picked.remainingAmount) <= 0 || picked.billingStatus === "BILLED";
+    if (isCredit && cannotOffset && settlementMethod === "OFFSET_AP") {
+      patch.settlementMethod = undefined;
     }
+    form.setFieldsValue(patch);
   };
 
-  /* AP ที่เลือกจ่ายครบแล้วแต่ยังติด OFFSET_AP อยู่ (เช่น โหลดจาก draft) → เคลียร์ */
+  const clearInvoice = () => {
+    setSelectedAp(null);
+    form.setFieldsValue({ referenceDocumentId: undefined });
+  };
+
+  /* AP ที่เลือกหักยอดไม่ได้แต่ยังติด OFFSET_AP (เช่น โหลดจาก draft) → เคลียร์ */
   useEffect(() => {
-    if (!isCredit || !selectedAp || Number(selectedAp.remainingAmount) > 0) return;
+    if (!isCredit || !selectedAp || canOffsetSelectedAp) return;
     if (settlementMethod !== "OFFSET_AP") return;
     form.setFieldsValue({ settlementMethod: undefined });
-  }, [form, isCredit, selectedAp, settlementMethod]);
+  }, [canOffsetSelectedAp, form, isCredit, selectedAp, settlementMethod]);
 
   const submit = async (values: FormValues) => {
     const common = {
@@ -319,6 +329,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
   }
 
   return (
+    <>
     <Card
       title={id ? `แก้ไข${config.shortLabel} ${existing?.docNo ?? ""}` : `สร้าง${config.title}`}
       extra={
@@ -424,32 +435,53 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                 />
               </Form.Item>
             ) : (
-              <Form.Item
-                name="referenceDocumentId"
-                label={isCredit ? "ใบตั้งหนี้ที่อ้างอิง (AP)" : "ใบตั้งหนี้ที่จะเพิ่มหนี้"}
-                tooltip={isCredit ? "บังคับเมื่อเลือกวิธี “หักยอดเจ้าหนี้คงค้าง” · วิธีอื่นอ้างหรือไม่ก็ได้" : undefined}
-                rules={[
-                  {
-                    required: !isCredit || settlementMethod === "OFFSET_AP",
-                    message: "เลือกใบตั้งหนี้",
-                  },
-                ]}
-              >
-                <Select
-                  allowClear={isCredit}
-                  showSearch
-                  optionFilterProp="label"
-                  disabled={!creditorId || !allowed}
-                  placeholder={creditorId ? "เลือกใบตั้งหนี้ที่อนุมัติแล้ว" : "เลือกเจ้าหนี้ก่อน"}
-                  loading={invoiceOptionsQuery.isFetching}
-                  notFoundContent="เจ้าหนี้รายนี้ยังไม่มีใบตั้งหนี้ที่อนุมัติแล้ว"
-                  onChange={onInvoicePicked}
-                  options={(invoiceOptionsQuery.data ?? []).map((invoice) => ({
-                    value: invoice.id,
-                    label: `${invoice.docNo}${invoice.supplierDocNo ? ` (${invoice.supplierDocNo})` : ""} · ${money.format(invoice.totalAmount)}`,
-                  }))}
-                />
-              </Form.Item>
+              <>
+                <Form.Item
+                  name="referenceDocumentId"
+                  rules={[
+                    {
+                      required: !isCredit || settlementMethod === "OFFSET_AP",
+                      message: "เลือกใบตั้งหนี้",
+                    },
+                  ]}
+                  hidden
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  label={isCredit ? "ใบตั้งหนี้ที่อ้างอิง (AP)" : "ใบตั้งหนี้ที่จะเพิ่มหนี้"}
+                  tooltip={isCredit ? "บังคับเมื่อเลือกวิธี “หักยอดเจ้าหนี้คงค้าง” · วิธีอื่นอ้างหรือไม่ก็ได้" : undefined}
+                  required={!isCredit || settlementMethod === "OFFSET_AP"}
+                >
+                  <Space orientation="vertical" style={{ width: "100%" }} size={4}>
+                    <Space wrap>
+                      <Button
+                        disabled={!creditorId || !allowed}
+                        onClick={() => setPickerOpen(true)}
+                      >
+                        เลือกใบตั้งหนี้
+                      </Button>
+                      {isCredit && selectedAp ? (
+                        <Button type="link" danger disabled={!allowed} onClick={clearInvoice}>
+                          ล้าง
+                        </Button>
+                      ) : null}
+                    </Space>
+                    {selectedAp ? (
+                      <Typography.Text>
+                        {selectedAp.docNo}
+                        {selectedAp.poNo ? ` · ${selectedAp.poNo}` : ""}
+                        {` · ${money.format(selectedAp.totalAmount)}`}
+                        {` · คงเหลือ ${money.format(selectedAp.remainingAmount)}`}
+                      </Typography.Text>
+                    ) : (
+                      <Typography.Text type="secondary">
+                        {creditorId ? "ยังไม่ได้เลือกใบตั้งหนี้" : "เลือกเจ้าหนี้ก่อน"}
+                      </Typography.Text>
+                    )}
+                  </Space>
+                </Form.Item>
+              </>
             )}
           </Col>
           <Col xs={24} sm={12} md={6}>
@@ -491,7 +523,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
                 rules={[{ required: true, message: "เลือกวิธีจัดการยอด" }]}
                 extra={
                   !canOffsetSelectedAp
-                    ? "ใบตั้งหนี้ที่เลือกจ่ายครบแล้ว — หักยอดเจ้าหนี้คงค้างไม่ได้ เลือกวิธีรับเงินคืนหรือเครดิตผู้ขายแทน"
+                    ? "ใบตั้งหนี้ที่เลือกวางบิลแล้วหรือจ่ายครบแล้ว — หักยอดเจ้าหนี้คงค้างไม่ได้ เลือกวิธีรับเงินคืนหรือเครดิตผู้ขายแทน"
                     : undefined
                 }
               >
@@ -638,5 +670,16 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
         </Space>
       </Form>
     </Card>
+    {!isInvoice && creditorId ? (
+      <ApInvoicePickerModal
+        open={pickerOpen}
+        creditorId={creditorId}
+        kind={noteKind}
+        selectedId={selectedAp?.id}
+        onClose={() => setPickerOpen(false)}
+        onSelect={onInvoicePicked}
+      />
+    ) : null}
+    </>
   );
 }
