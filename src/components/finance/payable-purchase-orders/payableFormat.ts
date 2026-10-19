@@ -13,7 +13,7 @@ export const SCREEN_CODE = "FINANCE_PAYABLE_CREDITORS";
 export const TERM_TYPE_FILTER_LABEL: Record<PayableTermTypeFilter, string> = {
   ADVANCE: "ชำระล่วงหน้า / มัดจำ",
   ON_RECEIPT: "ชำระเมื่อรับสินค้า",
-  CREDIT: "เครดิต X วัน",
+  CREDIT: "เครดิต",
   NONE: "ไม่ระบุเงื่อนไข",
 };
 
