@@ -42,7 +42,11 @@ import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTim
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchasePaymentDetailPage.module.css";
 
-type Props = { id: string };
+type Props = {
+  id: string;
+  /** ลิงก์กลับหน้ารายการ */
+  listHref?: string;
+};
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -99,7 +103,10 @@ function formatFileSize(value?: string | number) {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export default function PurchasePaymentDetailPage({ id }: Props) {
+export default function PurchasePaymentDetailPage({
+  id,
+  listHref = "/purchase-payments",
+}: Props) {
   const query = usePurchasePaymentQuery(id);
   const data = query.data?.data;
 
@@ -116,19 +123,21 @@ export default function PurchasePaymentDetailPage({ id }: Props) {
       <div className={styles.emptyCard}>
         ไม่พบใบสำคัญจ่าย
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-payments">กลับรายการ</Link>
+          <Link href={listHref}>กลับรายการ</Link>
         </div>
       </div>
     );
   }
 
-  return <PurchasePaymentDetailView data={data} />;
+  return <PurchasePaymentDetailView data={data} listHref={listHref} />;
 }
 
 function PurchasePaymentDetailView({
   data,
+  listHref,
 }: {
   data: SupplierPaymentVoucher;
+  listHref: string;
 }) {
   const router = useRouter();
   const { modal, message } = App.useApp();
@@ -284,7 +293,7 @@ function PurchasePaymentDetailView({
         <div className={styles.headerActions}>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/purchase-payments")}
+            onClick={() => router.push(listHref)}
           >
             กลับ
           </Button>

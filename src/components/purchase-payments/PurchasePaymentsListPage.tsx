@@ -8,15 +8,11 @@ import type { ColumnsType } from "antd/es/table";
 import {
   DollarOutlined,
   EyeOutlined,
-  HourglassOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import {
-  usePendingPurchasePaymentsQuery,
-  usePurchasePaymentsQuery,
-} from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
+import { usePurchasePaymentsQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import {
   SUPPLIER_PAYMENT_METHOD_LABEL,
@@ -52,7 +48,19 @@ function formatMoney(value?: string | number) {
   });
 }
 
-export default function PurchasePaymentsListPage() {
+type Props = {
+  /** path รายการ — ค่าเริ่มต้น /purchase-payments */
+  basePath?: string;
+  /** ปุ่มด้านขวาบน (เช่น ใบสำคัญจ่าย / PO รอจ่าย) */
+  secondaryHref?: string;
+  secondaryLabel?: string;
+};
+
+export default function PurchasePaymentsListPage({
+  basePath = "/purchase-payments",
+  secondaryHref = "/finance/payables/payment-vouchers",
+  secondaryLabel = "ใบสำคัญจ่าย",
+}: Props) {
   const router = useRouter();
   const [voucherNo, setVoucherNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -69,9 +77,6 @@ export default function PurchasePaymentsListPage() {
   const query = usePurchasePaymentsQuery({ ...applied, page, limit });
   const rows = query.data?.data.items ?? [];
   const total = query.data?.data.total ?? 0;
-
-  const pendingQuery = usePendingPurchasePaymentsQuery({ page: 1, limit: 1 });
-  const pendingCount = pendingQuery.data?.data.total ?? 0;
 
   const pageAmount = useMemo(
     () => rows.reduce((sum, row) => sum + (Number(row.totalAmount) || 0), 0),
@@ -207,7 +212,7 @@ export default function PurchasePaymentsListPage() {
             title="ดูรายละเอียด"
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/purchase-payments/${row.id}`);
+              router.push(`${basePath}/${row.id}`);
             }}
           >
             <EyeOutlined />
@@ -215,7 +220,7 @@ export default function PurchasePaymentsListPage() {
         ),
       },
     ],
-    [limit, page, router],
+    [basePath, limit, page, router],
   );
 
   return (
@@ -235,18 +240,9 @@ export default function PurchasePaymentsListPage() {
           </p>
         </div>
         <div className={styles.heroActions}>
-          <Link href="/purchase-payments/pending">
-            <Button
-              className={styles.primaryBtn}
-              type="primary"
-              icon={<HourglassOutlined />}
-            >
-              PO รอจ่าย
-              {pendingCount > 0 ? (
-                <span className={styles.pendingCountBadge} aria-label={`${pendingCount} ใบค้าง`}>
-                  {pendingCount > 99 ? "99+" : pendingCount}
-                </span>
-              ) : null}
+          <Link href={secondaryHref}>
+            <Button className={styles.primaryBtn} type="primary" icon={<DollarOutlined />}>
+              {secondaryLabel}
             </Button>
           </Link>
         </div>
@@ -366,13 +362,13 @@ export default function PurchasePaymentsListPage() {
           pagination={false}
           className={styles.table}
           onRow={(row) => ({
-            onClick: () => router.push(`/purchase-payments/${row.id}`),
+            onClick: () => router.push(`${basePath}/${row.id}`),
           })}
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
                 <strong>ยังไม่มีใบสำคัญจ่าย</strong>
-                เมื่อจ่ายเงินจาก PO แล้ว ประวัติจะแสดงที่นี่
+                เมื่อบันทึกจ่ายเงินแล้ว ประวัติจะแสดงที่นี่
               </div>
             ),
           }}
