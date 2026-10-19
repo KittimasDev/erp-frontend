@@ -64,7 +64,7 @@ const dt = (value?: string | null) => {
 
 /**
  * รายละเอียดใบตั้งหนี้ (read-only ตามสถานะ) 11 section
- * หลังอนุมัติ: ปุ่ม "ปรับหนี้" / "ออกใบวางบิล" (primary) — ออก PV จาก flow วางบิล
+ * หลังอนุมัติ: ปุ่ม "ปรับหนี้" (ซ่อนถ้าวางบิลแล้ว) / "ออกใบวางบิล" (primary)
  */
 export default function ApInvoiceDetailPage({ id }: { id: string }) {
   const router = useRouter();
@@ -312,7 +312,9 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
             ) : null}
             {status === "APPROVED" && perms.canEdit ? (
               <>
-                <Button onClick={() => setAdjustOpen(true)}>ปรับหนี้</Button>
+                {d.billedAmount <= 0 ? (
+                  <Button onClick={() => setAdjustOpen(true)}>ปรับหนี้</Button>
+                ) : null}
                 <Tooltip title={billingDisabledReason}>
                   <span>
                     <Button
