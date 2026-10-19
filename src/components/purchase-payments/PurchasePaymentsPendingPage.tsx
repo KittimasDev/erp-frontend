@@ -3,21 +3,19 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Input, Pagination, Select, Space, Table } from "antd";
+import { Alert, Button, Input, Pagination, Select, Space, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
   DollarOutlined,
   EyeOutlined,
   HistoryOutlined,
   SearchOutlined,
-  ShoppingCartOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { usePendingPurchasePaymentsQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import type { PendingSupplierPaymentPo } from "@/types/purchase-payments";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
-import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchasePaymentsPendingPage.module.css";
 
 function formatDate(value?: string) {
@@ -43,9 +41,6 @@ export default function PurchasePaymentsPendingPage() {
   const [applied, setApplied] = useState<{ poNo?: string; vendor?: string }>(
     {},
   );
-
-  /** ตั้งใบสำคัญจ่ายจาก PO = PURCHASE_PAYMENTS_PENDING.EDIT (ตรงกับ guard ฝั่ง backend) */
-  const canPay = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING").canEdit;
 
   const query = usePendingPurchasePaymentsQuery({ page, limit });
   const rows = query.data?.data.items ?? [];
@@ -173,36 +168,23 @@ export default function PurchasePaymentsPendingPage() {
       {
         title: "",
         key: "actions",
-        width: canPay ? 120 : 56,
+        width: 56,
         render: (_v, row) => (
-          <Space size={6} onClick={(e) => e.stopPropagation()}>
-            {canPay ? (
-              <Button
-                className={styles.payBtn}
-                type="primary"
-                size="small"
-                icon={<DollarOutlined />}
-                onClick={() =>
-                  router.push(`/purchase-payments/create-from-po/${row.id}`)
-                }
-              >
-                จ่ายเงิน
-              </Button>
-            ) : (
-              <button
-                type="button"
-                className={styles.actionBtn}
-                title="ดูใบสั่งซื้อ"
-                onClick={() => router.push(`/purchase-orders/${row.id}`)}
-              >
-                <EyeOutlined />
-              </button>
-            )}
-          </Space>
+          <button
+            type="button"
+            className={styles.actionBtn}
+            title="ดูใบสั่งซื้อ"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/purchase-orders/${row.id}`);
+            }}
+          >
+            <EyeOutlined />
+          </button>
         ),
       },
     ],
-    [canPay, limit, page, router],
+    [limit, page, router],
   );
 
   return (
@@ -217,17 +199,13 @@ export default function PurchasePaymentsPendingPage() {
           </div>
           <h1 className={styles.pageTitle}>PO รอจ่ายเงิน</h1>
           <p className={styles.pageSubtitle}>
-            ใบสั่งซื้อที่รับของครบหรือปิดรับบางส่วน และมี GR ยืนยัน —
-            จ่ายเต็มจำนวนเท่านั้น
+            Flow จ่ายจากใบสั่งซื้อโดยตรงปิดแล้ว — ใช้เมนูการเงินแทน
           </p>
         </div>
         <div className={styles.heroActions}>
-          <Link href="/purchase-orders">
-            <Button
-              className={styles.secondaryBtn}
-              icon={<ShoppingCartOutlined />}
-            >
-              ไปที่ใบสั่งซื้อ
+          <Link href="/finance/payables/payment-vouchers">
+            <Button type="primary" icon={<DollarOutlined />}>
+              ไปใบสำคัญจ่าย
             </Button>
           </Link>
           <Link href="/purchase-payments">
@@ -237,6 +215,19 @@ export default function PurchasePaymentsPendingPage() {
           </Link>
         </div>
       </header>
+
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 16 }}
+        title="การสร้างใบสำคัญจ่ายจาก PO เดิมปิดใช้งานแล้ว"
+        description="สร้าง/อนุมัติใบสำคัญจ่ายและบันทึกจ่ายเงินจริงที่เมนูการเงิน · หน้านี้คงไว้เพื่อลิงก์เก่าและจะไม่แสดงรายการรอจ่ายจาก Flow เดิม"
+        action={
+          <Link href="/finance/payables/payment-records">
+            <Button size="small">บันทึกจ่ายเงิน</Button>
+          </Link>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
@@ -333,18 +324,13 @@ export default function PurchasePaymentsPendingPage() {
           pagination={false}
           className={styles.table}
           onRow={(row) => ({
-            onClick: () =>
-              router.push(
-                canPay
-                  ? `/purchase-payments/create-from-po/${row.id}`
-                  : `/purchase-orders/${row.id}`,
-              ),
+            onClick: () => router.push(`/purchase-orders/${row.id}`),
           })}
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ไม่มี PO รอจ่ายเงิน</strong>
-                เมื่อรับของครบหรือปิดรับบางส่วน และ Confirm GR แล้ว รายการจะขึ้นที่นี่
+                <strong>Flow จ่ายจาก PO เดิมปิดแล้ว</strong>
+                ใช้เมนูใบสำคัญจ่าย / บันทึกจ่ายเงินในระบบการเงินแทน
               </div>
             ),
           }}

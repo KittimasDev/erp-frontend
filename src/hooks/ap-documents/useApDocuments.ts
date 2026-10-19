@@ -4,7 +4,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { paymentVouchersKey } from "@/hooks/payment-vouchers/usePaymentVouchers";
 import {
+  addApCreditNoteRefund,
   applyAdjustments,
+  applyApSupplierCredit,
+  cancelApCreditNoteRefund,
+  getSupplierCreditCandidates,
+  rejectApDocument,
+  submitApDocument,
   cancelApPvQueueItem,
   issueApInvoicePv,
   approveApInvoice,
@@ -32,6 +38,8 @@ import type {
   CreatedApQuery,
   PendingGrnQuery,
   ApDocumentQueryParams,
+  RefundApCreditNoteBody,
+  SaveApCreditNoteBody,
   SaveApDebitNoteBody,
   SaveApInvoiceBody,
 } from "@/types/ap-documents";
@@ -116,12 +124,24 @@ export function useApPurchaseOrderOptionsQuery(creditorId?: string) {
   });
 }
 
-export function useApInvoiceOptionsQuery(creditorId?: string) {
+export function useApInvoiceOptionsQuery(
+  creditorId?: string,
+  kind: "debitNote" | "creditNote" = "debitNote",
+) {
   return useQuery({
-    queryKey: [...apDocumentsQueryKey, "invoice-options", creditorId],
+    queryKey: [...apDocumentsQueryKey, "invoice-options", kind, creditorId],
     queryFn: async () =>
-      (await getApInvoiceOptions(getAccessToken(), creditorId as string)).data,
+      (await getApInvoiceOptions(getAccessToken(), creditorId as string, kind)).data,
     enabled: Boolean(creditorId),
+  });
+}
+
+/** เครดิตผู้ขายคงเหลือที่นำมาใช้กับใบตั้งหนี้ใบนี้ได้ */
+export function useSupplierCreditCandidatesQuery(apId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...apDocumentsQueryKey, "supplier-credit-candidates", apId],
+    queryFn: async () => (await getSupplierCreditCandidates(getAccessToken(), apId)).data,
+    enabled,
   });
 }
 
@@ -133,12 +153,76 @@ function useInvalidateAll() {
 export function useSaveApDocumentMutation(kind: ApDocumentKind, id?: string) {
   const invalidate = useInvalidateAll();
   return useMutation({
-    mutationFn: (body: SaveApInvoiceBody | SaveApDebitNoteBody) =>
+    mutationFn: (body: SaveApInvoiceBody | SaveApDebitNoteBody | SaveApCreditNoteBody) =>
       id
         ? updateApDocument(getAccessToken(), kind, id, body)
         : createApDocument(getAccessToken(), kind, body),
     onSuccess: invalidate,
   });
+}
+
+export function useSubmitApDocumentMutation(kind: ApDocumentKind, id: string) {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: () => submitApDocument(getAccessToken(), kind, id),
+    onSuccess: invalidate,
+  });
+}
+
+export function useRejectApDocumentMutation(kind: ApDocumentKind, id: string) {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: (reason: string) => rejectApDocument(getAccessToken(), kind, id, reason),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * ใช้เครดิตผู้ขายหลายใบกับใบตั้งหนี้ใบเดียว (จากหน้าใบตั้งหนี้) — ทำทีละใบตามลำดับ
+ * ถ้าใบใดไม่ผ่านจะหยุดและแจ้งว่าใบก่อนหน้าบันทึกไปแล้วกี่ใบ (แต่ละใบเป็นรายการแยก ย้อนด้วยการยกเลิก AP/ใบลดหนี้ไม่ได้ในทีเดียว)
+ */
+export function useApplySupplierCreditsMutation(apId: string) {
+  const invalidate = useInvalidateAll();
+  return useMutation({
+    mutationFn: async (items: Array<{ noteId: string; amount: number }>) => {
+      let done = 0;
+      for (const item of items) {
+        try {
+          await applyApSupplierCredit(getAccessToken(), item.noteId, {
+            apDocumentId: apId,
+            amount: item.amount,
+          });
+          done += 1;
+        } catch (error) {
+          const text = error instanceof Error ? error.message : "ใช้เครดิตไม่สำเร็จ";
+          throw new Error(done > 0 ? `${text} (ใช้เครดิตสำเร็จก่อนหน้านี้ ${done} ใบ)` : text);
+        }
+      }
+      return done;
+    },
+    onSuccess: invalidate,
+    onError: invalidate,
+  });
+}
+
+/** รับเงินคืน / ยกเลิกรายการรับเงินคืน / ใช้เครดิตผู้ขาย ของใบลดหนี้ — รายละเอียดใบตั้งหนี้ต้องรีเฟรชด้วย */
+export function useApCreditNoteSettlementMutations(id: string) {
+  const invalidate = useInvalidateAll();
+  const refund = useMutation({
+    mutationFn: (body: RefundApCreditNoteBody) => addApCreditNoteRefund(getAccessToken(), id, body),
+    onSuccess: invalidate,
+  });
+  const cancelRefund = useMutation({
+    mutationFn: (v: { refundId: string; reason: string }) =>
+      cancelApCreditNoteRefund(getAccessToken(), id, v.refundId, v.reason),
+    onSuccess: invalidate,
+  });
+  const applyCredit = useMutation({
+    mutationFn: (body: { apDocumentId: string; amount: number }) =>
+      applyApSupplierCredit(getAccessToken(), id, body),
+    onSuccess: invalidate,
+  });
+  return { refund, cancelRefund, applyCredit };
 }
 
 export function useApproveApDocumentMutation(kind: ApDocumentKind, id: string) {

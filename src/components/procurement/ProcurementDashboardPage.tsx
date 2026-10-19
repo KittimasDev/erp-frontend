@@ -13,7 +13,6 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
-  DollarOutlined,
   EyeOutlined,
   FileTextOutlined,
   SearchOutlined,
@@ -33,14 +32,10 @@ import {
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import CollapsibleItemList from "@/components/common/CollapsibleItemList";
-import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useProcurementSummaryQuery } from "@/hooks/procurement-dashboard/useProcurementSummaryQuery";
 import { useProcurementTrackingQuery } from "@/hooks/procurement-dashboard/useProcurementTrackingQuery";
-import {
-  isPoPayableStatus,
-  PURCHASE_ORDER_STATUS_LABEL,
-} from "@/types/purchase-orders";
+import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import type {
   ProcurementTrackingRow,
 } from "@/types/procurement-dashboard";
@@ -81,6 +76,7 @@ const MONTH_BAR_COLORS = [
 
 const PAYMENT_STATUS_LABEL: Record<string, string> = {
   UNPAID: "รอจ่าย",
+  PARTIAL: "จ่ายบางส่วน",
   PAID: "จ่ายแล้ว",
   NOT_REQUIRED: "ไม่ต้องชำระ",
 };
@@ -127,6 +123,7 @@ function statusColor(status: string) {
 
 function paymentStatusColor(status: string) {
   if (status === "PAID") return "success";
+  if (status === "PARTIAL") return "processing";
   if (status === "NOT_REQUIRED") return "default";
   return "warning";
 }
@@ -149,8 +146,6 @@ type TrackingFilters = {
 export default function ProcurementDashboardPage() {
   const router = useRouter();
   const today = dayjs();
-  const canPay = useScreenActionPermissions("PURCHASE_PAYMENTS_PENDING").canEdit;
-
   const [year, setYear] = useState(today.year());
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>(() =>
     rangeForYear(today.year(), today),
@@ -296,41 +291,21 @@ export default function ProcurementDashboardPage() {
       {
         title: "จัดการ",
         key: "action",
-        width: canPay ? 168 : 70,
+        width: 70,
         align: "center",
-        render: (_v, row) => {
-          const payable =
-            canPay &&
-            isPoPayableStatus(row.status) &&
-            row.paymentStatus !== "PAID";
-          return (
-            <div style={{ display: "inline-flex", gap: 6 }}>
-              <button
-                className={styles.actionBtn}
-                type="button"
-                title="ดูรายละเอียด"
-                onClick={() => router.push(`/purchase-orders/${row.id}`)}
-              >
-                <EyeOutlined />
-              </button>
-              {payable ? (
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<DollarOutlined />}
-                  onClick={() =>
-                    router.push(`/purchase-payments/create-from-po/${row.id}`)
-                  }
-                >
-                  จ่ายเงิน
-                </Button>
-              ) : null}
-            </div>
-          );
-        },
+        render: (_v, row) => (
+          <button
+            className={styles.actionBtn}
+            type="button"
+            title="ดูรายละเอียด"
+            onClick={() => router.push(`/purchase-orders/${row.id}`)}
+          >
+            <EyeOutlined />
+          </button>
+        ),
       },
     ],
-    [canPay, limit, page, router],
+    [limit, page, router],
   );
 
   return (
@@ -587,6 +562,7 @@ export default function ProcurementDashboardPage() {
                 onChange={setPaymentStatus}
                 options={[
                   { value: "UNPAID", label: "รอจ่าย" },
+                  { value: "PARTIAL", label: "จ่ายบางส่วน" },
                   { value: "PAID", label: "จ่ายแล้ว" },
                   { value: "NOT_REQUIRED", label: "ไม่ต้องชำระ" },
                 ]}

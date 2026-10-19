@@ -1,5 +1,5 @@
 import { vatAmountLabel } from "@/lib/money/vat-totals";
-import type { ApDocument } from "@/types/ap-documents";
+import { AP_SETTLEMENT_METHOD_LABEL, type ApDocument } from "@/types/ap-documents";
 
 import {
   generateSalesCommercialPdf,
@@ -26,6 +26,7 @@ const VAT_MODE_TEXT: Record<string, string> = {
  */
 export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData {
   const isInvoice = doc.docType === "AP_INVOICE";
+  const isCredit = doc.docType === "CREDIT_NOTE";
   const infoRows: SalesCommercialPdfInfoRow[] = [
     {
       label: "เจ้าหนี้",
@@ -34,7 +35,7 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
     },
     { label: "เลขประจำตัวผู้เสียภาษี", value: doc.creditorTaxId || "—" },
     {
-      label: isInvoice ? "เลขที่ใบแจ้งหนี้ผู้ขาย" : "เลขที่ใบเพิ่มหนี้ผู้ขาย",
+      label: isInvoice ? "เลขที่ใบแจ้งหนี้ผู้ขาย" : isCredit ? "เลขที่ใบลดหนี้ผู้ขาย" : "เลขที่ใบเพิ่มหนี้ผู้ขาย",
       value: doc.supplierDocNo
         ? `${doc.supplierDocNo}${doc.supplierDocDate ? ` (${thaiDate(doc.supplierDocDate)})` : ""}`
         : "—",
@@ -52,8 +53,18 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
   if (doc.creditorAddress) {
     infoRows.push({ label: "ที่อยู่", value: doc.creditorAddress, full: true });
   }
+  if (isCredit) {
+    infoRows.push({
+      label: "วิธีจัดการยอด",
+      value: AP_SETTLEMENT_METHOD_LABEL[doc.settlementMethod ?? "OFFSET_AP"] ?? doc.settlementMethod ?? "—",
+    });
+  }
   if (!isInvoice && doc.reason) {
-    infoRows.push({ label: "เหตุผลที่เพิ่มหนี้", value: doc.reason, full: true });
+    infoRows.push({
+      label: isCredit ? "สาเหตุที่ลดหนี้" : "เหตุผลที่เพิ่มหนี้",
+      value: doc.reason,
+      full: true,
+    });
   }
 
   const draftBanner =
@@ -61,12 +72,16 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
       ? undefined
       : doc.status === "CANCELLED"
         ? `ยกเลิกแล้ว${doc.cancelReason ? ` — ${doc.cancelReason}` : ""}`
-        : "ร่าง — ยังไม่อนุมัติ";
+        : doc.status === "PENDING_APPROVAL"
+          ? "รออนุมัติ — ยังไม่อนุมัติ"
+          : doc.status === "REJECTED"
+            ? "ไม่อนุมัติ"
+            : "ร่าง — ยังไม่อนุมัติ";
 
   return {
-    pageId: isInvoice ? "ap-invoice-pdf" : "ap-debit-note-pdf",
-    titleTh: isInvoice ? "ใบตั้งหนี้" : "ใบเพิ่มหนี้",
-    titleEn: isInvoice ? "ACCOUNTS PAYABLE INVOICE" : "DEBIT NOTE",
+    pageId: isInvoice ? "ap-invoice-pdf" : isCredit ? "ap-credit-note-pdf" : "ap-debit-note-pdf",
+    titleTh: isInvoice ? "ใบตั้งหนี้" : isCredit ? "ใบลดหนี้" : "ใบเพิ่มหนี้",
+    titleEn: isInvoice ? "ACCOUNTS PAYABLE INVOICE" : isCredit ? "CREDIT NOTE" : "DEBIT NOTE",
     docNo: doc.docNo,
     docDate: thaiDate(doc.docDate),
     draftBanner,
@@ -87,7 +102,11 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
     totalsLines: [
       { label: "มูลค่าก่อน VAT", value: doc.subtotalAmount },
       { label: vatAmountLabel(doc.vatRate), value: doc.vatAmount },
-      { label: isInvoice ? "ยอดตั้งหนี้" : "ยอดเพิ่มหนี้", value: doc.totalAmount, grand: true },
+      {
+        label: isInvoice ? "ยอดตั้งหนี้" : isCredit ? "ยอดลดหนี้" : "ยอดเพิ่มหนี้",
+        value: doc.totalAmount,
+        grand: true,
+      },
     ],
     remark: doc.remark ?? "",
     signatures: [

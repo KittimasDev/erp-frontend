@@ -3,7 +3,69 @@
  * backend ใช้ตารางเดียวแยกด้วย docType แต่ endpoint แยกกัน (`/api/ap-invoices`, `/api/ap-debit-notes`)
  */
 
-export type ApDocumentKind = "invoice" | "debitNote";
+export type ApDocumentKind = "invoice" | "debitNote" | "creditNote";
+
+/** วิธีจัดการยอดใบลดหนี้ — เลือกได้ 1 วิธีต่อใบ */
+export type ApSettlementMethod = "OFFSET_AP" | "REFUND" | "SUPPLIER_CREDIT";
+
+export const AP_SETTLEMENT_METHOD_LABEL: Record<string, string> = {
+  OFFSET_AP: "หักยอดเจ้าหนี้คงค้าง",
+  REFUND: "รับเงินคืนจากผู้ขาย",
+  SUPPLIER_CREDIT: "เก็บเป็นเครดิตผู้ขาย",
+};
+
+/** สถานะการนำไปใช้ (แยกจากสถานะเอกสาร) */
+export const AP_USAGE_STATUS_LABEL: Record<string, string> = {
+  UNUSED: "ยังไม่ใช้",
+  USED: "ใช้ปรับหนี้แล้ว",
+  WAITING_REFUND: "รอรับเงินคืน",
+  REFUNDED: "รับคืนครบแล้ว",
+  CREDIT_REMAINING: "เครดิตคงเหลือ",
+  CREDIT_USED: "ใช้เครดิตครบแล้ว",
+};
+
+export const AP_USAGE_STATUS_COLOR: Record<string, string> = {
+  UNUSED: "default",
+  USED: "success",
+  WAITING_REFUND: "gold",
+  REFUNDED: "success",
+  CREDIT_REMAINING: "processing",
+  CREDIT_USED: "success",
+};
+
+export type ApCreditNoteRefund = {
+  id: string;
+  refundDate: string;
+  amount: number;
+  companyBankAccountId: string | null;
+  bankAccountLabel: string | null;
+  referenceNo: string | null;
+  remark: string | null;
+  status: "ACTIVE" | "CANCELLED" | string;
+  createdByName: string | null;
+  createdAt: string;
+  cancelReason: string | null;
+};
+
+export type ApSupplierCreditUsage = {
+  id: string;
+  apDocumentId: string;
+  apDocumentNo: string;
+  amount: number;
+  usedByName: string | null;
+  usedAt: string;
+};
+
+/** เครดิตผู้ขายคงเหลือที่นำมาใช้กับใบตั้งหนี้ใบหนึ่งได้ */
+export type ApSupplierCreditCandidate = {
+  id: string;
+  docNo: string;
+  docDate: string;
+  reason: string | null;
+  totalAmount: number;
+  usedAmount: number;
+  remainingAmount: number;
+};
 
 export type ApDocumentStatus = "DRAFT" | "PENDING_APPROVAL" | "REJECTED" | "APPROVED" | "CANCELLED";
 
@@ -53,7 +115,7 @@ export type ApDocumentLink = {
 
 export type ApDocument = {
   id: string;
-  docType: "AP_INVOICE" | "DEBIT_NOTE";
+  docType: "AP_INVOICE" | "DEBIT_NOTE" | "CREDIT_NOTE";
   docNo: string;
   docDate: string;
   status: ApDocumentStatus | string;
@@ -94,6 +156,26 @@ export type ApDocument = {
   /** เฉพาะใบตั้งหนี้ในหน้ารายละเอียด */
   debitNotes?: ApDocumentLink[];
   adjustedTotalAmount?: number;
+  /** เฉพาะใบเพิ่มหนี้/ลดหนี้ */
+  settlementMethod?: ApSettlementMethod | string;
+  /** สถานะการนำไปใช้ — มีเมื่ออนุมัติแล้ว */
+  usageStatus?: string | null;
+  /** ยอดคงเหลือที่ยังไม่ได้ดำเนินการ (ใบอนุมัติแล้ว) */
+  outstandingAmount?: number;
+  refundedAmount?: number;
+  creditUsedAmount?: number;
+  appliedToApId?: string | null;
+  appliedToApNo?: string | null;
+  appliedAt?: string | null;
+  submittedByName?: string | null;
+  submittedAt?: string | null;
+  rejectedByName?: string | null;
+  rejectedAt?: string | null;
+  rejectReason?: string | null;
+  /** เฉพาะหน้ารายละเอียดใบเพิ่มหนี้/ลดหนี้ */
+  events?: ApEvent[];
+  refunds?: ApCreditNoteRefund[];
+  creditUsages?: ApSupplierCreditUsage[];
   createdAt: string;
   updatedAt: string;
 };
@@ -113,6 +195,9 @@ export type ApDocumentQueryParams = {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  /** ใบลดหนี้: กรองวิธีจัดการยอด / สถานะการนำไปใช้ */
+  settlementMethod?: string;
+  usageStatus?: string;
 };
 
 export type ApDocumentLineBody = {
@@ -152,6 +237,23 @@ export type SaveApInvoiceBody = ApDocumentBaseBody & {
 export type SaveApDebitNoteBody = ApDocumentBaseBody & {
   referenceDocumentId: string;
   reason: string;
+};
+
+export type SaveApCreditNoteBody = ApDocumentBaseBody & {
+  creditorId: string;
+  /** บังคับเมื่อวิธีจัดการยอด = OFFSET_AP */
+  referenceDocumentId?: string;
+  purchaseOrderId?: string;
+  settlementMethod: ApSettlementMethod | string;
+  reason: string;
+};
+
+export type RefundApCreditNoteBody = {
+  refundDate: string;
+  amount: number;
+  companyBankAccountId: string;
+  referenceNo?: string;
+  remark?: string;
 };
 
 export type ApPurchaseOrderOption = {
@@ -328,6 +430,9 @@ export const AP_EVENT_LABEL: Record<string, string> = {
   DEPOSIT_ALLOCATED: "จัดสรรมัดจำ",
   BILLING_RESERVE: "นำไปวางบิล",
   BILLING_RELEASE: "คืนยอดวางบิล",
+  REFUND: "รับเงินคืน",
+  CANCEL_REFUND: "ยกเลิกรับเงินคืน",
+  USE_CREDIT: "ใช้เครดิตผู้ขาย",
 };
 
 export type DepositSource = {

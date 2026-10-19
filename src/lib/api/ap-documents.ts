@@ -15,15 +15,21 @@ import type {
   ApDocumentResponse,
   ApInvoiceOptionsResponse,
   ApPurchaseOrderOptionsResponse,
+  ApSupplierCreditCandidate,
+  RefundApCreditNoteBody,
+  SaveApCreditNoteBody,
   SaveApDebitNoteBody,
   SaveApInvoiceBody,
 } from "@/types/ap-documents";
 
-/** ใบตั้งหนี้กับใบเพิ่มหนี้ใช้ endpoint แยก (สิทธิ์คนละหน้าจอ) แต่หน้าตาข้อมูลเหมือนกัน */
+/** ใบตั้งหนี้ ใบเพิ่มหนี้ ใบลดหนี้ใช้ endpoint แยก (สิทธิ์คนละหน้าจอ) แต่หน้าตาข้อมูลเหมือนกัน */
 const BASE: Record<ApDocumentKind, string> = {
   invoice: "/api/ap-invoices",
   debitNote: "/api/ap-debit-notes",
+  creditNote: "/api/ap-credit-notes",
 };
+
+type SaveBody = SaveApInvoiceBody | SaveApDebitNoteBody | SaveApCreditNoteBody;
 
 function buildQuery(params?: Record<string, unknown>) {
   const search = new URLSearchParams();
@@ -48,11 +54,7 @@ export function getApDocument(token: string, kind: ApDocumentKind, id: string) {
   return apiFetch<ApDocumentResponse>(`${BASE[kind]}/${id}`, { token });
 }
 
-export function createApDocument(
-  token: string,
-  kind: ApDocumentKind,
-  body: SaveApInvoiceBody | SaveApDebitNoteBody,
-) {
+export function createApDocument(token: string, kind: ApDocumentKind, body: SaveBody) {
   return apiFetch<ApDocumentResponse>(BASE[kind], {
     method: "POST",
     token,
@@ -64,7 +66,7 @@ export function updateApDocument(
   token: string,
   kind: ApDocumentKind,
   id: string,
-  body: SaveApInvoiceBody | SaveApDebitNoteBody,
+  body: SaveBody,
 ) {
   return apiFetch<ApDocumentResponse>(`${BASE[kind]}/${id}`, {
     method: "PATCH",
@@ -73,11 +75,53 @@ export function updateApDocument(
   });
 }
 
+export function submitApDocument(token: string, kind: ApDocumentKind, id: string) {
+  return apiFetch<ApDocumentResponse>(`${BASE[kind]}/${id}/submit`, { method: "POST", token });
+}
+
 export function approveApDocument(token: string, kind: ApDocumentKind, id: string) {
   return apiFetch<ApDocumentResponse>(`${BASE[kind]}/${id}/approve`, {
     method: "POST",
     token,
   });
+}
+
+export function rejectApDocument(token: string, kind: ApDocumentKind, id: string, reason: string) {
+  return apiFetch<ApDocumentResponse>(`${BASE[kind]}/${id}/reject`, {
+    method: "POST",
+    token,
+    body: { reason },
+  });
+}
+
+/** ใบลดหนี้: บันทึกรับเงินคืนจากผู้ขาย */
+export function addApCreditNoteRefund(token: string, id: string, body: RefundApCreditNoteBody) {
+  return apiFetch<ApDocumentResponse>(`${BASE.creditNote}/${id}/refunds`, { method: "POST", token, body });
+}
+
+export function cancelApCreditNoteRefund(token: string, id: string, refundId: string, reason: string) {
+  return apiFetch<ApDocumentResponse>(`${BASE.creditNote}/${id}/refunds/${refundId}/cancel`, {
+    method: "POST",
+    token,
+    body: { reason },
+  });
+}
+
+/** ใบลดหนี้: นำเครดิตผู้ขายไปหักกับใบตั้งหนี้ */
+export function applyApSupplierCredit(token: string, id: string, body: { apDocumentId: string; amount: number }) {
+  return apiFetch<ApDocumentResponse>(`${BASE.creditNote}/${id}/supplier-credit/use`, {
+    method: "POST",
+    token,
+    body,
+  });
+}
+
+/** เครดิตผู้ขายคงเหลือที่ใช้กับใบตั้งหนี้ใบนี้ได้ */
+export function getSupplierCreditCandidates(token: string, apId: string) {
+  return apiFetch<{ message: string; data: ApSupplierCreditCandidate[] }>(
+    `${BASE.invoice}/${apId}/supplier-credit-candidates`,
+    { token },
+  );
 }
 
 export function cancelApDocument(
@@ -100,9 +144,13 @@ export function getApPurchaseOrderOptions(token: string, creditorId: string) {
   );
 }
 
-export function getApInvoiceOptions(token: string, creditorId: string) {
+export function getApInvoiceOptions(
+  token: string,
+  creditorId: string,
+  kind: "debitNote" | "creditNote" = "debitNote",
+) {
   return apiFetch<ApInvoiceOptionsResponse>(
-    `${BASE.debitNote}/invoice-options${buildQuery({ creditorId })}`,
+    `${BASE[kind]}/invoice-options${buildQuery({ creditorId })}`,
     { token },
   );
 }

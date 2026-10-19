@@ -129,6 +129,8 @@ export type PurchaseOrder = {
   status: PurchaseOrderStatus;
   receiveStatus?: string;
   paymentStatus?: string;
+  /** ยอดจ่ายจริงสะสมจาก supplier_payments (หน้า detail) */
+  paidAmount?: string;
   subtotalAmount: string;
   discountAmount: string;
   vatAmount: string;

@@ -203,8 +203,8 @@ export default function PayablePurchaseOrdersPage() {
       }
     >
       <Typography.Paragraph type="secondary">
-        ใบสั่งซื้อที่อนุมัติแล้ว 1 ใบต่อ 1 รายการ — ยอดที่ต้องชำระและวันครบกำหนดคำนวณจากเงื่อนไขการชำระเงินใน PO
-        (เครดิตนับจากวันส่งมอบที่ระบุใน PO ถ้าไม่มีใช้วันที่ PO)
+        ใบสั่งซื้อที่อนุมัติแล้ว 1 ใบต่อ 1 รายการ — ยอดที่ต้องชำระและวันครบกำหนดเป็นงวดแรกตามเงื่อนไขใน PO
+        สถานะเทียบยอดจ่ายจริงที่บันทึกแล้วกับยอดทั้งใบ และดูว่างวดที่ยังค้างเลยกำหนดหรือยัง
       </Typography.Paragraph>
       <Space style={{ marginBottom: 12 }} wrap>
         <Input.Search
@@ -235,7 +235,7 @@ export default function PayablePurchaseOrdersPage() {
           allowClear
           placeholder="สถานะรายการ"
           value={status}
-          style={{ width: 170 }}
+          style={{ width: 200 }}
           onChange={(value) => {
             setPage(1);
             setStatus(value);

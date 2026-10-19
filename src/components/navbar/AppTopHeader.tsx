@@ -266,6 +266,7 @@ function resolvePageTitle(
   for (const [base, label] of [
     ["/finance/payables/ap-invoices", "ใบตั้งหนี้"],
     ["/finance/payables/debit-notes", "ใบเพิ่มหนี้"],
+    ["/finance/payables/credit-notes", "ใบลดหนี้"],
     ["/finance/payables/creditors", "รายการจ่ายเงิน"],
     ["/finance/payables/advance-requests", "ขอจ่ายล่วงหน้า / มัดจำ"],
   ] as const) {

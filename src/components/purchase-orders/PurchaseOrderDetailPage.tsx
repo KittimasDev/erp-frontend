@@ -52,7 +52,6 @@ import {
 } from "@/types/po-delivery-schedules";
 import type { DocumentAttachment } from "@/types/document-attachments";
 import {
-  isPoPayableStatus,
   isPoReceivableStatus,
   listPurchaseRequests,
   purchaseOrderStatusLabel,
@@ -234,19 +233,14 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   // (admin `*` และโหมด legacy คืน all-true จาก getScreenActionPermissions อยู่แล้ว)
   // ใช้ hook ไม่ใช่ getter เพื่อให้ปุ่มอัปเดตทันทีเมื่อแอดมิน save matrix
   const poActions = useScreenActionPermissions("PURCHASE_ORDERS");
-  // ตั้งใบสำคัญจ่ายอยู่หน้า "รอจ่ายเงิน Supplier" — หน้า PURCHASE_PAYMENTS มีแค่ VIEW/EXPORT
-  const paymentActions = useScreenActionPermissions(
-    "PURCHASE_PAYMENTS_PENDING",
-  );
   const canWrite = poActions.canEdit;
   // backend ให้ยกเลิกด้วย PURCHASE_ORDERS.EDIT ไม่ได้จำกัดแค่หัวหน้า
   const canCancel = poActions.canEdit;
   // อนุมัติ PO = หัวหน้าจัดซื้อ (คนละสิทธิ์กับคนสร้าง PO)
   const canApprove = canAccessPurchaseOrderApprovals();
-  // รับของ / จ่ายเงิน เป็นงานของหน้าอื่น — ใช้สิทธิ์ของหน้านั้นตัดสิน แล้วพาไปทำที่หน้านั้น
+  // รับของเป็นงานของหน้าอื่น — ใช้สิทธิ์ของหน้านั้นตัดสิน แล้วพาไปทำที่หน้านั้น
   const receiveActions = useScreenActionPermissions("GOODS_RECEIPTS");
   const canReceive = receiveActions.canAdd;
-  const canPay = paymentActions.canEdit;
   const canUploadAttachment =
     canWrite &&
     (PO_EDITABLE_STATUSES.includes(data?.status ?? "") ||
@@ -258,15 +252,16 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
   const paymentByPoQuery = usePurchasePaymentByPoQuery(data?.id);
   const linkedPayment = paymentByPoQuery.data?.data ?? null;
-  const isPaid =
-    data?.paymentStatus === "PAID" || linkedPayment?.status === "PAID";
+  const paymentHref = linkedPayment
+    ? linkedPayment.queueItemId
+      ? `/finance/payables/payment-vouchers/${linkedPayment.id}`
+      : `/purchase-payments/${linkedPayment.id}`
+    : null;
   const schedules = schedulesQuery.data?.data ?? [];
   const canShowReceive =
     canReceive &&
     isPoReceivableStatus(data?.status ?? "") &&
     (schedulesQuery.isLoading || hasOpenReceivableQty(schedules));
-  const canShowPay =
-    canPay && isPoPayableStatus(data?.status ?? "") && !isPaid && !linkedPayment;
 
   const closePreview = () => {
     setPreviewOpen(false);
@@ -919,29 +914,14 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               )
             ) : null}
 
-            {linkedPayment ? (
+            {linkedPayment && paymentHref ? (
               <Button
                 className={styles.secondaryBtn}
                 icon={<DollarOutlined />}
-                onClick={() =>
-                  router.push(`/purchase-payments/${linkedPayment.id}`)
-                }
+                onClick={() => router.push(paymentHref)}
               >
                 ดูใบสำคัญจ่าย
                 {linkedPayment.voucherNo ? ` ${linkedPayment.voucherNo}` : ""}
-              </Button>
-            ) : null}
-
-            {canShowPay ? (
-              <Button
-                className={styles.primaryBtn}
-                type="primary"
-                icon={<DollarOutlined />}
-                onClick={() =>
-                  router.push(`/purchase-payments/create-from-po/${data.id}`)
-                }
-              >
-                จ่ายเงิน / สร้างใบสำคัญจ่าย
               </Button>
             ) : null}
 
@@ -1002,19 +982,35 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             </div>
           ) : null}
 
-          {linkedPayment ? (
+          {data.paymentStatus || data.paidAmount ? (
+            <div className={styles.flowNote}>
+              <strong>สถานะการจ่ายเงิน</strong>
+              <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
+                <li>
+                  {data.paymentStatus === "PAID"
+                    ? "จ่ายครบแล้ว"
+                    : data.paymentStatus === "PARTIAL"
+                      ? "จ่ายบางส่วน"
+                      : "ยังไม่จ่าย"}
+                  {data.paidAmount != null
+                    ? ` · จ่ายแล้ว ${formatMoney(data.paidAmount)} / ${formatMoney(data.totalAmount)}`
+                    : null}
+                </li>
+              </ul>
+            </div>
+          ) : null}
+
+          {linkedPayment && paymentHref ? (
             <div className={styles.flowNote}>
               <strong>ใบสำคัญจ่าย</strong>
               <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
                 <li>
-                  <Link href={`/purchase-payments/${linkedPayment.id}`}>
-                    {linkedPayment.voucherNo}
-                  </Link>{" "}
-                  ·{" "}
+                  <Link href={paymentHref}>{linkedPayment.voucherNo}</Link> ·{" "}
                   {SUPPLIER_PAYMENT_STATUS_LABEL[linkedPayment.status] ??
                     linkedPayment.status}{" "}
                   · {formatDate(linkedPayment.voucherDate)} ·{" "}
                   {formatMoney(linkedPayment.totalAmount)}
+                  {linkedPayment.queueItemId ? " · จากระบบการเงิน" : null}
                 </li>
               </ul>
             </div>

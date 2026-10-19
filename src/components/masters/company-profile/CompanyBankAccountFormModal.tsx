@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Checkbox, Form, Input, InputNumber, Modal } from "antd";
+import { AutoComplete, Checkbox, Form, Input, InputNumber, Modal } from "antd";
 import { BankOutlined } from "@ant-design/icons";
 
 import type {
@@ -9,6 +9,19 @@ import type {
   CreateCompanyBankAccountRequest,
 } from "@/types/company-profile";
 import styles from "@/components/masters/shared/master-page.module.css";
+
+const COMPANY_BANK_NAME_OPTIONS = [
+  "ธนาคารกรุงเทพ",
+  "ธนาคารกสิกรไทย",
+  "ธนาคารไทยพาณิชย์",
+  "ธนาคารกรุงศรีอยุธยา",
+  "ธนาคารกรุงไทย",
+  "ธนาคารทหารไทย",
+  "ธนาคารธนชาต",
+  "ธนาคารยูโอบี",
+  "ธนาคารออมสิน",
+  "ธนาคารเกียรตินาคินภัทร",
+].map((value) => ({ value }));
 
 type Props = {
   open: boolean;
@@ -84,7 +97,14 @@ export default function CompanyBankAccountFormModal({
           label="ธนาคาร"
           rules={[{ required: true, message: "กรุณากรอกชื่อธนาคาร" }]}
         >
-          <Input placeholder="เช่น ธนาคารกสิกรไทย" maxLength={150} />
+          <AutoComplete
+            options={COMPANY_BANK_NAME_OPTIONS}
+            placeholder="เลือกหรือพิมพ์ชื่อธนาคาร"
+            maxLength={150}
+            filterOption={(input, option) =>
+              (option?.value ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
         </Form.Item>
 
         <Form.Item

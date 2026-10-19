@@ -248,7 +248,7 @@ export default function AdvanceRequestFormPage({ id }: Props) {
             options={(eligible.data?.data ?? []).map((p) => ({
               value: p.purchaseOrderId,
               disabled: p.remainingAmount <= 0,
-              label: `${p.poNo} — ${p.creditorName} · วงเงินคงเหลือ ${money.format(p.remainingAmount)}${p.remainingAmount <= 0 ? " (ขอครบวงเงินแล้ว)" : ""}`,
+              label: `${p.poNo} — ${p.creditorName} · ยอดคงเหลือที่ต้องชำระ ${money.format(p.remainingAmount)}${p.remainingAmount <= 0 ? " (ขอครบวงเงินแล้ว)" : ""}`,
             }))}
           />
         ) : null}
@@ -295,21 +295,35 @@ export default function AdvanceRequestFormPage({ id }: Props) {
           </Form.Item>
           {mode === "PERCENT" ? (
             <Form.Item
-              name="percent"
               label="เปอร์เซ็นต์ที่ขอจ่าย"
-              rules={[{ required: true, message: "ใส่เปอร์เซ็นต์" }]}
               extra={src ? `ยอดขอจ่าย = ยอด PO × % ÷ 100 · เปอร์เซ็นต์มัดจำตามเงื่อนไข ${request?.advancePercent ?? source?.advancePercent}%` : undefined}
             >
-              <InputNumber min={0} max={100} precision={2} style={{ width: 220 }} addonAfter="%" />
+              <Space.Compact style={{ width: 220 }}>
+                <Form.Item
+                  name="percent"
+                  noStyle
+                  rules={[{ required: true, message: "ใส่เปอร์เซ็นต์" }]}
+                >
+                  <InputNumber min={0} max={100} precision={2} style={{ width: "100%" }} />
+                </Form.Item>
+                <Input style={{ width: 40 }} value="%" disabled />
+              </Space.Compact>
             </Form.Item>
           ) : (
             <Form.Item
-              name="amount"
               label="จำนวนเงินที่ขอจ่าย"
-              rules={[{ required: true, message: "ใส่จำนวนเงิน" }]}
               extra={src ? `ไม่เกินวงเงินมัดจำคงเหลือ ${money.format(src.remaining)}` : undefined}
             >
-              <InputNumber min={0} precision={2} style={{ width: 220 }} addonAfter="บาท" />
+              <Space.Compact style={{ width: 220 }}>
+                <Form.Item
+                  name="amount"
+                  noStyle
+                  rules={[{ required: true, message: "ใส่จำนวนเงิน" }]}
+                >
+                  <InputNumber min={0} precision={2} style={{ width: "100%" }} />
+                </Form.Item>
+                <Input style={{ width: 52 }} value="บาท" disabled />
+              </Space.Compact>
             </Form.Item>
           )}
           {calc ? (
@@ -431,7 +445,7 @@ export default function AdvanceRequestFormPage({ id }: Props) {
           <Popconfirm title="ยกเลิก?" description="กลับหน้ารายการโดยไม่บันทึกการแก้ไขที่ค้างอยู่" okText="กลับ" cancelText="อยู่ต่อ" onConfirm={() => router.push(ADVANCE_BASE_PATH)}>
             <Button>ยกเลิก</Button>
           </Popconfirm>
-          <Button type="primary" loading={create.isPending || update.isPending} disabled={busy && !(create.isPending || update.isPending)} onClick={() => void saveDraft()}>
+          <Button loading={create.isPending || update.isPending} disabled={busy && !(create.isPending || update.isPending)} onClick={() => void saveDraft()}>
             บันทึกร่าง
           </Button>
           {request && perms.canApprove ? (
@@ -442,7 +456,7 @@ export default function AdvanceRequestFormPage({ id }: Props) {
               cancelText="ยกเลิก"
               onConfirm={() => void onConfirm()}
             >
-              <Button type="primary" danger loading={confirm.isPending} disabled={busy && !confirm.isPending}>ยืนยันรายการ</Button>
+              <Button color="green" variant="solid" loading={confirm.isPending} disabled={busy && !confirm.isPending}>ยืนยันรายการ</Button>
             </Popconfirm>
           ) : null}
         </Space>

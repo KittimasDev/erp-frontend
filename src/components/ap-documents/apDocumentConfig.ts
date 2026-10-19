@@ -32,6 +32,13 @@ export const AP_DOCUMENT_CONFIG: Record<ApDocumentKind, ApDocumentConfig> = {
     basePath: "/finance/payables/debit-notes",
     screenCode: "FINANCE_PAYABLE_DEBIT_NOTES",
   },
+  creditNote: {
+    kind: "creditNote",
+    title: "ใบลดหนี้เจ้าหนี้",
+    shortLabel: "ใบลดหนี้",
+    basePath: "/finance/payables/credit-notes",
+    screenCode: "FINANCE_PAYABLE_CREDIT_NOTES",
+  },
 };
 
 export const money = new Intl.NumberFormat("th-TH", {

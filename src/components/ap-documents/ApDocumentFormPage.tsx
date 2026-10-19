@@ -22,6 +22,7 @@ import {
 import { ArrowLeftOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
+import DocumentAttachmentsPanel from "@/components/common/DocumentAttachmentsPanel";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useApDocumentQuery,
@@ -33,10 +34,12 @@ import {
 import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
 import { useVendorsQuery } from "@/hooks/vendors/useVendorsQuery";
 import { STANDARD_VAT_PERCENT, VAT_MODE_OPTIONS } from "@/lib/money/vat-totals";
-import type {
-  ApDocumentKind,
-  SaveApDebitNoteBody,
-  SaveApInvoiceBody,
+import {
+  AP_SETTLEMENT_METHOD_LABEL,
+  type ApDocumentKind,
+  type SaveApCreditNoteBody,
+  type SaveApDebitNoteBody,
+  type SaveApInvoiceBody,
 } from "@/types/ap-documents";
 import { purchaseOrderStatusLabel } from "@/types/purchase-orders";
 
@@ -55,6 +58,7 @@ type FormValues = {
   creditorId?: string;
   purchaseOrderId?: string;
   referenceDocumentId?: string;
+  settlementMethod?: string;
   reason?: string;
   docDate?: Dayjs;
   supplierDocNo?: string;
@@ -73,6 +77,7 @@ const toDate = (value?: Dayjs) => (value ? value.format("YYYY-MM-DD") : undefine
 export default function ApDocumentFormPage({ kind, id }: Props) {
   const config = AP_DOCUMENT_CONFIG[kind];
   const isInvoice = kind === "invoice";
+  const isCredit = kind === "creditNote";
   const router = useRouter();
   const searchParams = useSearchParams();
   const { message } = App.useApp();
@@ -94,6 +99,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
   const grnNo = grnInfo?.grnNo ?? existing?.goodsReceiptNo ?? undefined;
 
   const creditorId = Form.useWatch("creditorId", form);
+  const settlementMethod = Form.useWatch("settlementMethod", form);
   const vatMode = Form.useWatch("vatMode", form) ?? "EXCLUSIVE";
   const taxRateId = Form.useWatch("taxRateId", form);
   const watchedLines = Form.useWatch("items", form);
@@ -102,7 +108,10 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
   const vendorsQuery = useVendorsQuery({ isActive: true });
   const taxRatesQuery = useTaxRatesQuery({ isActive: true });
   const poOptionsQuery = useApPurchaseOrderOptionsQuery(isInvoice ? creditorId : undefined);
-  const invoiceOptionsQuery = useApInvoiceOptionsQuery(isInvoice ? undefined : creditorId);
+  const invoiceOptionsQuery = useApInvoiceOptionsQuery(
+    isInvoice ? undefined : creditorId,
+    isCredit ? "creditNote" : "debitNote",
+  );
 
   const taxRates = taxRatesQuery.data?.data ?? [];
   const vatRate =
@@ -124,6 +133,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
         creditorId: existing.creditorId,
         purchaseOrderId: existing.purchaseOrderId ?? undefined,
         referenceDocumentId: existing.referenceDocumentId ?? undefined,
+        settlementMethod: existing.settlementMethod ?? undefined,
         reason: existing.reason ?? undefined,
         docDate: dayjs(existing.docDate),
         supplierDocNo: existing.supplierDocNo ?? undefined,
@@ -225,7 +235,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
         unitPrice: Number(line.unitPrice),
       })),
     };
-    const body: SaveApInvoiceBody | SaveApDebitNoteBody = isInvoice
+    const body: SaveApInvoiceBody | SaveApDebitNoteBody | SaveApCreditNoteBody = isInvoice
       ? {
           ...common,
           creditorId: values.creditorId as string,
@@ -233,11 +243,19 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           dueDate: toDate(values.dueDate),
           goodsReceiptId: linkedGrnId,
         }
-      : {
-          ...common,
-          referenceDocumentId: values.referenceDocumentId as string,
-          reason: (values.reason ?? "").trim(),
-        };
+      : isCredit
+        ? {
+            ...common,
+            creditorId: values.creditorId as string,
+            referenceDocumentId: values.referenceDocumentId || undefined,
+            settlementMethod: values.settlementMethod as string,
+            reason: (values.reason ?? "").trim(),
+          }
+        : {
+            ...common,
+            referenceDocumentId: values.referenceDocumentId as string,
+            reason: (values.reason ?? "").trim(),
+          };
     try {
       const res = await saveMutation.mutateAsync(body);
       message.success(id ? "บันทึกแล้ว" : `สร้าง${config.shortLabel} ${res.data.docNo} แล้ว`);
@@ -259,12 +277,12 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
       />
     );
   }
-  if (id && existing && existing.status !== "DRAFT") {
+  if (id && existing && existing.status !== "DRAFT" && (isInvoice || existing.status !== "REJECTED")) {
     return (
       <Alert
         type="warning"
         showIcon
-        title={`${config.shortLabel} ${existing.docNo} ไม่ได้อยู่ในสถานะร่าง แก้ไขไม่ได้`}
+        title={`${config.shortLabel} ${existing.docNo} ไม่ได้อยู่ในสถานะร่างหรือไม่อนุมัติ แก้ไขไม่ได้`}
         action={<Button onClick={() => router.push(`${config.basePath}/${id}`)}>กลับ</Button>}
       />
     );
@@ -300,12 +318,29 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           }
         />
       ) : null}
-      {!isInvoice ? (
+      {id && existing?.status === "REJECTED" ? (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title={`ไม่อนุมัติโดย ${existing.rejectedByName ?? "—"}`}
+          description={existing.rejectReason ? `เหตุผล: ${existing.rejectReason}` : undefined}
+        />
+      ) : null}
+      {kind === "debitNote" ? (
         <Alert
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
           title="เลือกเจ้าหนี้ แล้วเลือกใบตั้งหนี้ที่อนุมัติแล้วที่จะเพิ่มหนี้ — ยอดในใบนี้คือส่วนที่เพิ่มขึ้นเท่านั้น"
+        />
+      ) : null}
+      {isCredit ? (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title="เลือกเจ้าหนี้และวิธีจัดการยอดลดหนี้ (เลือกได้ 1 วิธี) — ยอดในใบนี้คือส่วนที่ลดลง สร้างและอนุมัติไว้ก่อนได้ ยอด AP ยังไม่เปลี่ยนจนกว่าจะยืนยันนำไปใช้"
         />
       ) : null}
       <Form<FormValues>
@@ -361,10 +396,17 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
             ) : (
               <Form.Item
                 name="referenceDocumentId"
-                label="ใบตั้งหนี้ที่จะเพิ่มหนี้"
-                rules={[{ required: true, message: "เลือกใบตั้งหนี้" }]}
+                label={isCredit ? "ใบตั้งหนี้ที่อ้างอิง (AP)" : "ใบตั้งหนี้ที่จะเพิ่มหนี้"}
+                tooltip={isCredit ? "บังคับเมื่อเลือกวิธี “หักยอดเจ้าหนี้คงค้าง” · วิธีอื่นอ้างหรือไม่ก็ได้" : undefined}
+                rules={[
+                  {
+                    required: !isCredit || settlementMethod === "OFFSET_AP",
+                    message: "เลือกใบตั้งหนี้",
+                  },
+                ]}
               >
                 <Select
+                  allowClear={isCredit}
                   showSearch
                   optionFilterProp="label"
                   disabled={!creditorId || !allowed}
@@ -388,7 +430,13 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           <Col xs={24} sm={12} md={6}>
             <Form.Item
               name="supplierDocNo"
-              label={isInvoice ? "เลขที่ใบแจ้งหนี้/ใบกำกับของผู้ขาย" : "เลขที่ใบเพิ่มหนี้ของผู้ขาย"}
+              label={
+                isInvoice
+                  ? "เลขที่ใบแจ้งหนี้/ใบกำกับของผู้ขาย"
+                  : isCredit
+                    ? "เลขที่ใบลดหนี้ของผู้ขาย"
+                    : "เลขที่ใบเพิ่มหนี้ของผู้ขาย"
+              }
             >
               <Input maxLength={100} placeholder="เช่น IV-6810-0012" />
             </Form.Item>
@@ -405,11 +453,29 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
               </Form.Item>
             </Col>
           ) : null}
+          {isCredit ? (
+            <Col xs={24} md={12}>
+              <Form.Item
+                name="settlementMethod"
+                label="วิธีจัดการยอดลดหนี้"
+                rules={[{ required: true, message: "เลือกวิธีจัดการยอด" }]}
+              >
+                <Select
+                  placeholder="เลือกวิธีจัดการยอด"
+                  options={Object.entries(AP_SETTLEMENT_METHOD_LABEL).map(([value, label]) => ({ value, label }))}
+                />
+              </Form.Item>
+            </Col>
+          ) : null}
           {!isInvoice ? (
             <Col xs={24}>
               <Form.Item
                 name="reason"
-                label="เหตุผลที่เพิ่มหนี้"
+                label={
+                  isCredit
+                    ? "สาเหตุที่ลดหนี้ (เช่น คืนสินค้า สินค้าชำรุด ลดราคา ราคาคลาดเคลื่อน)"
+                    : "เหตุผลที่เพิ่มหนี้ (เช่น ค่าขนส่ง ปรับราคา ค่าใช้จ่ายเพิ่มเติม ส่วนต่างภาษี)"
+                }
                 rules={[{ required: true, whitespace: true, message: "ระบุเหตุผล" }]}
               >
                 <Input.TextArea rows={2} maxLength={2000} />
@@ -506,7 +572,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
             <Descriptions bordered size="small" column={1}>
               <Descriptions.Item label="มูลค่าก่อน VAT">{money.format(totals.subtotal)}</Descriptions.Item>
               <Descriptions.Item label={`VAT ${vatRate}%`}>{money.format(totals.vat)}</Descriptions.Item>
-              <Descriptions.Item label={isInvoice ? "ยอดตั้งหนี้" : "ยอดเพิ่มหนี้"}>
+              <Descriptions.Item label={isInvoice ? "ยอดตั้งหนี้" : isCredit ? "ยอดลดหนี้" : "ยอดเพิ่มหนี้"}>
                 <Typography.Text strong>{money.format(totals.total)}</Typography.Text>
               </Descriptions.Item>
             </Descriptions>
@@ -517,11 +583,26 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
 
+        {!isInvoice ? (
+          <Card title="เอกสารแนบ" size="small" style={{ marginBottom: 16 }}>
+            {id ? (
+              <DocumentAttachmentsPanel
+                documentType={isCredit ? "AP_CREDIT_NOTE" : "AP_DEBIT_NOTE"}
+                documentId={id}
+                canEdit={allowed}
+                emptyText="ยังไม่มีเอกสารแนบ"
+              />
+            ) : (
+              <Typography.Text type="secondary">แนบไฟล์ได้หลังบันทึกร่าง (ในหน้าแก้ไข/รายละเอียด)</Typography.Text>
+            )}
+          </Card>
+        ) : null}
+
         <Space>
           <Button type="primary" htmlType="submit" loading={saveMutation.isPending}>
             บันทึกเป็นร่าง
           </Button>
-          <Typography.Text type="secondary">ร่างแก้ไขได้จนกว่าจะอนุมัติ</Typography.Text>
+          <Typography.Text type="secondary">ร่างแก้ไขได้จนกว่าจะส่งอนุมัติ — ส่งอนุมัติได้ที่หน้ารายละเอียด</Typography.Text>
         </Space>
       </Form>
     </Card>
