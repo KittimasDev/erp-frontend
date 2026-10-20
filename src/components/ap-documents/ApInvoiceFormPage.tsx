@@ -106,18 +106,17 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
   const chargeOptions = useMemo(() => poInfo?.charges ?? [], [poInfo]);
   /**
    * ยอดก่อน VAT ต่อรายการค่าใช้จ่ายที่ตั้งใน AP ใบนี้ (ไม่กรอก = ไม่ตั้งรายการนี้)
-   * ค่าตั้งต้น (seed) คำนวณจากข้อมูลที่โหลดมา: แก้ร่าง = ค่าเดิมของใบ · ใบค่าใช้จ่ายล้วนใหม่ = ยอดคงเหลือ · ตั้งจาก GRN = ไม่เลือก
+   * ค่าตั้งต้น (seed): แก้ร่าง = ค่าเดิมของใบ · สร้างใหม่ (จาก GRN หรือค่าใช้จ่ายล้วน) = ยอดคงเหลือทั้งหมด
    * ที่ผู้ใช้แก้เองอยู่ใน chargeEdits และทับค่าตั้งต้น
    */
   const [chargeEdits, setChargeEdits] = useState<Record<string, number | undefined>>({});
   const chargeSeed = useMemo<Record<string, number | undefined>>(() => {
     if (!poInfo) return {};
     if (id) return Object.fromEntries((existing?.charges ?? []).map((c) => [c.poChargeId, c.amountBeforeVat]));
-    if (poIdParam) {
-      return Object.fromEntries(poInfo.charges.filter((c) => c.remaining > 0).map((c) => [c.poChargeId, c.remaining]));
-    }
-    return {};
-  }, [existing, id, poIdParam, poInfo]);
+    return Object.fromEntries(
+      poInfo.charges.filter((c) => c.remaining > 0).map((c) => [c.poChargeId, c.remaining]),
+    );
+  }, [existing, id, poInfo]);
   const chargeInputs = useMemo(() => ({ ...chargeSeed, ...chargeEdits }), [chargeSeed, chargeEdits]);
   const setChargeInputs = setChargeEdits;
 
@@ -631,26 +630,27 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
                   key: "use",
                   width: 230,
                   render: (_v, r) => (
-                    <InputNumber
-                      min={0}
-                      max={r.opt.remaining}
-                      precision={2}
-                      disabled={!allowed || r.opt.remaining <= 0}
-                      value={chargeInputs[r.opt.poChargeId]}
-                      placeholder="0.00"
-                      status={(Number(chargeInputs[r.opt.poChargeId]) || 0) > r.opt.remaining + 0.004 ? "error" : undefined}
-                      onChange={(v) => setChargeInputs((prev) => ({ ...prev, [r.opt.poChargeId]: v ?? undefined }))}
-                      style={{ width: "100%" }}
-                      addonAfter={
-                        <a
-                          onClick={() =>
-                            allowed && setChargeInputs((prev) => ({ ...prev, [r.opt.poChargeId]: r.opt.remaining }))
-                          }
-                        >
-                          ทั้งหมด
-                        </a>
-                      }
-                    />
+                    <Space.Compact style={{ width: "100%" }}>
+                      <InputNumber
+                        min={0}
+                        max={r.opt.remaining}
+                        precision={2}
+                        disabled={!allowed || r.opt.remaining <= 0}
+                        value={chargeInputs[r.opt.poChargeId]}
+                        placeholder="0.00"
+                        status={(Number(chargeInputs[r.opt.poChargeId]) || 0) > r.opt.remaining + 0.004 ? "error" : undefined}
+                        onChange={(v) => setChargeInputs((prev) => ({ ...prev, [r.opt.poChargeId]: v ?? undefined }))}
+                        style={{ width: "100%" }}
+                      />
+                      <Button
+                        disabled={!allowed || r.opt.remaining <= 0}
+                        onClick={() =>
+                          setChargeInputs((prev) => ({ ...prev, [r.opt.poChargeId]: r.opt.remaining }))
+                        }
+                      >
+                        ทั้งหมด
+                      </Button>
+                    </Space.Compact>
                   ),
                 },
                 { title: "VAT ของยอดนี้", key: "vat", align: "right", width: 120, render: (_v, r) => money.format(r.vat) },
@@ -729,6 +729,15 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
           </Typography.Text>
         ) : (
           <>
+            {available > 0 ? (
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 12 }}
+                title="คุณมีเงินมัดจำที่ชำระไว้แล้ว สามารถนำมาหักยอดใบตั้งหนี้นี้ได้"
+                description={`คงเหลือที่ใช้ได้ ${money.format(available)} บาท`}
+              />
+            ) : null}
             <Checkbox
               checked={useDeposit}
               disabled={!allowed || available <= 0}
@@ -739,19 +748,21 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
             >
               นำเงินล่วงหน้า / มัดจำมาหักในใบตั้งหนี้นี้
             </Checkbox>
-            <div style={{ marginTop: 12 }}>
+            <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
               <Typography.Text>จำนวนเงินที่หัก: </Typography.Text>
-              <InputNumber
-                min={0}
-                max={maxDeduct}
-                precision={2}
-                disabled={!useDeposit || !allowed}
-                value={useDeposit ? deductRaw : 0}
-                onChange={(v) => setDepositInput(Number(v ?? 0))}
-                style={{ width: 200 }}
-                addonAfter="บาท"
-              />
-              <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
+              <Space.Compact style={{ width: 200 }}>
+                <InputNumber
+                  min={0}
+                  max={maxDeduct}
+                  precision={2}
+                  disabled={!useDeposit || !allowed}
+                  value={useDeposit ? deductRaw : 0}
+                  onChange={(v) => setDepositInput(Number(v ?? 0))}
+                  style={{ width: "100%" }}
+                />
+                <Input style={{ width: 52 }} value="บาท" disabled />
+              </Space.Compact>
+              <Typography.Text type="secondary">
                 สูงสุด {money.format(maxDeduct)} บาท (เต็มจำนวน บางส่วน หรือแบ่งหักหลาย AP ได้ — ส่วนที่ไม่หักเก็บไว้หักใบถัดไป)
               </Typography.Text>
             </div>
