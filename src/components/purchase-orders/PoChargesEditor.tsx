@@ -1,12 +1,22 @@
 "use client";
 
 import { useMemo } from "react";
-import { Button, Checkbox, Form, Input, InputNumber, Select, Tag } from "antd";
+import { Button, Form, Input, InputNumber, Select, Tag } from "antd";
 import type { FormInstance } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
-import { useTaxRatesQuery } from "@/hooks/tax-rates/useTaxRatesQuery";
-import { calcChargeTotals, sumChargeTotals } from "@/lib/money/vat-totals";
+import {
+  STANDARD_VAT_PERCENT,
+  VAT_MODE_OPTIONS,
+  VatMode,
+  WITHHOLDING_TAX_TYPE_OPTIONS,
+  WithholdingTaxType,
+  calcChargeTotals,
+  resolveVatMode,
+  resolveWithholdingPercent,
+  resolveWithholdingTaxType,
+  sumChargeTotals,
+} from "@/lib/money/vat-totals";
 import {
   PO_CHARGE_TYPE_LABEL,
   type PurchaseOrderCharge,
@@ -15,19 +25,17 @@ import {
 
 import styles from "./PurchaseOrderFormPage.module.css";
 
-/** ค่าในฟอร์มของค่าใช้จ่ายหนึ่งรายการ (ชื่อ _snap* = ค่า snapshot ที่บันทึกไว้เดิม ไม่ส่งกลับ backend) */
+/** ค่าในฟอร์มของค่าใช้จ่ายหนึ่งรายการ (ชื่อ _snap* / _allocated = client-only) */
 export type ChargeFormRow = {
   id?: string;
   chargeType?: string;
   description?: string;
+  /** ยอดที่ผู้ใช้กรอก — EXCLUSIVE/NONE = ก่อน VAT, INCLUSIVE = รวม VAT */
   amountBeforeVat?: number;
-  taxRateId?: string | null;
-  whtApplicable?: boolean;
+  vatMode?: VatMode;
+  withholdingTaxType?: WithholdingTaxType;
   whtIncomeType?: string;
   whtRate?: number;
-  _snapRateId?: string | null;
-  _snapRate?: number;
-  /** ยอดก่อน VAT ที่ตั้งหนี้แล้ว (ล็อกการลบ/ลดยอดต่ำกว่านี้) */
   _allocated?: number;
 };
 
@@ -39,63 +47,78 @@ const CHARGE_TYPE_OPTIONS = Object.entries(PO_CHARGE_TYPE_LABEL).map(([value, la
   label,
 }));
 
+function amountFieldLabel(vatMode?: string | null): string {
+  const mode = resolveVatMode(vatMode);
+  if (mode === VatMode.NONE) return "จำนวนเงิน";
+  if (mode === VatMode.INCLUSIVE) return "จำนวนเงินรวม VAT";
+  return "จำนวนเงินก่อน VAT";
+}
+
+function deriveWithholdingTaxType(
+  applicable: boolean,
+  rate: number,
+): WithholdingTaxType {
+  if (!applicable || !(rate > 0)) return WithholdingTaxType.NONE;
+  if (Math.abs(rate - 1) < 0.001) return WithholdingTaxType.PCT_1;
+  if (Math.abs(rate - 3) < 0.001) return WithholdingTaxType.PCT_3;
+  return WithholdingTaxType.CUSTOM;
+}
+
+function chargeVatPercent(vatMode?: string | null): number {
+  return resolveVatMode(vatMode) === VatMode.NONE ? 0 : STANDARD_VAT_PERCENT;
+}
+
 /** แปลงค่าที่ backend ส่งมา (หน้าแก้ไข) เป็นค่าในฟอร์ม */
 export function chargesToFormRows(charges: PurchaseOrderCharge[] | undefined): ChargeFormRow[] {
-  return (charges ?? []).map((c) => ({
-    id: c.id,
-    chargeType: c.chargeType,
-    description: c.description,
-    amountBeforeVat: Number(c.amountBeforeVat),
-    taxRateId: c.taxRateId ?? null,
-    whtApplicable: c.whtApplicable,
-    whtIncomeType: c.whtIncomeType ?? undefined,
-    whtRate: Number(c.whtRate) || undefined,
-    _snapRateId: c.taxRateId ?? null,
-    _snapRate: Number(c.taxRatePercent),
-    _allocated: c.allocatedAmount,
-  }));
+  return (charges ?? []).map((c) => {
+    const vatMode = resolveVatMode(c.vatMode);
+    const whtType = deriveWithholdingTaxType(c.whtApplicable, Number(c.whtRate) || 0);
+    return {
+      id: c.id,
+      chargeType: c.chargeType,
+      description: c.description,
+      amountBeforeVat:
+        vatMode === VatMode.INCLUSIVE ? Number(c.totalAmount) : Number(c.amountBeforeVat),
+      vatMode,
+      withholdingTaxType: whtType,
+      whtIncomeType: c.whtIncomeType ?? undefined,
+      whtRate: whtType === WithholdingTaxType.CUSTOM ? Number(c.whtRate) || undefined : undefined,
+      _allocated: c.allocatedAmount,
+    };
+  });
 }
 
 /** แถวในฟอร์ม → body ที่ส่ง backend */
 export function chargeRowsToBody(rows: ChargeFormRow[] | undefined): PurchaseOrderChargeBody[] {
-  return (rows ?? []).map((row) => ({
-    id: row.id,
-    chargeType: row.chargeType as string,
-    description: (row.description ?? "").trim(),
-    amountBeforeVat: Number(row.amountBeforeVat) || 0,
-    taxRateId: row.taxRateId || null,
-    whtApplicable: Boolean(row.whtApplicable),
-    whtIncomeType: row.whtApplicable ? row.whtIncomeType?.trim() || null : null,
-    whtRate: row.whtApplicable ? Number(row.whtRate) || 0 : 0,
-  }));
-}
-
-/** อัตรา VAT ของแถว: ไม่เปลี่ยน tax rate จากที่บันทึกไว้ → ใช้ snapshot เดิม ไม่งั้นอ่านจาก master */
-function rowRate(
-  row: ChargeFormRow,
-  masterRate: (id?: string | null) => number,
-): number {
-  if (row.taxRateId && row._snapRateId === row.taxRateId && row._snapRate !== undefined) {
-    return row._snapRate;
-  }
-  return masterRate(row.taxRateId);
+  return (rows ?? []).map((row) => {
+    const whtType = resolveWithholdingTaxType(row.withholdingTaxType);
+    const whtRate = resolveWithholdingPercent(whtType, row.whtRate);
+    const whtApplicable = whtType !== WithholdingTaxType.NONE && whtRate > 0;
+    return {
+      id: row.id,
+      chargeType: row.chargeType as string,
+      description: (row.description ?? "").trim(),
+      amountBeforeVat: Number(row.amountBeforeVat) || 0,
+      vatMode: resolveVatMode(row.vatMode),
+      whtApplicable,
+      whtIncomeType: whtApplicable ? row.whtIncomeType?.trim() || null : null,
+      whtRate: whtApplicable ? whtRate : 0,
+    };
+  });
 }
 
 /** ยอดรวมค่าใช้จ่ายสำหรับสรุปยอดท้ายฟอร์ม */
 export function usePoChargesPreview(rows: ChargeFormRow[] | undefined) {
-  const taxRatesQuery = useTaxRatesQuery({ isActive: true });
-  const taxRates = taxRatesQuery.data?.data;
   return useMemo(() => {
-    const rateOf = (id?: string | null) =>
-      id ? Number(taxRates?.find((t) => t.id === id)?.rate ?? 0) : 0;
     const sum = sumChargeTotals(
       (rows ?? []).map((row) => ({
         amountBeforeVat: Number(row?.amountBeforeVat) || 0,
-        taxRatePercent: rowRate(row ?? {}, rateOf),
+        taxRatePercent: chargeVatPercent(row?.vatMode),
+        vatMode: resolveVatMode(row?.vatMode),
       })),
     );
     return { amountBeforeVat: sum.amountBeforeVat, vat: sum.vat, total: sum.total };
-  }, [rows, taxRates]);
+  }, [rows]);
 }
 
 type Props = {
@@ -105,15 +128,10 @@ type Props = {
 
 /**
  * Section "ค่าใช้จ่ายเพิ่มเติม" ของใบสั่งซื้อ — แยกจากรายการสินค้า
- * ไม่เข้าสต๊อก/Lot ไม่รวมในราคาต่อหน่วย · VAT คิดต่อรายการตามอัตราที่เลือก (Tax Rate master)
- * รายการที่ตั้งหนี้แล้ว (มี _allocated) ลบไม่ได้และลดยอดต่ำกว่ายอดที่ตั้งไม่ได้
+ * VAT ต่อรายการแบบหัว PO (ไม่คิด / ไม่รวม / รวม · 7%) · WHT เป็นประเภทไม่ระบุ/1%/3%/กำหนดเอง
  */
 export default function PoChargesEditor({ form, disabled }: Props) {
-  const taxRatesQuery = useTaxRatesQuery({ isActive: true });
-  const taxRates = useMemo(() => taxRatesQuery.data?.data ?? [], [taxRatesQuery.data]);
   const watched = (Form.useWatch("charges", form) ?? []) as ChargeFormRow[];
-  const rateOf = (id?: string | null) =>
-    id ? Number(taxRates.find((t) => t.id === id)?.rate ?? 0) : 0;
 
   return (
     <div className={styles.sectionBlock}>
@@ -129,9 +147,12 @@ export default function PoChargesEditor({ form, disabled }: Props) {
           <div>
             {fields.map((field, index) => {
               const row = watched[index] ?? {};
+              const vatMode = resolveVatMode(row.vatMode);
+              const whtType = resolveWithholdingTaxType(row.withholdingTaxType);
               const totals = calcChargeTotals(
                 Number(row.amountBeforeVat) || 0,
-                rowRate(row, rateOf),
+                chargeVatPercent(vatMode),
+                vatMode,
               );
               const allocated = row._allocated ?? 0;
               const locked = allocated > 0;
@@ -156,16 +177,16 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                   <Form.Item name={[field.name, "id"]} hidden>
                     <Input />
                   </Form.Item>
-                  <Form.Item name={[field.name, "_snapRateId"]} hidden>
-                    <Input />
-                  </Form.Item>
-                  <Form.Item name={[field.name, "_snapRate"]} hidden>
-                    <InputNumber />
-                  </Form.Item>
                   <Form.Item name={[field.name, "_allocated"]} hidden>
                     <InputNumber />
                   </Form.Item>
-                  <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gap: 12,
+                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                    }}
+                  >
                     <Form.Item
                       name={[field.name, "chargeType"]}
                       label="ประเภทค่าใช้จ่าย"
@@ -178,18 +199,31 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                       label="รายละเอียดค่าใช้จ่าย"
                       rules={[{ required: true, whitespace: true, message: "ระบุรายละเอียด" }]}
                     >
-                      <Input maxLength={500} placeholder="เช่น ค่าขนส่งจากโรงงานถึงคลัง" disabled={disabled} />
+                      <Input
+                        maxLength={500}
+                        placeholder="เช่น ค่าขนส่งจากโรงงานถึงคลัง"
+                        disabled={disabled}
+                      />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "amountBeforeVat"]}
-                      label="จำนวนเงินก่อน VAT"
+                      label={amountFieldLabel(vatMode)}
                       rules={[
                         { required: true, message: "ระบุจำนวนเงิน" },
                         {
-                          validator: (_, value?: number) =>
-                            locked && value !== undefined && value < allocated - 0.004
-                              ? Promise.reject(new Error(`ต่ำกว่ายอดที่ตั้งหนี้แล้ว ${money(allocated)}`))
-                              : Promise.resolve(),
+                          validator: (_, value?: number) => {
+                            if (!locked || value === undefined) return Promise.resolve();
+                            const base =
+                              vatMode === VatMode.INCLUSIVE
+                                ? calcChargeTotals(value, STANDARD_VAT_PERCENT, VatMode.INCLUSIVE)
+                                    .amountBeforeVat
+                                : value;
+                            return base < allocated - 0.004
+                              ? Promise.reject(
+                                  new Error(`ต่ำกว่ายอดที่ตั้งหนี้แล้ว ${money(allocated)}`),
+                                )
+                              : Promise.resolve();
+                          },
                         },
                       ]}
                     >
@@ -201,44 +235,42 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                       />
                     </Form.Item>
                     <Form.Item
-                      name={[field.name, "taxRateId"]}
-                      label="อัตรา VAT (Tax Rate)"
-                      tooltip="ไม่เลือก = ไม่มี VAT · อัตราดึงจาก Tax Rate master"
+                      name={[field.name, "vatMode"]}
+                      label="รูปแบบ VAT"
+                      rules={[{ required: true, message: "เลือกรูปแบบ VAT" }]}
                     >
-                      <Select
-                        allowClear
-                        placeholder="ไม่มี VAT"
-                        disabled={disabled || locked}
-                        loading={taxRatesQuery.isLoading}
-                        options={taxRates.map((t) => ({
-                          value: t.id,
-                          label: `${t.name} (${Number(t.rate)}%)`,
-                        }))}
-                      />
+                      <Select options={VAT_MODE_OPTIONS} disabled={disabled || locked} />
                     </Form.Item>
-                  </div>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", marginBottom: 8 }}>
-                    <Form.Item name={[field.name, "whtApplicable"]} valuePropName="checked" style={{ marginBottom: 0 }}>
-                      <Checkbox disabled={disabled}>มีภาษีหัก ณ ที่จ่าย</Checkbox>
+                    <Form.Item
+                      name={[field.name, "withholdingTaxType"]}
+                      label="ภาษีหัก ณ ที่จ่าย"
+                      rules={[{ required: true, message: "เลือกภาษีหัก ณ ที่จ่าย" }]}
+                    >
+                      <Select options={WITHHOLDING_TAX_TYPE_OPTIONS} disabled={disabled} />
                     </Form.Item>
-                    {row.whtApplicable ? (
-                      <>
-                        <Form.Item
-                          name={[field.name, "whtRate"]}
-                          label="อัตราหัก (%)"
-                          style={{ marginBottom: 0 }}
-                          rules={[{ required: true, message: "ระบุอัตรา" }]}
-                        >
-                          <InputNumber min={0.01} max={100} precision={2} disabled={disabled} />
-                        </Form.Item>
-                        <Form.Item
-                          name={[field.name, "whtIncomeType"]}
-                          label="ประเภทเงินได้"
-                          style={{ marginBottom: 0 }}
-                        >
-                          <Input maxLength={100} placeholder="เช่น ค่าขนส่ง" style={{ width: 220 }} disabled={disabled} />
-                        </Form.Item>
-                      </>
+                    {whtType === WithholdingTaxType.CUSTOM ? (
+                      <Form.Item
+                        name={[field.name, "whtRate"]}
+                        label="อัตราหัก ณ ที่จ่าย (%)"
+                        rules={[{ required: true, message: "ระบุอัตรา" }]}
+                      >
+                        <InputNumber
+                          min={0.01}
+                          max={100}
+                          precision={2}
+                          style={{ width: "100%" }}
+                          disabled={disabled}
+                        />
+                      </Form.Item>
+                    ) : null}
+                    {whtType !== WithholdingTaxType.NONE ? (
+                      <Form.Item name={[field.name, "whtIncomeType"]} label="ประเภทเงินได้">
+                        <Input
+                          maxLength={100}
+                          placeholder="เช่น ค่าขนส่ง"
+                          disabled={disabled}
+                        />
+                      </Form.Item>
                     ) : null}
                   </div>
                   <div style={{ textAlign: "right" }}>
@@ -250,7 +282,13 @@ export default function PoChargesEditor({ form, disabled }: Props) {
             <Button
               icon={<PlusOutlined />}
               disabled={disabled}
-              onClick={() => add({ chargeType: "FREIGHT", whtApplicable: false })}
+              onClick={() =>
+                add({
+                  chargeType: "FREIGHT",
+                  vatMode: VatMode.EXCLUSIVE,
+                  withholdingTaxType: WithholdingTaxType.NONE,
+                })
+              }
             >
               เพิ่มค่าใช้จ่าย
             </Button>

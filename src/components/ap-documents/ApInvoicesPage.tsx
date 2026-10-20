@@ -186,10 +186,10 @@ export default function ApInvoicesPage() {
       ),
     },
     {
-      title: "มูลค่ารอสร้าง AP",
+      title: "มูลค่ารอสร้าง AP (รวมค่าใช้จ่าย)",
       dataIndex: "pendingAmount",
       align: "right",
-      width: 150,
+      width: 180,
       render: (v: number) => money.format(v),
     },
     { title: "เงื่อนไขการชำระ", key: "term", width: 160, render: (_v, r) => termText(r.paymentTerm) },

@@ -714,8 +714,12 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                         {c.description}
                       </p>
                       <p className={styles.itemCode}>
-                        ก่อน VAT {formatMoney(c.amountBeforeVat)} · VAT{" "}
-                        {Number(c.taxRatePercent)}% = {formatMoney(c.vatAmount)}
+                        {VAT_MODE_LABEL[resolveVatMode(c.vatMode)]}
+                        {" · "}
+                        ก่อน VAT {formatMoney(c.amountBeforeVat)}
+                        {Number(c.taxRatePercent) > 0
+                          ? ` · VAT ${Number(c.taxRatePercent)}% = ${formatMoney(c.vatAmount)}`
+                          : " · ไม่มี VAT"}
                         {c.whtApplicable
                           ? ` · หัก ณ ที่จ่าย ${Number(c.whtRate)}%${c.whtIncomeType ? ` (${c.whtIncomeType})` : ""}`
                           : ""}

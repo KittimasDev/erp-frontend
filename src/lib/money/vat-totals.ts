@@ -246,25 +246,49 @@ export type ChargeTotals = {
 };
 
 /**
- * ค่าใช้จ่ายเพิ่มเติม 1 รายการ (ค่าขนส่ง/ค่าบริการ/อื่น ๆ) = ก่อน VAT + VAT ตามอัตราของรายการ
- * ไม่ขึ้นกับโหมด VAT ของเอกสาร และไม่ถูกส่วนลดท้ายเอกสารลดฐาน
+ * ค่าใช้จ่ายเพิ่มเติม 1 รายการ — ตาม vatMode ของรายการ
+ * NONE / EXCLUSIVE: amount = ก่อน VAT · INCLUSIVE: amount = รวม VAT แล้ว
  */
 export function calcChargeTotals(
-  amountBeforeVat: number,
+  amount: number,
   taxRatePercent: number,
+  vatMode?: VatMode | string | null,
 ): ChargeTotals {
-  const base = roundMoney(Math.max(0, toNum(amountBeforeVat)));
+  const amountIn = roundMoney(Math.max(0, toNum(amount)));
   const rate = Math.max(0, toNum(taxRatePercent));
-  const vat = roundMoney((base * rate) / 100);
-  return { amountBeforeVat: base, vat, total: roundMoney(base + vat) };
+  const mode = resolveVatMode(vatMode);
+
+  if (mode === VatMode.NONE || rate <= 0) {
+    return { amountBeforeVat: amountIn, vat: 0, total: amountIn };
+  }
+
+  if (mode === VatMode.INCLUSIVE) {
+    const vat = roundMoney((amountIn * rate) / (100 + rate));
+    return {
+      amountBeforeVat: roundMoney(amountIn - vat),
+      vat,
+      total: amountIn,
+    };
+  }
+
+  const vat = roundMoney((amountIn * rate) / 100);
+  return {
+    amountBeforeVat: amountIn,
+    vat,
+    total: roundMoney(amountIn + vat),
+  };
 }
 
 /** รวมค่าใช้จ่ายหลายรายการ — ปัด VAT ต่อรายการก่อนรวม (ผลรวมตรงกับที่แสดงทีละรายการ) */
 export function sumChargeTotals(
-  charges: Array<{ amountBeforeVat: number; taxRatePercent: number }>,
+  charges: Array<{
+    amountBeforeVat: number;
+    taxRatePercent: number;
+    vatMode?: string | null;
+  }>,
 ): ChargeTotals & { lines: ChargeTotals[] } {
   const lines = charges.map((c) =>
-    calcChargeTotals(c.amountBeforeVat, c.taxRatePercent),
+    calcChargeTotals(c.amountBeforeVat, c.taxRatePercent, c.vatMode),
   );
   const amountBeforeVat = roundMoney(
     lines.reduce((sum, l) => sum + l.amountBeforeVat, 0),

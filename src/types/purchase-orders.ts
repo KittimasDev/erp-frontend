@@ -118,6 +118,8 @@ export type PurchaseOrderCharge = {
   chargeType: string;
   description: string;
   amountBeforeVat: string;
+  /** NONE / EXCLUSIVE / INCLUSIVE */
+  vatMode: string;
   taxRateId?: string | null;
   taxRatePercent: string;
   vatAmount: string;
@@ -137,6 +139,7 @@ export type PurchaseOrderChargeBody = {
   chargeType: string;
   description: string;
   amountBeforeVat: number;
+  vatMode?: string;
   taxRateId?: string | null;
   whtApplicable?: boolean;
   whtIncomeType?: string | null;
