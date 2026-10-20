@@ -68,6 +68,11 @@ import {
 } from "@/types/document-attachments";
 import { clearPurchaseOrderPrLineSelection } from "@/types/purchase-order-pr-line-selection";
 import type { PurchaseRequest } from "@/types/purchase-requests";
+import PoChargesEditor, {
+  chargeRowsToBody,
+  usePoChargesPreview,
+  type ChargeFormRow,
+} from "./PoChargesEditor";
 import PoDeliverySchedulesEditor, {
   sumScheduledQty,
 } from "./PoDeliverySchedulesEditor";
@@ -95,6 +100,7 @@ type FormValues = {
   discountAmount?: number;
   remark?: string;
   items: LineValues[];
+  charges?: ChargeFormRow[];
   deliverySchedules?: Array<{
     deliveryDate?: dayjs.Dayjs;
     items?: Array<{ purchaseRequestItemId: string; quantity?: number }>;
@@ -207,6 +213,10 @@ export default function PurchaseOrderCreateFromPrPage({
   const watchedVatMode = Form.useWatch("vatMode", form);
   const watchedWhtType = Form.useWatch("withholdingTaxType", form);
   const watchedWhtPercent = Form.useWatch("withholdingTaxPercent", form);
+  const watchedCharges = Form.useWatch("charges", form) as
+    | ChargeFormRow[]
+    | undefined;
+  const chargePreview = usePoChargesPreview(watchedCharges);
 
   /*
     บรรทัดที่ถูกสั่งไปแล้วไม่ต้องเอามาให้เลือกซ้ำ — ฟอร์มนี้ทำหน้าที่สั่งของที่ยังไม่ได้สั่ง
@@ -582,6 +592,9 @@ export default function PurchaseOrderCreateFromPrPage({
         ),
         discountAmount: values.discountAmount ?? 0,
         remark: sanitizeDocumentHtml(values.remark) || undefined,
+        charges: values.charges?.length
+          ? chargeRowsToBody(values.charges)
+          : undefined,
         items: values.items
           .filter((item) => item.selected)
           .map((item) => ({
@@ -1007,6 +1020,8 @@ export default function PurchaseOrderCreateFromPrPage({
                 </Form.List>
               </div>
 
+              <PoChargesEditor form={form} disabled={saving} />
+
               <PoDeliverySchedulesEditor
                 form={form}
                 sourceLines={scheduleSourceLines}
@@ -1100,12 +1115,20 @@ export default function PurchaseOrderCreateFromPrPage({
                 <strong>{formatMoney(preview.afterDiscount)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>{vatAmountLabel(preview.vatRate)}</span>
-                <strong>{formatMoney(preview.vat)}</strong>
+                <span>ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)</span>
+                <strong>{formatMoney(chargePreview.amountBeforeVat)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>ยอดสุทธิ</span>
-                <strong>{formatMoney(preview.total)}</strong>
+                <span>
+                  {chargePreview.amountBeforeVat > 0
+                    ? "VAT รวม (สินค้า + ค่าใช้จ่าย)"
+                    : vatAmountLabel(preview.vatRate)}
+                </span>
+                <strong>{formatMoney(preview.vat + chargePreview.vat)}</strong>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>ยอดรวม PO</span>
+                <strong>{formatMoney(preview.total + chargePreview.total)}</strong>
               </div>
               <div className={styles.summaryRow}>
                 <span>ไฟล์แนบ</span>

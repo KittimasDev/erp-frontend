@@ -110,6 +110,7 @@ export default function PayablePurchaseOrdersPage() {
     {
       title: "ผู้ขาย (Supplier)",
       key: "creditor",
+      width: 220,
       render: (_, row) =>
         row.creditor ? (
           <span>
@@ -144,6 +145,25 @@ export default function PayablePurchaseOrdersPage() {
       width: 140,
       align: "right",
       render: (value: number) => money.format(value),
+    },
+    {
+      title: "ค่าใช้จ่ายเพิ่มเติม (ตั้งหนี้แล้ว / ทั้งหมด)",
+      key: "extraCharges",
+      width: 210,
+      align: "right",
+      render: (_: unknown, row: PayablePurchaseOrder) =>
+        row.extraChargesAmount > 0 ? (
+          <span>
+            {money.format(row.extraChargesInvoiced)} / {money.format(row.extraChargesAmount)}
+            {row.extraChargesRemaining > 0 ? (
+              <Typography.Text type="warning" style={{ display: "block", fontSize: 12 }}>
+                ยังไม่ได้ตั้งหนี้ {money.format(row.extraChargesRemaining)}
+              </Typography.Text>
+            ) : null}
+          </span>
+        ) : (
+          "—"
+        ),
     },
     {
       title: "ยอดที่ต้องชำระตามเงื่อนไข",
@@ -257,7 +277,7 @@ export default function PayablePurchaseOrdersPage() {
           loading={listQuery.isFetching}
           columns={columns}
           dataSource={listQuery.data?.items ?? []}
-          scroll={{ x: 1400 }}
+          scroll={{ x: 1700 }}
           pagination={{
             current: page,
             pageSize: PAGE_SIZE,

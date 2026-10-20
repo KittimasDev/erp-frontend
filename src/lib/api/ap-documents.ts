@@ -8,8 +8,10 @@ import type {
   CreatedApQuery,
   DepositInfo,
   GrnCreateInfo,
+  PendingChargePoList,
   PendingGrnList,
   PendingGrnQuery,
+  PoChargeInfo,
   ApDocumentListResponse,
   ApDocumentQueryParams,
   ApDocumentResponse,
@@ -161,6 +163,19 @@ type Res<T> = { message: string; data: T };
 /** ตารางรอสร้างใบตั้งหนี้ — GRN ที่ยืนยันแล้ว */
 export function getPendingGrns(token: string, params?: PendingGrnQuery) {
   return apiFetch<Res<PendingGrnList>>(`${BASE.invoice}/pending-grns${buildQuery(params)}`, { token });
+}
+
+/** PO ที่ยังมีค่าใช้จ่ายเพิ่มเติมคงเหลือรอตั้งหนี้ (ออก AP ค่าใช้จ่ายล้วน ไม่ต้องมี GRN) */
+export function getPendingCharges(token: string, params?: { search?: string; page?: number; limit?: number }) {
+  return apiFetch<Res<PendingChargePoList>>(`${BASE.invoice}/pending-charges${buildQuery(params)}`, { token });
+}
+
+/** ข้อมูล PO + ค่าใช้จ่ายเพิ่มเติมพร้อมวงเงิน/ยอดตั้งหนี้แล้ว/คงเหลือ */
+export function getPoCharges(token: string, purchaseOrderId: string, excludeApId?: string) {
+  return apiFetch<Res<PoChargeInfo>>(
+    `${BASE.invoice}/po-charges${buildQuery({ purchaseOrderId, excludeApId })}`,
+    { token },
+  );
 }
 
 /** ข้อมูล GRN → PO → รายการจ่ายเงิน ที่หน้าสร้างใบตั้งหนี้เติมให้อัตโนมัติ */

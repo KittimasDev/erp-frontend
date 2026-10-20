@@ -257,6 +257,15 @@ function FinancialSummarySection({ po }: { po: PayablePurchaseOrderDetail }) {
       <Descriptions.Item label={`VAT (${AP_VAT_MODE_LABEL[po.vatMode] ?? po.vatMode})`}>
         {money.format(po.vatAmount)}
       </Descriptions.Item>
+      {po.extraChargesAmount > 0 ? (
+        <>
+          <Descriptions.Item label="ค่าสินค้า (รวม VAT)">{money.format(po.goodsAmount)}</Descriptions.Item>
+          <Descriptions.Item label="ค่าใช้จ่ายเพิ่มเติม (รวม VAT)">
+            {money.format(po.extraChargesAmount)} · ตั้งหนี้แล้ว {money.format(po.extraChargesInvoiced)} · คงเหลือ{" "}
+            {money.format(po.extraChargesRemaining)}
+          </Descriptions.Item>
+        </>
+      ) : null}
       <Descriptions.Item label="ยอดสุทธิ PO">
         <Typography.Text strong>{money.format(po.totalAmount)}</Typography.Text>
       </Descriptions.Item>

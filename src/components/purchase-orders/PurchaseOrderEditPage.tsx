@@ -31,6 +31,12 @@ import {
 import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
 import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
+import PoChargesEditor, {
+  chargeRowsToBody,
+  chargesToFormRows,
+  usePoChargesPreview,
+  type ChargeFormRow,
+} from "./PoChargesEditor";
 import styles from "./PurchaseOrderFormPage.module.css";
 
 type LineValues = {
@@ -58,6 +64,7 @@ type FormValues = {
   discountAmount?: number;
   remark?: string;
   items: LineValues[];
+  charges?: ChargeFormRow[];
 };
 
 const PAYMENT_METHOD_OPTIONS = Object.entries(SUPPLIER_PAYMENT_METHOD_LABEL).map(
@@ -81,6 +88,10 @@ export default function PurchaseOrderEditPage({ id }: Props) {
 
   const watchedItems = Form.useWatch("items", form) ?? [];
   const watchedWhtType = Form.useWatch("withholdingTaxType", form);
+  const watchedCharges = Form.useWatch("charges", form) as
+    | ChargeFormRow[]
+    | undefined;
+  const chargePreview = usePoChargesPreview(watchedCharges);
 
   useEffect(() => {
     if (!data) return;
@@ -102,6 +113,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
       withholdingTaxPercent: Number(data.withholdingTaxPercent) || 0,
       discountAmount: Number(data.discountAmount),
       remark: data.remark,
+      charges: chargesToFormRows(data.charges),
       items: (data.items ?? []).map((item) => ({
         id: item.id,
         purchaseRequestItemId: item.purchaseRequestItemId,
@@ -166,6 +178,8 @@ export default function PurchaseOrderEditPage({ id }: Props) {
           description: item.description?.trim() || undefined,
           sortOrder: index,
         })),
+        // ส่งรายการทั้งชุดเสมอ (upsert ตาม id) — ที่ตั้งหนี้แล้วลบ/ลดต่ำกว่ายอดที่ตั้งไม่ได้ backend ตรวจให้
+        charges: chargeRowsToBody(values.charges),
       },
     });
     router.push(`/purchase-orders/${response.data.id}`);
@@ -362,6 +376,8 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                   )}
                 </Form.List>
               </div>
+
+              <PoChargesEditor form={form} disabled={updateMutation.isPending} />
             </div>
             <div className={styles.footerBar}>
               <div />
@@ -386,6 +402,35 @@ export default function PurchaseOrderEditPage({ id }: Props) {
             <p className={styles.summaryLead}>
               บันทึกแล้วระบบจะคำนวณยอดใหม่ให้อัตโนมัติ
             </p>
+            <div className={styles.summaryRows}>
+              <div className={styles.summaryRow}>
+                <span>ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)</span>
+                <strong>
+                  {chargePreview.amountBeforeVat.toLocaleString("th-TH", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </strong>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>VAT ค่าใช้จ่าย</span>
+                <strong>
+                  {chargePreview.vat.toLocaleString("th-TH", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </strong>
+              </div>
+              <div className={styles.summaryRow}>
+                <span>รวมค่าใช้จ่าย</span>
+                <strong>
+                  {chargePreview.total.toLocaleString("th-TH", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </strong>
+              </div>
+            </div>
           </aside>
         </div>
       </Form>

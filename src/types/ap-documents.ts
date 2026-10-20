@@ -153,6 +153,10 @@ export type ApDocument = {
   cancelReason: string | null;
   /** หน้ารายการได้อาร์เรย์ว่าง — บรรทัดมาเฉพาะหน้ารายละเอียด */
   items: ApDocumentItem[];
+  /** เฉพาะใบตั้งหนี้ในหน้ารายละเอียด — ค่าใช้จ่ายเพิ่มเติมจาก PO ที่ตั้งหนี้ในใบนี้ (รวมอยู่ใน totalAmount แล้ว) */
+  charges?: ApChargeAllocation[];
+  /** ยอดค่าสินค้า (รวม VAT) ส่วนที่ไม่ใช่ค่าใช้จ่ายเพิ่มเติม */
+  goodsAmount?: number;
   /** เฉพาะใบตั้งหนี้ในหน้ารายละเอียด */
   debitNotes?: ApDocumentLink[];
   adjustedTotalAmount?: number;
@@ -218,10 +222,80 @@ type ApDocumentBaseBody = {
   vatMode: string;
   taxRateId?: string;
   remark?: string;
+  /** ใบตั้งหนี้ค่าใช้จ่ายล้วนส่งว่างได้ (ต้องมี charges) · ใบเพิ่ม/ลดหนี้ต้องมีอย่างน้อย 1 รายการ */
   items: ApDocumentLineBody[];
 };
 
+/** ค่าใช้จ่ายเพิ่มเติมของ PO ที่เลือกนำมาตั้งหนี้ (ยอดก่อน VAT) */
+export type ApChargeAllocationInput = { poChargeId: string; amount: number };
+
+/** ค่าใช้จ่ายของ PO + วงเงิน/ยอดที่ AP อื่นใช้แล้ว/คงเหลือ */
+export type PoChargeOption = {
+  poChargeId: string;
+  chargeType: string;
+  description: string;
+  taxRateId?: string | null;
+  taxRatePercent: number;
+  poAmountBeforeVat: number;
+  poVatAmount: number;
+  poTotalAmount: number;
+  allocatedByOthers: number;
+  /** VAT ของยอดที่ AP อื่นจัดสรรไปแล้ว */
+  allocatedVatByOthers: number;
+  remaining: number;
+  thisAmount: number;
+  whtApplicable: boolean;
+  whtIncomeType?: string | null;
+  whtRate: number;
+};
+
+/** ข้อมูล PO + ค่าใช้จ่ายที่ตั้งหนี้ได้ (หน้าสร้าง/แก้ AP ทั้งโหมดมี GRN และโหมดค่าใช้จ่ายล้วน) */
+export type PoChargeInfo = {
+  purchaseOrderId: string;
+  poNo: string;
+  receiveStatus: string;
+  creditorId: string;
+  creditorCode: string;
+  creditorName: string;
+  vatMode: string;
+  taxRateId?: string;
+  paymentTerm: { termType?: string; name?: string; creditDays: number; advancePercent: number };
+  charges: PoChargeOption[];
+};
+
+/** ค่าใช้จ่ายเพิ่มเติมที่ตั้งหนี้ในใบตั้งหนี้ใบนี้ */
+export type ApChargeAllocation = {
+  poChargeId: string;
+  chargeType: string;
+  description: string;
+  amountBeforeVat: number;
+  vatRate: number;
+  vatAmount: number;
+  totalAmount: number;
+  whtBaseAmount: number;
+  whtRate: number;
+  whtAmount: number;
+};
+
+/** PO ที่ยังมีค่าใช้จ่ายคงเหลือรอตั้งหนี้ (ไม่ต้องมี GRN) */
+export type PendingChargePo = {
+  purchaseOrderId: string;
+  poNo: string;
+  creditorId: string;
+  creditorCode: string;
+  creditorName: string;
+  receiveStatus: string;
+  chargeAmountBeforeVat: number;
+  allocatedAmount: number;
+  remainingAmount: number;
+  remainingCount: number;
+};
+
+export type PendingChargePoList = { items: PendingChargePo[]; total: number; page: number; limit: number };
+
 export type SaveApInvoiceBody = ApDocumentBaseBody & {
+  /** ค่าใช้จ่ายเพิ่มเติมจาก PO ที่ตั้งหนี้ในใบนี้ — ไม่ส่ง = ไม่ตั้ง · ใบค่าใช้จ่ายล้วนส่ง items ว่างได้ */
+  charges?: ApChargeAllocationInput[];
   creditorId: string;
   dueDate?: string;
   /** บังคับ — ต้องเป็น PO ที่ยืนยันแล้วของเจ้าหนี้รายเดียวกัน */
@@ -470,6 +544,7 @@ export const AP_EVENT_LABEL: Record<string, string> = {
   REFUND: "รับเงินคืน",
   CANCEL_REFUND: "ยกเลิกรับเงินคืน",
   USE_CREDIT: "ใช้เครดิตผู้ขาย",
+  CHARGE_ALLOCATED: "จัดสรรค่าใช้จ่ายเพิ่มเติมจาก PO",
 };
 
 export type DepositSource = {

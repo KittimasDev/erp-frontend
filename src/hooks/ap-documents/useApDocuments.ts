@@ -29,7 +29,9 @@ import {
   getApPurchaseOrderOptions,
   getCreatedAps,
   getGrnCreateInfo,
+  getPendingCharges,
   getPendingGrns,
+  getPoCharges,
   updateApDocument,
 } from "@/lib/api/ap-documents";
 import { getAccessToken } from "@/lib/auth/token";
@@ -72,6 +74,24 @@ export function useCreatedApsQuery(params: CreatedApQuery) {
     queryKey: [...apDocumentsQueryKey, "created", params],
     queryFn: async () => (await getCreatedAps(getAccessToken(), params)).data,
     placeholderData: keepPreviousData,
+  });
+}
+
+/** PO ที่ยังมีค่าใช้จ่ายเพิ่มเติมคงเหลือรอตั้งหนี้ */
+export function usePendingChargesQuery(params: { search?: string; page?: number; limit?: number }) {
+  return useQuery({
+    queryKey: [...apDocumentsQueryKey, "pending-charges", params],
+    queryFn: async () => (await getPendingCharges(getAccessToken(), params)).data,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** ข้อมูล PO + ค่าใช้จ่ายเพิ่มเติม (วงเงิน/ตั้งหนี้แล้ว/คงเหลือ) สำหรับหน้าสร้าง/แก้ AP */
+export function usePoChargesQuery(purchaseOrderId?: string | null, excludeApId?: string) {
+  return useQuery({
+    queryKey: [...apDocumentsQueryKey, "po-charges", purchaseOrderId, excludeApId],
+    queryFn: async () => (await getPoCharges(getAccessToken(), purchaseOrderId as string, excludeApId)).data,
+    enabled: Boolean(purchaseOrderId),
   });
 }
 

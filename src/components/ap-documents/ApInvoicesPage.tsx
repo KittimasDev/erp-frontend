@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import ReportExportButtons, { type ReportExportFormat } from "@/components/reports/ReportExportButtons";
-import { useCreatedApsQuery, usePendingGrnsQuery } from "@/hooks/ap-documents/useApDocuments";
+import { useCreatedApsQuery, usePendingChargesQuery, usePendingGrnsQuery } from "@/hooks/ap-documents/useApDocuments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { getCreatedApsExport } from "@/lib/api/ap-documents";
 import { getAccessToken } from "@/lib/auth/token";
@@ -20,6 +20,7 @@ import {
   AP_TERM_TYPE_LABEL,
   type CreatedAp,
   type CreatedApQuery,
+  type PendingChargePo,
   type PendingGrn,
 } from "@/types/ap-documents";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
@@ -27,6 +28,7 @@ import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money, termText } from "./apDocumentConfig";
 
 const PENDING_PAGE_SIZE = 5;
+const CHARGE_PAGE_SIZE = 5;
 const CREATED_PAGE_SIZE = 10;
 
 type DateRange = [Dayjs | null, Dayjs | null] | null;
@@ -61,6 +63,12 @@ export default function ApInvoicesPage() {
     receivedTo: ymd(pRange?.[1]),
     termType: pTerm,
   });
+
+  // ── ส่วนที่ 1.1: PO ที่ยังมีค่าใช้จ่ายเพิ่มเติมคงเหลือรอตั้งหนี้ (ไม่ต้องมี GRN) ──
+  const [chPage, setChPage] = useState(1);
+  const [chSearch, setChSearch] = useState("");
+  const [chKeyword, setChKeyword] = useState("");
+  const pendingCharges = usePendingChargesQuery({ page: chPage, limit: CHARGE_PAGE_SIZE, search: chKeyword });
 
   // ── ส่วนที่ 2: ที่สร้างแล้ว ──
   const [cPage, setCPage] = useState(1);
@@ -212,6 +220,40 @@ export default function ApInvoicesPage() {
     },
   ];
 
+  const pendingChargeColumns: ColumnsType<PendingChargePo> = [
+    { title: "เลขที่ PO", dataIndex: "poNo", width: 150, render: (v: string, r) => <Link href={`/purchase-orders/${r.purchaseOrderId}`}>{v}</Link> },
+    {
+      title: "ผู้ขาย",
+      key: "creditor",
+      render: (_v, r) => (
+        <span>
+          <Typography.Text type="secondary">{r.creditorCode}</Typography.Text> {r.creditorName}
+        </span>
+      ),
+    },
+    { title: "ค่าใช้จ่ายตาม PO (ก่อน VAT)", dataIndex: "chargeAmountBeforeVat", align: "right", width: 190, render: (v: number) => money.format(v) },
+    { title: "ตั้งหนี้แล้ว", dataIndex: "allocatedAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
+    {
+      title: "ยังไม่ได้ตั้ง AP",
+      dataIndex: "remainingAmount",
+      align: "right",
+      width: 150,
+      render: (v: number) => <Typography.Text strong>{money.format(v)}</Typography.Text>,
+    },
+    { title: "รายการที่เหลือ", dataIndex: "remainingCount", align: "center", width: 120 },
+    {
+      title: "",
+      key: "action",
+      width: 170,
+      render: (_v, r) =>
+        perms.canAdd ? (
+          <Button type="primary" size="small" onClick={() => router.push(`${config.basePath}/create?poId=${r.purchaseOrderId}`)}>
+            สร้าง AP ค่าใช้จ่าย
+          </Button>
+        ) : null,
+    },
+  ];
+
   const createdColumns: ColumnsType<CreatedAp> = [
     { title: "เลขที่ AP", dataIndex: "docNo", width: 170, render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
     { title: "วันที่ตั้งหนี้", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
@@ -315,6 +357,45 @@ export default function ApInvoicesPage() {
           }}
           scroll={{ x: 1300 }}
           locale={{ emptyText: "ไม่มีรายการรอสร้างใบตั้งหนี้" }}
+        />
+      </Card>
+
+      <Card
+        title="PO ค้างค่าใช้จ่ายเพิ่มเติม (รอตั้งหนี้)"
+        extra={
+          <Typography.Text type="secondary">
+            ค่าขนส่ง/ค่าบริการใน PO ที่ยังไม่ได้ตั้ง AP — ตั้งได้โดยไม่ต้องมี GRN ไม่เพิ่มสต๊อก
+          </Typography.Text>
+        }
+      >
+        <Space wrap style={{ marginBottom: 12 }}>
+          <Input.Search
+            allowClear
+            style={{ width: 320 }}
+            placeholder="ค้นเลขที่ PO / ผู้ขาย"
+            value={chSearch}
+            onChange={(e) => setChSearch(e.target.value)}
+            onSearch={(v) => {
+              setChKeyword(v);
+              setChPage(1);
+            }}
+          />
+        </Space>
+        <Table
+          rowKey="purchaseOrderId"
+          loading={pendingCharges.isLoading}
+          columns={pendingChargeColumns}
+          dataSource={pendingCharges.data?.items ?? []}
+          pagination={{
+            current: chPage,
+            pageSize: CHARGE_PAGE_SIZE,
+            total: pendingCharges.data?.total ?? 0,
+            onChange: setChPage,
+            showSizeChanger: false,
+            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+          }}
+          scroll={{ x: 1000 }}
+          locale={{ emptyText: "ไม่มี PO ที่ค้างค่าใช้จ่ายเพิ่มเติม" }}
         />
       </Card>
 

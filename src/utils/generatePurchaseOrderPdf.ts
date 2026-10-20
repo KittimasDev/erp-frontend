@@ -61,8 +61,17 @@ export type PurchaseOrderPdfData = {
   subtotalAmount: number;
   discountAmount: number;
   afterDiscount?: number;
+  /** VAT รวมทั้งค่าสินค้าและค่าใช้จ่ายเพิ่มเติม */
   vatAmount: number;
+  /** ยอดสุทธิทั้งใบ = ค่าสินค้า + ค่าใช้จ่ายเพิ่มเติม + VAT */
   totalAmount: number;
+  /** ค่าใช้จ่ายเพิ่มเติม (แยกจากรายการสินค้า ไม่เข้าสต๊อก) — ไม่มี = ไม่แสดง */
+  charges?: Array<{
+    typeLabel: string;
+    description: string;
+    amountBeforeVat: number;
+    vatAmount: number;
+  }>;
   items: PurchaseOrderPdfItem[];
   deliveryRounds?: PurchaseOrderPdfRound[];
 };
@@ -235,6 +244,27 @@ function scheduleTableHtml(rows: string[]) {
   return `<div class="table schedule-table">${scheduleTheadHtml()}${rows.join("")}</div>`;
 }
 
+/** ค่าใช้จ่ายเพิ่มเติม: แถวละรายการ (ก่อน VAT) + แถวรวม — แยกจากค่าสินค้า */
+function chargeRowsHtml(data: PurchaseOrderPdfData) {
+  const charges = data.charges ?? [];
+  if (!charges.length) return "";
+  const total = charges.reduce((sum, c) => sum + c.amountBeforeVat, 0);
+  const lines = charges
+    .map(
+      (c) => `
+        <div class="tot-row">
+          <div class="k">${escapeHtml(c.typeLabel)}: ${escapeHtml(c.description)}</div>
+          <div class="v">${formatMoney(c.amountBeforeVat)}</div>
+        </div>`,
+    )
+    .join("");
+  return `${lines}
+        <div class="tot-row">
+          <div class="k">ค่าใช้จ่ายเพิ่มเติมรวม (ก่อน VAT):</div>
+          <div class="v">${formatMoney(total)}</div>
+        </div>`;
+}
+
 function totalsHtml(data: PurchaseOrderPdfData) {
   return `
       <div class="totals">
@@ -253,8 +283,9 @@ function totalsHtml(data: PurchaseOrderPdfData) {
               Math.max(0, data.subtotalAmount - data.discountAmount),
           )}</div>
         </div>
+${chargeRowsHtml(data)}
         <div class="tot-row">
-          <div class="k">${vatPdfLineLabel(data.vatMode, data.vatRate)}:</div>
+          <div class="k">${data.charges?.length ? "VAT รวม (สินค้า + ค่าใช้จ่าย)" : vatPdfLineLabel(data.vatMode, data.vatRate)}:</div>
           <div class="v">${formatMoney(data.vatAmount)}</div>
         </div>
         <div class="tot-row grand">

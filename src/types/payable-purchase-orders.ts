@@ -39,6 +39,14 @@ export type PayablePurchaseOrder = {
   paymentTerm: PayablePaymentTerm | null;
   totalAmount: number;
   amountDue: number;
+  /** ค่าสินค้า (รวม VAT) = ยอด PO − ค่าใช้จ่ายเพิ่มเติมรวม VAT */
+  goodsAmount: number;
+  /** ค่าใช้จ่ายเพิ่มเติมตาม PO (รวม VAT) — รวมอยู่ใน totalAmount แล้ว */
+  extraChargesAmount: number;
+  /** ค่าใช้จ่ายเพิ่มเติมที่ตั้งหนี้แล้ว (รวม VAT) */
+  extraChargesInvoiced: number;
+  /** ค่าใช้จ่ายเพิ่มเติมที่ยังไม่ได้ตั้งหนี้ (รวม VAT) */
+  extraChargesRemaining: number;
   dueDate: string | null;
   payableStatus: PayableItemStatus;
 };

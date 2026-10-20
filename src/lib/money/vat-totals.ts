@@ -238,3 +238,65 @@ export function resolveDocumentVatPercent(input: {
   }
   return STANDARD_VAT_PERCENT;
 }
+
+export type ChargeTotals = {
+  amountBeforeVat: number;
+  vat: number;
+  total: number;
+};
+
+/**
+ * ค่าใช้จ่ายเพิ่มเติม 1 รายการ (ค่าขนส่ง/ค่าบริการ/อื่น ๆ) = ก่อน VAT + VAT ตามอัตราของรายการ
+ * ไม่ขึ้นกับโหมด VAT ของเอกสาร และไม่ถูกส่วนลดท้ายเอกสารลดฐาน
+ */
+export function calcChargeTotals(
+  amountBeforeVat: number,
+  taxRatePercent: number,
+): ChargeTotals {
+  const base = roundMoney(Math.max(0, toNum(amountBeforeVat)));
+  const rate = Math.max(0, toNum(taxRatePercent));
+  const vat = roundMoney((base * rate) / 100);
+  return { amountBeforeVat: base, vat, total: roundMoney(base + vat) };
+}
+
+/** รวมค่าใช้จ่ายหลายรายการ — ปัด VAT ต่อรายการก่อนรวม (ผลรวมตรงกับที่แสดงทีละรายการ) */
+export function sumChargeTotals(
+  charges: Array<{ amountBeforeVat: number; taxRatePercent: number }>,
+): ChargeTotals & { lines: ChargeTotals[] } {
+  const lines = charges.map((c) =>
+    calcChargeTotals(c.amountBeforeVat, c.taxRatePercent),
+  );
+  const amountBeforeVat = roundMoney(
+    lines.reduce((sum, l) => sum + l.amountBeforeVat, 0),
+  );
+  const vat = roundMoney(lines.reduce((sum, l) => sum + l.vat, 0));
+  return { lines, amountBeforeVat, vat, total: roundMoney(amountBeforeVat + vat) };
+}
+
+/**
+ * VAT ของยอดค่าใช้จ่ายที่นำไปตั้ง AP ครั้งหนึ่ง (ควบคุมการปัดเศษเมื่อแบ่งหลาย AP)
+ * - ยอดสะสมยังไม่ถึงวงเงินของรายการ: round(ฐาน × อัตรา) แต่ไม่เกิน VAT ที่เหลือ
+ * - ยอดสะสมครบวงเงินพอดี: ใช้ VAT ที่เหลือของรายการ → ผลรวม VAT ทุก AP = VAT ใน PO เสมอ
+ */
+export function allocateChargeVat(input: {
+  chargeAmountBeforeVat: number;
+  chargeVat: number;
+  taxRatePercent: number;
+  allocBase: number;
+  priorAllocBase: number;
+  priorAllocVat: number;
+}): number {
+  const vatLeft = Math.max(
+    0,
+    roundMoney(toNum(input.chargeVat) - toNum(input.priorAllocVat)),
+  );
+  const cumulative = roundMoney(
+    toNum(input.priorAllocBase) + toNum(input.allocBase),
+  );
+  if (cumulative >= roundMoney(toNum(input.chargeAmountBeforeVat)) - 0.004) {
+    return vatLeft;
+  }
+  const rate = Math.max(0, toNum(input.taxRatePercent));
+  return Math.min(vatLeft, roundMoney((toNum(input.allocBase) * rate) / 100));
+}
+

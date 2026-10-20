@@ -33,6 +33,7 @@ import {
 } from "@/hooks/ap-documents/useApDocuments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { VOUCHER_STATUS_COLOR, VOUCHER_STATUS_LABEL } from "@/types/payment-vouchers";
+import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
 import {
   AP_DOCUMENT_STATUS_COLOR,
   AP_DOCUMENT_STATUS_LABEL,
@@ -376,13 +377,66 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
       </Card>
 
       <Card title="3. รายการสินค้า / บริการ" size="small">
-        <Table size="small" rowKey="id" columns={itemColumns} dataSource={d.items} pagination={false} scroll={{ x: 900 }} />
+        <Table
+          size="small"
+          rowKey="id"
+          columns={itemColumns}
+          dataSource={d.items}
+          pagination={false}
+          scroll={{ x: 900 }}
+          locale={{ emptyText: "ไม่มีรายการสินค้า (ใบตั้งหนี้ค่าใช้จ่ายเพิ่มเติมจาก PO)" }}
+        />
       </Card>
+
+      {(d.charges?.length ?? 0) > 0 ? (
+        <Card title="3.1 ค่าใช้จ่ายเพิ่มเติมจาก PO ที่ตั้งหนี้ในใบนี้" size="small">
+          <Table
+            size="small"
+            rowKey="poChargeId"
+            pagination={false}
+            dataSource={d.charges}
+            scroll={{ x: 800 }}
+            columns={[
+              {
+                title: "ประเภท / รายละเอียด",
+                key: "desc",
+                render: (_v, c) => (
+                  <span>
+                    <Tag>{PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType}</Tag> {c.description}
+                  </span>
+                ),
+              },
+              { title: "ยอดก่อน VAT", dataIndex: "amountBeforeVat", align: "right", width: 140, render: (v: number) => money.format(v) },
+              { title: "VAT", key: "rate", align: "right", width: 90, render: (_v, c) => `${c.vatRate}%` },
+              { title: "VAT (บาท)", dataIndex: "vatAmount", align: "right", width: 120, render: (v: number) => money.format(v) },
+              { title: "รวม", dataIndex: "totalAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
+              {
+                title: "หัก ณ ที่จ่าย",
+                key: "wht",
+                align: "right",
+                width: 150,
+                render: (_v, c) => (c.whtAmount > 0 ? `${money.format(c.whtAmount)} (${c.whtRate}%)` : "—"),
+              },
+            ]}
+          />
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            ค่าใช้จ่ายรวมอยู่ในยอดตั้งหนี้ด้านล่างแล้ว (ค่าสินค้ารวม VAT {money.format(d.goodsAmount ?? 0)}) · ยกเลิกใบนี้แล้ววงเงินค่าใช้จ่ายคืนให้ PO อัตโนมัติ
+          </Typography.Text>
+        </Card>
+      ) : null}
 
       <Card title="4. สรุปยอดตั้งหนี้และยอดคงเหลือ (บาท)" size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2, xl: 3 }}>
           <Descriptions.Item label="มูลค่าก่อน VAT">{money.format(d.subtotalAmount)}</Descriptions.Item>
-          <Descriptions.Item label={`VAT ${d.vatRate}% (${AP_VAT_MODE_LABEL[d.vatMode] ?? d.vatMode})`}>{money.format(d.vatAmount)}</Descriptions.Item>
+          <Descriptions.Item
+            label={
+              (d.charges?.length ?? 0) > 0
+                ? "VAT (สินค้า + ค่าใช้จ่าย)"
+                : `VAT ${d.vatRate}% (${AP_VAT_MODE_LABEL[d.vatMode] ?? d.vatMode})`
+            }
+          >
+            {money.format(d.vatAmount)}
+          </Descriptions.Item>
           <Descriptions.Item label="ยอดตั้งหนี้เดิม">
             <Typography.Text strong>{money.format(d.totalAmount)}</Typography.Text>
           </Descriptions.Item>

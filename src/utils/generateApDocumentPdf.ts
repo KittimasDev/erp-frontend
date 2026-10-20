@@ -1,5 +1,6 @@
 import { vatAmountLabel } from "@/lib/money/vat-totals";
 import { AP_SETTLEMENT_METHOD_LABEL, type ApDocument } from "@/types/ap-documents";
+import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
 
 import {
   generateSalesCommercialPdf,
@@ -86,22 +87,37 @@ export function buildApDocumentPdfData(doc: ApDocument): SalesCommercialPdfData 
     docDate: thaiDate(doc.docDate),
     draftBanner,
     infoRows,
-    items: doc.items.map((item, index) => ({
-      no: index + 1,
-      itemCode: item.itemCode ?? "—",
-      itemName: item.description,
-      unit: item.unitLabel ?? "—",
-      qty: item.quantity,
-      unitPrice: item.unitPrice,
-      amount: item.amount,
-    })),
+    // ค่าใช้จ่ายเพิ่มเติมจาก PO พิมพ์ต่อท้ายรายการสินค้า (ก่อน VAT) — VAT รวมอยู่ในยอด VAT ท้ายเอกสาร
+    items: [
+      ...doc.items.map((item, index) => ({
+        no: index + 1,
+        itemCode: item.itemCode ?? "—",
+        itemName: item.description,
+        unit: item.unitLabel ?? "—",
+        qty: item.quantity,
+        unitPrice: item.unitPrice,
+        amount: item.amount,
+      })),
+      ...(doc.charges ?? []).map((charge, index) => ({
+        no: doc.items.length + index + 1,
+        itemCode: "—",
+        itemName: `${PO_CHARGE_TYPE_LABEL[charge.chargeType] ?? charge.chargeType}: ${charge.description}`,
+        unit: "—",
+        qty: 1,
+        unitPrice: charge.amountBeforeVat,
+        amount: charge.amountBeforeVat,
+      })),
+    ],
     withPrices: true,
     subtotalAmount: doc.subtotalAmount,
     vatAmount: doc.vatAmount,
     totalAmount: doc.totalAmount,
     totalsLines: [
       { label: "มูลค่าก่อน VAT", value: doc.subtotalAmount },
-      { label: vatAmountLabel(doc.vatRate), value: doc.vatAmount },
+      {
+        label: doc.charges?.length ? "ภาษีมูลค่าเพิ่ม (สินค้า + ค่าใช้จ่าย)" : vatAmountLabel(doc.vatRate),
+        value: doc.vatAmount,
+      },
       {
         label: isInvoice ? "ยอดตั้งหนี้" : isCredit ? "ยอดลดหนี้" : "ยอดเพิ่มหนี้",
         value: doc.totalAmount,

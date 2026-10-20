@@ -106,6 +106,43 @@ export type PurchaseOrderItem = {
   sortOrder: number;
 };
 
+export const PO_CHARGE_TYPE_LABEL: Record<string, string> = {
+  FREIGHT: "ค่าขนส่ง",
+  SERVICE: "ค่าบริการ",
+  OTHER: "ค่าใช้จ่ายอื่น ๆ",
+};
+
+/** ค่าใช้จ่ายเพิ่มเติมของ PO (แยกจากรายการสินค้า) + ยอดที่ตั้งหนี้แล้ว/คงเหลือ */
+export type PurchaseOrderCharge = {
+  id: string;
+  chargeType: string;
+  description: string;
+  amountBeforeVat: string;
+  taxRateId?: string | null;
+  taxRatePercent: string;
+  vatAmount: string;
+  totalAmount: string;
+  whtApplicable: boolean;
+  whtIncomeType?: string | null;
+  whtRate: string;
+  sortOrder: number;
+  /** ยอดก่อน VAT ที่นำไปตั้งหนี้แล้ว (AP ที่ยังมีผล) */
+  allocatedAmount: number;
+  /** ยอดก่อน VAT ที่ยังนำไปตั้งหนี้ได้ */
+  remainingAmount: number;
+};
+
+export type PurchaseOrderChargeBody = {
+  id?: string;
+  chargeType: string;
+  description: string;
+  amountBeforeVat: number;
+  taxRateId?: string | null;
+  whtApplicable?: boolean;
+  whtIncomeType?: string | null;
+  whtRate?: number;
+};
+
 export type PoPaymentAdjustmentItem = {
   id: string;
   docNo: string;
@@ -159,7 +196,13 @@ export type PurchaseOrder = {
   subtotalAmount: string;
   discountAmount: string;
   vatAmount: string;
+  /** ยอดรวม PO = ค่าสินค้า + ค่าใช้จ่ายเพิ่มเติม + VAT ทั้งหมด */
   totalAmount: string;
+  /** ค่าใช้จ่ายเพิ่มเติมรวม (ก่อน VAT) — รวมใน totalAmount แล้ว */
+  extraChargesAmount?: string;
+  /** VAT ของค่าใช้จ่ายเพิ่มเติม — รวมใน vatAmount แล้ว */
+  extraChargesVat?: string;
+  charges?: PurchaseOrderCharge[];
   remark?: string;
   submittedAt?: string;
   approvedById?: string;
@@ -211,6 +254,7 @@ export type CreatePurchaseOrderFromPrBody = {
   discountAmount?: number;
   remark?: string;
   items: CreatePurchaseOrderItemFromPrBody[];
+  charges?: PurchaseOrderChargeBody[];
 };
 
 /** รวมใบขอซื้อหลายใบเป็นใบสั่งซื้อใบเดียว — โครงเดิม เพิ่มรายการใบขอซื้อต้นทาง */
@@ -243,6 +287,8 @@ export type UpdatePurchaseOrderBody = {
   discountAmount?: number;
   remark?: string;
   items?: UpdatePurchaseOrderItemBody[];
+  /** ไม่ส่ง = ไม่แตะค่าเดิม · [] = ลบทั้งหมด · รายการ = upsert ตาม id */
+  charges?: PurchaseOrderChargeBody[];
 };
 
 /** ปฏิเสธ / ส่งกลับแก้ไข ใบสั่งซื้อ */

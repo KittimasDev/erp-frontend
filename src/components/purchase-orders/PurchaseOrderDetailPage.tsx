@@ -55,6 +55,7 @@ import type { DocumentAttachment } from "@/types/document-attachments";
 import {
   isPoReceivableStatus,
   listPurchaseRequests,
+  PO_CHARGE_TYPE_LABEL,
   purchaseOrderStatusLabel,
   type PoPaymentAdjustmentItem,
 } from "@/types/purchase-orders";
@@ -276,6 +277,14 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       ),
     [data?.items, data?.discountAmount, vatMode, vatPercent],
   );
+  /*
+    ค่าใช้จ่ายเพิ่มเติม + ยอดรวม PO อ่านจาก backend (หัวเอกสารรวมค่าใช้จ่ายแล้ว)
+    ส่วน totals ด้านบนคือ "ค่าสินค้า" ที่คิดจากบรรทัดสินค้า ตรงกับส่วนสินค้าที่ backend เก็บ
+  */
+  const charges = data?.charges ?? [];
+  const chargeAmount = Number(data?.extraChargesAmount) || 0;
+  const chargeVat = Number(data?.extraChargesVat) || 0;
+  const grandTotal = data ? Number(data.totalAmount) || 0 : 0;
   const attachments = attachmentsQuery.data?.data ?? [];
   // Matrix เป็นตัวตัดสินอย่างเดียว — ไม่ OR role ทับ ไม่งั้นคนที่ไม่ได้ติ๊กสิทธิ์ก็ยังกดได้
   // (admin `*` และโหมด legacy คืน all-true จาก getScreenActionPermissions อยู่แล้ว)
@@ -452,8 +461,14 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       subtotalAmount: totals.subtotal,
       discountAmount: totals.discount,
       afterDiscount: totals.afterDiscount,
-      vatAmount: totals.vat,
-      totalAmount: totals.total,
+      vatAmount: totals.vat + chargeVat,
+      totalAmount: grandTotal,
+      charges: charges.map((c) => ({
+        typeLabel: PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType,
+        description: c.description,
+        amountBeforeVat: Number(c.amountBeforeVat) || 0,
+        vatAmount: Number(c.vatAmount) || 0,
+      })),
       items: (data.items ?? []).map((item, index) => ({
         no: index + 1,
         itemCode: item.itemCode ?? "—",
@@ -683,6 +698,46 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             </div>
           </div>
 
+          {charges.length > 0 ? (
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h2 className={styles.sectionTitle}>ค่าใช้จ่ายเพิ่มเติม</h2>
+              </div>
+              <div className={styles.itemList}>
+                {charges.map((c, index) => (
+                  <div key={c.id} className={styles.itemCard}>
+                    <div className={styles.itemIndex}>{index + 1}</div>
+                    <div className={styles.itemBody}>
+                      <p className={styles.itemName}>
+                        {PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType}
+                        {" — "}
+                        {c.description}
+                      </p>
+                      <p className={styles.itemCode}>
+                        ก่อน VAT {formatMoney(c.amountBeforeVat)} · VAT{" "}
+                        {Number(c.taxRatePercent)}% = {formatMoney(c.vatAmount)}
+                        {c.whtApplicable
+                          ? ` · หัก ณ ที่จ่าย ${Number(c.whtRate)}%${c.whtIncomeType ? ` (${c.whtIncomeType})` : ""}`
+                          : ""}
+                      </p>
+                      <div className={styles.itemMeta}>
+                        <span>ตั้งหนี้แล้ว (ก่อน VAT): {formatMoney(c.allocatedAmount)}</span>
+                        <span>คงเหลือตั้งหนี้ได้: {formatMoney(c.remainingAmount)}</span>
+                      </div>
+                    </div>
+                    <div className={styles.itemQty}>
+                      <strong>{formatMoney(c.totalAmount)}</strong>
+                      <span>รวม VAT</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className={styles.sectionHint}>
+                ค่าใช้จ่ายไม่เข้าสต๊อก/Lot — นำไปตั้งหนี้ได้ที่หน้าใบตั้งหนี้เจ้าหนี้ (แบ่งยอดได้หลายใบ)
+              </p>
+            </div>
+          ) : null}
+
           {documentHtmlIsEmpty(data.remark) ? null : (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
@@ -831,13 +886,23 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               <span>ยอดหลังหักส่วนลด</span>
               <strong>{formatMoney(totals.afterDiscount)}</strong>
             </div>
+            {chargeAmount > 0 ? (
+              <div className={styles.sideRow}>
+                <span>ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)</span>
+                <strong>{formatMoney(chargeAmount)}</strong>
+              </div>
+            ) : null}
             <div className={styles.sideRow}>
-              <span>{vatAmountLabel(vatPercent)}</span>
-              <strong>{formatMoney(totals.vat)}</strong>
+              <span>
+                {chargeAmount > 0
+                  ? "VAT รวม (สินค้า + ค่าใช้จ่าย)"
+                  : vatAmountLabel(vatPercent)}
+              </span>
+              <strong>{formatMoney(totals.vat + chargeVat)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ยอดสุทธิ</span>
-              <strong>{formatMoney(totals.total)}</strong>
+              <span>ยอดรวม PO</span>
+              <strong>{formatMoney(grandTotal)}</strong>
             </div>
             <div className={styles.sideRow}>
               <span>ไฟล์แนบ</span>

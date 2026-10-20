@@ -61,6 +61,10 @@ export function toPayableSheet(
       "ชื่อผู้ขาย",
       "เงื่อนไขการชำระเงิน",
       "ยอดเงินตาม PO",
+      "ค่าสินค้า (รวม VAT)",
+      "ค่าใช้จ่ายเพิ่มเติม (รวม VAT)",
+      "ค่าใช้จ่ายที่ตั้งหนี้แล้ว",
+      "ค่าใช้จ่ายคงเหลือ",
       "ยอดที่ต้องชำระตามเงื่อนไข",
       "วันครบกำหนดชำระ",
       "สถานะรายการ",
@@ -75,6 +79,10 @@ export function toPayableSheet(
         ? `${describeTerm(row.paymentTerm)} (${row.paymentTerm.name})`
         : describeTerm(null),
       money.format(row.totalAmount),
+      money.format(row.goodsAmount),
+      money.format(row.extraChargesAmount),
+      money.format(row.extraChargesInvoiced),
+      money.format(row.extraChargesRemaining),
       money.format(row.amountDue),
       formatThaiDate(row.dueDate),
       PAYABLE_ITEM_STATUS_LABEL[row.payableStatus as PayableItemStatus] ??
@@ -86,10 +94,11 @@ export function toPayableSheet(
       { header: "วันที่ PO", cells: [2], width: 62, align: "center" },
       { header: "ผู้ขาย", cells: [3, 4], width: 150 },
       { header: "เงื่อนไขการชำระเงิน", cells: [5], width: 112 },
-      { header: "ยอดตาม PO", cells: [6], width: 78, numeric: true },
-      { header: "ยอดที่ต้องชำระ", cells: [7], width: 78, numeric: true },
-      { header: "ครบกำหนด", cells: [8], width: 62, align: "center" },
-      { header: "สถานะ", cells: [9], width: 86 },
+      { header: "ยอดตาม PO", cells: [6], width: 72, numeric: true },
+      { header: "ค่าใช้จ่าย", cells: [8], width: 64, numeric: true },
+      { header: "ที่ต้องชำระ", cells: [11], width: 72, numeric: true },
+      { header: "ครบกำหนด", cells: [12], width: 58, align: "center" },
+      { header: "สถานะ", cells: [13], width: 80 },
     ],
   };
 }
