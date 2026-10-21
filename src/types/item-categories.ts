@@ -3,6 +3,8 @@ export type ItemCategory = {
   code: string;
   nameTh: string;
   description?: string;
+  /** บัญชีซื้อของหมวดนี้ในสมุดรายวันซื้อ (null = ใช้ค่าเริ่มต้น) */
+  purchaseAccountId?: string | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
@@ -20,6 +22,7 @@ export type CreateItemCategoryRequest = {
   code: string;
   name: string;
   description?: string;
+  purchaseAccountId?: string | null;
   sortOrder?: number;
   isActive?: boolean;
 };

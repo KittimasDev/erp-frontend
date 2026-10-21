@@ -442,6 +442,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["MASTERS_UNIT_CONVERSIONS"],
   },
   { prefix: "/masters/units", screenCodes: ["MASTERS_UNITS"] },
+  { prefix: "/masters/gl-accounts", screenCodes: ["MASTERS_GL_ACCOUNTS"] },
   { prefix: "/warehouses", screenCodes: ["WAREHOUSES"] },
   {
     prefix: "/masters/warehouse-types",
@@ -720,6 +721,7 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   MASTERS_CHEMICALS: "/masters/chemicals",
   MASTERS_ITEM_CATEGORIES: "/masters/item-categories",
   MASTERS_UNITS: "/masters/units",
+  MASTERS_GL_ACCOUNTS: "/masters/gl-accounts",
   MASTERS_UNIT_CONVERSIONS: "/masters/unit-conversions",
   WAREHOUSES: "/warehouses",
   MASTERS_WAREHOUSE_TYPES: "/masters/warehouse-types",

@@ -1,0 +1,71 @@
+.voucher {
+  background: var(--ant-color-bg-container, #fff);
+  padding: 4px 4px 12px;
+}
+
+/* แถบปุ่มบนสุดของใบสำคัญ — ปุ่ม AntD ปกติ ชิดขวา ขึ้นบรรทัดใหม่เมื่อจอแคบ */
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  row-gap: 6px;
+  font-size: 14px;
+}
+
+.metaLabel {
+  font-weight: 600;
+}
+
+.description {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  margin: 20px 0 14px;
+  font-size: 14px;
+}
+
+/* หัวตารางสีเขียวตามธีมระบบ */
+.table :global(.ant-table-thead > tr > th) {
+  background: var(--brand-primary, #739816);
+  color: #fff;
+  font-weight: 600;
+}
+
+.table :global(.ant-table-thead > tr > th::before) {
+  display: none;
+}
+
+.table :global(.ant-table-tbody > tr > td) {
+  vertical-align: top;
+}
+
+.footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-top: 28px;
+  font-size: 14px;
+}
+
+.footerLabel {
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.note {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #8a94a6;
+}
+
+@media (max-width: 720px) {
+  .footer {
+    grid-template-columns: 1fr;
+  }
+}

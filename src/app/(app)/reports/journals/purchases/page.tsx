@@ -1,12 +1,7 @@
 "use client";
 
-import ComingSoonPage from "@/components/common/ComingSoonPage";
+import PurchaseJournalPage from "@/components/reports/PurchaseJournalPage";
 
 export default function Page() {
-  return (
-    <ComingSoonPage
-      title="สมุดรายวันซื้อ"
-      description="รายการซื้อเชื่อเรียงตามวันที่ (กำลังพัฒนา)"
-    />
-  );
+  return <PurchaseJournalPage />;
 }

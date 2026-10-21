@@ -304,6 +304,8 @@ export type PaymentRecordDetail = {
   cancelledByName?: string;
   cancelledAt?: string;
   cancelReason?: string;
+  /** ส่งสมุดรายวันจ่ายไป Express แล้ว — ส่งแล้วยกเลิกการจ่ายไม่ได้ */
+  isExportedToExpress: boolean;
   voucherDetail: PaymentVoucherDetail;
   evidence: PaymentRecordAttachment[];
   voucherAttachments: PaymentRecordAttachment[];

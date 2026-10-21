@@ -69,6 +69,7 @@ type FormValues = {
   vatMode: string;
   taxRateId?: string;
   remark?: string;
+  internalNote?: string;
   items: LineValues[];
 };
 
@@ -164,6 +165,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
         vatMode: existing.vatMode,
         taxRateId: existing.taxRateId ?? undefined,
         remark: existing.remark ?? undefined,
+        internalNote: existing.internalNote ?? undefined,
         items: existing.items.map((item) => ({
           description: item.description,
           quantity: item.quantity,
@@ -268,6 +270,7 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
       vatMode: values.vatMode,
       taxRateId: values.vatMode === "NONE" ? undefined : values.taxRateId,
       remark: values.remark?.trim() || undefined,
+      internalNote: values.internalNote?.trim() || undefined,
       items: values.items.map((line) => ({
         description: (line.description ?? "").trim(),
         quantity: Number(line.quantity),
@@ -658,6 +661,9 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
         </Row>
 
         <Form.Item name="remark" label="หมายเหตุ" style={{ marginTop: 16 }}>
+          <Input.TextArea rows={2} maxLength={2000} />
+        </Form.Item>
+        <Form.Item name="internalNote" label="โน้ตภายในบริษัท" extra="เห็นเฉพาะภายในบริษัท — ไม่ส่งให้ผู้ขาย">
           <Input.TextArea rows={2} maxLength={2000} />
         </Form.Item>
 

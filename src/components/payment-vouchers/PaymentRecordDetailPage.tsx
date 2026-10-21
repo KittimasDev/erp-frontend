@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Alert, App, Button, Card, Descriptions, Input, Modal, Space, Spin, Table, Tag, Timeline, Typography } from "antd";
+import { Alert, App, Button, Card, Descriptions, Input, Modal, Space, Spin, Table, Tag, Timeline, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ArrowLeftOutlined, DownloadOutlined, EyeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -89,7 +89,7 @@ function methodRows(d: PaymentRecordDetail) {
   if (d.paymentMethod === "TRANSFER") {
     return (
       <>
-        <Descriptions.Item label="บัญชีต้นทางที่ใช้จ่าย" span={2}>{bankLabel(d.bankAccount)}</Descriptions.Item>
+        <Descriptions.Item label="บัญชีต้นทางที่ใช้จ่าย">{bankLabel(d.bankAccount)}</Descriptions.Item>
         <Descriptions.Item label="เลขอ้างอิงธุรกรรม">{d.transactionRef ?? "—"}</Descriptions.Item>
       </>
     );
@@ -164,9 +164,19 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
               </Button>
             ) : null}
             {d.status === "PAID" && perms.canDelete ? (
-              <Button danger onClick={() => setCancelling(true)}>
-                ยกเลิกการจ่าย
-              </Button>
+              <Tooltip
+                title={
+                  d.isExportedToExpress
+                    ? "ส่งสมุดรายวันจ่ายไป Express แล้ว ยกเลิกไม่ได้ — แก้ใน Express ก่อน แล้วให้ผู้ดูแลระบบปลดสถานะการส่ง"
+                    : undefined
+                }
+              >
+                <span>
+                  <Button danger disabled={d.isExportedToExpress} onClick={() => setCancelling(true)}>
+                    ยกเลิกการจ่าย
+                  </Button>
+                </span>
+              </Tooltip>
             ) : null}
           </Space>
         </div>

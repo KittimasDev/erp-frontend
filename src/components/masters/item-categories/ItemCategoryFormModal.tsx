@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Form, Input, Modal, Switch } from "antd";
+import { Form, Input, Modal, Select, Switch } from "antd";
 
+import { useGlAccountsQuery } from "@/hooks/gl-accounts/useGlAccounts";
 import type {
   CreateItemCategoryRequest,
   ItemCategory,
@@ -13,6 +14,7 @@ type ItemCategoryFormValues = {
   code: string;
   name: string;
   description?: string;
+  purchaseAccountId?: string;
   isActive: boolean;
 };
 
@@ -34,6 +36,7 @@ export default function ItemCategoryFormModal({
   onSubmit,
 }: ItemCategoryFormModalProps) {
   const [form] = Form.useForm<ItemCategoryFormValues>();
+  const glAccountsQuery = useGlAccountsQuery({ isActive: true });
 
   useEffect(() => {
     if (!open) {
@@ -45,6 +48,7 @@ export default function ItemCategoryFormModal({
         code: initialItemCategory.code,
         name: initialItemCategory.nameTh,
         description: initialItemCategory.description,
+        purchaseAccountId: initialItemCategory.purchaseAccountId ?? undefined,
         isActive: initialItemCategory.isActive,
       });
       return;
@@ -54,6 +58,7 @@ export default function ItemCategoryFormModal({
       code: "",
       name: "",
       description: "",
+      purchaseAccountId: undefined,
       isActive: true,
     });
   }, [open, mode, initialItemCategory, form]);
@@ -65,6 +70,8 @@ export default function ItemCategoryFormModal({
       code: values.code.trim(),
       name: values.name.trim(),
       description: values.description?.trim() || undefined,
+      // null = ล้างการผูก (ใช้บัญชีซื้อสินค้าค่าเริ่มต้น)
+      purchaseAccountId: values.purchaseAccountId ?? null,
       isActive: values.isActive,
     });
   };
@@ -157,6 +164,24 @@ export default function ItemCategoryFormModal({
             rows={3}
             placeholder="เช่น หมวดหมู่สำหรับวัตถุดิบที่ใช้ในการผลิต"
             autoComplete="off"
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="บัญชีซื้อ (สมุดรายวันซื้อ)"
+          name="purchaseAccountId"
+          extra="ไม่เลือก = ใช้บัญชีซื้อสินค้าค่าเริ่มต้นที่หน้า ผังบัญชีและการผูกบัญชี"
+        >
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="ใช้ค่าเริ่มต้น"
+            loading={glAccountsQuery.isLoading}
+            options={(glAccountsQuery.data ?? []).map((account) => ({
+              value: account.id,
+              label: `${account.code} — ${account.nameTh}`,
+            }))}
           />
         </Form.Item>
 

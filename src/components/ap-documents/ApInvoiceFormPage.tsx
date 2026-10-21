@@ -71,6 +71,7 @@ type FormValues = {
   vatMode: string;
   taxRateId?: string;
   remark?: string;
+  internalNote?: string;
   items: LineValues[];
 };
 
@@ -204,6 +205,7 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
         vatMode: existing.vatMode,
         taxRateId: existing.taxRateId ?? undefined,
         remark: existing.remark ?? undefined,
+        internalNote: existing.internalNote ?? undefined,
         items: existing.items.map((item) => {
           const g = item.goodsReceiptItemId ? byItem.get(item.goodsReceiptItemId) : undefined;
           return {
@@ -272,6 +274,7 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
     vatMode: values.vatMode,
     taxRateId: values.vatMode === "NONE" ? undefined : values.taxRateId,
     remark: values.remark?.trim() || undefined,
+    internalNote: values.internalNote?.trim() || undefined,
     creditorId: (grn?.creditorId ?? existing?.creditorId ?? poInfo?.creditorId) as string,
     purchaseOrderId: (grn?.purchaseOrderId ?? existing?.purchaseOrderId ?? poIdParam) as string,
     goodsReceiptId: grnId ?? undefined,
@@ -712,6 +715,9 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
         </Card>
         <Card title="หมายเหตุและเอกสารแนบ" size="small">
           <Form.Item name="remark" label="หมายเหตุ">
+            <Input.TextArea rows={2} maxLength={2000} />
+          </Form.Item>
+          <Form.Item name="internalNote" label="โน้ตภายในบริษัท" extra="เห็นเฉพาะภายในบริษัท — แสดงท้ายใบสำคัญบัญชี ไม่ส่งให้ผู้ขาย">
             <Input.TextArea rows={2} maxLength={2000} />
           </Form.Item>
           {id ? (

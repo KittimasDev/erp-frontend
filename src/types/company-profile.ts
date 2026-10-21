@@ -7,6 +7,8 @@ export type CompanyBankAccount = {
   /** บัญชีหลัก — มีได้บัญชีเดียว เอกสารที่แสดงบัญชีเดียวจะใช้บัญชีนี้ */
   isDefault: boolean;
   isActive: boolean;
+  /** บัญชีแยกประเภท (เงินฝากธนาคาร) ที่ผูกไว้ — ใช้ในสมุดรายวันจ่าย */
+  glAccountId?: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -73,6 +75,7 @@ export type CreateCompanyBankAccountRequest = {
   branchName?: string | null;
   isDefault?: boolean;
   isActive?: boolean;
+  glAccountId?: string | null;
   sortOrder?: number;
 };
 

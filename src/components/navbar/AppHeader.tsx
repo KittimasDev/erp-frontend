@@ -2106,6 +2106,14 @@ const masterMenus: MenuItem[] = [
     ],
   },
   {
+    key: "gl-accounts",
+    screenCode: "MASTERS_GL_ACCOUNTS",
+    label: "ผังบัญชีและการผูกบัญชี",
+    href: "/masters/gl-accounts",
+    icon: <IconCategory />,
+    roles: [ROLE.ACCOUNTING_OFFICER],
+  },
+  {
     // ตั้งกฎผิดทำให้ยอดสต๊อกทั้งระบบเพี้ยน จึงจำกัดเฉพาะระดับหัวหน้าฝ่าย
     key: "unit-conversions",
     screenCode: "MASTERS_UNIT_CONVERSIONS",

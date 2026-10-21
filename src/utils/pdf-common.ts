@@ -532,7 +532,8 @@ async function waitForImages(wrapper: HTMLElement) {
   );
 }
 
-export async function openPdfFromHtml(pageId: string, pageHtml: string) {
+/** แคป HTML หน้าเดียว (กว้าง 794px) เป็น PDF A4 — ใช้ร่วมกันทั้งเปิดแท็บและดาวน์โหลด */
+async function renderPdfFromHtml(pageId: string, pageHtml: string) {
   const wrapper = document.createElement("div");
   wrapper.style.position = "fixed";
   wrapper.style.left = "-99999px";
@@ -585,8 +586,23 @@ export async function openPdfFromHtml(pageId: string, pageHtml: string) {
     }
   }
 
-  window.open(pdf.output("bloburl"), "_blank");
   document.body.removeChild(wrapper);
+  return pdf;
+}
+
+export async function openPdfFromHtml(pageId: string, pageHtml: string) {
+  const pdf = await renderPdfFromHtml(pageId, pageHtml);
+  window.open(pdf.output("bloburl"), "_blank");
+}
+
+/** บันทึกเป็นไฟล์ .pdf ลงเครื่องโดยตรง (ไม่เปิดแท็บใหม่) */
+export async function downloadPdfFromHtml(
+  pageId: string,
+  pageHtml: string,
+  filename: string,
+) {
+  const pdf = await renderPdfFromHtml(pageId, pageHtml);
+  pdf.save(filename);
 }
 
 /** ความสูง A4 แนวตั้งที่ 794px กว้าง — ใช้ตรึงความสูงหน้ารายงานให้ตัดหน้าพอดี */

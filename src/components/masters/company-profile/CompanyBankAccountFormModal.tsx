@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { AutoComplete, Checkbox, Form, Input, InputNumber, Modal } from "antd";
+import { AutoComplete, Checkbox, Form, Input, InputNumber, Modal, Select } from "antd";
 import { BankOutlined } from "@ant-design/icons";
 
+import { useGlAccountsQuery } from "@/hooks/gl-accounts/useGlAccounts";
 import type {
   CompanyBankAccount,
   CreateCompanyBankAccountRequest,
@@ -41,6 +42,7 @@ export default function CompanyBankAccountFormModal({
 }: Props) {
   const [form] = Form.useForm<CreateCompanyBankAccountRequest>();
   const isEdit = Boolean(account);
+  const glAccountsQuery = useGlAccountsQuery({ isActive: true });
 
   useEffect(() => {
     if (!open) {
@@ -55,6 +57,7 @@ export default function CompanyBankAccountFormModal({
         branchName: account.branchName ?? undefined,
         isDefault: account.isDefault,
         isActive: account.isActive,
+        glAccountId: account.glAccountId ?? undefined,
         sortOrder: account.sortOrder,
       });
     } else {
@@ -89,7 +92,8 @@ export default function CompanyBankAccountFormModal({
         form={form}
         layout="vertical"
         className={styles.form}
-        onFinish={onSubmit}
+        // allowClear ให้ค่า undefined → ส่ง null เพื่อให้ล้างการผูกบัญชีได้จริง
+        onFinish={(values) => onSubmit({ ...values, glAccountId: values.glAccountId ?? null })}
         requiredMark={false}
       >
         <Form.Item
@@ -125,6 +129,24 @@ export default function CompanyBankAccountFormModal({
 
         <Form.Item name="branchName" label="สาขา">
           <Input placeholder="เช่น สาขาสำนักงานใหญ่" maxLength={150} />
+        </Form.Item>
+
+        <Form.Item
+          name="glAccountId"
+          label="บัญชีแยกประเภท (เงินฝากธนาคาร)"
+          extra="ใช้เป็นบัญชีฝั่งเครดิตในสมุดรายวันจ่าย/ไฟล์ Express — ไม่ผูกจะส่ง Express ไม่ได้เมื่อจ่ายผ่านบัญชีนี้"
+        >
+          <Select
+            allowClear
+            showSearch
+            optionFilterProp="label"
+            placeholder="ยังไม่ผูกบัญชี"
+            loading={glAccountsQuery.isLoading}
+            options={(glAccountsQuery.data ?? []).map((a) => ({
+              value: a.id,
+              label: `${a.code} — ${a.nameTh}`,
+            }))}
+          />
         </Form.Item>
 
         <Form.Item name="sortOrder" label="ลำดับการแสดงผล">

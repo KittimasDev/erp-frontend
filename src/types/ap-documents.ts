@@ -133,6 +133,8 @@ export type ApDocument = {
   referenceDocumentNo: string | null;
   reason: string | null;
   remark: string | null;
+  /** โน้ตภายในบริษัท — ไม่ออกในเอกสารที่ส่งผู้ขาย */
+  internalNote: string | null;
   vatMode: string;
   taxRateId: string | null;
   vatRate: number;
@@ -222,6 +224,7 @@ type ApDocumentBaseBody = {
   vatMode: string;
   taxRateId?: string;
   remark?: string;
+  internalNote?: string;
   /** ใบตั้งหนี้ค่าใช้จ่ายล้วนส่งว่างได้ (ต้องมี charges) · ใบเพิ่ม/ลดหนี้ต้องมีอย่างน้อย 1 รายการ */
   items: ApDocumentLineBody[];
 };
