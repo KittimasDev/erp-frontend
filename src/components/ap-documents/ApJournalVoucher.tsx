@@ -142,6 +142,8 @@ type VoucherProps = {
   internalNote?: string | null;
   /** ไอคอนพิมพ์/ดาวน์โหลด/เพิ่มเติม มุมขวาบน */
   toolbar?: ReactNode;
+  /** false = ซ่อนแถววันที่/ผู้ติดต่อ/อ้างอิง (หน้ารายละเอียดสมุดรายวันมี Descriptions แยก) */
+  showMeta?: boolean;
 };
 
 /** ใบสำคัญสมุดรายวัน (template ตามแบบ): หัวเอกสาร → คำอธิบาย → ตารางบัญชี → หมายเหตุ/โน้ตภายใน */
@@ -159,6 +161,7 @@ export default function ApJournalVoucher({
   remark,
   internalNote,
   toolbar,
+  showMeta = true,
 }: VoucherProps) {
   const forbidden = error instanceof ApiError && error.status === 403;
 
@@ -191,7 +194,9 @@ export default function ApJournalVoucher({
         ) : null}
         {!entry.balanced ? <Alert style={{ marginTop: 12 }} type="error" showIcon title="เดบิตไม่เท่ากับเครดิต — ตรวจยอดเอกสาร" /> : null}
         <div className={styles.note}>
-          เจ้าหนี้แสดงเต็มยอดตั้งหนี้ ไม่หักมัดจำ/ภาษีหัก ณ ที่จ่าย (ยอดที่ต้องชำระจริงดูที่แท็บรายละเอียดและการชำระเงิน)
+          {showMeta
+            ? "เจ้าหนี้แสดงเต็มยอดตั้งหนี้ ไม่หักมัดจำ/ภาษีหัก ณ ที่จ่าย (ยอดที่ต้องชำระจริงดูที่แท็บรายละเอียดและการชำระเงิน)"
+            : "เจ้าหนี้แสดงเต็มยอดตั้งหนี้ ไม่หักมัดจำ/ภาษีหัก ณ ที่จ่าย"}
         </div>
       </>
     );
@@ -209,16 +214,18 @@ export default function ApJournalVoucher({
           description="ใบสำคัญจริงจะสร้างเมื่ออนุมัติ · ตัวอย่างนี้พิมพ์/ดาวน์โหลดไม่ได้"
         />
       ) : null}
-      <div className={styles.meta}>
-        <span className={styles.metaLabel}>วันที่เอกสาร:</span>
-        <span>{formatThaiDate(docDate)}</span>
-        <span className={styles.metaLabel}>ผู้ติดต่อ:</span>
-        <Link href={`/finance/payables/creditors/${creditorId}`}>
-          {creditorCode} {creditorName}
-        </Link>
-        <span className={styles.metaLabel}>เลขที่อ้างอิง:</span>
-        <span>{reference}</span>
-      </div>
+      {showMeta ? (
+        <div className={styles.meta}>
+          <span className={styles.metaLabel}>วันที่เอกสาร:</span>
+          <span>{formatThaiDate(docDate)}</span>
+          <span className={styles.metaLabel}>ผู้ติดต่อ:</span>
+          <Link href={`/finance/payables/creditors/${creditorId}`}>
+            {creditorCode} {creditorName}
+          </Link>
+          <span className={styles.metaLabel}>เลขที่อ้างอิง:</span>
+          <span>{reference}</span>
+        </div>
+      ) : null}
 
       <div className={styles.description}>
         <span className={styles.metaLabel}>คำอธิบาย:</span>

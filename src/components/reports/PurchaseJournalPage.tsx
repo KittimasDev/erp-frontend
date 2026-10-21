@@ -250,7 +250,7 @@ export default function PurchaseJournalPage() {
       width: 190,
       render: (_, row) => (
         <Space orientation="vertical" size={0}>
-          <Link href={`${AP_BASE_PATH[row.docType]}/${row.id}`}>{row.docNo}</Link>
+          <Link href={`/reports/journals/purchases/${row.id}`}>{row.docNo}</Link>
           <Space size={4}>
             <Tag color={DOC_TYPE_COLOR[row.docType]} style={{ marginInlineEnd: 0 }}>
               {JOURNAL_DOC_TYPE_LABEL[row.docType]}
