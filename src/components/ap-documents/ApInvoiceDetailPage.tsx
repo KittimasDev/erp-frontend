@@ -17,7 +17,6 @@ import {
   Space,
   Spin,
   Table,
-  Tabs,
   Tag,
   Timeline,
   Tooltip,
@@ -25,12 +24,7 @@ import {
 } from "antd";
 import type { MenuProps } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import {
-  ArrowLeftOutlined,
-  DownloadOutlined,
-  MoreOutlined,
-  PrinterOutlined,
-} from "@ant-design/icons";
+import { ArrowLeftOutlined, MoreOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 
@@ -41,11 +35,7 @@ import {
   useApInvoicePvMutation,
 } from "@/hooks/ap-documents/useApDocuments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
-import {
-  purchaseJournalQueryKey,
-  usePurchaseJournalByDocQuery,
-} from "@/hooks/purchase-journal/usePurchaseJournal";
-import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
+import { purchaseJournalQueryKey } from "@/hooks/purchase-journal/usePurchaseJournal";
 import { VOUCHER_STATUS_COLOR, VOUCHER_STATUS_LABEL } from "@/types/payment-vouchers";
 import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
 import {
@@ -63,8 +53,6 @@ import {
 } from "@/types/ap-documents";
 
 import AdjustDebtModal from "./AdjustDebtModal";
-import ApJournalVoucher from "./ApJournalVoucher";
-import { buildVoucherDescription, pickVoucherReference } from "./apJournalVoucher.utils";
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money, termText } from "./apDocumentConfig";
 
 const config = AP_DOCUMENT_CONFIG.invoice;
@@ -95,8 +83,6 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
   const [reason, setReason] = useState("");
   const queryClient = useQueryClient();
   const d = query.data;
-  // ใบสำคัญบัญชี: ใบที่ยกเลิกไม่มีรายการบัญชี จึงไม่ต้องดึง
-  const journalQuery = usePurchaseJournalByDocQuery(id, !!d && d.status !== "CANCELLED");
 
   if (query.isLoading) return <Spin />;
   if (!d) {
@@ -145,44 +131,6 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
 
   const editable = (status === "DRAFT" || status === "REJECTED") && perms.canEdit;
 
-  // ── ใบสำคัญบัญชี (template ตามแบบ) ──
-  const journal = journalQuery.data;
-  const voucherInput = journal
-    ? {
-        docNo: d.docNo,
-        docTypeLabel: "ใบตั้งหนี้",
-        docDateText: formatThaiDate(d.docDate),
-        creditorText: `${d.creditorCode} ${d.creditorName}`,
-        reference: pickVoucherReference(d),
-        description: buildVoucherDescription({ ...d, hasItems: d.items.length > 0 }),
-        remark: d.remark,
-        internalNote: d.internalNote,
-        entry: journal.entry,
-      }
-    : null;
-  // ตัวอย่างของใบที่ยังไม่อนุมัติพิมพ์/ดาวน์โหลดไม่ได้ · ปุ่มพิมพ์ผูกสิทธิ์ PRINT ของหน้า
-  const canPrintVoucher =
-    status === "APPROVED" &&
-    !!voucherInput &&
-    (!isMatrixPermissionMode() || hasPermission(`${config.screenCode}.PRINT`));
-  const printVoucher = async () => {
-    if (!voucherInput) return;
-    try {
-      const { printApJournalVoucherPdf } = await import("@/utils/generateApJournalVoucherPdf");
-      await printApJournalVoucherPdf(voucherInput);
-    } catch (e) {
-      message.error(e instanceof Error ? e.message : "พิมพ์ใบสำคัญไม่สำเร็จ");
-    }
-  };
-  const downloadVoucher = async () => {
-    if (!voucherInput) return;
-    try {
-      const { downloadApJournalVoucherPdf } = await import("@/utils/generateApJournalVoucherPdf");
-      await downloadApJournalVoucherPdf(voucherInput);
-    } catch (e) {
-      message.error(e instanceof Error ? e.message : "ดาวน์โหลดใบสำคัญไม่สำเร็จ");
-    }
-  };
   const moreItems: MenuProps["items"] = [
     { key: "print-invoice", label: "พิมพ์ใบตั้งหนี้ (PDF)", onClick: () => void handlePrint() },
     status === "APPROVED" && perms.canEdit && d.billedAmount <= 0
@@ -196,27 +144,6 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
       ? { key: "cancel", label: "ยกเลิกใบตั้งหนี้", danger: true, onClick: () => setReasonFor("cancel") }
       : null,
   ].filter((item): item is NonNullable<typeof item> => item !== null);
-  const voucherToolbar = (
-    <>
-      <Tooltip title={canPrintVoucher ? undefined : status === "APPROVED" ? "ไม่มีสิทธิ์พิมพ์ หรือยังโหลดรายการบัญชีไม่ได้" : "พิมพ์ได้เมื่ออนุมัติแล้ว"}>
-        <span>
-          <Button icon={<PrinterOutlined />} disabled={!canPrintVoucher} onClick={() => void printVoucher()}>
-            พิมพ์เอกสาร
-          </Button>
-        </span>
-      </Tooltip>
-      <Tooltip title={canPrintVoucher ? undefined : "ดาวน์โหลดได้เมื่ออนุมัติแล้ว"}>
-        <span>
-          <Button icon={<DownloadOutlined />} disabled={!canPrintVoucher} onClick={() => void downloadVoucher()}>
-            ดาวน์โหลด
-          </Button>
-        </span>
-      </Tooltip>
-      <Dropdown menu={{ items: moreItems }} trigger={["click"]} placement="bottomRight">
-        <Button icon={<MoreOutlined />}>เพิ่มเติม</Button>
-      </Dropdown>
-    </>
-  );
 
   const itemColumns: ColumnsType<ApDocumentItem> = [
     { title: "#", key: "no", width: 48, align: "center", render: (_v, _r, i) => i + 1 },
@@ -415,7 +342,7 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
                 </span>
               </Tooltip>
             ) : null}
-            {/* ปรับหนี้ / ยกเลิก / พิมพ์ใบตั้งหนี้แบบเดิม อยู่ในเมนูนี้ เปิดได้จากทุกแท็บ */}
+            {/* ปรับหนี้ / ยกเลิก / พิมพ์ใบตั้งหนี้ */}
             <Dropdown menu={{ items: moreItems }} trigger={["click"]} placement="bottomRight">
               <Button icon={<MoreOutlined />}>เพิ่มเติม</Button>
             </Dropdown>
@@ -433,40 +360,6 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
         ) : null}
       </Card>
 
-      <Tabs
-        defaultActiveKey="voucher"
-        items={[
-          {
-            key: "voucher",
-            label: "ใบสำคัญบัญชี",
-            children:
-              status === "CANCELLED" ? (
-                <Alert type="info" showIcon title="ใบตั้งหนี้นี้ถูกยกเลิก — ไม่มีรายการบัญชี" />
-              ) : (
-                <Card>
-                  <ApJournalVoucher
-                    entry={journal?.entry}
-                    isLoading={journalQuery.isLoading}
-                    error={journalQuery.error}
-                    preview={journal ? journal.preview : status !== "APPROVED"}
-                    docDate={d.docDate}
-                    creditorId={d.creditorId}
-                    creditorCode={d.creditorCode}
-                    creditorName={d.creditorName}
-                    reference={pickVoucherReference(d)}
-                    description={buildVoucherDescription({ ...d, hasItems: d.items.length > 0 })}
-                    remark={d.remark}
-                    internalNote={d.internalNote}
-                    toolbar={voucherToolbar}
-                  />
-                </Card>
-              ),
-          },
-          {
-            key: "detail",
-            label: "รายละเอียดและการชำระเงิน",
-            children: (
-              <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <Card title="1. ข้อมูลเอกสาร" size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2, xl: 3 }}>
           <Descriptions.Item label="เลขที่ใบตั้งหนี้">{d.docNo}</Descriptions.Item>
@@ -655,11 +548,6 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
           />
         )}
       </Card>
-              </Space>
-            ),
-          },
-        ]}
-      />
 
       <AdjustDebtModal open={adjustOpen} detail={d} onClose={() => setAdjustOpen(false)} />
 
