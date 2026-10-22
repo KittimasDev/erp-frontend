@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { App, Button, Card, DatePicker, Input, Select, Space, Table, Tag, Typography } from "antd";
+import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Typography } from "antd";
+import { FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import styles from "@/components/finance/shared/finance-list-page.module.css";
+import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ReportExportButtons, { type ReportExportFormat } from "@/components/reports/ReportExportButtons";
 import { useCreatedApsQuery, usePendingChargesQuery, usePendingGrnsQuery } from "@/hooks/ap-documents/useApDocuments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -303,46 +306,121 @@ export default function ApInvoicesPage() {
     },
   ];
 
+  const applyPending = () => {
+    setPKeyword(pSearch.trim());
+    setPPage(1);
+  };
+  const clearPending = () => {
+    setPSearch("");
+    setPKeyword("");
+    setPRange(null);
+    setPTerm(undefined);
+    setPPage(1);
+  };
+  const applyCharges = () => {
+    setChKeyword(chSearch.trim());
+    setChPage(1);
+  };
+  const clearCharges = () => {
+    setChSearch("");
+    setChKeyword("");
+    setChPage(1);
+  };
+  const applyCreated = () => {
+    setCKeyword(cSearch.trim());
+    setCPage(1);
+  };
+  const clearCreated = () => {
+    setCSearch("");
+    setCKeyword("");
+    setCDocRange(null);
+    setCDueRange(null);
+    setCStatus(undefined);
+    setCPayStatus(undefined);
+    setCPage(1);
+  };
+
   return (
-    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card
-        title="รายการรอสร้างใบตั้งหนี้"
-        extra={<Typography.Text type="secondary">GRN ที่ยืนยันรับสินค้าแล้วและยังไม่ได้ตั้งหนี้</Typography.Text>}
-      >
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 320 }}
-            placeholder="ค้นเลขที่ GRN / PO / รายการจ่ายเงิน / ผู้ขาย"
-            value={pSearch}
-            onChange={(e) => setPSearch(e.target.value)}
-            onSearch={(v) => {
-              setPKeyword(v);
-              setPPage(1);
-            }}
-          />
-          <DatePicker.RangePicker
-            format="DD/MM/YYYY"
-            placeholder={["วันที่รับสินค้า (จาก)", "วันที่รับสินค้า (ถึง)"]}
-            value={pRange}
-            onChange={(v) => {
-              setPRange(v);
-              setPPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="เงื่อนไขการชำระ"
-            style={{ width: 190 }}
-            value={pTerm}
-            onChange={(v) => {
-              setPTerm(v);
-              setPPage(1);
-            }}
-            options={TERM_OPTIONS}
-          />
-        </Space>
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
+        <div className={masterStyles.headerContent}>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            FINANCE · PAYABLES
+          </div>
+          <h2 className={masterStyles.pageTitle}>ใบตั้งหนี้เจ้าหนี้</h2>
+          <span className={masterStyles.pageSubtitle}>
+            GRN ที่ยืนยันแล้วรอตั้งหนี้ · ค่าใช้จ่ายเพิ่มเติมใน PO · และใบตั้งหนี้ที่สร้างแล้ว
+          </span>
+        </div>
+        <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
+      </div>
+
+      <div className={`${styles.statRow} ${styles.statRow3}`}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>รอตั้งหนี้ GRN</span>
+          <span className={styles.statValue}>{(pending.data?.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>รอตั้งค่าใช้จ่าย</span>
+          <span className={styles.statValue}>{(pendingCharges.data?.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>สร้างแล้ว</span>
+          <span className={styles.statValue}>{(created.data?.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+      </div>
+
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>รอสร้างใบตั้งหนี้</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{(pending.data?.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่ GRN / PO / รายการจ่ายเงิน / ผู้ขาย"
+                value={pSearch}
+                onChange={(e) => setPSearch(e.target.value)}
+                onPressEnter={applyPending}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>วันที่รับสินค้า</label>
+              <DatePicker.RangePicker
+                style={{ width: "100%" }}
+                format="DD/MM/YYYY"
+                value={pRange}
+                onChange={(v) => setPRange(v)}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>เงื่อนไขการชำระ</label>
+              <Select allowClear placeholder="ทั้งหมด" value={pTerm} onChange={setPTerm} options={TERM_OPTIONS} />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearPending}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyPending}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="grnId"
           loading={pending.isLoading}
           columns={pendingColumns}
@@ -358,30 +436,42 @@ export default function ApInvoicesPage() {
           scroll={{ x: 1300 }}
           locale={{ emptyText: "ไม่มีรายการรอสร้างใบตั้งหนี้" }}
         />
-      </Card>
+      </div>
 
-      <Card
-        title="PO ค้างค่าใช้จ่ายเพิ่มเติม (รอตั้งหนี้)"
-        extra={
-          <Typography.Text type="secondary">
-            ค่าขนส่ง/ค่าบริการใน PO ที่ยังไม่ได้ตั้ง AP — ตั้งได้โดยไม่ต้องมี GRN ไม่เพิ่มสต๊อก
-          </Typography.Text>
-        }
-      >
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 320 }}
-            placeholder="ค้นเลขที่ PO / ผู้ขาย"
-            value={chSearch}
-            onChange={(e) => setChSearch(e.target.value)}
-            onSearch={(v) => {
-              setChKeyword(v);
-              setChPage(1);
-            }}
-          />
-        </Space>
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>PO ค้างค่าใช้จ่ายเพิ่มเติม</h3>
+          </div>
+          <span className={masterStyles.tableCount}>
+            {(pendingCharges.data?.total ?? 0).toLocaleString("th-TH")} รายการ
+          </span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่ PO / ผู้ขาย"
+                value={chSearch}
+                onChange={(e) => setChSearch(e.target.value)}
+                onPressEnter={applyCharges}
+              />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearCharges}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyCharges}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="purchaseOrderId"
           loading={pendingCharges.isLoading}
           columns={pendingChargeColumns}
@@ -397,66 +487,72 @@ export default function ApInvoicesPage() {
           scroll={{ x: 1000 }}
           locale={{ emptyText: "ไม่มี PO ที่ค้างค่าใช้จ่ายเพิ่มเติม" }}
         />
-      </Card>
+      </div>
 
-      <Card
-        title="รายการใบตั้งหนี้ที่สร้างแล้ว"
-        extra={<ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />}
-      >
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 320 }}
-            placeholder="ค้นเลขที่ AP / PO / รายการจ่ายเงิน / ผู้ขาย"
-            value={cSearch}
-            onChange={(e) => setCSearch(e.target.value)}
-            onSearch={(v) => {
-              setCKeyword(v);
-              setCPage(1);
-            }}
-          />
-          <DatePicker.RangePicker
-            format="DD/MM/YYYY"
-            placeholder={["วันที่ตั้งหนี้ (จาก)", "วันที่ตั้งหนี้ (ถึง)"]}
-            value={cDocRange}
-            onChange={(v) => {
-              setCDocRange(v);
-              setCPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะเอกสาร"
-            style={{ width: 150 }}
-            value={cStatus}
-            onChange={(v) => {
-              setCStatus(v);
-              setCPage(1);
-            }}
-            options={DOC_STATUS_OPTIONS}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะชำระเงิน"
-            style={{ width: 150 }}
-            value={cPayStatus}
-            onChange={(v) => {
-              setCPayStatus(v);
-              setCPage(1);
-            }}
-            options={PAY_STATUS_OPTIONS}
-          />
-          <DatePicker.RangePicker
-            format="DD/MM/YYYY"
-            placeholder={["วันครบกำหนด (จาก)", "วันครบกำหนด (ถึง)"]}
-            value={cDueRange}
-            onChange={(v) => {
-              setCDueRange(v);
-              setCPage(1);
-            }}
-          />
-        </Space>
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>ใบตั้งหนี้ที่สร้างแล้ว</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{(created.data?.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่ AP / PO / รายการจ่ายเงิน / ผู้ขาย"
+                value={cSearch}
+                onChange={(e) => setCSearch(e.target.value)}
+                onPressEnter={applyCreated}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>วันที่ตั้งหนี้</label>
+              <DatePicker.RangePicker
+                style={{ width: "100%" }}
+                format="DD/MM/YYYY"
+                value={cDocRange}
+                onChange={(v) => setCDocRange(v)}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>วันครบกำหนด</label>
+              <DatePicker.RangePicker
+                style={{ width: "100%" }}
+                format="DD/MM/YYYY"
+                value={cDueRange}
+                onChange={(v) => setCDueRange(v)}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>สถานะเอกสาร</label>
+              <Select allowClear placeholder="ทั้งหมด" value={cStatus} onChange={setCStatus} options={DOC_STATUS_OPTIONS} />
+            </div>
+            <div className={styles.filterItem}>
+              <label>สถานะชำระเงิน</label>
+              <Select
+                allowClear
+                placeholder="ทั้งหมด"
+                value={cPayStatus}
+                onChange={setCPayStatus}
+                options={PAY_STATUS_OPTIONS}
+              />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearCreated}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyCreated}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="id"
           loading={created.isLoading}
           columns={createdColumns}
@@ -472,7 +568,7 @@ export default function ApInvoicesPage() {
           scroll={{ x: 1700 }}
           locale={{ emptyText: "ยังไม่มีใบตั้งหนี้" }}
         />
-      </Card>
-    </Space>
+      </div>
+    </section>
   );
 }

@@ -13,7 +13,11 @@ export type ApJournalVoucherPdfInput = {
   description: string;
   remark?: string | null;
   internalNote?: string | null;
-  entry: PurchaseJournalItem;
+  /** หัวเอกสาร PDF — ค่าเริ่มต้นใบสำคัญสมุดรายวันซื้อ */
+  title?: string;
+  /** หมายเหตุใต้ตาราง — ค่าเริ่มต้นข้อความเจ้าหนี้เต็มยอดตั้งหนี้ */
+  note?: string;
+  entry: Pick<PurchaseJournalItem, "lines" | "totalDebit" | "totalCredit">;
 };
 
 const PAGE_ID = "ap-journal-voucher-pdf";
@@ -72,7 +76,7 @@ export function buildApJournalVoucherHtml(input: ApJournalVoucherPdfInput): stri
       #${PAGE_ID} .foot { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 36px; font-size: 14px; }
     </style>
     <div id="${PAGE_ID}">
-      <h1>ใบสำคัญสมุดรายวันซื้อ</h1>
+      <h1>${esc(input.title ?? "ใบสำคัญสมุดรายวันซื้อ")}</h1>
       <div class="doc">${esc(input.docTypeLabel)} ${esc(input.docNo)}</div>
       <div class="meta">
         <b>วันที่เอกสาร:</b><span>${esc(input.docDateText)}</span>
@@ -84,7 +88,7 @@ export function buildApJournalVoucherHtml(input: ApJournalVoucherPdfInput): stri
         <thead><tr><th style="width:34%">รหัสบัญชี / ชื่อบัญชี</th><th class="n" style="width:15%">เดบิต</th><th class="n" style="width:15%">เครดิต</th><th>คำอธิบายรายการย่อย</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <div class="note">เจ้าหนี้แสดงเต็มยอดตั้งหนี้ ไม่หักมัดจำ/ภาษีหัก ณ ที่จ่าย</div>
+      <div class="note">${esc(input.note ?? "เจ้าหนี้แสดงเต็มยอดตั้งหนี้ ไม่หักมัดจำ/ภาษีหัก ณ ที่จ่าย")}</div>
       <div class="foot">
         <div><b>หมายเหตุ:</b> ${esc(input.remark)}</div>
         <div><b>โน้ตภายในบริษัท:</b> ${esc(input.internalNote)}</div>

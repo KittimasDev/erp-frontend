@@ -56,7 +56,8 @@ type DraftLine = {
 
 function canEdit() {
   if (isAdministrator()) return true;
-  if (isMatrixPermissionMode()) return hasPermission("SALES_CREDIT_NOTES.EDIT");
+  if (isMatrixPermissionMode())
+    return hasPermission("FINANCE_RECEIVABLE_CREDIT_NOTES.EDIT");
   return (
     userHasRole(RoleCode.SALES_OFFICER) ||
     userHasRole(RoleCode.SALES_MANAGER) ||
@@ -67,7 +68,7 @@ function canEdit() {
 function canApprove() {
   if (isAdministrator()) return true;
   if (isMatrixPermissionMode()) {
-    return hasPermission("SALES_CREDIT_NOTES.APPROVE");
+    return hasPermission("FINANCE_RECEIVABLE_CREDIT_NOTES.APPROVE");
   }
   return userHasRole(RoleCode.SALES_MANAGER);
 }
@@ -104,7 +105,7 @@ export default function SalesCreditNoteDetailPage({ id }: { id: string }) {
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <Space>
-        <Link href="/sales-credit-notes">กลับหน้ารายการ</Link>
+        <Link href="/finance/receivables/credit-notes">กลับหน้ารายการ</Link>
       </Space>
       {note.status === "DRAFT" && canEdit() ? (
         <DraftEditor
@@ -123,7 +124,8 @@ export default function SalesCreditNoteDetailPage({ id }: { id: string }) {
         note={note}
         onDone={(text) => {
           message.success(text);
-          if (text.startsWith("ยกเลิก")) router.push("/sales-credit-notes");
+          if (text.startsWith("ยกเลิก"))
+            router.push("/finance/receivables/credit-notes");
         }}
         confirm={(title, onOk) =>
           modal.confirm({

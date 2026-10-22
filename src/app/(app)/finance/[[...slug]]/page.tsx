@@ -24,7 +24,6 @@ const FINANCE_PAGE_TITLES: Record<string, string> = {
   "receivables/tax-invoices": "ใบกำกับภาษี",
   "receivables/adjustment-documents": "เอกสารปรับหนี้",
   "receivables/debit-notes": "ใบเพิ่มหนี้",
-  "receivables/credit-notes": "ใบลดหนี้",
   "receivables/collections-and-receipts": "รับชำระและใบเสร็จ",
   "receivables/payment-receipts": "รับชำระเงิน",
   "receivables/receipts": "ใบเสร็จรับเงิน",

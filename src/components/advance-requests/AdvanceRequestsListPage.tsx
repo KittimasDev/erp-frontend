@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Select, Space, Table, Tag, Typography } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { Button, Input, Select, Table, Tag, Typography } from "antd";
+import { FileTextOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
+import styles from "@/components/finance/shared/finance-list-page.module.css";
+import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useAdvanceRequestsQuery,
@@ -27,11 +29,25 @@ export default function AdvanceRequestsListPage() {
   const router = useRouter();
   const { canAdd } = useScreenActionPermissions(ADVANCE_SCREEN);
   const [page, setPage] = useState(1);
+  const [dStatus, setDStatus] = useState<string | undefined>();
+  const [dSearch, setDSearch] = useState("");
   const [status, setStatus] = useState<string | undefined>();
-  const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
   const query = useAdvanceRequestsQuery({ page, limit: 20, status, search: keyword });
   const eligible = useEligiblePayablesQuery("", true);
+
+  const applySearch = () => {
+    setStatus(dStatus);
+    setKeyword(dSearch.trim());
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDStatus(undefined);
+    setDSearch("");
+    setStatus(undefined);
+    setKeyword("");
+    setPage(1);
+  };
 
   const eligibleColumns: ColumnsType<EligiblePayable> = [
     {
@@ -128,26 +144,56 @@ export default function AdvanceRequestsListPage() {
     },
   ];
 
-  return (
-    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <Typography.Title level={3} style={{ margin: 0 }}>รายการขอจ่ายล่วงหน้า / มัดจำ</Typography.Title>
-            <Typography.Text type="secondary">
-              ขอจ่ายตามเงื่อนไขชำระล่วงหน้า/มัดจำของรายการจ่ายเงิน (PO) พร้อมตรวจภาษีหัก ณ ที่จ่ายก่อนยืนยันเพื่อสร้างใบสำคัญจ่าย
-            </Typography.Text>
-          </div>
-          {canAdd ? (
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push(`${ADVANCE_BASE_PATH}/create`)}>
-              สร้างรายการขอจ่าย
-            </Button>
-          ) : null}
-        </div>
-      </Card>
+  const eligibleCount = eligible.data?.data?.length ?? 0;
+  const doneTotal = query.data?.data.total ?? 0;
 
-      <Card title="รอจ่ายมัดจำ">
+  return (
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
+        <div className={masterStyles.headerContent}>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            FINANCE · PAYABLES
+          </div>
+          <h2 className={masterStyles.pageTitle}>รายการขอจ่ายล่วงหน้า / มัดจำ</h2>
+          <span className={masterStyles.pageSubtitle}>
+            ขอจ่ายตามเงื่อนไขชำระล่วงหน้า/มัดจำของรายการจ่ายเงิน (PO) พร้อมตรวจภาษีหัก ณ ที่จ่ายก่อนยืนยันเพื่อสร้างใบสำคัญจ่าย
+          </span>
+        </div>
+        {canAdd ? (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push(`${ADVANCE_BASE_PATH}/create`)}>
+            สร้างรายการขอจ่าย
+          </Button>
+        ) : null}
+      </div>
+
+      <div className={`${styles.statRow} ${styles.statRow2}`}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>รอจ่ายมัดจำ</span>
+          <span className={styles.statValue}>{eligibleCount.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ดำเนินการแล้ว</span>
+          <span className={styles.statValue}>{doneTotal.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+      </div>
+
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>รอจ่ายมัดจำ</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{eligibleCount.toLocaleString("th-TH")} รายการ</span>
+        </div>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="purchaseOrderId"
           loading={eligible.isLoading}
           columns={eligibleColumns}
@@ -164,34 +210,50 @@ export default function AdvanceRequestsListPage() {
               : undefined
           }
         />
-      </Card>
+      </div>
 
-      <Card title="รายการที่ดำเนินการแล้ว">
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 300 }}
-            placeholder="ค้นเลขที่รายการ / เลขที่ PO / ชื่อผู้ขาย"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onSearch={(v) => {
-              setKeyword(v);
-              setPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะ"
-            style={{ width: 200 }}
-            value={status}
-            onChange={(v) => {
-              setStatus(v);
-              setPage(1);
-            }}
-            options={Object.entries(ADVANCE_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
-          />
-        </Space>
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>รายการที่ดำเนินการแล้ว</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{doneTotal.toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่รายการ / เลขที่ PO / ชื่อผู้ขาย"
+                value={dSearch}
+                onChange={(e) => setDSearch(e.target.value)}
+                onPressEnter={applySearch}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>สถานะ</label>
+              <Select
+                allowClear
+                placeholder="ทั้งหมด"
+                value={dStatus}
+                onChange={setDStatus}
+                options={Object.entries(ADVANCE_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+              />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearFilters}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="id"
           loading={query.isLoading}
           columns={columns}
@@ -199,7 +261,7 @@ export default function AdvanceRequestsListPage() {
           pagination={{
             current: page,
             pageSize: 20,
-            total: query.data?.data.total ?? 0,
+            total: doneTotal,
             onChange: setPage,
             showTotal: (t) => `ทั้งหมด ${t} รายการ`,
           }}
@@ -207,7 +269,7 @@ export default function AdvanceRequestsListPage() {
           scroll={{ x: 1100 }}
           locale={{ emptyText: "ยังไม่มีรายการขอจ่าย" }}
         />
-      </Card>
-    </Space>
+      </div>
+    </section>
   );
 }

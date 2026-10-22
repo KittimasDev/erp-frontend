@@ -60,6 +60,16 @@ export type PurchaseOrderPaymentTermSummary = {
   id: string;
   code: string;
   name: string;
+  termType?: string;
+  creditDays?: number;
+};
+
+export type PurchaseOrderApInvoiceSummary = {
+  id: string;
+  docNo: string;
+  status: string;
+  dueDate?: string | null;
+  totalAmount: number;
 };
 
 export type PurchaseOrderTaxRateSummary = {
@@ -196,6 +206,8 @@ export type PurchaseOrder = {
   paidAmount?: string;
   /** สรุปการชำระเงินและการปรับหนี้ (หน้า detail — ไม่แก้ยอด PO ต้นฉบับ) */
   paymentAdjustment?: PoPaymentAdjustment;
+  /** ใบตั้งหนี้ที่ผูก PO (หน้า detail) — วันครบกำหนดแยกตามใบ */
+  apInvoices?: PurchaseOrderApInvoiceSummary[];
   subtotalAmount: string;
   discountAmount: string;
   vatAmount: string;

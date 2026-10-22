@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { App, Button, Card, DatePicker, Input, Select, Space, Table, Tag, Typography } from "antd";
+import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Typography } from "antd";
+import { FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
+import styles from "@/components/finance/shared/finance-list-page.module.css";
+import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ReportExportButtons, { type ReportExportFormat } from "@/components/reports/ReportExportButtons";
 import { useBillingNotesQuery, usePendingBillingApsQuery } from "@/hooks/billing-notes/useBillingNotes";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -258,53 +261,111 @@ export default function BillingNotesPage() {
     },
   ];
 
+  const applyPending = () => {
+    setPKeyword(pSearch.trim());
+    setPPage(1);
+  };
+  const clearPending = () => {
+    setPSearch("");
+    setPKeyword("");
+    setPApRange(null);
+    setPDueRange(null);
+    setPPage(1);
+  };
+  const applyCreated = () => {
+    setCKeyword(cSearch.trim());
+    setCPage(1);
+  };
+  const clearCreated = () => {
+    setCSearch("");
+    setCKeyword("");
+    setCRange(null);
+    setCStatus(undefined);
+    setCPvStatus(undefined);
+    setCPage(1);
+  };
+
   return (
-    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card
-        title="รายการรอวางบิล"
-        extra={
-          perms.canAdd ? (
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
+        <div className={masterStyles.headerContent}>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            FINANCE · PAYABLES
+          </div>
+          <h2 className={masterStyles.pageTitle}>ใบวางบิล</h2>
+          <span className={masterStyles.pageSubtitle}>
+            AP ที่อนุมัติแล้วรอวางบิล และใบวางบิลที่สร้างแล้ว — เลือกหลายใบของผู้ขายเดียวกันรวมเป็นใบเดียวได้
+          </span>
+        </div>
+        <Space>
+          {perms.canAdd ? (
             <Button type="primary" disabled={selected.length === 0} onClick={() => goCreate(selected.map((s) => s.apId))}>
               วางบิลที่เลือก ({selected.length})
             </Button>
-          ) : null
-        }
-      >
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 320 }}
-            placeholder="ค้นเลขที่ AP / PO / ผู้ขาย"
-            value={pSearch}
-            onChange={(e) => setPSearch(e.target.value)}
-            onSearch={(v) => {
-              setPKeyword(v);
-              setPPage(1);
-            }}
-          />
-          <DatePicker.RangePicker
-            format="DD/MM/YYYY"
-            placeholder={["วันที่ AP (จาก)", "วันที่ AP (ถึง)"]}
-            value={pApRange}
-            onChange={(v) => {
-              setPApRange(v);
-              setPPage(1);
-            }}
-          />
-          <DatePicker.RangePicker
-            format="DD/MM/YYYY"
-            placeholder={["วันครบกำหนด (จาก)", "วันครบกำหนด (ถึง)"]}
-            value={pDueRange}
-            onChange={(v) => {
-              setPDueRange(v);
-              setPPage(1);
-            }}
-          />
+          ) : null}
+          <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
         </Space>
+      </div>
+
+      <div className={`${styles.statRow} ${styles.statRow2}`}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>รอวางบิล</span>
+          <span className={styles.statValue}>{(pending.data?.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>สร้างแล้ว</span>
+          <span className={styles.statValue}>{(created.data?.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+      </div>
+
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>รอวางบิล</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{(pending.data?.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่ AP / PO / ผู้ขาย"
+                value={pSearch}
+                onChange={(e) => setPSearch(e.target.value)}
+                onPressEnter={applyPending}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>วันที่ AP</label>
+              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={pApRange} onChange={setPApRange} />
+            </div>
+            <div className={styles.filterItem}>
+              <label>วันครบกำหนด</label>
+              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={pDueRange} onChange={setPDueRange} />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearPending}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyPending}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 12 }}>
           เลือกได้หลายใบเฉพาะ AP ของผู้ขายเดียวกัน เพื่อรวมเป็นใบวางบิลเดียว
         </Typography.Paragraph>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="apId"
           loading={pending.isLoading}
           columns={pendingColumns}
@@ -332,57 +393,52 @@ export default function BillingNotesPage() {
           scroll={{ x: 1300 }}
           locale={{ emptyText: "ไม่มีรายการรอวางบิล" }}
         />
-      </Card>
+      </div>
 
-      <Card
-        title="รายการใบวางบิลที่สร้างแล้ว"
-        extra={<ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />}
-      >
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 320 }}
-            placeholder="ค้นเลขที่ใบวางบิล / AP / PO / ผู้ขาย"
-            value={cSearch}
-            onChange={(e) => setCSearch(e.target.value)}
-            onSearch={(v) => {
-              setCKeyword(v);
-              setCPage(1);
-            }}
-          />
-          <DatePicker.RangePicker
-            format="DD/MM/YYYY"
-            placeholder={["วันที่ใบวางบิล (จาก)", "วันที่ใบวางบิล (ถึง)"]}
-            value={cRange}
-            onChange={(v) => {
-              setCRange(v);
-              setCPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะเอกสาร"
-            style={{ width: 150 }}
-            value={cStatus}
-            onChange={(v) => {
-              setCStatus(v);
-              setCPage(1);
-            }}
-            options={STATUS_OPTIONS}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะการออก PV"
-            style={{ width: 170 }}
-            value={cPvStatus}
-            onChange={(v) => {
-              setCPvStatus(v);
-              setCPage(1);
-            }}
-            options={PV_STATUS_OPTIONS}
-          />
-        </Space>
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>ใบวางบิลที่สร้างแล้ว</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{(created.data?.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่ใบวางบิล / AP / PO / ผู้ขาย"
+                value={cSearch}
+                onChange={(e) => setCSearch(e.target.value)}
+                onPressEnter={applyCreated}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>วันที่ใบวางบิล</label>
+              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={cRange} onChange={setCRange} />
+            </div>
+            <div className={styles.filterItem}>
+              <label>สถานะเอกสาร</label>
+              <Select allowClear placeholder="ทั้งหมด" value={cStatus} onChange={setCStatus} options={STATUS_OPTIONS} />
+            </div>
+            <div className={styles.filterItem}>
+              <label>สถานะออก PV</label>
+              <Select allowClear placeholder="ทั้งหมด" value={cPvStatus} onChange={setCPvStatus} options={PV_STATUS_OPTIONS} />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearCreated}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyCreated}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="id"
           loading={created.isLoading}
           columns={createdColumns}
@@ -398,7 +454,7 @@ export default function BillingNotesPage() {
           scroll={{ x: 1400 }}
           locale={{ emptyText: "ยังไม่มีใบวางบิล" }}
         />
-      </Card>
-    </Space>
+      </div>
+    </section>
   );
 }

@@ -328,7 +328,6 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
       "FINANCE_REPORT_SALES_TAX",
       "PURCHASE_PAYMENTS_PENDING",
       "PURCHASE_PAYMENTS",
-      "SALES_CREDIT_NOTES",
     ],
     roles: [
       RoleCode.ACCOUNTING_OFFICER,

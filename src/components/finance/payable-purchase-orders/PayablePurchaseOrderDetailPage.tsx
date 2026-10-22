@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Alert,
@@ -23,6 +24,7 @@ import {
   CREDIT_BASE_SOURCE_LABEL,
   PAYABLE_ITEM_STATUS_COLOR,
   PAYABLE_ITEM_STATUS_LABEL,
+  type PayableApDueDate,
   type PayableItemStatus,
   type PayablePurchaseOrderDetail,
   type PayablePurchaseOrderLine,
@@ -98,6 +100,12 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
       render: () => <PaymentTermSection po={po} />,
     },
     {
+      key: "apDueDates",
+      title: "วันครบกำหนดตามใบตั้งหนี้",
+      visible: (po.apDueDates?.length ?? 0) > 0,
+      render: () => <ApDueDatesSection aps={po.apDueDates ?? []} />,
+    },
+    {
       key: "paymentPlan",
       title: "แผนการจ่ายเงิน",
       visible: po.paymentPlan.installments.length > 0,
@@ -134,7 +142,7 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
           type="info"
           showIcon
           title="สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ"
-          description="ยอดที่ต้องชำระ วันครบกำหนด และแผนการจ่ายยังคำนวณจากเงื่อนไขในใบสั่งซื้อ สถานะรายการใช้ยอดจ่ายที่บันทึกแล้วก่อนหัก ณ ที่จ่าย เทียบกับยอดทั้งใบ และดูว่างวดที่ยังค้างเลยวันครบกำหนดหรือยัง"
+          description="หลังตั้งหนี้แล้ววันครบกำหนดมาจากใบตั้งหนี้ · ยังไม่ตั้งหนี้ใช้ประมาณการจากเงื่อนไขใน PO · สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ และดูว่างวดที่ยังค้างเลยกำหนดหรือยัง"
         />
       </Card>
 
@@ -346,6 +354,7 @@ function PaymentTermSection({ po }: { po: PayablePurchaseOrderDetail }) {
     );
   }
 
+  const fromAp = plan.creditBaseSource === "AP_INVOICE" || (po.apDueDates?.length ?? 0) > 0;
   const credit = plan.installments.find((item) => item.kind === "CREDIT");
   return (
     <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
@@ -354,17 +363,57 @@ function PaymentTermSection({ po }: { po: PayablePurchaseOrderDetail }) {
       </Descriptions.Item>
       <Descriptions.Item label="จำนวนวันเครดิต">{plan.creditDays ?? term.creditDays} วัน</Descriptions.Item>
       <Descriptions.Item label="ฐานวันที่เริ่มนับเครดิต">
-        {plan.creditBaseSource
-          ? `${CREDIT_BASE_SOURCE_LABEL[plan.creditBaseSource]} — ${formatThaiDate(plan.creditBaseDate)}`
-          : "—"}
+        {fromAp
+          ? "ตามวันครบกำหนดของใบตั้งหนี้ (นับจากวันที่ใบแจ้งหนี้ Supplier)"
+          : plan.creditBaseSource
+            ? `${CREDIT_BASE_SOURCE_LABEL[plan.creditBaseSource]} — ${formatThaiDate(plan.creditBaseDate)}`
+            : "—"}
       </Descriptions.Item>
-      {credit?.dueDate ? (
+      {po.dueDate ? (
         <Descriptions.Item label="วันครบกำหนดชำระ">
+          <Typography.Text strong>{formatThaiDate(po.dueDate)}</Typography.Text>
+          {fromAp && (po.apDueDates?.length ?? 0) > 1 ? (
+            <Typography.Text type="secondary"> (เร็วสุดจาก {po.apDueDates.length} ใบ)</Typography.Text>
+          ) : null}
+        </Descriptions.Item>
+      ) : credit?.dueDate ? (
+        <Descriptions.Item label="วันครบกำหนดชำระ (ประมาณการ)">
           <Typography.Text strong>{formatThaiDate(credit.dueDate)}</Typography.Text>
         </Descriptions.Item>
       ) : null}
       <Descriptions.Item label="ยอดที่ต้องชำระ">{money.format(po.totalAmount)}</Descriptions.Item>
     </Descriptions>
+  );
+}
+
+function ApDueDatesSection({ aps }: { aps: PayableApDueDate[] }) {
+  const columns: ColumnsType<PayableApDueDate> = [
+    {
+      title: "เลขที่ใบตั้งหนี้",
+      dataIndex: "docNo",
+      render: (no, row) => <Link href={`/finance/payables/ap-invoices/${row.id}`}>{no}</Link>,
+    },
+    {
+      title: "วันครบกำหนด",
+      dataIndex: "dueDate",
+      width: 140,
+      render: (v: string) => formatThaiDate(v),
+    },
+    {
+      title: "ยอดตั้งหนี้",
+      dataIndex: "totalAmount",
+      width: 140,
+      align: "right",
+      render: (v: number) => money.format(v),
+    },
+  ];
+  return (
+    <>
+      <Typography.Paragraph type="secondary">
+        หลังตั้งหนี้แล้วใช้วันครบกำหนดของแต่ละใบตั้งหนี้เป็นหลัก (สอดคล้องกับหน้า AP และใบวางบิล)
+      </Typography.Paragraph>
+      <Table rowKey="id" size="small" columns={columns} dataSource={aps} pagination={false} />
+    </>
   );
 }
 
@@ -407,7 +456,9 @@ function PaymentPlanSection({ po }: { po: PayablePurchaseOrderDetail }) {
   return (
     <>
       <Typography.Paragraph type="secondary">
-        แผนการจ่ายตามเงื่อนไขใน PO — ไม่ใช่ประวัติการจ่ายเงินจริง
+        {po.paymentPlan.creditBaseSource === "AP_INVOICE"
+          ? "แผนตามใบตั้งหนี้ที่ผูก PO — วันครบกำหนดแยกตามแต่ละใบ"
+          : "แผนการจ่ายตามเงื่อนไขใน PO (ประมาณการ) — ไม่ใช่ประวัติการจ่ายเงินจริง"}
       </Typography.Paragraph>
       <Table
         rowKey="seq"

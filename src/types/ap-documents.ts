@@ -654,6 +654,14 @@ export type ApInvoiceDetail = ApDocument & {
   adjustedTotal: number;
   paidAmount: number;
   netPayableAmount: number;
+  /** ฐาน WHT รวมที่จะหักตอนจ่าย (ก่อน VAT) */
+  whtBaseAmount: number;
+  /** อัตรา WHT เฉลี่ยโดยประมาณ */
+  whtRate: number;
+  /** ยอด WHT ที่จะหักตอนจ่าย (หลังหักส่วนมัดจำแล้ว) */
+  whtAmount: number;
+  /** ยอดโอนสุทธิโดยประมาณ = netPayable − WHT */
+  netTransferAmount: number;
   remainingAmount: number;
   paymentStatus: "UNPAID" | "PARTIAL" | "PAID" | string;
   billedAmount: number;

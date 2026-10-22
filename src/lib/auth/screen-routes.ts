@@ -265,7 +265,11 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["SALES_INVOICES_PENDING"],
   },
   { prefix: "/sales-invoices", screenCodes: ["SALES_INVOICES"] },
-  { prefix: "/sales-credit-notes", screenCodes: ["SALES_CREDIT_NOTES"] },
+  // legacy bookmark/notification → redirect pages under /sales-credit-notes
+  {
+    prefix: "/sales-credit-notes",
+    screenCodes: ["FINANCE_RECEIVABLE_CREDIT_NOTES"],
+  },
   { prefix: "/sales-tracking", screenCodes: ["SALES_TRACKING"] },
   { prefix: "/sales/dashboard", screenCodes: ["SALES_DASHBOARD"] },
 
@@ -640,7 +644,6 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   RETURN_NOTES: "/return-notes",
   RETURN_INSPECTIONS: "/return-notes/inspections",
   SALES_INVOICES: "/sales-invoices",
-  SALES_CREDIT_NOTES: "/sales-credit-notes",
   SALES_INVOICES_PENDING: "/sales-invoices/pending",
   SALES_TRACKING: "/sales-tracking",
   SALES_DASHBOARD: "/sales/dashboard",

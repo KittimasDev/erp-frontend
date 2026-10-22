@@ -1,5 +1,6 @@
 import type {
   PaymentExpressExportBody,
+  PaymentJournalByDocument,
   PaymentJournalFilter,
   PaymentJournalItem,
   PaymentJournalList,
@@ -24,6 +25,11 @@ function buildQuery(params?: Record<string, unknown>) {
 
 export function getPaymentJournal(token: string, params?: PaymentJournalQuery) {
   return apiFetch<Res<PaymentJournalList>>(`${BASE}${buildQuery(params)}`, { token });
+}
+
+/** รายการสมุดรายวันจ่ายของบันทึกจ่ายเงิน 1 ใบ · ต้องมีสิทธิ์ดูสมุดรายวันจ่าย */
+export function getPaymentJournalByDocument(token: string, id: string) {
+  return apiFetch<Res<PaymentJournalByDocument>>(`${BASE}/by-document/${id}`, { token });
 }
 
 /** ทั้งชุดตามตัวกรอง สำหรับ CSV/Excel/PDF (backend เพดาน 10,000 รายการ เกินคืน 400) */

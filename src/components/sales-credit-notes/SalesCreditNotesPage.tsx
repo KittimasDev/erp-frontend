@@ -123,7 +123,7 @@ export default function SalesCreditNotesPage() {
         })),
       });
       message.success("สร้างใบลดหนี้ร่างแล้ว");
-      router.push(`/sales-credit-notes/${res.data.id}`);
+      router.push(`/finance/receivables/credit-notes/${res.data.id}`);
     } catch (error) {
       message.error(error instanceof Error ? error.message : "สร้างใบลดหนี้ไม่สำเร็จ");
     }
@@ -208,7 +208,8 @@ export default function SalesCreditNotesPage() {
             showSizeChanger: false,
           }}
           onRow={(record) => ({
-            onClick: () => router.push(`/sales-credit-notes/${record.id}`),
+            onClick: () =>
+              router.push(`/finance/receivables/credit-notes/${record.id}`),
             style: { cursor: "pointer" },
           })}
         />

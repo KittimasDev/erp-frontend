@@ -2,10 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { App, Button, Card, Input, Select, Space, Table, Tag, Typography } from "antd";
-import { EyeOutlined } from "@ant-design/icons";
+import Link from "next/link";
+import {
+  App,
+  Button,
+  DatePicker,
+  Input,
+  Select,
+  Space,
+  Table,
+  Tag,
+  Tooltip,
+  Typography,
+} from "antd";
+import { EyeOutlined, FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import type { Dayjs } from "dayjs";
 
+import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
@@ -24,6 +38,7 @@ import {
 import { PAYMENT_TERM_TYPE_COLOR, PAYMENT_TERM_TYPE_LABEL } from "@/types/payment-terms";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 
+import styles from "@/components/finance/shared/finance-list-page.module.css";
 import {
   describeTerm,
   formatThaiDate,
@@ -36,26 +51,71 @@ import {
 const PAGE_SIZE = 20;
 const DETAIL_BASE_PATH = "/finance/payables/creditors";
 
+const emptySummary = { unpaid: 0, partial: 0, paid: 0, overdue: 0 };
+
 export default function PayablePurchaseOrdersPage() {
   const router = useRouter();
   const { message } = App.useApp();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+
+  // draft filters
+  const [dSearch, setDSearch] = useState("");
+  const [dSupplier, setDSupplier] = useState("");
+  const [dPoRange, setDPoRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [dTermType, setDTermType] = useState<PayableTermTypeFilter | undefined>();
+  const [dStatus, setDStatus] = useState<PayableItemStatus | undefined>();
+
+  // applied filters
   const [keyword, setKeyword] = useState("");
+  const [supplier, setSupplier] = useState("");
+  const [poRange, setPoRange] = useState<[Dayjs, Dayjs] | null>(null);
   const [termType, setTermType] = useState<PayableTermTypeFilter | undefined>();
   const [status, setStatus] = useState<PayableItemStatus | undefined>();
+
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const canExport = !isMatrixPermissionMode() || hasPermission(`${SCREEN_CODE}.EXPORT`);
 
+  const applySearch = () => {
+    setKeyword(dSearch.trim());
+    setSupplier(dSupplier.trim());
+    setPoRange(dPoRange);
+    setTermType(dTermType);
+    setStatus(dStatus);
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setDSearch("");
+    setDSupplier("");
+    setDPoRange(null);
+    setDTermType(undefined);
+    setDStatus(undefined);
+    setKeyword("");
+    setSupplier("");
+    setPoRange(null);
+    setTermType(undefined);
+    setStatus(undefined);
+    setPage(1);
+  };
+
   const filterParams = useMemo(
-    () => ({ search: keyword || undefined, termType, status }),
-    [keyword, termType, status],
+    () => ({
+      search: keyword || undefined,
+      supplier: supplier || undefined,
+      poDateFrom: poRange?.[0]?.format("YYYY-MM-DD"),
+      poDateTo: poRange?.[1]?.format("YYYY-MM-DD"),
+      termType,
+      status,
+    }),
+    [keyword, supplier, poRange, termType, status],
   );
+
   const listQuery = usePayablePurchaseOrdersQuery({
     ...filterParams,
     page,
     limit: PAGE_SIZE,
   });
+  const summary = listQuery.data?.summary ?? emptySummary;
 
   const handleExport = async (format: ReportExportFormat) => {
     setDownloading(format);
@@ -74,6 +134,10 @@ export default function PayablePurchaseOrdersPage() {
       }
       const filters = [
         keyword ? `ค้นหา: ${keyword}` : null,
+        supplier ? `ผู้ขาย: ${supplier}` : null,
+        poRange
+          ? `วันที่ PO: ${formatThaiDate(poRange[0].format("YYYY-MM-DD"))} - ${formatThaiDate(poRange[1].format("YYYY-MM-DD"))}`
+          : null,
         termType ? `เงื่อนไข: ${TERM_TYPE_FILTER_LABEL[termType]}` : null,
         status ? `สถานะ: ${PAYABLE_ITEM_STATUS_LABEL[status]}` : null,
       ].filter((value): value is string => Boolean(value));
@@ -174,10 +238,46 @@ export default function PayablePurchaseOrdersPage() {
     },
     {
       title: "วันครบกำหนดชำระ",
-      dataIndex: "dueDate",
-      width: 130,
+      key: "dueDate",
+      width: 180,
       align: "center",
-      render: formatThaiDate,
+      render: (_v, row) => {
+        const aps = row.apDueDates ?? [];
+        if (aps.length === 0) {
+          return (
+            <Tooltip title="ประมาณการจากเงื่อนไขใน PO (ยังไม่มีใบตั้งหนี้)">
+              <span>{formatThaiDate(row.dueDate)}</span>
+            </Tooltip>
+          );
+        }
+        if (aps.length === 1) {
+          return (
+            <Link href={`/finance/payables/ap-invoices/${aps[0].id}`}>
+              {formatThaiDate(aps[0].dueDate)}
+            </Link>
+          );
+        }
+        return (
+          <Tooltip
+            title={
+              <div>
+                {aps.map((ap) => (
+                  <div key={ap.id}>
+                    {ap.docNo}: {formatThaiDate(ap.dueDate)}
+                  </div>
+                ))}
+              </div>
+            }
+          >
+            <span>
+              {formatThaiDate(row.dueDate)}
+              <Typography.Text type="secondary" style={{ display: "block", fontSize: 11 }}>
+                {aps.length} ใบตั้งหนี้
+              </Typography.Text>
+            </span>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "สถานะรายการ",
@@ -211,88 +311,166 @@ export default function PayablePurchaseOrdersPage() {
   ];
 
   return (
-    <Card
-      title="รายการจ่ายเงิน"
-      extra={
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
+        <div className={masterStyles.headerContent}>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            FINANCE · PAYABLES
+          </div>
+          <h2 className={masterStyles.pageTitle}>รายการจ่ายเงิน</h2>
+          <span className={masterStyles.pageSubtitle}>
+            ใบสั่งซื้อที่อนุมัติแล้ว 1 ใบต่อ 1 รายการ — หลังตั้งหนี้แล้ววันครบกำหนดมาจากใบตั้งหนี้
+            (แสดงวันเร็วสุดถ้ามีหลายใบ) · ยังไม่ตั้งหนี้ใช้ประมาณการจากเงื่อนไขใน PO · สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ
+          </span>
+        </div>
         <ReportExportButtons
           canExport={canExport}
           downloading={downloading}
-          onExport={handleExport}
+          onExport={(format) => void handleExport(format)}
           csvRequiresExport
         />
-      }
-    >
-      <Typography.Paragraph type="secondary">
-        ใบสั่งซื้อที่อนุมัติแล้ว 1 ใบต่อ 1 รายการ — ยอดที่ต้องชำระและวันครบกำหนดเป็นงวดแรกตามเงื่อนไขใน PO
-        สถานะเทียบยอดจ่ายจริงที่บันทึกแล้วกับยอดทั้งใบ และดูว่างวดที่ยังค้างเลยกำหนดหรือยัง
-      </Typography.Paragraph>
-      <Space style={{ marginBottom: 12 }} wrap>
-        <Input.Search
-          allowClear
-          placeholder="เลขที่ PO / รหัส / ชื่อผู้ขาย"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onSearch={(value) => {
-            setPage(1);
-            setKeyword(value.trim());
-          }}
-          style={{ width: 280 }}
-        />
-        <Select
-          allowClear
-          placeholder="เงื่อนไขการชำระเงิน"
-          value={termType}
-          style={{ width: 200 }}
-          onChange={(value) => {
-            setPage(1);
-            setTermType(value);
-          }}
-          options={(Object.keys(TERM_TYPE_FILTER_LABEL) as PayableTermTypeFilter[]).map(
-            (value) => ({ value, label: TERM_TYPE_FILTER_LABEL[value] }),
-          )}
-        />
-        <Select
-          allowClear
-          placeholder="สถานะรายการ"
-          value={status}
-          style={{ width: 200 }}
-          onChange={(value) => {
-            setPage(1);
-            setStatus(value);
-          }}
-          options={(Object.keys(PAYABLE_ITEM_STATUS_LABEL) as PayableItemStatus[]).map(
-            (value) => ({ value, label: PAYABLE_ITEM_STATUS_LABEL[value] }),
-          )}
-        />
-      </Space>
-      {listQuery.isError ? (
-        <Typography.Text type="danger">
-          {listQuery.error instanceof Error
-            ? listQuery.error.message
-            : "โหลดรายการจ่ายเงินไม่สำเร็จ"}
-        </Typography.Text>
-      ) : (
-        <Table
-          rowKey="id"
-          loading={listQuery.isFetching}
-          columns={columns}
-          dataSource={listQuery.data?.items ?? []}
-          scroll={{ x: 1700 }}
-          pagination={{
-            current: page,
-            pageSize: PAGE_SIZE,
-            total: listQuery.data?.total ?? 0,
-            onChange: setPage,
-            showSizeChanger: false,
-            showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`,
-          }}
-          locale={{ emptyText: "ไม่มีใบสั่งซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก" }}
-          onRow={(record) => ({
-            onClick: () => router.push(`${DETAIL_BASE_PATH}/${record.id}`),
-            style: { cursor: "pointer" },
-          })}
-        />
-      )}
-    </Card>
+      </div>
+
+      <div className={styles.statRow}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>{PAYABLE_ITEM_STATUS_LABEL.UNPAID}</span>
+          <span className={styles.statValue}>{summary.unpaid.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>{PAYABLE_ITEM_STATUS_LABEL.PARTIAL}</span>
+          <span className={styles.statValue}>{summary.partial.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>{PAYABLE_ITEM_STATUS_LABEL.PAID}</span>
+          <span className={styles.statValue}>{summary.paid.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>{PAYABLE_ITEM_STATUS_LABEL.OVERDUE}</span>
+          <span className={styles.statValue}>{summary.overdue.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+      </div>
+
+      <section className={styles.filterCard}>
+        <div className={styles.filterRow}>
+          <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+            <label>ค้นหาเลขที่ PO</label>
+            <Input
+              allowClear
+              placeholder="เลขที่ PO / รหัส / ชื่อผู้ขาย"
+              value={dSearch}
+              onChange={(event) => setDSearch(event.target.value)}
+              onPressEnter={applySearch}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>ผู้ขาย (Supplier)</label>
+            <Input
+              allowClear
+              placeholder="รหัสหรือชื่อผู้ขาย"
+              value={dSupplier}
+              onChange={(event) => setDSupplier(event.target.value)}
+              onPressEnter={applySearch}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>ช่วงวันที่ PO</label>
+            <DatePicker.RangePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              value={dPoRange}
+              onChange={(values) =>
+                setDPoRange(values && values[0] && values[1] ? [values[0], values[1]] : null)
+              }
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>เงื่อนไขการชำระเงิน</label>
+            <Select
+              allowClear
+              placeholder="ทั้งหมด"
+              value={dTermType}
+              onChange={setDTermType}
+              options={(Object.keys(TERM_TYPE_FILTER_LABEL) as PayableTermTypeFilter[]).map(
+                (value) => ({ value, label: TERM_TYPE_FILTER_LABEL[value] }),
+              )}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สถานะรายการ</label>
+            <Select
+              allowClear
+              placeholder="ทั้งหมด"
+              value={dStatus}
+              onChange={setDStatus}
+              options={(Object.keys(PAYABLE_ITEM_STATUS_LABEL) as PayableItemStatus[]).map(
+                (value) => ({ value, label: PAYABLE_ITEM_STATUS_LABEL[value] }),
+              )}
+            />
+          </div>
+          <div className={styles.filterActions}>
+            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button
+              type="primary"
+              className={styles.searchBtn}
+              icon={<SearchOutlined />}
+              onClick={applySearch}
+            >
+              ค้นหา
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>รายการจ่ายเงิน</h3>
+          </div>
+          <span className={masterStyles.tableCount}>
+            {(listQuery.data?.total ?? 0).toLocaleString("th-TH")} รายการ
+          </span>
+        </div>
+
+        {listQuery.isError ? (
+          <Typography.Text type="danger">
+            {listQuery.error instanceof Error
+              ? listQuery.error.message
+              : "โหลดรายการจ่ายเงินไม่สำเร็จ"}
+          </Typography.Text>
+        ) : (
+          <Table
+            className={masterStyles.dataTable}
+            size="middle"
+            bordered={false}
+            rowKey="id"
+            loading={listQuery.isFetching}
+            columns={columns}
+            dataSource={listQuery.data?.items ?? []}
+            scroll={{ x: 1700 }}
+            pagination={{
+              current: page,
+              pageSize: PAGE_SIZE,
+              total: listQuery.data?.total ?? 0,
+              onChange: setPage,
+              showSizeChanger: false,
+              showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`,
+            }}
+            locale={{ emptyText: "ไม่มีใบสั่งซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก" }}
+            onRow={(record) => ({
+              onClick: () => router.push(`${DETAIL_BASE_PATH}/${record.id}`),
+              style: { cursor: "pointer" },
+            })}
+          />
+        )}
+      </div>
+    </section>
   );
 }

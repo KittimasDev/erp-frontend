@@ -456,6 +456,19 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
           <Descriptions.Item label="ยอดลดหนี้ (−)">{money.format(d.appliedCredits)}</Descriptions.Item>
           <Descriptions.Item label="มัดจำที่หัก (−)">{money.format(d.deposit.thisDeduct)}</Descriptions.Item>
           <Descriptions.Item label="ยอดที่ต้องชำระ">{money.format(d.netPayableAmount)}</Descriptions.Item>
+          <Descriptions.Item label="ฐานภาษีหัก ณ ที่จ่าย">
+            {Number(d.whtAmount) > 0 ? money.format(d.whtBaseAmount) : "—"}
+          </Descriptions.Item>
+          <Descriptions.Item label="อัตรา / ยอด WHT ที่จะหักตอนจ่าย">
+            {Number(d.whtAmount) > 0
+              ? `${Number(d.whtRate)}% · ${money.format(d.whtAmount)}`
+              : "—"}
+          </Descriptions.Item>
+          <Descriptions.Item label="ยอดโอนสุทธิโดยประมาณ">
+            <Typography.Text strong>
+              {money.format(d.netTransferAmount ?? Math.max(d.netPayableAmount - (d.whtAmount ?? 0), 0))}
+            </Typography.Text>
+          </Descriptions.Item>
           <Descriptions.Item label="ยอดชำระเงินจริง (−)">{money.format(d.paidAmount)}</Descriptions.Item>
           <Descriptions.Item label="ยอดเจ้าหนี้คงเหลือ">
             <Typography.Text strong>{money.format(d.remainingAmount)}</Typography.Text>
@@ -473,7 +486,7 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
           </Descriptions.Item>
         </Descriptions>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          ยอดเจ้าหนี้คงเหลือ = ตั้งหนี้ + เพิ่มหนี้ − ลดหนี้ − มัดจำ − ยอดชำระจริง · สถานะชำระคิดจากยอดที่ชำระจริงเท่านั้น ไม่ใช่การออกใบวางบิลหรือสร้าง PV
+          ยอดเจ้าหนี้คงเหลือ = ตั้งหนี้ + เพิ่มหนี้ − ลดหนี้ − มัดจำ − ยอดชำระจริง · WHT หักตอนออก PV/จ่ายจริง (ฐานก่อน VAT) ไม่หักซ้ำกับมัดจำที่หักไปแล้ว · สถานะชำระคิดจากยอดที่ชำระจริงเท่านั้น
         </Typography.Text>
       </Card>
 

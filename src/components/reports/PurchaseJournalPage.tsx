@@ -8,8 +8,10 @@ import { FileTextOutlined, SearchOutlined, SendOutlined } from "@ant-design/icon
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 
-import JournalLinesDetailTable from "@/components/ap-documents/JournalLinesDetailTable";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import JournalAccountDetailPanel, {
+  journalMasterDetailStyles as mdStyles,
+} from "@/components/reports/JournalAccountDetailPanel";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
@@ -85,7 +87,7 @@ export default function PurchaseJournalPage() {
   const [expressStatus, setExpressStatus] = useState<JournalExpressStatus | undefined>();
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const [sendingExpress, setSendingExpress] = useState(false);
   const [reexport, setReexport] = useState(false);
@@ -96,6 +98,7 @@ export default function PurchaseJournalPage() {
     setExpressStatus(dExpress);
     setKeyword(dSearch.trim());
     setPage(1);
+    setSelectedId(null);
   };
   const clearFilters = () => {
     const fresh = defaultRange();
@@ -108,6 +111,7 @@ export default function PurchaseJournalPage() {
     setExpressStatus(undefined);
     setKeyword("");
     setPage(1);
+    setSelectedId(null);
   };
 
   const canExport = !isMatrixPermissionMode() || hasPermission(`${SCREEN_CODE}.EXPORT`);
@@ -125,7 +129,7 @@ export default function PurchaseJournalPage() {
   const listQuery = usePurchaseJournalQuery({ ...filters, page, limit: PAGE_SIZE });
   const data = listQuery.data;
   const items = data?.items ?? [];
-  const expandedKeys = items.map((item) => item.id).filter((id) => !collapsed.has(id));
+  const selected = items.find((item) => item.id === selectedId) ?? null;
 
   const handleExport = async (format: ReportExportFormat) => {
     setDownloading(format);
@@ -276,7 +280,7 @@ export default function PurchaseJournalPage() {
       key: "doc",
       width: 190,
       render: (_, row) => (
-        <Space orientation="vertical" size={0}>
+        <Space orientation="vertical" size={0} onClick={(event) => event.stopPropagation()}>
           <Link href={`/reports/journals/purchases/${row.id}`}>{row.docNo}</Link>
           <Space size={4}>
             <Tag color={DOC_TYPE_COLOR[row.docType]} style={{ marginInlineEnd: 0 }}>
@@ -292,9 +296,11 @@ export default function PurchaseJournalPage() {
       key: "creditor",
       width: 230,
       render: (_, row) => (
-        <Link href={`/finance/payables/creditors/${row.creditorId}`}>
-          {row.creditorCode} {row.creditorName}
-        </Link>
+        <span onClick={(event) => event.stopPropagation()}>
+          <Link href={`/finance/payables/creditors/${row.creditorId}`}>
+            {row.creditorCode} {row.creditorName}
+          </Link>
+        </span>
       ),
     },
     {
@@ -328,7 +334,7 @@ export default function PurchaseJournalPage() {
       title: "เอกสารที่เกี่ยวข้อง",
       key: "related",
       render: (_, row) => (
-        <div style={{ fontSize: 13 }}>
+        <div style={{ fontSize: 13 }} onClick={(event) => event.stopPropagation()}>
           {row.po ? (
             <div>
               <Typography.Text type="secondary">PO: </Typography.Text>
@@ -476,80 +482,179 @@ export default function PurchaseJournalPage() {
         </div>
       </section>
 
-      <div className={masterStyles.tableCard}>
-        <div className={masterStyles.tableHeader}>
-          <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>รายการซื้อรายวัน</h3>
-          </div>
-          <Space>
-            <span className={masterStyles.tableCount}>{data?.total ?? 0} เอกสาร</span>
-            {expressDisabledReason ? (
-              <Tooltip title={expressDisabledReason}>
-                <span>
-                  <Button icon={<SendOutlined />} disabled>
+      <div
+        className={`${mdStyles.masterDetail}${selected ? ` ${mdStyles.masterDetailOpen}` : ""}`}
+      >
+        <div className={`${masterStyles.tableCard} ${mdStyles.tablePane}`}>
+          <div className={masterStyles.tableHeader}>
+            <div>
+              <div className={masterStyles.tableEyebrow}>รายการ</div>
+              <h3>รายการซื้อรายวัน</h3>
+            </div>
+            <Space>
+              <span className={masterStyles.tableCount}>{data?.total ?? 0} เอกสาร</span>
+              {expressDisabledReason ? (
+                <Tooltip title={expressDisabledReason}>
+                  <span>
+                    <Button icon={<SendOutlined />} disabled>
+                      ส่งออกไป Express ({pending})
+                    </Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Popconfirm
+                  title="ส่งออกไป Express"
+                  description={
+                    <div style={{ maxWidth: 320 }}>
+                      ส่งออกเอกสารที่ยังไม่เคยส่งในช่วง {formatDate(filters.dateFrom)} -{" "}
+                      {formatDate(filters.dateTo)} (หนึ่งแถวต่อบรรทัดบัญชี) แล้วทำเครื่องหมายว่าส่งแล้ว
+                      <div style={{ marginTop: 8 }}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={reexport}
+                            onChange={(event) => setReexport(event.target.checked)}
+                          />{" "}
+                          ส่งซ้ำรวมเอกสารที่เคยส่งแล้ว
+                        </label>
+                      </div>
+                    </div>
+                  }
+                  okText="ส่งออก"
+                  cancelText="ยกเลิก"
+                  onConfirm={() => void handleExpress()}
+                >
+                  <Button icon={<SendOutlined />} loading={sendingExpress}>
                     ส่งออกไป Express ({pending})
                   </Button>
-                </span>
-              </Tooltip>
-            ) : (
-              <Popconfirm
-                title="ส่งออกไป Express"
-                description={
-                  <div style={{ maxWidth: 320 }}>
-                    ส่งออกเอกสารที่ยังไม่เคยส่งในช่วง {formatDate(filters.dateFrom)} - {formatDate(filters.dateTo)}{" "}
-                    (หนึ่งแถวต่อบรรทัดบัญชี) แล้วทำเครื่องหมายว่าส่งแล้ว
-                    <div style={{ marginTop: 8 }}>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={reexport}
-                          onChange={(event) => setReexport(event.target.checked)}
-                        />{" "}
-                        ส่งซ้ำรวมเอกสารที่เคยส่งแล้ว
-                      </label>
-                    </div>
-                  </div>
-                }
-                okText="ส่งออก"
-                cancelText="ยกเลิก"
-                onConfirm={() => void handleExpress()}
-              >
-                <Button icon={<SendOutlined />} loading={sendingExpress}>
-                  ส่งออกไป Express ({pending})
-                </Button>
-              </Popconfirm>
-            )}
-          </Space>
+                </Popconfirm>
+              )}
+            </Space>
+          </div>
+          <Table
+            className={masterStyles.dataTable}
+            size="middle"
+            bordered={false}
+            rowKey="id"
+            columns={columns}
+            dataSource={items}
+            loading={listQuery.isFetching}
+            scroll={{ x: selected ? 1100 : 1520 }}
+            rowClassName={(row) =>
+              [
+                mdStyles.clickableRow,
+                row.id === selectedId ? mdStyles.selectedRow : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
+            }
+            onRow={(row) => ({
+              onClick: () => setSelectedId(row.id),
+            })}
+            pagination={{
+              current: page,
+              pageSize: PAGE_SIZE,
+              total: data?.total ?? 0,
+              onChange: (nextPage) => {
+                setPage(nextPage);
+                setSelectedId(null);
+              },
+              showSizeChanger: false,
+              showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} เอกสาร`,
+            }}
+            locale={{ emptyText: "ไม่มีรายการซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก" }}
+          />
         </div>
-        <Table
-          className={masterStyles.dataTable}
-          rowKey="id"
-          columns={columns}
-          dataSource={items}
-          loading={listQuery.isFetching}
-          scroll={{ x: 1520 }}
-          expandable={{
-            expandedRowRender: (doc) => <JournalLinesDetailTable doc={doc} />,
-            expandedRowKeys: expandedKeys,
-            onExpand: (expanded, doc) =>
-              setCollapsed((prev) => {
-                const next = new Set(prev);
-                if (expanded) next.delete(doc.id);
-                else next.add(doc.id);
-                return next;
-              }),
-          }}
-          pagination={{
-            current: page,
-            pageSize: PAGE_SIZE,
-            total: data?.total ?? 0,
-            onChange: setPage,
-            showSizeChanger: false,
-            showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} เอกสาร`,
-          }}
-          locale={{ emptyText: "ไม่มีรายการซื้อที่อนุมัติแล้วตามเงื่อนไขที่เลือก" }}
-        />
+
+        {selected ? (
+          <JournalAccountDetailPanel
+            docNo={selected.docNo}
+            typeTag={
+              <>
+                <Tag color={DOC_TYPE_COLOR[selected.docType]}>
+                  {JOURNAL_DOC_TYPE_LABEL[selected.docType]}
+                </Tag>
+                {!selected.balanced ? <Tag color="red">เดบิต ≠ เครดิต</Tag> : null}
+              </>
+            }
+            meta={[
+              { label: "วันที่เอกสาร", value: formatDate(selected.docDate) },
+              {
+                label: "ผู้ขาย",
+                value: (
+                  <Link href={`/finance/payables/creditors/${selected.creditorId}`}>
+                    {selected.creditorCode} {selected.creditorName}
+                  </Link>
+                ),
+              },
+              {
+                label: "รายการสินค้า",
+                value:
+                  selected.itemNames.length > 0 ? selected.itemNames.join(", ") : "—",
+              },
+              {
+                label: "ยอดรวมสุทธิ",
+                value: (
+                  <strong
+                    style={
+                      selected.totalAmount < 0 ? { color: "#cf1322" } : undefined
+                    }
+                  >
+                    {money.format(selected.totalAmount)}
+                  </strong>
+                ),
+              },
+              {
+                label: "ใบกำกับภาษี",
+                value: selected.taxInvoiceNo
+                  ? `${selected.taxInvoiceNo} · ${formatDate(selected.taxInvoiceDate)}`
+                  : "—",
+              },
+            ]}
+            references={
+              <div style={{ fontSize: 13 }}>
+                {selected.po ? (
+                  <div>
+                    <Typography.Text type="secondary">PO: </Typography.Text>
+                    <Link href={`/purchase-orders/${selected.po.id}`}>{selected.po.no}</Link>
+                  </div>
+                ) : null}
+                <RefLinks label="GRN" list={selected.grns} basePath="/goods-receipts" />
+                <RefLinks
+                  label="ใบวางบิล"
+                  list={selected.billingNotes}
+                  basePath="/finance/payables/billing-notes"
+                />
+                <RefLinks
+                  label="ใบสำคัญจ่าย"
+                  list={selected.paymentVouchers}
+                  basePath="/finance/payables/payment-vouchers"
+                />
+                {selected.reference ? (
+                  <div>
+                    <Typography.Text type="secondary">อ้างอิง: </Typography.Text>
+                    <Link
+                      href={`${AP_BASE_PATH[selected.reference.docType as JournalDocType]}/${selected.reference.id}`}
+                    >
+                      {selected.reference.no}
+                    </Link>
+                  </div>
+                ) : null}
+                {!selected.po &&
+                selected.grns.length === 0 &&
+                selected.billingNotes.length === 0 &&
+                selected.paymentVouchers.length === 0 &&
+                !selected.reference
+                  ? "—"
+                  : null}
+              </div>
+            }
+            lines={selected.lines}
+            totalDebit={selected.totalDebit}
+            totalCredit={selected.totalCredit}
+            onClose={() => setSelectedId(null)}
+          />
+        ) : null}
       </div>
     </section>
   );

@@ -282,7 +282,6 @@ export function inferPortalModuleFromPathname(
   }
   if (
     pathname.startsWith("/purchase-payments") ||
-    pathname.startsWith("/sales-credit-notes") ||
     pathname.startsWith("/finance")
   ) {
     return "finance";

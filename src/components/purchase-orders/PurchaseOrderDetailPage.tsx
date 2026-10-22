@@ -625,6 +625,45 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>วันที่กำหนดชำระเงิน</span>
+                <div className={styles.metaValue}>
+                  {(() => {
+                    const aps = (data.apInvoices ?? []).filter((ap) => ap.dueDate);
+                    if (aps.length > 0) {
+                      return (
+                        <div>
+                          {aps.map((ap) => (
+                            <div key={ap.id}>
+                              <Link href={`/finance/payables/ap-invoices/${ap.id}`}>
+                                {ap.docNo}
+                              </Link>
+                              {" · "}
+                              {formatDate(ap.dueDate ?? undefined)}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                    const term = data.paymentTerm;
+                    const days = Number(term?.creditDays ?? 0);
+                    if (term?.termType === "CREDIT" && days > 0) {
+                      const base = data.expectedDeliveryDate || data.poDate;
+                      const due = dayjs(base).add(days, "day").format("YYYY-MM-DD");
+                      return (
+                        <div>
+                          {formatDate(due)}
+                          <div style={{ fontSize: 12, opacity: 0.65 }}>
+                            ประมาณการจาก{data.expectedDeliveryDate ? "วันส่งมอบ" : "วันที่ PO"} + {days}{" "}
+                            วัน · ยืนยันเมื่อตั้งหนี้ (นับจากวันที่ใบแจ้งหนี้ Supplier)
+                          </div>
+                        </div>
+                      );
+                    }
+                    return "—";
+                  })()}
+                </div>
+              </div>
+              <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>ผู้จัดทำ</span>
                 <div className={styles.metaValue}>
                   {formatCreatorContact(data.createdBy)}

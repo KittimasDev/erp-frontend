@@ -3,12 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { App, Button, Card, DatePicker, Input, Select, Space, Table, Tag, Typography } from "antd";
+import { App, Button, DatePicker, Input, Select, Table, Tag, Typography } from "antd";
+import { FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
 import ReportExportButtons, { type ReportExportFormat } from "@/components/reports/ReportExportButtons";
 import { formatThaiDate } from "@/components/ap-documents/apDocumentConfig";
+import styles from "@/components/finance/shared/finance-list-page.module.css";
+import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   usePayableVouchersQuery,
@@ -197,34 +200,96 @@ export default function PaymentRecordsPage() {
     },
   ];
 
+  const applyPayable = () => {
+    setPKeyword(pSearch.trim());
+    setPPage(1);
+  };
+  const clearPayable = () => {
+    setPSearch("");
+    setPKeyword("");
+    setPKind(undefined);
+    setPPage(1);
+  };
+  const applyRecords = () => {
+    setRKeyword(rSearch.trim());
+    setRPage(1);
+  };
+  const clearRecords = () => {
+    setRSearch("");
+    setRKeyword("");
+    setRRange(null);
+    setRMethod(undefined);
+    setRStatus(undefined);
+    setRPage(1);
+  };
+
   return (
-    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card title="รายการรอบันทึกจ่ายเงิน" extra={<Typography.Text type="secondary">ใบสำคัญจ่ายที่อนุมัติแล้ว รอบันทึกจ่ายจริง</Typography.Text>}>
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 300 }}
-            placeholder="ค้นเลขที่ PV / ชื่อผู้ขาย"
-            value={pSearch}
-            onChange={(e) => setPSearch(e.target.value)}
-            onSearch={(v) => {
-              setPKeyword(v);
-              setPPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="ประเภทการจ่าย"
-            style={{ width: 180 }}
-            value={pKind}
-            onChange={(v) => {
-              setPKind(v);
-              setPPage(1);
-            }}
-            options={KIND_OPTIONS}
-          />
-        </Space>
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
+        <div className={masterStyles.headerContent}>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            FINANCE · PAYABLES
+          </div>
+          <h2 className={masterStyles.pageTitle}>บันทึกจ่ายเงิน</h2>
+          <span className={masterStyles.pageSubtitle}>
+            ใบสำคัญจ่ายที่อนุมัติแล้วรอบันทึกจ่ายจริง และรายการที่บันทึกจ่ายแล้ว
+          </span>
+        </div>
+        <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
+      </div>
+
+      <div className={`${styles.statRow} ${styles.statRow2}`}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>รอบันทึกจ่าย</span>
+          <span className={styles.statValue}>{(payable.data?.data.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>จ่ายแล้ว</span>
+          <span className={styles.statValue}>{(records.data?.data.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+      </div>
+
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>รอบันทึกจ่ายเงิน</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{(payable.data?.data.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่ PV / ชื่อผู้ขาย"
+                value={pSearch}
+                onChange={(e) => setPSearch(e.target.value)}
+                onPressEnter={applyPayable}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>ประเภทการจ่าย</label>
+              <Select allowClear placeholder="ทั้งหมด" value={pKind} onChange={setPKind} options={KIND_OPTIONS} />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearPayable}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyPayable}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="id"
           loading={payable.isLoading}
           columns={payableColumns}
@@ -240,57 +305,52 @@ export default function PaymentRecordsPage() {
           scroll={{ x: 1100 }}
           locale={{ emptyText: "ไม่มีใบสำคัญจ่ายที่รอบันทึกจ่ายเงิน" }}
         />
-      </Card>
+      </div>
 
-      <Card
-        title="รายการที่บันทึกจ่ายแล้ว"
-        extra={<ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />}
-      >
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 320 }}
-            placeholder="ค้นเลขที่รายการจ่าย / เลขที่ PV / ชื่อผู้ขาย"
-            value={rSearch}
-            onChange={(e) => setRSearch(e.target.value)}
-            onSearch={(v) => {
-              setRKeyword(v);
-              setRPage(1);
-            }}
-          />
-          <DatePicker.RangePicker
-            format="DD/MM/YYYY"
-            placeholder={["วันที่จ่าย (จาก)", "วันที่จ่าย (ถึง)"]}
-            value={rRange}
-            onChange={(v) => {
-              setRRange(v);
-              setRPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="วิธีชำระ"
-            style={{ width: 160 }}
-            value={rMethod}
-            onChange={(v) => {
-              setRMethod(v);
-              setRPage(1);
-            }}
-            options={PAYMENT_METHOD_OPTIONS}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะ"
-            style={{ width: 140 }}
-            value={rStatus}
-            onChange={(v) => {
-              setRStatus(v);
-              setRPage(1);
-            }}
-            options={STATUS_OPTIONS}
-          />
-        </Space>
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>บันทึกจ่ายแล้ว</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{(records.data?.data.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่รายการจ่าย / เลขที่ PV / ชื่อผู้ขาย"
+                value={rSearch}
+                onChange={(e) => setRSearch(e.target.value)}
+                onPressEnter={applyRecords}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>วันที่จ่าย</label>
+              <DatePicker.RangePicker style={{ width: "100%" }} format="DD/MM/YYYY" value={rRange} onChange={setRRange} />
+            </div>
+            <div className={styles.filterItem}>
+              <label>วิธีชำระ</label>
+              <Select allowClear placeholder="ทั้งหมด" value={rMethod} onChange={setRMethod} options={PAYMENT_METHOD_OPTIONS} />
+            </div>
+            <div className={styles.filterItem}>
+              <label>สถานะ</label>
+              <Select allowClear placeholder="ทั้งหมด" value={rStatus} onChange={setRStatus} options={STATUS_OPTIONS} />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearRecords}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyRecords}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="id"
           loading={records.isLoading}
           columns={recordColumns}
@@ -306,7 +366,7 @@ export default function PaymentRecordsPage() {
           scroll={{ x: 1200 }}
           locale={{ emptyText: "ยังไม่มีรายการที่บันทึกจ่าย" }}
         />
-      </Card>
-    </Space>
+      </div>
+    </section>
   );
 }

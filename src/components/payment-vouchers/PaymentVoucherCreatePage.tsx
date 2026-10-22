@@ -68,6 +68,10 @@ export default function PaymentVoucherCreatePage({ queueItemId }: { queueItemId:
     () => (item ? prorateAmount(Number(item.whtAmount), amount, queueAmount) : 0),
     [item, amount, queueAmount],
   );
+  const whtBase = useMemo(
+    () => (item ? prorateAmount(Number(item.whtBaseAmount), amount, queueAmount) : 0),
+    [item, amount, queueAmount],
+  );
   const vat = useMemo(
     () => (item ? prorateAmount(Number(item.vatAmount), amount, queueAmount) : 0),
     [item, amount, queueAmount],
@@ -223,7 +227,7 @@ export default function PaymentVoucherCreatePage({ queueItemId }: { queueItemId:
         ) : null}
       </Card>
 
-      <TaxCard vat={vat} whtBase={item.whtBaseAmount} whtRate={item.whtRate} whtAmount={wht} net={net} />
+      <TaxCard vat={vat} whtBase={whtBase} whtRate={item.whtRate} whtAmount={wht} net={net} />
       <SummaryCard info={ctx} amount={amount} wht={wht} net={net} />
 
       <Card title="วิธีชำระเงินและบัญชีที่ใช้จ่าย" size="small">

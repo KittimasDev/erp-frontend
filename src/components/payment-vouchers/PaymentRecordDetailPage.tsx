@@ -220,11 +220,20 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
       </Card>
 
       <Card title="2. สรุปยอดการจ่าย (บาท)" size="small">
-        <Descriptions bordered size="small" column={{ xs: 1, md: 4 }}>
+        <Descriptions bordered size="small" column={{ xs: 1, md: 3 }}>
           <Descriptions.Item label="ยอดเงินตาม PV">{fmtMoney(pv.totalAmount)}</Descriptions.Item>
+          <Descriptions.Item label="VAT">{fmtMoney(info.vatAmount)}</Descriptions.Item>
+          <Descriptions.Item label="ฐานภาษีหัก ณ ที่จ่าย">
+            {Number(pv.whtAmount) > 0 ? fmtMoney(info.whtBaseAmount) : "—"}
+          </Descriptions.Item>
+          <Descriptions.Item label="อัตรา WHT">
+            {Number(pv.whtAmount) > 0 ? `${Number(info.whtRate)}%` : "—"}
+          </Descriptions.Item>
           <Descriptions.Item label="ภาษีหัก ณ ที่จ่าย">{fmtMoney(pv.whtAmount)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดสุทธิที่ต้องจ่าย">{fmtMoney(pv.netAmount)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดจ่ายจริง">
+          <Descriptions.Item label="ยอดโอนสุทธิ (ตาม PV)">
+            <Typography.Text strong>{fmtMoney(pv.netAmount)}</Typography.Text>
+          </Descriptions.Item>
+          <Descriptions.Item label="ยอดจ่ายจริง" span={3}>
             <Typography.Text strong>{fmtMoney(d.amount)}</Typography.Text>
           </Descriptions.Item>
         </Descriptions>
@@ -255,6 +264,8 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
               <Descriptions.Item label="เลขที่">{cert.certNo}</Descriptions.Item>
               <Descriptions.Item label="แบบยื่น">{WHT_TAX_FORM_LABEL[cert.taxForm] ?? cert.taxForm}</Descriptions.Item>
               <Descriptions.Item label="ประเภทเงินได้">{cert.incomeType}</Descriptions.Item>
+              <Descriptions.Item label="ฐานภาษี">{fmtMoney(cert.baseAmount)}</Descriptions.Item>
+              <Descriptions.Item label="อัตรา">{Number(cert.rate)}%</Descriptions.Item>
               <Descriptions.Item label="ภาษีที่หัก">{fmtMoney(cert.whtAmount)}</Descriptions.Item>
               <Descriptions.Item label="ออกโดย / วันที่ออก" span={2}>
                 {cert.issuedByName ?? "—"} · {dt(cert.issuedAt)}{" "}

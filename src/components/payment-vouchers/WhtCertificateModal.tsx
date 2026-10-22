@@ -50,7 +50,12 @@ export default function WhtCertificateModal({
   const [form] = Form.useForm<FormValues>();
   const issue = useIssueWhtMutation();
   const v = detail.voucherDetail.voucher;
-  const base = Number(detail.voucherDetail.whtBaseAmount) > 0 ? detail.voucherDetail.whtBaseAmount : v.totalAmount;
+  // ฐาน WHT ต้องเป็นก่อน VAT — ห้าม fallback เป็นยอด PV รวม (เคยทำให้หนังสือรับรองเพี้ยน)
+  const storedBase = Number(detail.voucherDetail.whtBaseAmount);
+  const rate = Number(detail.voucherDetail.whtRate);
+  const whtAmt = Number(v.whtAmount);
+  const derivedBase = whtAmt > 0 && rate > 0 ? Math.round((whtAmt / rate) * 10000) / 100 : 0;
+  const base = storedBase > 0 ? detail.voucherDetail.whtBaseAmount : derivedBase;
 
   const submit = async () => {
     const vals = await form.validateFields();

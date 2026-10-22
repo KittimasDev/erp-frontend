@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { App, Button, Card, DatePicker, Input, Select, Space, Table, Tag, Typography } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Typography } from "antd";
+import { FileTextOutlined, PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
+import styles from "@/components/finance/shared/finance-list-page.module.css";
+import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ReportExportButtons, { type ReportExportFormat } from "@/components/reports/ReportExportButtons";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useApDocumentsQuery } from "@/hooks/ap-documents/useApDocuments";
@@ -46,14 +48,44 @@ export default function ApDocumentsListPage({ kind }: Props) {
   const isCredit = kind === "creditNote";
   const isNote = kind !== "invoice";
   const [page, setPage] = useState(1);
+  const [dStatus, setDStatus] = useState<string | undefined>();
+  const [dUsageStatus, setDUsageStatus] = useState<string | undefined>();
+  const [dSettlementMethod, setDSettlementMethod] = useState<string | undefined>();
+  const [dCreditorId, setDCreditorId] = useState<string | undefined>();
+  const [dRange, setDRange] = useState<[Dayjs, Dayjs] | null>(null);
+  const [dSearch, setDSearch] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [usageStatus, setUsageStatus] = useState<string | undefined>();
   const [settlementMethod, setSettlementMethod] = useState<string | undefined>();
   const [creditorId, setCreditorId] = useState<string | undefined>();
   const [range, setRange] = useState<[Dayjs, Dayjs] | null>(null);
-  const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
+
+  const applySearch = () => {
+    setStatus(dStatus);
+    setUsageStatus(dUsageStatus);
+    setSettlementMethod(dSettlementMethod);
+    setCreditorId(dCreditorId);
+    setRange(dRange);
+    setKeyword(dSearch.trim());
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDStatus(undefined);
+    setDUsageStatus(undefined);
+    setDSettlementMethod(undefined);
+    setDCreditorId(undefined);
+    setDRange(null);
+    setDSearch("");
+    setStatus(undefined);
+    setUsageStatus(undefined);
+    setSettlementMethod(undefined);
+    setCreditorId(undefined);
+    setRange(null);
+    setKeyword("");
+    setPage(1);
+  };
 
   const filters: ApDocumentQueryParams = {
     status,
@@ -295,10 +327,26 @@ export default function ApDocumentsListPage({ kind }: Props) {
       : []),
   ];
 
+  const subtitle =
+    kind === "debitNote"
+      ? "ใบเพิ่มหนี้ออกได้จากใบตั้งหนี้ที่อนุมัติแล้วเท่านั้น · อนุมัติแล้วยังไม่กระทบยอด AP จนกว่าจะกด “ปรับหนี้” ที่ใบตั้งหนี้"
+      : isCredit
+        ? "สร้างและอนุมัติใบลดหนี้ไว้ล่วงหน้าได้ ยอด AP จะเปลี่ยนเมื่อยืนยันนำไปใช้เท่านั้น (หักยอดเจ้าหนี้ / รับเงินคืน / เก็บเป็นเครดิตผู้ขาย)"
+        : undefined;
+
   return (
-    <Card
-      title={config.title}
-      extra={
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
+        <div className={masterStyles.headerContent}>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            FINANCE · PAYABLES
+          </div>
+          <h2 className={masterStyles.pageTitle}>{config.title}</h2>
+          {subtitle ? <span className={masterStyles.pageSubtitle}>{subtitle}</span> : null}
+        </div>
         <Space>
           {isNote ? (
             <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
@@ -313,116 +361,145 @@ export default function ApDocumentsListPage({ kind }: Props) {
             </Button>
           ) : null}
         </Space>
-      }
-    >
-      {kind === "debitNote" ? (
-        <Typography.Paragraph type="secondary">
-          ใบเพิ่มหนี้ออกได้จากใบตั้งหนี้ที่อนุมัติแล้วเท่านั้น · อนุมัติแล้วยังไม่กระทบยอด AP จนกว่าจะกด “ปรับหนี้” ที่ใบตั้งหนี้
-        </Typography.Paragraph>
-      ) : null}
-      {isCredit ? (
-        <Typography.Paragraph type="secondary">
-          สร้างและอนุมัติใบลดหนี้ไว้ล่วงหน้าได้ ยอด AP จะเปลี่ยนเมื่อยืนยันนำไปใช้เท่านั้น (หักยอดเจ้าหนี้ / รับเงินคืน / เก็บเป็นเครดิตผู้ขาย)
-        </Typography.Paragraph>
-      ) : null}
-      <Space style={{ marginBottom: 12 }} wrap>
-        <Input.Search
-          allowClear
-          placeholder="เลขที่ / เลขที่ผู้ขาย / ชื่อเจ้าหนี้"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          onSearch={(value) => {
-            setPage(1);
-            setKeyword(value);
+      </div>
+
+      <div className={`${styles.statRow} ${styles.statRow2}`}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statValue}>
+            {(listQuery.data?.total ?? 0).toLocaleString("th-TH")}
+          </span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+      </div>
+
+      <section className={styles.filterCard}>
+        <div className={styles.filterRow}>
+          <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+            <label>ค้นหา</label>
+            <Input
+              allowClear
+              placeholder="เลขที่ / เลขที่ผู้ขาย / ชื่อเจ้าหนี้"
+              value={dSearch}
+              onChange={(event) => setDSearch(event.target.value)}
+              onPressEnter={applySearch}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>เจ้าหนี้</label>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทั้งหมด"
+              value={dCreditorId}
+              onChange={setDCreditorId}
+              options={(vendorsQuery.data?.data ?? []).map((vendor) => ({
+                value: vendor.id,
+                label: `${vendor.creditorCode} — ${vendor.nameTh}`,
+              }))}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>ช่วงวันที่เอกสาร</label>
+            <DatePicker.RangePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              value={dRange}
+              onChange={(values) =>
+                setDRange(values && values[0] && values[1] ? [values[0], values[1]] : null)
+              }
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สถานะเอกสาร</label>
+            <Select
+              allowClear
+              placeholder="ทั้งหมด"
+              value={dStatus}
+              onChange={setDStatus}
+              options={Object.entries(AP_DOCUMENT_STATUS_LABEL).map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+          </div>
+          {isNote ? (
+            <div className={styles.filterItem}>
+              <label>สถานะการนำไปใช้</label>
+              <Select
+                allowClear
+                placeholder="ทั้งหมด"
+                value={dUsageStatus}
+                onChange={setDUsageStatus}
+                options={USAGE_OPTIONS[kind as "debitNote" | "creditNote"].map((value) => ({
+                  value,
+                  label: AP_USAGE_STATUS_LABEL[value],
+                }))}
+              />
+            </div>
+          ) : null}
+          {isCredit ? (
+            <div className={styles.filterItem}>
+              <label>วิธีจัดการยอด</label>
+              <Select
+                allowClear
+                placeholder="ทั้งหมด"
+                value={dSettlementMethod}
+                onChange={setDSettlementMethod}
+                options={Object.entries(AP_SETTLEMENT_METHOD_LABEL).map(([value, label]) => ({
+                  value,
+                  label,
+                }))}
+              />
+            </div>
+          ) : null}
+          <div className={styles.filterActions}>
+            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button
+              type="primary"
+              className={styles.searchBtn}
+              icon={<SearchOutlined />}
+              onClick={applySearch}
+            >
+              ค้นหา
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>{config.title}</h3>
+          </div>
+          <span className={masterStyles.tableCount}>
+            {(listQuery.data?.total ?? 0).toLocaleString("th-TH")} รายการ
+          </span>
+        </div>
+        <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
+          rowKey="id"
+          loading={listQuery.isLoading}
+          columns={columns}
+          dataSource={listQuery.data?.items ?? []}
+          scroll={{ x: isCredit ? 1560 : 1200 }}
+          pagination={{
+            current: page,
+            pageSize: PAGE_SIZE,
+            total: listQuery.data?.total ?? 0,
+            onChange: setPage,
+            showSizeChanger: false,
           }}
-          style={{ width: 280 }}
+          onRow={(record) => ({
+            onClick: () => router.push(`${config.basePath}/${record.id}`),
+            style: { cursor: "pointer" },
+          })}
         />
-        <Select
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          placeholder="เจ้าหนี้ทั้งหมด"
-          value={creditorId}
-          style={{ width: 240 }}
-          onChange={(value) => {
-            setPage(1);
-            setCreditorId(value);
-          }}
-          options={(vendorsQuery.data?.data ?? []).map((vendor) => ({
-            value: vendor.id,
-            label: `${vendor.creditorCode} — ${vendor.nameTh}`,
-          }))}
-        />
-        <DatePicker.RangePicker
-          format="DD/MM/YYYY"
-          value={range}
-          onChange={(values) => {
-            setPage(1);
-            setRange(values && values[0] && values[1] ? [values[0], values[1]] : null);
-          }}
-        />
-        <Select
-          allowClear
-          placeholder="สถานะเอกสาร"
-          value={status}
-          style={{ width: 150 }}
-          onChange={(value) => {
-            setPage(1);
-            setStatus(value);
-          }}
-          options={Object.entries(AP_DOCUMENT_STATUS_LABEL).map(([value, label]) => ({
-            value,
-            label,
-          }))}
-        />
-        {isNote ? (
-          <Select
-            allowClear
-            placeholder="สถานะการนำไปใช้"
-            value={usageStatus}
-            style={{ width: 170 }}
-            onChange={(value) => {
-              setPage(1);
-              setUsageStatus(value);
-            }}
-            options={USAGE_OPTIONS[kind as "debitNote" | "creditNote"].map((value) => ({
-              value,
-              label: AP_USAGE_STATUS_LABEL[value],
-            }))}
-          />
-        ) : null}
-        {isCredit ? (
-          <Select
-            allowClear
-            placeholder="วิธีจัดการยอด"
-            value={settlementMethod}
-            style={{ width: 200 }}
-            onChange={(value) => {
-              setPage(1);
-              setSettlementMethod(value);
-            }}
-            options={Object.entries(AP_SETTLEMENT_METHOD_LABEL).map(([value, label]) => ({ value, label }))}
-          />
-        ) : null}
-      </Space>
-      <Table
-        rowKey="id"
-        loading={listQuery.isLoading}
-        columns={columns}
-        dataSource={listQuery.data?.items ?? []}
-        scroll={{ x: isCredit ? 1560 : 1200 }}
-        pagination={{
-          current: page,
-          pageSize: PAGE_SIZE,
-          total: listQuery.data?.total ?? 0,
-          onChange: setPage,
-          showSizeChanger: false,
-        }}
-        onRow={(record) => ({
-          onClick: () => router.push(`${config.basePath}/${record.id}`),
-          style: { cursor: "pointer" },
-        })}
-      />
-    </Card>
+      </div>
+    </section>
   );
 }

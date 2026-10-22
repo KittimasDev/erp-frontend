@@ -2,25 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  App,
-  Card,
-  Col,
-  DatePicker,
-  Input,
-  Row,
-  Select,
-  Space,
-  Statistic,
-  Switch,
-  Table,
-  Tag,
-  Typography,
-} from "antd";
+import { App, Button, DatePicker, Input, Select, Switch, Table, Tag, Typography } from "antd";
+import { FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType, TableProps } from "antd/es/table";
 import type { Dayjs } from "dayjs";
 
 import { formatThaiDate, money } from "@/components/finance/payable-purchase-orders/payableFormat";
+import styles from "@/components/finance/shared/finance-list-page.module.css";
+import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
@@ -136,7 +125,11 @@ function ExpandedPos({ creditorId }: { creditorId: string }) {
 export default function CreditorBalancesPage() {
   const { message } = App.useApp();
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [dSearch, setDSearch] = useState("");
+  const [dCreditorId, setDCreditorId] = useState<string | undefined>();
+  const [dTermType, setDTermType] = useState<CreditorBalanceQuery["termType"]>();
+  const [dPaymentStatus, setDPaymentStatus] = useState<CreditorBalancePaymentStatus | undefined>();
+  const [dDateRange, setDDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [keyword, setKeyword] = useState("");
   const [creditorId, setCreditorId] = useState<string | undefined>();
   const [termType, setTermType] = useState<CreditorBalanceQuery["termType"]>();
@@ -150,6 +143,29 @@ export default function CreditorBalancesPage() {
     !isMatrixPermissionMode() || hasPermission(`${CREDITOR_BALANCES_SCREEN}.EXPORT`);
 
   const vendorsQuery = useVendorsQuery({ isActive: true });
+
+  const applySearch = () => {
+    setKeyword(dSearch.trim());
+    setCreditorId(dCreditorId);
+    setTermType(dTermType);
+    setPaymentStatus(dPaymentStatus);
+    setDateRange(dDateRange);
+    setPage(1);
+  };
+  const clearFilters = () => {
+    setDSearch("");
+    setDCreditorId(undefined);
+    setDTermType(undefined);
+    setDPaymentStatus(undefined);
+    setDDateRange(null);
+    setKeyword("");
+    setCreditorId(undefined);
+    setTermType(undefined);
+    setPaymentStatus(undefined);
+    setDateRange(null);
+    setHasBalanceOrCredit(false);
+    setPage(1);
+  };
 
   const filterParams = useMemo<CreditorBalanceQuery>(
     () => ({
@@ -294,149 +310,160 @@ export default function CreditorBalancesPage() {
   };
 
   return (
-    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              รายการเจ้าหนี้
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              สรุปยอดค้างจ่ายและเครดิตผู้ขาย ตาม Supplier (ดูอย่างเดียว)
-            </Typography.Text>
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
+        <div className={masterStyles.headerContent}>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            FINANCE · PAYABLES
           </div>
-          <ReportExportButtons
-            canExport={canExport}
-            downloading={downloading}
-            onExport={(f) => void handleExport(f)}
-            csvRequiresExport
-          />
+          <h2 className={masterStyles.pageTitle}>รายการเจ้าหนี้</h2>
+          <span className={masterStyles.pageSubtitle}>
+            สรุปยอดค้างจ่ายและเครดิตผู้ขาย ตาม Supplier (ดูอย่างเดียว)
+          </span>
         </div>
-      </Card>
+        <ReportExportButtons
+          canExport={canExport}
+          downloading={downloading}
+          onExport={(f) => void handleExport(f)}
+          csvRequiresExport
+        />
+      </div>
 
-      <Row gutter={[12, 12]}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
-            <Statistic
-              title="ยอดเจ้าหนี้คงค้างรวม"
-              value={summary?.totalApRemaining ?? 0}
-              precision={2}
-              loading={summaryQuery.isLoading}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
-            <Statistic
-              title="ยอดเจ้าหนี้เกินกำหนด"
-              value={summary?.totalOverdue ?? 0}
-              precision={2}
-              loading={summaryQuery.isLoading}
-              valueStyle={{ color: (summary?.totalOverdue ?? 0) > 0 ? "#cf1322" : undefined }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
-            <Statistic
-              title="เครดิต Supplier คงเหลือ"
-              value={summary?.totalSupplierCreditRemaining ?? 0}
-              precision={2}
-              loading={summaryQuery.isLoading}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
-            <Statistic
-              title="มัดจำคงเหลือยังไม่หัก AP"
-              value={summary?.totalDepositAvailable ?? 0}
-              precision={2}
-              loading={summaryQuery.isLoading}
-            />
-          </Card>
-        </Col>
-      </Row>
+      <div className={styles.statRow}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ยอดเจ้าหนี้คงค้างรวม</span>
+          <span className={styles.statValue}>
+            {summaryQuery.isLoading ? "…" : money.format(summary?.totalApRemaining ?? 0)}
+          </span>
+          <span className={styles.statHint}>บาท</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ยอดเจ้าหนี้เกินกำหนด</span>
+          <span
+            className={styles.statValue}
+            style={(summary?.totalOverdue ?? 0) > 0 ? { color: "#cf1322" } : undefined}
+          >
+            {summaryQuery.isLoading ? "…" : money.format(summary?.totalOverdue ?? 0)}
+          </span>
+          <span className={styles.statHint}>บาท</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>เครดิต Supplier คงเหลือ</span>
+          <span className={styles.statValue}>
+            {summaryQuery.isLoading ? "…" : money.format(summary?.totalSupplierCreditRemaining ?? 0)}
+          </span>
+          <span className={styles.statHint}>บาท</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>มัดจำคงเหลือยังไม่หัก AP</span>
+          <span className={styles.statValue}>
+            {summaryQuery.isLoading ? "…" : money.format(summary?.totalDepositAvailable ?? 0)}
+          </span>
+          <span className={styles.statHint}>บาท</span>
+        </div>
+      </div>
 
-      <Card>
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 280 }}
-            placeholder="ค้นชื่อ/รหัสผู้ขาย หรือเลขที่ PO"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onSearch={(v) => {
-              setKeyword(v);
-              setPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: 240 }}
-            placeholder="ผู้ขาย"
-            value={creditorId}
-            onChange={(v) => {
-              setCreditorId(v);
-              setPage(1);
-            }}
-            options={(vendorsQuery.data?.data ?? []).map((v) => ({
-              value: v.id,
-              label: `${v.creditorCode} ${v.nameTh}`,
-            }))}
-          />
-          <DatePicker.RangePicker
-            format="DD/MM/YYYY"
-            value={dateRange}
-            onChange={(v) => {
-              setDateRange(v);
-              setPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            style={{ width: 180 }}
-            placeholder="เงื่อนไขชำระ"
-            value={termType}
-            onChange={(v) => {
-              setTermType(v);
-              setPage(1);
-            }}
-            options={[
-              { value: "ADVANCE", label: "ล่วงหน้า / มัดจำ" },
-              { value: "ON_RECEIPT", label: "จ่ายเมื่อรับสินค้า" },
-              { value: "CREDIT", label: "เครดิต" },
-            ]}
-          />
-          <Select
-            allowClear
-            style={{ width: 160 }}
-            placeholder="สถานะชำระ"
-            value={paymentStatus}
-            onChange={(v) => {
-              setPaymentStatus(v);
-              setPage(1);
-            }}
-            options={Object.entries(CREDITOR_BALANCE_PAYMENT_STATUS_LABEL).map(([value, label]) => ({
-              value,
-              label,
-            }))}
-          />
-          <Space>
-            <Switch
-              checked={hasBalanceOrCredit}
-              onChange={(v) => {
-                setHasBalanceOrCredit(v);
-                setPage(1);
-              }}
+      <section className={styles.filterCard}>
+        <div className={styles.filterRow}>
+          <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+            <label>ค้นหา</label>
+            <Input
+              allowClear
+              placeholder="ชื่อ/รหัสผู้ขาย หรือเลขที่ PO"
+              value={dSearch}
+              onChange={(e) => setDSearch(e.target.value)}
+              onPressEnter={applySearch}
             />
-            <Typography.Text type="secondary">เฉพาะมียอดค้าง/เครดิต</Typography.Text>
-          </Space>
-        </Space>
+          </div>
+          <div className={styles.filterItem}>
+            <label>ผู้ขาย</label>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="ทั้งหมด"
+              value={dCreditorId}
+              onChange={setDCreditorId}
+              options={(vendorsQuery.data?.data ?? []).map((v) => ({
+                value: v.id,
+                label: `${v.creditorCode} ${v.nameTh}`,
+              }))}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>ช่วงวันที่</label>
+            <DatePicker.RangePicker
+              style={{ width: "100%" }}
+              format="DD/MM/YYYY"
+              value={dDateRange}
+              onChange={setDDateRange}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>เงื่อนไขชำระ</label>
+            <Select
+              allowClear
+              placeholder="ทั้งหมด"
+              value={dTermType}
+              onChange={setDTermType}
+              options={[
+                { value: "ADVANCE", label: "ล่วงหน้า / มัดจำ" },
+                { value: "ON_RECEIPT", label: "จ่ายเมื่อรับสินค้า" },
+                { value: "CREDIT", label: "เครดิต" },
+              ]}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สถานะชำระ</label>
+            <Select
+              allowClear
+              placeholder="ทั้งหมด"
+              value={dPaymentStatus}
+              onChange={setDPaymentStatus}
+              options={Object.entries(CREDITOR_BALANCE_PAYMENT_STATUS_LABEL).map(([value, label]) => ({
+                value,
+                label,
+              }))}
+            />
+          </div>
+          <div className={styles.filterItem}>
+            <label>เฉพาะมียอดค้าง/เครดิต</label>
+            <div style={{ display: "flex", alignItems: "center", minHeight: 32 }}>
+              <Switch
+                checked={hasBalanceOrCredit}
+                onChange={(v) => {
+                  setHasBalanceOrCredit(v);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+          <div className={styles.filterActions}>
+            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
+              ค้นหา
+            </Button>
+          </div>
+        </div>
+      </section>
 
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>รายการเจ้าหนี้</h3>
+          </div>
+          <span className={masterStyles.tableCount}>
+            {(listQuery.data?.total ?? 0).toLocaleString("th-TH")} ผู้ขาย
+          </span>
+        </div>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="creditorId"
           loading={listQuery.isLoading}
           columns={columns}
@@ -456,7 +483,7 @@ export default function CreditorBalancesPage() {
           ยอดเจ้าหนี้คงค้างคิดจากใบตั้งหนี้ที่อนุมัติแล้ว ไม่รวม PO ที่ยังไม่ตั้งหนี้ และไม่หักเครดิตผู้ขายที่ยังไม่ใช้ · ขยายแถวเพื่อดูรายการ PO ·{" "}
           <Link href={CREDITOR_BALANCES_PATH}>รีเฟรช</Link>
         </Typography.Paragraph>
-      </Card>
-    </Space>
+      </div>
+    </section>
   );
 }

@@ -8,8 +8,10 @@ import { FileTextOutlined, SearchOutlined, SendOutlined } from "@ant-design/icon
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 
-import { JournalLinesTable } from "@/components/ap-documents/ApJournalVoucher";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import JournalAccountDetailPanel, {
+  journalMasterDetailStyles as mdStyles,
+} from "@/components/reports/JournalAccountDetailPanel";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
@@ -67,7 +69,7 @@ export default function PaymentJournalPage() {
   const [expressStatus, setExpressStatus] = useState<PaymentJournalExpressStatus | undefined>();
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const [sendingExpress, setSendingExpress] = useState(false);
   const [reexport, setReexport] = useState(false);
@@ -79,6 +81,7 @@ export default function PaymentJournalPage() {
     setExpressStatus(dExpress);
     setKeyword(dSearch.trim());
     setPage(1);
+    setSelectedId(null);
   };
   const clearFilters = () => {
     const fresh = defaultRange();
@@ -93,6 +96,7 @@ export default function PaymentJournalPage() {
     setExpressStatus(undefined);
     setKeyword("");
     setPage(1);
+    setSelectedId(null);
   };
 
   const canExport = !isMatrixPermissionMode() || hasPermission(`${SCREEN_CODE}.EXPORT`);
@@ -111,7 +115,7 @@ export default function PaymentJournalPage() {
   const listQuery = usePaymentJournalQuery({ ...filters, page, limit: PAGE_SIZE });
   const data = listQuery.data;
   const items = data?.items ?? [];
-  const expandedKeys = items.map((item) => item.id).filter((id) => !collapsed.has(id));
+  const selected = items.find((item) => item.id === selectedId) ?? null;
 
   const handleExport = async (format: ReportExportFormat) => {
     setDownloading(format);
@@ -266,8 +270,8 @@ export default function PaymentJournalPage() {
       key: "payment",
       width: 200,
       render: (_, row) => (
-        <Space orientation="vertical" size={0}>
-          <Link href={`/finance/payables/payment-records/${row.id}`}>{row.paymentNo ?? "—"}</Link>
+        <Space orientation="vertical" size={0} onClick={(event) => event.stopPropagation()}>
+          <Link href={`/reports/journals/payments/${row.id}`}>{row.paymentNo ?? "—"}</Link>
           <Space size={4}>
             <Tag color={KIND_COLOR[row.kind]} style={{ marginInlineEnd: 0 }}>
               {row.kindLabel}
@@ -282,7 +286,11 @@ export default function PaymentJournalPage() {
       key: "voucher",
       width: 170,
       render: (_, row) => (
-        <Space orientation="vertical" size={0}>
+        <Space
+          orientation="vertical"
+          size={0}
+          onClick={(event) => event.stopPropagation()}
+        >
           <Link href={`/finance/payables/payment-vouchers/${row.voucher.id}`}>{row.voucher.no}</Link>
           <span style={{ fontSize: 12, opacity: 0.65 }}>วันที่ {formatDate(row.voucherDate)}</span>
         </Space>
@@ -293,9 +301,11 @@ export default function PaymentJournalPage() {
       key: "creditor",
       width: 220,
       render: (_, row) => (
-        <Link href={`/finance/payables/creditors/${row.creditorId}`}>
-          {row.creditorCode} {row.creditorName}
-        </Link>
+        <span onClick={(event) => event.stopPropagation()}>
+          <Link href={`/finance/payables/creditors/${row.creditorId}`}>
+            {row.creditorCode} {row.creditorName}
+          </Link>
+        </span>
       ),
     },
     {
@@ -316,7 +326,7 @@ export default function PaymentJournalPage() {
       title: "เอกสารที่เกี่ยวข้อง",
       key: "related",
       render: (_, row) => (
-        <div style={{ fontSize: 13 }}>
+        <div style={{ fontSize: 13 }} onClick={(event) => event.stopPropagation()}>
           {row.advanceRequest ? (
             <div>
               <Typography.Text type="secondary">ใบขอจ่ายล่วงหน้า: </Typography.Text>
@@ -485,83 +495,177 @@ export default function PaymentJournalPage() {
         </div>
       </section>
 
-      <div className={masterStyles.tableCard}>
-        <div className={masterStyles.tableHeader}>
-          <div>
-            <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>รายการจ่ายเงิน</h3>
-          </div>
-          <Space>
-            <span className={masterStyles.tableCount}>{data?.total ?? 0} รายการ</span>
-            {expressDisabledReason ? (
-              <Tooltip title={expressDisabledReason}>
-                <span>
-                  <Button icon={<SendOutlined />} disabled>
+      <div
+        className={`${mdStyles.masterDetail}${selected ? ` ${mdStyles.masterDetailOpen}` : ""}`}
+      >
+        <div className={`${masterStyles.tableCard} ${mdStyles.tablePane}`}>
+          <div className={masterStyles.tableHeader}>
+            <div>
+              <div className={masterStyles.tableEyebrow}>รายการ</div>
+              <h3>รายการจ่ายเงิน</h3>
+            </div>
+            <Space>
+              <span className={masterStyles.tableCount}>{data?.total ?? 0} รายการ</span>
+              {expressDisabledReason ? (
+                <Tooltip title={expressDisabledReason}>
+                  <span>
+                    <Button icon={<SendOutlined />} disabled>
+                      ส่งออกไป Express ({pending})
+                    </Button>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Popconfirm
+                  title="ส่งออกไป Express"
+                  description={
+                    <div style={{ maxWidth: 340 }}>
+                      ส่งออกรายการที่ยังไม่เคยส่งในช่วง {formatDate(filters.dateFrom)} -{" "}
+                      {formatDate(filters.dateTo)} (หนึ่งแถวต่อบรรทัดบัญชี) แล้วทำเครื่องหมายว่าส่งแล้ว
+                      <div style={{ marginTop: 6, color: "#cf1322" }}>
+                        ส่งแล้วจะยกเลิกบันทึกจ่ายเงินของรายการนั้นไม่ได้
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={reexport}
+                            onChange={(event) => setReexport(event.target.checked)}
+                          />{" "}
+                          ส่งซ้ำรวมรายการที่เคยส่งแล้ว
+                        </label>
+                      </div>
+                    </div>
+                  }
+                  okText="ส่งออก"
+                  cancelText="ยกเลิก"
+                  onConfirm={() => void handleExpress()}
+                >
+                  <Button icon={<SendOutlined />} loading={sendingExpress}>
                     ส่งออกไป Express ({pending})
                   </Button>
-                </span>
-              </Tooltip>
-            ) : (
-              <Popconfirm
-                title="ส่งออกไป Express"
-                description={
-                  <div style={{ maxWidth: 340 }}>
-                    ส่งออกรายการที่ยังไม่เคยส่งในช่วง {formatDate(filters.dateFrom)} - {formatDate(filters.dateTo)}{" "}
-                    (หนึ่งแถวต่อบรรทัดบัญชี) แล้วทำเครื่องหมายว่าส่งแล้ว
-                    <div style={{ marginTop: 6, color: "#cf1322" }}>
-                      ส่งแล้วจะยกเลิกบันทึกจ่ายเงินของรายการนั้นไม่ได้
-                    </div>
-                    <div style={{ marginTop: 8 }}>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={reexport}
-                          onChange={(event) => setReexport(event.target.checked)}
-                        />{" "}
-                        ส่งซ้ำรวมรายการที่เคยส่งแล้ว
-                      </label>
-                    </div>
-                  </div>
-                }
-                okText="ส่งออก"
-                cancelText="ยกเลิก"
-                onConfirm={() => void handleExpress()}
-              >
-                <Button icon={<SendOutlined />} loading={sendingExpress}>
-                  ส่งออกไป Express ({pending})
-                </Button>
-              </Popconfirm>
-            )}
-          </Space>
+                </Popconfirm>
+              )}
+            </Space>
+          </div>
+          <Table
+            className={masterStyles.dataTable}
+            size="middle"
+            bordered={false}
+            rowKey="id"
+            columns={columns}
+            dataSource={items}
+            loading={listQuery.isFetching}
+            scroll={{ x: selected ? 1100 : 1500 }}
+            rowClassName={(row) =>
+              [
+                mdStyles.clickableRow,
+                row.id === selectedId ? mdStyles.selectedRow : "",
+              ]
+                .filter(Boolean)
+                .join(" ")
+            }
+            onRow={(row) => ({
+              onClick: () => setSelectedId(row.id),
+            })}
+            pagination={{
+              current: page,
+              pageSize: PAGE_SIZE,
+              total: data?.total ?? 0,
+              onChange: (nextPage) => {
+                setPage(nextPage);
+                setSelectedId(null);
+              },
+              showSizeChanger: false,
+              showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`,
+            }}
+            locale={{ emptyText: "ไม่มีรายการจ่ายเงินตามเงื่อนไขที่เลือก" }}
+          />
         </div>
-        <Table
-          className={masterStyles.dataTable}
-          rowKey="id"
-          columns={columns}
-          dataSource={items}
-          loading={listQuery.isFetching}
-          scroll={{ x: 1500 }}
-          expandable={{
-            expandedRowRender: (doc) => <JournalLinesTable doc={doc} showNo />,
-            expandedRowKeys: expandedKeys,
-            onExpand: (expanded, doc) =>
-              setCollapsed((prev) => {
-                const next = new Set(prev);
-                if (expanded) next.delete(doc.id);
-                else next.add(doc.id);
-                return next;
-              }),
-          }}
-          pagination={{
-            current: page,
-            pageSize: PAGE_SIZE,
-            total: data?.total ?? 0,
-            onChange: setPage,
-            showSizeChanger: false,
-            showTotal: (total) => `ทั้งหมด ${total.toLocaleString("th-TH")} รายการ`,
-          }}
-          locale={{ emptyText: "ไม่มีรายการจ่ายเงินตามเงื่อนไขที่เลือก" }}
-        />
+
+        {selected ? (
+          <JournalAccountDetailPanel
+            docNo={selected.paymentNo ?? "—"}
+            typeTag={
+              <>
+                <Tag color={KIND_COLOR[selected.kind]}>{selected.kindLabel}</Tag>
+                {!selected.balanced ? <Tag color="red">เดบิต ≠ เครดิต</Tag> : null}
+              </>
+            }
+            meta={[
+              { label: "วันที่จ่าย", value: formatDate(selected.paymentDate) },
+              {
+                label: "ผู้ขาย",
+                value: (
+                  <Link href={`/finance/payables/creditors/${selected.creditorId}`}>
+                    {selected.creditorCode} {selected.creditorName}
+                  </Link>
+                ),
+              },
+              { label: "วิธีจ่าย", value: methodText(selected) },
+              {
+                label: "ใบสำคัญจ่าย",
+                value: (
+                  <Link href={`/finance/payables/payment-vouchers/${selected.voucher.id}`}>
+                    {selected.voucher.no}
+                  </Link>
+                ),
+              },
+              {
+                label: "ยอดรวม / จ่ายจริง",
+                value: (
+                  <Space orientation="vertical" size={0}>
+                    <span style={{ fontSize: 12, opacity: 0.7 }}>
+                      ยอดรวม {money.format(selected.grossAmount)}
+                      {selected.whtAmount > 0
+                        ? ` · หัก ณ ที่จ่าย ${money.format(selected.whtAmount)}`
+                        : ""}
+                    </span>
+                    <strong>{money.format(selected.netAmount)}</strong>
+                  </Space>
+                ),
+              },
+            ]}
+            references={
+              <div style={{ fontSize: 13 }}>
+                {selected.advanceRequest ? (
+                  <div>
+                    <Typography.Text type="secondary">ใบขอจ่ายล่วงหน้า: </Typography.Text>
+                    <Link
+                      href={`/finance/payables/advance-requests/${selected.advanceRequest.id}`}
+                    >
+                      {selected.advanceRequest.no}
+                    </Link>
+                  </div>
+                ) : null}
+                {selected.aps.length > 0 ? (
+                  <div>
+                    <Typography.Text type="secondary">AP: </Typography.Text>
+                    <Space size={[6, 0]} wrap>
+                      {selected.aps.map((ap) => (
+                        <Link key={ap.id} href={`/finance/payables/ap-invoices/${ap.id}`}>
+                          {ap.no}
+                        </Link>
+                      ))}
+                    </Space>
+                  </div>
+                ) : null}
+                {selected.po ? (
+                  <div>
+                    <Typography.Text type="secondary">PO: </Typography.Text>
+                    <Link href={`/purchase-orders/${selected.po.id}`}>{selected.po.no}</Link>
+                  </div>
+                ) : null}
+                {!selected.advanceRequest && selected.aps.length === 0 && !selected.po
+                  ? "—"
+                  : null}
+              </div>
+            }
+            lines={selected.lines}
+            totalDebit={selected.totalDebit}
+            totalCredit={selected.totalCredit}
+            onClose={() => setSelectedId(null)}
+          />
+        ) : null}
       </div>
     </section>
   );

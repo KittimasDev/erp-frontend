@@ -48,7 +48,16 @@ export type PayablePurchaseOrder = {
   /** ค่าใช้จ่ายเพิ่มเติมที่ยังไม่ได้ตั้งหนี้ (รวม VAT) */
   extraChargesRemaining: number;
   dueDate: string | null;
+  /** วันครบกำหนดแยกตามใบตั้งหนี้ (ว่าง = ยังใช้ประมาณการ dueDate จากเงื่อนไข PO) */
+  apDueDates: PayableApDueDate[];
   payableStatus: PayableItemStatus;
+};
+
+export type PayableApDueDate = {
+  id: string;
+  docNo: string;
+  dueDate: string;
+  totalAmount: number;
 };
 
 export type PayablePurchaseOrderLine = {
@@ -81,11 +90,12 @@ export type PaymentInstallment = {
   dueNote: string;
 };
 
-export type CreditBaseSource = "EXPECTED_DELIVERY" | "PO_DATE";
+export type CreditBaseSource = "EXPECTED_DELIVERY" | "PO_DATE" | "AP_INVOICE";
 
 export const CREDIT_BASE_SOURCE_LABEL: Record<CreditBaseSource, string> = {
   EXPECTED_DELIVERY: "วันส่งมอบที่ระบุใน PO",
   PO_DATE: "วันที่ PO (PO ไม่ระบุวันส่งมอบ)",
+  AP_INVOICE: "วันครบกำหนดของใบตั้งหนี้",
 };
 
 export type PaymentPlan = {
@@ -117,8 +127,18 @@ export type PayablePurchaseOrderQueryParams = {
   page?: number;
   limit?: number;
   search?: string;
+  supplier?: string;
+  poDateFrom?: string;
+  poDateTo?: string;
   termType?: PayableTermTypeFilter;
   status?: PayableItemStatus;
+};
+
+export type PayablePurchaseOrderSummary = {
+  unpaid: number;
+  partial: number;
+  paid: number;
+  overdue: number;
 };
 
 export type PayablePurchaseOrderListData = {
@@ -126,6 +146,7 @@ export type PayablePurchaseOrderListData = {
   total: number;
   page: number;
   limit: number;
+  summary: PayablePurchaseOrderSummary;
 };
 
 export type PayablePurchaseOrderListResponse = {

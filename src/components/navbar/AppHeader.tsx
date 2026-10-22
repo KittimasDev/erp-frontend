@@ -1807,19 +1807,6 @@ const financeMenus: MenuItem[] = [
       ROLE.EXECUTIVE,
     ],
   },
-  {
-    key: "sales-credit-notes",
-    screenCode: "SALES_CREDIT_NOTES",
-    label: "ใบลดหนี้",
-    href: "/sales-credit-notes",
-    icon: <IconPayment />,
-    roles: [
-      ROLE.SALES_OFFICER,
-      ROLE.SALES_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
-    ],
-  },
 ];
 
 const JOURNAL_REPORT_ROLES = [ROLE.ACCOUNTING_OFFICER, ROLE.EXECUTIVE];

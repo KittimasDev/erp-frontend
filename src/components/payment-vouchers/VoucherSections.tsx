@@ -101,7 +101,7 @@ export function TaxCard({
         </Descriptions.Item>
       </Descriptions>
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        ข้อมูลภาษีดึงจากเอกสารต้นทางที่ตรวจสอบแล้ว ระบบไม่กำหนด WHT ให้อัตโนมัติ และไม่หักมัดจำ/ใบปรับหนี้ซ้ำ (คำนวณใน AP แล้ว)
+        WHT คิดจากหัว PO (ค่าสินค้า) และ/หรือค่าใช้จ่ายที่ติ๊กหัก ณ ที่จ่าย — ฐานก่อน VAT · ไม่หักมัดจำ/ใบปรับหนี้ซ้ำ (คำนวณใน AP แล้ว)
       </Typography.Text>
     </Card>
   );

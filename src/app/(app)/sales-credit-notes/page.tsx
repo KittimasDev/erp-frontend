@@ -1,7 +1,5 @@
-"use client";
-
-import SalesCreditNotesPage from "@/components/sales-credit-notes/SalesCreditNotesPage";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <SalesCreditNotesPage />;
+  redirect("/finance/receivables/credit-notes");
 }

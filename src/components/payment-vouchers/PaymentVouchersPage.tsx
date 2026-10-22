@@ -3,11 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Select, Space, Table, Tag, Typography } from "antd";
+import { Button, Input, Select, Table, Tag, Typography } from "antd";
+import { FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
 import { formatThaiDate, money } from "@/components/ap-documents/apDocumentConfig";
+import styles from "@/components/finance/shared/finance-list-page.module.css";
+import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   useCreatedPaymentVouchersQuery,
@@ -214,34 +217,94 @@ export default function PaymentVouchersPage() {
     },
   ];
 
+  const applyQueue = () => {
+    setQKeyword(qSearch.trim());
+    setQPage(1);
+  };
+  const clearQueue = () => {
+    setQSearch("");
+    setQKeyword("");
+    setQSource(undefined);
+    setQPage(1);
+  };
+  const applyCreated = () => {
+    setCKeyword(cSearch.trim());
+    setCPage(1);
+  };
+  const clearCreated = () => {
+    setCSearch("");
+    setCKeyword("");
+    setCSource(undefined);
+    setCStatus(undefined);
+    setCPage(1);
+  };
+
   return (
-    <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card title="รายการรอสร้างใบสำคัญจ่าย" extra={<Typography.Text type="secondary">รายการที่ยืนยันแล้วและพร้อมออกใบสำคัญจ่าย</Typography.Text>}>
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 320 }}
-            placeholder="ค้นเลขที่เอกสารอ้างอิง / ชื่อผู้ขาย"
-            value={qSearch}
-            onChange={(e) => setQSearch(e.target.value)}
-            onSearch={(v) => {
-              setQKeyword(v);
-              setQPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="ประเภทเอกสาร"
-            style={{ width: 220 }}
-            value={qSource}
-            onChange={(v) => {
-              setQSource(v);
-              setQPage(1);
-            }}
-            options={SOURCE_OPTIONS}
-          />
-        </Space>
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
+        <div className={masterStyles.headerContent}>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            FINANCE · PAYABLES
+          </div>
+          <h2 className={masterStyles.pageTitle}>ใบสำคัญจ่าย</h2>
+          <span className={masterStyles.pageSubtitle}>
+            รายการที่ยืนยันแล้วพร้อมออกใบสำคัญจ่าย และใบสำคัญจ่ายที่สร้างแล้ว
+          </span>
+        </div>
+      </div>
+
+      <div className={`${styles.statRow} ${styles.statRow2}`}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>คิวรอ</span>
+          <span className={styles.statValue}>{(queue.data?.data.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>สร้างแล้ว</span>
+          <span className={styles.statValue}>{(created.data?.data.total ?? 0).toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
+        </div>
+      </div>
+
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>รอสร้างใบสำคัญจ่าย</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{(queue.data?.data.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่เอกสารอ้างอิง / ชื่อผู้ขาย"
+                value={qSearch}
+                onChange={(e) => setQSearch(e.target.value)}
+                onPressEnter={applyQueue}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>ประเภทเอกสาร</label>
+              <Select allowClear placeholder="ทั้งหมด" value={qSource} onChange={setQSource} options={SOURCE_OPTIONS} />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearQueue}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyQueue}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="id"
           loading={queue.isLoading}
           columns={queueColumns}
@@ -257,45 +320,54 @@ export default function PaymentVouchersPage() {
           scroll={{ x: 1100 }}
           locale={{ emptyText: "ไม่มีรายการรอสร้างใบสำคัญจ่าย" }}
         />
-      </Card>
+      </div>
 
-      <Card title="รายการใบสำคัญจ่ายที่สร้างแล้ว">
-        <Space wrap style={{ marginBottom: 12 }}>
-          <Input.Search
-            allowClear
-            style={{ width: 320 }}
-            placeholder="ค้นเลขที่ PV / เลขที่เอกสารอ้างอิง / ชื่อผู้ขาย"
-            value={cSearch}
-            onChange={(e) => setCSearch(e.target.value)}
-            onSearch={(v) => {
-              setCKeyword(v);
-              setCPage(1);
-            }}
-          />
-          <Select
-            allowClear
-            placeholder="ประเภทเอกสารต้นทาง"
-            style={{ width: 220 }}
-            value={cSource}
-            onChange={(v) => {
-              setCSource(v);
-              setCPage(1);
-            }}
-            options={SOURCE_OPTIONS}
-          />
-          <Select
-            allowClear
-            placeholder="สถานะ PV"
-            style={{ width: 180 }}
-            value={cStatus}
-            onChange={(v) => {
-              setCStatus(v);
-              setCPage(1);
-            }}
-            options={Object.entries(VOUCHER_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
-          />
-        </Space>
+      <div className={masterStyles.tableCard}>
+        <div className={masterStyles.tableHeader}>
+          <div>
+            <div className={masterStyles.tableEyebrow}>รายการ</div>
+            <h3>ใบสำคัญจ่ายที่สร้างแล้ว</h3>
+          </div>
+          <span className={masterStyles.tableCount}>{(created.data?.data.total ?? 0).toLocaleString("th-TH")} รายการ</span>
+        </div>
+        <section className={styles.filterCard} style={{ marginBottom: 12, boxShadow: "none" }}>
+          <div className={styles.filterRow}>
+            <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+              <label>ค้นหา</label>
+              <Input
+                allowClear
+                placeholder="เลขที่ PV / เลขที่เอกสารอ้างอิง / ชื่อผู้ขาย"
+                value={cSearch}
+                onChange={(e) => setCSearch(e.target.value)}
+                onPressEnter={applyCreated}
+              />
+            </div>
+            <div className={styles.filterItem}>
+              <label>ประเภทเอกสารต้นทาง</label>
+              <Select allowClear placeholder="ทั้งหมด" value={cSource} onChange={setCSource} options={SOURCE_OPTIONS} />
+            </div>
+            <div className={styles.filterItem}>
+              <label>สถานะ PV</label>
+              <Select
+                allowClear
+                placeholder="ทั้งหมด"
+                value={cStatus}
+                onChange={setCStatus}
+                options={Object.entries(VOUCHER_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+              />
+            </div>
+            <div className={styles.filterActions}>
+              <Button onClick={clearCreated}>เคลียร์</Button>
+              <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applyCreated}>
+                ค้นหา
+              </Button>
+            </div>
+          </div>
+        </section>
         <Table
+          className={masterStyles.dataTable}
+          size="middle"
+          bordered={false}
           rowKey="id"
           loading={created.isLoading}
           columns={createdColumns}
@@ -311,8 +383,7 @@ export default function PaymentVouchersPage() {
           scroll={{ x: 1100 }}
           locale={{ emptyText: "ยังไม่มีใบสำคัญจ่าย" }}
         />
-      </Card>
-
-    </Space>
+      </div>
+    </section>
   );
 }

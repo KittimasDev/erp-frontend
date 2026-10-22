@@ -89,3 +89,8 @@ export type PaymentExpressExportBody = {
   search?: string;
   reexport?: boolean;
 };
+
+/** รายการสมุดรายวันจ่ายของบันทึกจ่ายเงิน 1 ใบ */
+export type PaymentJournalByDocument = {
+  entry: PaymentJournalItem;
+};

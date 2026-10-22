@@ -48,6 +48,12 @@ const config = AP_DOCUMENT_CONFIG.invoice;
 const toDate = (v?: Dayjs) => (v ? v.format("YYYY-MM-DD") : undefined);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+/** วันครบกำหนดเครดิต = ฐานวันที่ + จำนวนวันเครดิต (ฐานหลัก = วันที่ใบแจ้งหนี้ Supplier) */
+function creditDueFrom(base: Dayjs | undefined, creditDays: number): Dayjs | undefined {
+  if (!base || creditDays <= 0) return undefined;
+  return base.add(creditDays, "day");
+}
+
 type LineValues = {
   goodsReceiptItemId?: string;
   itemCode?: string;
@@ -225,12 +231,12 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
     }
     if (!grn) {
       if (poIdParam && poInfo) {
-        // โหมดค่าใช้จ่ายล้วน: ตั้งต้นจาก PO (VAT/เครดิตตามเงื่อนไขของ PO) ไม่มี GRN ไม่มีบรรทัดสินค้า
+        // โหมดค่าใช้จ่ายล้วน: ตั้งต้นจาก PO — due ชั่วคราวจากวันนี้จนกว่าจะใส่วันที่ใบแจ้งหนี้
         seeded.current = true;
         const creditDays = poInfo.paymentTerm.termType === "CREDIT" ? poInfo.paymentTerm.creditDays : 0;
         form.setFieldsValue({
           docDate: dayjs(),
-          dueDate: creditDays > 0 ? dayjs().add(creditDays, "day") : undefined,
+          dueDate: creditDueFrom(dayjs(), creditDays),
           vatMode: poInfo.vatMode,
           taxRateId: poInfo.taxRateId,
           items: [],
@@ -245,6 +251,7 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
     }
     form.setFieldsValue({
       docDate: dayjs(),
+      // ค่าแนะนำชั่วคราวจาก GRN — จะอัปเดตเมื่อใส่วันที่ใบแจ้งหนี้ Supplier
       dueDate: grn.suggestedDueDate ? dayjs(grn.suggestedDueDate) : undefined,
       vatMode: grn.vatMode,
       taxRateId: grn.taxRateId,
@@ -261,6 +268,39 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
       })),
     });
   }, [existing, form, grn, id, poIdParam, poInfo, router]);
+
+  const supplierDocDateWatch = Form.useWatch("supplierDocDate", form);
+  const dueDateWatch = Form.useWatch("dueDate", form);
+  const activeTerm = (grn ?? poInfo)?.paymentTerm ?? existing?.paymentTerm;
+  const creditDaysForDue = Number(activeTerm?.creditDays ?? 0);
+  const isCreditTerm = activeTerm?.termType === "CREDIT";
+
+  // ฐานหลัก = วันที่ใบแจ้งหนี้ Supplier · อัปเดต due เมื่อเปลี่ยนวันที่ (create หรือ due ยังว่าง/ยังตรงสูตรเดิม)
+  const lastSuggestedDue = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isCreditTerm || creditDaysForDue <= 0) return;
+    if (!supplierDocDateWatch) return;
+    const next = creditDueFrom(supplierDocDateWatch, creditDaysForDue);
+    if (!next) return;
+    const nextKey = next.format("YYYY-MM-DD");
+    const currentKey = dueDateWatch ? dueDateWatch.format("YYYY-MM-DD") : null;
+    const shouldApply =
+      !id ||
+      !currentKey ||
+      currentKey === lastSuggestedDue.current ||
+      (grn?.suggestedDueDate && currentKey === grn.suggestedDueDate);
+    if (!shouldApply) return;
+    lastSuggestedDue.current = nextKey;
+    if (currentKey !== nextKey) form.setFieldValue("dueDate", next);
+  }, [
+    creditDaysForDue,
+    dueDateWatch,
+    form,
+    grn?.suggestedDueDate,
+    id,
+    isCreditTerm,
+    supplierDocDateWatch,
+  ]);
 
   const [saving, setSaving] = useState(false);
 
@@ -439,7 +479,11 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
             <Form.Item name="supplierDocNo" label="เลขที่ใบแจ้งหนี้ Supplier" rules={[{ required: true, whitespace: true, message: "ระบุเลขที่ใบแจ้งหนี้ผู้ขาย" }]}>
               <Input maxLength={100} placeholder="เช่น IV-6810-0012" />
             </Form.Item>
-            <Form.Item name="supplierDocDate" label="วันที่ใบแจ้งหนี้">
+            <Form.Item
+              name="supplierDocDate"
+              label="วันที่ใบแจ้งหนี้"
+              extra={isCreditTerm ? "ใช้เป็นฐานนับวันเครดิตสำหรับวันครบกำหนดชำระ" : undefined}
+            >
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item name="taxInvoiceNo" label="เลขที่ใบกำกับภาษี (ถ้ามี)">
@@ -686,7 +730,17 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
                 options={taxRates.map((r) => ({ value: r.id, label: `${r.name} (${Number(r.rate)}%)` }))}
               />
             </Form.Item>
-            <Form.Item name="dueDate" label="วันครบกำหนดชำระ" extra={term ? `เงื่อนไข: ${termText(term)}` : undefined}>
+            <Form.Item
+              name="dueDate"
+              label="วันครบกำหนดชำระ"
+              extra={
+                term
+                  ? isCreditTerm
+                    ? `เงื่อนไข: ${termText(term)} · นับจากวันที่ใบแจ้งหนี้ Supplier (+ ${creditDaysForDue} วัน)`
+                    : `เงื่อนไข: ${termText(term)}`
+                  : undefined
+              }
+            >
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
           </div>

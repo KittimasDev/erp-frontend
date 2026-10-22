@@ -115,7 +115,6 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/return-notes", title: "คืนสินค้า / ใบคืนสินค้า" },
   { href: "/sales-invoices/pending", title: "รอออกใบแจ้งหนี้" },
   { href: "/sales-invoices", title: "ใบแจ้งหนี้ขาย" },
-  { href: "/sales-credit-notes", title: "ใบลดหนี้" },
   { href: "/sales-tracking", title: "ติดตามการขายและจัดส่ง" },
   { href: "/sales/dashboard", title: "แดชบอร์ดฝ่ายขาย" },
   { href: "/customers/sales-orders-in-production", title: "ใบสั่งขายที่ส่งผลิต" },
