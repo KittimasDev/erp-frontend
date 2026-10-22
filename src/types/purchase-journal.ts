@@ -57,6 +57,8 @@ export type PurchaseJournalItem = {
   balanced: boolean;
   /** การผูกบัญชีที่ยังไม่ได้ตั้ง */
   unmapped: string[];
+  /** ชื่อสินค้าที่ซื้อใน AP นี้ (ไม่ซ้ำ) — ใบค่าใช้จ่ายล้วนเป็นอาร์เรย์ว่าง */
+  itemNames: string[];
 };
 
 export type PurchaseJournalSummary = {

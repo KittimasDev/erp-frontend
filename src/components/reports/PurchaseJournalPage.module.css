@@ -1,0 +1,140 @@
+/* หน้าสมุดรายวันซื้อ — รูปแบบ badge / การ์ดสรุป / ตัวกรอง ให้ตรงกับหน้ารายงานรับซื้อรายวัน (RawTirePurchaseReportPage) */
+.page {
+  --pj-green: var(--brand-primary, #739816);
+  --pj-green-dark: var(--brand-primary-hover, #627f13);
+  --pj-ink: var(--brand-text, #3f3f43);
+  --pj-muted: var(--brand-muted, #77777c);
+  --pj-border: var(--brand-border, #e1e2dd);
+
+  display: grid;
+  gap: 16px;
+  padding-bottom: 12px;
+}
+
+/* ── Badge ทรงแคปซูล ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 5px 10px 5px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(111, 151, 32, 0.2);
+  color: var(--pj-green-dark);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badgeIcon {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #8ca527, var(--pj-green-dark));
+  font-size: 13px;
+}
+
+/* ── การ์ดสรุป: ขอบบางเท่ากันทุกด้าน หัวข้อ → ตัวเลข → รายละเอียด ── */
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statChip {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--pj-border);
+  background: #fff;
+}
+
+.statLabel {
+  color: var(--pj-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.statValue {
+  color: var(--pj-ink);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.statHint {
+  color: var(--pj-muted);
+  font-size: 11px;
+}
+
+/* ── ตัวกรอง: ฟิลด์และปุ่มอยู่บรรทัดเดียวกัน ขึ้นบรรทัดใหม่เองเมื่อจอแคบ ── */
+.filterCard {
+  padding: 16px 18px;
+  border: 1px solid var(--pj-border);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(47, 52, 58, 0.04);
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 14px;
+}
+
+.filterItem {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.filterItemWide {
+  flex: 2 1 280px;
+}
+
+.filterItem label {
+  color: var(--pj-ink);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.filterActions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+.searchBtn {
+  border: 0 !important;
+  background: var(--pj-green-dark) !important;
+}
+
+@media (max-width: 960px) {
+  .statRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .statRow {
+    grid-template-columns: 1fr;
+  }
+
+  .filterActions {
+    flex: 1 1 100%;
+  }
+
+  .filterActions :global(button) {
+    flex: 1;
+  }
+}

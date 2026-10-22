@@ -4,15 +4,16 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { App, Button, DatePicker, Input, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { SendOutlined } from "@ant-design/icons";
+import { FileTextOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 
-import { JournalLinesTable } from "@/components/ap-documents/ApJournalVoucher";
+import JournalLinesDetailTable from "@/components/ap-documents/JournalLinesDetailTable";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
+import styles from "@/components/reports/PurchaseJournalPage.module.css";
 import { usePurchaseJournalQuery, purchaseJournalQueryKey } from "@/hooks/purchase-journal/usePurchaseJournal";
 import { exportPurchaseJournalToExpress, getPurchaseJournalExport } from "@/lib/api/purchase-journal";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
@@ -67,22 +68,47 @@ function RefLinks({ label, list, basePath }: { label: string; list: JournalDocRe
   );
 }
 
+/** ช่วงวันที่เริ่มต้น = เดือนปัจจุบัน */
+const defaultRange = (): [Dayjs, Dayjs] => [dayjs().startOf("month"), dayjs().endOf("month")];
+
 export default function PurchaseJournalPage() {
   const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
-  const [range, setRange] = useState<[Dayjs, Dayjs] | null>(() => [
-    dayjs().startOf("month"),
-    dayjs().endOf("month"),
-  ]);
+  // ตัวกรองที่กำลังกรอก (draft) — ใช้จริงเมื่อกด "ค้นหา" เท่านั้น
+  const [dRange, setDRange] = useState<[Dayjs, Dayjs] | null>(defaultRange);
+  const [dDocType, setDDocType] = useState<JournalDocType | undefined>();
+  const [dExpress, setDExpress] = useState<JournalExpressStatus | undefined>();
+  const [dSearch, setDSearch] = useState("");
+  // ตัวกรองที่ใช้อยู่จริง (applied)
+  const [range, setRange] = useState<[Dayjs, Dayjs] | null>(defaultRange);
   const [docType, setDocType] = useState<JournalDocType | undefined>();
   const [expressStatus, setExpressStatus] = useState<JournalExpressStatus | undefined>();
-  const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const [sendingExpress, setSendingExpress] = useState(false);
   const [reexport, setReexport] = useState(false);
+
+  const applySearch = () => {
+    setRange(dRange);
+    setDocType(dDocType);
+    setExpressStatus(dExpress);
+    setKeyword(dSearch.trim());
+    setPage(1);
+  };
+  const clearFilters = () => {
+    const fresh = defaultRange();
+    setDRange(fresh);
+    setDDocType(undefined);
+    setDExpress(undefined);
+    setDSearch("");
+    setRange(fresh);
+    setDocType(undefined);
+    setExpressStatus(undefined);
+    setKeyword("");
+    setPage(1);
+  };
 
   const canExport = !isMatrixPermissionMode() || hasPermission(`${SCREEN_CODE}.EXPORT`);
 
@@ -121,6 +147,7 @@ export default function PurchaseJournalPage() {
       all.forEach((doc, index) => {
         groupRows.push(rows.length);
         const related = [
+          doc.itemNames.length ? `สินค้า ${doc.itemNames.join(", ")}` : null,
           doc.po ? `PO ${doc.po.no}` : null,
           doc.grns.length ? `GRN ${doc.grns.map((g) => g.no).join(" ")}` : null,
           doc.billingNotes.length ? `ใบวางบิล ${doc.billingNotes.map((b) => b.no).join(" ")}` : null,
@@ -271,6 +298,19 @@ export default function PurchaseJournalPage() {
       ),
     },
     {
+      title: "รายการสินค้า",
+      key: "items",
+      width: 220,
+      render: (_, row) =>
+        row.itemNames.length > 0 ? (
+          <Typography.Paragraph ellipsis={{ rows: 2, tooltip: row.itemNames.join(", ") }} style={{ margin: 0 }}>
+            {row.itemNames.join(", ")}
+          </Typography.Paragraph>
+        ) : (
+          "—"
+        ),
+    },
+    {
       title: "ใบกำกับภาษี",
       key: "tax",
       width: 150,
@@ -328,14 +368,18 @@ export default function PurchaseJournalPage() {
   ];
 
   return (
-    <section className={masterStyles.page}>
-      <div className={masterStyles.pageHeader}>
-        <div className={masterStyles.headerAccent}>PJ</div>
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
         <div className={masterStyles.headerContent}>
-          <div className={masterStyles.eyebrow}>REPORTS · JOURNALS</div>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            REPORTS · JOURNALS
+          </div>
           <h2 className={masterStyles.pageTitle}>สมุดรายวันซื้อ</h2>
           <span className={masterStyles.pageSubtitle}>
-            ใบตั้งหนี้ ใบเพิ่มหนี้ ใบลดหนี้ที่อนุมัติแล้ว แตกเป็นบรรทัดบัญชีเดบิต/เครดิต แยกรายการมี VAT และไม่มี VAT
+            ใบตั้งหนี้ ใบเพิ่มหนี้ ใบลดหนี้ที่อนุมัติแล้ว แตกเป็นบรรทัดบัญชีเดบิต/เครดิต
           </span>
         </div>
         <ReportExportButtons
@@ -346,81 +390,97 @@ export default function PurchaseJournalPage() {
         />
       </div>
 
-      <div className={masterStyles.summaryRow} style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-        <div className={`${masterStyles.summaryCard} ${masterStyles.summaryTotal}`}>
-          <span className={masterStyles.summaryLabel}>มูลค่าก่อนภาษี (สุทธิ)</span>
-          <strong>{money.format(data?.summary.subtotalAmount ?? 0)}</strong>
+      <div className={styles.statRow}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>มูลค่าก่อนภาษี</span>
+          <span className={styles.statValue}>{money.format(data?.summary.subtotalAmount ?? 0)}</span>
+          <span className={styles.statHint}>สุทธิหลังหักใบลดหนี้ (บาท)</span>
         </div>
-        <div className={masterStyles.summaryCard}>
-          <span className={masterStyles.summaryLabel}>ภาษีซื้อ (สุทธิ)</span>
-          <strong>{money.format(data?.summary.vatAmount ?? 0)}</strong>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ภาษีซื้อ</span>
+          <span className={styles.statValue}>{money.format(data?.summary.vatAmount ?? 0)}</span>
+          <span className={styles.statHint}>สุทธิหลังหักใบลดหนี้ (บาท)</span>
         </div>
-        <div className={`${masterStyles.summaryCard} ${masterStyles.summaryActive}`}>
-          <span className={masterStyles.summaryLabel}>ยอดรวมเจ้าหนี้ (หักใบลดหนี้แล้ว)</span>
-          <strong>{money.format(data?.summary.totalAmount ?? 0)}</strong>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ยอดรวมเจ้าหนี้</span>
+          <span className={styles.statValue}>{money.format(data?.summary.totalAmount ?? 0)}</span>
+          <span className={styles.statHint}>หักใบลดหนี้แล้ว (บาท)</span>
         </div>
-        <div className={`${masterStyles.summaryCard} ${masterStyles.summaryInactive}`}>
-          <span className={masterStyles.summaryLabel}>ยังไม่ส่ง Express</span>
-          <strong>{pending.toLocaleString("th-TH")} เอกสาร</strong>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ยังไม่ส่ง Express</span>
+          <span className={styles.statValue}>{pending.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>เอกสาร</span>
         </div>
       </div>
 
-      <div className={masterStyles.filterCard}>
-        <div className={masterStyles.filterForm}>
-          <div className={masterStyles.formGrid}>
+      <section className={styles.filterCard}>
+        <div className={styles.filterRow}>
+          <div className={styles.filterItem}>
+            <label>ช่วงวันที่เอกสาร</label>
             <DatePicker.RangePicker
+              style={{ width: "100%" }}
               format="DD/MM/YYYY"
-              value={range}
-              onChange={(values) => {
-                setRange(values && values[0] && values[1] ? [values[0], values[1]] : null);
-                setPage(1);
-              }}
+              value={dRange}
+              onChange={(values) =>
+                setDRange(values && values[0] && values[1] ? [values[0], values[1]] : null)
+              }
             />
+          </div>
+          <div className={styles.filterItem}>
+            <label>ประเภทเอกสาร</label>
             <Select
               allowClear
-              placeholder="ประเภทเอกสารทั้งหมด"
-              value={docType}
-              onChange={(value) => {
-                setDocType(value);
-                setPage(1);
-              }}
+              placeholder="ทั้งหมด"
+              value={dDocType}
+              onChange={setDDocType}
               options={(Object.keys(JOURNAL_DOC_TYPE_LABEL) as JournalDocType[]).map((value) => ({
                 value,
                 label: JOURNAL_DOC_TYPE_LABEL[value],
               }))}
             />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สถานะ Express</label>
             <Select
               allowClear
-              placeholder="สถานะ Express ทั้งหมด"
-              value={expressStatus}
-              onChange={(value) => {
-                setExpressStatus(value);
-                setPage(1);
-              }}
+              placeholder="ทั้งหมด"
+              value={dExpress}
+              onChange={setDExpress}
               options={[
                 { value: "PENDING", label: "ยังไม่ส่ง" },
                 { value: "EXPORTED", label: "ส่งแล้ว" },
               ]}
             />
-            <Input.Search
+          </div>
+          <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+            <label>ค้นหา</label>
+            <Input
               allowClear
               placeholder="เลขที่เอกสาร / ใบกำกับภาษี / PO / GRN / ผู้ขาย"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onSearch={(value) => {
-                setKeyword(value.trim());
-                setPage(1);
-              }}
+              value={dSearch}
+              onChange={(event) => setDSearch(event.target.value)}
+              onPressEnter={applySearch}
             />
           </div>
+          <div className={styles.filterActions}>
+            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button
+              type="primary"
+              className={styles.searchBtn}
+              icon={<SearchOutlined />}
+              onClick={applySearch}
+            >
+              ค้นหา
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
           <div>
             <div className={masterStyles.tableEyebrow}>รายการ</div>
-            <h3>รายการซื้อ</h3>
+            <h3>รายการซื้อรายวัน</h3>
           </div>
           <Space>
             <span className={masterStyles.tableCount}>{data?.total ?? 0} เอกสาร</span>
@@ -468,9 +528,9 @@ export default function PurchaseJournalPage() {
           columns={columns}
           dataSource={items}
           loading={listQuery.isFetching}
-          scroll={{ x: 1300 }}
+          scroll={{ x: 1520 }}
           expandable={{
-            expandedRowRender: (doc) => <JournalLinesTable doc={doc} showNo />,
+            expandedRowRender: (doc) => <JournalLinesDetailTable doc={doc} />,
             expandedRowKeys: expandedKeys,
             onExpand: (expanded, doc) =>
               setCollapsed((prev) => {
