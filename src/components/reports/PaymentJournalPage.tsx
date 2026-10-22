@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { App, Button, DatePicker, Input, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { SendOutlined } from "@ant-design/icons";
+import { FileTextOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -13,6 +13,7 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
+import styles from "@/components/reports/PaymentJournalPage.module.css";
 import { paymentJournalQueryKey, usePaymentJournalQuery } from "@/hooks/payment-journal/usePaymentJournal";
 import { exportPaymentJournalToExpress, getPaymentJournalExport } from "@/lib/api/payment-journal";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
@@ -29,6 +30,9 @@ import { downloadTabularReport } from "@/utils/downloadTabularReport";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PAYMENTS";
 const PAGE_SIZE = 10;
+
+/** ช่วงวันที่เริ่มต้น = เดือนปัจจุบัน */
+const defaultRange = (): [Dayjs, Dayjs] => [dayjs().startOf("month"), dayjs().endOf("month")];
 
 const KIND_COLOR: Record<PaymentJournalKind, string> = {
   AP_PAYMENT: "blue",
@@ -50,20 +54,46 @@ function methodText(item: PaymentJournalItem): string {
 export default function PaymentJournalPage() {
   const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
-  const [range, setRange] = useState<[Dayjs, Dayjs] | null>(() => [
-    dayjs().startOf("month"),
-    dayjs().endOf("month"),
-  ]);
+  // ตัวกรองที่กำลังกรอก (draft) — ใช้จริงเมื่อกด "ค้นหา" เท่านั้น
+  const [dRange, setDRange] = useState<[Dayjs, Dayjs] | null>(defaultRange);
+  const [dKind, setDKind] = useState<PaymentJournalKind | undefined>();
+  const [dMethod, setDMethod] = useState<PaymentJournalMethod | undefined>();
+  const [dExpress, setDExpress] = useState<PaymentJournalExpressStatus | undefined>();
+  const [dSearch, setDSearch] = useState("");
+  // ตัวกรองที่ใช้อยู่จริง (applied)
+  const [range, setRange] = useState<[Dayjs, Dayjs] | null>(defaultRange);
   const [kind, setKind] = useState<PaymentJournalKind | undefined>();
   const [method, setMethod] = useState<PaymentJournalMethod | undefined>();
   const [expressStatus, setExpressStatus] = useState<PaymentJournalExpressStatus | undefined>();
-  const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const [sendingExpress, setSendingExpress] = useState(false);
   const [reexport, setReexport] = useState(false);
+
+  const applySearch = () => {
+    setRange(dRange);
+    setKind(dKind);
+    setMethod(dMethod);
+    setExpressStatus(dExpress);
+    setKeyword(dSearch.trim());
+    setPage(1);
+  };
+  const clearFilters = () => {
+    const fresh = defaultRange();
+    setDRange(fresh);
+    setDKind(undefined);
+    setDMethod(undefined);
+    setDExpress(undefined);
+    setDSearch("");
+    setRange(fresh);
+    setKind(undefined);
+    setMethod(undefined);
+    setExpressStatus(undefined);
+    setKeyword("");
+    setPage(1);
+  };
 
   const canExport = !isMatrixPermissionMode() || hasPermission(`${SCREEN_CODE}.EXPORT`);
 
@@ -339,11 +369,15 @@ export default function PaymentJournalPage() {
   ];
 
   return (
-    <section className={masterStyles.page}>
-      <div className={masterStyles.pageHeader}>
-        <div className={masterStyles.headerAccent}>PJ</div>
+    <section className={styles.page}>
+      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
         <div className={masterStyles.headerContent}>
-          <div className={masterStyles.eyebrow}>REPORTS · JOURNALS</div>
+          <div className={styles.badge}>
+            <span className={styles.badgeIcon} aria-hidden>
+              <FileTextOutlined />
+            </span>
+            REPORTS · JOURNALS
+          </div>
           <h2 className={masterStyles.pageTitle}>สมุดรายวันจ่าย</h2>
           <span className={masterStyles.pageSubtitle}>
             อ้างอิงใบสำคัญจ่ายและการบันทึกจ่ายเงินจริง แตกเป็นบรรทัดบัญชีเดบิต/เครดิต — ชำระหนี้ AP, จ่ายล่วงหน้า, จ่ายมัดจำ
@@ -357,88 +391,99 @@ export default function PaymentJournalPage() {
         />
       </div>
 
-      <div className={masterStyles.summaryRow} style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-        <div className={`${masterStyles.summaryCard} ${masterStyles.summaryTotal}`}>
-          <span className={masterStyles.summaryLabel}>ยอดรวมก่อนหัก ณ ที่จ่าย</span>
-          <strong>{money.format(data?.summary.grossAmount ?? 0)}</strong>
+      <div className={styles.statRow}>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ยอดรวมก่อนหัก ณ ที่จ่าย</span>
+          <span className={styles.statValue}>{money.format(data?.summary.grossAmount ?? 0)}</span>
+          <span className={styles.statHint}>บาท</span>
         </div>
-        <div className={masterStyles.summaryCard}>
-          <span className={masterStyles.summaryLabel}>ภาษีหัก ณ ที่จ่าย</span>
-          <strong>{money.format(data?.summary.whtAmount ?? 0)}</strong>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ภาษีหัก ณ ที่จ่าย</span>
+          <span className={styles.statValue}>{money.format(data?.summary.whtAmount ?? 0)}</span>
+          <span className={styles.statHint}>บาท</span>
         </div>
-        <div className={`${masterStyles.summaryCard} ${masterStyles.summaryActive}`}>
-          <span className={masterStyles.summaryLabel}>จ่ายจริง (โอน/เช็ค/เงินสด)</span>
-          <strong>{money.format(data?.summary.netAmount ?? 0)}</strong>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>จ่ายจริง (โอน/เช็ค/เงินสด)</span>
+          <span className={styles.statValue}>{money.format(data?.summary.netAmount ?? 0)}</span>
+          <span className={styles.statHint}>บาท</span>
         </div>
-        <div className={`${masterStyles.summaryCard} ${masterStyles.summaryInactive}`}>
-          <span className={masterStyles.summaryLabel}>ยังไม่ส่ง Express</span>
-          <strong>{pending.toLocaleString("th-TH")} รายการ</strong>
+        <div className={styles.statChip}>
+          <span className={styles.statLabel}>ยังไม่ส่ง Express</span>
+          <span className={styles.statValue}>{pending.toLocaleString("th-TH")}</span>
+          <span className={styles.statHint}>รายการ</span>
         </div>
       </div>
 
-      <div className={masterStyles.filterCard}>
-        <div className={masterStyles.filterForm}>
-          <div className={masterStyles.formGrid}>
+      <section className={styles.filterCard}>
+        <div className={styles.filterRow}>
+          <div className={styles.filterItem}>
+            <label>ช่วงวันที่จ่าย</label>
             <DatePicker.RangePicker
+              style={{ width: "100%" }}
               format="DD/MM/YYYY"
-              value={range}
-              onChange={(values) => {
-                setRange(values && values[0] && values[1] ? [values[0], values[1]] : null);
-                setPage(1);
-              }}
+              value={dRange}
+              onChange={(values) =>
+                setDRange(values && values[0] && values[1] ? [values[0], values[1]] : null)
+              }
             />
+          </div>
+          <div className={styles.filterItem}>
+            <label>ประเภทการจ่าย</label>
             <Select
               allowClear
-              placeholder="ประเภทการจ่ายทั้งหมด"
-              value={kind}
-              onChange={(value) => {
-                setKind(value);
-                setPage(1);
-              }}
+              placeholder="ทั้งหมด"
+              value={dKind}
+              onChange={setDKind}
               options={(Object.keys(PAYMENT_KIND_LABEL) as PaymentJournalKind[]).map((value) => ({
                 value,
                 label: PAYMENT_KIND_LABEL[value],
               }))}
             />
+          </div>
+          <div className={styles.filterItem}>
+            <label>วิธีจ่าย</label>
             <Select
               allowClear
-              placeholder="วิธีจ่ายทั้งหมด"
-              value={method}
-              onChange={(value) => {
-                setMethod(value);
-                setPage(1);
-              }}
+              placeholder="ทั้งหมด"
+              value={dMethod}
+              onChange={setDMethod}
               options={(["TRANSFER", "CHEQUE", "CASH"] as PaymentJournalMethod[]).map((value) => ({
                 value,
                 label: PAYMENT_METHOD_LABEL[value],
               }))}
             />
+          </div>
+          <div className={styles.filterItem}>
+            <label>สถานะ Express</label>
             <Select
               allowClear
-              placeholder="สถานะ Express ทั้งหมด"
-              value={expressStatus}
-              onChange={(value) => {
-                setExpressStatus(value);
-                setPage(1);
-              }}
+              placeholder="ทั้งหมด"
+              value={dExpress}
+              onChange={setDExpress}
               options={[
                 { value: "PENDING", label: "ยังไม่ส่ง" },
                 { value: "EXPORTED", label: "ส่งแล้ว" },
               ]}
             />
-            <Input.Search
+          </div>
+          <div className={`${styles.filterItem} ${styles.filterItemWide}`}>
+            <label>ค้นหา</label>
+            <Input
               allowClear
               placeholder="เลขที่รายการจ่าย / ใบสำคัญจ่าย / AP / เลขอ้างอิง / ผู้ขาย"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onSearch={(value) => {
-                setKeyword(value.trim());
-                setPage(1);
-              }}
+              value={dSearch}
+              onChange={(event) => setDSearch(event.target.value)}
+              onPressEnter={applySearch}
             />
           </div>
+          <div className={styles.filterActions}>
+            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button type="primary" className={styles.searchBtn} icon={<SearchOutlined />} onClick={applySearch}>
+              ค้นหา
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>
