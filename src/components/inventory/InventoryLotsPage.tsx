@@ -129,9 +129,12 @@ function pageCopy(
 ) {
   const scope = getInventoryPageScope(searchParams, itemCategoryCode);
   if (scope) {
+    const isRm = scope.title === "คลังวัตถุดิบ";
+    const isFg = scope.title === "คลังสินค้าสำเร็จรูป";
     return {
-      ...scope,
-      subtitle: "ตรวจสอบ Lot และยอดคงเหลือราย Lot — แถวสีเตือนเมื่อใกล้หมดอายุ",
+      eyebrow: isRm ? "คลังวัตถุดิบ · RAW MATERIAL" : isFg ? "คลังสินค้าสำเร็จรูป · FINISHED GOODS" : scope.eyebrow,
+      title: isRm ? "ยอดคงเหลือและประวัติ Lot วัตถุดิบ" : isFg ? "ยอดคงเหลือและประวัติ Lot สินค้าสำเร็จรูป" : scope.title,
+      subtitle: "ตรวจสอบประวัติ Lot วัตถุดิบ ยอดคงเหลือ ตำแหน่งจัดเก็บ และวันหมดอายุ",
     };
   }
   return {
@@ -390,19 +393,29 @@ export default function InventoryLotsPage() {
       title: "สถานะ",
       key: "status",
       width: 150,
-      render: (_, row) => (
-        <div className={styles.itemCell}>
-          <span
-            className={`${styles.statusPill} ${lotStatusClass(row.lotStatus)}`}
-          >
-            {row.lotStatus || "-"}
-          </span>
-          <span className={styles.metaMuted}>
-            QC {row.qcStatus || "-"}
-            {row.coaReference ? ` · COA ${row.coaReference}` : ""}
-          </span>
-        </div>
-      ),
+      render: (_, row) => {
+        const isPending = (row.qcStatus ?? "").toUpperCase() === "PENDING";
+        const isApproved = (row.qcStatus ?? "").toUpperCase() === "APPROVED";
+        return (
+          <div className={styles.itemCell}>
+            <span
+              className={`${styles.statusPill} ${lotStatusClass(row.lotStatus)}`}
+            >
+              {row.lotStatus || "-"}
+            </span>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: isPending ? 600 : 400,
+                color: isPending ? "#d97706" : isApproved ? "#16a34a" : "#64748b",
+              }}
+            >
+              {isPending ? "⚠️ QC รอตรวจ" : isApproved ? "✓ QC ผ่าน" : `QC ${row.qcStatus || "-"}`}
+              {row.coaReference ? ` · COA ${row.coaReference}` : ""}
+            </span>
+          </div>
+        );
+      },
     },
     {
       title: "",
@@ -484,52 +497,85 @@ export default function InventoryLotsPage() {
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>รายการ Lot</span>
-            <strong>{stats.rows}</strong>
+            <span>รายการ Lot ทั้งหมด</span>
+            <strong>
+              {stats.lots}{" "}
+              <span style={{ fontSize: 13, fontWeight: 400, color: "#6f9720" }}>
+                Lot
+              </span>
+            </strong>
+            <span className={styles.summarySub}>
+              {stats.rows} ตำแหน่งจัดเก็บ · {stats.items} ชนิดสินค้า
+            </span>
           </div>
+
           <div className={styles.summaryCard}>
-            <span>สินค้า</span>
-            <strong>{stats.items}</strong>
-          </div>
-          <div className={styles.summaryCard}>
-            <span>Lot ACTIVE</span>
-            <strong>{stats.activeLots}</strong>
-          </div>
-          <div className={styles.summaryCard}>
-            <span>คงเหลือรวม</span>
+            <span>คงเหลือรวมในคลัง</span>
             <strong className={styles.summaryCompact}>
               {formatQty(String(stats.totalOnHand))}
             </strong>
+            <span className={styles.summarySub} style={{ color: "#739816" }}>
+              พร้อมใช้: <strong>{formatQty(String(stats.totalAvailable))}</strong>
+            </span>
           </div>
-        </div>
 
-        <div className={styles.metricRow}>
-          <div className={styles.metricItem}>
-            <span>หมดอายุแล้ว</span>
-            <strong className={styles.metricDanger}>{stats.expiredLots}</strong>
+          <div
+            className={styles.summaryCard}
+            style={{
+              borderLeft:
+                stats.pendingQc > 0
+                  ? "4px solid #f59e0b"
+                  : "1px solid var(--erp-border, rgba(0, 0, 0, 0.06))",
+            }}
+          >
+            <span>การตรวจคุณภาพ (QC)</span>
+            <strong style={{ color: stats.pendingQc > 0 ? "#d97706" : "#2f343a" }}>
+              {stats.pendingQc}{" "}
+              <span style={{ fontSize: 13, fontWeight: 400 }}>รอตรวจ</span>
+            </strong>
+            <span className={styles.summarySub}>
+              {stats.pendingQc > 0
+                ? "⚠️ มี Lot รออนุมัติผล QC / COA"
+                : "✅ ผ่านการตรวจ QC ครบถ้วน"}
+            </span>
           </div>
-          <div className={styles.metricItem}>
-            <span>วิกฤต (≤7 วัน)</span>
-            <strong className={styles.metricCritical}>{stats.criticalLots}</strong>
-          </div>
-          <div className={styles.metricItem}>
-            <span>ใกล้หมดอายุ (≤30 วัน)</span>
-            <strong className={styles.metricWarning}>{stats.warningLots}</strong>
-          </div>
-        </div>
 
-        <div className={styles.metricRow}>
-          <div className={styles.metricItem}>
-            <span>พร้อมใช้รวม</span>
-            <strong>{formatQty(String(stats.totalAvailable))}</strong>
-          </div>
-          <div className={styles.metricItem}>
-            <span>QC รอตรวจ</span>
-            <strong>{stats.pendingQc}</strong>
-          </div>
-          <div className={styles.metricItem}>
-            <span>Lot ไม่ซ้ำ</span>
-            <strong>{stats.lots}</strong>
+          <div
+            className={styles.summaryCard}
+            style={{
+              borderLeft:
+                stats.expiredLots > 0
+                  ? "4px solid #ef4444"
+                  : stats.warningLots > 0
+                  ? "4px solid #f59e0b"
+                  : "1px solid var(--erp-border, rgba(0, 0, 0, 0.06))",
+            }}
+          >
+            <span>การเฝ้าระวังวันหมดอายุ</span>
+            <strong
+              style={{
+                color:
+                  stats.expiredLots > 0
+                    ? "#cf1322"
+                    : stats.criticalLots > 0
+                    ? "#d4380d"
+                    : stats.warningLots > 0
+                    ? "#d48806"
+                    : "#2f343a",
+              }}
+            >
+              {stats.expiredLots + stats.criticalLots + stats.warningLots}{" "}
+              <span style={{ fontSize: 13, fontWeight: 400 }}>Lot</span>
+            </strong>
+            <span className={styles.summarySub}>
+              {stats.expiredLots > 0
+                ? `❌ หมดอายุแล้ว ${stats.expiredLots} Lot`
+                : stats.criticalLots > 0
+                ? `⚠️ วิกฤต ≤7 วัน ${stats.criticalLots} Lot`
+                : stats.warningLots > 0
+                ? `ใกล้หมดอายุ ≤30 วัน ${stats.warningLots} Lot`
+                : "✅ ทุก Lot วันที่ปกติ"}
+            </span>
           </div>
         </div>
 
@@ -542,7 +588,7 @@ export default function InventoryLotsPage() {
           </div>
 
           <div className={styles.filterBar}>
-            <div className={styles.filterField}>
+            <div className={styles.filterField} style={{ minWidth: 170 }}>
               <span className={styles.filterLabel}>คลัง</span>
               <Select
                 allowClear
@@ -561,7 +607,7 @@ export default function InventoryLotsPage() {
                 }
               />
             </div>
-            <div className={styles.filterField}>
+            <div className={styles.filterField} style={{ minWidth: 170 }}>
               <span className={styles.filterLabel}>ตำแหน่ง</span>
               <Select
                 allowClear
@@ -579,7 +625,7 @@ export default function InventoryLotsPage() {
                 }
               />
             </div>
-            <div className={styles.filterField}>
+            <div className={styles.filterField} style={{ width: 130 }}>
               <span className={styles.filterLabel}>สถานะ Lot</span>
               <Select
                 allowClear
@@ -592,7 +638,7 @@ export default function InventoryLotsPage() {
                 }
               />
             </div>
-            <div className={styles.filterField}>
+            <div className={styles.filterField} style={{ width: 240 }}>
               <span className={styles.filterLabel}>วันที่รับเข้า</span>
               <DatePicker.RangePicker
                 allowEmpty={[true, true]}
@@ -605,13 +651,13 @@ export default function InventoryLotsPage() {
                 }
               />
             </div>
-            <div className={styles.filterField}>
+            <div className={styles.filterField} style={{ width: 230 }}>
               <span className={styles.filterLabel}>ค้นหา</span>
               <Input
                 allowClear
                 className={styles.filterControl}
-                prefix={<SearchOutlined />}
-                placeholder="Lot / สินค้า / เอกสาร"
+                prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
+                placeholder="Lot / สินค้า / เอกสาร..."
                 value={draft.q}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, q: e.target.value }))

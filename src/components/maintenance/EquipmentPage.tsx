@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button, Input, Select, Table, Tabs, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { PlusOutlined, SearchOutlined, ToolOutlined, WarningOutlined } from "@ant-design/icons";
+import { ClearOutlined, PlusOutlined, SearchOutlined, ToolOutlined, WarningOutlined } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import {
@@ -134,32 +134,82 @@ export default function EquipmentPage() {
 
         <div className={styles.tableCard}>
           <Tabs
+            tabBarStyle={{ padding: "0 20px", marginBottom: 0 }}
             items={[
               {
                 key: "list",
                 label: "เครื่องจักร",
                 children: (
                   <>
-                    <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-                      <Input
-                        allowClear
-                        style={{ width: 260 }}
-                        prefix={<SearchOutlined />}
-                        placeholder="ค้นรหัส / ชื่อ / Serial / หมวด"
-                        value={keyword}
-                        onChange={(e) => setKeyword(e.target.value)}
-                        onPressEnter={() => setApplied(keyword)}
-                        onBlur={() => setApplied(keyword)}
-                      />
-                      <Select allowClear placeholder="ทุกหมวด" style={{ width: 160 }} value={category} onChange={setCategory} options={categories.map((c) => ({ value: c, label: c }))} />
-                      <Select
-                        allowClear
-                        placeholder="ทุกสถานะ"
-                        style={{ width: 150 }}
-                        value={status}
-                        onChange={setStatus}
-                        options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
-                      />
+                    <div
+                      style={{
+                        padding: "16px 20px",
+                        borderBottom: "1px solid #f0f2f5",
+                        background: "#fafbfc",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 16,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                        <Input
+                          allowClear
+                          style={{ width: 280 }}
+                          prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
+                          placeholder="ค้นหารหัส / ชื่อ / Serial / หมวด..."
+                          value={keyword}
+                          onChange={(e) => setKeyword(e.target.value)}
+                          onPressEnter={() => setApplied(keyword)}
+                          onBlur={() => setApplied(keyword)}
+                        />
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
+                            หมวดหมู่:
+                          </span>
+                          <Select
+                            allowClear
+                            placeholder="ทุกหมวด"
+                            style={{ width: 160 }}
+                            value={category}
+                            onChange={setCategory}
+                            options={categories.map((c) => ({ value: c, label: c }))}
+                          />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
+                            สถานะ:
+                          </span>
+                          <Select
+                            allowClear
+                            placeholder="ทุกสถานะ"
+                            style={{ width: 150 }}
+                            value={status}
+                            onChange={setStatus}
+                            options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+                          />
+                        </div>
+                        {(keyword || applied || category || status) && (
+                          <Button
+                            type="text"
+                            icon={<ClearOutlined />}
+                            onClick={() => {
+                              setKeyword("");
+                              setApplied("");
+                              setCategory(undefined);
+                              setStatus(undefined);
+                            }}
+                            style={{ color: "#64748b" }}
+                          >
+                            ล้างตัวกรอง
+                          </Button>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: 13, color: "#64748b" }}>
+                        แสดง <strong style={{ color: "#1e293b" }}>{rows.length}</strong> จาก {allQuery.data?.data?.length ?? rows.length} เครื่อง
+                      </div>
                     </div>
                     <Table
                       rowKey="id"
@@ -174,7 +224,15 @@ export default function EquipmentPage() {
                   </>
                 ),
               },
-              { key: "downtime", label: "สรุป Downtime", children: <DowntimeSummaryTab /> },
+              {
+                key: "downtime",
+                label: "สรุป Downtime",
+                children: (
+                  <div style={{ padding: 20 }}>
+                    <DowntimeSummaryTab />
+                  </div>
+                ),
+              },
             ]}
           />
         </div>

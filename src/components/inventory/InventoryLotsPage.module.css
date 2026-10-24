@@ -99,6 +99,15 @@
   color: var(--erp-muted, #8a9199);
 }
 
+.summarySub {
+  display: block;
+  margin-top: 6px;
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 .metricRow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -315,18 +324,11 @@
 }
 
 .filterBar {
-  display: grid;
-  grid-template-columns:
-    minmax(160px, 1fr)
-    minmax(160px, 1fr)
-    minmax(140px, 0.9fr)
-    minmax(200px, 1.2fr)
-    auto
-    auto
-    auto;
-  gap: 12px;
-  align-items: end;
-  padding: 14px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px 18px;
+  padding: 16px 20px;
   border-bottom: 1px solid #eef0f3;
   background: #fafbfc;
 }
