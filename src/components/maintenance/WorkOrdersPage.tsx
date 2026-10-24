@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button, Input, Select, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { FileTextOutlined, PlusOutlined, SearchOutlined, WarningOutlined } from "@ant-design/icons";
+import { ClearOutlined, FileTextOutlined, PlusOutlined, SearchOutlined, WarningOutlined } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useWorkOrdersQuery } from "@/hooks/maintenance/useMaintenance";
@@ -107,30 +107,99 @@ export default function WorkOrdersPage() {
         </div>
 
         <div className={styles.tableCard}>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-            <Select
-              style={{ width: 150 }}
-              value={status}
-              onChange={setStatus}
-              options={[
-                { value: "ACTIVE", label: "ที่ยังไม่ปิด" },
-                { value: "COMPLETED", label: "เสร็จแล้ว" },
-                { value: "CANCELLED", label: "ยกเลิก" },
-                { value: "ALL", label: "ทั้งหมด" },
-              ]}
-            />
-            <Select allowClear placeholder="ทุกประเภท" style={{ width: 130 }} value={type} onChange={setType} options={[{ value: "PM", label: "PM" }, { value: "CM", label: "CM" }]} />
-            <Select allowClear placeholder="ทุกระดับ" style={{ width: 130 }} value={priority} onChange={setPriority} options={[...PRIORITY_OPTIONS]} />
-            <Input
-              allowClear
-              style={{ width: 220 }}
-              prefix={<SearchOutlined />}
-              placeholder="เลขที่ใบสั่งงาน"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onPressEnter={() => setApplied(keyword)}
-              onBlur={() => setApplied(keyword)}
-            />
+          <div
+            style={{
+              padding: "16px 20px",
+              borderBottom: "1px solid #f0f2f5",
+              background: "#fafbfc",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
+                  สถานะ:
+                </span>
+                <Select
+                  style={{ width: 140 }}
+                  value={status}
+                  onChange={setStatus}
+                  options={[
+                    { value: "ACTIVE", label: "ที่ยังไม่ปิด" },
+                    { value: "COMPLETED", label: "เสร็จแล้ว" },
+                    { value: "CANCELLED", label: "ยกเลิก" },
+                    { value: "ALL", label: "ทั้งหมด" },
+                  ]}
+                />
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
+                  ประเภท:
+                </span>
+                <Select
+                  allowClear
+                  placeholder="ทุกประเภท"
+                  style={{ width: 145 }}
+                  value={type}
+                  onChange={setType}
+                  options={[
+                    { value: "PM", label: "PM (บำรุงรักษา)" },
+                    { value: "CM", label: "CM (ซ่อมแซม)" },
+                  ]}
+                />
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
+                  ความเร่งด่วน:
+                </span>
+                <Select
+                  allowClear
+                  placeholder="ทุกระดับ"
+                  style={{ width: 130 }}
+                  value={priority}
+                  onChange={setPriority}
+                  options={[...PRIORITY_OPTIONS]}
+                />
+              </div>
+
+              <Input
+                allowClear
+                style={{ width: 220 }}
+                prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
+                placeholder="ค้นหาเลขที่ใบสั่งงาน..."
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onPressEnter={() => setApplied(keyword)}
+                onBlur={() => setApplied(keyword)}
+              />
+
+              {(status !== "ACTIVE" || type || priority || keyword || applied) && (
+                <Button
+                  type="text"
+                  icon={<ClearOutlined />}
+                  onClick={() => {
+                    setStatus("ACTIVE");
+                    setType(undefined);
+                    setPriority(undefined);
+                    setKeyword("");
+                    setApplied("");
+                  }}
+                  style={{ color: "#64748b" }}
+                >
+                  ล้างตัวกรอง
+                </Button>
+              )}
+            </div>
+
+            <div style={{ fontSize: 13, color: "#64748b" }}>
+              แสดง <strong style={{ color: "#1e293b" }}>{rows.length}</strong> จาก {all.length} ใบ
+            </div>
           </div>
           <Table
             rowKey="id"

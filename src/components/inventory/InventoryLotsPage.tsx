@@ -285,7 +285,7 @@ export default function InventoryLotsPage() {
     {
       title: "Lot",
       key: "lot",
-      width: 190,
+      width: 140,
       render: (_, row) => (
         <div className={styles.itemCell}>
           <span className={styles.lotChip}>{row.lotNo}</span>
@@ -306,6 +306,7 @@ export default function InventoryLotsPage() {
     {
       title: "สินค้า",
       key: "item",
+      width: 220,
       render: (_, row) => (
         <div className={styles.itemCell}>
           <span className={styles.itemCode}>{row.itemCode}</span>
@@ -316,10 +317,10 @@ export default function InventoryLotsPage() {
     {
       title: "คลัง / ตำแหน่ง",
       key: "place",
-      width: 180,
+      width: 240,
       render: (_, row) => (
         <div className={styles.itemCell}>
-          <span className={styles.itemName}>{row.warehouseCode}</span>
+          <span className={styles.warehouseBadge}>{row.warehouseCode}</span>
           <span className={styles.metaMuted}>
             {row.locationCode}
             {row.locationName ? ` — ${row.locationName}` : ""}
@@ -670,7 +671,7 @@ export default function InventoryLotsPage() {
                 showTotal: (total) => `ทั้งหมด ${total} รายการ`,
                 hideOnSinglePage: true,
               }}
-              scroll={{ x: 1400 }}
+              scroll={{ x: 1600 }}
               locale={{
                 emptyText: (
                   <div className={styles.emptyState}>

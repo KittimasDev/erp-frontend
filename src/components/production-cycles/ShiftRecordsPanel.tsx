@@ -190,11 +190,11 @@ export default function ShiftRecordsPanel({ orderId, canEdit, started }: { order
         summary={() =>
           rows.length > 0 ? (
             <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={2}><strong>รวม {rows.length} กะ</strong></Table.Summary.Cell>
-              <Table.Summary.Cell index={2} align="right"><strong>{n(totalInput)}</strong></Table.Summary.Cell>
-              <Table.Summary.Cell index={3} align="right"><strong>{n(totalHours, 2)}</strong></Table.Summary.Cell>
-              <Table.Summary.Cell index={4} align="right"><strong>{totalHours > 0 ? n(totalInput / totalHours) : "—"}</strong></Table.Summary.Cell>
-              <Table.Summary.Cell index={5} colSpan={canEdit ? 2 : 1} />
+              <Table.Summary.Cell index={0} colSpan={3}><strong>รวม {rows.length} กะ</strong></Table.Summary.Cell>
+              <Table.Summary.Cell index={3} align="right"><strong>{n(totalInput)}</strong></Table.Summary.Cell>
+              <Table.Summary.Cell index={4} align="right"><strong>{n(totalHours, 2)}</strong></Table.Summary.Cell>
+              <Table.Summary.Cell index={5} align="right"><strong>{totalHours > 0 ? n(totalInput / totalHours) : "—"}</strong></Table.Summary.Cell>
+              <Table.Summary.Cell index={6} colSpan={canEdit ? 2 : 1} />
             </Table.Summary.Row>
           ) : null
         }
