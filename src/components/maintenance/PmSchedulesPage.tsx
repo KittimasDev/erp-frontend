@@ -25,6 +25,7 @@ const DUE_TEXT: Record<PmDueState, string> = { NOT_DUE: "ยังไม่ถ�
 
 /** หน้า /maintenance/pm-schedules — แผน PM ปฏิทิน/รอบผลิต + สร้างใบสั่งงานอัตโนมัติ + แจ้งเตือนล่วงหน้า */
 export default function PmSchedulesPage() {
+  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<PmSchedule | "new" | null>(null);
   const query = usePmSchedulesQuery();
   const create = useCreatePmScheduleMutation();
@@ -35,6 +36,13 @@ export default function PmSchedulesPage() {
   const rows = query.data?.data ?? [];
 
   const columns: ColumnsType<PmSchedule> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     {
       title: "แผน PM",
       key: "plan",

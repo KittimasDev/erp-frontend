@@ -409,6 +409,13 @@ function ProductionRequestForm({
 
   const columns: ColumnsType<EligibleSalesOrderItem> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "สินค้า",
       key: "item",
       render: (_, row) => (

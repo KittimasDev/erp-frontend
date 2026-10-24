@@ -77,6 +77,13 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
 
   const columns: ColumnsType<DuePurchaseOrderRound> = useMemo(
     () => [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
       {
         title: "เลขที่ PO",
         key: "poNo",

@@ -35,6 +35,13 @@ export default function WorkOrderDetailDrawer({ workOrderId, onClose }: Props) {
   const active = wo && wo.status !== "COMPLETED" && wo.status !== "CANCELLED";
 
   const partColumns: ColumnsType<WorkOrderPartUsage> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "อะไหล่", dataIndex: "partName" },
     { title: "ใช้", dataIndex: "quantity", width: 90, align: "right" },
     { title: "คืน", dataIndex: "returnedQuantity", width: 80, align: "right" },

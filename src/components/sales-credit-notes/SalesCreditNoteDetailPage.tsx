@@ -173,6 +173,13 @@ function DraftEditor({
   const total = preview.reduce((sum, row) => sum + row.total, 0);
 
   const columns: ColumnsType<DraftLine> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "รหัส", dataIndex: "itemCode", width: 110 },
     { title: "สินค้า", dataIndex: "itemName" },
     { title: "หน่วย", dataIndex: "unitName", width: 80 },

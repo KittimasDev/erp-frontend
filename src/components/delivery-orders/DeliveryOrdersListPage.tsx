@@ -33,6 +33,7 @@ function formatDate(value?: string) {
 }
 
 export default function DeliveryOrdersListPage() {
+  const [page, setPage] = useState(1);
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -56,6 +57,13 @@ export default function DeliveryOrdersListPage() {
 
   const columns: ColumnsType<DeliveryOrder> = useMemo(
     () => [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => (page - 1) * 10 + index + 1,
+      },
       {
         title: "เลขที่",
         dataIndex: "deliveryOrderNo",
@@ -195,7 +203,7 @@ export default function DeliveryOrdersListPage() {
           loading={query.isLoading}
           columns={columns}
           dataSource={rows}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{ current: page, pageSize: 10, onChange: setPage, showSizeChanger: false }}
           onRow={(row) => ({ onClick: () => router.push(`/delivery-orders/${row.id}`) })}
           locale={{ emptyText: "ยังไม่มีใบส่งสินค้า" }}
         />

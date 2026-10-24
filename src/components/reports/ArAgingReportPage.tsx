@@ -109,6 +109,13 @@ export default function ArAgingReportPage() {
 
   const columns: ColumnsType<ArAgingRow> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
+    {
       title: "เลขที่ใบแจ้งหนี้",
       dataIndex: "invoiceNo",
       render: (value: string, row) => (

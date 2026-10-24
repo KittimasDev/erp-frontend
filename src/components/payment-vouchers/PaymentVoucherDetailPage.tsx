@@ -269,7 +269,14 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
             pagination={false}
             dataSource={v.payments}
             columns={[
-              { title: "วันที่จ่าย", dataIndex: "paymentDate", render: (x: string) => dayjs(x).format("DD/MM/YYYY") },
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    { title: "วันที่จ่าย", dataIndex: "paymentDate", render: (x: string) => dayjs(x).format("DD/MM/YYYY") },
               { title: "วิธีจ่าย", dataIndex: "paymentMethod", render: (x: string) => SUPPLIER_PAYMENT_METHOD_LABEL[x] ?? x },
               { title: "ยอดจ่ายจริง", dataIndex: "amount", align: "right" as const, render: (x: string) => fmtMoney(x) },
               { title: "เลขอ้างอิงการโอน", dataIndex: "transactionRef", render: (x?: string) => x ?? "—" },

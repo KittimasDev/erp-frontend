@@ -30,6 +30,13 @@ export default function TankReadingsDrawer({ tank, onClose }: { tank: OilTank | 
   const { canApprove } = getScreenActionPermissions("OIL_TANKS");
 
   const columns: ColumnsType<OilTankReading> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "เวลาที่วัด", key: "t", width: 150, render: (_v, r) => dayjs(r.measuredAt).format("DD/MM/YYYY HH:mm") },
     { title: "วัดจริง", key: "m", width: 110, align: "right", render: (_v, r) => n(r.measuredLiters) },
     { title: "ในระบบ", key: "b", width: 110, align: "right", render: (_v, r) => n(r.bookLiters) },

@@ -21,6 +21,13 @@ export default function CaseDashboardModal({
 
   const columns: ColumnsType<TempCaseCategorySummary> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "หมวด",
       dataIndex: "categoryNameTh",
       key: "categoryNameTh",

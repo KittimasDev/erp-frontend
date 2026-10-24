@@ -25,6 +25,7 @@ const STATUS_COLOR: Record<string, string> = { ACTIVE: "green", UNDER_MAINTENANC
 
 /** หน้า /maintenance/equipment — ข้อมูลเครื่องจักร + แจ้งเสีย + ประวัติ + สรุป Downtime */
 export default function EquipmentPage() {
+  const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState("");
   const [applied, setApplied] = useState("");
   const [category, setCategory] = useState<string>();
@@ -46,6 +47,13 @@ export default function EquipmentPage() {
   );
 
   const columns: ColumnsType<Equipment> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     {
       title: "เครื่องจักร",
       key: "name",

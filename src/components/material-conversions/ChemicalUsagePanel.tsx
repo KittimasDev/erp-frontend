@@ -37,6 +37,13 @@ export default function ChemicalUsagePanel({
 
   const columns: ColumnsType<ChemicalUsageItem> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "สารเคมี",
       key: "item",
       render: (_v, row) => (

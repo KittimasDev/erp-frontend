@@ -57,6 +57,13 @@ export default function ApInvoicePickerModal({
   const items = query.data?.items ?? [];
 
   const columns: ColumnsType<ApInvoiceOption> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "เลขที่ AP", dataIndex: "docNo", width: 150 },
     { title: "วันที่", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
     { title: "เลขที่ PO", dataIndex: "poNo", width: 120, render: (v?: string | null) => v ?? "—" },

@@ -24,6 +24,7 @@ type CreateValues = { name: string; range: [Dayjs, Dayjs]; note?: string };
 
 /** หน้า /hrm/payroll — งวดเงินเดือน: สร้างงวด (กำหนดวันเริ่ม–สิ้นสุดเอง) → ตรวจ/ปรับ → ปิดงวด → ส่งออก */
 export default function PayrollPage() {
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [detailId, setDetailId] = useState<string>();
@@ -53,6 +54,13 @@ export default function PayrollPage() {
     );
 
   const columns: ColumnsType<PayrollRun> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     {
       title: "งวด",
       key: "name",

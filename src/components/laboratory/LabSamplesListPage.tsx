@@ -30,6 +30,7 @@ function formatDate(value?: string) {
 }
 
 export default function LabSamplesListPage() {
+  const [page, setPage] = useState(1);
   const router = useRouter();
   const [sampleNo, setSampleNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -48,6 +49,13 @@ export default function LabSamplesListPage() {
 
   const columns: ColumnsType<LabSample> = useMemo(
     () => [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => (page - 1) * 20 + index + 1,
+      },
       {
         title: "เลขที่ตัวอย่าง",
         dataIndex: "sampleNo",
@@ -127,7 +135,7 @@ export default function LabSamplesListPage() {
         ),
       },
     ],
-    [router],
+    [router, page],
   );
 
   return (
@@ -239,7 +247,7 @@ export default function LabSamplesListPage() {
               loading={query.isLoading}
               columns={columns}
               dataSource={rows}
-              pagination={{ pageSize: 20 }}
+              pagination={{ current: page, pageSize: 20, onChange: setPage }}
               onRow={(row) => ({
                 onClick: () => router.push(`/laboratory/samples/${row.id}`),
               })}

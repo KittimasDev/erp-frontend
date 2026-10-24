@@ -86,6 +86,13 @@ export default function PaymentVouchersPage() {
 
   const queueColumns: ColumnsType<PaymentVoucherQueueItem> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (qPage - 1) * QUEUE_PAGE_SIZE + index + 1,
+    },
+    {
       title: "วันที่รายการ",
       dataIndex: "queuedAt",
       width: 150,
@@ -155,6 +162,13 @@ export default function PaymentVouchersPage() {
   ];
 
   const createdColumns: ColumnsType<SupplierPaymentVoucher> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (cPage - 1) * CREATED_PAGE_SIZE + index + 1,
+    },
     {
       title: "เลขที่ PV",
       dataIndex: "voucherNo",

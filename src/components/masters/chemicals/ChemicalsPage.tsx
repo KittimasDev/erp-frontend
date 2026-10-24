@@ -18,6 +18,7 @@ import HazardMatrixTab from "./HazardMatrixTab";
 
 /** หน้า /masters/chemicals — ข้อมูลสารเคมี (ผู้ผลิต/CAS/Hazard Class/SDS) + ตารางห้ามเก็บรวม */
 export default function ChemicalsPage() {
+  const [page, setPage] = useState(1);
   const queryClient = useQueryClient();
   const [keyword, setKeyword] = useState("");
   const [applied, setApplied] = useState("");
@@ -30,6 +31,13 @@ export default function ChemicalsPage() {
   const { canEdit } = getScreenActionPermissions("MASTERS_CHEMICALS");
 
   const columns: ColumnsType<ChemicalRow> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     {
       title: "สารเคมี",
       key: "item",

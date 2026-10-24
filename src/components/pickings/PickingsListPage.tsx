@@ -33,6 +33,7 @@ function formatDate(value?: string) {
 }
 
 export default function PickingsListPage() {
+  const [page, setPage] = useState(1);
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -59,6 +60,13 @@ export default function PickingsListPage() {
 
   const columns: ColumnsType<Picking> = useMemo(
     () => [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => (page - 1) * 10 + index + 1,
+      },
       {
         title: "เลขที่",
         dataIndex: "pickingNo",
@@ -247,7 +255,7 @@ export default function PickingsListPage() {
           loading={query.isLoading}
           columns={columns}
           dataSource={rows}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
+          pagination={{ current: page, pageSize: 10, onChange: setPage, showSizeChanger: false }}
           onRow={(row) => ({
             onClick: () => router.push(`/pickings/${row.id}`),
           })}

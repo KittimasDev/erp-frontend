@@ -50,6 +50,13 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
 
   const columns: ColumnsType<Role> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * pageSize + index + 1,
+    },
+    {
       title: "รหัส",
       dataIndex: "roleCode",
       key: "roleCode",

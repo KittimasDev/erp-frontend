@@ -216,6 +216,13 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
 
   const columns: ColumnsType<DeliveryOrderItem> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "ใบบรรจุ",
       key: "packing",
       width: 150,

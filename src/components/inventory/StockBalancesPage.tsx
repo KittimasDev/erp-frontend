@@ -68,6 +68,7 @@ function pageCopy(
 }
 
 export default function StockBalancesPage() {
+  const [page, setPage] = useState(1);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -178,6 +179,13 @@ export default function StockBalancesPage() {
 
   const byItemColumns: ColumnsType<StockBalanceByItemRow> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 15 + index + 1,
+    },
+    {
       title: "สินค้า",
       key: "item",
       render: (_, row) => (
@@ -249,6 +257,13 @@ export default function StockBalancesPage() {
   ];
 
   const detailColumns: ColumnsType<StockBalanceRow> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 15 + index + 1,
+    },
     {
       title: "สินค้า",
       key: "item",
@@ -558,9 +573,7 @@ export default function StockBalancesPage() {
                       onRow={(row) => ({
                         onClick: () => openItemDrawer(row),
                       })}
-                      pagination={{
-                        pageSize: 15,
-                        showTotal: (total) => `ทั้งหมด ${total} สินค้า`,
+                      pagination={{ current: page, pageSize: 15, onChange: setPage, showTotal: (total) => `ทั้งหมด ${total} สินค้า`,
                         hideOnSinglePage: true,
                       }}
                       scroll={{ x: 1150 }}
@@ -612,9 +625,7 @@ export default function StockBalancesPage() {
                           }
                         },
                       })}
-                      pagination={{
-                        pageSize: 15,
-                        showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+                      pagination={{ current: page, pageSize: 15, onChange: setPage, showTotal: (total) => `ทั้งหมด ${total} รายการ`,
                         hideOnSinglePage: true,
                       }}
                       scroll={{ x: 980 }}

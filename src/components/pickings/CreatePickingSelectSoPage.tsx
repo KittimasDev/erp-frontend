@@ -146,6 +146,13 @@ export default function CreatePickingSelectSoPage() {
 
   const columns: ColumnsType<ReadySalesOrder> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "เลขที่ SO",
       dataIndex: "soNo",
       render: (v: string) => <span className={styles.prNo}>{v}</span>,

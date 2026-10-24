@@ -67,6 +67,13 @@ export default function StockBalanceItemDetailDrawer({
 
   const columns: ColumnsType<StockBalanceRow> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "คลัง / ตำแหน่ง",
       key: "place",
       render: (_, row) => (
@@ -114,6 +121,13 @@ export default function StockBalanceItemDetailDrawer({
   ];
 
   const reservationColumns: ColumnsType<StockBalanceReservationRow> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     {
       title: "ลูกค้า",
       key: "customer",

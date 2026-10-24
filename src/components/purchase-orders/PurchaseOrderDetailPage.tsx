@@ -84,6 +84,13 @@ const PO_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 
 const adjustmentColumns: ColumnsType<PoPaymentAdjustmentItem> = [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_: unknown, __: unknown, index: number) => index + 1,
+      },
   {
     title: "ประเภท",
     dataIndex: "docType",

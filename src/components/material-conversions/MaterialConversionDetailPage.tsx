@@ -79,6 +79,13 @@ export default function MaterialConversionDetailPage({
 
   const inputColumns: ColumnsType<MaterialConversionInputLine> = useMemo(
     () => [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
       {
         title: "สินค้า",
         key: "item",
@@ -137,6 +144,13 @@ export default function MaterialConversionDetailPage({
 
   const outputColumns: ColumnsType<MaterialConversionOutputLine> = useMemo(
     () => [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
       {
         title: "ชนิด",
         dataIndex: "outputType",

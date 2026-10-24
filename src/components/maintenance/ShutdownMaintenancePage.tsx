@@ -96,6 +96,13 @@ function PlanDetail({ plan, onBack }: { plan: ShutdownMaintenancePlan; onBack: (
   const data = query.data?.data;
 
   const woColumns: ColumnsType<WorkOrder> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     { title: "วันที่", key: "d", width: 110, render: (_v, w) => fmtDate(w.plannedDate) },
     { title: "ใบสั่งงาน", dataIndex: "workOrderNo", width: 160 },
     { title: "เครื่อง / งาน", key: "eq", render: (_v, w) => <div><strong>{w.equipmentCode}</strong> {w.description.split("\n")[0]}</div> },
@@ -103,6 +110,13 @@ function PlanDetail({ plan, onBack }: { plan: ShutdownMaintenancePlan; onBack: (
     { title: "สถานะ", key: "s", width: 100, render: (_v, w) => <Tag color={w.status === "COMPLETED" ? "green" : "blue"}>{WORK_ORDER_STATUS_LABEL[w.status] ?? w.status}</Tag> },
   ];
   const candColumns: ColumnsType<PmSchedule> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     { title: "แผน PM", key: "p", render: (_v, s) => <div><strong>{s.equipmentCode}</strong> {s.title ?? "PM"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{s.dueLabel}</div></div> },
     { title: "เตรียมของ", key: "k", render: (_v, s) => <span style={{ fontSize: 12 }}>{s.plannedParts?.map((p) => `${p.partName} ×${p.quantity}`).join(", ") || "—"}{s.plannedManpower ? ` · ช่าง ${s.plannedManpower}` : ""}</span> },
   ];
@@ -180,6 +194,13 @@ export default function ShutdownMaintenancePage() {
   const plans = query.data?.data ?? [];
 
   const columns: ColumnsType<ShutdownMaintenancePlan> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     {
       title: "แผน Shutdown",
       key: "n",

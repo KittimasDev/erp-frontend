@@ -196,6 +196,13 @@ export default function NotificationSettingsPage({
 
   const eventColumns: ColumnsType<NotificationEventSummary> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
+    {
       title: "เมนู / ประเภท",
       key: "name",
       render: (_, row) => (
@@ -249,6 +256,13 @@ export default function NotificationSettingsPage({
   ];
 
   const roleColumns: ColumnsType<NotificationEventRoleRow> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     {
       title: "รหัสบทบาท",
       dataIndex: "roleCode",

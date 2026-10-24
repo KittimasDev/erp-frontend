@@ -115,6 +115,13 @@ export default function ShiftMasterModal({ open, onClose }: Props) {
 
   const columns: ColumnsType<Shift> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "กะ",
       key: "name",
       render: (_v, row) => (

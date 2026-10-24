@@ -77,6 +77,13 @@ export default function AdjustDebtModal({
 
   const creditColumns: ColumnsType<ApSupplierCreditCandidate> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "ใบลดหนี้ (เครดิตผู้ขาย)",
       dataIndex: "docNo",
       width: 190,
@@ -127,6 +134,13 @@ export default function AdjustDebtModal({
   ];
 
   const columns: ColumnsType<ApAdjustmentCandidate> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     {
       title: "เลขที่เอกสาร",
       dataIndex: "docNo",

@@ -136,6 +136,13 @@ export default function PaymentRecordsPage() {
 
   const payableColumns: ColumnsType<SupplierPaymentVoucher> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (pPage - 1) * PAYABLE_PAGE_SIZE + index + 1,
+    },
+    {
       title: "เลขที่ PV",
       dataIndex: "voucherNo",
       render: (v: string, r) => <Link href={`/finance/payables/payment-vouchers/${r.id}`}>{v}</Link>,
@@ -170,6 +177,13 @@ export default function PaymentRecordsPage() {
   ];
 
   const recordColumns: ColumnsType<PaymentRecord> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (rPage - 1) * PAID_PAGE_SIZE + index + 1,
+    },
     { title: "เลขที่รายการจ่าย", dataIndex: "paymentNo", width: 150, render: (v?: string) => <Typography.Text strong>{v ?? "—"}</Typography.Text> },
     { title: "วันที่จ่ายจริง", dataIndex: "paymentDate", width: 120, render: (v: string) => formatThaiDate(v) },
     { title: "เลขที่ PV", dataIndex: "voucherNo", width: 160 },

@@ -29,6 +29,13 @@ export default function CycleSummaryPage({ id }: { id: string }) {
   const s = query.data?.data;
 
   const orderColumns: ColumnsType<CycleSummaryOrder> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "ใบสั่งผลิต", key: "no", render: (_v, o) => <Link href={`/production/production-orders/${o.id}`}>{o.orderNo}</Link> },
     { title: "Batch", dataIndex: "batchNo", render: (v?: string) => v ?? "—" },
     { title: "สถานะ", dataIndex: "status", render: (v: string) => ORDER_STATUS_LABEL[v] ?? v },
@@ -42,16 +49,37 @@ export default function CycleSummaryPage({ id }: { id: string }) {
     },
   ];
   const outputColumns: ColumnsType<CycleSummaryOutput> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "ผลผลิต", key: "i", render: (_v, o) => `${o.itemCode ?? ""} ${o.itemNameTh ?? ""}` },
     { title: "ปริมาณ", dataIndex: "quantity", align: "right", render: (v: number) => n(v, 3) },
     { title: "Yield %", dataIndex: "yieldPercent", align: "right", render: (v?: number) => (v === undefined ? "—" : `${n(v)}%`) },
   ];
   const dtColumns: ColumnsType<CycleSummaryDowntimeBucket> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "หมวดสาเหตุ", dataIndex: "label" },
     { title: "ครั้ง", dataIndex: "count", width: 70, align: "right" },
     { title: "ชั่วโมง", dataIndex: "hours", width: 100, align: "right", render: (v: number) => n(v, 2) },
   ];
   const dailyColumns: ColumnsType<CycleSummaryDaily> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "วันที่", dataIndex: "date", width: 110, render: fmtDate },
     { title: "ยางป้อน (กก.)", dataIndex: "inputKg", align: "right", render: (v: number) => n(v) },
     { title: "ผลผลิต กก. (อนุมัติรับเข้า)", dataIndex: "outputKg", align: "right", render: (v: number) => n(v) },
@@ -60,6 +88,13 @@ export default function CycleSummaryPage({ id }: { id: string }) {
     { title: "Feed Rate (กก./ชม.)", dataIndex: "feedRateKgH", align: "right", render: (v?: number) => n(v) },
   ];
   const shiftColumns: ColumnsType<CycleSummaryShift> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "กะ", dataIndex: "shiftName" },
     { title: "จำนวนบันทึก", dataIndex: "recordCount", align: "right" },
     { title: "ยางป้อน (กก.)", dataIndex: "inputKg", align: "right", render: (v: number) => n(v) },

@@ -158,6 +158,7 @@ export default function VendorsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [page, setPage] = useState(1);
 
   const filters = useMemo(
     () => parseFiltersFromSearch(searchParams),
@@ -235,6 +236,13 @@ export default function VendorsPage() {
   };
 
   const columns: ColumnsType<Vendor> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 10 + index + 1,
+    },
     {
       title: "รหัส",
       dataIndex: "creditorCode",

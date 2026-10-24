@@ -135,6 +135,13 @@ export default function ProductionOrderDataTab({
 
   const tableColumns: ColumnsType<ProductionOrderOutputTrendPoint> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "ช่วง",
       dataIndex: "bucket",
       key: "bucket",

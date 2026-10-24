@@ -29,6 +29,13 @@ export default function EquipmentHistoryDrawer({ equipment, onClose }: Props) {
   const [ending, setEnding] = useState<EquipmentDowntime | null>(null);
 
   const woColumns: ColumnsType<WorkOrder> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "เลขที่", dataIndex: "workOrderNo", width: 150 },
     { title: "ประเภท", dataIndex: "type", width: 70, render: (t: string) => <Tag color={t === "PM" ? "blue" : "volcano"}>{t}</Tag> },
     { title: "รายละเอียด", dataIndex: "description", ellipsis: true },
@@ -38,6 +45,13 @@ export default function EquipmentHistoryDrawer({ equipment, onClose }: Props) {
   ];
 
   const dtColumns: ColumnsType<EquipmentDowntime> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     {
       title: "ประเภท",
       dataIndex: "category",

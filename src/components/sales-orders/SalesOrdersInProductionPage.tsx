@@ -156,6 +156,13 @@ export default function SalesOrdersInProductionPage() {
   const itemColumns: ColumnsType<LinkedSalesOrderLine> = useMemo(
     () => [
       {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => index + 1,
+      },
+      {
         title: "สินค้า",
         key: "item",
         render: (_, line) => (

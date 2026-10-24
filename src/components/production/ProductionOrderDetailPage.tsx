@@ -803,7 +803,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={outputPlanLines}
                 locale={{ emptyText: "ไม่มีแผนผลผลิต" }}
                 columns={[
-                  {
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
                     title: "สินค้า",
                     key: "item",
                     render: (_, row) =>
@@ -843,7 +850,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   dataSource={wastePlanLines}
                   locale={{ emptyText: "ไม่มีของเสีย" }}
                   columns={[
-                    {
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
                       title: "สินค้า",
                       key: "item",
                       render: (_, row) =>
@@ -895,7 +909,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 pagination={false}
                 dataSource={order.inputItems}
                 columns={[
-                  {
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
                     title: "สินค้า",
                     key: "item",
                     render: (_, row) =>
@@ -945,7 +966,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={order.downtimes}
                 locale={{ emptyText: "ไม่มีรายการ Downtime" }}
                 columns={[
-                  { title: "เริ่ม", dataIndex: "startAt", key: "startAt", render: fmtDate },
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    { title: "เริ่ม", dataIndex: "startAt", key: "startAt", render: fmtDate },
                   {
                     title: "สิ้นสุด",
                     dataIndex: "endAt",
@@ -996,7 +1024,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={order.logs}
                 locale={{ emptyText: "ยังไม่มีบันทึก" }}
                 columns={[
-                  { title: "เวลา", dataIndex: "loggedAt", key: "loggedAt", render: fmtDate },
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    { title: "เวลา", dataIndex: "loggedAt", key: "loggedAt", render: fmtDate },
                   { title: "รายละเอียด", dataIndex: "note", key: "note" },
                   {
                     title: "ผู้บันทึก",
@@ -1024,7 +1059,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={relatedMaterialIssuesQuery.data?.data.items ?? []}
                 locale={{ emptyText: "ยังไม่มีใบเบิกวัตถุดิบที่ผูกใบสั่งผลิตนี้" }}
                 columns={[
-                  { title: "เลขที่เบิก", dataIndex: "issueNo", key: "issueNo" },
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    { title: "เลขที่เบิก", dataIndex: "issueNo", key: "issueNo" },
                   {
                     title: "วันที่",
                     dataIndex: "issueDate",
@@ -1091,7 +1133,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     "ยังไม่มีการตัดสต๊อก — สต๊อกจะขยับตอนกดเริ่มผลิตเท่านั้น",
                 }}
                 columns={[
-                  {
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
                     title: "วันที่",
                     dataIndex: "movementDate",
                     key: "movementDate",
@@ -1158,7 +1207,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={outputHistoryRows}
                 locale={{ emptyText: "ยังไม่มีคำขอรับผลผลิต" }}
                 columns={[
-                  {
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
                     title: "วันที่รับเข้า",
                     key: "postingDate",
                     width: 115,
@@ -1368,7 +1424,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   dataSource={sourceLines}
                   locale={{ emptyText: "ไม่มีรายการอ้างอิง" }}
                   columns={[
-                    {
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
                       title: "",
                       key: "select",
                       width: 48,
@@ -1621,7 +1684,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 pagination={false}
                 dataSource={wasteActualRows}
                 columns={[
-                  {
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
                     title: "สินค้า",
                     dataIndex: "itemLabel",
                     key: "itemLabel",
@@ -1762,7 +1832,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               }),
             }}
             columns={[
-              {
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
                 title: "สินค้า",
                 key: "item",
                 render: (_, row) =>

@@ -299,6 +299,13 @@ export default function CompanyProfilePage() {
 
   const bankColumns: ColumnsType<CompanyBankAccount> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "ธนาคาร",
       dataIndex: "bankName",
       render: (value: string, record) => (

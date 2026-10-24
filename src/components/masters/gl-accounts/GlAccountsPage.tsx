@@ -28,6 +28,7 @@ export default function GlAccountsPage() {
   const perms = useScreenActionPermissions(SCREEN_CODE);
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<GlAccount | "new" | null>(null);
   const [form] = Form.useForm<FormValues>();
   const [draft, setDraft] = useState<Record<string, string | null>>({});
@@ -75,6 +76,13 @@ export default function GlAccountsPage() {
   };
 
   const columns: ColumnsType<GlAccount> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     { title: "รหัสบัญชี", dataIndex: "code", width: 160, render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
     { title: "ชื่อบัญชี", dataIndex: "nameTh" },
     {
@@ -158,7 +166,10 @@ export default function GlAccountsPage() {
           placeholder="ค้นรหัสหรือชื่อบัญชี"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          onSearch={(value) => setKeyword(value.trim())}
+          onSearch={(value) => {
+            setKeyword(value.trim());
+            setPage(1);
+          }}
           style={{ width: 300, marginBottom: 12 }}
         />
         <Table
@@ -167,7 +178,7 @@ export default function GlAccountsPage() {
           loading={accountsQuery.isFetching}
           columns={columns}
           dataSource={accountsQuery.data ?? []}
-          pagination={{ pageSize: 20, showSizeChanger: false }}
+          pagination={{ current: page, pageSize: 20, showSizeChanger: false, onChange: setPage }}
         />
       </Card>
 

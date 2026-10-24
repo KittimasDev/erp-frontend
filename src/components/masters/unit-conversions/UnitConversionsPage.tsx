@@ -50,6 +50,7 @@ export default function UnitConversionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editing, setEditing] = useState<UnitConversion | null>(null);
+  const [page, setPage] = useState(1);
 
   const conversionsQuery = useUnitConversionsQuery();
   const unitsQuery = useUnitsQuery({ isActive: true });
@@ -132,6 +133,13 @@ export default function UnitConversionsPage() {
   };
 
   const columns: ColumnsType<UnitConversion> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 10 + index + 1,
+    },
     {
       title: "ขอบเขต",
       key: "scope",
@@ -383,7 +391,7 @@ export default function UnitConversionsPage() {
               columns={columns}
               dataSource={filtered}
               loading={conversionsQuery.isLoading || conversionsQuery.isFetching}
-              pagination={{ pageSize: 10, showSizeChanger: false }}
+              pagination={{ current: page, pageSize: 10, onChange: setPage, showSizeChanger: false }}
               scroll={{ x: 1030 }}
             />
           )}

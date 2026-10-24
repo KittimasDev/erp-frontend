@@ -252,6 +252,13 @@ export default function CreditorBalancesPage() {
 
   const columns: ColumnsType<CreditorBalanceRow> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * PAGE_SIZE + index + 1,
+    },
+    {
       title: "ผู้ขาย",
       key: "creditor",
       render: (_v, r) => (

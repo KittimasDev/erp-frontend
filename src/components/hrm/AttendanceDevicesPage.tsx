@@ -96,6 +96,13 @@ export default function AttendanceDevicesPage() {
 
   const deviceColumns: ColumnsType<AttendanceDevice> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
+    {
       title: "เครื่อง",
       key: "name",
       render: (_v, d) => (
@@ -149,6 +156,13 @@ export default function AttendanceDevicesPage() {
   ];
 
   const eventColumns: ColumnsType<AttendanceDeviceEvent> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     { title: "เวลาสแกน", key: "scanned", width: 170, render: (_v, e) => fmt(e.scannedAt) },
     { title: "เครื่อง", key: "device", width: 160, render: (_v, e) => e.deviceName ?? "—" },
     {

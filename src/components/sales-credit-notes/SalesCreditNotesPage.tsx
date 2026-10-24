@@ -63,6 +63,13 @@ export default function SalesCreditNotesPage() {
   }, [pendingQuery.data?.items]);
 
   const pendingColumns: ColumnsType<SalesCreditNotePendingRow> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     { title: "รหัส", dataIndex: "itemCode", width: 120 },
     { title: "สินค้า", dataIndex: "itemName" },
     {
@@ -88,6 +95,13 @@ export default function SalesCreditNotesPage() {
   ];
 
   const noteColumns: ColumnsType<SalesCreditNote> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     { title: "เลขที่", dataIndex: "creditNoteNo", width: 180 },
     { title: "วันที่", dataIndex: "creditNoteDate", width: 120 },
     {

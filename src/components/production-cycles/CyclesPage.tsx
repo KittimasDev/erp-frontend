@@ -102,6 +102,7 @@ function CycleFormModal({ cycle, onClose }: { cycle: ProductionCycle | null; onC
 
 /** หน้า /production/cycles — รอบผลิต Pyrolysis (45 วัน + Shutdown 3 วัน) */
 export default function CyclesPage() {
+  const [page, setPage] = useState(1);
   const query = useProductionCyclesQuery();
   const close = useCloseProductionCycleMutation();
   const cancel = useCancelProductionCycleMutation();
@@ -111,6 +112,13 @@ export default function CyclesPage() {
   const [reason, setReason] = useState("");
 
   const columns: ColumnsType<ProductionCycle> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     {
       title: "รอบ",
       key: "no",
@@ -188,7 +196,7 @@ export default function CyclesPage() {
           {canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setEditing("new")}>เปิดรอบใหม่</Button> : <div />}
         </div>
         <div className={styles.tableCard}>
-          <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={query.data?.data ?? []} loading={query.isFetching} pagination={{ pageSize: 20 }} locale={{ emptyText: "ยังไม่มีรอบผลิต — กด เปิดรอบใหม่" }} scroll={{ x: 1000 }} />
+          <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={query.data?.data ?? []} loading={query.isFetching} pagination={{ current: page, pageSize: 20, onChange: setPage }} locale={{ emptyText: "ยังไม่มีรอบผลิต — กด เปิดรอบใหม่" }} scroll={{ x: 1000 }} />
         </div>
         {editing ? <CycleFormModal key={editing === "new" ? "new" : editing.id} cycle={editing === "new" ? null : editing} onClose={() => setEditing(null)} /> : null}
         <Modal

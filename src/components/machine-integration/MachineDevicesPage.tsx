@@ -195,6 +195,13 @@ function ReadingsModal({ tag, onClose }: { tag: MachineTag; onClose: () => void 
         pagination={{ pageSize: 15, hideOnSinglePage: true }}
         locale={{ emptyText: "ยังไม่เคยได้รับค่า" }}
         columns={[
+          {
+            title: "ลำดับ",
+            key: "seq",
+            width: 64,
+            align: "center",
+            render: (_, __, index) => index + 1,
+          },
           { title: "เวลาที่วัด", dataIndex: "recordedAt", render: fmtTime },
           { title: `ค่า${tag.unit ? ` (${tag.unit})` : ""}`, dataIndex: "value", align: "right" },
           { title: "คุณภาพ", dataIndex: "quality", width: 90, render: (v: string) => <Tag color={v === "GOOD" ? "green" : "orange"}>{v}</Tag> },

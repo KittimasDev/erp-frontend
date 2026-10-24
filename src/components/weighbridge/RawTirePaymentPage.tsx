@@ -174,6 +174,13 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
 
   const bankColumns: ColumnsType<PaymentBankAccount> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
+    {
       title: "ธนาคาร",
       dataIndex: "bankName",
       key: "bankName",

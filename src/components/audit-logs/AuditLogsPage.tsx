@@ -91,6 +91,13 @@ export default function AuditLogsPage() {
 
   const columns: ColumnsType<AuditLog> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * LIMIT + index + 1,
+    },
+    {
       title: "เวลา",
       dataIndex: "performedAt",
       key: "performedAt",

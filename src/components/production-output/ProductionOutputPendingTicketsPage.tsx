@@ -47,6 +47,7 @@ const YIELD_GAP_ALERT = 5;
  * ใบที่ขอครบทุก SKU แล้ว (รออนุมัติหรืออนุมัติเข้าคลังแล้ว) ไม่ขึ้นในคิวนี้
  */
 export default function ProductionOutputPendingTicketsPage() {
+  const [page, setPage] = useState(1);
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [q, setQ] = useState("");
@@ -91,6 +92,13 @@ export default function ProductionOutputPendingTicketsPage() {
 
   const columns: ColumnsType<ProductionOutputReadyOrder> = useMemo(
     () => [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => (page - 1) * 20 + index + 1,
+      },
       {
         title: "เลขที่ใบสั่งผลิต",
         dataIndex: "orderNo",

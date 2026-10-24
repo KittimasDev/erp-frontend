@@ -31,6 +31,13 @@ export default function TanksPage() {
 
   const columns: ColumnsType<OilTank> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
+    {
       title: "ถัง",
       key: "t",
       render: (_v, t) => (

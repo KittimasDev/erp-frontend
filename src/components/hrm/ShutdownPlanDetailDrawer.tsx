@@ -136,6 +136,13 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
   };
 
   const demandColumns: ColumnsType<ShutdownDemand> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "ตำแหน่ง", dataIndex: "position" },
     { title: "กะ", dataIndex: "shiftName", width: 130 },
     { title: "ต้องการ/วัน", dataIndex: "headcount", width: 110, align: "right" },
@@ -150,6 +157,13 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
   ];
 
   const memberColumns: ColumnsType<ShutdownMemberInput> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     {
       title: "พนักงาน",
       key: "user",

@@ -143,6 +143,7 @@ function pageCopy(
 }
 
 export default function InventoryLotsPage() {
+  const [page, setPage] = useState(1);
   const searchParams = useSearchParams();
   const scopeFilter = inventoryScopeApiFilter(searchParams);
   const copy = pageCopy(searchParams, scopeFilter.itemCategoryCode);
@@ -274,6 +275,13 @@ export default function InventoryLotsPage() {
   const [qcLot, setQcLot] = useState<InventoryLotBalanceRow | null>(null);
 
   const columns: ColumnsType<InventoryLotBalanceRow> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 15 + index + 1,
+    },
     {
       title: "Lot",
       key: "lot",

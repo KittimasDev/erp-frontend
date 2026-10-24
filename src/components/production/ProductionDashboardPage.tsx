@@ -116,6 +116,13 @@ export default function ProductionDashboardPage() {
 
   const wipColumns: ColumnsType<ProductionWorkInProgressRow> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "ใบสั่งผลิต",
       dataIndex: "orderNo",
       key: "orderNo",

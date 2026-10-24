@@ -51,6 +51,13 @@ export default function AdvanceRequestsListPage() {
 
   const eligibleColumns: ColumnsType<EligiblePayable> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
+    {
       title: "เลขที่ PO",
       dataIndex: "poNo",
       render: (v: string) => <Typography.Text strong>{v}</Typography.Text>,
@@ -114,6 +121,13 @@ export default function AdvanceRequestsListPage() {
   ];
 
   const columns: ColumnsType<AdvanceRequest> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     { title: "เลขที่รายการ", dataIndex: "requestNo", render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
     { title: "วันที่เอกสาร", dataIndex: "requestDate", width: 120, render: formatThaiDate },
     { title: "เลขที่ PO", dataIndex: "poNo" },

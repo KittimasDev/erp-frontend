@@ -72,6 +72,13 @@ export default function ProductionRequestDetailPage({ requestId }: Props) {
   const [cancelReason, setCancelReason] = useState("");
 
   const itemColumns: ColumnsType<ProductionRequestItem> = [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_: unknown, __: unknown, index: number) => index + 1,
+      },
     {
       title: "สินค้า",
       key: "item",

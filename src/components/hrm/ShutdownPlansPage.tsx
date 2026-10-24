@@ -22,6 +22,7 @@ type StatusFilter = "ACTIVE" | "CANCELLED" | "ALL";
 
 /** หน้า /hrm/shutdown-plans — แผนกำลังคนช่วง Shutdown แยกจากตารางกะปกติ */
 export default function ShutdownPlansPage() {
+  const [page, setPage] = useState(1);
   const [status, setStatus] = useState<StatusFilter>("ACTIVE");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<ShutdownPlan | null>(null);
@@ -64,6 +65,13 @@ export default function ShutdownPlansPage() {
   };
 
   const columns: ColumnsType<ShutdownPlan> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     {
       title: "ชื่อแผน",
       key: "name",

@@ -183,6 +183,13 @@ function PickerBody({
 
   const columns: ColumnsType<PickerRow> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "เลขที่ใบขอผลิต",
       key: "requestNo",
       width: 190,

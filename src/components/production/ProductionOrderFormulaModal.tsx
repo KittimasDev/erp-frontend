@@ -167,6 +167,13 @@ function FormulaBody({
 
   const columns: ColumnsType<ProductionFormulaLine> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "ประเภท",
       dataIndex: "lineRole",
       key: "lineRole",

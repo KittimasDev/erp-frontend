@@ -66,6 +66,13 @@ function PendingPrItemsPanel({
   const items = pr.items ?? [];
 
   const columns: ColumnsType<PurchaseRequestItem> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     ...(selectable
       ? [
           {

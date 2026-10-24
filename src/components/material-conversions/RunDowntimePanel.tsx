@@ -72,6 +72,13 @@ export default function RunDowntimePanel({ run, canEdit }: Props) {
 
   const columns: ColumnsType<RunDowntime> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "เครื่อง",
       key: "eq",
       render: (_v, r) => (

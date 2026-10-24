@@ -40,6 +40,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 type StatusFilter = "ALL" | TempCaseStatus;
 
 export default function CasesPage() {
+  const [page, setPage] = useState(1);
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -154,6 +155,13 @@ export default function CasesPage() {
   };
 
   const columns: ColumnsType<TempCase> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 10 + index + 1,
+    },
     {
       title: "หัวข้อ",
       dataIndex: "title",
@@ -363,7 +371,7 @@ export default function CasesPage() {
           columns={columns}
           dataSource={cases}
           loading={loading}
-          pagination={{ pageSize: 10 }}
+          pagination={{ current: page, pageSize: 10, onChange: setPage }}
           scroll={{ x: 1040 }}
         />
 

@@ -145,6 +145,13 @@ export default function BillingNotesPage() {
   };
 
   const pendingColumns: ColumnsType<PendingBillingAp> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (pPage - 1) * PENDING_PAGE_SIZE + index + 1,
+    },
     { title: "วันที่ AP", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {
       title: "เลขที่ AP",
@@ -199,6 +206,13 @@ export default function BillingNotesPage() {
   ];
 
   const createdColumns: ColumnsType<BillingNoteListItem> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (cPage - 1) * CREATED_PAGE_SIZE + index + 1,
+    },
     {
       title: "เลขที่ใบวางบิล",
       dataIndex: "billingNo",

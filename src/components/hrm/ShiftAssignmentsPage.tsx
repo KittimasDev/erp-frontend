@@ -89,6 +89,8 @@ function LeaveTag({
 }
 
 export default function ShiftAssignmentsPage() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const today = dayjs();
 
   const [mode, setMode] = useState<RangeMode>("month");
@@ -180,6 +182,13 @@ export default function ShiftAssignmentsPage() {
 
   const dayColumns: ColumnsType<ShiftAssignment> = useMemo(
     () => [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => (page - 1) * pageSize + index + 1,
+      },
       {
         title: "วันที่",
         dataIndex: "date",
@@ -334,6 +343,13 @@ export default function ShiftAssignmentsPage() {
   const personColumns: ColumnsType<ShiftAssignmentUser> = useMemo(
     () => [
       {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => (page - 1) * pageSize + index + 1,
+      },
+      {
         title: "พนักงาน",
         key: "employee",
         width: 220,
@@ -479,6 +495,13 @@ export default function ShiftAssignmentsPage() {
 
   const eventColumns: ColumnsType<ShiftAssignmentEvent> = useMemo(
     () => [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => (page - 1) * pageSize + index + 1,
+      },
       {
         title: "วันที่",
         dataIndex: "date",
@@ -1118,7 +1141,9 @@ export default function ShiftAssignmentsPage() {
                 }
                 scroll={{ x: "max-content" }}
                 pagination={{
-                  pageSize: 20,
+                  current: page,
+                  pageSize,
+                  onChange: (p, ps) => { setPage(p); setPageSize(ps); },
                   showSizeChanger: true,
                   pageSizeOptions: [10, 20, 50, 100],
                   showTotal: (total) => `ทั้งหมด ${total} รายการ`,
@@ -1138,7 +1163,9 @@ export default function ShiftAssignmentsPage() {
                 loading={assignmentsQuery.isFetching}
                 scroll={{ x: "max-content" }}
                 pagination={{
-                  pageSize: 20,
+                  current: page,
+                  pageSize,
+                  onChange: (p, ps) => { setPage(p); setPageSize(ps); },
                   showSizeChanger: true,
                   pageSizeOptions: [10, 20, 50, 100],
                   showTotal: (total) => `ทั้งหมด ${total} คน`,
@@ -1161,7 +1188,9 @@ export default function ShiftAssignmentsPage() {
                 }
                 scroll={{ x: "max-content" }}
                 pagination={{
-                  pageSize: 20,
+                  current: page,
+                  pageSize,
+                  onChange: (p, ps) => { setPage(p); setPageSize(ps); },
                   showSizeChanger: true,
                   pageSizeOptions: [10, 20, 50, 100],
                   showTotal: (total) => `ทั้งหมด ${total} รายการ`,

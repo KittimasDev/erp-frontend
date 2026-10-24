@@ -124,6 +124,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
 /** หน้า /oil-tank-farm/receivings — รับน้ำมันจากฝ่ายผลิตเข้าถัง (Batch, ใบสั่งผลิต, QC Hold, ส่ง Lab) */
 export default function ReceivingsPage() {
+  const [page, setPage] = useState(1);
   const query = useOilReceivingsQuery();
   const post = usePostOilReceivingMutation();
   const cancel = useCancelOilReceivingMutation();
@@ -132,6 +133,13 @@ export default function ReceivingsPage() {
   const [creating, setCreating] = useState(false);
 
   const columns: ColumnsType<OilReceiving> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     { title: "ใบรับ", key: "no", width: 150, render: (_v, r) => <div><strong>{r.receivingNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.receivingDate).format("DD/MM/YYYY")}</div></div> },
     { title: "ถัง", dataIndex: "tankNo", width: 100 },
     { title: "ปริมาณ", key: "q", width: 130, align: "right", render: (_v, r) => `${n(r.quantityLiters)} ${r.unitCode ?? ""}` },

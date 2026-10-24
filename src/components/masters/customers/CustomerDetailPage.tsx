@@ -124,6 +124,13 @@ export default function CustomerDetailPage({ id }: Props) {
 
   const historyColumns: ColumnsType<SalesOrder> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "เลขที่ใบสั่งซื้อ",
       dataIndex: "soNo",
       key: "soNo",

@@ -21,6 +21,7 @@ const PRIORITY_COLOR: Record<string, string> = { LOW: "default", NORMAL: "blue",
 
 /** หน้า /maintenance/work-orders — ใบสั่งงานซ่อมบำรุง (PM/CM) · แจ้งเสีย · มอบหมายช่าง · เริ่ม/ปิดงาน · อะไหล่ */
 export default function WorkOrdersPage() {
+  const [page, setPage] = useState(1);
   const [status, setStatus] = useState<string>("ACTIVE");
   const [type, setType] = useState<string>();
   const [priority, setPriority] = useState<string>();
@@ -38,6 +39,13 @@ export default function WorkOrdersPage() {
   );
 
   const columns: ColumnsType<WorkOrder> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     {
       title: "ใบสั่งงาน",
       key: "no",

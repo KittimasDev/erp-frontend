@@ -83,6 +83,13 @@ export default function LabSampleDetailPage({ id }: Props) {
 
   const coaColumns: ColumnsType<LabCoa> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "เลขที่ COA",
       dataIndex: "coaNo",
       render: (v: string, r) => (

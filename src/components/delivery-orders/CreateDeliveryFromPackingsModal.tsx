@@ -115,6 +115,13 @@ function ModalBody({
 
   const columns: ColumnsType<ReadyPacking> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "เลขที่ใบบรรจุ",
       dataIndex: "packingNo",
       render: (v: string, row) => (

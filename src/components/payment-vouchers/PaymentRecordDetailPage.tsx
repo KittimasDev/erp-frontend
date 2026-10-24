@@ -62,6 +62,13 @@ function ReadOnlyFiles({ files, empty }: { files: PaymentRecordAttachment[]; emp
     URL.revokeObjectURL(url);
   };
   const columns: ColumnsType<PaymentRecordAttachment> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "ชื่อไฟล์", dataIndex: "originalFileName", render: (v?: string) => v || "ไฟล์" },
     { title: "ประเภท", dataIndex: "mimeType", width: 90, render: (v?: string) => <Tag>{fileTypeLabel(v)}</Tag> },
     { title: "วันที่แนบ", dataIndex: "createdAt", width: 150, render: (v: string) => dt(v) },

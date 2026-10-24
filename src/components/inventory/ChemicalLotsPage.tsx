@@ -128,6 +128,7 @@ function CoaModal({ lot, onClose }: { lot: ChemicalLot; onClose: () => void }) {
 
 /** หน้า /inventory/chemical-lots — Lot สารเคมี: ตรวจ COA ก่อนปล่อยใช้, วันหมดอายุ, Batch */
 export default function ChemicalLotsPage() {
+  const [page, setPage] = useState(1);
   const [coaStatus, setCoaStatus] = useState<string>("PENDING");
   const [expiringOnly, setExpiringOnly] = useState(false);
   const [keyword, setKeyword] = useState("");
@@ -143,6 +144,13 @@ export default function ChemicalLotsPage() {
   const selected = lots.find((l) => l.id === selectedId);
 
   const columns: ColumnsType<ChemicalLot> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     {
       title: "Lot",
       key: "lot",

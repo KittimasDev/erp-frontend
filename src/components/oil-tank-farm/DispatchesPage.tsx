@@ -160,6 +160,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
 /** หน้า /oil-tank-farm/dispatches — Oil Loading: จ่ายน้ำมันให้ลูกค้า ระบุรถ/คนขับ/ตั๋วชั่ง */
 export default function DispatchesPage() {
+  const [page, setPage] = useState(1);
   const query = useOilDispatchesQuery();
   const approve = useApproveOilDispatchMutation();
   const cancel = useCancelOilDispatchMutation();
@@ -167,6 +168,13 @@ export default function DispatchesPage() {
   const [creating, setCreating] = useState(false);
 
   const columns: ColumnsType<OilDispatch> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     { title: "ใบจ่าย", key: "no", width: 150, render: (_v, r) => <div><strong>{r.dispatchNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.dispatchDate).format("DD/MM/YYYY")}</div></div> },
     { title: "ลูกค้า / ใบสั่งขาย", key: "c", render: (_v, r) => <div>{r.customerName ?? "—"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.salesOrderNo ?? r.referenceDocNo ?? ""}</div></div> },
     { title: "รถ / คนขับ", key: "t", width: 170, render: (_v, r) => <div>{r.truckLicensePlate ?? "—"}<div style={{ fontSize: 12, color: "#8a94a6" }}>{r.driverName ?? ""}</div></div> },

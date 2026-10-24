@@ -148,6 +148,13 @@ export function ApAllocationTable({
 }) {
   if (rows.length === 0) return null;
   const columns: ColumnsType<VoucherApDocument> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "เลขที่ AP", dataIndex: "docNo" },
     { title: "เลขที่ PO", dataIndex: "poNo", render: (v?: string) => v ?? "—" },
     {

@@ -156,6 +156,13 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
   if (!n) return <Card loading />;
 
   const itemColumns: ColumnsType<BillingNoteDetailItem> = [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_: unknown, __: unknown, index: number) => index + 1,
+      },
     {
       title: "เลขที่ AP",
       dataIndex: "docNo",
@@ -179,6 +186,13 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
   ];
 
   const pvColumns: ColumnsType<BillingNotePv> = [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        width: 64,
+        align: "center",
+        render: (_: unknown, __: unknown, index: number) => index + 1,
+      },
     { title: "เลขที่คิว", dataIndex: "queueNo" },
     { title: "วันที่ส่งเข้าคิว", dataIndex: "createdAt", render: (v: string) => dateTime(v) },
     { title: "ยอด", dataIndex: "amount", align: "right", render: (v: number) => money.format(v) },

@@ -159,6 +159,13 @@ export default function ApInvoicesPage() {
 
   const pendingColumns: ColumnsType<PendingGrn> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (pPage - 1) * PENDING_PAGE_SIZE + index + 1,
+    },
+    {
       title: "วันที่รับสินค้า",
       key: "date",
       width: 150,
@@ -224,6 +231,13 @@ export default function ApInvoicesPage() {
   ];
 
   const pendingChargeColumns: ColumnsType<PendingChargePo> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     { title: "เลขที่ PO", dataIndex: "poNo", width: 150, render: (v: string, r) => <Link href={`/purchase-orders/${r.purchaseOrderId}`}>{v}</Link> },
     {
       title: "ผู้ขาย",
@@ -258,6 +272,13 @@ export default function ApInvoicesPage() {
   ];
 
   const createdColumns: ColumnsType<CreatedAp> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (cPage - 1) * CREATED_PAGE_SIZE + index + 1,
+    },
     { title: "เลขที่ AP", dataIndex: "docNo", width: 170, render: (v: string) => <Typography.Text strong>{v}</Typography.Text> },
     { title: "วันที่ตั้งหนี้", dataIndex: "docDate", width: 110, render: (v: string) => formatThaiDate(v) },
     {

@@ -78,6 +78,13 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
 
   const columns: ColumnsType<T2900ErpOutboundTicket> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "เลขบัตรชั่ง",
       dataIndex: "TckNo",
       key: "TckNo",

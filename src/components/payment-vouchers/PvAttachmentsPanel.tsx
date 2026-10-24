@@ -97,6 +97,13 @@ export default function PvAttachmentsPanel(props: Props) {
   };
 
   const columns: ColumnsType<DocumentAttachment> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "ชื่อไฟล์", dataIndex: "originalFileName", render: (v?: string) => v || "ไฟล์" },
     { title: "ประเภทไฟล์", dataIndex: "mimeType", width: 100, render: (v?: string) => <Tag>{fileTypeLabel(v)}</Tag> },
     { title: "วันที่แนบ", dataIndex: "createdAt", width: 150, render: (v: string) => dayjs(v).format("DD/MM/YYYY HH:mm") },

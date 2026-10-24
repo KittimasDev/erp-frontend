@@ -53,6 +53,13 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
 
   const columns: ColumnsType<PayrollSlip> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "พนักงาน",
       key: "user",
       fixed: "left",

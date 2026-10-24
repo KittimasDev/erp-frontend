@@ -80,6 +80,8 @@ function formatRange(startDate: string, endDate: string) {
 }
 
 export default function LeaveRequestsPage() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const { modal } = App.useApp();
   const today = dayjs();
 
@@ -229,6 +231,14 @@ export default function LeaveRequestsPage() {
 
   const columns: ColumnsType<LeaveRequest> = useMemo(
     () => [
+      {
+        title: "ลำดับ",
+        key: "seq",
+        fixed: "left",
+        width: 64,
+        align: "center",
+        render: (_, __, index) => (page - 1) * pageSize + index + 1,
+      },
       {
         title: "พนักงาน",
         key: "employee",
@@ -554,7 +564,9 @@ export default function LeaveRequestsPage() {
                 : undefined
             }
             pagination={{
-              pageSize: 20,
+              current: page,
+              pageSize,
+              onChange: (p, ps) => { setPage(p); setPageSize(ps); },
               showSizeChanger: true,
               pageSizeOptions: [10, 20, 50, 100],
               showTotal: (total) => `ทั้งหมด ${total} รายการ`,

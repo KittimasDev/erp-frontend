@@ -136,6 +136,13 @@ export default function ShiftRecordsPanel({ orderId, canEdit, started }: { order
   const totalHours = rows.reduce((a, r) => a + r.operatingHours, 0);
 
   const columns: ColumnsType<ShiftRecord> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "วันที่", dataIndex: "recordDate", width: 110, render: (v: string) => dayjs(v).format("DD/MM/YYYY") },
     { title: "กะ", dataIndex: "shiftName", width: 110 },
     { title: "ยางป้อน (กก.)", dataIndex: "inputTireKg", align: "right", render: (v: number) => n(v) },

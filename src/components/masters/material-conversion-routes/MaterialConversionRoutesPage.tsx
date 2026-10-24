@@ -48,6 +48,13 @@ export default function MaterialConversionRoutesPage() {
 
   const columns: ColumnsType<MaterialConversionRoute> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
+    {
       title: "เส้นทาง",
       key: "route",
       render: (_v, row) => (

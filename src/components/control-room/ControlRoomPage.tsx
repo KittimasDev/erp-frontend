@@ -129,6 +129,13 @@ export default function ControlRoomPage() {
   };
 
   const orderColumns: ColumnsType<ControlRoomOrder> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => index + 1,
+    },
     { title: "สถานะ", dataIndex: "light", width: 150, render: (_v, r) => <StatusLight light={r.light} /> },
     { title: "ใบสั่งผลิต", dataIndex: "orderNo", render: (v: string) => <strong>{v}</strong> },
     { title: "Batch", dataIndex: "batchNo", render: (v?: string) => v ?? "—" },

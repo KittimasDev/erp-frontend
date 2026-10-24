@@ -127,6 +127,13 @@ export default function ProductionDailySection({ params }: { params: DashboardRa
   }
 
   const columns: ColumnsType<ProductionDailyDay> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
     { title: "วันที่", dataIndex: "date", width: 110, render: (v: string) => formatThaiDate(v) },
     { title: "ยางป้อน (kg)", dataIndex: "inputKg", align: "right", render: (v: number) => fmt(v, 0) },
     { title: "ผลผลิต (kg)", dataIndex: "outputKg", align: "right", render: (v: number) => fmt(v, 0) },

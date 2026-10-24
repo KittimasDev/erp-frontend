@@ -126,6 +126,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
 
 /** หน้า /oil-tank-farm/transfers — โอนน้ำมันระหว่างถังพร้อมบันทึกสูญเสีย */
 export default function TransfersPage() {
+  const [page, setPage] = useState(1);
   const query = useOilTransfersQuery();
   const approve = useApproveOilTransferMutation();
   const cancel = useCancelOilTransferMutation();
@@ -133,6 +134,13 @@ export default function TransfersPage() {
   const [creating, setCreating] = useState(false);
 
   const columns: ColumnsType<OilTransfer> = [
+    {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_, __, index) => (page - 1) * 20 + index + 1,
+    },
     { title: "ใบโอน", key: "no", width: 150, render: (_v, r) => <div><strong>{r.transferNo}</strong><div style={{ fontSize: 12, color: "#8a94a6" }}>{dayjs(r.transferDate).format("DD/MM/YYYY")}</div></div> },
     { title: "จาก → ไป", key: "ft", width: 180, render: (_v, r) => `${r.fromTankNo} → ${r.toTankNo}` },
     { title: "โอนออก", key: "q", width: 120, align: "right", render: (_v, r) => `${n(r.quantityLiters)} ${r.unitCode ?? ""}` },

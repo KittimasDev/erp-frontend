@@ -69,6 +69,13 @@ export default function SelectedProductionRequestsCard({
 }: Props) {
   const columns: ColumnsType<BulkCreateProductionOrderSelectionBody> = [
     {
+      title: "ลำดับ",
+      key: "seq",
+      width: 64,
+      align: "center",
+      render: (_: unknown, __: unknown, index: number) => index + 1,
+    },
+    {
       title: "เลขที่ใบขอผลิต",
       key: "requestNo",
       render: (_v, row) => labelByKey[selectionKeyOf(row)]?.requestNo ?? "-",
