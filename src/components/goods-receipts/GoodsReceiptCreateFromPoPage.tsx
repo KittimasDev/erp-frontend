@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Alert,
+  App,
   Button,
   Checkbox,
   DatePicker,
@@ -138,6 +139,7 @@ export default function GoodsReceiptCreateFromPoPage({
   initialScheduleId,
 }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const goodsReceiptActions = useScreenActionPermissions("GOODS_RECEIPTS");
   const canView = goodsReceiptActions.canView;
@@ -267,36 +269,46 @@ export default function GoodsReceiptCreateFromPoPage({
         ? (orderedBase as number)
         : orderedInPoUnit;
 
+      const poOverallRemainingBase = roundQty(
+        Math.max(0, orderedBaseQty - (receivedByPoItem.get(poItem.id) ?? 0)),
+      );
       const scheduleQty = scheduleRemainingByPoItem.get(poItem.id);
       const receivedBase = scheduleQty
         ? scheduleQty.received
         : (receivedByPoItem.get(poItem.id) ?? 0);
-      const remainingInPoUnit = scheduleQty
-        ? scheduleQty.remaining
-        : convertible
+
+      let remainingBaseQty = poOverallRemainingBase;
+      let remainingInPoUnit = convertible
+        ? (fromBaseQty(conversionIndex, {
+            baseQty: poOverallRemainingBase,
+            unitId: poUnitId,
+            baseUnitId,
+            itemId: poItem.itemId,
+          }) ??
+          Math.max(0, orderedInPoUnit - (receivedByPoItem.get(poItem.id) ?? 0)))
+        : Math.max(0, orderedInPoUnit - (receivedByPoItem.get(poItem.id) ?? 0));
+
+      if (scheduleQty) {
+        const schedBase = convertible
+          ? (convertQty(conversionIndex, {
+              qty: scheduleQty.remaining,
+              fromUnitId: poUnitId,
+              toUnitId: baseUnitId,
+              itemId: poItem.itemId,
+            }) ?? scheduleQty.remaining)
+          : scheduleQty.remaining;
+        remainingBaseQty = roundQty(
+          Math.min(poOverallRemainingBase, Math.max(0, schedBase)),
+        );
+        remainingInPoUnit = convertible
           ? (fromBaseQty(conversionIndex, {
-              baseQty: roundQty(
-                Math.max(
-                  0,
-                  orderedBaseQty - (receivedByPoItem.get(poItem.id) ?? 0),
-                ),
-              ),
+              baseQty: remainingBaseQty,
               unitId: poUnitId,
               baseUnitId,
               itemId: poItem.itemId,
-            }) ??
-            Math.max(0, orderedInPoUnit - (receivedByPoItem.get(poItem.id) ?? 0)))
-          : Math.max(0, orderedInPoUnit - (receivedByPoItem.get(poItem.id) ?? 0));
-      const remainingBaseQty = scheduleQty
-        ? (convertible
-            ? (convertQty(conversionIndex, {
-                qty: remainingInPoUnit,
-                fromUnitId: poUnitId,
-                toUnitId: baseUnitId,
-                itemId: poItem.itemId,
-              }) ?? remainingInPoUnit)
-            : remainingInPoUnit)
-        : roundQty(Math.max(0, orderedBaseQty - (receivedByPoItem.get(poItem.id) ?? 0)));
+            }) ?? Math.min(scheduleQty.remaining, remainingBaseQty))
+          : remainingBaseQty;
+      }
 
       map.set(poItem.id, {
         itemId: poItem.itemId,
@@ -549,11 +561,14 @@ export default function GoodsReceiptCreateFromPoPage({
 
       sumBase = roundQty(sumBase);
       if (sumBase > remainingBase + 1e-9) {
+        message.error(
+          `${label}: รวมจำนวนที่รับ (${formatQtyUnit(sumBase, baseUnitLabel)}) เกินยอดคงเหลือของ PO (${formatQtyUnit(remainingBase, baseUnitLabel)})`,
+        );
         form.setFields([
           {
             name: "items",
             errors: [
-              `${label}: รวมจำนวนปลายทาง ${formatQtyUnit(sumBase, baseUnitLabel)} เกินที่เหลือ ${formatQtyUnit(remainingBase, baseUnitLabel)}`,
+              `${label}: รวมจำนวนปลายทาง ${formatQtyUnit(sumBase, baseUnitLabel)} เกินยอดคงเหลือของ PO (${formatQtyUnit(remainingBase, baseUnitLabel)})`,
             ],
           },
         ]);
@@ -718,8 +733,10 @@ export default function GoodsReceiptCreateFromPoPage({
                   </p>
                 </div>
                 <Form.List name="items">
-                  {(fields) => (
-                    <div className={styles.lineList}>
+                  {(fields, _operation, { errors }) => (
+                    <>
+                      <Form.ErrorList errors={errors} />
+                      <div className={styles.lineList}>
                       {fields.map(({ key, name, ...restField }, index) => {
                         const line = watchedItems[index];
                         const poItemId =
@@ -897,6 +914,7 @@ export default function GoodsReceiptCreateFromPoPage({
                                                       baseUnitLabel,
                                                       maxBaseQty:
                                                         maxBaseForThis,
+                                                      units,
                                                     }),
                                                 },
                                               ]}
@@ -1066,8 +1084,9 @@ export default function GoodsReceiptCreateFromPoPage({
                         );
                       })}
                     </div>
-                  )}
-                </Form.List>
+                  </>
+                )}
+              </Form.List>
               </div>
             </div>
 

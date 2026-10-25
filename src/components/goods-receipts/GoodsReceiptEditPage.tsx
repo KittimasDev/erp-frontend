@@ -275,6 +275,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                                       itemId,
                                       baseUnitId,
                                       baseUnitLabel,
+                                      units,
                                     }),
                                   },
                                 ]}

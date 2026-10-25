@@ -267,9 +267,29 @@ export default function QuantityUnitInput({
           placeholder={lockedByItem ? "เลือกสินค้าก่อน" : placeholder}
           style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}
           value={value?.quantity ?? undefined}
-          onChange={(next) =>
-            onChange?.({ quantity: next as number | null, unitId: selectedUnitId })
-          }
+          onChange={(next) => {
+            let q = next as number | null;
+            if (
+              q !== null &&
+              q !== undefined &&
+              !Number.isNaN(Number(q)) &&
+              maxInSelectedUnit !== undefined &&
+              Number(q) > maxInSelectedUnit
+            ) {
+              q = maxInSelectedUnit;
+            }
+            onChange?.({ quantity: q, unitId: selectedUnitId });
+          }}
+          onBlur={() => {
+            if (
+              value?.quantity !== null &&
+              value?.quantity !== undefined &&
+              maxInSelectedUnit !== undefined &&
+              Number(value.quantity) > maxInSelectedUnit
+            ) {
+              onChange?.({ quantity: maxInSelectedUnit, unitId: selectedUnitId });
+            }
+          }}
         />
 
         <Select
@@ -373,8 +393,19 @@ export function makeQtyUnitValidator({
       maxBaseQty !== undefined &&
       base > maxBaseQty + 1e-9
     ) {
+      const maxInCurrentUnit = fromBaseQty(index, {
+        baseQty: maxBaseQty,
+        unitId: value.unitId,
+        baseUnitId,
+        itemId,
+      });
+      const inCurrentUnitText =
+        maxInCurrentUnit !== null && value.unitId !== baseUnitId
+          ? `${formatQty(maxInCurrentUnit)} ${selectedUnit?.nameTh || selectedUnit?.code || ""} (${formatQty(maxBaseQty)} ${baseUnitLabel || "หน่วยหลัก"})`
+          : `${formatQty(maxBaseQty)} ${baseUnitLabel || ""}`;
+
       throw new Error(
-        `เกินจำนวนที่เหลือ (สูงสุด ${formatQty(maxBaseQty)}${baseUnitLabel ? ` ${baseUnitLabel}` : ""})`,
+        `จำนวนที่รับครั้งนี้เกินยอดคงเหลือของ PO (คงเหลือสูงสุด ${inCurrentUnitText})`,
       );
     }
   };
