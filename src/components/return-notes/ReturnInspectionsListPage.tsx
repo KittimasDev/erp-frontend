@@ -27,8 +27,8 @@ export default function ReturnInspectionsListPage() {
     page,
     limit,
   });
-  const rows = query.data?.data.items ?? [];
-  const total = query.data?.data.total ?? 0;
+  const rows = query.data?.data?.items ?? [];
+  const total = query.data?.data?.total ?? 0;
 
   const columns: ColumnsType<ReturnNote> = useMemo(
     () => [

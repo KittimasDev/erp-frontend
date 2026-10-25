@@ -9,6 +9,7 @@ import {
   fromBaseQty,
   QUANTITY_PRECISION,
   resolveUnitOptions,
+  roundQty,
   toBaseQty,
   type ConversionIndex,
 } from "@/lib/units/conversion";
@@ -96,6 +97,9 @@ export default function QuantityUnitInput({
   );
 
   const selectedUnitId = value?.unitId;
+  const selectedUnit = unitById.get(selectedUnitId ?? "");
+  const unitDecimals = selectedUnit?.decimalPlaces ?? (selectedUnit?.dimension === "COUNT" ? 0 : precision);
+  const isCount = unitDecimals === 0;
 
   /**
    * หน่วยที่บันทึกไว้ในเอกสารเก่าอาจไม่มีกฎแปลงแล้ว
@@ -255,11 +259,10 @@ export default function QuantityUnitInput({
           aria-label={ariaLabel}
           className={styles.quantity}
           size={size}
-          min={minQty}
-          // แปลงเพดานกลับไม่ได้ = ไม่ตั้ง max แล้วให้ validator ตีตกแทน
-          // ตั้ง max=0 จะล็อกผู้ใช้เงียบๆ โดยไม่บอกสาเหตุ
+          // ไม่ใส่ min={minQty} เพื่อไม่ให้ antd clamp 0 หรือเลขติดลบเป็น 0.001 อัตโนมัติ ปล่อยให้ validator แจ้งเตือน
           max={maxInSelectedUnit}
-          precision={precision}
+          precision={unitDecimals}
+          step={isCount ? 1 : Math.pow(10, -unitDecimals)}
           disabled={disabled || lockedByItem}
           placeholder={lockedByItem ? "เลือกสินค้าก่อน" : placeholder}
           style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}
@@ -297,6 +300,7 @@ export type QtyUnitValidatorArgs = {
   baseUnitLabel?: string;
   maxBaseQty?: number | null;
   minQty?: number;
+  units?: Unit[];
 };
 
 /**
@@ -310,18 +314,33 @@ export function makeQtyUnitValidator({
   baseUnitLabel,
   maxBaseQty,
   minQty = 0.001,
+  units,
 }: QtyUnitValidatorArgs) {
   return async (_rule: unknown, value?: QuantityUnitValue) => {
     if (!value?.unitId) {
       throw new Error("กรุณาเลือกหน่วย");
     }
 
+    if (value.quantity === null || value.quantity === undefined || Number.isNaN(Number(value.quantity))) {
+      throw new Error("กรุณากรอกจำนวน");
+    }
+
     const qty = Number(value.quantity);
     if (!(qty > 0)) {
       throw new Error("กรุณากรอกจำนวนที่มากกว่า 0");
     }
-    if (qty < minQty) {
-      throw new Error(`จำนวนต้องไม่น้อยกว่า ${minQty}`);
+
+    const unitMap = units ? new Map(units.map((u) => [u.id, u])) : undefined;
+    const selectedUnit = unitMap?.get(value.unitId);
+    const unitDecimals = selectedUnit?.decimalPlaces ?? (selectedUnit?.dimension === "COUNT" ? 0 : 3);
+
+    if (unitDecimals === 0 && !Number.isInteger(qty)) {
+      throw new Error("หน่วยนี้ต้องเป็นจำนวนเต็มเท่านั้น (ไม่อนุญาตให้มีทศนิยม)");
+    } else if (unitDecimals > 0) {
+      const factor = 10 ** unitDecimals;
+      if (Math.abs(Math.round(qty * factor) - qty * factor) > 1e-5) {
+        throw new Error(`หน่วยนี้อนุญาตทศนิยมไม่เกิน ${unitDecimals} ตำแหน่ง`);
+      }
     }
 
     const base = toBaseQty(index, {
@@ -335,6 +354,18 @@ export function makeQtyUnitValidator({
       throw new Error(
         `หน่วยนี้ยังไม่มีกฎแปลงเป็น${baseUnitLabel ? ` ${baseUnitLabel}` : "หน่วยหลัก"} — เลือกหน่วยใหม่ก่อนบันทึก`,
       );
+    }
+
+    // ตรวจสอบหลังแปลงเป็นหน่วยฐาน: หากหน่วยฐานเป็นจำนวนนับ (decimalPlaces === 0) ค่า baseQty ต้องเป็นจำนวนเต็มด้วย
+    const baseUnit = baseUnitId && unitMap ? unitMap.get(baseUnitId) : undefined;
+    const baseDecimals = baseUnit?.decimalPlaces ?? (baseUnit?.dimension === "COUNT" ? 0 : 3);
+    if (baseDecimals === 0) {
+      const roundedBase = roundQty(base);
+      if (!Number.isInteger(roundedBase)) {
+        throw new Error(
+          `จำนวนเมื่อแปลงเป็นหน่วยหลัก (${baseUnitLabel || "หน่วยหลัก"}) ต้องเป็นจำนวนเต็ม (ได้ ${roundedBase})`,
+        );
+      }
     }
 
     if (

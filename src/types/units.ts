@@ -7,6 +7,7 @@ export type Unit = {
   nameEn?: string;
   /** มิติของหน่วย — ใช้เตือนตอนตั้งกฎแปลงหน่วยกลางข้ามมิติเท่านั้น ว่างได้ */
   dimension?: string | null;
+  decimalPlaces?: number;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;
@@ -19,6 +20,7 @@ export type CreateUnitRequest = {
   name: string;
   symbol?: string;
   dimension?: UnitDimension;
+  decimalPlaces?: number;
   sortOrder?: number;
   isActive?: boolean;
 };

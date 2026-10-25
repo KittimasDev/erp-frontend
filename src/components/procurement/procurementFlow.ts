@@ -191,7 +191,7 @@ export function resolveProcurementFlow(
     stepsStatus = "error";
     current = 2;
     stepStates[2] = "error";
-  } else if (current >= 4 || payDone) {
+  } else if (current >= 4 || (grDone && payDone)) {
     nextHint = "สายงานจัดซื้อเสร็จครบแล้ว (ขอซื้อ → สั่งซื้อ → รับของ → จ่ายเงิน)";
     summaryLabel = "เสร็จครบ";
     badgeLabel = "เสร็จครบ";
@@ -230,9 +230,15 @@ export function resolveProcurementFlow(
     }
     summaryLabel = "ขั้นสั่งซื้อ";
   } else if (current === 2) {
-    nextHint = "สร้างและ Confirm ใบรับของเพื่อโพสต์สต๊อก";
-    summaryLabel = "ขั้นรับของ";
-    badgeLabel = "3/4 · รับของ";
+    if (payDone) {
+      nextHint = "ชำระเงินเรียบร้อยแล้ว — อยู่ระหว่างรอตรวจรับสินค้าเข้าคลัง";
+      summaryLabel = "จ่ายแล้ว รอรับของ";
+      badgeLabel = "3/4 · จ่ายแล้ว รอรับของ";
+    } else {
+      nextHint = "สร้างและ Confirm ใบรับของเพื่อโพสต์สต๊อก";
+      summaryLabel = "ขั้นรับของ";
+      badgeLabel = "3/4 · รับของ";
+    }
   } else if (current === 3) {
     nextHint = "สร้างใบสำคัญจ่ายและ Confirm การจ่ายเงิน";
     summaryLabel = "ขั้นจ่ายเงิน";

@@ -215,14 +215,30 @@ export default function GoodsReceiptCreateFromPoPage({
       for (const item of gr.items ?? []) {
         if (!item.purchaseOrderItemId) continue;
         const prev = map.get(item.purchaseOrderItemId) ?? 0;
-        map.set(
-          item.purchaseOrderItemId,
-          prev + Number(item.baseQuantity ?? item.quantity),
-        );
+        const rawBase = Number(item.baseQuantity ?? item.quantity);
+        const itemMasterUnitId = itemById.get(item.itemId)?.unitId;
+        const grBaseUnitId = item.baseUnitId ?? item.unitId;
+        let convertedBase = rawBase;
+        if (
+          itemMasterUnitId &&
+          grBaseUnitId &&
+          itemMasterUnitId !== grBaseUnitId
+        ) {
+          const conv = convertQty(conversionIndex, {
+            qty: rawBase,
+            fromUnitId: grBaseUnitId,
+            toUnitId: itemMasterUnitId,
+            itemId: item.itemId,
+          });
+          if (conv !== null) {
+            convertedBase = conv;
+          }
+        }
+        map.set(item.purchaseOrderItemId, prev + convertedBase);
       }
     }
     return map;
-  }, [existingGrs]);
+  }, [existingGrs, conversionIndex, itemById]);
 
   const lineMetaByPoItemId = useMemo(() => {
     const map = new Map<string, LineMeta>();
@@ -764,8 +780,17 @@ export default function GoodsReceiptCreateFromPoPage({
                                 </span>
                                 <span className={styles.lineStatValue}>
                                   {formatQtyUnit(
-                                    meta?.receivedQty ?? 0,
-                                    baseUnitLabel,
+                                    roundQty(
+                                      meta?.convertible && meta.baseUnitId !== meta.poUnitId
+                                        ? (fromBaseQty(conversionIndex, {
+                                            baseQty: meta.receivedQty,
+                                            unitId: meta.poUnitId,
+                                            baseUnitId: meta.baseUnitId,
+                                            itemId: meta.itemId,
+                                          }) ?? meta.receivedQty)
+                                        : meta?.receivedQty ?? 0,
+                                    ),
+                                    meta?.unitLabel ?? "",
                                   )}
                                 </span>
                               </span>

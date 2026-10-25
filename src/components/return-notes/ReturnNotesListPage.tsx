@@ -84,8 +84,8 @@ export default function ReturnNotesListPage() {
     limit: 1,
   });
 
-  const rows = query.data?.data.items ?? [];
-  const total = query.data?.data.total ?? 0;
+  const rows = query.data?.data?.items ?? [];
+  const total = query.data?.data?.total ?? 0;
 
   const buildApplied = (nextStatus?: string) => ({
     keyword: keyword.trim() || undefined,
@@ -218,24 +218,24 @@ export default function ReturnNotesListPage() {
     hint: string;
     value: number;
   }> = [
-    { label: "ทั้งหมด", hint: "เอกสารทั้งหมด", value: allQuery.data?.data.total ?? 0 },
+    { label: "ทั้งหมด", hint: "เอกสารทั้งหมด", value: allQuery.data?.data?.total ?? 0 },
     {
       key: "PENDING_APPROVAL",
       label: "รอคลังอนุมัติ",
       hint: "ยังไม่รับของเข้า",
-      value: pendingQuery.data?.data.total ?? 0,
+      value: pendingQuery.data?.data?.total ?? 0,
     },
     {
       key: "APPROVED",
       label: "อนุมัติแล้ว",
       hint: "อยู่ในคลังตรวจสอบ",
-      value: approvedQuery.data?.data.total ?? 0,
+      value: approvedQuery.data?.data?.total ?? 0,
     },
     {
       key: "REJECTED",
       label: "ไม่อนุมัติ",
       hint: "ไม่รับของเข้า",
-      value: rejectedQuery.data?.data.total ?? 0,
+      value: rejectedQuery.data?.data?.total ?? 0,
     },
   ];
 

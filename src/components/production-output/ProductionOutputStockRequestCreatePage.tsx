@@ -503,13 +503,41 @@ export default function ProductionOutputStockRequestCreatePage({
     [readyOrders],
   );
 
+  const selectedItemGroups = useMemo(() => {
+    return lines
+      .map((line) => items.find((it) => it.id === line?.itemId)?.warehouseGroup)
+      .filter(Boolean) as string[];
+  }, [lines, items]);
+
   const warehouseOptions = useMemo(
     () =>
-      warehouses.map((w) => ({
-        value: w.id,
-        label: `${w.warehouseCode} — ${w.warehouseName}`,
-      })),
-    [warehouses],
+      warehouses.map((w) => {
+        let disabled = false;
+        let hint = "";
+        if (selectedItemGroups.length > 0) {
+          for (const group of selectedItemGroups) {
+            const whType = (w.warehouseType || w.warehouseGroup || "").toUpperCase();
+            if (
+              group === "FINISHED_GOODS" &&
+              !["FINISHED_GOODS", "HOLD", "QC_HOLD", "INSPECTION"].includes(whType)
+            ) {
+              disabled = true;
+              hint = " (สินค้าสำเร็จรูปต้องเข้าคลังสินค้าสำเร็จรูป / ตรวจสอบ)";
+              break;
+            } else if (group !== "FINISHED_GOODS" && whType === "FINISHED_GOODS") {
+              disabled = true;
+              hint = ` (สินค้ากลุ่ม ${group} ห้ามเข้าคลังสำเร็จรูป)`;
+              break;
+            }
+          }
+        }
+        return {
+          value: w.id,
+          label: `${w.warehouseCode} — ${w.warehouseName}${hint}`,
+          disabled,
+        };
+      }),
+    [warehouses, selectedItemGroups],
   );
 
   const locationOptions = useMemo(
@@ -608,24 +636,88 @@ export default function ProductionOutputStockRequestCreatePage({
       }
     }
 
+    // ตรวจสอบความเข้ากันได้ของสินค้ากับคลังสินค้าตามกฎ Warehouse Routing
+    const targetWh = warehouses.find((w) => w.id === values.warehouseId);
+    const whType = (
+      targetWh?.warehouseType ||
+      targetWh?.warehouseGroup ||
+      ""
+    ).toUpperCase();
+    for (const line of filledLines) {
+      const it = items.find((row) => row.id === line.itemId);
+      if (it?.warehouseGroup) {
+        const group = it.warehouseGroup;
+        if (
+          group === "FINISHED_GOODS" &&
+          !["FINISHED_GOODS", "HOLD", "QC_HOLD", "INSPECTION"].includes(whType)
+        ) {
+          form.setFields([
+            {
+              name: "warehouseId",
+              errors: [
+                `สินค้า "${it.itemNameTh}" เป็นสินค้าสำเร็จรูป ต้องรับเข้าคลังสินค้าสำเร็จรูป / กักกัน / ตรวจสอบ`,
+              ],
+            },
+          ]);
+          return;
+        } else if (group !== "FINISHED_GOODS" && whType === "FINISHED_GOODS") {
+          form.setFields([
+            {
+              name: "warehouseId",
+              errors: [
+                `สินค้า "${it.itemNameTh}" (กลุ่ม ${group}) ไม่สามารถรับเข้าคลังสินค้าสำเร็จรูปได้`,
+              ],
+            },
+          ]);
+          return;
+        }
+      }
+    }
+
+    // ตรวจสอบความซ้ำซ้อนของเลข Lot ในฟอร์มเดียวกัน
+    const lotsInForm = filledLines
+      .map((l) => l.lotNo?.trim())
+      .filter(Boolean) as string[];
+    const lotSet = new Set<string>();
+    for (const lot of lotsInForm) {
+      if (lotSet.has(lot)) {
+        form.setFields([
+          {
+            name: "warehouseId",
+            errors: [`มีเลข Lot "${lot}" ซ้ำกันในฟอร์ม`],
+          },
+        ]);
+        return;
+      }
+      lotSet.add(lot);
+    }
+
     const itemsBody: CreateProductionOutputStockRequestBody[] =
-      filledLines.map((line) => ({
-        itemId: line.itemId as string,
-        unitId: line.unitId as string,
-        quantity: Number(line.quantity).toFixed(3),
-        warehouseId: values.warehouseId,
-        warehouseLocationId: values.warehouseLocationId,
-        postingDate: values.postingDate.format("YYYY-MM-DD"),
-        lotNo: line.lotNo?.trim() || undefined,
-        remark: values.remark?.trim() || undefined,
-        ...(batchTickets.length === 0 &&
-        !ticketId &&
-        !values.productionOrderId
-          ? {
-              referenceDocNo: values.referenceDocNo?.trim() || undefined,
-            }
-          : {}),
-      }));
+      filledLines.map((line) => {
+        const lineUnit = units.find((u) => u.id === line.unitId);
+        const dec = lineUnit?.decimalPlaces ?? 3;
+        const qNum = Number(line.quantity);
+        return {
+          itemId: line.itemId as string,
+          unitId: line.unitId as string,
+          quantity:
+            dec === 0
+              ? String(Math.round(qNum))
+              : qNum.toFixed(Math.min(dec, 3)),
+          warehouseId: values.warehouseId,
+          warehouseLocationId: values.warehouseLocationId,
+          postingDate: values.postingDate.format("YYYY-MM-DD"),
+          lotNo: line.lotNo?.trim() || undefined,
+          remark: values.remark?.trim() || undefined,
+          ...(batchTickets.length === 0 &&
+          !ticketId &&
+          !values.productionOrderId
+            ? {
+                referenceDocNo: values.referenceDocNo?.trim() || undefined,
+              }
+            : {}),
+        };
+      });
 
     const references =
       batchTickets.length > 0
@@ -926,7 +1018,46 @@ export default function ProductionOutputStockRequestCreatePage({
                   <Form.List name="lines">
                     {(fields, { add, remove }) => (
                       <div className={styles.lineList}>
-                        {fields.map((field, index) => (
+                        {fields.map((field, index) => {
+                          const currentLine = lines[field.name];
+                          const lineItem = items.find(
+                            (row) => row.id === currentLine?.itemId,
+                          );
+                          const lineUnit = units.find(
+                            (row) => row.id === currentLine?.unitId,
+                          );
+                          const plan = selectedProductionOrder?.outputItems?.find(
+                            (row) => row.itemId === currentLine?.itemId,
+                          );
+                          const plannedRemaining =
+                            plan && Number(plan.remainingQty) > 0
+                              ? Number(plan.remainingQty)
+                              : undefined;
+                          const decimalPlaces = lineUnit?.decimalPlaces ?? 3;
+                          const isCountUnit = decimalPlaces === 0;
+                          const step = isCountUnit
+                            ? 1
+                            : Math.pow(10, -Math.min(decimalPlaces, 3));
+                          const min = isCountUnit
+                            ? 1
+                            : Math.pow(10, -Math.min(decimalPlaces, 3));
+                          const isSubGram = [
+                            "G",
+                            "MG",
+                            "กรัม",
+                            "มิลลิกรัม",
+                          ].includes((lineUnit?.code || "").toUpperCase());
+                          const safetyCeiling = isSubGram
+                            ? 1_000_000_000
+                            : 1_000_000;
+                          const maxAllowed = plannedRemaining
+                            ? Math.min(
+                                Math.round(plannedRemaining * 1.2 * 1000) / 1000,
+                                safetyCeiling,
+                              )
+                            : safetyCeiling;
+
+                          return (
                           <div key={field.key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
                               <strong>รายการที่ {index + 1}</strong>
@@ -975,6 +1106,25 @@ export default function ProductionOutputStockRequestCreatePage({
                                 label="จำนวน"
                                 rules={[
                                   { required: true, message: "กรอกจำนวน" },
+                                  {
+                                    validator: async (_, value) => {
+                                      if (value == null || value === "") return;
+                                      const num = Number(value);
+                                      if (Number.isNaN(num) || num <= 0) {
+                                        throw new Error("จำนวนต้องมากกว่า 0");
+                                      }
+                                      if (isCountUnit && !Number.isInteger(num)) {
+                                        throw new Error(
+                                          `หน่วย ${lineUnit?.nameTh || lineUnit?.code || ""} ต้องเป็นจำนวนเต็ม`,
+                                        );
+                                      }
+                                      if (num > maxAllowed) {
+                                        throw new Error(
+                                          `จำนวนเกินเพดานที่อนุญาต (สูงสุด ${maxAllowed.toLocaleString()})`,
+                                        );
+                                      }
+                                    },
+                                  },
                                 ]}
                                 extra={qtyPlanHint(
                                   lines[field.name]?.itemId,
@@ -983,10 +1133,16 @@ export default function ProductionOutputStockRequestCreatePage({
                               >
                                 <InputNumber
                                   size="large"
-                                  min={0.001}
-                                  step={0.001}
+                                  min={min}
+                                  max={maxAllowed}
+                                  step={step}
+                                  precision={decimalPlaces}
                                   style={{ width: "100%" }}
-                                  placeholder="เช่น 15 / 500 / 20"
+                                  placeholder={
+                                    isCountUnit
+                                      ? "เช่น 10 / 50 / 100"
+                                      : "เช่น 15 / 500 / 20"
+                                  }
                                 />
                               </Form.Item>
 
@@ -1024,7 +1180,8 @@ export default function ProductionOutputStockRequestCreatePage({
                               </Form.Item>
                             </div>
                           </div>
-                        ))}
+                        );
+                      })}
 
                         <Button
                           type="dashed"
