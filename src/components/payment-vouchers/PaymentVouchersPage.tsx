@@ -139,8 +139,24 @@ export default function PaymentVouchersPage() {
       title: "ยอดที่ต้องการจ่าย",
       dataIndex: "amount",
       align: "right",
-      width: 150,
+      width: 130,
       render: (v: string) => money.format(Number(v)),
+    },
+    {
+      title: "WHT",
+      dataIndex: "whtAmount",
+      align: "right",
+      width: 110,
+      render: (v: string) => money.format(Number(v)),
+    },
+    {
+      title: "ยอดสุทธิโอน",
+      dataIndex: "netAmount",
+      align: "right",
+      width: 130,
+      render: (v: string) => (
+        <Typography.Text strong>{money.format(Number(v))}</Typography.Text>
+      ),
     },
     {
       title: "สถานะ",

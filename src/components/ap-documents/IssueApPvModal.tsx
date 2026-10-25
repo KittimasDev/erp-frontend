@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Alert, App, DatePicker, Descriptions, InputNumber, Modal, Space, Typography } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,8 @@ import type { ApInvoiceDetail } from "@/types/ap-documents";
 import { money } from "./apDocumentConfig";
 
 const PV_PATH = "/finance/payables/payment-vouchers";
+
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
  * ออกใบสำคัญจ่ายจาก AP — สรุปยอดที่จ่ายได้ → ระบุจำนวน (บางส่วนได้) → ส่งเข้าคิว "รอสร้างใบสำคัญจ่าย"
@@ -35,6 +37,20 @@ export default function IssueApPvModal({
   const amount = amountInput === undefined ? issuable : amountInput;
   const payDate = dateInput === undefined ? (detail.dueDate ? dayjs(detail.dueDate) : null) : dateInput;
   const invalid = !(amount && amount > 0) || amount > issuable + 0.004;
+
+  const whtPreview = useMemo(() => {
+    const pay = Number(amount) || 0;
+    const payable = Number(detail.netPayableAmount) || 0;
+    const planWht = Number(detail.whtAmount) || 0;
+    const planBase = Number(detail.whtBaseAmount) || 0;
+    const rate = Number(detail.whtRate) || 0;
+    if (!(planWht > 0) || !(pay > 0) || !(payable > 0)) {
+      return { base: 0, rate: 0, wht: 0, net: pay };
+    }
+    const wht = Math.min(round2((planWht * pay) / payable), planWht, pay);
+    const base = planWht > 0 ? round2((planBase * wht) / planWht) : 0;
+    return { base, rate, wht, net: Math.max(round2(pay - wht), 0) };
+  }, [amount, detail.netPayableAmount, detail.whtAmount, detail.whtBaseAmount, detail.whtRate]);
 
   const close = () => {
     setAmountInput(undefined);
@@ -88,6 +104,18 @@ export default function IssueApPvModal({
           />
           <Typography.Text>บาท</Typography.Text>
         </Space>
+        <Descriptions bordered size="small" column={1} title="ภาษีหัก ณ ที่จ่าย (ประมาณการจากแผน AP)">
+          <Descriptions.Item label="ฐานภาษีหัก ณ ที่จ่าย">
+            {whtPreview.wht > 0 ? money.format(whtPreview.base) : "—"}
+          </Descriptions.Item>
+          <Descriptions.Item label="อัตรา WHT">
+            {whtPreview.wht > 0 ? `${whtPreview.rate}%` : "—"}
+          </Descriptions.Item>
+          <Descriptions.Item label="ยอด WHT ที่จะหัก">{money.format(whtPreview.wht)}</Descriptions.Item>
+          <Descriptions.Item label="ยอดโอนสุทธิโดยประมาณ">
+            <Typography.Text strong>{money.format(whtPreview.net)}</Typography.Text>
+          </Descriptions.Item>
+        </Descriptions>
         <Space>
           <Typography.Text>วันที่ต้องการจ่าย</Typography.Text>
           <DatePicker format="DD/MM/YYYY" value={payDate} onChange={(v) => setDateInput(v)} />
