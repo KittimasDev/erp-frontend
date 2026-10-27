@@ -127,6 +127,19 @@ body {
   color: var(--brand-text);
 }
 
+.mainLayout.fullBleedMainLayout {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: calc(100dvh - var(--erp-header-height, 72px)) !important;
+  max-height: calc(100dvh - var(--erp-header-height, 72px)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  background: #0f172a !important;
+}
+
 .pageLoading {
   display: flex;
   align-items: center;

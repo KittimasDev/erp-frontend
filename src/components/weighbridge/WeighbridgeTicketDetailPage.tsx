@@ -15,6 +15,7 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 
+import DocumentAttachmentsPanel from "@/components/common/DocumentAttachmentsPanel";
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useRawTirePaymentQuery } from "@/hooks/raw-tire-payment/useRawTirePaymentQuery";
@@ -23,6 +24,9 @@ import { useSellerQuery } from "@/hooks/sellers/useSellerQuery";
 import { useStockPostingRequestByReceiptQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useCanApproveStockPostingApprovals } from "@/lib/auth/stock-posting-access";
+import {
+  DOCUMENT_TYPE_WEIGHBRIDGE_TICKET,
+} from "@/types/document-attachments";
 import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
 import { buildRawTireWarehouseReceiptSlipData } from "@/utils/buildRawTireWarehouseReceiptSlipData";
@@ -558,6 +562,21 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <h3>รูปจากกล้องเครื่องชั่ง</h3>
+                <p>ไฟล์ที่ส่งมากับบัตร T2900 (เข้า/ออก · กล้อง 1–2)</p>
+              </div>
+              <div className={styles.cardBody}>
+                <DocumentAttachmentsPanel
+                  documentType={DOCUMENT_TYPE_WEIGHBRIDGE_TICKET}
+                  documentId={ticket.id}
+                  canEdit={false}
+                  emptyText="ยังไม่มีรูปจากกล้องเครื่องชั่ง"
+                />
               </div>
             </div>
 

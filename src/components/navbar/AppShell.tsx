@@ -48,6 +48,9 @@ export default function AppShell({
 }>) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(true);
+  const isFullBleed =
+    pathname === "/inventory/3d-warehouse" ||
+    pathname?.startsWith("/inventory/3d-warehouse");
 
   return (
     <div
@@ -70,7 +73,11 @@ export default function AppShell({
           <AppTopHeader />
         </Suspense>
 
-        <main id="main-content" className="mainLayout" key={pathname}>
+        <main
+          id="main-content"
+          className={`mainLayout ${isFullBleed ? "fullBleedMainLayout" : ""}`}
+          key={pathname}
+        >
           <ConfigProvider theme={mainContentTheme}>{children}</ConfigProvider>
         </main>
       </div>

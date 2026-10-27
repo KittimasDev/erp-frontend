@@ -1,7 +1,9 @@
 import { apiFetch } from "./client";
+import type { Warehouse3DLayoutConfig } from "@/types/warehouse-3d";
 import type {
   CreateWarehouseRequest,
   UpdateWarehouseRequest,
+  Warehouse,
   WarehouseApiResponse,
   WarehouseListApiResponse,
   WarehouseQueryParams,
@@ -101,5 +103,43 @@ export function deactivateWarehouse(token: string, id: string) {
   return apiFetch<WarehouseApiResponse>(`/api/warehouses/${id}/deactivate`, {
     method: "PATCH",
     token,
+  });
+}
+
+export function getWarehouse3DLayout(token: string, id: string) {
+  return apiFetch<{
+    statusCode: number;
+    message: string;
+    data: {
+      warehouse: Warehouse;
+      layout3dConfig: Warehouse3DLayoutConfig | null;
+      locations: Array<{
+        id: string;
+        warehouseId: string;
+        locationCode: string;
+        locationName: string;
+        description?: string;
+        isActive: boolean;
+      }>;
+    };
+  }>(`/api/warehouses/${id}/layout-3d`, {
+    method: "GET",
+    token,
+  });
+}
+
+export function updateWarehouse3DLayout(
+  token: string,
+  id: string,
+  layout3dConfig: Warehouse3DLayoutConfig,
+) {
+  return apiFetch<{
+    statusCode: number;
+    message: string;
+    data: Warehouse;
+  }>(`/api/warehouses/${id}/layout-3d`, {
+    method: "PUT",
+    token,
+    body: { layout3dConfig },
   });
 }

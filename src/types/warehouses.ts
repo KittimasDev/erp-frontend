@@ -10,6 +10,7 @@ export type Warehouse = {
   isQcRequired: boolean;
   isDefaultReturnInspection?: boolean;
   isActive: boolean;
+  layout3dConfig?: Record<string, any> | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -172,6 +172,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/inventory/stock-transfers", title: "โอนย้ายสินค้า" },
   { href: "/inventory/stock-counts", title: "นับสต๊อก" },
   { href: "/inventory/stock-adjustments", title: "ใบปรับปรุงสต๊อก" },
+  { href: "/inventory/3d-warehouse", title: "ผังคลังสินค้า 3D" },
   { href: "/warehouse/approvals", title: "อนุมัติงานคลัง" },
   { href: "/warehouse/stock-posting-approvals", title: "อนุมัติรับยางเข้าคลัง" },
   { href: "/warehouse/production-output-approvals", title: "อนุมัติรับผลผลิตเข้าคลัง" },

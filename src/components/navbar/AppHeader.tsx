@@ -2156,6 +2156,19 @@ const masterMenus: MenuItem[] = [
     roles: [ROLE.WAREHOUSE_OFFICER, ROLE.WAREHOUSE_MANAGER],
   },
   {
+    key: "warehouse-3d-layout",
+    screenCode: "WAREHOUSES",
+    label: "ผังคลังสินค้า 3D",
+    href: "/inventory/3d-warehouse",
+    icon: <IconWarehouse />,
+    roles: [
+      ROLE.WAREHOUSE_OFFICER,
+      ROLE.WAREHOUSE_MANAGER,
+      ROLE.PRODUCTION_OFFICER,
+      ROLE.EXECUTIVE,
+    ],
+  },
+  {
     key: "stock-adjustment-types",
     screenCode: "MASTERS_STOCK_ADJUSTMENT_TYPES",
     label: "ประเภทใบปรับปรุงสต๊อก",

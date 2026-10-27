@@ -855,8 +855,10 @@ export default function WeighbridgeDashboardPage() {
   const dateRangeValue: [Dayjs, Dayjs] | null =
     fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null;
   const todayYmd = dayjs().format("YYYY-MM-DD");
-  const t2900From = fromParam ?? todayYmd;
-  const t2900To = toParam ?? fromParam ?? todayYmd;
+  const yesterdayYmd = dayjs().subtract(1, "day").format("YYYY-MM-DD");
+  // default วันนี้–เมื่อวาน ให้ครอบ LookbackDays=1 ของตัวส่ง T2900
+  const t2900From = fromParam ?? yesterdayYmd;
+  const t2900To = toParam ?? todayYmd;
   const dateLabel = (() => {
     if (showAll) return "ทั้งหมด";
     if (!fromParam && !toParam) return "วันนี้";
