@@ -4,7 +4,7 @@ import { Button, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
 
-import { useImportT2900TicketMutation } from "@/hooks/weighbridge-tickets/useImportT2900TicketMutation";
+import { useT2900LiveUpdates } from "@/hooks/weighbridge-tickets/useT2900LiveUpdates";
 import { useT2900OutboundTicketsQuery } from "@/hooks/weighbridge-tickets/useT2900OutboundTicketsQuery";
 import type { T2900ErpOutboundTicket, T2900RecordStatus } from "@/types/t2900";
 
@@ -41,6 +41,8 @@ function formatDateTime(value?: string) {
 
 export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
   const router = useRouter();
+  // มีบัตรเข้ามาใหม่/สถานะเปลี่ยน หลังบ้านส่งสัญญาณมา → ดึงตารางใหม่ทันที ไม่ต้องรีเฟรชเอง
+  useT2900LiveUpdates();
 
   const ticketsQuery = useT2900OutboundTicketsQuery({
     dateFrom,
@@ -49,31 +51,12 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
     page: 1,
     limit: 200,
   });
-  const importMutation = useImportT2900TicketMutation();
 
   const rows = ticketsQuery.data?.data.items ?? [];
 
-  const goToImportedTicket = (ticket: {
-    id: string;
-    nextActionHref?: string;
-  }) => {
-    router.push(ticket.nextActionHref || `/receiving/${ticket.id}`);
-  };
-
-  const handleOpen = async (ticket: T2900ErpOutboundTicket) => {
-    if (!ticket.canImport && !ticket.alreadyImported) {
-      return;
-    }
-    try {
-      const response = await importMutation.mutateAsync({
-        tckNo: ticket.TckNo,
-      });
-      goToImportedTicket(response.data);
-    } catch {
-      if (ticket.erpActionHref) {
-        router.push(ticket.erpActionHref);
-      }
-    }
+  // เปิดหน้ารายละเอียดบัตร — ตั๋ว ERP ถูกสร้างตอนกดยืนยันในหน้านั้นเท่านั้น ไม่ใช่ตอนเปิดดู
+  const handleOpen = (ticket: T2900ErpOutboundTicket) => {
+    router.push(`/receiving/t2900/${encodeURIComponent(ticket.TckNo)}`);
   };
 
   const columns: ColumnsType<T2900ErpOutboundTicket> = [
@@ -134,10 +117,13 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
           }
           return <Tag color="blue">รอคัดแยก</Tag>;
         }
-        if (!record.canImport) {
-          return <Tag>{label}</Tag>;
+        if (record.recordStatus === "CANCELLED") {
+          return <Tag color="error">{label}</Tag>;
         }
-        return <Tag color="blue">{label}</Tag>;
+        if (!record.canImport) {
+          return <Tag>รอชั่งออก</Tag>;
+        }
+        return <Tag color="blue">พร้อมยืนยัน</Tag>;
       },
     },
     {
@@ -160,17 +146,15 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
           <Button
             size="small"
             type="primary"
-            disabled={!record.canImport && !record.alreadyImported}
-            loading={
-              importMutation.isPending &&
-              importMutation.variables?.tckNo === record.TckNo
-            }
             onClick={() => {
-              void handleOpen(record);
+              handleOpen(record);
             }}
           >
-            {record.erpActionLabel ||
-              (record.alreadyImported ? "ไปคัดแยก" : "เปิดตั๋วและคัดแยก")}
+            {record.alreadyImported
+              ? record.erpActionLabel || "ดูรายละเอียด"
+              : record.canImport
+                ? "ดูและยืนยัน"
+                : "ดูรายละเอียด"}
           </Button>
         </Space>
       ),
@@ -192,18 +176,15 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
             size="middle"
             columns={columns}
             dataSource={rows}
-            loading={ticketsQuery.isFetching}
+            loading={ticketsQuery.isLoading}
             pagination={{ pageSize: 10, showSizeChanger: false }}
-            scroll={{ x: 1250 }}
+            scroll={{ x: 1090 }}
             locale={{ emptyText: "ไม่พบบัตรชั่งในช่วงวันที่เลือก" }}
             onRow={(record) => ({
               onClick: () => {
-                void handleOpen(record);
+                handleOpen(record);
               },
-              className:
-                record.canImport || record.alreadyImported
-                  ? styles.clickableRow
-                  : undefined,
+              className: styles.clickableRow,
             })}
           />
         )}

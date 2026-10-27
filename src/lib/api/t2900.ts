@@ -1,7 +1,9 @@
-import { apiFetch } from "./client";
+import { apiDownloadBlob, apiFetch } from "./client";
 import type { WeighbridgeTicketDetailApiResponse } from "@/types/weighbridge-tickets";
 import type {
+  ConfirmFromT2900Request,
   ImportFromT2900Request,
+  T2900ErpTicketDetailApiResponse,
   T2900ErpOutboundListApiResponse,
   T2900OutboundTicketsQuery,
 } from "@/types/t2900";
@@ -37,6 +39,35 @@ export function importWeighbridgeTicketFromT2900(
 ) {
   return apiFetch<WeighbridgeTicketDetailApiResponse>(
     "/api/weighbridge/tickets/from-t2900",
+    { method: "POST", token, body },
+  );
+}
+
+export function getT2900ErpTicketDetail(token: string, tckNo: string) {
+  return apiFetch<T2900ErpTicketDetailApiResponse>(
+    `/api/weighbridge/t2900/outbound-weighing-tickets/${encodeURIComponent(tckNo)}`,
+    { method: "GET", token },
+  );
+}
+
+export function getT2900CameraPhotoBlob(
+  token: string,
+  tckNo: string,
+  key: string,
+) {
+  return apiDownloadBlob(
+    `/api/weighbridge/t2900/outbound-weighing-tickets/${encodeURIComponent(tckNo)}/photos/${encodeURIComponent(key)}`,
+    { token },
+  );
+}
+
+/** เปิดตั๋ว + ยืนยันใบรับซื้อจากบัตร T2900 ในคลิกเดียว (ข้ามหน้าคัดแยก) */
+export function confirmWeighbridgeTicketFromT2900(
+  token: string,
+  body: ConfirmFromT2900Request,
+) {
+  return apiFetch<WeighbridgeTicketDetailApiResponse>(
+    "/api/weighbridge/tickets/from-t2900/confirm",
     { method: "POST", token, body },
   );
 }

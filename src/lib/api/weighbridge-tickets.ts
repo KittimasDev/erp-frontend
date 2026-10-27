@@ -69,6 +69,27 @@ export function getWeighbridgeTicket(token: string, id: string) {
   );
 }
 
+/** backfill รูปจาก payload T2900 แล้วคืนรายการไฟล์แนบกลุ่ม T2900_CAMERA */
+export function getWeighbridgeTicketT2900CameraPhotos(
+  token: string,
+  ticketId: string,
+) {
+  return apiFetch<{
+    statusCode?: number;
+    message: string;
+    data: Array<{
+      id: string;
+      originalFileName?: string;
+      mimeType?: string;
+      description?: string;
+      attachmentGroup?: string;
+    }>;
+  }>(`/api/weighbridge/tickets/${ticketId}/t2900-camera-photos`, {
+    method: "GET",
+    token,
+  });
+}
+
 export function createWeighbridgeTicket(
   token: string,
   body: CreateWeighbridgeTicketRequest,
