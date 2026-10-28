@@ -5,11 +5,14 @@ import { Image, Spin, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 
 import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
+import { getT2900CameraPhotoBlob } from "@/lib/api/t2900";
 import { getWeighbridgeTicketT2900CameraPhotos } from "@/lib/api/weighbridge-tickets";
 import { getAccessToken } from "@/lib/auth/token";
 
 type Props = {
   ticketId: string;
+  /** เลขบัตร T2900 — ใช้ดึงรูปจากข้อมูลบัตรแทน เมื่อไฟล์แนบไม่อยู่บนดิสก์ของเซิร์ฟเวอร์ที่เปิดอยู่ */
+  tckNo?: string;
 };
 
 type PreviewItem = {
@@ -22,7 +25,7 @@ function isImageMime(mime?: string) {
   return Boolean(mime && mime.startsWith("image/"));
 }
 
-export default function T2900CameraPhotosGallery({ ticketId }: Props) {
+export default function T2900CameraPhotosGallery({ ticketId, tckNo }: Props) {
   const [previews, setPreviews] = useState<PreviewItem[]>([]);
   const [loadingPreviews, setLoadingPreviews] = useState(false);
 
@@ -53,10 +56,25 @@ export default function T2900CameraPhotosGallery({ ticketId }: Props) {
             continue;
           }
           try {
-            const { blob } = await downloadDocumentAttachment(
-              getAccessToken(),
-              file.id,
-            );
+            let blob: Blob;
+            try {
+              ({ blob } = await downloadDocumentAttachment(
+                getAccessToken(),
+                file.id,
+              ));
+            } catch (error) {
+              // ไฟล์แนบอาจถูกสร้างโดย backend อีกเครื่อง (เช่น docker ที่รับ ingest) จึงไม่มีบนดิสก์นี้
+              // — รูปต้นฉบับยังอยู่ในข้อมูลบัตร T2900 ดึงจากตรงนั้นแทน
+              const key = (file.originalFileName ?? "").replace(/\.[^.]+$/, "");
+              if (!tckNo || !key) {
+                throw error;
+              }
+              ({ blob } = await getT2900CameraPhotoBlob(
+                getAccessToken(),
+                tckNo,
+                key,
+              ));
+            }
             const url = URL.createObjectURL(blob);
             objectUrls.push(url);
             items.push({
@@ -86,7 +104,7 @@ export default function T2900CameraPhotosGallery({ ticketId }: Props) {
         URL.revokeObjectURL(url);
       }
     };
-  }, [cameraFiles]);
+  }, [cameraFiles, tckNo]);
 
   if (query.isLoading || loadingPreviews) {
     return <Spin size="small" />;

@@ -554,7 +554,10 @@ export default function T2900TicketDetailPage({ tckNo }: Props) {
               <div className={styles.cardBody}>
                 {detail.erpTicketId ? (
                   // เปิดตั๋วแล้ว: รูปถูกแนบเป็นไฟล์แนบของตั๋ว (เก็บรูปที่เคยส่งมาทุกรอบ) — ใช้แกลเลอรีเดียวกับหน้าตั๋ว
-                  <T2900CameraPhotosGallery ticketId={detail.erpTicketId} />
+                  <T2900CameraPhotosGallery
+                    ticketId={detail.erpTicketId}
+                    tckNo={String(ticket.TckNo)}
+                  />
                 ) : (
                   <T2900TicketPhotos
                     tckNo={String(ticket.TckNo)}
