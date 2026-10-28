@@ -1,20 +1,13 @@
-import { Suspense } from "react";
-
-import PageLoading from "@/components/common/PageLoading";
-import T2900TicketDetailPage from "@/components/weighbridge/T2900TicketDetailPage";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ tckNo: string }>;
 };
 
-export default async function ReceivingT2900TicketRoutePage({
+/** ลิงก์เดิมของหน้าบัตร T2900 — รวมเป็นหน้า /receiving/[id] แล้ว พาไปหน้าเดียวกัน */
+export default async function ReceivingT2900TicketRedirectPage({
   params,
 }: PageProps) {
   const { tckNo } = await params;
-
-  return (
-    <Suspense fallback={<PageLoading />}>
-      <T2900TicketDetailPage tckNo={decodeURIComponent(tckNo)} />
-    </Suspense>
-  );
+  redirect(`/receiving/${tckNo}`);
 }

@@ -45,7 +45,13 @@ export type WeighbridgeTicketListItem = {
   receiptStockPostingStatus?: string;
   hasPendingStockPosting?: boolean;
   hasClassificationPlan?: boolean;
+  /** ที่มาของตั๋ว: MANUAL = เปิดเอง · T2900 = จากเครื่องชั่ง · OCR = จากรูปใบชั่ง */
+  origin?: WeighbridgeTicketOrigin;
+  /** เลขเอกสารต้นทาง เช่น เลขบัตรชั่ง T2900 */
+  referenceDocNo?: string;
 };
+
+export type WeighbridgeTicketOrigin = "MANUAL" | "T2900" | "OCR";
 
 export type WeighbridgeDashboardData = {
   summary: WeighbridgeDashboardSummary;
@@ -132,6 +138,8 @@ export type WeighbridgeTicketDetail = {
   canSaveClassificationPlan?: boolean;
   canCompleteWeighAndReceipt?: boolean;
   hasClassificationPlan?: boolean;
+  origin?: WeighbridgeTicketOrigin;
+  referenceDocNo?: string;
   classificationPlan?: ClassificationPlan;
   receiptId?: string;
   receiptNo?: string;

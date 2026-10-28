@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   App,
@@ -31,7 +31,7 @@ import T2900CameraPhotosGallery from "./T2900CameraPhotosGallery";
 import T2900TicketPhotos from "./T2900TicketPhotos";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
-const LIST_HREF = "/receiving?tab=t2900";
+const LIST_HREF = "/receiving";
 
 const PRICE_SOURCE_LABEL: Record<T2900PriceSource, string> = {
   T2900: "ราคามากับบัตรชั่ง",
@@ -149,6 +149,14 @@ export default function T2900TicketDetailPage({ tckNo }: Props) {
   const detail = query.data?.data;
   const ticket = detail?.ticket;
 
+  // บัตรนี้เปิดเป็นตั๋ว ERP ไปแล้ว → ใช้หน้าตั๋ว ERP (มีขั้นตอนต่อ + เอกสารครบ) แทนหน้าบัตร
+  const openedErpTicketId = detail?.erpTicketId;
+  useEffect(() => {
+    if (openedErpTicketId) {
+      router.replace(`/receiving/${openedErpTicketId}`);
+    }
+  }, [openedErpTicketId, router]);
+
   const needsManualPrice = detail?.pricing.source === "NONE";
   const confirmDisabled =
     !detail?.canConfirm ||
@@ -213,7 +221,7 @@ export default function T2900TicketDetailPage({ tckNo }: Props) {
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(LIST_HREF)}
           >
-            กลับรายการบัตรชั่ง T2900
+            กลับรายการรับซื้อ
           </Button>
           <div style={{ display: "flex", gap: 8 }}>
             <Button

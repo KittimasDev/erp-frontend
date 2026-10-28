@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
+  App,
   Button,
   Col,
   DatePicker,
@@ -13,7 +14,6 @@ import {
   Select,
   Switch,
   Table,
-  Tabs,
   Tag,
   Typography,
 } from "antd";
@@ -21,6 +21,7 @@ import {
   BarChartOutlined,
   CarOutlined,
   CloseOutlined,
+  FilePdfOutlined,
   PlusOutlined,
   SearchOutlined,
   UserAddOutlined,
@@ -42,10 +43,17 @@ import { useTrucksQuery } from "@/hooks/trucks/useTrucksQuery";
 import { useWeighbridgeScalesQuery } from "@/hooks/weighbridge-scales/useWeighbridgeScalesQuery";
 import type { CreateSellerRequest } from "@/types/sellers";
 import type { CreateTruckRequest, Truck } from "@/types/trucks";
-import type { WeighbridgeTicketListItem } from "@/types/weighbridge-tickets";
+import type {
+  WeighbridgeTicketListItem,
+  WeighbridgeTicketOrigin,
+} from "@/types/weighbridge-tickets";
+import type { T2900ErpOutboundTicket } from "@/types/t2900";
 
 import RowActionsMenu from "@/components/common/RowActionsMenu";
-import T2900OutboundTicketsPanel from "@/components/weighbridge/T2900OutboundTicketsPanel";
+import { useT2900LiveUpdates } from "@/hooks/weighbridge-tickets/useT2900LiveUpdates";
+import { useT2900OutboundTicketsQuery } from "@/hooks/weighbridge-tickets/useT2900OutboundTicketsQuery";
+import { getT2900DailyReport } from "@/lib/api/t2900";
+import { getAccessToken } from "@/lib/auth/token";
 import { useAiOcrAvailabilityQuery } from "@/hooks/ai-ocr-settings/useAiOcrSettingsQueries";
 import { useScanWeighTicketOcrStandaloneMutation } from "@/hooks/weighbridge-tickets/useScanWeighTicketOcrStandaloneMutation";
 import { canAccessScreen } from "@/lib/auth/permissions-access";
@@ -54,6 +62,10 @@ import type { WeighTicketOcrResult } from "@/types/weighbridge-ocr";
 
 import CreateTicketFromOcrModal from "./CreateTicketFromOcrModal";
 import WeighTicketOcrCaptureButton from "./WeighTicketOcrCaptureButton";
+import {
+  TICKET_ORIGIN_COLOR,
+  TICKET_ORIGIN_LABEL,
+} from "./ticket-origin";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
 const { RangePicker } = DatePicker;
@@ -153,9 +165,57 @@ type ReceivingStage =
   | "payment"
   | "warehouse";
 
-type ReceivingTab = "tickets" | "t2900";
+/** ตัวกรอง "ที่มา" ของตั๋ว — all = ไม่กรอง */
+type SourceFilter = "all" | WeighbridgeTicketOrigin;
+
+const SOURCE_OPTIONS: { value: SourceFilter; label: string }[] = [
+  { value: "all", label: "ทั้งหมด" },
+  { value: "MANUAL", label: "เปิดเอง" },
+  { value: "T2900", label: "จากเครื่องชั่ง" },
+  { value: "OCR", label: "จากรูปใบชั่ง" },
+];
+
+/** id ของแถวที่สร้างจากบัตรเครื่องชั่งที่ยังไม่ได้เปิดตั๋วใน ERP */
+const PENDING_T2900_PREFIX = "t2900:";
+
+function isPendingT2900(ticket: WeighbridgeTicketListItem) {
+  return ticket.id.startsWith(PENDING_T2900_PREFIX);
+}
+
+/** ทุกแถวเข้าหน้ารายละเอียดเดียว /receiving/[id] — ตั๋ว ERP ใช้ id, บัตรที่ยังไม่เปิดใช้เลขบัตรชั่ง */
+function ticketDetailHref(ticket: WeighbridgeTicketListItem) {
+  return isPendingT2900(ticket)
+    ? `/receiving/${encodeURIComponent(ticket.referenceDocNo ?? ticket.ticketNo)}`
+    : `/receiving/${ticket.id}`;
+}
+
+/** บัตรจากเครื่องชั่งที่ยังไม่เปิดตั๋ว → แถวหน้าตาเดียวกับตั๋ว ERP เพื่อใช้ตารางเดียวกัน */
+function t2900ToListItem(
+  row: T2900ErpOutboundTicket,
+): WeighbridgeTicketListItem {
+  return {
+    id: `${PENDING_T2900_PREFIX}${row.TckNo}`,
+    ticketNo: row.TckNo,
+    ticketType: "PURCHASE_IN",
+    status: "OPEN",
+    sellerCode: row.CustID,
+    sellerName: row.CustomerName || row.CustID,
+    truckLicensePlate: row.TruckNo,
+    scaleId: "",
+    grossWeightKg: String(row.GrossWt ?? 0),
+    tareWeightKg: String(row.TruckWt ?? 0),
+    netWeightKg: String(row.NetWt ?? 0),
+    createdAt: `${row.DateIn}T${row.TimeIn}`,
+    weighOutAt: row.DateOut ? `${row.DateOut}T${row.TimeOut}` : undefined,
+    flowState: row.canImport ? "T2900_READY" : "T2900_WAITING_OUT",
+    origin: "T2900",
+    referenceDocNo: row.TckNo,
+  };
+}
 
 const FLOW_LABELS: Record<string, string> = {
+  T2900_READY: "ยังไม่เปิดตั๋ว · พร้อมยืนยัน",
+  T2900_WAITING_OUT: "ยังไม่เปิดตั๋ว · รอชั่งออก",
   WAITING_WEIGH_IN: "รอกรอกน้ำหนัก",
   WAITING_SORT: "รอคัดแยก",
   WAITING_WEIGH_OUT: "รอกรอกน้ำหนัก",
@@ -240,12 +300,31 @@ function parseStage(value: string | null): ReceivingStage {
   return "all";
 }
 
-function parseTab(value: string | null): ReceivingTab {
-  return value === "t2900" ? "t2900" : "tickets";
+/** ลิงก์เก่า /receiving?tab=t2900 ตีความเป็นตัวกรองที่มา = จากเครื่องชั่ง */
+function parseSource(
+  source: string | null,
+  legacyTab: string | null,
+): SourceFilter {
+  if (source === "MANUAL" || source === "T2900" || source === "OCR") {
+    return source;
+  }
+  return legacyTab === "t2900" ? "T2900" : "all";
 }
 
 /** เงื่อนไขเดียวกับปุ่มในคอลัมน์ "ชั่งน้ำหนัก" — ใช้ทั้ง filter และปุ่ม */
 function getTicketActionFlags(ticket: WeighbridgeTicketListItem) {
+  if (isPendingT2900(ticket)) {
+    // ยังไม่มีตั๋ว/ใบรับซื้อใน ERP — ขั้นถัดไปคือเข้าไปตรวจและยืนยันเปิดตั๋ว (นับอยู่ในชุด "คัดแยกและชั่ง")
+    return {
+      locked: false,
+      isPaid: false,
+      canClassifyWeigh: true,
+      canPay: false,
+      canStockIn: false,
+      canStockInRaw: false,
+      stockPosted: false,
+    };
+  }
   const locked =
     ticket.status === "CANCELLED" || ticket.status === "CLOSED";
   // จ่ายเงินจริงเท่านั้น — อย่าใช้ STOCK_* เป็น proxy ของ PAID (เข้าคลังก่อนจ่ายได้)
@@ -332,6 +411,8 @@ function matchesSearch(ticket: WeighbridgeTicketListItem, query: string) {
     ticket.receiptNo,
     ticket.scaleCode,
     ticket.scaleName,
+    ticket.referenceDocNo,
+    ticket.origin ? TICKET_ORIGIN_LABEL[ticket.origin] : undefined,
     FLOW_LABELS[ticket.flowState ?? ""] ?? ticket.flowState,
   ]
     .filter(Boolean)
@@ -472,8 +553,13 @@ export default function WeighbridgeDashboardPage() {
   const [ocrPreviewUrl, setOcrPreviewUrl] = useState<string | null>(null);
   const scanOcrMutation = useScanWeighTicketOcrStandaloneMutation();
 
+  const { message } = App.useApp();
+  const [exportingReport, setExportingReport] = useState(false);
   const stage = parseStage(searchParams.get("stage"));
-  const tab = parseTab(searchParams.get("tab"));
+  const source = parseSource(
+    searchParams.get("source"),
+    searchParams.get("tab"),
+  );
   const searchQuery = searchParams.get("q")?.trim() ?? "";
   const showAll = searchParams.get("all") === "1";
   const legacyDateParam = searchParams.get("date")?.trim() || undefined;
@@ -490,8 +576,23 @@ export default function WeighbridgeDashboardPage() {
       : fromParam || toParam
         ? { from: fromParam, to: toParam }
         : undefined,
-    { enabled: tab === "tickets" },
   );
+
+  // บัตรจากเครื่องชั่งในช่วงวันเดียวกัน (ไม่ระบุช่วง = วันนี้ · "ทั้งหมด" = ย้อนหลัง 30 วัน)
+  const todayYmd = dayjs().format("YYYY-MM-DD");
+  const t2900From = showAll
+    ? dayjs().subtract(30, "day").format("YYYY-MM-DD")
+    : (fromParam ?? toParam ?? todayYmd);
+  const t2900To = showAll ? todayYmd : (toParam ?? fromParam ?? todayYmd);
+  // มีบัตรเข้ามาใหม่/สถานะเปลี่ยน หลังบ้านส่งสัญญาณมา → ดึงตารางใหม่ทันที
+  useT2900LiveUpdates();
+  const t2900Query = useT2900OutboundTicketsQuery({
+    dateFrom: t2900From,
+    dateTo: t2900To,
+    status: "ALL",
+    page: 1,
+    limit: 200,
+  });
   const sellersQuery = useSellersQuery({ isActive: true });
   const sellerTypesQuery = useSellerTypesQuery({ isActive: true });
   const trucksQuery = useTrucksQuery(
@@ -504,7 +605,30 @@ export default function WeighbridgeDashboardPage() {
   const createTruckMutation = useCreateTruckMutation();
 
   const summary = dashboardQuery.data?.data.summary;
-  const tickets = dashboardQuery.data?.data.tickets ?? [];
+  const erpTickets = useMemo(
+    () => dashboardQuery.data?.data.tickets ?? [],
+    [dashboardQuery.data?.data.tickets],
+  );
+  // บัตรที่เปิดเป็นตั๋ว ERP แล้วอยู่ใน erpTickets อยู่แล้ว — ไม่ใส่ซ้ำ; บัตรที่ยกเลิกไม่แสดง
+  const pendingT2900Tickets = useMemo(
+    () =>
+      (t2900Query.data?.data.items ?? [])
+        .filter((row) => !row.alreadyImported && row.recordStatus !== "CANCELLED")
+        .map(t2900ToListItem),
+    [t2900Query.data?.data.items],
+  );
+  const t2900Truncated =
+    (t2900Query.data?.data.total ?? 0) > (t2900Query.data?.data.items.length ?? 0);
+  const tickets = useMemo(
+    () =>
+      [...erpTickets, ...pendingT2900Tickets]
+        .filter((ticket) => source === "all" || ticket.origin === source)
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+    [erpTickets, pendingT2900Tickets, source],
+  );
 
   const sellers = sellersQuery.data?.data ?? [];
   const sellerTypes = sellerTypesQuery.data?.data ?? [];
@@ -517,7 +641,7 @@ export default function WeighbridgeDashboardPage() {
     from?: string | null;
     to?: string | null;
     all?: boolean | null;
-    tab?: ReceivingTab | null;
+    source?: SourceFilter | null;
   }) => {
     const next = new URLSearchParams(searchParams.toString());
 
@@ -573,11 +697,13 @@ export default function WeighbridgeDashboardPage() {
       }
     }
 
-    if (patch.tab !== undefined) {
-      if (patch.tab === "t2900") {
-        next.set("tab", "t2900");
+    if (patch.source !== undefined) {
+      // ตัวกรองใหม่แทนพารามิเตอร์ tab เดิมเสมอ
+      next.delete("tab");
+      if (patch.source && patch.source !== "all") {
+        next.set("source", patch.source);
       } else {
-        next.delete("tab");
+        next.delete("source");
       }
     }
 
@@ -725,7 +851,7 @@ export default function WeighbridgeDashboardPage() {
     {
       key: "all" as ReceivingStage,
       label: showAll ? "รถเข้าทั้งหมด" : "รถเข้าวันนี้",
-      value: summary?.trucksInToday ?? tickets.length,
+      value: tickets.length,
     },
     {
       key: "classify-weigh" as ReceivingStage,
@@ -854,10 +980,6 @@ export default function WeighbridgeDashboardPage() {
     STAGE_OPTIONS.find((item) => item.key === stage)?.label ?? "ทั้งหมด";
   const dateRangeValue: [Dayjs, Dayjs] | null =
     fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null;
-  const todayYmd = dayjs().format("YYYY-MM-DD");
-  // tab T2900: ไม่ระบุช่วงวันที่ใน URL = แสดงวันที่ชั่งวันนี้ (ถ้าระบุแค่ฝั่งเดียวให้ใช้วันเดียวกันทั้งสองฝั่ง)
-  const t2900From = fromParam ?? toParam ?? todayYmd;
-  const t2900To = toParam ?? fromParam ?? todayYmd;
   const dateLabel = (() => {
     if (showAll) return "ทั้งหมด";
     if (!fromParam && !toParam) return "วันนี้";
@@ -869,6 +991,27 @@ export default function WeighbridgeDashboardPage() {
     }
     return dayjs(fromParam ?? toParam).format("DD/MM/YYYY");
   })();
+
+  /** Export รายงานรายวัน (บัตรชั่งครั้งสอง แยกตามสินค้า → ลูกค้า) ตามช่วงวันที่ที่เลือกอยู่ */
+  const handleExportDailyReport = async () => {
+    setExportingReport(true);
+    try {
+      const response = await getT2900DailyReport(
+        getAccessToken(),
+        t2900From,
+        t2900To,
+      );
+      const { generateT2900DailyReportPdf } =
+        await import("@/utils/generateT2900DailyReportPdf");
+      await generateT2900DailyReportPdf(response.data);
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "Export รายงานรายวันไม่สำเร็จ",
+      );
+    } finally {
+      setExportingReport(false);
+    }
+  };
 
   const columns: ColumnsType<WeighbridgeTicketListItem> = [
     {
@@ -883,6 +1026,19 @@ export default function WeighbridgeDashboardPage() {
       dataIndex: "ticketNo",
       key: "ticketNo",
       width: 150,
+    },
+    {
+      title: "ที่มา",
+      key: "origin",
+      width: 120,
+      render: (_value, record) => {
+        const origin = record.origin ?? "MANUAL";
+        return (
+          <Tag color={TICKET_ORIGIN_COLOR[origin]}>
+            {TICKET_ORIGIN_LABEL[origin]}
+          </Tag>
+        );
+      },
     },
     {
       title: "ผู้ขาย",
@@ -949,6 +1105,18 @@ export default function WeighbridgeDashboardPage() {
       width: 190,
       fixed: "right",
       render: (_value, record) => {
+        if (isPendingT2900(record)) {
+          const ready = record.flowState === "T2900_READY";
+          return (
+            <Button
+              size="small"
+              type={ready ? "primary" : "default"}
+              onClick={() => router.push(ticketDetailHref(record))}
+            >
+              {ready ? "ดูและยืนยัน" : "ดูรายละเอียด"}
+            </Button>
+          );
+        }
         const {
           isPaid,
           canClassifyWeigh,
@@ -958,7 +1126,7 @@ export default function WeighbridgeDashboardPage() {
           stockPosted,
         } = getTicketActionFlags(record);
 
-        const goClassify = () => router.push(`/receiving/${record.id}`);
+        const goClassify = () => router.push(ticketDetailHref(record));
         const goPay = () =>
           router.push(`/receiving/receipts/${record.receiptId}/payment`);
         const goStockIn = () => {
@@ -1100,17 +1268,10 @@ export default function WeighbridgeDashboardPage() {
 
   return (
     <MasterPageGate
-      isLoading={tab === "tickets" && dashboardQuery.isLoading}
+      isLoading={dashboardQuery.isLoading}
     >
       <section className={styles.page}>
-        <header
-          className={[
-            styles.pageHeader,
-            tab === "t2900" ? styles.pageHeaderT2900 : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
+        <header className={styles.pageHeader}>
           <div className={styles.headerAccent} aria-hidden>
             <CarOutlined />
           </div>
@@ -1118,47 +1279,50 @@ export default function WeighbridgeDashboardPage() {
             <p className={styles.eyebrow}>Receiving</p>
             <h1 className={styles.pageTitle}>รับซื้อยาง</h1>
             <p className={styles.pageSubtitle}>
-              {tab === "t2900"
-                ? `${dateLabel} · เลือกบัตรชั่งจากตาชั่งแล้วเปิดเป็นตั๋วรับซื้อ`
-                : `${dateLabel}${searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · กดแถวเพื่อดูรายละเอียดตั๋ว`}
+              {`${dateLabel}${searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · ตั๋วที่เปิดเองและบัตรจากเครื่องชั่งอยู่ในตารางเดียวกัน กดแถวเพื่อดูรายละเอียด`}
             </p>
           </div>
-          {tab === "tickets" ? (
-            <div className={styles.scopeSwitch}>
-              <span
-                className={[
-                  styles.scopeSwitchLabel,
-                  !showAll ? styles.scopeSwitchLabelActive : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                วันนี้
-              </span>
-              <Switch
-                checked={showAll}
-                onChange={(checked) => {
-                  if (checked) {
-                    updateParams({ all: true });
-                    return;
-                  }
-                  updateParams({ all: false, from: null, to: null });
-                }}
-                aria-label="สลับแสดงทั้งหมดหรือแค่วันนี้"
-              />
-              <span
-                className={[
-                  styles.scopeSwitchLabel,
-                  showAll ? styles.scopeSwitchLabelActive : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-              >
-                ทั้งหมด
-              </span>
-            </div>
-          ) : null}
+                    <div className={styles.scopeSwitch}>
+            <span
+              className={[
+                styles.scopeSwitchLabel,
+                !showAll ? styles.scopeSwitchLabelActive : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              วันนี้
+            </span>
+            <Switch
+              checked={showAll}
+              onChange={(checked) => {
+                if (checked) {
+                  updateParams({ all: true });
+                  return;
+                }
+                updateParams({ all: false, from: null, to: null });
+              }}
+              aria-label="สลับแสดงทั้งหมดหรือแค่วันนี้"
+            />
+            <span
+              className={[
+                styles.scopeSwitchLabel,
+                showAll ? styles.scopeSwitchLabelActive : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              ทั้งหมด
+            </span>
+          </div>
           <div className={styles.headerActions}>
+            <Button
+              icon={<FilePdfOutlined />}
+              loading={exportingReport}
+              onClick={() => void handleExportDailyReport()}
+            >
+              Export รายงานรายวัน
+            </Button>
             <Button
               className={styles.dashboardButton}
               icon={<BarChartOutlined />}
@@ -1166,12 +1330,10 @@ export default function WeighbridgeDashboardPage() {
             >
               Dashboard
             </Button>
-            {tab === "tickets" ? (
-              <OpenTicketFromImageAction
-                pending={scanOcrMutation.isPending}
-                onScan={handleScanFromDashboard}
-              />
-            ) : null}
+                        <OpenTicketFromImageAction
+              pending={scanOcrMutation.isPending}
+              onScan={handleScanFromDashboard}
+            />
             <Button
               type="primary"
               icon={<PlusOutlined />}
@@ -1183,62 +1345,6 @@ export default function WeighbridgeDashboardPage() {
           </div>
         </header>
 
-        <Tabs
-          className={styles.viewTabs}
-          activeKey={tab}
-          onChange={(key) => {
-            updateParams({
-              tab: key === "t2900" ? "t2900" : null,
-              all: key === "t2900" ? false : undefined,
-            });
-          }}
-          items={[
-            {
-              key: "tickets",
-              label: <span className={styles.tabLabel}>ตั๋วรับซื้อ</span>,
-            },
-            {
-              key: "t2900",
-              label: <span className={styles.tabLabel}>เปิดจากตาชั่ง</span>,
-            },
-          ]}
-        />
-
-        {tab === "t2900" ? (
-          <div className={styles.card}>
-            <div className={styles.listHeader}>
-              <div>
-                <h3>บัตรชั่งขาออก T2900</h3>
-                <p>เลือกใบจากตาชั่ง แล้วเปิดเป็นตั๋วรับซื้อเพื่อคัดแยกและบันทึกน้ำหนัก — ไม่ต้องเลือกเครื่องชั่ง</p>
-              </div>
-            </div>
-            <div className={styles.filterBar}>
-              <div className={styles.filterTop}>
-                <div className={styles.filterField}>
-                  <span>ช่วงวันที่ชั่ง</span>
-                  <RangePicker
-                    allowClear={false}
-                    value={[dayjs(t2900From), dayjs(t2900To)]}
-                    format="DD/MM/YYYY"
-                    placeholder={["เริ่มต้น", "สิ้นสุด"]}
-                    className={styles.filterDateRange}
-                    onChange={(values) => {
-                      if (!values || !values[0] || !values[1]) {
-                        return;
-                      }
-                      updateParams({
-                        from: values[0].format("YYYY-MM-DD"),
-                        to: values[1].format("YYYY-MM-DD"),
-                        all: false,
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-            <T2900OutboundTicketsPanel dateFrom={t2900From} dateTo={t2900To} />
-          </div>
-        ) : (
           <>
         <div className={styles.statsStrip}>
           <div className={styles.statHighlight}>
@@ -1329,6 +1435,15 @@ export default function WeighbridgeDashboardPage() {
                   }}
                 />
               </div>
+              <div className={styles.filterField}>
+                <span>ที่มา</span>
+                <Select
+                  value={source}
+                  options={SOURCE_OPTIONS}
+                  className={styles.productSelect}
+                  onChange={(value) => updateParams({ source: value })}
+                />
+              </div>
             </div>
             <div className={styles.stageStrip}>
               <span className={styles.stageStripLabel}>ขั้นตอน</span>
@@ -1360,6 +1475,15 @@ export default function WeighbridgeDashboardPage() {
           </div>
 
           <div className={styles.cardBody}>
+            {t2900Query.isError ? (
+              <Typography.Text type="warning" style={{ display: "block", marginBottom: 8 }}>
+                โหลดบัตรจากเครื่องชั่งไม่สำเร็จ — แสดงเฉพาะตั๋วในระบบ
+              </Typography.Text>
+            ) : t2900Truncated ? (
+              <Typography.Text type="warning" style={{ display: "block", marginBottom: 8 }}>
+                บัตรจากเครื่องชั่งในช่วงนี้มีมากกว่าที่แสดง (สูงสุด 200 ใบ) — เลือกช่วงวันที่ให้แคบลง
+              </Typography.Text>
+            ) : null}
             {dashboardQuery.isError ? (
               <Typography.Text type="danger">
                 {dashboardQuery.error instanceof Error
@@ -1372,12 +1496,12 @@ export default function WeighbridgeDashboardPage() {
                 size="middle"
                 columns={columns}
                 dataSource={filteredTickets}
-                loading={dashboardQuery.isFetching}
+                loading={dashboardQuery.isFetching || t2900Query.isFetching}
                 pagination={{ pageSize: 10, showSizeChanger: false }}
                 scroll={{ x: 1290 }}
                 locale={{
                   emptyText:
-                    searchQuery || stage !== "all"
+                    searchQuery || stage !== "all" || source !== "all"
                       ? "ไม่พบรายการตามเงื่อนไขที่เลือก"
                       : "ยังไม่มีตั๋วชั่งวันนี้",
                 }}
@@ -1400,7 +1524,7 @@ export default function WeighbridgeDashboardPage() {
                   }
 
                   return {
-                    onClick: () => router.push(`/receiving/${record.id}`),
+                    onClick: () => router.push(ticketDetailHref(record)),
                     className: styles.clickableRow,
                   };
                 }}
@@ -1409,7 +1533,6 @@ export default function WeighbridgeDashboardPage() {
           </div>
         </div>
           </>
-        )}
       </section>
 
       <SideSheet

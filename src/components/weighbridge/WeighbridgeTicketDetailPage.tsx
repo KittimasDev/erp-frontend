@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import {
   App,
   Button,
+  Collapse,
+  Descriptions,
   Steps,
   Tag,
   Typography,
@@ -27,7 +29,11 @@ import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
 import { buildRawTireWarehouseReceiptSlipData } from "@/utils/buildRawTireWarehouseReceiptSlipData";
 
+import ReceivingDocumentsCard, {
+  type ReceivingDocumentRow,
+} from "./ReceivingDocumentsCard";
 import ReceivingTicketClassifyWeighPanel from "./ReceivingTicketClassifyWeighPanel";
+import { TICKET_ORIGIN_COLOR, TICKET_ORIGIN_LABEL } from "./ticket-origin";
 import T2900CameraPhotosGallery from "./T2900CameraPhotosGallery";
 import styles from "./WeighbridgeDashboardPage.module.css";
 
@@ -94,6 +100,17 @@ function formatDateTime(value?: string) {
     return "-";
   }
   return new Date(value).toLocaleString("th-TH");
+}
+
+function formatMoney(value?: string) {
+  const n = Number(value);
+  if (value === undefined || value === null || value === "" || Number.isNaN(n)) {
+    return "-";
+  }
+  return n.toLocaleString("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 }
 
 /** วันที่อย่างเดียว — ใช้ต่อท้ายเลขที่เอกสารในแถวเอกสารของแต่ละขั้น */
@@ -203,6 +220,28 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const paymentReceipt = paymentQuery.data?.data?.receipt;
   const paymentVoucher = paymentQuery.data?.data?.voucher;
   const [printingVoucher, setPrintingVoucher] = useState(false);
+  const [printingReceipt, setPrintingReceipt] = useState(false);
+
+  const handlePrintReceipt = async () => {
+    if (!receipt) {
+      message.warning("ยังไม่มีใบรับซื้อให้พิมพ์");
+      return;
+    }
+    setPrintingReceipt(true);
+    try {
+      const { generateRawTirePurchaseReceiptPdf, mapReceiptDetailToPdfData } =
+        await import("@/utils/generateRawTirePurchaseReceiptPdf");
+      await generateRawTirePurchaseReceiptPdf(
+        mapReceiptDetailToPdfData(receipt),
+      );
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "พิมพ์ใบรับซื้อไม่สำเร็จ",
+      );
+    } finally {
+      setPrintingReceipt(false);
+    }
+  };
 
   /*
     ย้ายมาจาก Step 1 พร้อมการ์ดใบสำคัญจ่าย — เอกสารใบนี้เป็นผลลัพธ์ของ Step 2
@@ -327,6 +366,76 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
         lotsQuery.isLoading) ||
       (Boolean(receipt?.seller?.id) && sellerQuery.isLoading));
 
+  /*
+    ยืนยันใบรับซื้อแล้ว (หรือจ่าย/เข้าคลังแล้ว) = ไม่ต้องกรอกอะไรเพิ่มในหน้านี้ ใช้หน้าตาแบบหน้าบัตรจากเครื่องชั่ง
+    (ข้อมูลเรียงเป็นตาราง · ราคา · เอกสารครบ) ส่วนขั้นตอน Step 1-3 เก็บไว้ในส่วนที่กางดูได้
+  */
+  const compactView =
+    (receiptConfirmed || paid || stockPosted) &&
+    ticket?.status !== "CANCELLED" &&
+    ticket?.currentStep !== "CANCELLED";
+
+  const documentRows: ReceivingDocumentRow[] = [
+    {
+      key: "receipt",
+      label: "ใบรับซื้อ",
+      docNo: ticket?.receiptId ? (ticket.receiptNo ?? receipt?.receiptNo) : undefined,
+      dateText: receipt?.receiptDate ? formatDateOnly(receipt.receiptDate) : undefined,
+      statusText: ticket?.receiptStatus
+        ? (RECEIPT_STATUS_LABELS[ticket.receiptStatus] ?? ticket.receiptStatus)
+        : undefined,
+      pendingHint: "ยังไม่ออก — บันทึกคัดแยกและน้ำหนักใน Step 1 แล้วยืนยันใบรับซื้อ",
+      onOpen: ticket?.receiptId
+        ? () => router.push(`/receiving/receipts/${ticket.receiptId}`)
+        : undefined,
+      onPrint: () => void handlePrintReceipt(),
+      printing: printingReceipt,
+      printDisabled: !receipt,
+    },
+    {
+      key: "voucher",
+      label: "ใบสำคัญจ่าย",
+      docNo: paymentVoucher?.voucherNo,
+      dateText: paymentVoucher?.voucherDate
+        ? formatDateOnly(paymentVoucher.voucherDate)
+        : undefined,
+      statusText: paid ? "จ่ายเงินแล้ว" : undefined,
+      pendingHint: hasReceipt
+        ? "ยังไม่ออก — กดออกใบจ่ายเงินใน Step 2"
+        : "ยังไม่ออก — ต้องมีใบรับซื้อก่อน",
+      onOpen: ticket?.receiptId
+        ? () => router.push(`/receiving/receipts/${ticket.receiptId}/payment`)
+        : undefined,
+      onPrint: () => void handlePrintVoucher(),
+      printing: printingVoucher,
+    },
+    {
+      key: "warehouse",
+      label: "ใบรับสินค้า",
+      docNo: stockPosted ? (stockRequest?.requestNo ?? receipt?.receiptNo) : undefined,
+      dateText: stockRequest?.approvedAt
+        ? formatDateOnly(stockRequest.approvedAt)
+        : undefined,
+      statusText: stockPosted ? STOCK_POSTING_STATUS_LABELS.POSTED : undefined,
+      pendingHint: "ยังไม่ออก — ออกหลังคลังอนุมัติรับเข้า (Step 3)",
+      onOpen: ticket?.receiptId
+        ? () =>
+            router.push(`/receiving/receipts/${ticket.receiptId}/warehouse-receipt`)
+        : undefined,
+      onPrint: () => {
+        if (!warehouseSlipData) return;
+        setIsPrintingWarehouseSlip(true);
+        void import("@/utils/generateRawTireWarehouseReceiptPdf")
+          .then(({ generateRawTireWarehouseReceiptPdf }) =>
+            generateRawTireWarehouseReceiptPdf(warehouseSlipData),
+          )
+          .finally(() => setIsPrintingWarehouseSlip(false));
+      },
+      printing: isPrintingWarehouseSlip || warehouseSlipLoading,
+      printDisabled: !warehouseSlipData,
+    },
+  ];
+
   const maxStepIndex = 2;
   const nextActionHref = ticket?.nextActionHref;
   const nextActionLabel = ticket?.nextAction;
@@ -414,12 +523,20 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       เลขที่ตั๋ว {ticket.ticketNo} · สถานะตั๋ว {ticket.status}
                     </p>
                   </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <Tag color={TICKET_ORIGIN_COLOR[ticket.origin ?? "MANUAL"]}>
+                      {TICKET_ORIGIN_LABEL[ticket.origin ?? "MANUAL"]}
+                      {ticket.origin === "T2900" && ticket.referenceDocNo
+                        ? ` · บัตร ${ticket.referenceDocNo}`
+                        : ""}
+                    </Tag>
                   <Tag className={styles.flowTag}>
                     {FLOW_LABELS[ticket.flowState ?? ""] ??
                       (paid ? FLOW_LABELS.PAYMENT_PAID : undefined) ??
                       DISPLAY_LABELS[ticket.displayStatus] ??
                       ticket.displayStatus}
                   </Tag>
+                  </div>
                 </div>
               </div>
               <div className={styles.cardBody}>
@@ -463,6 +580,95 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               </div>
             </div>
 
+            {compactView ? (
+              <>
+                <div className={styles.card}>
+                  <div className={styles.cardHeader}>
+                    <h3>ข้อมูลตั๋วชั่ง</h3>
+                    <p>ผู้ขาย รถ สินค้า เวลา และน้ำหนัก</p>
+                  </div>
+                  <div className={styles.cardBody}>
+                    <Descriptions
+                      bordered
+                      size="small"
+                      column={{ xs: 1, md: 2 }}
+                      items={[
+                        { key: "no", label: "เลขที่ตั๋วชั่ง", children: ticket.ticketNo },
+                        {
+                          key: "origin",
+                          label: "ที่มา",
+                          children: `${TICKET_ORIGIN_LABEL[ticket.origin ?? "MANUAL"]}${
+                            ticket.referenceDocNo ? ` · บัตร ${ticket.referenceDocNo}` : ""
+                          }`,
+                        },
+                        {
+                          key: "seller",
+                          label: "ผู้ขาย",
+                          children:
+                            `${ticket.sellerCode ?? ""} ${ticket.sellerName ?? ""}`.trim() || "-",
+                        },
+                        { key: "truck", label: "ทะเบียนรถ", children: ticket.truckLicensePlate || "-" },
+                        { key: "driver", label: "คนขับ", children: ticket.driverName || "-" },
+                        {
+                          key: "scale",
+                          label: "เครื่องชั่ง",
+                          children: ticket.scaleName
+                            ? `${ticket.scaleCode ? `${ticket.scaleCode} · ` : ""}${ticket.scaleName}`
+                            : "-",
+                        },
+                        { key: "in", label: "ชั่งเข้า", children: formatDateTime(ticket.weighInAt as string | undefined) },
+                        { key: "out", label: "ชั่งออก", children: formatDateTime(ticket.weighOutAt as string | undefined) },
+                        { key: "gross", label: "น้ำหนักรวม (เข้า)", children: `${formatWeight(ticket.grossWeightKg)} กก.` },
+                        { key: "tare", label: "น้ำหนักรถ (ออก)", children: `${formatWeight(ticket.tareWeightKg)} กก.` },
+                        { key: "net", label: "น้ำหนักสุทธิ", children: `${formatWeight(ticket.netWeightKg)} กก.` },
+                        { key: "created", label: "เปิดตั๋วเมื่อ", children: formatDateTime(ticket.createdAt) },
+                      ]}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.card}>
+                  <div className={styles.cardHeader}>
+                    <h3>รายการรับซื้อและยอดเงิน</h3>
+                    <p>จากใบรับซื้อ {receipt?.receiptNo ?? ticket.receiptNo ?? ""}</p>
+                  </div>
+                  <div className={styles.cardBody}>
+                    {receipt ? (
+                      <Descriptions
+                        bordered
+                        size="small"
+                        column={{ xs: 1, md: 2 }}
+                        items={[
+                          ...(receipt.items ?? []).map((item) => ({
+                            key: `item-${item.id}`,
+                            label:
+                              `${item.classificationCode ?? ""} ${item.classificationName ?? ""}`.trim() ||
+                              "รายการ",
+                            children: `${formatWeight(item.weightKg)} กก. × ${formatMoney(item.pricePerKg)} = ${formatMoney(item.amount)} บาท`,
+                          })),
+                          ...(receipt.deductions ?? []).map((row) => ({
+                            key: `ded-${row.id}`,
+                            label: `หัก: ${row.description || row.deductionType}`,
+                            children: `${formatWeight(row.deductionWeightKg)} กก. = ${formatMoney(row.deductionAmount)} บาท`,
+                          })),
+                          { key: "payable", label: "น้ำหนักที่จ่าย", children: `${formatWeight(receipt.payableWeightKg)} กก.` },
+                          { key: "subtotal", label: "ยอดก่อนหัก", children: `${formatMoney(receipt.subtotalAmount)} บาท` },
+                          { key: "deduct", label: "ยอดหัก", children: `${formatMoney(receipt.deductionAmount)} บาท` },
+                          {
+                            key: "total",
+                            label: "ยอดสุทธิ",
+                            children: <strong>{`${formatMoney(receipt.totalAmount)} บาท`}</strong>,
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <Typography.Text type="secondary">กำลังโหลดใบรับซื้อ...</Typography.Text>
+                    )}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
             <div className={styles.card}>
               <div className={styles.cardHeader}>
                 <h3>ข้อมูลตั๋วชั่ง</h3>
@@ -562,16 +768,36 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               </div>
             </div>
 
+              </>
+            )}
+
+            <ReceivingDocumentsCard rows={documentRows} />
+
             <div className={styles.card}>
               <div className={styles.cardHeader}>
                 <h3>รูปจากกล้องเครื่องชั่ง</h3>
                 <p>ไฟล์ที่ส่งมากับบัตร T2900 (เข้า/ออก · กล้อง 1–2) — คลิกดูขยาย</p>
               </div>
               <div className={styles.cardBody}>
-                <T2900CameraPhotosGallery ticketId={ticket.id} />
+                <T2900CameraPhotosGallery
+                  ticketId={ticket.id}
+                  tckNo={
+                    ticket.origin === "T2900" ? ticket.referenceDocNo : undefined
+                  }
+                />
               </div>
             </div>
 
+            {compactView ? (
+              <div className={styles.card}>
+                <div className={styles.cardBody}>
+                  <Collapse
+                    ghost
+                    items={[
+                      {
+                        key: "steps",
+                        label: "ขั้นตอนดำเนินการ (คัดแยก · จ่ายเงิน · เข้าคลัง)",
+                        children: (
             <div className={styles.weighStepsStack}>
               <ReceivingTicketClassifyWeighPanel
                 ticket={ticket}
@@ -908,6 +1134,350 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                 </div>
               </div>
             </div>
+                        ),
+                      },
+                    ]}
+                  />
+                </div>
+              </div>
+            ) : (
+            <div className={styles.weighStepsStack}>
+              <ReceivingTicketClassifyWeighPanel
+                ticket={ticket}
+                currentStep={currentStep}
+              />
+
+              <div
+                className={[
+                  styles.stepCard,
+                  currentStep === 1 || (hasReceipt && !paid)
+                    ? styles.stepCardActive
+                    : "",
+                  paid ? styles.stepCardDone : "",
+                  !hasReceipt ? styles.stepCardLocked : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <div className={styles.stepCardHeader}>
+                  <div className={styles.stepCardHeaderMain}>
+                    <div
+                      className={[
+                        styles.stepBadge,
+                        currentStep === 1 || readyToPay
+                          ? styles.stepBadgeActive
+                          : "",
+                        paid ? styles.stepBadgeDone : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      2
+                    </div>
+                    <div className={styles.stepCardTitle}>
+                      <h3>Step 2 · ออกใบจ่ายเงิน</h3>
+                      <p>
+                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — เมื่อจ่ายสำเร็จระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
+                      </p>
+                    </div>
+                  </div>
+                  <Tag
+                    className={styles.stepStatusTag}
+                    color={
+                      paid
+                        ? "success"
+                        : readyToPay
+                          ? "processing"
+                          : hasReceipt
+                            ? "warning"
+                            : "default"
+                    }
+                  >
+                    {paid
+                      ? "จ่ายเงินแล้ว"
+                      : readyToPay
+                        ? "รอออกใบจ่ายเงิน"
+                        : hasReceipt
+                          ? "ตั๋วชั่งยังเป็นร่าง"
+                          : "รอมีตั๋วชั่ง"}
+                  </Tag>
+                </div>
+                <div className={styles.stepCardBody}>
+                  <div className={styles.stepMetaGrid}>
+                    <div className={styles.stepMetaItem}>
+                      <span>ใบรับซื้อ</span>
+                      <strong>
+                        {paymentView?.receiptNo
+                          ? `${paymentView.receiptNo} (${RECEIPT_STATUS_LABELS[paymentView.receiptStatus ?? ""] ?? paymentView.receiptStatus ?? "-"})`
+                          : "ยังไม่มี"}
+                      </strong>
+                    </div>
+                    <div
+                      className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
+                    >
+                      <span>สถานะจ่ายเงิน</span>
+                      <strong>
+                        {paymentView
+                          ? resolvePaymentStatusLabel(paymentView)
+                          : "-"}
+                        {paid && paymentVoucher?.voucherNo
+                          ? ` · ${paymentVoucher.voucherNo}`
+                          : ""}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/*
+                    เอกสารของขั้นนี้ — ย้ายมาจาก Step 1 ซึ่งเดิมถือการ์ดใบสำคัญจ่ายไว้
+                    ทั้งที่เอกสารใบนี้เกิดจาก Step 2 · ตอนยังไม่ออกใบก็ยังโชว์แถวไว้แบบจาง
+                    ให้รู้ว่าขั้นนี้ต้องได้อะไรออกมา
+                  */}
+                  <div className={styles.stepDocList}>
+                    <div
+                      className={[
+                        styles.stepDocRow,
+                        paymentVoucher ? "" : styles.stepDocRowMuted,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      <div className={styles.stepDocMain}>
+                        <span className={styles.stepDocLabel}>ใบสำคัญจ่าย</span>
+                        <span className={styles.stepDocValue}>
+                          {paymentVoucher?.voucherNo ?? "ยังไม่ออก — กดปุ่มด้านล่างเพื่อออกใบจ่ายเงิน"}
+                          {paymentVoucher?.voucherDate ? (
+                            <span className={styles.stepDocMeta}>
+                              ลว. {formatDateOnly(paymentVoucher.voucherDate)}
+                            </span>
+                          ) : null}
+                        </span>
+                      </div>
+                      {paymentVoucher ? (
+                        <div className={styles.stepDocActions}>
+                          <Button
+                            size="small"
+                            type="primary"
+                            icon={<PrinterOutlined />}
+                            loading={printingVoucher}
+                            onClick={() => void handlePrintVoucher()}
+                          >
+                            พิมพ์
+                          </Button>
+                          <Button
+                            size="small"
+                            onClick={() =>
+                              router.push(
+                                `/receiving/receipts/${ticket.receiptId}/payment`,
+                              )
+                            }
+                          >
+                            เปิด
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {paid ? null : readyToPay ? (
+                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                      <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        onClick={() =>
+                          router.push(
+                            `/receiving/receipts/${ticket.receiptId}/payment`,
+                          )
+                        }
+                      >
+                        ออกใบจ่ายเงิน
+                      </Button>
+                    </div>
+                  ) : hasReceipt ? (
+                    <div className={styles.stepEmptyHint}>
+                      ใบรับซื้อยังไม่พร้อมจ่าย — ตรวจยอดและยืนยันจาก Step 1
+                    </div>
+                  ) : (
+                    <div className={styles.stepEmptyHint}>
+                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={[
+                  styles.stepCard,
+                  currentStep === 2 ||
+                  readyForStockIn ||
+                  stockRequestPending
+                    ? styles.stepCardActive
+                    : "",
+                  stockPosted ? styles.stepCardDone : "",
+                  !paid && !stockPosted
+                    ? styles.stepCardLocked
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <div className={styles.stepCardHeader}>
+                  <div className={styles.stepCardHeaderMain}>
+                    <div
+                      className={[
+                        styles.stepBadge,
+                        currentStep === 2 ||
+                        readyForStockIn ||
+                        stockRequestPending
+                          ? styles.stepBadgeActive
+                          : "",
+                        stockPosted ? styles.stepBadgeDone : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                    >
+                      3
+                    </div>
+                    <div className={styles.stepCardTitle}>
+                      <h3>Step 3 · เข้าคลัง</h3>
+                      <p>
+                        คนคลังเลือกคลัง/ตำแหน่งแล้วกดอนุมัติ — ทำได้หลังจ่ายเงิน Step 2 เสร็จ
+                      </p>
+                    </div>
+                  </div>
+                  <Tag
+                    className={styles.stepStatusTag}
+                    color={
+                      stockPosted
+                        ? "success"
+                        : stockRequestPending
+                          ? "processing"
+                          : readyForStockIn
+                            ? "processing"
+                            : "default"
+                    }
+                  >
+                    {stockPosted
+                      ? STOCK_POSTING_STATUS_LABELS.POSTED
+                        : stockRequestPending
+                        ? "รอคลังเลือกคลังและอนุมัติ"
+                        : readyForStockIn
+                          ? "รอคลังรับเข้า"
+                          : paid
+                            ? "พร้อมเข้าคลัง"
+                            : receiptConfirmed
+                              ? "รอจ่ายเงินก่อน"
+                              : "รอยืนยันยอดก่อน"}
+                  </Tag>
+                </div>
+                <div className={styles.stepCardBody}>
+                  <div className={styles.stepMetaGrid}>
+                    <div className={styles.stepMetaItem}>
+                      <span>ใบรับซื้อ</span>
+                      <strong>
+                        {ticket.receiptNo
+                          ? `${ticket.receiptNo} (${RECEIPT_STATUS_LABELS[ticket.receiptStatus ?? ""] ?? ticket.receiptStatus ?? "-"})`
+                          : "ยังไม่มี"}
+                      </strong>
+                    </div>
+                    <div
+                      className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
+                    >
+                      <span>สถานะเข้าคลัง</span>
+                      <strong>
+                        {stockPosted
+                          ? STOCK_POSTING_STATUS_LABELS.POSTED
+                          : stockRequestPending
+                            ? "รอคลังเลือกคลังและอนุมัติ"
+                            : readyForStockIn
+                              ? "รอคลังรับเข้า"
+                              : "-"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {stockPosted ? (
+                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                      <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        icon={<PrinterOutlined />}
+                        disabled={!warehouseSlipData || isPrintingWarehouseSlip}
+                        loading={
+                          isPrintingWarehouseSlip || warehouseSlipLoading
+                        }
+                        onClick={() => {
+                          if (!warehouseSlipData) return;
+                          setIsPrintingWarehouseSlip(true);
+                          void import(
+                            "@/utils/generateRawTireWarehouseReceiptPdf"
+                          )
+                            .then(({ generateRawTireWarehouseReceiptPdf }) =>
+                              generateRawTireWarehouseReceiptPdf(
+                                warehouseSlipData,
+                              ),
+                            )
+                            .finally(() => setIsPrintingWarehouseSlip(false));
+                        }}
+                      >
+                        พิมพ์ใบรับสินค้า
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          router.push(
+                            `/receiving/receipts/${ticket.receiptId}/warehouse-receipt`,
+                          )
+                        }
+                      >
+                        ดูเต็มจอ
+                      </Button>
+                    </div>
+                  ) : stockRequestPending &&
+                    ticket.receiptId &&
+                    canApproveStockIn ? (
+                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                      <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        onClick={() =>
+                          router.push(
+                            stockRequest?.id
+                              ? `/warehouse/stock-posting-approvals/${stockRequest.id}`
+                              : "/warehouse/stock-posting-approvals",
+                          )
+                        }
+                      >
+                        คลังเลือกคลังและอนุมัติ
+                      </Button>
+                    </div>
+                  ) : paid &&
+                    receiptConfirmed &&
+                    ticket.receiptId &&
+                    !stockPosted &&
+                    canApproveStockIn ? (
+                    <div className={styles.weighActions} style={{ marginTop: 16 }}>
+                      <Button
+                        type="primary"
+                        className={styles.submitButton}
+                        onClick={() =>
+                          router.push("/warehouse/stock-posting-approvals")
+                        }
+                      >
+                        เปิดรายการรอคลังอนุมัติ
+                      </Button>
+                    </div>
+                  ) : receiptConfirmed && !paid ? (
+                    <div className={styles.stepEmptyHint}>
+                      จ่ายเงินใน Step 2 ให้เสร็จก่อน ระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
+                    </div>
+                  ) : stockRequestPending || readyForStockIn ? null : (
+                    <div className={styles.stepEmptyHint}>
+                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จ แล้วจ่ายเงิน Step 2 ก่อนเข้าคลัง
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            )}
           </>
         ) : null}
       </section>
