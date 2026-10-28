@@ -12,6 +12,7 @@ import {
 } from "antd";
 import {
   ArrowLeftOutlined,
+  FilePdfOutlined,
   PrinterOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
@@ -23,6 +24,7 @@ import { useRawTirePaymentQuery } from "@/hooks/raw-tire-payment/useRawTirePayme
 import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
 import { useSellerQuery } from "@/hooks/sellers/useSellerQuery";
 import { useStockPostingRequestByReceiptQuery } from "@/hooks/stock-posting/useStockPostingQueries";
+import { useT2900TicketDetailQuery } from "@/hooks/weighbridge-tickets/useT2900TicketDetailQuery";
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useCanApproveStockPostingApprovals } from "@/lib/auth/stock-posting-access";
 import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
@@ -221,6 +223,34 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const paymentVoucher = paymentQuery.data?.data?.voucher;
   const [printingVoucher, setPrintingVoucher] = useState(false);
   const [printingReceipt, setPrintingReceipt] = useState(false);
+  const [exportingPhotoReceipt, setExportingPhotoReceipt] = useState(false);
+
+  // ตั๋วที่มาจากเครื่องชั่ง T2900: เก็บข้อมูลบัตรไว้ใช้ Export เอกสารแนบรูปเข้า-ออก ได้ทุกขั้น (จ่ายเงิน/เข้าคลังแล้วก็ยังโหลดได้)
+  const t2900TckNo =
+    ticket?.origin === "T2900" ? (ticket.referenceDocNo ?? "") : "";
+  const t2900Query = useT2900TicketDetailQuery(t2900TckNo);
+
+  const handleExportPhotoReceipt = async () => {
+    const detail = t2900Query.data?.data;
+    if (!detail) {
+      message.warning("ยังโหลดข้อมูลบัตรจากเครื่องชั่งไม่เสร็จ");
+      return;
+    }
+    setExportingPhotoReceipt(true);
+    try {
+      const { generateT2900PhotoReceiptPdf } =
+        await import("@/utils/generateT2900PhotoReceiptPdf");
+      await generateT2900PhotoReceiptPdf(detail);
+    } catch (error) {
+      message.error(
+        error instanceof Error
+          ? error.message
+          : "Export เอกสารแนบรูปเข้า-ออกไม่สำเร็จ",
+      );
+    } finally {
+      setExportingPhotoReceipt(false);
+    }
+  };
 
   const handlePrintReceipt = async () => {
     if (!receipt) {
@@ -486,6 +516,16 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
             >
               พิมพ์ตั๋วชั่ง
             </Button>
+            {t2900TckNo ? (
+              <Button
+                icon={<FilePdfOutlined />}
+                loading={exportingPhotoReceipt || t2900Query.isLoading}
+                disabled={!t2900Query.data?.data}
+                onClick={() => void handleExportPhotoReceipt()}
+              >
+                Export เอกสารแนบรูปเข้า-ออก
+              </Button>
+            ) : null}
             <Button
               icon={<ReloadOutlined />}
               loading={ticketQuery.isFetching || paymentQuery.isFetching}

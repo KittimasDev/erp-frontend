@@ -70,6 +70,9 @@ import styles from "./WeighbridgeDashboardPage.module.css";
 
 const { RangePicker } = DatePicker;
 
+/** ซ่อนปุ่ม "เปิดตั๋วจากรูปใบชั่ง" ไว้ก่อน (โค้ดสแกน/ป๊อปอัปยังอยู่ครบ) — เปลี่ยนเป็น true เพื่อเปิดกลับ */
+const SHOW_OPEN_TICKET_FROM_IMAGE = false;
+
 /**
  * ปุ่มเปิดตั๋วจากรูป — ยังไม่ตั้ง AI จะไม่เปิดกล้อง
  * คนที่เข้าหน้าตั้งค่าได้จะถูกพาไปกรอก คนที่เข้าไม่ได้เห็นข้อความให้แจ้งผู้ดูแล
@@ -1330,10 +1333,12 @@ export default function WeighbridgeDashboardPage() {
             >
               Dashboard
             </Button>
-                        <OpenTicketFromImageAction
-              pending={scanOcrMutation.isPending}
-              onScan={handleScanFromDashboard}
-            />
+            {SHOW_OPEN_TICKET_FROM_IMAGE ? (
+              <OpenTicketFromImageAction
+                pending={scanOcrMutation.isPending}
+                onScan={handleScanFromDashboard}
+              />
+            ) : null}
             <Button
               type="primary"
               icon={<PlusOutlined />}
