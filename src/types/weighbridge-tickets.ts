@@ -220,6 +220,10 @@ export type WeighbridgeAnalyticsSummary = {
   totalAmount: string;
   paid: number;
   waitingPayment: number;
+  /** ยังไม่เปิดใบรับซื้อ (ยังไม่มีสถานะจ่ายเงิน) */
+  unreceipted: number;
+  /** บัตร T2900 ที่ยังไม่เปิดตั๋วใน ERP (นับรวมในจำนวนตั๋วแล้ว) */
+  t2900Only: number;
 };
 
 export type WeighbridgeAnalyticsDailyPoint = {
@@ -229,6 +233,7 @@ export type WeighbridgeAnalyticsDailyPoint = {
   amount: string;
   paid: number;
   waitingPayment: number;
+  unreceipted: number;
 };
 
 export type WeighbridgeAnalyticsHourlyPoint = {
@@ -267,4 +272,8 @@ export type WeighbridgeAnalyticsQuery = {
   to?: string;
   date?: string;
   tireClassificationId?: string;
+  /** ALL = ตั๋วรับซื้อ + บัตร T2900 ที่ยังไม่เปิดตั๋ว (ค่าเริ่มต้น) */
+  source?: WeighbridgeAnalyticsSource;
 };
+
+export type WeighbridgeAnalyticsSource = "ALL" | "PURCHASE" | "T2900";

@@ -31,6 +31,8 @@ export type Item = {
   isQcRequired: boolean;
   /** ต้องมีเลขอ้างอิง/ไฟล์ COA ของ Lot ก่อนส่งมอบลูกค้า */
   requiresCoa?: boolean;
+  /** ชื่อไฟล์รูปสินค้า — null/undefined = ยังไม่มีรูป (ดูรูปที่ GET /api/master-data/items/:id/image) */
+  imageFileName?: string | null;
   isActive: boolean;
   /** มีเอกสารหรือความเคลื่อนไหวแล้ว — ห้ามแก้รหัส หน่วยนับ คุม Lot วันหมดอายุ */
   hasTransactions: boolean;

@@ -9,10 +9,10 @@ import {
   HighlightOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "@/lib/api/client";
-import { getMe } from "@/lib/api/auth";
+import { myProfileQueryKey, useMeQuery } from "@/hooks/auth/useMeQuery";
 import {
   deleteMySignature,
   downloadMySignature,
@@ -28,8 +28,6 @@ import styles from "./MySignaturePage.module.css";
 const MAX_SIGNATURE_BYTES = 1024 * 1024;
 const TEMPLATE_URL = "/signature-template.png";
 
-const myProfileQueryKey = ["auth", "me"] as const;
-
 type MySignaturePageProps = {
   /** ฝังในหน้าอื่น — ข้าม section ชั้นนอกไม่ให้ padding ซ้อนกัน */
   embedded?: boolean;
@@ -43,10 +41,7 @@ export default function MySignaturePage({
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const meQuery = useQuery({
-    queryKey: myProfileQueryKey,
-    queryFn: () => getMe(getAccessToken()),
-  });
+  const meQuery = useMeQuery();
   const me = meQuery.data?.data;
   const hasSignature = Boolean(me?.hasSignature);
 

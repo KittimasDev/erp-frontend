@@ -23,6 +23,7 @@ export type CreateWarehouseLocationRequest = {
   name: string;
   description?: string;
   isActive?: boolean;
+  parentLocationId?: string;
 };
 
 export type UpdateWarehouseLocationRequest =

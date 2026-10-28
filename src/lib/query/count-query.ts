@@ -16,6 +16,9 @@ import { hasAccessToken } from "@/lib/auth/token";
 /** badge เป็นข้อมูลรับรู้ทั่ว ๆ ไม่ใช่คิวเรียลไทม์ — 60 วิพอ ไม่ต้องถี่ */
 export const COUNT_POLL_MS = 60_000;
 
+/** ถือค่าไว้เกือบเท่ารอบ poll — mount ซ้ำภายในช่วงนี้ไม่ยิงใหม่ */
+export const COUNT_STALE_MS = 55_000;
+
 /** poll ต่อไปเรื่อย ๆ แต่หยุดถ้า error แล้ว ไม่ถล่ม backend ที่ล่มอยู่ */
 export function countPollInterval(query: {
   state: { status: string };
@@ -69,7 +72,8 @@ export function pendingCountQueryOptions<TRes>(
     enabled:
       (input.enabled ?? true) && hasAccessToken() && input.canAccess(),
     refetchInterval: countPollInterval,
-    refetchOnMount: true,
+    // ยิงใหม่ตอน mount เฉพาะเมื่อข้อมูลเก่ากว่า staleTime (เดิม true = ยิงทุก mount ทำให้ตัวนับ 20+ ตัวยิงรัวตอนเปลี่ยนหน้า)
+    staleTime: COUNT_STALE_MS,
     refetchOnWindowFocus: (query) => query.state.status !== "error",
     retry: 1,
     select: input.select,

@@ -626,13 +626,22 @@ export async function openMultiPagePdfFromHtml(
      * จะทับกันจนเลย์เอาต์เพี้ยน
      */
     includeBaseStyles?: boolean;
+    /**
+     * แนวหน้ากระดาษ — ค่าเริ่มต้นแนวตั้ง (ใบอื่นทั้งหมดไม่กระทบ)
+     * แนวนอน: หน้าแต่ละหน้าต้องตรึงขนาด 1123×794px ผู้เรียกจัดเอง
+     */
+    orientation?: "portrait" | "landscape";
   },
 ) {
   if (pagesHtml.length === 0) {
     throw new Error("PDF has no pages to render");
   }
 
-  const { wrapperWidth = "794px", includeBaseStyles = true } = options ?? {};
+  const {
+    wrapperWidth = "794px",
+    includeBaseStyles = true,
+    orientation = "portrait",
+  } = options ?? {};
 
   const wrapper = document.createElement("div");
   wrapper.style.position = "fixed";
@@ -647,10 +656,12 @@ export async function openMultiPagePdfFromHtml(
     await waitForImages(wrapper);
 
     const pdf = new jsPDF({
-      orientation: "portrait",
+      orientation,
       unit: "mm",
       format: "a4",
     });
+    const pageWidthMm = orientation === "landscape" ? 297 : 210;
+    const pageHeightMm = orientation === "landscape" ? 210 : 297;
 
     for (let index = 0; index < pagesHtml.length; index += 1) {
       const target = wrapper.querySelector(
@@ -672,7 +683,14 @@ export async function openMultiPagePdfFromHtml(
         pdf.addPage();
       }
       // แต่ละหน้าถูกตรึงความสูงไว้แล้ว จึงวางเต็มหน้า A4 ได้ตรงๆ
-      pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
+      pdf.addImage(
+        canvas.toDataURL("image/png"),
+        "PNG",
+        0,
+        0,
+        pageWidthMm,
+        pageHeightMm,
+      );
     }
 
     window.open(pdf.output("bloburl"), "_blank");

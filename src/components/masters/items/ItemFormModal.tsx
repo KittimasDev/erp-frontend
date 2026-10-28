@@ -16,6 +16,7 @@ import {
 import { useItemCategoriesQuery } from "@/hooks/item-categories/useItemCategoriesQuery";
 import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import type { CreateItemRequest, Item } from "@/types/items";
+import ItemImageUploader from "@/components/masters/items/ItemImageUploader";
 import {
   ITEM_TYPE_OPTIONS,
   initialItemType,
@@ -320,6 +321,14 @@ export default function ItemFormModal({
             </Form.Item>
           </Col>
         </Row>
+
+        {mode === "edit" && initialItem && (
+          <ItemImageUploader
+            key={initialItem.id}
+            itemId={initialItem.id}
+            imageFileName={initialItem.imageFileName}
+          />
+        )}
 
         <Form.Item label="คำอธิบาย" name="description">
           <Input.TextArea

@@ -12,8 +12,8 @@ import { getAccessToken, hasAccessToken } from "@/lib/auth/token";
 
 export const notificationsQueryKey = ["notifications"] as const;
 
-/** ดึง noti บ่อยขึ้น — หลังอนุมัติเบิกควร invalidate ทันทีด้วย */
-const POLL_MS = 5_000;
+/** 30 วิพอสำหรับแจ้งเตือน (เดิม 5 วิ = 24 request/นาที) — หลังอนุมัติเบิกควร invalidate ทันทีด้วย */
+const POLL_MS = 30_000;
 
 /** หยุด poll ซ้ำเมื่อ API ล้ม (เช่น backend ยังไม่รัน) — ลด log ECONNREFUSED ใน terminal */
 function notificationPollInterval(query: {

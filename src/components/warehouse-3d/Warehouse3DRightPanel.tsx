@@ -16,7 +16,9 @@ import {
   AimOutlined,
 } from "@ant-design/icons";
 import { App, Tag, Button, Input, Tooltip } from "antd";
-import type { Selected3DObject, Warehouse3DLayoutConfig, ZoneConfig, RackConfig, StorageTankConfig } from "@/types/warehouse-3d";
+import type { Selected3DObject, Warehouse3DLayoutConfig, ZoneConfig, ZoneLot } from "@/types/warehouse-3d";
+import ItemImage from "@/components/masters/items/ItemImage";
+import { ZoneLotList } from "./ZoneLotList";
 import { useStockBalancesQuery } from "@/hooks/inventory/useInventoryQueries";
 
 export interface WarehouseLocationItem {
@@ -39,6 +41,8 @@ interface Warehouse3DRightPanelProps {
   onOpenEditor?: () => void;
   onSelectLocationForPicker?: (locationCode: string, locationId?: string) => void;
   isPickerMode?: boolean;
+  /** Lot จริงจัดกลุ่มตาม locationId */
+  lotsByLocation?: Map<string, ZoneLot[]>;
 }
 
 export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
@@ -52,10 +56,18 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
   onOpenEditor,
   onSelectLocationForPicker,
   isPickerMode = false,
+  lotsByLocation,
 }) => {
   const { message } = App.useApp();
-  const [activeTab, setActiveTab] = useState<"detail" | "locations" | "stock" | "summary">("detail");
+  const [activeTab, setActiveTab] = useState<"detail" | "locations" | "stock" | "summary">("locations");
   const [copied, setCopied] = useState(false);
+
+  // เลือกโซนบนภาพ 3D แล้วสลับไปแท็บรายละเอียดให้เอง
+  const [prevSelectedId, setPrevSelectedId] = useState<string | null>(null);
+  if ((selectedObject?.id ?? null) !== prevSelectedId) {
+    setPrevSelectedId(selectedObject?.id ?? null);
+    if (selectedObject) setActiveTab("detail");
+  }
   const [locationSearch, setLocationSearch] = useState("");
   const [locationFilter, setLocationFilter] = useState<"ALL" | "MAPPED" | "UNMAPPED">("ALL");
 
@@ -162,6 +174,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
     const currentStock = zoneItems.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0);
     onSelectObject({
       type: "zone",
+      lots: lotsByLocation?.get(loc.id) ?? [],
       id: z.id,
       code: loc.locationCode || z.code,
       name: z.name,
@@ -346,8 +359,19 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                 </div>
               </div>
 
+              {/* Lot จริงในตำแหน่งนี้ พร้อมรูปสินค้า */}
+              {selectedObject.type === "zone" && (
+                <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-2">
+                  <div className="text-[11px] font-bold text-white flex items-center gap-1.5">
+                    <InboxOutlined className="text-orange-400" />
+                    <span>สินค้า/Lot ในตำแหน่งนี้ ({selectedObject.lots?.length ?? 0})</span>
+                  </div>
+                  <ZoneLotList lots={selectedObject.lots ?? []} />
+                </div>
+              )}
+
               {/* Stored Items & Lots Breakdown */}
-              {selectedObject.items && selectedObject.items.length > 0 && (
+              {selectedObject.type !== "zone" && selectedObject.items && selectedObject.items.length > 0 && (
                 <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
@@ -590,6 +614,29 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                         )
                       )}
                     </div>
+
+                    {/* รูปสินค้าที่อยู่ในตำแหน่งนี้ */}
+                    {(lotsByLocation?.get(loc.id) ?? []).length > 0 && (
+                      <div className="flex items-center gap-1 pt-1">
+                        {Array.from(
+                          new Map((lotsByLocation?.get(loc.id) ?? []).map((l) => [l.itemId, l])).values(),
+                        )
+                          .slice(0, 5)
+                          .map((l) => (
+                            <ItemImage
+                              key={l.itemId}
+                              itemId={l.itemId}
+                              imageFileName={l.imageFileName}
+                              size={30}
+                              alt={l.itemName}
+                              className="!border-slate-700 !bg-slate-800"
+                            />
+                          ))}
+                        <span className="text-[10px] text-slate-400 ml-1">
+                          {(lotsByLocation?.get(loc.id) ?? []).length} lot
+                        </span>
+                      </div>
+                    )}
 
                     {/* Stock note if available */}
                     {totalQty > 0 && (

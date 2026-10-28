@@ -16,6 +16,7 @@ import {
 import type { Warehouse } from "@/types/warehouses";
 import type { CampusRoadConfig } from "@/types/warehouse-3d";
 import { FactorySiteMap3D } from "./FactorySiteMap3D";
+import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 
 interface WarehouseCatalogViewProps {
   warehouses: Warehouse[];
@@ -51,6 +52,18 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
     });
     return ["ALL", ...Array.from(set)];
   }, [warehouses]);
+
+  // ตำแหน่งจัดเก็บ (location) ของทุกคลัง จัดกลุ่มตามคลัง เพื่อโชว์บนการ์ด
+  const { data: allLocationsData } = useWarehouseLocationsQuery({ isActive: true });
+  const locationsByWarehouse = useMemo(() => {
+    const map = new Map<string, Array<{ id: string; locationCode: string; locationName: string }>>();
+    for (const loc of allLocationsData?.data ?? []) {
+      const list = map.get(loc.warehouseId) ?? [];
+      list.push(loc);
+      map.set(loc.warehouseId, list);
+    }
+    return map;
+  }, [allLocationsData]);
 
   const filteredWarehouses = useMemo(() => {
     return warehouses.filter((w) => {
@@ -179,6 +192,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
                   const hasZones = (layout3d?.zones?.length || 0) > 0;
                   const hasTanks = (layout3d?.tanks?.length || 0) > 0;
                   const hasCustom3D = hasRacks || hasZones || hasTanks;
+                  const whLocations = locationsByWarehouse.get(wh.id) ?? [];
 
                   return (
                     <div
@@ -213,37 +227,37 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="my-5 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
+                      <div className="my-5 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-400">สถานะผัง 3 มิติ</span>
-                          {hasCustom3D ? (
-                            <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
-                              <CheckCircleOutlined />
-                              <span>มีผังจัดวางแล้ว</span>
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1.5 text-amber-400 font-medium">
-                              <PlusCircleOutlined />
-                              <span>คลังเปล่า (พร้อมจัดผัง)</span>
-                            </span>
-                          )}
+                          <span className="text-slate-400">ตำแหน่งจัดเก็บ (Location)</span>
+                          <span className="font-bold text-emerald-400">
+                            {whLocations.length} ตำแหน่ง
+                          </span>
                         </div>
-                        <div className="text-[11px] text-slate-500 font-mono">
-                          {hasCustom3D ? (
-                            <span>
-                              {layout3d?.racks?.length
-                                ? `${layout3d.racks.length} ชั้นวาง `
-                                : ""}
-                              {layout3d?.zones?.length
-                                ? `• ${layout3d.zones.length} ลานกอง `
-                                : ""}
-                              {layout3d?.tanks?.length
-                                ? `• ${layout3d.tanks.length} ถังบรรจุ`
-                                : ""}
-                            </span>
-                          ) : (
-                            <span>ยังไม่มีชั้นวาง สามารถหยิบลงพื้นที่ได้ทันที</span>
-                          )}
+                        {whLocations.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {whLocations.slice(0, 8).map((loc) => (
+                              <span
+                                key={loc.id}
+                                title={loc.locationName}
+                                className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-amber-300 font-mono text-[10px]"
+                              >
+                                {loc.locationCode}
+                              </span>
+                            ))}
+                            {whLocations.length > 8 && (
+                              <span className="px-1.5 py-0.5 text-[10px] text-slate-400">
+                                +{whLocations.length - 8} อีก
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-500">
+                            ยังไม่มีตำแหน่งในคลังนี้ เข้าไปเพิ่มได้ในหน้าถัดไป
+                          </div>
+                        )}
+                        <div className="text-[10px] text-slate-500">
+                          {hasCustom3D ? "มีผัง 3 มิติแล้ว" : "ยังไม่ได้จัดผัง 3 มิติ"}
                         </div>
                       </div>
 

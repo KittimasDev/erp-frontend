@@ -1,11 +1,15 @@
 "use client";
 
-import { Button, Space, Table, Tag, Typography } from "antd";
+import { useState } from "react";
+import { App, Button, Space, Table, Tag, Typography } from "antd";
+import { FilePdfOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
 
 import { useT2900LiveUpdates } from "@/hooks/weighbridge-tickets/useT2900LiveUpdates";
 import { useT2900OutboundTicketsQuery } from "@/hooks/weighbridge-tickets/useT2900OutboundTicketsQuery";
+import { getT2900DailyReport } from "@/lib/api/t2900";
+import { getAccessToken } from "@/lib/auth/token";
 import type { T2900ErpOutboundTicket, T2900RecordStatus } from "@/types/t2900";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
@@ -41,6 +45,8 @@ function formatDateTime(value?: string) {
 
 export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
+  const [exportingReport, setExportingReport] = useState(false);
   // มีบัตรเข้ามาใหม่/สถานะเปลี่ยน หลังบ้านส่งสัญญาณมา → ดึงตารางใหม่ทันที ไม่ต้องรีเฟรชเอง
   useT2900LiveUpdates();
 
@@ -53,6 +59,27 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
   });
 
   const rows = ticketsQuery.data?.data.items ?? [];
+
+  /** Export รายงานรายวัน (บัตรชั่งครั้งสอง แยกตามสินค้า → ลูกค้า) ตามช่วงวันที่ที่เลือกอยู่ */
+  const handleExportDailyReport = async () => {
+    setExportingReport(true);
+    try {
+      const response = await getT2900DailyReport(
+        getAccessToken(),
+        dateFrom,
+        dateTo,
+      );
+      const { generateT2900DailyReportPdf } =
+        await import("@/utils/generateT2900DailyReportPdf");
+      await generateT2900DailyReportPdf(response.data);
+    } catch (error) {
+      message.error(
+        error instanceof Error ? error.message : "Export รายงานรายวันไม่สำเร็จ",
+      );
+    } finally {
+      setExportingReport(false);
+    }
+  };
 
   // เปิดหน้ารายละเอียดบัตร — ตั๋ว ERP ถูกสร้างตอนกดยืนยันในหน้านั้นเท่านั้น ไม่ใช่ตอนเปิดดู
   const handleOpen = (ticket: T2900ErpOutboundTicket) => {
@@ -106,8 +133,7 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
       key: "recordStatus",
       width: 120,
       render: (value: string, record) => {
-        const label =
-          RECORD_STATUS_LABEL[value as T2900RecordStatus] ?? value;
+        const label = RECORD_STATUS_LABEL[value as T2900RecordStatus] ?? value;
         if (record.alreadyImported) {
           if (record.erpStockPostingStatus === "POSTED") {
             return <Tag color="green">เข้าคลังแล้ว</Tag>;
@@ -163,6 +189,15 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
 
   return (
     <>
+      <div className={styles.t2900Toolbar}>
+        <Button
+          icon={<FilePdfOutlined />}
+          loading={exportingReport}
+          onClick={() => void handleExportDailyReport()}
+        >
+          Export รายงานรายวัน
+        </Button>
+      </div>
       <div className={styles.cardBody}>
         {ticketsQuery.isError ? (
           <Typography.Text type="danger">

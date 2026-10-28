@@ -3,6 +3,7 @@ import type { WeighbridgeTicketDetailApiResponse } from "@/types/weighbridge-tic
 import type {
   ConfirmFromT2900Request,
   ImportFromT2900Request,
+  T2900DailyReportApiResponse,
   T2900ErpTicketDetailApiResponse,
   T2900ErpOutboundListApiResponse,
   T2900OutboundTicketsQuery,
@@ -69,5 +70,18 @@ export function confirmWeighbridgeTicketFromT2900(
   return apiFetch<WeighbridgeTicketDetailApiResponse>(
     "/api/weighbridge/tickets/from-t2900/confirm",
     { method: "POST", token, body },
+  );
+}
+
+/** รายงานรายวัน: บัตรชั่งครั้งสอง แยกตามสินค้า → ลูกค้า (หลังบ้านจัดกลุ่ม/รวมยอด/หาราคาให้) */
+export function getT2900DailyReport(
+  token: string,
+  dateFrom: string,
+  dateTo: string,
+) {
+  const search = new URLSearchParams({ dateFrom, dateTo });
+  return apiFetch<T2900DailyReportApiResponse>(
+    `/api/weighbridge/t2900/daily-report?${search.toString()}`,
+    { method: "GET", token },
   );
 }

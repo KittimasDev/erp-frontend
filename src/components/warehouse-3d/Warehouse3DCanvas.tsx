@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
@@ -19,6 +19,7 @@ import { WarehouseBuilding3D } from "./WarehouseBuilding3D";
 import { FloorZone3D } from "./FloorZone3D";
 import { WarehouseAnnotations } from "./WarehouseAnnotations";
 import { DroneController } from "./DroneController";
+import { ZoneEditHandles } from "./ZoneEditHandles";
 
 interface Warehouse3DCanvasProps {
   layout: Warehouse3DLayoutConfig;
@@ -39,6 +40,9 @@ interface Warehouse3DCanvasProps {
   onExitDrone: () => void;
   cameraPresetCommand: string | null;
   onCameraPresetHandled: () => void;
+  /** ถ้าส่งมา โซนที่เลือกจะมีจุดจับให้ลากย้าย/ยืดบนภาพ 3D */
+  onHoverZone?: (zoneId: string | null) => void;
+  onUpdateZone?: (id: string, patch: Pick<ZoneConfig, "position" | "dimensions">) => void;
 }
 
 function SceneLighting({ lighting }: { lighting: LightingPreset }) {
@@ -177,8 +181,15 @@ export const Warehouse3DCanvas: React.FC<Warehouse3DCanvasProps> = ({
   onExitDrone,
   cameraPresetCommand,
   onCameraPresetHandled,
+  onHoverZone,
+  onUpdateZone,
 }) => {
   const orbitRef = useRef<OrbitControlsImpl | null>(null);
+  const [isDraggingZone, setIsDraggingZone] = useState(false);
+  const editableZone =
+    onUpdateZone && layers.zones && selectedObject?.type === "zone"
+      ? (layout.zones || []).find((z) => z.id === selectedObject.id)
+      : undefined;
 
   const isDroneMode = viewMode === "drone";
 
@@ -224,7 +235,7 @@ export const Warehouse3DCanvas: React.FC<Warehouse3DCanvasProps> = ({
         {/* OrbitControls (Disabled when in Drone mode) */}
         <OrbitControls
           ref={orbitRef}
-          enabled={!isDroneMode}
+          enabled={!isDroneMode && !isDraggingZone}
           enableDamping
           dampingFactor={0.05}
           maxPolarAngle={Math.PI / 2.05}
@@ -249,8 +260,18 @@ export const Warehouse3DCanvas: React.FC<Warehouse3DCanvasProps> = ({
               zone={zone}
               selectedId={selectedObject?.id ?? null}
               onSelect={onSelectObject}
+              onHover={onHoverZone}
             />
           ))}
+
+        {editableZone && !isDroneMode && onUpdateZone && (
+          <ZoneEditHandles
+            zone={editableZone}
+            building={layout.building}
+            onChange={(patch) => onUpdateZone(editableZone.id, patch)}
+            onDragStateChange={setIsDraggingZone}
+          />
+        )}
 
         {/* 3D Floating Annotations / Badges */}
         <WarehouseAnnotations
@@ -290,6 +311,7 @@ export const Warehouse3DCanvas: React.FC<Warehouse3DCanvasProps> = ({
               currentStock,
               utilizationPercent: Math.min(100, Math.round((currentStock / 35000) * 100)),
               items,
+              lots: z.lots,
             });
           }}
         />

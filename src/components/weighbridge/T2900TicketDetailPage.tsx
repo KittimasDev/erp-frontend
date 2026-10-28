@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Alert,
+  App,
   Button,
   Collapse,
   Descriptions,
@@ -13,7 +14,11 @@ import {
   Tag,
   Typography,
 } from "antd";
-import { ArrowLeftOutlined, ReloadOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  FilePdfOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
@@ -133,6 +138,8 @@ type Props = {
 
 export default function T2900TicketDetailPage({ tckNo }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
+  const [exporting, setExporting] = useState(false);
   // เครื่องชั่งส่งข้อมูลเพิ่ม (เช่นชั่งออกครบ) หน้านี้เปลี่ยนขั้นเอง ไม่ต้องกดรีเฟรช
   useT2900LiveUpdates();
   const query = useT2900TicketDetailQuery(tckNo);
@@ -146,6 +153,27 @@ export default function T2900TicketDetailPage({ tckNo }: Props) {
   const confirmDisabled =
     !detail?.canConfirm ||
     (needsManualPrice && !(manualPrice && manualPrice > 0));
+
+  /** Export เอกสารแนบรูปเข้า-ออก (ใบรับสินค้า) เป็น PDF — โหลดโค้ดสร้าง PDF เมื่อกดครั้งแรกเท่านั้น */
+  const handleExportPhotoReceipt = async () => {
+    if (!detail) {
+      return;
+    }
+    setExporting(true);
+    try {
+      const { generateT2900PhotoReceiptPdf } =
+        await import("@/utils/generateT2900PhotoReceiptPdf");
+      await generateT2900PhotoReceiptPdf(detail);
+    } catch (error) {
+      message.error(
+        error instanceof Error
+          ? error.message
+          : "Export เอกสารแนบรูปเข้า-ออกไม่สำเร็จ",
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleConfirm = async () => {
     if (!detail) {
@@ -187,13 +215,23 @@ export default function T2900TicketDetailPage({ tckNo }: Props) {
           >
             กลับรายการบัตรชั่ง T2900
           </Button>
-          <Button
-            icon={<ReloadOutlined />}
-            loading={query.isFetching}
-            onClick={() => void query.refetch()}
-          >
-            รีเฟรช
-          </Button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              icon={<FilePdfOutlined />}
+              loading={exporting}
+              disabled={!detail}
+              onClick={() => void handleExportPhotoReceipt()}
+            >
+              Export เอกสารแนบรูปเข้า-ออก
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
+              รีเฟรช
+            </Button>
+          </div>
         </div>
 
         {query.isError ? (
@@ -214,7 +252,8 @@ export default function T2900TicketDetailPage({ tckNo }: Props) {
                   <div>
                     <h3>บัตรชั่ง T2900 เลขที่ {ticket.TckNo}</h3>
                     <p>
-                      ข้อมูลจากเครื่องชั่ง · ตั๋ว ERP จะถูกสร้างเมื่อกดยืนยันเท่านั้น
+                      ข้อมูลจากเครื่องชั่ง · ตั๋ว ERP
+                      จะถูกสร้างเมื่อกดยืนยันเท่านั้น
                     </p>
                   </div>
                   <Tag
@@ -303,7 +342,11 @@ export default function T2900TicketDetailPage({ tckNo }: Props) {
                   size="small"
                   column={{ xs: 1, md: 2 }}
                   items={[
-                    { key: "tck", label: "เลขบัตรชั่ง", children: ticket.TckNo },
+                    {
+                      key: "tck",
+                      label: "เลขบัตรชั่ง",
+                      children: ticket.TckNo,
+                    },
                     { key: "seq", label: "คิว", children: ticket.SeqNo || "-" },
                     {
                       key: "truck",

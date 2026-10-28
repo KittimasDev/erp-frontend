@@ -43,6 +43,23 @@ export interface RackConfig {
   slots?: RackSlotConfig[];
 }
 
+/** Lot จริงที่อยู่ใน Location (ไม่ถูกเก็บลงผัง — ประกอบตอนแสดงผล) */
+export interface ZoneLot {
+  lotId: string;
+  lotNo: string;
+  itemId: string;
+  itemCode: string;
+  itemName: string;
+  imageFileName?: string | null;
+  /** blob URL ของรูป master ที่โหลดแล้ว (ใช้เป็นพื้นผิวใน 3D) */
+  imageSrc?: string;
+  quantity: number;
+  unit: string;
+  expiryDate?: string;
+  qcStatus?: string;
+  receivedDate?: string;
+}
+
 export interface ZoneConfig {
   id: string;
   name: string;
@@ -53,6 +70,12 @@ export interface ZoneConfig {
   color: string;
   locationId?: string;
   locationCode?: string;
+  /** Lot จริงใน Location นี้ (ประกอบตอนแสดงผล ไม่เก็บลง DB) */
+  lots?: ZoneLot[];
+  /** ช่องที่เพิ่งแบ่งใหม่ — ยังไม่มี location ในระบบ จะสร้างตอนกดบันทึก (ไม่ถูกเก็บลง DB) */
+  pendingCreate?: boolean;
+  /** location แม่ของช่องที่เพิ่งแบ่ง ใช้ตอนสร้าง location ใหม่ */
+  pendingParentLocationId?: string;
   items?: Array<{
     itemCode: string;
     itemName: string;
@@ -127,6 +150,7 @@ export interface Selected3DObject {
   currentStock?: number;
   capacity?: number;
   utilizationPercent?: number;
+  lots?: ZoneLot[];
   items?: Array<{
     itemCode: string;
     itemName: string;

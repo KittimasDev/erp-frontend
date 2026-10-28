@@ -25,6 +25,7 @@ import {
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
 import { useWeighbridgeAnalyticsQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeAnalyticsQuery";
+import type { WeighbridgeAnalyticsSource } from "@/types/weighbridge-tickets";
 
 import styles from "./ReceivingAnalyticsDashboardPage.module.css";
 
@@ -33,6 +34,16 @@ const GREEN_DARK = "#627F13";
 const GREEN_SOFT = "#A9C46C";
 const AMBER = "#F9BB0C";
 const MUTED = "#77777C";
+const GRAY = "#B8BCC2";
+
+const SOURCE_OPTIONS: Array<{
+  value: WeighbridgeAnalyticsSource;
+  label: string;
+}> = [
+  { value: "ALL", label: "ทั้งหมด (ตั๋วรับซื้อ + T2900)" },
+  { value: "PURCHASE", label: "เฉพาะตั๋วรับซื้อ (/receiving)" },
+  { value: "T2900", label: "เฉพาะบัตร T2900 ที่ยังไม่เปิดตั๋ว" },
+];
 
 function formatMoney(value: string | number) {
   const n = Number(value);
@@ -75,6 +86,8 @@ export default function ReceivingAnalyticsDashboardPage() {
   const [tireClassificationId, setTireClassificationId] = useState<
     string | undefined
   >();
+  const [source, setSource] = useState<WeighbridgeAnalyticsSource>("ALL");
+  const [hourlyAutoPicked, setHourlyAutoPicked] = useState(false);
 
   const from = range[0].format("YYYY-MM-DD");
   const to = range[1].format("YYYY-MM-DD");
@@ -86,9 +99,23 @@ export default function ReceivingAnalyticsDashboardPage() {
     to,
     date,
     tireClassificationId,
+    source,
   });
   const data = analyticsQuery.data?.data;
   const summary = data?.summary;
+
+  // วันนี้ยังไม่มีรถ → กราฟรายชั่วโมงว่างตั้งแต่เปิดหน้า: เลือกวันล่าสุดที่มีรถในช่วงให้ครั้งแรกครั้งเดียว
+  if (!hourlyAutoPicked && data) {
+    setHourlyAutoPicked(true);
+    if ((data.hourly ?? []).every((point) => point.tickets === 0)) {
+      const latest = [...(data.daily ?? [])]
+        .reverse()
+        .find((point) => point.tickets > 0);
+      if (latest && latest.date !== date) {
+        setHourlyDate(dayjs(latest.date));
+      }
+    }
+  }
 
   const classificationOptions = useMemo(
     () =>
@@ -133,11 +160,13 @@ export default function ReceivingAnalyticsDashboardPage() {
   const paymentChartData = useMemo(() => {
     const paid = summary?.paid ?? 0;
     const waiting = summary?.waitingPayment ?? 0;
+    const unreceipted = summary?.unreceipted ?? 0;
     return [
       { name: "จ่ายแล้ว", value: paid, color: GREEN },
       { name: "รอจ่าย", value: waiting, color: AMBER },
+      { name: "ยังไม่เปิดใบรับซื้อ", value: unreceipted, color: GRAY },
     ].filter((item) => item.value > 0);
-  }, [summary?.paid, summary?.waitingPayment]);
+  }, [summary?.paid, summary?.waitingPayment, summary?.unreceipted]);
 
   const classificationChartData = useMemo(
     () =>
@@ -207,6 +236,15 @@ export default function ReceivingAnalyticsDashboardPage() {
               />
             </label>
             <label className={styles.filterField}>
+              <span>แหล่งตั๋ว</span>
+              <Select
+                className={styles.productSelect}
+                options={SOURCE_OPTIONS}
+                value={source}
+                onChange={(value) => setSource(value)}
+              />
+            </label>
+            <label className={styles.filterField}>
               <span>ประเภท/กลุ่มยาง</span>
               <Select
                 allowClear
@@ -257,6 +295,10 @@ export default function ReceivingAnalyticsDashboardPage() {
           <div className={styles.summaryCard}>
             <span>รอจ่าย</span>
             <strong>{summary?.waitingPayment ?? 0}</strong>
+          </div>
+          <div className={styles.summaryCard}>
+            <span>ยังไม่เปิดใบรับซื้อ</span>
+            <strong>{summary?.unreceipted ?? 0}</strong>
           </div>
         </div>
 
@@ -599,12 +641,14 @@ export default function ReceivingAnalyticsDashboardPage() {
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
               <h3>สถานะการจ่ายเงิน</h3>
-              <p>จ่ายแล้ว vs รอจ่ายในช่วงที่เลือก</p>
+              <p>
+                จ่ายแล้ว · รอจ่าย · ยังไม่เปิดใบรับซื้อ (รวมบัตร T2900 ที่ยังไม่เปิดตั๋ว {summary?.t2900Only ?? 0} ใบ)
+              </p>
             </div>
             <div className={styles.chartBody}>
               {paymentChartData.length === 0 ? (
                 <div className={styles.emptyState}>
-                  ยังไม่มีรายการรอจ่ายหรือจ่ายแล้ว
+                  ไม่มีตั๋วในช่วงที่เลือก
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">

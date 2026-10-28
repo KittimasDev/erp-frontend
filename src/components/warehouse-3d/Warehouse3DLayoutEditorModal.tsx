@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { App, Drawer, Form, Input, InputNumber, Button, Tabs, Select, Space, Card, Popconfirm } from "antd";
+import { App, Drawer, Input, InputNumber, Button, Tabs, Select, Space, Card, Popconfirm, Tag } from "antd";
 import {
   PlusOutlined,
   DeleteOutlined,
   SaveOutlined,
   ReloadOutlined,
-  AppstoreOutlined,
-  EnvironmentOutlined,
-  DatabaseOutlined,
+  DownOutlined,
+  RightOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import type {
   Warehouse3DLayoutConfig,
@@ -17,9 +17,53 @@ import type {
   ZoneConfig,
   StorageTankConfig,
 } from "@/types/warehouse-3d";
+import { createWarehouseLocation } from "@/lib/api/warehouse-locations";
+import { getAccessToken } from "@/lib/auth/token";
+import { ZoneSplitPanel } from "./ZoneSplitPanel";
+
+const AUTO_ZONE_COLORS = ["#10b981", "#f59e0b", "#06b6d4", "#8b5cf6", "#ec4899", "#3b82f6", "#14b8a6", "#eab308"];
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+function zonesOverlap(a: ZoneConfig, b: ZoneConfig) {
+  const dx = Math.abs(a.position[0] - b.position[0]);
+  const dz = Math.abs(a.position[2] - b.position[2]);
+  return dx < (a.dimensions[0] + b.dimensions[0]) / 2 - 0.01 && dz < (a.dimensions[2] + b.dimensions[2]) / 2 - 0.01;
+}
+
+function placeZonesForLocations(
+  building: { width: number; length: number },
+  locs: Array<{ id: string; locationCode: string; locationName: string }>,
+  startIndex: number,
+): ZoneConfig[] {
+  const bw = building.width || 40;
+  const bl = building.length || 60;
+  const cols = Math.min(locs.length, 3);
+  const rows = Math.ceil(locs.length / cols);
+  const cellW = (bw - 6) / cols;
+  const cellL = (bl - 6) / rows;
+  return locs.map((loc, i) => ({
+    id: `zone-${Date.now()}-${i}`,
+    name: loc.locationName || loc.locationCode,
+    code: loc.locationCode,
+    type: "floor_bulk",
+    locationId: loc.id,
+    locationCode: loc.locationCode,
+    position: [
+      round1(-bw / 2 + 3 + ((i % cols) + 0.5) * cellW),
+      0,
+      round1(-bl / 2 + 3 + (Math.floor(i / cols) + 0.5) * cellL),
+    ],
+    dimensions: [round1(Math.max(2, cellW - 1)), 1, round1(Math.max(2, cellL - 1))],
+    color: AUTO_ZONE_COLORS[(startIndex + i) % AUTO_ZONE_COLORS.length],
+  }));
+}
 
 interface Warehouse3DLayoutEditorModalProps {
   open: boolean;
+  warehouseId: string;
+  /** โซนที่ผู้ใช้เลือกอยู่บนหน้า 3D — เปิดการ์ดนี้ให้อัตโนมัติ */
+  focusZoneId?: string | null;
   onClose: () => void;
   layout: Warehouse3DLayoutConfig;
   locations: Array<{
@@ -33,6 +77,8 @@ interface Warehouse3DLayoutEditorModalProps {
 
 export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModalProps> = ({
   open,
+  warehouseId,
+  focusZoneId,
   onClose,
   layout,
   locations,
@@ -122,9 +168,125 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
     normalizeLayout(layout),
   );
 
+  const [expandedZones, setExpandedZones] = useState<Set<string>>(new Set());
+
   useEffect(() => {
-    setDraftLayout(normalizeLayout(layout));
+    const base = normalizeLayout(layout);
+    // คลังที่ยังไม่เคยวางผัง: สร้างโซนให้ทุก Location ทันที จะได้มีของให้ปรับเลย
+    if (open && base.zones.length === 0 && locations.length > 0) {
+      base.zones = placeZonesForLocations(base.building, locations, 0);
+    }
+    setDraftLayout(base);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout, open]);
+
+  // เปิดการ์ดของโซนที่เลือกอยู่ และเลื่อนไปหา
+  useEffect(() => {
+    if (!open || !focusZoneId) return;
+    const t = setTimeout(() => {
+      document.getElementById(`zone-card-${focusZoneId}`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [open, focusZoneId]);
+
+  // expandedZones = โซนที่ผู้ใช้กดสลับเอง; โซนที่เลือกอยู่บนหน้า 3D เปิดไว้เป็นค่าเริ่มต้น
+  const isZoneOpen = (id: string) => (id === focusZoneId ? !expandedZones.has(id) : expandedZones.has(id));
+
+  const toggleZone = (id: string) =>
+    setExpandedZones((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const usedCodes = () =>
+    new Set<string>([
+      ...locations.map((l) => l.locationCode.toUpperCase()),
+      ...(draftLayout.zones || []).map((z) => (z.code || "").toUpperCase()),
+    ]);
+
+  // แบ่งโซนเป็นช่อง: ช่องแรกคง id/location เดิม ช่องอื่นเป็นโซนใหม่
+  const handleSplitZone = (index: number, rows: number, cols: number, createLocations: boolean) => {
+    const zone = draftLayout.zones[index];
+    if (!zone) return;
+    const [w, h, l] = zone.dimensions;
+    const [px, py, pz] = zone.position;
+    const cellW = w / cols;
+    const cellL = l / rows;
+    const gap = 0.2;
+    const baseCode = zone.locationCode || zone.code;
+    const taken = usedCodes();
+    const cells: ZoneConfig[] = [];
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const n = r * cols + c;
+        const dims: [number, number, number] = [round1(Math.max(0.5, cellW - gap)), h, round1(Math.max(0.5, cellL - gap))];
+        const pos: [number, number, number] = [
+          round1(px - w / 2 + (c + 0.5) * cellW),
+          py,
+          round1(pz - l / 2 + (r + 0.5) * cellL),
+        ];
+        if (n === 0) {
+          cells.push({ ...zone, dimensions: dims, position: pos });
+          continue;
+        }
+        let seq = n + 1;
+        let code = `${baseCode}-${String(seq).padStart(2, "0")}`;
+        while (taken.has(code.toUpperCase())) {
+          seq += 1;
+          code = `${baseCode}-${String(seq).padStart(2, "0")}`;
+        }
+        taken.add(code.toUpperCase());
+        cells.push({
+          id: `zone-${Date.now()}-${n}`,
+          name: `${zone.name} ช่อง ${seq}`,
+          code,
+          type: zone.type,
+          position: pos,
+          dimensions: dims,
+          color: zone.color,
+          pendingCreate: createLocations,
+          pendingParentLocationId: zone.locationId,
+        });
+      }
+    }
+
+    setDraftLayout((prev) => {
+      const next = [...prev.zones];
+      next.splice(index, 1, ...cells);
+      return { ...prev, zones: next };
+    });
+    setExpandedZones((prev) => new Set([...prev, ...cells.slice(1).map((c) => c.id)]));
+    message.success(`แบ่งเป็น ${cells.length} ช่องแล้ว กด "บันทึกผัง 3D" เพื่อยืนยัน`);
+  };
+
+  // วางโซนอัตโนมัติให้ Location ที่ยังไม่มีโซนบนผัง (เรียงเป็นตาราง)
+  const unmappedLocations = locations.filter(
+    (loc) => !(draftLayout.zones || []).some((z) => z.locationId === loc.id || z.code === loc.locationCode),
+  );
+
+  const handleAutoPlaceUnmapped = () => {
+    if (unmappedLocations.length === 0) return;
+    const created = placeZonesForLocations(draftLayout.building, unmappedLocations, draftLayout.zones?.length || 0);
+    setDraftLayout((prev) => ({ ...prev, zones: [...(prev.zones || []), ...created] }));
+    message.success(`วางโซนให้ ${created.length} Location แล้ว ปรับขนาด/ตำแหน่งต่อได้`);
+  };
+
+  const overlappingIds = (() => {
+    const zs = draftLayout.zones || [];
+    const ids = new Set<string>();
+    for (let i = 0; i < zs.length; i++) {
+      for (let j = i + 1; j < zs.length; j++) {
+        if (zonesOverlap(zs[i], zs[j])) {
+          ids.add(zs[i].id);
+          ids.add(zs[j].id);
+        }
+      }
+    }
+    return ids;
+  })();
 
   const handleBuildingChange = (field: string, val: number | null) => {
     if (val === null) return;
@@ -245,7 +407,43 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
 
   const handleSaveLayout = async () => {
     try {
-      await onSave(draftLayout);
+      // สร้าง Location ในระบบให้ช่องที่เพิ่งแบ่งก่อน แล้วค่อยบันทึกผัง
+      let toSave = draftLayout;
+      for (const z of draftLayout.zones || []) {
+        if (!z.pendingCreate) continue;
+        try {
+          const res = await createWarehouseLocation(getAccessToken(), {
+            warehouseId,
+            code: z.code,
+            name: z.name,
+            parentLocationId: z.pendingParentLocationId,
+          });
+          toSave = {
+            ...toSave,
+            zones: toSave.zones.map((x) =>
+              x.id === z.id
+                ? { ...x, locationId: res.data.id, locationCode: res.data.locationCode, pendingCreate: false }
+                : x,
+            ),
+          };
+          setDraftLayout(toSave);
+        } catch (err) {
+          message.error(
+            `สร้าง Location ${z.code} ไม่สำเร็จ${err instanceof Error ? `: ${err.message}` : ""} ช่องที่สร้างไปแล้วจะไม่สร้างซ้ำ แก้รหัสแล้วกดบันทึกอีกครั้ง`,
+          );
+          return;
+        }
+      }
+      const cleaned: Warehouse3DLayoutConfig = {
+        ...toSave,
+        zones: toSave.zones.map((z) => {
+          const rest: Partial<ZoneConfig> = { ...z };
+          delete rest.pendingCreate;
+          delete rest.pendingParentLocationId;
+          return rest as ZoneConfig;
+        }),
+      };
+      await onSave(cleaned);
       message.success("บันทึกผังคลัง 3 มิติสำเร็จแล้ว");
       onClose();
     } catch {
@@ -282,18 +480,30 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
             label: `พื้นที่จัดเก็บตาม Location (${draftLayout.zones?.length || 0})`,
             children: (
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2 flex-wrap">
                   <span className="text-xs text-slate-500">พื้นที่จัดเก็บ / โซนแบ่งตามสีประจำ Location</span>
-                  <Button
-                    type="dashed"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={handleAddZone}
-                    className="text-emerald-600 border-emerald-400"
-                  >
-                    + เพิ่ม Location โซน
-                  </Button>
+                  <Space size={4}>
+                    {unmappedLocations.length > 0 && (
+                      <Button size="small" icon={<ThunderboltOutlined />} onClick={handleAutoPlaceUnmapped}>
+                        วางโซนให้ Location ที่ยังไม่ผูก ({unmappedLocations.length})
+                      </Button>
+                    )}
+                    <Button
+                      type="dashed"
+                      size="small"
+                      icon={<PlusOutlined />}
+                      onClick={handleAddZone}
+                      className="text-emerald-600 border-emerald-400"
+                    >
+                      เพิ่มโซน
+                    </Button>
+                  </Space>
                 </div>
+                {overlappingIds.size > 0 && (
+                  <div className="text-[11px] text-amber-600">
+                    ⚠️ มี {overlappingIds.size} โซนที่พื้นที่ทับกัน (ยังบันทึกได้ แต่ควรขยับให้ไม่ซ้อนกัน)
+                  </div>
+                )}
 
                 <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                   {draftLayout.zones?.map((zone, idx) => {
@@ -302,9 +512,14 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                     return (
                     <Card
                       key={zone.id}
+                      id={`zone-card-${zone.id}`}
                       size="small"
                       title={
-                        <div className="flex items-center gap-2">
+                        <div
+                          className="flex items-center gap-2 cursor-pointer"
+                          onClick={() => toggleZone(zone.id)}
+                        >
+                          {isZoneOpen(zone.id) ? <DownOutlined className="text-[10px]" /> : <RightOutlined className="text-[10px]" />}
                           <span
                             className="w-3 h-3 rounded-full inline-block border border-black/20"
                             style={{ backgroundColor: zone.color || "#10b981" }}
@@ -312,6 +527,8 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                           <span className="font-semibold text-slate-800 text-xs">
                             {zone.name} ({zone.code})
                           </span>
+                          {zone.pendingCreate && <Tag color="green" className="m-0 text-[10px]">ใหม่</Tag>}
+                          {overlappingIds.has(zone.id) && <Tag color="orange" className="m-0 text-[10px]">ทับกัน</Tag>}
                         </div>
                       }
                       extra={
@@ -329,7 +546,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                       }
                       className="bg-slate-50 border-slate-200"
                     >
-                      <div className="space-y-2 text-xs">
+                      <div className={`space-y-2 text-xs ${isZoneOpen(zone.id) ? "" : "hidden"}`}>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <span className="text-[10px] text-slate-500 block">ชื่อ Location</span>
@@ -428,6 +645,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                                   })
                                 }
                                 placeholder="X"
+                                step={0.5}
                               />
                               <InputNumber
                                 size="small"
@@ -438,6 +656,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                                   })
                                 }
                                 placeholder="Z"
+                                step={0.5}
                               />
                             </div>
                           </div>
@@ -454,6 +673,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                                   })
                                 }
                                 placeholder="X"
+                                step={0.5}
                               />
                               <InputNumber
                                 size="small"
@@ -464,6 +684,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                                   })
                                 }
                                 placeholder="Z"
+                                step={0.5}
                               />
                             </div>
                           </div>
@@ -481,6 +702,11 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                             />
                           </div>
                         </div>
+
+                        <ZoneSplitPanel
+                          zone={zone}
+                          onSplit={(rows, cols, create) => handleSplitZone(idx, rows, cols, create)}
+                        />
                       </div>
                     </Card>
                     );

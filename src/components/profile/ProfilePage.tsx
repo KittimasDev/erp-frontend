@@ -2,19 +2,14 @@
 
 import { Empty, Spin, Tag, Typography } from "antd";
 import { IdcardOutlined } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 
 import MySignaturePage from "@/components/users/MySignaturePage";
-import { getMe } from "@/lib/api/auth";
-import { getAccessToken } from "@/lib/auth/token";
+import { useMeQuery } from "@/hooks/auth/useMeQuery";
 import { initialsFromUser } from "@/lib/auth/session";
 
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./profile.module.css";
-
-/** คีย์เดียวกับที่ MySignaturePage ใช้ — แชร์ cache ไม่ยิงซ้ำ */
-const myProfileQueryKey = ["auth", "me"] as const;
 
 const EMPTY = "—";
 
@@ -39,10 +34,7 @@ function textOr(value?: string | null) {
 }
 
 export default function ProfilePage() {
-  const meQuery = useQuery({
-    queryKey: myProfileQueryKey,
-    queryFn: () => getMe(getAccessToken()),
-  });
+  const meQuery = useMeQuery();
   const me = meQuery.data?.data;
 
   if (meQuery.isLoading) {

@@ -5,17 +5,21 @@ import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
 import type { ZoneConfig, Selected3DObject } from "@/types/warehouse-3d";
+import { LotCargo3D } from "./LotCargo3D";
 
 interface FloorZone3DProps {
   zone: ZoneConfig;
   selectedId: string | null;
   onSelect: (obj: Selected3DObject) => void;
+  /** แจ้งว่าเมาส์อยู่บนโซนไหน (null = ออกจากโซน) — ถ้าส่งมา การ์ดรายการสินค้าจะแสดงเป็น HTML นอกภาพ 3D */
+  onHover?: (zoneId: string | null) => void;
 }
 
 export const FloorZone3D: React.FC<FloorZone3DProps> = ({
   zone,
   selectedId,
   onSelect,
+  onHover,
 }) => {
   const { id, name, code, type, color = "#10b981", locationId, locationCode } = zone;
   const rawDims = Array.isArray(zone?.dimensions)
@@ -37,48 +41,23 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const isSelected = selectedId === id;
 
-  // Items stored in this warehouse location (use real lots if provided, else defaults)
-  const zoneItems = useMemo(() => {
-    if (zone.items && zone.items.length > 0) {
-      return zone.items;
-    }
-    return [
-      {
-        itemCode: "RAW-RUB-01",
-        itemName: "ยางดิบ / ยางก้อนถ้วย (Raw Natural Rubber)",
-        lotNumber: "LOT-RAW-202610-01",
-        quantity: 14500,
-        unit: "กก.",
-      },
-      {
-        itemCode: "CAKE-RUB-02",
-        itemName: "ขี้ยาง / ยางเค้ก (Rubber Cake Slab)",
-        lotNumber: "LOT-CAKE-202610-02",
-        quantity: 8200,
-        unit: "กก.",
-      },
-    ];
-  }, [zone.items]);
+  // สินค้าจริงใน Location นี้ (Lot ที่มียอด) — ไม่มีข้อมูลสมมติ
+  const zoneLots = zone.lots;
+  const zoneItems = useMemo(
+    () =>
+      (zoneLots ?? []).map((l) => ({
+        itemCode: l.itemCode,
+        itemName: l.itemName,
+        lotNumber: l.lotNo,
+        quantity: l.quantity,
+        unit: l.unit,
+      })),
+    [zoneLots],
+  );
 
   const totalQuantity = useMemo(() => {
     return zoneItems.reduce((acc, it) => acc + (Number(it.quantity) || 0), 0);
   }, [zoneItems]);
-
-  const primaryItem = zoneItems[0] || {
-    itemCode: "RAW-RUB-01",
-    itemName: "ยางดิบ / ยางก้อนถ้วย",
-    lotNumber: "LOT-RAW-202610-01",
-    quantity: 14500,
-    unit: "กก.",
-  };
-
-  const secondaryItem = zoneItems[1] || {
-    itemCode: "CAKE-RUB-02",
-    itemName: "ขี้ยาง / ยางเค้ก",
-    lotNumber: "LOT-CAKE-202610-02",
-    quantity: 8200,
-    unit: "กก.",
-  };
 
   const utilization = Math.min(100, Math.round((totalQuantity / 40000) * 100));
 
@@ -95,19 +74,18 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
       currentStock: totalQuantity,
       utilizationPercent: utilization,
       items: zoneItems,
+      lots: zone.lots,
     });
   };
 
-  // Stack positions dynamically scaled to zone dimensions
-  const leftStackX = -width * 0.25;
-  const rightStackX = width * 0.25;
-  const stackZ = 0;
-
-  // Determine if primary item is tire-based to render tires, or rubber bales
-  const isTirePrimary =
-    primaryItem.itemCode.includes("TIRE") ||
-    primaryItem.itemName.includes("ยางเก่า") ||
-    primaryItem.itemName.includes("ยางรถ");
+  // วางลังสินค้าจริงเป็นตาราง (สูงสุด 6 lot ต่อโซน) ไม่ให้ชนข้อความบนพื้น
+  const shownLots = (zoneLots ?? []).slice(0, 6);
+  const maxLotQty = Math.max(1, ...shownLots.map((l) => l.quantity));
+  const cargoCols = Math.min(Math.max(shownLots.length, 1), 3);
+  const cargoRows = Math.ceil(shownLots.length / cargoCols) || 1;
+  const cellW = width / cargoCols;
+  const cellL = (length * 0.7) / cargoRows;
+  const cargoSize = Math.max(0.6, Math.min(2, cellW * 0.6, cellL * 0.6));
 
   return (
     <group position={safePosition}>
@@ -119,8 +97,12 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
         onPointerOver={(e) => {
           e.stopPropagation();
           setIsHovered(true);
+          onHover?.(id);
         }}
-        onPointerOut={() => setIsHovered(false)}
+        onPointerOut={() => {
+          setIsHovered(false);
+          onHover?.(null);
+        }}
       >
         <planeGeometry args={[width, length]} />
         <meshStandardMaterial
@@ -206,149 +188,29 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
         </Text>
       </group>
 
-      {/* 6. CARGO STACK 1 (Primary Item & Lot in this Location) */}
-      <group
-        position={[leftStackX, 0, stackZ]}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setIsHovered(true);
-        }}
-        onClick={handleClick}
-      >
-        {/* Timber Skid Base */}
-        <mesh position={[0, 0.08, 0]} castShadow receiveShadow>
-          <boxGeometry args={[Math.min(width * 0.38, 3.2), 0.16, Math.min(length * 0.38, 3.6)]} />
-          <meshStandardMaterial color="#78350f" roughness={0.9} />
-        </mesh>
-
-        {isTirePrimary ? (
-          /* Cylindrical Tire Stack */
-          <group position={[0, 0.16, 0]}>
-            {[-0.6, 0.6].map((tx) =>
-              [-0.6, 0.6].map((tz) => (
-                <mesh key={`tire-${tx}-${tz}`} position={[tx, 0.55, tz]} castShadow receiveShadow>
-                  <cylinderGeometry args={[0.55, 0.55, 1.1, 16]} />
-                  <meshStandardMaterial color="#1e293b" roughness={0.9} />
-                </mesh>
-              )),
-            )}
-          </group>
-        ) : (
-          /* Natural Rubber Bales Stack (Amber Brown with straps) */
-          <group position={[0, 0.16, 0]}>
-            <mesh position={[-0.6, 0.32, -0.6]} castShadow receiveShadow>
-              <boxGeometry args={[1.1, 0.6, 1.1]} />
-              <meshStandardMaterial color="#b45309" roughness={0.65} />
-            </mesh>
-            <mesh position={[0.6, 0.32, -0.6]} castShadow receiveShadow>
-              <boxGeometry args={[1.1, 0.6, 1.1]} />
-              <meshStandardMaterial color="#92400e" roughness={0.65} />
-            </mesh>
-            <mesh position={[-0.6, 0.32, 0.6]} castShadow receiveShadow>
-              <boxGeometry args={[1.1, 0.6, 1.1]} />
-              <meshStandardMaterial color="#a16207" roughness={0.7} />
-            </mesh>
-            <mesh position={[0.6, 0.32, 0.6]} castShadow receiveShadow>
-              <boxGeometry args={[1.1, 0.6, 1.1]} />
-              <meshStandardMaterial color="#b45309" roughness={0.65} />
-            </mesh>
-            {/* Top Tier */}
-            <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
-              <boxGeometry args={[1.9, 0.55, 1.9]} />
-              <meshStandardMaterial color="#b45309" roughness={0.65} />
-            </mesh>
-            {/* Strapping Belts */}
-            <mesh position={[0, 0.62, 0]}>
-              <boxGeometry args={[2.34, 0.05, 2.34]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.3} />
-            </mesh>
-          </group>
-        )}
-
-        {/* Floating 3D Tag on Stack 1 */}
-        <group position={[0, 1.95, 0]}>
-          <Billboard follow>
-            <mesh>
-              <planeGeometry args={[2.8, 0.55]} />
-              <meshBasicMaterial color="#090d16" transparent opacity={0.92} />
-            </mesh>
-            <lineSegments>
-              <edgesGeometry args={[new THREE.PlaneGeometry(2.8, 0.55)]} />
-              <lineBasicMaterial color={color} />
-            </lineSegments>
-            <Text position={[0, 0.11, 0.02]} fontSize={0.16} color="#ffffff" anchorX="center" anchorY="middle">
-              {`📦 ${primaryItem.itemName.slice(0, 24)}`}
-            </Text>
-            <Text position={[0, -0.12, 0.02]} fontSize={0.13} color="#fde047" anchorX="center" anchorY="middle">
-              {`${Number(primaryItem.quantity).toLocaleString()} ${primaryItem.unit} • Lot: ${primaryItem.lotNumber || '-'}`}
-            </Text>
-          </Billboard>
-        </group>
-      </group>
-
-      {/* 7. CARGO STACK 2 (Secondary Item & Lot in this Location) */}
-      <group
-        position={[rightStackX, 0, stackZ]}
-        onPointerOver={(e) => {
-          e.stopPropagation();
-          setIsHovered(true);
-        }}
-        onClick={handleClick}
-      >
-        {/* Timber Skid Base */}
-        <mesh position={[0, 0.08, 0]} castShadow receiveShadow>
-          <boxGeometry args={[Math.min(width * 0.36, 3.0), 0.16, Math.min(length * 0.36, 3.4)]} />
-          <meshStandardMaterial color="#451a03" roughness={0.95} />
-        </mesh>
-
-        {/* Rough Dark Rubber Cake / Material Blocks */}
-        <group position={[0, 0.16, 0]}>
-          <mesh position={[-0.55, 0.3, -0.55]} castShadow receiveShadow>
-            <boxGeometry args={[1.15, 0.55, 1.15]} />
-            <meshStandardMaterial color="#262626" roughness={0.85} />
-          </mesh>
-          <mesh position={[0.55, 0.3, -0.55]} castShadow receiveShadow>
-            <boxGeometry args={[1.15, 0.55, 1.15]} />
-            <meshStandardMaterial color="#1c1917" roughness={0.9} />
-          </mesh>
-          <mesh position={[-0.55, 0.3, 0.55]} castShadow receiveShadow>
-            <boxGeometry args={[1.15, 0.55, 1.15]} />
-            <meshStandardMaterial color="#292524" roughness={0.85} />
-          </mesh>
-          <mesh position={[0.55, 0.3, 0.55]} castShadow receiveShadow>
-            <boxGeometry args={[1.15, 0.55, 1.15]} />
-            <meshStandardMaterial color="#262626" roughness={0.85} />
-          </mesh>
-          {/* Top Layer */}
-          <mesh position={[0, 0.82, 0]} castShadow receiveShadow>
-            <boxGeometry args={[1.8, 0.5, 1.8]} />
-            <meshStandardMaterial color="#1c1917" roughness={0.9} />
-          </mesh>
-        </group>
-
-        {/* Floating 3D Tag on Stack 2 */}
-        <group position={[0, 1.82, 0]}>
-          <Billboard follow>
-            <mesh>
-              <planeGeometry args={[2.8, 0.55]} />
-              <meshBasicMaterial color="#090d16" transparent opacity={0.92} />
-            </mesh>
-            <lineSegments>
-              <edgesGeometry args={[new THREE.PlaneGeometry(2.8, 0.55)]} />
-              <lineBasicMaterial color={color} />
-            </lineSegments>
-            <Text position={[0, 0.11, 0.02]} fontSize={0.16} color="#ffffff" anchorX="center" anchorY="middle">
-              {`📦 ${secondaryItem.itemName.slice(0, 24)}`}
-            </Text>
-            <Text position={[0, -0.12, 0.02]} fontSize={0.13} color="#fca5a5" anchorX="center" anchorY="middle">
-              {`${Number(secondaryItem.quantity).toLocaleString()} ${secondaryItem.unit} • Lot: ${secondaryItem.lotNumber || '-'}`}
-            </Text>
-          </Billboard>
-        </group>
-      </group>
+      {/* 6. สินค้าจริงใน Location (รูปจาก master สินค้า) */}
+      {shownLots.map((lot, idx) => {
+        const c = idx % cargoCols;
+        const r = Math.floor(idx / cargoCols);
+        return (
+          <LotCargo3D
+            key={lot.lotId}
+            lot={lot}
+            size={cargoSize}
+            heightFactor={0.55 + 0.45 * Math.min(1, lot.quantity / maxLotQty)}
+            showLabel={isHovered || isSelected}
+            position={[
+              (c - (cargoCols - 1) / 2) * cellW,
+              0,
+              length * 0.12 + (r - (cargoRows - 1) / 2) * cellL,
+            ]}
+            onClick={handleClick}
+          />
+        );
+      })}
 
       {/* 8. 3D HOVER TOOLTIP (แสดงรายการสินค้าและ Lot ทั้งหมดใน Location นี้) */}
-      {isHovered ? (
+      {isHovered && !onHover ? (
         <Billboard position={[0, Math.max(3.6, height + 3.2), 0]} follow>
           {/* Main Card Mesh */}
           <mesh onClick={handleClick}>
@@ -446,7 +308,7 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
             {`📍 ${locationCode || code}`}
           </Text>
           <Text position={[0, -0.18, 0.02]} fontSize={0.17} color="#fde047" anchorX="center" anchorY="middle">
-            {`${name} • ${totalQuantity.toLocaleString()} กก. (Lot: ${primaryItem.lotNumber || '-'})`}
+            {`${name} • ${(zoneLots ?? []).length} lot`}
           </Text>
         </Billboard>
       )}

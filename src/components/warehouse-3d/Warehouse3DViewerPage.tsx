@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useQueries } from "@tanstack/react-query";
 import { Select, Button, Spin, Empty, App, Tag } from "antd";
 import {
   AppstoreOutlined,
@@ -21,6 +22,9 @@ import {
   useUpdateWarehouse3DLayoutMutation,
 } from "@/hooks/warehouses/useWarehouse3DLayoutQuery";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { downloadItemImage } from "@/lib/api/items";
+import { getAccessToken } from "@/lib/auth/token";
 import type {
   Warehouse3DLayoutConfig,
   Warehouse3DViewMode,
@@ -30,6 +34,7 @@ import type {
   ZoneConfig,
   StorageTankConfig,
   CampusRoadConfig,
+  ZoneLot,
 } from "@/types/warehouse-3d";
 
 import { WarehouseCatalogView } from "./WarehouseCatalogView";
@@ -39,6 +44,7 @@ import { Warehouse3DLeftPanel } from "./Warehouse3DLeftPanel";
 import { Warehouse3DRightPanel } from "./Warehouse3DRightPanel";
 import { DroneHUDOverlay } from "./DroneHUDOverlay";
 import { Warehouse3DLayoutEditorModal } from "./Warehouse3DLayoutEditorModal";
+import { ZoneLotList } from "./ZoneLotList";
 
 const LOCATION_COLOR_PALETTE = [
   "#10b981", // Emerald Green
@@ -224,6 +230,68 @@ export default function Warehouse3DViewerPage() {
   );
   const inventoryLots = lotsData?.data ?? [];
 
+  // รูปสินค้าจาก master: itemId -> ชื่อไฟล์รูป
+  const { data: itemsData } = useItemsQuery();
+  const imageByItemId = useMemo(() => {
+    const map = new Map<string, string | null | undefined>();
+    for (const it of itemsData?.data ?? []) map.set(it.id, it.imageFileName);
+    return map;
+  }, [itemsData]);
+
+  // Lot จริงจัดกลุ่มตาม Location (เฉพาะที่ยังมียอดคงเหลือ)
+  const lotsByLocation = useMemo(() => {
+    const map = new Map<string, ZoneLot[]>();
+    for (const lot of lotsData?.data ?? []) {
+      const quantity = Number(lot.quantityOnHand) || 0;
+      if (quantity <= 0 || !lot.locationId) continue;
+      const list = map.get(lot.locationId) ?? [];
+      list.push({
+        lotId: lot.lotId || lot.id,
+        lotNo: lot.lotNo,
+        itemId: lot.itemId,
+        itemCode: lot.itemCode,
+        itemName: lot.itemNameTh,
+        imageFileName: imageByItemId.get(lot.itemId),
+        quantity,
+        unit: lot.unitCode || "",
+        expiryDate: lot.expiryDate,
+        qcStatus: lot.qcStatus,
+        receivedDate: lot.receivedDate,
+      });
+      map.set(lot.locationId, list);
+    }
+    return map;
+  }, [lotsData, imageByItemId]);
+
+  // โหลดรูป master เป็น blob URL ไว้เป็นพื้นผิวใน 3D (key เดียวกับ ItemImage จึงใช้แคชร่วมกัน)
+  const imageTargets = useMemo(() => {
+    const ids = new Map<string, string>();
+    for (const lots of lotsByLocation.values()) {
+      for (const l of lots) if (l.imageFileName) ids.set(l.itemId, l.imageFileName);
+    }
+    return Array.from(ids.entries());
+  }, [lotsByLocation]);
+
+  const imageQueries = useQueries({
+    queries: imageTargets.map(([itemId, fileName]) => ({
+      queryKey: ["item-image", itemId, fileName],
+      queryFn: async () => {
+        const { blob } = await downloadItemImage(getAccessToken(), itemId);
+        return URL.createObjectURL(blob);
+      },
+      staleTime: Infinity,
+    })),
+  });
+  const imageSrcByItemId = useMemo(() => {
+    const map = new Map<string, string>();
+    imageTargets.forEach(([itemId], i) => {
+      const src = imageQueries[i]?.data;
+      if (src) map.set(itemId, src);
+    });
+    return map;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageTargets, imageQueries.map((q) => q.data).join("|")]);
+
   // Active working layout in memory (allows live placing and editing)
   const [workingLayout, setWorkingLayout] = useState<Warehouse3DLayoutConfig>(
     EMPTY_WAREHOUSE_BUILDING,
@@ -291,10 +359,16 @@ export default function Warehouse3DViewerPage() {
           (zone.code && lot.locationCode === zone.code),
       );
 
+      const zoneLots = (zone.locationId ? (lotsByLocation.get(zone.locationId) ?? []) : []).map((l) => ({
+        ...l,
+        imageSrc: imageSrcByItemId.get(l.itemId),
+      }));
+
       if (matchingLots.length > 0) {
         return {
           ...zone,
           color: assignedColor,
+          lots: zoneLots,
           items: matchingLots.map((l) => ({
             itemCode: l.itemCode,
             itemName: l.itemNameTh,
@@ -309,6 +383,7 @@ export default function Warehouse3DViewerPage() {
       return {
         ...zone,
         color: assignedColor,
+        lots: zoneLots,
         items:
           zone.items && zone.items.length > 0
             ? zone.items
@@ -337,7 +412,7 @@ export default function Warehouse3DViewerPage() {
       tanks: [], // No tanks inside warehouse
       zones,
     };
-  }, [workingLayout, inventoryLots, locations]);
+  }, [workingLayout, inventoryLots, locations, lotsByLocation, imageSrcByItemId]);
 
   // Interaction States
   const [viewMode, setViewMode] = useState<Warehouse3DViewMode>("3d");
@@ -353,6 +428,10 @@ export default function Warehouse3DViewerPage() {
   });
   const [selectedObject, setSelectedObject] = useState<Selected3DObject | null>(null);
   const [selectedSlotKey, setSelectedSlotKey] = useState<string | null>(null);
+  const [hoveredZoneId, setHoveredZoneId] = useState<string | null>(null);
+  const hoveredZone = hoveredZoneId
+    ? (enrichedLayout.zones || []).find((z) => z.id === hoveredZoneId)
+    : undefined;
   const [cameraPreset, setCameraPreset] = useState<string | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -498,6 +577,29 @@ export default function Warehouse3DViewerPage() {
     });
 
     message.success(`วางถังบรรจุ ${newTank.code} ลงในพื้นที่แล้ว`);
+  };
+
+  // ลาก/ยืดโซนบนภาพ 3D: ถ้าผังยังไม่มีโซนเก็บไว้ (โซนที่เห็นสร้างจาก Location อัตโนมัติ) ให้เก็บทั้งชุดก่อนแล้วค่อยแก้
+  const handleUpdateZoneGeometry = (
+    id: string,
+    patch: Pick<ZoneConfig, "position" | "dimensions">,
+  ) => {
+    setWorkingLayout((prev) => {
+      const base: ZoneConfig[] =
+        (prev.zones || []).length > 0
+          ? prev.zones
+          : (enrichedLayout.zones || []).map((z) => {
+              const rest: Partial<ZoneConfig> = { ...z };
+              delete rest.items;
+              delete rest.lots;
+              return rest as ZoneConfig;
+            });
+      return {
+        ...prev,
+        zones: base.map((z) => (z.id === id ? { ...z, ...patch } : z)),
+      };
+    });
+    setHasUnsavedChanges(true);
   };
 
   const handleClearLayout = () => {
@@ -774,7 +876,29 @@ export default function Warehouse3DViewerPage() {
               onExitDrone={() => setViewMode("3d")}
               cameraPresetCommand={cameraPreset}
               onCameraPresetHandled={() => setCameraPreset(null)}
+              onHoverZone={setHoveredZoneId}
+              onUpdateZone={isPickerMode ? undefined : handleUpdateZoneGeometry}
             />
+
+            {selectedObject?.type === "zone" && !isPickerMode && viewMode !== "drone" && (
+              <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-700 text-[11px] text-slate-200 pointer-events-none">
+                ลากก้อนขาวตรงกลางเพื่อ<b className="text-sky-300">ย้าย</b> · ลากก้อนส้มที่ขอบเพื่อ<b className="text-amber-300">ยืด/หด</b> · อย่าลืมกดบันทึกผัง
+              </div>
+            )}
+
+            {hoveredZone && viewMode !== "drone" && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-[22rem] max-w-[90vw] rounded-2xl bg-slate-900/95 border border-slate-700 shadow-2xl p-3 pointer-events-none">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-bold text-white truncate">
+                    📍 {hoveredZone.locationCode || hoveredZone.code} · {hoveredZone.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                    {(hoveredZone.lots ?? []).length} lot
+                  </span>
+                </div>
+                <ZoneLotList lots={hoveredZone.lots ?? []} limit={4} />
+              </div>
+            )}
 
             {/* Drone First-Person Flight HUD Overlay */}
             <DroneHUDOverlay
@@ -813,6 +937,7 @@ export default function Warehouse3DViewerPage() {
                   onOpenEditor={() => setIsEditorOpen(true)}
                   onSelectLocationForPicker={handleLocationPicked}
                   isPickerMode={isPickerMode}
+                  lotsByLocation={lotsByLocation}
                 />
               </div>
             )}
@@ -838,6 +963,8 @@ export default function Warehouse3DViewerPage() {
       {/* 3. 3D LAYOUT EDITOR DRAWER */}
       <Warehouse3DLayoutEditorModal
         open={isEditorOpen}
+        warehouseId={selectedWarehouseId}
+        focusZoneId={selectedObject?.type === "zone" ? selectedObject.id : null}
         onClose={() => {
           setIsEditorOpen(false);
           setViewMode("3d");

@@ -55,6 +55,9 @@ export function getWeighbridgeAnalytics(
   if (params.tireClassificationId?.trim()) {
     search.set("tireClassificationId", params.tireClassificationId.trim());
   }
+  if (params.source && params.source !== "ALL") {
+    search.set("source", params.source);
+  }
   const query = search.toString();
   return apiFetch<WeighbridgeAnalyticsApiResponse>(
     `/api/weighbridge/tickets/analytics${query ? `?${query}` : ""}`,

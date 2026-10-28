@@ -116,3 +116,58 @@ export type ConfirmFromT2900Request = {
   tckNo: string;
   pricePerKg?: number;
 };
+
+export type T2900DailyReportTotals = {
+  count: number;
+  grossWt: number;
+  truckWt: number;
+  netWt: number;
+  amount: number;
+};
+
+export type T2900DailyReportRow = {
+  tckNo: string;
+  location: string;
+  dateOut: string;
+  truckNo: string;
+  timeIn: string;
+  timeOut: string;
+  grossWt: number;
+  truckWt: number;
+  netWt: number;
+  pricePerKg: number | null;
+  /** T2900 = ราคามากับบัตร · PRICE_RULE = หาจากกฎราคา ERP · NONE = ไม่มีราคา */
+  priceSource: "T2900" | "PRICE_RULE" | "NONE";
+  amount: number | null;
+  tradeType: string;
+};
+
+export type T2900DailyReportCustomer = {
+  custId: string;
+  custName: string;
+  rows: T2900DailyReportRow[];
+  subtotal: T2900DailyReportTotals;
+};
+
+export type T2900DailyReportProduct = {
+  prodId: string;
+  prodName: string;
+  customers: T2900DailyReportCustomer[];
+  total: T2900DailyReportTotals;
+};
+
+export type T2900DailyReport = {
+  dateFrom: string;
+  dateTo: string;
+  generatedAt: string;
+  products: T2900DailyReportProduct[];
+  grand: T2900DailyReportTotals;
+  truncated: boolean;
+  hasRulePrice: boolean;
+};
+
+export type T2900DailyReportApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: T2900DailyReport;
+};

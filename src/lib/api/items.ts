@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiDownloadBlob, apiFetch, apiUpload } from "./client";
 import type {
   CreateItemRequest,
   ItemApiResponse,
@@ -114,4 +114,34 @@ export function deleteItem(token: string, id: string) {
     method: "DELETE",
     token,
   });
+}
+
+export function uploadItemImage(token: string, itemId: string, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<ItemApiResponse>(
+    `/api/master-data/items/${itemId}/image`,
+    formData,
+    { token },
+  );
+}
+
+/** ให้ AI (Gemini) สร้างรูปจากข้อมูล master ของสินค้า แล้วตั้งเป็นรูปสินค้านั้น — ใช้เวลาหลายวินาที */
+export function generateItemImage(token: string, itemId: string) {
+  return apiFetch<ItemApiResponse>(
+    `/api/master-data/items/${itemId}/image/generate`,
+    { method: "POST", token },
+  );
+}
+
+export function deleteItemImage(token: string, itemId: string) {
+  return apiFetch<ItemApiResponse>(`/api/master-data/items/${itemId}/image`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+/** รูปต้องแนบ token จึงใส่ <img src> ตรงๆ ไม่ได้ — ดึงเป็น blob แทน */
+export function downloadItemImage(token: string, itemId: string) {
+  return apiDownloadBlob(`/api/master-data/items/${itemId}/image`, { token });
 }
