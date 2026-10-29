@@ -171,3 +171,45 @@ export type T2900DailyReportApiResponse = {
   message: string;
   data: T2900DailyReport;
 };
+
+export type T2900DailyReportQuery = {
+  dateFrom: string;
+  dateTo: string;
+  custName?: string;
+  prodName?: string;
+};
+
+export type T2900QualityReportProductOption = {
+  prodId: string;
+  prodName: string;
+};
+
+export type T2900QualityReportRow = {
+  seq: number;
+  custName: string;
+  truckNo: string;
+  prodName: string;
+  weightTons: number;
+  location: string;
+};
+
+export type T2900QualityReport = {
+  dateFrom: string;
+  dateTo: string;
+  generatedAt: string;
+  truncated: boolean;
+  products: T2900QualityReportProductOption[];
+  rows: T2900QualityReportRow[];
+};
+
+export type T2900QualityReportApiResponse = {
+  statusCode?: number;
+  message: string;
+  data: T2900QualityReport;
+};
+
+export type T2900QualityReportQuery = {
+  dateFrom: string;
+  dateTo: string;
+  prodId?: string;
+};

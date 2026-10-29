@@ -82,7 +82,7 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
     screenCodes: ["TIRE_PREP_ISSUES"],
   },
   /*
-    หน้า hub 4 หน้าด้านล่าง (issues / stock-inquiry / stock-control / warehouse/approvals)
+    หน้า hub ด้านล่าง (issues / stock-control / warehouse/approvals)
     เป็นหน้าการ์ดนำทางล้วน ไม่มี query ไม่มีข้อมูล — ต้องรับ screenCode ของลูกด้วย
     ไม่งั้นคนที่ได้สิทธิ์แค่หน้าลูกหน้าเดียวจะเห็นเมนู hub แต่กดเข้าไปโดน AccessDenied
     ไม่ได้เปิดหน้าข้อมูลเพิ่ม: prefix ของหน้าลูกยาวกว่าและถูกจัดเรียงมาก่อน
@@ -94,21 +94,6 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
       "INVENTORY_ISSUES",
       "MATERIAL_ISSUES",
       "TIRE_PREP_ISSUES",
-    ],
-  },
-  {
-    // rule เดียวครอบทั้ง RM/FG — ห้ามแตกเป็น rule ที่มี query isFinishedGood
-    // เพราะตัวกัน fgSibling เทียบ screenCodes[0] ถ้าขึ้นต้นด้วย STOCK_INQUIRY
-    // เหมือนกันทั้งคู่ ตัวกันจะไม่ทำงาน
-    prefix: "/inventory/stock-inquiry",
-    screenCodes: [
-      "STOCK_INQUIRY",
-      "STOCK_BALANCES",
-      "INVENTORY_LOTS",
-      "STOCK_MOVEMENTS",
-      "FG_STOCK_BALANCES",
-      "FG_INVENTORY_LOTS",
-      "FG_STOCK_MOVEMENTS",
     ],
   },
   {
@@ -601,7 +586,6 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   MATERIAL_ISSUES: "/inventory/material-issues",
   TIRE_PREP_ISSUES: "/inventory/tire-prep-issues",
   INVENTORY_ISSUES: "/inventory/issues",
-  STOCK_INQUIRY: "/inventory/stock-inquiry",
   STOCK_TRANSFERS: "/inventory/stock-transfers",
   STOCK_CONTROL: "/inventory/stock-control",
   STOCK_COUNTS: "/inventory/stock-counts",

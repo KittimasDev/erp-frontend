@@ -52,8 +52,6 @@ import type { T2900ErpOutboundTicket } from "@/types/t2900";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import { useT2900LiveUpdates } from "@/hooks/weighbridge-tickets/useT2900LiveUpdates";
 import { useT2900OutboundTicketsQuery } from "@/hooks/weighbridge-tickets/useT2900OutboundTicketsQuery";
-import { getT2900DailyReport } from "@/lib/api/t2900";
-import { getAccessToken } from "@/lib/auth/token";
 import { useAiOcrAvailabilityQuery } from "@/hooks/ai-ocr-settings/useAiOcrSettingsQueries";
 import { useScanWeighTicketOcrStandaloneMutation } from "@/hooks/weighbridge-tickets/useScanWeighTicketOcrStandaloneMutation";
 import { canAccessScreen } from "@/lib/auth/permissions-access";
@@ -61,6 +59,7 @@ import { isAdministrator } from "@/lib/auth/session";
 import type { WeighTicketOcrResult } from "@/types/weighbridge-ocr";
 
 import CreateTicketFromOcrModal from "./CreateTicketFromOcrModal";
+import DailySummaryReportModal from "./DailySummaryReportModal";
 import WeighTicketOcrCaptureButton from "./WeighTicketOcrCaptureButton";
 import {
   TICKET_ORIGIN_COLOR,
@@ -557,7 +556,7 @@ export default function WeighbridgeDashboardPage() {
   const scanOcrMutation = useScanWeighTicketOcrStandaloneMutation();
 
   const { message } = App.useApp();
-  const [exportingReport, setExportingReport] = useState(false);
+  const [dailySummaryOpen, setDailySummaryOpen] = useState(false);
   const stage = parseStage(searchParams.get("stage"));
   const source = parseSource(
     searchParams.get("source"),
@@ -995,27 +994,6 @@ export default function WeighbridgeDashboardPage() {
     return dayjs(fromParam ?? toParam).format("DD/MM/YYYY");
   })();
 
-  /** Export รายงานรายวัน (บัตรชั่งครั้งสอง แยกตามสินค้า → ลูกค้า) ตามช่วงวันที่ที่เลือกอยู่ */
-  const handleExportDailyReport = async () => {
-    setExportingReport(true);
-    try {
-      const response = await getT2900DailyReport(
-        getAccessToken(),
-        t2900From,
-        t2900To,
-      );
-      const { generateT2900DailyReportPdf } =
-        await import("@/utils/generateT2900DailyReportPdf");
-      await generateT2900DailyReportPdf(response.data);
-    } catch (error) {
-      message.error(
-        error instanceof Error ? error.message : "Export รายงานรายวันไม่สำเร็จ",
-      );
-    } finally {
-      setExportingReport(false);
-    }
-  };
-
   const columns: ColumnsType<WeighbridgeTicketListItem> = [
     {
       title: "ลำดับ",
@@ -1273,6 +1251,12 @@ export default function WeighbridgeDashboardPage() {
     <MasterPageGate
       isLoading={dashboardQuery.isLoading}
     >
+      <DailySummaryReportModal
+        open={dailySummaryOpen}
+        onClose={() => setDailySummaryOpen(false)}
+        initialDateFrom={t2900From}
+        initialDateTo={t2900To}
+      />
       <section className={styles.page}>
         <header className={styles.pageHeader}>
           <div className={styles.headerAccent} aria-hidden>
@@ -1321,10 +1305,9 @@ export default function WeighbridgeDashboardPage() {
           <div className={styles.headerActions}>
             <Button
               icon={<FilePdfOutlined />}
-              loading={exportingReport}
-              onClick={() => void handleExportDailyReport()}
+              onClick={() => setDailySummaryOpen(true)}
             >
-              Export รายงานรายวัน
+              รายงานสรุปประจำวัน
             </Button>
             <Button
               className={styles.dashboardButton}

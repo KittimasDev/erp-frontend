@@ -17,10 +17,10 @@ const PAGE_ID = "t2900-daily-report-pdf";
 /** A4 แนวนอนที่ 1123×794px — ต้องตรึงทั้งคู่ เพราะ openMultiPagePdfFromHtml วางภาพเต็มหน้า */
 const PAGE_WIDTH = 1123;
 const PAGE_HEIGHT = 794;
-const PAD_TOP = 24;
+const PAD_TOP = 30;
 const PAD_BOTTOM = 18;
-const PAD_X = 34;
-const HEADER_H = 88;
+const PAD_X = 20;
+const HEADER_H = 66;
 const FOOT_H = 24;
 /** เผื่อกันฟอนต์ไทยดันความสูงเกินค่าที่คำนวณเล็กน้อย */
 const SAFETY = 8;
@@ -32,19 +32,19 @@ const FORM_CODE = "FP-WHO-01-04 Rev.01";
 const TIME_RANGE = "00:00:00 - 23:59:59";
 
 /** ความสูงของแต่ละชนิดแถว (px) — ตรึงไว้เพื่อให้ตัดหน้าได้แม่น ช่องว่างต้องนับรวมอยู่ในนี้ */
-const BAND_H = 30;
+const BAND_H = 26;
 const H = {
-  product: 30,
-  customerHead: 26,
-  row: 25,
-  subtotal: 32,
+  product: 34,
+  customerHead: 30,
+  row: 23,
+  subtotal: 30,
   /** รวมสินค้า: แถวสูง PTOTAL_ROW แล้วเว้นว่างด้านล่างก่อนสินค้าถัดไป */
-  productTotal: 54,
+  productTotal: 50,
   end: 36,
   note: 16,
 } as const;
 const CUSTOMER_H = H.customerHead + BAND_H;
-const PTOTAL_ROW = 36;
+const PTOTAL_ROW = 32;
 
 type Item =
   | { kind: "product"; product: T2900DailyReportProduct; cont?: boolean }
@@ -91,15 +91,21 @@ function clip(text: string, max: number) {
 }
 
 function fmtInt(value: number) {
-  return value.toLocaleString("th-TH", { maximumFractionDigits: 0 });
+  return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
+/** รวมเป็นเงินรายบัตร: ทศนิยม 2 ตำแหน่ง ไม่มีจุดคั่นหลักพัน (41067.00) ตามใบต้นฉบับ */
 function fmtMoney(value: number | null) {
   if (value === null) {
     return "-";
   }
-  return value.toLocaleString("th-TH", {
-    minimumFractionDigits: 2,
+  return value.toFixed(2);
+}
+
+/** ยอดรวม: มีจุดคั่นหลักพัน ทศนิยมสูงสุด 2 ตำแหน่ง ตัดศูนย์ท้าย (207,047.8) ตามใบต้นฉบับ */
+function fmtTotalMoney(value: number) {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
 }
@@ -203,49 +209,50 @@ function styles() {
       .t29d-page, .t29d-page * { box-sizing: border-box; }
       .t29d-page {
         width: ${PAGE_WIDTH}px; height: ${PAGE_HEIGHT}px;
-        padding: ${PAD_TOP}px ${PAD_X}px ${PAD_BOTTOM}px; background: #fff; color: #111827;
-        font-family: "Sarabun", "Tahoma", "Segoe UI", sans-serif; font-size: 12.5px; line-height: 1.3;
+        padding: ${PAD_TOP}px ${PAD_X}px ${PAD_BOTTOM}px; background: #fff;
+        font-family: "Sarabun", "Tahoma", "Segoe UI", sans-serif; font-size: 12.5px; line-height: 1.3; color: #000;
         position: relative;
       }
 
       /* หัวรายงาน: ชื่อกลางหน้า เส้นใต้ แล้วแถววันพิมพ์ / ชื่อรายงาน / ช่วงวันที่ / เลขหน้า เส้นใต้อีกเส้น */
       .t29d-head { height: ${HEADER_H}px; }
-      .t29d-title { height: 32px; line-height: 32px; text-align: center; font-size: 18px; font-weight: 700; border-bottom: 1px solid #111827; }
-      .t29d-sub { height: 28px; line-height: 28px; display: grid; grid-template-columns: 200px 1fr 440px 90px; font-size: 12px; border-bottom: 1px solid #111827; }
+      .t29d-title { height: 30px; line-height: 30px; text-align: center; font-size: 17px; font-weight: 700; border-bottom: 1px solid #000; }
+      .t29d-sub { height: 28px; line-height: 28px; display: grid; grid-template-columns: 200px 1fr 440px 90px; font-size: 11.5px; border-bottom: 1px solid #000; }
       .t29d-sub .mid { text-align: center; }
       .t29d-sub .range { text-align: right; white-space: nowrap; }
       .t29d-sub .pg { text-align: right; white-space: nowrap; }
 
       .t29d-cols, .t29d-row, .t29d-sub-row {
         display: grid;
-        grid-template-columns: 85px 116px 85px 105px 70px 70px 95px 95px 95px 70px 105px 64px;
+        grid-template-columns: 76px 140px 72px 105px 60px 70px 90px 105px 85px 90px 105px 75px;
       }
       /* ห้ามตั้ง overflow:hidden ที่ช่อง — html2canvas ตัดตามกล่องช่อง ทำให้สระบน/วรรณยุกต์/หางตัวไทยที่ยื่นเกินบรรทัดถูกตัด */
-      .t29d-cols > div, .t29d-row > div, .t29d-sub-row > div { padding: 0 6px; white-space: nowrap; }
+      .t29d-cols > div, .t29d-row > div, .t29d-sub-row > div { padding: 0 4px; white-space: nowrap; }
       .t29d-r { text-align: right; }
       .t29d-c { text-align: center; }
 
       /* ป้ายสินค้า / ลูกค้า: ตัวหนังสือล้วน ไม่มีพื้นสี */
-      .t29d-product { height: ${H.product}px; line-height: ${H.product}px; padding-top: 6px; font-size: 13.5px; font-weight: 700; }
+      .t29d-product { height: ${H.product}px; line-height: ${H.product}px; padding-top: 10px; font-size: 13px; font-weight: 400; }
       .t29d-product span + span, .t29d-chead span + span { margin-left: 28px; }
       .t29d-product .cont, .t29d-chead .cont { font-weight: 400; margin-left: 14px; }
-      .t29d-chead { height: ${H.customerHead}px; line-height: ${H.customerHead}px; font-size: 13.5px; font-weight: 700; }
+      .t29d-chead { height: ${H.customerHead}px; line-height: ${H.customerHead}px; padding-top: 6px; font-size: 13px; font-weight: 400; }
       /* แถบเขียวหัวคอลัมน์ (ขึ้นใต้ป้ายลูกค้าทุกราย) */
-      .t29d-cols { height: ${BAND_H}px; background: #c9dd8f; font-weight: 700; font-size: 12.5px; }
+      .t29d-cols { height: ${BAND_H}px; background: #c9dd8f; font-weight: 400; font-size: 12.5px; }
       .t29d-cols > div { height: ${BAND_H}px; line-height: ${BAND_H}px; }
 
       /* แถวบัตร: ตัวหนังสือล้วน ไม่มีเส้นแบ่ง ไม่มีพื้น */
       .t29d-row { height: ${H.row}px; font-size: 12.5px; }
       .t29d-row > div { height: ${H.row}px; line-height: ${H.row}px; }
       .t29d-row .num { font-variant-numeric: tabular-nums; }
+      .t29d-row .trade { font-size: 15px; }
 
       /* รวมย่อยลูกค้า: เส้นประด้านบน ป้ายขีดเส้นใต้เยื้องเข้ามา */
-      .t29d-sub-row { height: ${H.subtotal}px; border-top: 1px dashed #111827; font-weight: 700; }
+      .t29d-sub-row { height: ${H.subtotal}px; border-top: 1px dashed #000; font-weight: 400; }
       .t29d-sub-row > div { height: ${H.subtotal}px; line-height: ${H.subtotal}px; }
       .t29d-sub-row .lbl { grid-column: 1 / span 6; padding-left: 100px; text-decoration: underline; }
       /* รวมสินค้า: เส้นหนาด้านบน เส้นบางด้านล่าง ป้ายขีดเส้นใต้ แล้วเว้นว่างก่อนสินค้าถัดไป */
       .t29d-ptotal { height: ${H.productTotal}px; }
-      .t29d-ptotal-row { height: ${PTOTAL_ROW}px; border-top: 2px solid #111827; border-bottom: 1px solid #111827; font-weight: 700; }
+      .t29d-ptotal-row { height: ${PTOTAL_ROW}px; border-top: 2px solid #000; border-bottom: 1px solid #000; font-weight: 400; }
       .t29d-ptotal-row > div { height: ${PTOTAL_ROW - 3}px; line-height: ${PTOTAL_ROW - 3}px; }
       .t29d-ptotal-row .lbl { grid-column: 1 / span 6; padding-left: 0; text-decoration: underline; }
       .t29d-end { height: ${H.end}px; line-height: ${H.end}px; font-size: 13px; }
@@ -253,7 +260,7 @@ function styles() {
       .t29d-warn { color: #b45309; font-weight: 600; }
 
       /* ท้ายหน้า: เส้นหนา + รหัสฟอร์มมุมขวา */
-      .t29d-foot { position: absolute; left: ${PAD_X}px; right: ${PAD_X}px; bottom: ${PAD_BOTTOM}px; height: ${FOOT_H}px; border-top: 2px solid #111827; display: flex; justify-content: space-between; align-items: flex-end; font-size: 10.5px; color: #6b7280; }
+      .t29d-foot { position: absolute; left: ${PAD_X}px; right: ${PAD_X}px; bottom: ${PAD_BOTTOM}px; height: ${FOOT_H}px; border-top: 2px solid #000; display: flex; justify-content: flex-end; align-items: flex-end; font-size: 10.5px; color: #000; }
     </style>`;
 }
 
@@ -263,7 +270,7 @@ function totalsCells(totals: T2900DailyReportTotals) {
       <div class="t29d-r num">${fmtInt(totals.truckWt)}</div>
       <div class="t29d-r num">${fmtInt(totals.netWt)}</div>
       <div></div>
-      <div class="t29d-r num">${fmtMoney(totals.amount)}</div>
+      <div class="t29d-r num">${fmtTotalMoney(totals.amount)}</div>
       <div></div>`;
 }
 
@@ -295,7 +302,7 @@ function itemHtml(item: Item, report: T2900DailyReport, noteLines: string[]) {
         <div class="t29d-r num">${fmtInt(row.netWt)}</div>
         <div class="t29d-r num">${escapeHtml(fmtPrice(row))}</div>
         <div class="t29d-r num">${fmtMoney(row.amount)}</div>
-        <div class="t29d-c">${escapeHtml(row.tradeType)}</div>
+        <div class="t29d-c trade">${escapeHtml(row.tradeType)}</div>
       </div>`;
     }
     case "subtotal":
@@ -344,7 +351,7 @@ export function buildT2900DailyReportPagesHtml(
         </div>
       </div>
       ${pageItems.map((item) => itemHtml(item, report, noteLines)).join("")}
-      <div class="t29d-foot"><span>ออกจากระบบ ERP · บัตรชั่ง T2900</span><span>${FORM_CODE}</span></div>
+      <div class="t29d-foot"><span>${FORM_CODE}</span></div>
     </div>`,
   );
 }

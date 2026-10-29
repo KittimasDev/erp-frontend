@@ -130,7 +130,6 @@ const SHARED_INVENTORY_PATHS = [
   "/inventory/stock-balances",
   "/inventory/lots",
   "/inventory/stock-movements",
-  "/inventory/stock-inquiry",
 ];
 
 export function inferPortalModuleFromPathname(

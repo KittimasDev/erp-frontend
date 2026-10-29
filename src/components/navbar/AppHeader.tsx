@@ -584,26 +584,51 @@ const rawMaterialWarehouseMenus: MenuItem[] = [
   {
     key: "stock-inquiry",
     label: "ตรวจสอบสต๊อก",
-    href: "/inventory/stock-inquiry",
+    href: "menu://rm-stock-inquiry",
     icon: <IconStockCount />,
-    screenCodes: [
-      "STOCK_INQUIRY",
-      "STOCK_BALANCES",
-      "INVENTORY_LOTS",
-      "STOCK_MOVEMENTS",
-    ],
-    matchHrefs: [
-      "/inventory/stock-inquiry",
-      "/inventory/stock-balances",
-      "/inventory/lots",
-      "/inventory/stock-movements",
-    ],
-    roles: [
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.PROCUREMENT_MANAGER,
-      ROLE.ACCOUNTING_OFFICER,
-      ROLE.EXECUTIVE,
+    children: [
+      {
+        key: "rm-stock-balances",
+        screenCode: "STOCK_BALANCES",
+        label: "ยอดคงเหลือ",
+        href: "/inventory/stock-balances?isFinishedGood=false",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "rm-inventory-lots",
+        screenCode: "INVENTORY_LOTS",
+        label: "ยอดคงเหลือแยก Lot",
+        href: "/inventory/lots?isFinishedGood=false",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
+      {
+        key: "rm-stock-movements",
+        screenCode: "STOCK_MOVEMENTS",
+        label: "ประวัติสต๊อก",
+        href: "/inventory/stock-movements?isFinishedGood=false",
+        icon: <IconStockCount />,
+        roles: [
+          ROLE.WAREHOUSE_OFFICER,
+          ROLE.WAREHOUSE_MANAGER,
+          ROLE.PROCUREMENT_MANAGER,
+          ROLE.ACCOUNTING_OFFICER,
+          ROLE.EXECUTIVE,
+        ],
+      },
     ],
   },
   {
@@ -2349,7 +2374,6 @@ const SHARED_RM_FG_PATHS = [
   "/inventory/stock-balances",
   "/inventory/lots",
   "/inventory/stock-movements",
-  "/inventory/stock-inquiry",
 ];
 
 /** เลือกเมนูที่ตรงที่สุด (match path ยาวที่สุด) รวม matchHrefs ของ hub */

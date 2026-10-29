@@ -105,12 +105,12 @@ export const PORTAL_MODULES: PortalModuleDef[] = [
     code: "RM",
     label: "คลังวัตถุดิบ",
     description: "ยอดคงเหลือ · เบิก · โอน · นับ",
-    href: "/inventory/stock-balances?isFinishedGood=false",
+    href: "/inventory/dashboard?scope=rm",
     tone: "green",
-    /* STOCK_INQUIRY มาก่อน — resolvePortalHref ไล่ตามลำดับนี้ กล่องหน้าแรก
-       จะได้เปิดเข้าหน้ารวม ไม่ใช่หน้าใบเดียว */
+    /* WAREHOUSE_DASHBOARD มาก่อน — resolvePortalHref ไล่ตามลำดับนี้ กล่องหน้าแรก
+       จะได้เปิดเข้าหน้าหลักคลังวัตถุดิบ */
     screenCodes: [
-      "STOCK_INQUIRY",
+      "WAREHOUSE_DASHBOARD",
       "STOCK_BALANCES",
       "INVENTORY_LOTS",
       "MATERIAL_ISSUES",
@@ -440,6 +440,9 @@ export function resolvePortalHref(mod: PortalModuleDef): string {
     for (const code of mod.screenCodes) {
       if (!canAccessScreen(code)) {
         continue;
+      }
+      if (mod.key === "rm-warehouse" && code === "WAREHOUSE_DASHBOARD") {
+        return mod.href;
       }
       const href = SCREEN_CODE_HUB_HREF[code];
       if (href) {

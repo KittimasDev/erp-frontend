@@ -128,14 +128,6 @@ const SECTIONS: WarehouseHubSection[] = [
         icon: <HistoryOutlined />,
         screenCodes: ["STOCK_MOVEMENTS"],
       },
-      {
-        key: "stock-inquiry",
-        title: "ตรวจสอบสต๊อก (รวม)",
-        description: "รวมหน้าตรวจสอบสต๊อกไว้ที่เดียว",
-        href: "/inventory/stock-inquiry",
-        icon: <AppstoreOutlined />,
-        screenCodes: ["STOCK_INQUIRY"],
-      },
     ],
   },
   {

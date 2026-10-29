@@ -161,7 +161,6 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/finance/reports", title: "รายงานการเงิน" },
   { href: "/finance", title: "การเงิน" },
   { href: "/receiving", title: "ตั๋วชั่งรับซื้อยาง" },
-  { href: "/inventory/stock-inquiry", title: "ตรวจสอบสต๊อก" },
   { href: "/inventory/stock-control", title: "นับและปรับปรุงสต๊อก" },
   { href: "/inventory/stock-balances", title: "ยอดคงเหลือ" },
   { href: "/inventory/stock-movements", title: "ความเคลื่อนไหวสต๊อก" },
@@ -226,7 +225,6 @@ function inventoryScopeTitle(
     "/inventory/stock-balances": "ยอดคงเหลือสินค้าสำเร็จรูป",
     "/inventory/lots": "Lot สินค้าสำเร็จรูป",
     "/inventory/stock-movements": "ความเคลื่อนไหวสินค้าสำเร็จรูป",
-    "/inventory/stock-inquiry": "ตรวจสอบสต๊อกสินค้าสำเร็จรูป",
   };
   if (isFgInventoryScope(searchParams)) {
     return fgTitleMap[pathname] ?? null;

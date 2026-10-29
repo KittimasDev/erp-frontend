@@ -324,10 +324,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   }, [ticket, paymentReceipt]);
 
   const currentStep = useMemo(() => {
-    // เข้าคลังก่อนจ่ายแล้วยังต้องโฟกัส Step จ่ายเงิน
-    if (paymentView && isPaymentReady(paymentView)) {
-      return 2;
-    }
+    // เชื่อ currentStep จาก API ก่อน (เข้าคลังก่อนจ่ายยังได้ PAYMENT → โฟกัสขั้นจ่ายเงิน)
     const fromApi = resolveStepFromCurrentStep(ticket?.currentStep);
     if (fromApi !== undefined) {
       return fromApi;

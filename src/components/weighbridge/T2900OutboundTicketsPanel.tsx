@@ -64,11 +64,10 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
   const handleExportDailyReport = async () => {
     setExportingReport(true);
     try {
-      const response = await getT2900DailyReport(
-        getAccessToken(),
+      const response = await getT2900DailyReport(getAccessToken(), {
         dateFrom,
         dateTo,
-      );
+      });
       const { generateT2900DailyReportPdf } =
         await import("@/utils/generateT2900DailyReportPdf");
       await generateT2900DailyReportPdf(response.data);
