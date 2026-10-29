@@ -74,10 +74,8 @@ export default function ProductionRoundDetailDrawer({ round, onClose }: Props) {
             <Descriptions.Item label="เหตุผลยืนยันเกินกำหนด">{round.confirmReason}</Descriptions.Item>
           ) : null}
           {round.productionCycleId ? (
-            <Descriptions.Item label="รอบผลิต">
-              <Link href={`/production/cycles/${round.productionCycleId}`}>
-                {round.productionCycleNo ?? "ดูรอบผลิต"}
-              </Link>
+            <Descriptions.Item label="สรุปผลรอบผลิต">
+              <Link href={`/production/cycles/${round.productionCycleId}`}>ดูสรุปรอบ</Link>
             </Descriptions.Item>
           ) : null}
         </Descriptions>

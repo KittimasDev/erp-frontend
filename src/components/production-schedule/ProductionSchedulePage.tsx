@@ -29,7 +29,8 @@ import {
   useScheduleSettingsQuery,
   useUpdateScheduleSettingsMutation,
 } from "@/hooks/production-schedule/useProductionSchedule";
-import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
+import CyclesPanel from "@/components/production-cycles/CyclesPanel";
+import { canAccessScreen, getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import type {
   ScheduleCalendarDay,
   ScheduleDayType,
@@ -71,8 +72,19 @@ const DAY_CLASS: Record<ScheduleDayType, string> = {
 export default function ProductionSchedulePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tab = searchParams.get("tab") === "rounds" ? "rounds" : "calendar";
   const { canAdd, canEdit, canApprove } = getScreenActionPermissions("PRODUCTION_SCHEDULE");
+  // รอบผลิตจริงใช้สิทธิ์ PRODUCTION_CYCLES แยกจากสิทธิ์ตารางการผลิต
+  const canViewSchedule = canAccessScreen("PRODUCTION_SCHEDULE");
+  const canViewCycles = canAccessScreen("PRODUCTION_CYCLES");
+  const tabParam = searchParams.get("tab");
+  const requestedTab =
+    tabParam === "rounds" || tabParam === "cycles" ? tabParam : "calendar";
+  const tab =
+    requestedTab === "cycles" && !canViewCycles
+      ? "calendar"
+      : requestedTab !== "cycles" && !canViewSchedule && canViewCycles
+        ? "cycles"
+        : requestedTab;
 
   const [month, setMonth] = useState<Dayjs>(dayjs());
   const [keyword, setKeyword] = useState("");
@@ -110,7 +122,7 @@ export default function ProductionSchedulePage() {
 
   const setTab = (key: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (key === "rounds") params.set("tab", "rounds");
+    if (key === "rounds" || key === "cycles") params.set("tab", key);
     else params.delete("tab");
     const qs = params.toString();
     router.replace(qs ? `/production/schedule?${qs}` : "/production/schedule");
@@ -261,7 +273,9 @@ export default function ProductionSchedulePage() {
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>ตารางการผลิต</h1>
-          <p className={styles.subtitle}>ดูภาพรวมรายเดือน และจัดการรอบการผลิตจากรายการ</p>
+          <p className={styles.subtitle}>
+            ดูภาพรวมรายเดือน วางแผนและยืนยันรอบการผลิต แล้วติดตามรอบผลิตจริงในแท็บเดียว · รหัสรอบเป็นรหัสเดียวกันตั้งแต่ตอนวางแผน
+          </p>
         </div>
         <div className={styles.actions}>
           {canEdit ? (
@@ -301,7 +315,7 @@ export default function ProductionSchedulePage() {
           description={overdue.map((item) => item.roundNo).join(", ")}
         />
       ) : null}
-      {roundsQuery.isError || calendarQuery.isError ? (
+      {canViewSchedule && (roundsQuery.isError || calendarQuery.isError) ? (
         <Alert type="error" showIcon title="โหลดตารางการผลิตไม่สำเร็จ" />
       ) : null}
 
@@ -309,8 +323,15 @@ export default function ProductionSchedulePage() {
         activeKey={tab}
         onChange={setTab}
         items={[
-          { key: "calendar", label: "ตารางการผลิต", children: calendar },
-          { key: "rounds", label: "รายการรอบการผลิต", children: list },
+          ...(canViewSchedule
+            ? [
+                { key: "calendar", label: "ตารางการผลิต", children: calendar },
+                { key: "rounds", label: "รายการรอบการผลิต", children: list },
+              ]
+            : []),
+          ...(canViewCycles
+            ? [{ key: "cycles", label: "รอบผลิตจริง", children: <CyclesPanel /> }]
+            : []),
         ]}
       />
 

@@ -163,9 +163,10 @@ const TRUCK_TYPE_OPTIONS = [
 
 type ReceivingStage =
   | "all"
-  | "classify-weigh"
+  | "pending-confirm"
   | "payment"
-  | "warehouse";
+  | "warehouse"
+  | "done";
 
 /** ตัวกรอง "ที่มา" ของตั๋ว — all = ไม่กรอง */
 type SourceFilter = "all" | WeighbridgeTicketOrigin;
@@ -255,26 +256,32 @@ const STAGE_OPTIONS: {
 }[] = [
   { key: "all", label: "ทั้งหมด", description: "ทุกรายการในช่วงที่เลือก" },
   {
-    key: "classify-weigh",
-    label: "คัดแยกและชั่ง",
-    description: "คัดแยกประเภทยางและบันทึกน้ำหนักเข้า-ออก",
+    key: "pending-confirm",
+    label: "รอยืนยัน",
+    description: "บัตรจากเครื่องชั่งที่ยังไม่เปิดตั๋วและพร้อมยืนยัน",
   },
   {
     key: "payment",
-    label: "ออกใบจ่ายเงิน",
-    description: "จ่ายเงินให้ผู้ขาย แล้วระบบจะแจ้งคลัง",
+    label: "รอจ่ายเงิน",
+    description: "ยืนยันใบรับซื้อแล้ว รอจ่ายเงินให้ผู้ขาย",
   },
   {
     key: "warehouse",
-    label: "เข้าคลัง",
-    description: "คนคลังเลือกคลังแล้วอนุมัติหลังจ่ายเงิน",
+    label: "รอเข้าคลัง",
+    description: "รอบันทึกเข้าคลังหรือรอคลังอนุมัติ",
+  },
+  {
+    key: "done",
+    label: "สำเร็จ",
+    description: "รับเข้าคลังแล้ว",
   },
 ];
 
 const ACTION_STAGE_KEYS: Array<Exclude<ReceivingStage, "all">> = [
-  "classify-weigh",
+  "pending-confirm",
   "payment",
   "warehouse",
+  "done",
 ];
 
 const PAYMENT_METHOD_OPTIONS = [
@@ -285,20 +292,19 @@ const PAYMENT_METHOD_OPTIONS = [
 const SELECT_POPUP_STYLE = { root: { zIndex: 1400 } };
 
 function parseStage(value: string | null): ReceivingStage {
-  if (
-    value === "classify-weigh" ||
-    value === "classify" ||
-    value === "weigh-in" ||
-    value === "weigh-out"
-  ) {
-    return "classify-weigh";
+  if (value === "pending-confirm") {
+    return "pending-confirm";
   }
-  if (value === "payment" || value === "paid") {
+  if (value === "payment") {
     return "payment";
   }
   if (value === "warehouse") {
     return "warehouse";
   }
+  if (value === "done") {
+    return "done";
+  }
+  // URL เก่า (คัดแยก/ชั่ง) ไม่มีชิปแล้ว — ตีความเป็นทั้งหมด
   return "all";
 }
 
@@ -385,14 +391,21 @@ function matchesStage(
   }
 
   const flags = getTicketActionFlags(ticket);
+  const flow = ticket.flowState ?? "";
 
   switch (stage) {
-    case "classify-weigh":
-      return flags.canClassifyWeigh;
+    case "pending-confirm":
+      return flow === "T2900_READY";
     case "payment":
-      return flags.canPay || flags.isPaid;
+      return flags.canPay || flow === "WAITING_PAYMENT";
     case "warehouse":
-      return flags.canStockIn;
+      return (
+        flags.canStockIn ||
+        flow === "STOCK_REQUEST_PENDING" ||
+        flow === "WAITING_STOCK_IN"
+      );
+    case "done":
+      return flags.stockPosted || flow === "STOCK_POSTED";
     default:
       return false;
   }
@@ -741,9 +754,10 @@ export default function WeighbridgeDashboardPage() {
   const stageCounts = useMemo(() => {
     const counts: Record<ReceivingStage, number> = {
       all: tickets.length,
-      "classify-weigh": 0,
+      "pending-confirm": 0,
       payment: 0,
       warehouse: 0,
+      done: 0,
     };
     for (const ticket of tickets) {
       for (const key of ACTION_STAGE_KEYS) {
@@ -856,19 +870,24 @@ export default function WeighbridgeDashboardPage() {
       value: tickets.length,
     },
     {
-      key: "classify-weigh" as ReceivingStage,
-      label: "คัดแยกและชั่ง",
-      value: stageCounts["classify-weigh"],
+      key: "pending-confirm" as ReceivingStage,
+      label: "รอยืนยัน",
+      value: stageCounts["pending-confirm"],
     },
     {
       key: "payment" as ReceivingStage,
-      label: "ออกใบจ่ายเงิน",
+      label: "รอจ่ายเงิน",
       value: stageCounts.payment,
     },
     {
       key: "warehouse" as ReceivingStage,
-      label: "เข้าคลัง",
+      label: "รอเข้าคลัง",
       value: stageCounts.warehouse,
+    },
+    {
+      key: "done" as ReceivingStage,
+      label: "สำเร็จ",
+      value: stageCounts.done,
     },
   ];
 

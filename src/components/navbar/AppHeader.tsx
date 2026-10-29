@@ -769,9 +769,11 @@ const productionMenus: MenuItem[] = [
   },
   {
     key: "production-schedule",
-    screenCode: "PRODUCTION_SCHEDULE",
+    // รวมหน้ารอบผลิต (/production/cycles) เข้ามาเป็นแท็บแล้ว — ถือสิทธิ์ของทั้งสองหน้า
+    screenCodes: ["PRODUCTION_SCHEDULE", "PRODUCTION_CYCLES"],
     label: "ตารางการผลิต",
     href: "/production/schedule",
+    matchHrefs: ["/production/schedule", "/production/cycles"],
     icon: <IconCalendar />,
     roles: [
       ROLE.PRODUCTION_OFFICER,
@@ -866,20 +868,6 @@ const productionMenus: MenuItem[] = [
     label: "ใบสั่งผลิตรอรับเข้าคลัง",
     href: "/receiving/pending-production-output",
     icon: <IconReceiving />,
-    roles: [
-      ROLE.PRODUCTION_OFFICER,
-      ROLE.WAREHOUSE_OFFICER,
-      ROLE.WAREHOUSE_MANAGER,
-      ROLE.EXECUTIVE,
-    ],
-  },
-  {
-    key: "production-cycles",
-    screenCode: "PRODUCTION_CYCLES",
-    label: "รอบผลิต (Cycle 45+3 วัน)",
-    href: "/production/cycles",
-    icon: <IconWarehouse />,
-    matchHrefs: ["/production/cycles"],
     roles: [
       ROLE.PRODUCTION_OFFICER,
       ROLE.WAREHOUSE_OFFICER,

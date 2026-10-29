@@ -2,7 +2,6 @@ import { apiFetch } from "./client";
 import type {
   CreateMachineDeviceBody,
   CreateMachineTagBody,
-  CreateProductionCycleBody,
   CreateShiftRecordBody,
   MachineDevice,
   MachineDeviceWithKey,
@@ -31,8 +30,6 @@ export const getProductionCycle = (token: string, id: string) =>
   apiFetch<Res<ProductionCycle>>(`${CYCLES}/${id}`, { token });
 export const getProductionCycleSummary = (token: string, id: string) =>
   apiFetch<Res<ProductionCycleSummary>>(`${CYCLES}/${id}/summary`, { token });
-export const createProductionCycle = (token: string, body: CreateProductionCycleBody) =>
-  apiFetch<Res<ProductionCycle>>(CYCLES, { method: "POST", token, body });
 export const updateProductionCycle = (token: string, id: string, body: UpdateProductionCycleBody) =>
   apiFetch<Res<ProductionCycle>>(`${CYCLES}/${id}`, { method: "PATCH", token, body });
 export const closeProductionCycle = (token: string, id: string, remark?: string) =>

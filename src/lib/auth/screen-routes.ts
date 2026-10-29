@@ -149,7 +149,8 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   },
   {
     prefix: "/production/schedule",
-    screenCodes: ["PRODUCTION_SCHEDULE"],
+    // แท็บ "รอบผลิตจริง" ในหน้านี้ใช้สิทธิ์ PRODUCTION_CYCLES — คนที่มีสิทธิ์เฉพาะรอบต้องเข้าหน้าได้
+    screenCodes: ["PRODUCTION_SCHEDULE", "PRODUCTION_CYCLES"],
   },
   {
     prefix: "/production/production-orders",

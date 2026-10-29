@@ -83,7 +83,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/production/control-room", title: "Control Room (ห้องควบคุมการผลิต)" },
   { href: "/production/schedule", title: "ตารางการผลิต" },
   { href: "/production/production-orders", title: "ใบสั่งผลิต (Pyrolysis)" },
-  { href: "/production/cycles", title: "รอบผลิต (Cycle 45+3 วัน)" },
+  { href: "/production/cycles", title: "สรุปรอบผลิต" },
   { href: "/production/machine-integration", title: "อุปกรณ์เครื่องจักร (Machine Integration)" },
   { href: "/production/tire-prep-stages", title: "ขั้นตอนเตรียมยาง" },
   { href: "/production/rcb-processing", title: "กระบวนการผลิต rCB" },

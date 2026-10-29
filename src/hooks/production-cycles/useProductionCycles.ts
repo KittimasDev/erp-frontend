@@ -9,7 +9,6 @@ import { getAccessToken } from "@/lib/auth/token";
 import type {
   CreateMachineDeviceBody,
   CreateMachineTagBody,
-  CreateProductionCycleBody,
   CreateShiftRecordBody,
   UpdateMachineDeviceBody,
   UpdateMachineTagBody,
@@ -72,15 +71,6 @@ function useHelpers(keys: ReadonlyArray<readonly string[]>) {
   const fail = (e: unknown, fallback: string) =>
     message.error(e instanceof ApiError ? e.message : fallback);
   return { done, fail };
-}
-
-export function useCreateProductionCycleMutation() {
-  const { done, fail } = useHelpers([productionCyclesKey]);
-  return useMutation({
-    mutationFn: (body: CreateProductionCycleBody) => api.createProductionCycle(getAccessToken(), body),
-    onSuccess: (res) => done(`เปิดรอบผลิต ${res.data.cycleNo} แล้ว`),
-    onError: (e) => fail(e, "เปิดรอบผลิตไม่สำเร็จ"),
-  });
 }
 
 export function useUpdateProductionCycleMutation() {

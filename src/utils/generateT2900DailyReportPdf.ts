@@ -32,19 +32,19 @@ const FORM_CODE = "FP-WHO-01-04 Rev.01";
 const TIME_RANGE = "00:00:00 - 23:59:59";
 
 /** ความสูงของแต่ละชนิดแถว (px) — ตรึงไว้เพื่อให้ตัดหน้าได้แม่น ช่องว่างต้องนับรวมอยู่ในนี้ */
-const BAND_H = 26;
+const BAND_H = 30;
 const H = {
   product: 34,
-  customerHead: 30,
-  row: 23,
-  subtotal: 30,
+  customerHead: 34,
+  row: 28,
+  subtotal: 34,
   /** รวมสินค้า: แถวสูง PTOTAL_ROW แล้วเว้นว่างด้านล่างก่อนสินค้าถัดไป */
-  productTotal: 50,
+  productTotal: 54,
   end: 36,
   note: 16,
 } as const;
 const CUSTOMER_H = H.customerHead + BAND_H;
-const PTOTAL_ROW = 32;
+const PTOTAL_ROW = 36;
 
 type Item =
   | { kind: "product"; product: T2900DailyReportProduct; cont?: boolean }
@@ -247,13 +247,13 @@ function styles() {
       .t29d-row .trade { font-size: 15px; }
 
       /* รวมย่อยลูกค้า: เส้นประด้านบน ป้ายขีดเส้นใต้เยื้องเข้ามา */
-      .t29d-sub-row { height: ${H.subtotal}px; border-top: 1px dashed #000; font-weight: 400; }
-      .t29d-sub-row > div { height: ${H.subtotal}px; line-height: ${H.subtotal}px; }
+      .t29d-sub-row { height: ${H.subtotal}px; border-top: 1px dashed #000; font-weight: 400; padding: 2px 0; }
+      .t29d-sub-row > div { height: ${H.subtotal - 4}px; line-height: ${H.subtotal - 4}px; }
       .t29d-sub-row .lbl { grid-column: 1 / span 6; padding-left: 100px; text-decoration: underline; }
       /* รวมสินค้า: เส้นหนาด้านบน เส้นบางด้านล่าง ป้ายขีดเส้นใต้ แล้วเว้นว่างก่อนสินค้าถัดไป */
       .t29d-ptotal { height: ${H.productTotal}px; }
-      .t29d-ptotal-row { height: ${PTOTAL_ROW}px; border-top: 2px solid #000; border-bottom: 1px solid #000; font-weight: 400; }
-      .t29d-ptotal-row > div { height: ${PTOTAL_ROW - 3}px; line-height: ${PTOTAL_ROW - 3}px; }
+      .t29d-ptotal-row { height: ${PTOTAL_ROW}px; border-top: 2px solid #000; border-bottom: 1px solid #000; font-weight: 400; padding: 2px 0; }
+      .t29d-ptotal-row > div { height: ${PTOTAL_ROW - 7}px; line-height: ${PTOTAL_ROW - 7}px; }
       .t29d-ptotal-row .lbl { grid-column: 1 / span 6; padding-left: 0; text-decoration: underline; }
       .t29d-end { height: ${H.end}px; line-height: ${H.end}px; font-size: 13px; }
       .t29d-note { height: ${H.note}px; line-height: ${H.note}px; font-size: 11px; color: #4b5563; }

@@ -1,7 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import CyclesPage from "@/components/production-cycles/CyclesPage";
-
+/** รวมเข้าหน้าตารางการผลิตแล้ว — รอบผลิตจริงอยู่แท็บ "รอบผลิตจริง" */
 export default function Page() {
-  return <CyclesPage />;
+  redirect("/production/schedule?tab=cycles");
 }
