@@ -9,20 +9,23 @@
   min-width: 0;
 }
 
+.workTabBody {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 .infoGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px 20px;
 }
 
 .infoItem {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 14px 16px;
-  border: 1px solid var(--unit-border);
-  border-radius: 14px;
-  background: #ffffff;
+  min-width: 0;
 }
 
 .infoLabel {
@@ -34,6 +37,25 @@
   color: var(--unit-gray-dark);
   font-weight: 500;
   font-size: 15px;
+}
+
+.statusValue {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #bfbfbf;
+  flex-shrink: 0;
+}
+
+.statusDotActive {
+  background: #739816;
 }
 
 .section {
@@ -66,9 +88,94 @@
   gap: 14px;
 }
 
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.summaryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.summaryLabel {
+  color: var(--unit-muted);
+  font-size: 13px;
+}
+
+.summaryValue {
+  color: var(--unit-gray-dark);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.summaryValueAccent {
+  color: #739816;
+}
+
+.workSubTabs {
+  margin-top: 4px;
+}
+
+.workSubTabs :global(.ant-tabs-nav) {
+  margin-bottom: 16px;
+}
+
+.workSubTabs :global(.ant-tabs-ink-bar) {
+  background: #739816;
+}
+
+.workSubTabs :global(.ant-tabs-tab-active .ant-tabs-tab-btn) {
+  color: #739816;
+}
+
+.cardBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--unit-border);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.cardBlockTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardBlockTitle {
+  margin: 0;
+  color: var(--unit-gray-dark);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .infoGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .infoGrid,
-  .yieldGrid {
+  .yieldGrid,
+  .summaryGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
   }
 }

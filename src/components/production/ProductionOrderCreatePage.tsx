@@ -50,10 +50,7 @@ import {
   buildUnitSelectOptions,
   type UnitOptionContext,
 } from "@/lib/units/unitSelectOptions";
-import {
-  useInventoryLotsQuery,
-  useStockBalancesByItemQuery,
-} from "@/hooks/inventory/useInventoryQueries";
+import { useStockBalancesByItemQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useProductionRequestQuery } from "@/hooks/production-requests/useProductionRequestQueries";
 import type {
   BulkCreateProductionOrderSelectionBody,
@@ -146,49 +143,6 @@ export function MaterialRow({
       ),
     [stockByItemQuery.data],
   );
-  const lotsForItemQuery = useInventoryLotsQuery(
-    row.itemId ? { itemId: row.itemId, hasStock: true } : undefined,
-    { enabled: Boolean(row.itemId) },
-  );
-
-  const lotsQuery = useInventoryLotsQuery(
-    row.itemId && row.warehouseId && row.locationId
-      ? {
-          itemId: row.itemId,
-          warehouseId: row.warehouseId,
-          locationId: row.locationId,
-          hasStock: true,
-        }
-      : undefined,
-    { enabled: Boolean(row.itemId && row.warehouseId && row.locationId) },
-  );
-
-  const lotsForItem = lotsForItemQuery.data?.data ?? [];
-
-  const warehouseOptions = Array.from(
-    new Map(
-      lotsForItem
-        .filter((l) => Boolean(l.warehouseId))
-        .map((l) => [
-          l.warehouseId,
-          { value: l.warehouseId, label: `${l.warehouseCode} — ${l.warehouseName}` },
-        ]),
-    ).values(),
-  );
-
-  const locationOptions = Array.from(
-    new Map(
-      lotsForItem
-        .filter(
-          (l) => Boolean(l.locationId) && row.warehouseId && l.warehouseId === row.warehouseId,
-        )
-        .map((l) => [
-          l.locationId,
-          { value: l.locationId, label: `${l.locationCode} — ${l.locationName}` },
-        ]),
-    ).values(),
-  );
-
   return (
     <div className={styles.materialCard}>
       <span className={styles.materialCardNo}>{index + 1}</span>
@@ -204,21 +158,14 @@ export function MaterialRow({
             style={{ width: "100%" }}
             options={(itemsQuery.data?.data ?? []).map((item) => {
               const available = availableByItemId.get(item.id) ?? 0;
-              // อ่านยอดคงเหลือไม่ได้ (สิทธิ์/เน็ตล่ม) = ไม่ปิดตัวเลือก
-              // ปล่อยให้ backend ตรวจตอนบันทึก ดีกว่าปิดทั้งลิสต์
-              const outOfStock = stockByItemQuery.isSuccess && available <= 0;
               return {
                 value: item.id,
-                // ของหมดยังโชว์ในลิสต์แต่กดไม่ได้ — ให้รู้ว่ามีสินค้านี้แต่ไม่มีของให้เบิก
                 label: `${item.itemCode} — ${item.itemNameTh}${
-                  outOfStock
-                    ? " (ไม่มีสต๊อก)"
-                    : stockByItemQuery.isSuccess
-                      ? ` (คงเหลือ ${available.toLocaleString("th-TH")})`
-                      : ""
+                  stockByItemQuery.isSuccess
+                    ? ` (คงเหลือ ${available.toLocaleString("th-TH")})`
+                    : ""
                 }`,
                 unitId: item.unitId,
-                disabled: outOfStock,
               };
             })}
             onChange={(value, option) => {
@@ -235,66 +182,6 @@ export function MaterialRow({
           />
         </div>
         <div className={styles.field}>
-          <span className={styles.fieldLabel}>คลัง<Required /></span>
-          <Select
-            showSearch
-            placeholder={row.itemId ? "เลือกคลังของสินค้านี้" : "เลือกสินค้าเพื่อดูคลัง"}
-            optionFilterProp="label"
-            loading={lotsForItemQuery.isLoading}
-            disabled={!row.itemId}
-            value={row.warehouseId}
-            style={{ width: "100%" }}
-            options={warehouseOptions}
-            onChange={(value) =>
-              onChange({
-                ...row,
-                warehouseId: value,
-                locationId: undefined,
-                lotId: undefined,
-              })
-            }
-          />
-        </div>
-        <div className={styles.field}>
-          <span className={styles.fieldLabel}>ตำแหน่งจัดเก็บ<Required /></span>
-          <Select
-            showSearch
-            placeholder={row.warehouseId ? "เลือกตำแหน่งของสินค้านี้" : "เลือกคลังก่อน"}
-            optionFilterProp="label"
-            disabled={!(row.itemId && row.warehouseId)}
-            loading={lotsForItemQuery.isLoading}
-            value={row.locationId}
-            style={{ width: "100%" }}
-            options={locationOptions}
-            onChange={(value) =>
-              onChange({ ...row, locationId: value, lotId: undefined })
-            }
-          />
-        </div>
-      </div>
-      <div className={styles.materialQtyRow}>
-        <div className={styles.field}>
-          <span className={styles.fieldLabel}>Lot<Required /></span>
-          <Select
-            showSearch
-            placeholder={
-              row.itemId && row.warehouseId && row.locationId
-                ? "เลือก Lot"
-                : "เลือกสินค้า / คลัง / ตำแหน่งก่อน"
-            }
-            optionFilterProp="label"
-            disabled={!(row.itemId && row.warehouseId && row.locationId)}
-            loading={lotsQuery.isLoading}
-            value={row.lotId}
-            style={{ width: "100%" }}
-            options={(lotsQuery.data?.data ?? []).map((lot) => ({
-              value: lot.lotId,
-              label: `${lot.lotNo} (คงเหลือ ${lot.quantityAvailable})`,
-            }))}
-            onChange={(value) => onChange({ ...row, lotId: value })}
-          />
-        </div>
-        <div className={styles.field}>
           <span className={styles.fieldLabel}>จำนวนที่วางแผน<Required /></span>
           <InputNumber
             min={0.001}
@@ -306,6 +193,39 @@ export function MaterialRow({
             }
           />
         </div>
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>สถานะสต๊อกรวม</span>
+          {(() => {
+            if (!row.itemId || !row.plannedQty) {
+              return (
+                <span style={{ color: "#8c8c8c", fontSize: 13 }}>—</span>
+              );
+            }
+            if (!stockByItemQuery.isSuccess) {
+              return (
+                <span style={{ color: "#8c8c8c", fontSize: 13 }}>
+                  กำลังโหลด…
+                </span>
+              );
+            }
+            const available = availableByItemId.get(row.itemId) ?? 0;
+            const planned = Number(row.plannedQty) || 0;
+            const shortfall = Math.max(0, planned - available);
+            if (shortfall <= 1e-9) {
+              return (
+                <span style={{ color: "#739816", fontWeight: 600, fontSize: 13 }}>
+                  เพียงพอ (คงเหลือ {available.toLocaleString("th-TH")})
+                </span>
+              );
+            }
+            return (
+              <span style={{ color: "#cf1322", fontWeight: 600, fontSize: 13 }}>
+                ไม่เพียงพอ · ขาด {shortfall.toLocaleString("th-TH")}
+                {" "}(คงเหลือ {available.toLocaleString("th-TH")})
+              </span>
+            );
+          })()}
+        </div>
         <Button
           danger
           icon={<DeleteOutlined />}
@@ -316,6 +236,9 @@ export function MaterialRow({
           ลบ
         </Button>
       </div>
+      <p style={{ margin: "0 0 0 36px", color: "#8c8c8c", fontSize: 12 }}>
+        ไม่ต้องเลือกคลัง/Lot ตอนสร้าง — เลือกตอนยืนยันบันทึกกะเพื่อตัดสต๊อก
+      </p>
     </div>
   );
 }
@@ -581,9 +504,6 @@ export default function ProductionOrderCreatePage() {
   rows.forEach((row, index) => {
     const gaps: string[] = [];
     if (!row.itemId) gaps.push("สินค้า (วัตถุดิบ)");
-    if (!row.warehouseId) gaps.push("คลัง");
-    if (!row.locationId) gaps.push("ตำแหน่งจัดเก็บ");
-    if (!row.lotId) gaps.push("Lot");
     if (!row.unitId) gaps.push("หน่วยนับ");
     if (!row.plannedQty) gaps.push("จำนวนที่วางแผน");
     if (gaps.length) {
@@ -667,11 +587,11 @@ export default function ProductionOrderCreatePage() {
   const handleSubmit = () => {
     const inputItems: CreateProductionOrderInputItemBody[] = rows.map((r) => ({
       itemId: r.itemId as string,
-      warehouseId: r.warehouseId as string,
-      locationId: r.locationId as string,
-      lotId: r.lotId as string,
       unitId: r.unitId as string,
       plannedQty: r.plannedQty as number,
+      ...(r.warehouseId ? { warehouseId: r.warehouseId } : {}),
+      ...(r.locationId ? { locationId: r.locationId } : {}),
+      ...(r.lotId ? { lotId: r.lotId } : {}),
     }));
 
     const planLines: CreateProductionOrderPlanLineBody[] = [

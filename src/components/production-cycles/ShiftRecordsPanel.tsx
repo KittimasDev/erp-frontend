@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Alert,
   Button,
@@ -11,23 +11,33 @@ import {
   Modal,
   Popconfirm,
   Select,
-  Space,
   Table,
   Tag,
+  TimePicker,
   Typography,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { PlusOutlined } from "@ant-design/icons";
+import {
+  CalendarOutlined,
+  FileTextOutlined,
+  InboxOutlined,
+  PlusOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 
 import {
   useCreateShiftRecordMutation,
   useDeleteShiftRecordMutation,
   useProductionOrderLookupsQuery,
   useShiftRecordsQuery,
+  useUnconfirmShiftRecordMutation,
   useUpdateShiftRecordMutation,
 } from "@/hooks/production-cycles/useProductionCycles";
 import type { ShiftRecord } from "@/types/production-cycle";
+import type { ProductionOrderInputItem } from "@/types/production-order";
+import ConfirmShiftStockModal from "./ConfirmShiftStockModal";
 import type {
   ProductionRecordingConfig,
   RecordingFieldDef,
@@ -41,15 +51,34 @@ import {
   type RecordingFieldValues,
 } from "@/utils/recordingCalc";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import modalStyles from "./ShiftRecordModal.module.css";
+
+dayjs.extend(customParseFormat);
 
 const n = (v?: number | null, d = 1) =>
   v === undefined || v === null
     ? "—"
     : v.toLocaleString("th-TH", { maximumFractionDigits: d });
 
+function parseShiftClock(raw?: string) {
+  if (!raw) return undefined;
+  const parsed = dayjs(raw, ["HH:mm:ss", "HH:mm"], true);
+  return parsed.isValid() ? parsed : undefined;
+}
+
+function unitAddon(unitLabel?: string) {
+  if (!unitLabel) return undefined;
+  const lower = unitLabel.toLowerCase();
+  if (lower.includes("กก") || lower === "kg") return "กิโลกรัม";
+  if (lower.includes("ลิตร") || lower === "l" || lower === "liter") return "ลิตร";
+  return unitLabel;
+}
+
 type LegacyValues = {
   recordDate: dayjs.Dayjs;
   shiftId: string;
+  shiftStartTime?: dayjs.Dayjs;
+  shiftEndTime?: dayjs.Dayjs;
   inputTireKg: number;
   operatingHours: number;
   feedRateKgH?: number | null;
@@ -60,6 +89,8 @@ type LegacyValues = {
 type DynamicFormValues = {
   recordDate: dayjs.Dayjs;
   shiftId: string;
+  shiftStartTime?: dayjs.Dayjs;
+  shiftEndTime?: dayjs.Dayjs;
   operatorIds?: string[];
   remark?: string;
   values: RecordingFieldValues;
@@ -69,7 +100,169 @@ function sortedFields(config?: ProductionRecordingConfig | null) {
   return [...(config?.fields ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-function FieldInputs({
+function Control({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={modalStyles.controlItem}>
+      <span className={modalStyles.controlLabel}>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function BomFieldControls({
+  field,
+  value,
+  onChange,
+  liveResult,
+}: {
+  field: RecordingFieldDef;
+  value: RecordingFieldValue | undefined;
+  onChange: (next: RecordingFieldValue) => void;
+  liveResult?: number | null;
+}) {
+  const v = value ?? {};
+  const patch = (partial: RecordingFieldValue) => onChange({ ...v, ...partial });
+  const addon = unitAddon(field.unitLabel);
+
+  if (field.calcType === "METER_DELTA") {
+    return (
+      <div className={modalStyles.bomControlsWide}>
+        <Control label="ต้นกะ (มิเตอร์)">
+          <InputNumber
+            min={0}
+            precision={3}
+            style={{ width: "100%" }}
+            value={v.meterStart ?? undefined}
+            onChange={(meterStart) => patch({ meterStart })}
+          />
+        </Control>
+        <Control label="ปลายกะ (มิเตอร์)">
+          <InputNumber
+            min={0}
+            precision={3}
+            style={{ width: "100%" }}
+            value={v.meterEnd ?? undefined}
+            onChange={(meterEnd) => patch({ meterEnd })}
+          />
+        </Control>
+      </div>
+    );
+  }
+
+  if (field.calcType === "HOURS_TIMES_RATE") {
+    return (
+      <div className={modalStyles.bomControls}>
+        <Control label="ปริมาณ">
+          <InputNumber
+            readOnly
+            precision={3}
+            style={{ width: "100%" }}
+            value={liveResult ?? undefined}
+            addonAfter={addon}
+            placeholder="คำนวณอัตโนมัติ"
+          />
+        </Control>
+        <Control label="ชั่วโมง">
+          <InputNumber
+            min={0}
+            max={24}
+            precision={2}
+            style={{ width: "100%" }}
+            value={v.hours ?? undefined}
+            onChange={(hours) => patch({ hours })}
+          />
+        </Control>
+        <Control label="อัตรา">
+          <InputNumber
+            min={0}
+            precision={3}
+            style={{ width: "100%" }}
+            value={v.rate ?? undefined}
+            onChange={(rate) => patch({ rate })}
+          />
+        </Control>
+      </div>
+    );
+  }
+
+  if (field.calcType === "QTY_TIMES_UNIT_WEIGHT") {
+    return (
+      <div className={modalStyles.bomControls}>
+        <Control label="ปริมาณ">
+          <InputNumber
+            min={0}
+            precision={3}
+            style={{ width: "100%" }}
+            value={v.qty ?? undefined}
+            onChange={(qty) => patch({ qty })}
+            addonAfter={addon}
+          />
+        </Control>
+        <Control label="ชั่วโมง">
+          <InputNumber
+            min={0}
+            max={24}
+            precision={2}
+            style={{ width: "100%" }}
+            value={v.hours ?? undefined}
+            onChange={(hours) => patch({ hours })}
+          />
+        </Control>
+        <Control label="อัตรา">
+          <InputNumber
+            min={0}
+            precision={3}
+            style={{ width: "100%" }}
+            value={v.unitWeight ?? undefined}
+            onChange={(unitWeight) => patch({ unitWeight })}
+          />
+        </Control>
+      </div>
+    );
+  }
+
+  return (
+    <div className={modalStyles.bomControls}>
+      <Control label="ปริมาณ">
+        <InputNumber
+          min={0}
+          precision={3}
+          style={{ width: "100%" }}
+          value={v.amount ?? undefined}
+          onChange={(amount) => patch({ amount })}
+          addonAfter={addon}
+        />
+      </Control>
+      <Control label="ชั่วโมง">
+        <InputNumber
+          min={0}
+          max={24}
+          precision={2}
+          style={{ width: "100%" }}
+          value={v.hours ?? undefined}
+          onChange={(hours) => patch({ hours })}
+        />
+      </Control>
+      <Control label="อัตรา">
+        <InputNumber
+          min={0}
+          precision={3}
+          style={{ width: "100%" }}
+          value={v.rate ?? undefined}
+          onChange={(rate) => patch({ rate })}
+        />
+      </Control>
+    </div>
+  );
+}
+
+function InfoFieldControls({
   field,
   value,
   onChange,
@@ -80,116 +273,129 @@ function FieldInputs({
 }) {
   const v = value ?? {};
   const patch = (partial: RecordingFieldValue) => onChange({ ...v, ...partial });
-  const req = field.required;
+  const placeholder = `ระบุค่า ${field.label || field.code}`;
 
-  switch (field.calcType) {
-    case "METER_DELTA":
-      return (
-        <Space wrap>
-          <Form.Item
-            label="ต้นกะ"
-            required={req}
-            style={{ marginBottom: 0 }}
-          >
-            <InputNumber
-              min={0}
-              precision={3}
-              style={{ width: 120 }}
-              value={v.meterStart ?? undefined}
-              onChange={(meterStart) => patch({ meterStart })}
-            />
-          </Form.Item>
-          <Form.Item label="ปลายกะ" required={req} style={{ marginBottom: 0 }}>
-            <InputNumber
-              min={0}
-              precision={3}
-              style={{ width: 120 }}
-              value={v.meterEnd ?? undefined}
-              onChange={(meterEnd) => patch({ meterEnd })}
-            />
-          </Form.Item>
-        </Space>
-      );
-    case "HOURS_TIMES_RATE":
-      return (
-        <Space wrap>
-          <Form.Item label="ชั่วโมง" required={req} style={{ marginBottom: 0 }}>
-            <InputNumber
-              min={0}
-              max={24}
-              precision={2}
-              style={{ width: 100 }}
-              value={v.hours ?? undefined}
-              onChange={(hours) => patch({ hours })}
-            />
-          </Form.Item>
-          <Form.Item label="อัตรา" required={req} style={{ marginBottom: 0 }}>
-            <InputNumber
-              min={0}
-              precision={3}
-              style={{ width: 100 }}
-              value={v.rate ?? undefined}
-              onChange={(rate) => patch({ rate })}
-            />
-          </Form.Item>
-        </Space>
-      );
-    case "QTY_TIMES_UNIT_WEIGHT":
-      return (
-        <Space wrap>
-          <Form.Item label="จำนวน" required={req} style={{ marginBottom: 0 }}>
-            <InputNumber
-              min={0}
-              precision={3}
-              style={{ width: 100 }}
-              value={v.qty ?? undefined}
-              onChange={(qty) => patch({ qty })}
-            />
-          </Form.Item>
-          <Form.Item
-            label="น้ำหนัก/หน่วย"
-            required={req}
-            style={{ marginBottom: 0 }}
-          >
-            <InputNumber
-              min={0}
-              precision={3}
-              style={{ width: 120 }}
-              value={v.unitWeight ?? undefined}
-              onChange={(unitWeight) => patch({ unitWeight })}
-            />
-          </Form.Item>
-        </Space>
-      );
-    case "INFORMATION":
-      if (field.infoValueKind === "TEXT" || field.infoValueKind === "QC") {
-        return (
-          <Input
-            value={v.text ?? undefined}
-            onChange={(e) => patch({ text: e.target.value })}
-            placeholder="ข้อความ"
-          />
-        );
-      }
-      return (
-        <InputNumber
-          precision={3}
-          style={{ width: 160 }}
-          value={v.amount ?? undefined}
-          onChange={(amount) => patch({ amount })}
-        />
-      );
-    default:
-      return (
-        <InputNumber
-          min={0}
-          precision={3}
-          style={{ width: 160 }}
-          value={v.amount ?? undefined}
-          onChange={(amount) => patch({ amount })}
-        />
-      );
+  if (field.infoValueKind === "TEXT" || field.infoValueKind === "QC") {
+    return (
+      <Input
+        value={v.text ?? undefined}
+        onChange={(e) => patch({ text: e.target.value })}
+        placeholder={placeholder}
+      />
+    );
   }
+
+  return (
+    <InputNumber
+      precision={3}
+      style={{ width: "100%" }}
+      value={v.amount ?? undefined}
+      onChange={(amount) => patch({ amount })}
+      placeholder={placeholder}
+    />
+  );
+}
+
+function FieldValueBridge({
+  field,
+  value,
+  onChange,
+  liveResult,
+  mode,
+}: {
+  field: RecordingFieldDef;
+  value?: RecordingFieldValue;
+  onChange?: (v: RecordingFieldValue) => void;
+  liveResult?: number | null;
+  mode: "bom" | "info";
+}) {
+  if (mode === "info") {
+    return (
+      <InfoFieldControls
+        field={field}
+        value={value}
+        onChange={(next) => onChange?.(next)}
+      />
+    );
+  }
+  return (
+    <BomFieldControls
+      field={field}
+      value={value}
+      onChange={(next) => onChange?.(next)}
+      liveResult={liveResult}
+    />
+  );
+}
+
+function ModalSection({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={modalStyles.section}>
+      <div className={modalStyles.sectionHead}>
+        <span className={modalStyles.sectionIcon}>{icon}</span>
+        <span>{title}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function BomFieldRow({
+  field,
+  liveResult,
+}: {
+  field: RecordingFieldDef;
+  liveResult?: number | null;
+}) {
+  return (
+    <div className={modalStyles.bomRow}>
+      <div className={modalStyles.bomLabel}>
+        <span
+          className={`${modalStyles.bomTitle} ${
+            field.required ? modalStyles.bomTitleRequired : ""
+          }`}
+        >
+          {field.label || field.code}
+        </span>
+        <span className={modalStyles.bomSub}>
+          {RECORDING_RESULT_ROLE_LABEL[field.resultRole] ?? field.resultRole}
+        </span>
+      </div>
+      <Form.Item name={["values", field.id]} noStyle>
+        <FieldValueBridge field={field} mode="bom" liveResult={liveResult} />
+      </Form.Item>
+    </div>
+  );
+}
+
+function InfoFieldRow({ field }: { field: RecordingFieldDef }) {
+  return (
+    <div className={modalStyles.infoField}>
+      <div className={modalStyles.infoFieldHead}>
+        <span
+          className={`${modalStyles.bomTitle} ${
+            field.required ? modalStyles.bomTitleRequired : ""
+          }`}
+        >
+          {field.label || field.code}
+        </span>
+        <span className={modalStyles.bomSub}>
+          {RECORDING_RESULT_ROLE_LABEL[field.resultRole] ?? field.resultRole}
+        </span>
+      </div>
+      <Form.Item name={["values", field.id]} noStyle>
+        <FieldValueBridge field={field} mode="info" />
+      </Form.Item>
+    </div>
+  );
 }
 
 function DynamicRecordModal({
@@ -210,6 +416,7 @@ function DynamicRecordModal({
   const watchedValues = Form.useWatch("values", form) as
     | RecordingFieldValues
     | undefined;
+  const shifts = lookups.data?.data.shifts ?? [];
 
   const liveResults = useMemo(() => {
     const map: Record<string, number | null> = {};
@@ -222,64 +429,93 @@ function DynamicRecordModal({
     return map;
   }, [fields, watchedValues]);
 
+  const inputFields = fields.filter(
+    (f) => f.resultRole === "INPUT" || f.resultRole === "TRACKING",
+  );
+  const outputFields = fields.filter((f) => f.resultRole === "OUTPUT");
+  const infoFields = fields.filter((f) => f.resultRole === "INFORMATION");
+
+  const applyShiftTimes = (shiftId?: string) => {
+    const shift = shifts.find((s) => s.id === shiftId);
+    form.setFieldsValue({
+      shiftStartTime: parseShiftClock(shift?.startTime),
+      shiftEndTime: parseShiftClock(shift?.endTime),
+    });
+  };
+
+  useEffect(() => {
+    const shiftId = form.getFieldValue("shiftId") as string | undefined;
+    if (!shiftId || shifts.length === 0) return;
+    if (form.getFieldValue("shiftStartTime")) return;
+    const shift = shifts.find((s) => s.id === shiftId);
+    form.setFieldsValue({
+      shiftStartTime: parseShiftClock(shift?.startTime),
+      shiftEndTime: parseShiftClock(shift?.endTime),
+    });
+  }, [shifts, form]);
+
+  const save = () =>
+    void form.validateFields().then((v) => {
+      const values = v.values ?? {};
+      const missing = fields.filter((f) => {
+        if (!f.required) return false;
+        if (
+          f.calcType === "INFORMATION" &&
+          (f.infoValueKind === "TEXT" || f.infoValueKind === "QC")
+        ) {
+          return !(values[f.id]?.text ?? "").trim();
+        }
+        return computeRecordingFieldResult(f, values[f.id]) === null;
+      });
+      if (missing.length) {
+        form.setFields([
+          {
+            name: ["values", missing[0]!.id],
+            errors: [`กรุณากรอก ${missing[0]!.label || missing[0]!.code}`],
+          },
+        ]);
+        return Promise.reject();
+      }
+      const common = {
+        values,
+        operatorIds: v.operatorIds ?? [],
+        remark: v.remark?.trim() || undefined,
+      };
+      if (record) {
+        update.mutate({ id: record.id, body: common }, { onSuccess: onClose });
+      } else {
+        create.mutate(
+          {
+            productionOrderId: orderId,
+            recordDate: v.recordDate.format("YYYY-MM-DD"),
+            shiftId: v.shiftId,
+            ...common,
+          },
+          { onSuccess: onClose },
+        );
+      }
+    });
+
   return (
     <Modal
       open
-      width={720}
+      width={760}
       title={
         record
           ? `แก้บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
           : "บันทึกการผลิตรายกะ"
       }
-      okText="บันทึก"
+      okText="บันทึกร่าง"
       cancelText="ยกเลิก"
       confirmLoading={create.isPending || update.isPending}
       onCancel={onClose}
       destroyOnHidden
-      onOk={() =>
-        void form.validateFields().then((v) => {
-          const values = v.values ?? {};
-          const missing = fields.filter((f) => {
-            if (!f.required) return false;
-            if (f.calcType === "INFORMATION" &&
-              (f.infoValueKind === "TEXT" || f.infoValueKind === "QC")) {
-              return !(values[f.id]?.text ?? "").trim();
-            }
-            return computeRecordingFieldResult(f, values[f.id]) === null;
-          });
-          if (missing.length) {
-            form.setFields([
-              {
-                name: ["values", missing[0]!.id],
-                errors: [`กรุณากรอก ${missing[0]!.label || missing[0]!.code}`],
-              },
-            ]);
-            return Promise.reject();
-          }
-          const common = {
-            values,
-            operatorIds: v.operatorIds ?? [],
-            remark: v.remark?.trim() || undefined,
-          };
-          if (record) {
-            update.mutate({ id: record.id, body: common }, { onSuccess: onClose });
-          } else {
-            create.mutate(
-              {
-                productionOrderId: orderId,
-                recordDate: v.recordDate.format("YYYY-MM-DD"),
-                shiftId: v.shiftId,
-                ...common,
-              },
-              { onSuccess: onClose },
-            );
-          }
-        })
-      }
+      onOk={save}
     >
       <Form
         form={form}
         layout="vertical"
+        className={modalStyles.formItemTight}
         initialValues={{
           recordDate: record ? dayjs(record.recordDate) : dayjs(),
           shiftId: record?.shiftId,
@@ -288,100 +524,127 @@ function DynamicRecordModal({
           values: record?.values ?? {},
         }}
       >
-        <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item
-            name="recordDate"
-            label="วันที่ของกะ"
-            rules={[{ required: true }]}
-            style={{ flex: 1 }}
-          >
-            <DatePicker
-              style={{ width: "100%" }}
-              format="DD/MM/YYYY"
-              disabled={Boolean(record)}
-              disabledDate={(d) => d.isAfter(dayjs(), "day")}
-            />
-          </Form.Item>
-          <Form.Item
-            name="shiftId"
-            label="กะ"
-            rules={[{ required: true, message: "เลือกกะ" }]}
-            style={{ flex: 1 }}
-          >
-            <Select
-              disabled={Boolean(record)}
-              loading={lookups.isLoading}
-              options={(lookups.data?.data.shifts ?? []).map((s) => ({
-                value: s.id,
-                label: `${s.name} (${s.startTime}–${s.endTime})`,
-              }))}
-            />
-          </Form.Item>
-        </div>
-
-        {fields.map((field) => {
-          const result = liveResults[field.id];
-          return (
-            <div key={field.id} style={{ marginBottom: 12 }}>
-              <Space size={8} wrap style={{ marginBottom: 4 }}>
-                <Typography.Text strong>
-                  {field.label || field.code}
-                  {field.required ? " *" : ""}
-                </Typography.Text>
-                {field.unitLabel ? <Tag>{field.unitLabel}</Tag> : null}
-                <Tag>{RECORDING_RESULT_ROLE_LABEL[field.resultRole]}</Tag>
-                {result !== null && result !== undefined ? (
-                  <Tag color="blue">ผล = {n(result, 3)}</Tag>
-                ) : null}
-              </Space>
-              <Form.Item name={["values", field.id]} noStyle>
-                <FieldValueBridge field={field} />
+        <div className={modalStyles.modalBody}>
+          <ModalSection icon={<CalendarOutlined />} title="ข้อมูลกะการผลิต">
+            <div className={modalStyles.fieldGrid2}>
+              <Form.Item
+                name="recordDate"
+                label="วันที่ของกะ"
+                rules={[{ required: true, message: "เลือกวันที่" }]}
+              >
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format="DD/MM/YYYY"
+                  disabled={Boolean(record)}
+                  disabledDate={(d) => d.isAfter(dayjs(), "day")}
+                />
+              </Form.Item>
+              <Form.Item
+                name="shiftId"
+                label="กะ"
+                rules={[{ required: true, message: "เลือกกะ" }]}
+              >
+                <Select
+                  placeholder="เลือกกะ"
+                  disabled={Boolean(record)}
+                  loading={lookups.isLoading}
+                  options={shifts.map((s) => ({
+                    value: s.id,
+                    label: `${s.name} (${s.startTime}–${s.endTime})`,
+                  }))}
+                  onChange={(shiftId) => applyShiftTimes(shiftId)}
+                />
+              </Form.Item>
+              <Form.Item
+                name="shiftStartTime"
+                label="ต้นกะ"
+                rules={[{ required: true, message: "ระบุต้นกะ" }]}
+              >
+                <TimePicker
+                  style={{ width: "100%" }}
+                  format="HH:mm"
+                  placeholder="เลือกเวลา"
+                  needConfirm={false}
+                />
+              </Form.Item>
+              <Form.Item
+                name="shiftEndTime"
+                label="ปลายกะ"
+                rules={[{ required: true, message: "ระบุปลายกะ" }]}
+              >
+                <TimePicker
+                  style={{ width: "100%" }}
+                  format="HH:mm"
+                  placeholder="เลือกเวลา"
+                  needConfirm={false}
+                />
               </Form.Item>
             </div>
-          );
-        })}
+          </ModalSection>
 
-        <Form.Item
-          name="operatorIds"
-          label="ผู้ปฏิบัติงานของกะ"
-          extra="เลือกได้หลายคน"
-        >
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            loading={lookups.isLoading}
-            options={(lookups.data?.data.operators ?? []).map((o) => ({
-              value: o.id,
-              label: `${o.employeeCode ? o.employeeCode + " " : ""}${o.displayName}${o.position ? " · " + o.position : ""}`,
-            }))}
-          />
-        </Form.Item>
-        <Form.Item name="remark" label="หมายเหตุ">
-          <Input.TextArea rows={2} maxLength={2000} />
-        </Form.Item>
+          {inputFields.length > 0 ? (
+            <ModalSection icon={<InboxOutlined />} title="วัตถุดิบเข้า">
+              <div className={modalStyles.fieldBlock}>
+                {inputFields.map((field) => (
+                  <BomFieldRow
+                    key={field.id}
+                    field={field}
+                    liveResult={liveResults[field.id]}
+                  />
+                ))}
+              </div>
+            </ModalSection>
+          ) : null}
+
+          {outputFields.length > 0 || infoFields.length > 0 ? (
+            <ModalSection
+              icon={<SettingOutlined />}
+              title="ผลผลิต / ข้อมูลเครื่อง"
+            >
+              <div className={modalStyles.fieldBlock}>
+                {outputFields.map((field) => (
+                  <BomFieldRow
+                    key={field.id}
+                    field={field}
+                    liveResult={liveResults[field.id]}
+                  />
+                ))}
+                {infoFields.map((field) => (
+                  <InfoFieldRow key={field.id} field={field} />
+                ))}
+              </div>
+            </ModalSection>
+          ) : null}
+
+          <ModalSection
+            icon={<FileTextOutlined />}
+            title="ผู้ปฏิบัติงานและหมายเหตุ"
+          >
+            <Form.Item name="operatorIds" label="ผู้ปฏิบัติงานของกะ">
+              <Select
+                mode="multiple"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="เลือกได้หลายคน"
+                loading={lookups.isLoading}
+                options={(lookups.data?.data.operators ?? []).map((o) => ({
+                  value: o.id,
+                  label: `${o.employeeCode ? o.employeeCode + " " : ""}${o.displayName}${o.position ? " · " + o.position : ""}`,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item name="remark" label="หมายเหตุ" style={{ marginBottom: 0 }}>
+              <Input.TextArea
+                rows={3}
+                maxLength={2000}
+                placeholder="ระบุหมายเหตุ (ถ้ามี)"
+              />
+            </Form.Item>
+          </ModalSection>
+        </div>
       </Form>
     </Modal>
-  );
-}
-
-/** Form.Item value/onChange bridge สำหรับ object ต่อ field */
-function FieldValueBridge({
-  field,
-  value,
-  onChange,
-}: {
-  field: RecordingFieldDef;
-  value?: RecordingFieldValue;
-  onChange?: (v: RecordingFieldValue) => void;
-}) {
-  return (
-    <FieldInputs
-      field={field}
-      value={value}
-      onChange={(next) => onChange?.(next)}
-    />
   );
 }
 
@@ -401,11 +664,23 @@ function LegacyRecordModal({
   const input = Form.useWatch("inputTireKg", form) ?? record?.inputTireKg ?? 0;
   const hours = Form.useWatch("operatingHours", form) ?? record?.operatingHours ?? 0;
   const calc = hours > 0 && input > 0 ? input / hours : null;
+  const shifts = lookups.data?.data.shifts ?? [];
+
+  useEffect(() => {
+    const shiftId = form.getFieldValue("shiftId") as string | undefined;
+    if (!shiftId || shifts.length === 0) return;
+    if (form.getFieldValue("shiftStartTime")) return;
+    const shift = shifts.find((s) => s.id === shiftId);
+    form.setFieldsValue({
+      shiftStartTime: parseShiftClock(shift?.startTime),
+      shiftEndTime: parseShiftClock(shift?.endTime),
+    });
+  }, [shifts, form]);
 
   return (
     <Modal
       open
-      width={640}
+      width={760}
       title={
         record
           ? `แก้บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
@@ -442,6 +717,7 @@ function LegacyRecordModal({
       <Form
         form={form}
         layout="vertical"
+        className={modalStyles.formItemTight}
         initialValues={{
           recordDate: record ? dayjs(record.recordDate) : dayjs(),
           shiftId: record?.shiftId,
@@ -453,82 +729,146 @@ function LegacyRecordModal({
           remark: record?.remark,
         }}
       >
-        <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item
-            name="recordDate"
-            label="วันที่ของกะ"
-            rules={[{ required: true }]}
-            style={{ flex: 1 }}
+        <div className={modalStyles.modalBody}>
+          <ModalSection icon={<CalendarOutlined />} title="ข้อมูลกะการผลิต">
+            <div className={modalStyles.fieldGrid2}>
+              <Form.Item
+                name="recordDate"
+                label="วันที่ของกะ"
+                rules={[{ required: true, message: "เลือกวันที่" }]}
+              >
+                <DatePicker
+                  style={{ width: "100%" }}
+                  format="DD/MM/YYYY"
+                  disabled={Boolean(record)}
+                  disabledDate={(d) => d.isAfter(dayjs(), "day")}
+                />
+              </Form.Item>
+              <Form.Item
+                name="shiftId"
+                label="กะ"
+                rules={[{ required: true, message: "เลือกกะ" }]}
+              >
+                <Select
+                  placeholder="เลือกกะ"
+                  disabled={Boolean(record)}
+                  loading={lookups.isLoading}
+                  options={shifts.map((s) => ({
+                    value: s.id,
+                    label: `${s.name} (${s.startTime}–${s.endTime})`,
+                  }))}
+                  onChange={(shiftId) => {
+                    const shift = shifts.find((s) => s.id === shiftId);
+                    form.setFieldsValue({
+                      shiftStartTime: parseShiftClock(shift?.startTime),
+                      shiftEndTime: parseShiftClock(shift?.endTime),
+                    });
+                  }}
+                />
+              </Form.Item>
+              <Form.Item
+                name="shiftStartTime"
+                label="ต้นกะ"
+                rules={[{ required: true, message: "ระบุต้นกะ" }]}
+              >
+                <TimePicker
+                  style={{ width: "100%" }}
+                  format="HH:mm"
+                  placeholder="เลือกเวลา"
+                  needConfirm={false}
+                />
+              </Form.Item>
+              <Form.Item
+                name="shiftEndTime"
+                label="ปลายกะ"
+                rules={[{ required: true, message: "ระบุปลายกะ" }]}
+              >
+                <TimePicker
+                  style={{ width: "100%" }}
+                  format="HH:mm"
+                  placeholder="เลือกเวลา"
+                  needConfirm={false}
+                />
+              </Form.Item>
+            </div>
+          </ModalSection>
+
+          <ModalSection icon={<InboxOutlined />} title="วัตถุดิบเข้า">
+            <div className={modalStyles.bomRow}>
+              <div className={modalStyles.bomLabel}>
+                <span className={`${modalStyles.bomTitle} ${modalStyles.bomTitleRequired}`}>
+                  ยางที่ป้อนเข้าเตา
+                </span>
+                <span className={modalStyles.bomSub}>Input — วัตถุดิบใน BOM</span>
+              </div>
+              <div className={modalStyles.bomControls}>
+                <Control label="ปริมาณ">
+                  <Form.Item
+                    name="inputTireKg"
+                    rules={[{ required: true, message: "ใส่จำนวน" }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <InputNumber
+                      min={0}
+                      precision={3}
+                      style={{ width: "100%" }}
+                      addonAfter="กิโลกรัม"
+                    />
+                  </Form.Item>
+                </Control>
+                <Control label="ชั่วโมง">
+                  <Form.Item
+                    name="operatingHours"
+                    rules={[{ required: true, message: "ใส่ชั่วโมง" }]}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <InputNumber min={0} max={24} precision={2} style={{ width: "100%" }} />
+                  </Form.Item>
+                </Control>
+                <Control label="อัตรา">
+                  <Form.Item
+                    name="feedRateKgH"
+                    style={{ marginBottom: 0 }}
+                    extra={
+                      calc !== null
+                        ? `เว้นว่าง = ${n(calc)}`
+                        : "เว้นว่างให้ระบบคำนวณ"
+                    }
+                  >
+                    <InputNumber min={0} precision={3} style={{ width: "100%" }} />
+                  </Form.Item>
+                </Control>
+              </div>
+            </div>
+          </ModalSection>
+
+          <ModalSection
+            icon={<FileTextOutlined />}
+            title="ผู้ปฏิบัติงานและหมายเหตุ"
           >
-            <DatePicker
-              style={{ width: "100%" }}
-              format="DD/MM/YYYY"
-              disabled={Boolean(record)}
-              disabledDate={(d) => d.isAfter(dayjs(), "day")}
-            />
-          </Form.Item>
-          <Form.Item
-            name="shiftId"
-            label="กะ"
-            rules={[{ required: true, message: "เลือกกะ" }]}
-            style={{ flex: 1 }}
-          >
-            <Select
-              disabled={Boolean(record)}
-              loading={lookups.isLoading}
-              options={(lookups.data?.data.shifts ?? []).map((s) => ({
-                value: s.id,
-                label: `${s.name} (${s.startTime}–${s.endTime})`,
-              }))}
-            />
-          </Form.Item>
+            <Form.Item name="operatorIds" label="ผู้ปฏิบัติงานของกะ">
+              <Select
+                mode="multiple"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                placeholder="เลือกได้หลายคน"
+                loading={lookups.isLoading}
+                options={(lookups.data?.data.operators ?? []).map((o) => ({
+                  value: o.id,
+                  label: `${o.employeeCode ? o.employeeCode + " " : ""}${o.displayName}${o.position ? " · " + o.position : ""}`,
+                }))}
+              />
+            </Form.Item>
+            <Form.Item name="remark" label="หมายเหตุ" style={{ marginBottom: 0 }}>
+              <Input.TextArea
+                rows={3}
+                maxLength={2000}
+                placeholder="ระบุหมายเหตุ (ถ้ามี)"
+              />
+            </Form.Item>
+          </ModalSection>
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          <Form.Item
-            name="inputTireKg"
-            label="ยางที่ป้อนเข้าเตา (กก.)"
-            rules={[{ required: true, message: "ใส่จำนวน" }]}
-            style={{ flex: 1 }}
-          >
-            <InputNumber min={0} precision={3} style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item
-            name="operatingHours"
-            label="ชั่วโมงเดินเครื่อง (0–24)"
-            rules={[{ required: true, message: "ใส่ชั่วโมง" }]}
-            style={{ flex: 1 }}
-          >
-            <InputNumber min={0} max={24} precision={2} style={{ width: "100%" }} />
-          </Form.Item>
-          <Form.Item
-            name="feedRateKgH"
-            label="Feed Rate (กก./ชม.)"
-            style={{ flex: 1 }}
-            extra={
-              calc !== null
-                ? `เว้นว่าง = คำนวณให้ ${n(calc)}`
-                : "เว้นว่างให้ระบบคำนวณ"
-            }
-          >
-            <InputNumber min={0} precision={3} style={{ width: "100%" }} />
-          </Form.Item>
-        </div>
-        <Form.Item name="operatorIds" label="ผู้ปฏิบัติงานของกะ" extra="เลือกได้หลายคน">
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            loading={lookups.isLoading}
-            options={(lookups.data?.data.operators ?? []).map((o) => ({
-              value: o.id,
-              label: `${o.employeeCode ? o.employeeCode + " " : ""}${o.displayName}${o.position ? " · " + o.position : ""}`,
-            }))}
-          />
-        </Form.Item>
-        <Form.Item name="remark" label="หมายเหตุ">
-          <Input.TextArea rows={2} maxLength={2000} />
-        </Form.Item>
       </Form>
     </Modal>
   );
@@ -551,17 +891,24 @@ export default function ShiftRecordsPanel({
   started,
   recordingConfigSnapshot,
   liveRecordingConfig,
+  inputStockMode,
+  inputItems = [],
 }: {
   orderId: string;
   canEdit: boolean;
   started: boolean;
   recordingConfigSnapshot?: ProductionRecordingConfig | null;
   liveRecordingConfig?: ProductionRecordingConfig | null;
+  inputStockMode?: string;
+  inputItems?: ProductionOrderInputItem[];
 }) {
   const query = useShiftRecordsQuery({ productionOrderId: orderId });
   const remove = useDeleteShiftRecordMutation();
+  const unconfirm = useUnconfirmShiftRecordMutation();
   const [editing, setEditing] = useState<ShiftRecord | "new" | null>(null);
+  const [confirming, setConfirming] = useState<ShiftRecord | null>(null);
   const rows = query.data?.data ?? [];
+  const cutOnConfirm = inputStockMode === "ON_SHIFT_CONFIRM";
 
   const newFormConfig =
     liveRecordingConfig?.fields?.length
@@ -624,6 +971,17 @@ export default function ShiftRecordsPanel({
         render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
       },
       { title: "กะ", dataIndex: "shiftName", width: 110 },
+      {
+        title: "สถานะ",
+        dataIndex: "status",
+        width: 110,
+        render: (v: string) =>
+          v === "CONFIRMED" ? (
+            <Tag color="success">ยืนยันแล้ว</Tag>
+          ) : (
+            <Tag>ร่าง</Tag>
+          ),
+      },
     ];
 
     if (hasAnyDynamic) {
@@ -685,31 +1043,65 @@ export default function ShiftRecordsPanel({
 
     if (canEdit) {
       base.push({
-        title: "",
+        title: "การจัดการ",
         key: "act",
-        width: 130,
-        render: (_v, r) => (
-          <div style={{ display: "flex", gap: 6 }}>
-            <Button size="small" onClick={() => setEditing(r)}>
-              แก้ไข
-            </Button>
-            <Popconfirm
-              title="ลบบันทึกนี้?"
-              okText="ลบ"
-              cancelText="ยกเลิก"
-              onConfirm={() => remove.mutate(r.id)}
-            >
-              <Button size="small" danger>
-                ลบ
-              </Button>
-            </Popconfirm>
-          </div>
-        ),
+        width: cutOnConfirm ? 260 : 140,
+        render: (_v, r) => {
+          const confirmed = r.status === "CONFIRMED";
+          return (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {!confirmed ? (
+                <Button size="small" onClick={() => setEditing(r)}>
+                  แก้ไข
+                </Button>
+              ) : null}
+              {cutOnConfirm && !confirmed ? (
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => setConfirming(r)}
+                >
+                  ยืนยัน/ตัดสต๊อก
+                </Button>
+              ) : null}
+              {cutOnConfirm && confirmed ? (
+                <Popconfirm
+                  title="ยกเลิกยืนยันและคืนสต๊อก?"
+                  okText="ยกเลิกยืนยัน"
+                  cancelText="ปิด"
+                  onConfirm={() => unconfirm.mutate(r.id)}
+                >
+                  <Button size="small">ยกเลิกยืนยัน</Button>
+                </Popconfirm>
+              ) : null}
+              {!confirmed ? (
+                <Popconfirm
+                  title="ลบบันทึกนี้?"
+                  okText="ลบ"
+                  cancelText="ยกเลิก"
+                  onConfirm={() => remove.mutate(r.id)}
+                >
+                  <Button size="small" danger>
+                    ลบ
+                  </Button>
+                </Popconfirm>
+              ) : null}
+            </div>
+          );
+        },
       });
     }
 
     return base;
-  }, [canEdit, columnFields, hasAnyDynamic, recordingConfigSnapshot, remove]);
+  }, [
+    canEdit,
+    columnFields,
+    cutOnConfirm,
+    hasAnyDynamic,
+    recordingConfigSnapshot,
+    remove,
+    unconfirm,
+  ]);
 
   const roleColor = (role: string) => {
     if (role === "INPUT") return "blue";
@@ -730,12 +1122,68 @@ export default function ShiftRecordsPanel({
         ? editFields.length > 0
         : false;
 
+  const emptyNode = (
+    <div
+      style={{
+        padding: "48px 16px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 8,
+        color: "#8c8c8c",
+      }}
+    >
+      <FileTextOutlined style={{ fontSize: 40, opacity: 0.45 }} />
+      <div style={{ textAlign: "center", maxWidth: 420 }}>
+        {started
+          ? "ยังไม่มีบันทึกการผลิตรายกะ กดปุ่ม '+ เพิ่มบันทึก' เพื่อบันทึกข้อมูล"
+          : "เริ่มผลิตแล้วจึงบันทึกรายกะได้"}
+      </div>
+    </div>
+  );
+
   return (
     <div>
-      {hasAnyDynamic ? (
-        <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-          รายการใหม่ใช้ฟอร์มตามสูตรปัจจุบัน · รายการเก่าคงตามตอนบันทึก
-        </Typography.Paragraph>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 16,
+          marginBottom: 12,
+        }}
+      >
+        <div>
+          <Typography.Title level={5} style={{ margin: 0 }}>
+            บันทึกการผลิตรายกะ
+          </Typography.Title>
+          <Typography.Paragraph
+            type="secondary"
+            style={{ margin: "4px 0 0", maxWidth: 560 }}
+          >
+            บันทึกข้อมูลการผลิตของแต่ละกะ ตามฟอร์มที่ตั้งค่าในสูตรการผลิต
+          </Typography.Paragraph>
+        </div>
+        {canEdit && started ? (
+          <Button
+            type="primary"
+            className={masterStyles.createButton}
+            icon={<PlusOutlined />}
+            onClick={() => setEditing("new")}
+          >
+            เพิ่มบันทึกร่าง
+          </Button>
+        ) : null}
+      </div>
+
+      {canEdit && started && !newFormFields.length ? (
+        <Alert
+          style={{ marginBottom: 12 }}
+          type="info"
+          showIcon
+          title="ยังไม่มีฟอร์มบันทึกตามสูตร"
+          description="ไปตั้งแท็บ «การตั้งค่าบันทึกผลการผลิต» ใน Master สูตรที่ใบนี้ใช้อยู่ แล้วรีเฟรชหน้านี้ — รายการใหม่จะใช้ฟอร์มล่าสุด"
+        />
       ) : null}
 
       <Table
@@ -751,11 +1199,7 @@ export default function ShiftRecordsPanel({
             ? { x: Math.max(800, 300 + columnFields.length * 120) }
             : undefined
         }
-        locale={{
-          emptyText: started
-            ? "ยังไม่มีบันทึกรายกะ"
-            : "เริ่มผลิตแล้วจึงบันทึกรายกะได้",
-        }}
+        locale={{ emptyText: emptyNode }}
         summary={() => {
           if (rows.length === 0) return null;
           if (legacyTotals) {
@@ -804,27 +1248,6 @@ export default function ShiftRecordsPanel({
         </div>
       ) : null}
 
-      {canEdit && started && !newFormFields.length ? (
-        <Alert
-          style={{ marginTop: 12 }}
-          type="info"
-          showIcon
-          title="ยังไม่มีฟอร์มบันทึกตามสูตร"
-          description="ไปตั้งแท็บ «การตั้งค่าบันทึกผลการผลิต» ใน Master สูตรที่ใบนี้ใช้อยู่ แล้วรีเฟรชหน้านี้ — รายการใหม่จะใช้ฟอร์มล่าสุด"
-        />
-      ) : null}
-
-      {canEdit && started ? (
-        <Button
-          style={{ marginTop: 8 }}
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setEditing("new")}
-        >
-          เพิ่มบันทึก
-        </Button>
-      ) : null}
-
       {editing ? (
         useDynamicModal ? (
           <DynamicRecordModal
@@ -842,6 +1265,14 @@ export default function ShiftRecordsPanel({
             onClose={() => setEditing(null)}
           />
         )
+      ) : null}
+
+      {confirming ? (
+        <ConfirmShiftStockModal
+          record={confirming}
+          inputItems={inputItems}
+          onClose={() => setConfirming(null)}
+        />
       ) : null}
     </div>
   );

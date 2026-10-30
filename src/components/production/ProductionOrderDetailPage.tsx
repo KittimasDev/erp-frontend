@@ -14,6 +14,7 @@ import {
   InputNumber,
   Modal,
   Popconfirm,
+  Progress,
   Select,
   Table,
   Tabs,
@@ -73,7 +74,6 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import ProductionOrderStartModal from "./ProductionOrderStartModal";
 import ShiftRecordsPanel from "@/components/production-cycles/ShiftRecordsPanel";
 import Link from "next/link";
-import ProductionOrderYieldCard from "./ProductionOrderYieldCard";
 import ProductionOrderFormulaModal from "./ProductionOrderFormulaModal";
 import {
   ProductionOrderCancelModal,
@@ -150,6 +150,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     router.replace(query ? `${pathname}?${query}` : pathname);
   };
   const [startOpen, setStartOpen] = useState(false);
+  const [workSubTab, setWorkSubTab] = useState("ops");
   const { message } = App.useApp();
   const orderActions = useScreenActionPermissions("PRODUCTION_ORDERS");
   const outputActions = useScreenActionPermissions(
@@ -708,96 +709,164 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   key: "work",
                   label: "งาน",
                   children: (
-                    <>
-            <div className={styles.infoGrid}>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>วันที่ผลิต</span>
-                <span className={styles.infoValue}>
-                  {formatProductionDateRange(
-                    order.productionDate,
-                    order.productionDateEnd,
-                  )}
-                </span>
-              </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Batch</span>
-                <span className={styles.infoValue}>{order.batchNo || "-"}</span>
-              </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>รอบผลิต</span>
-                <span className={styles.infoValue}>
-                  {order.cycleId ? (
-                    <Link href={`/production/cycles/${order.cycleId}`}>{order.cycleNo ?? "ดูรอบ"}</Link>
-                  ) : (
-                    "ไม่ได้สังกัดรอบ"
-                  )}
-                </span>
-              </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>ผู้ปฏิบัติงานหลัก / กะ</span>
-                <span className={styles.infoValue}>
-                  {order.leadOperatorName ?? "-"}
-                  {order.shiftName ? ` · ${order.shiftName}` : ""}
-                </span>
-              </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>สูตรที่ใช้</span>
-                <span className={styles.infoValue}>
-                  {order.productionFormulaCode ?? "กรอกเอง (ไม่ได้ใช้สูตร)"}
-                  {/*
-                    ปุ่มขึ้นทุกใบ แม้ใบที่กรอกมือ — คนดูใบมักอยากเทียบกับสูตรมาตรฐาน
-                    ว่ารอบนี้ใส่ต่างจากสูตรตรงไหน ซึ่งเป็นคำถามที่เกิดกับใบที่กรอกมือ
-                    มากกว่าใบที่คิดจากสูตรเสียอีก
-                  */}
+                    <div className={styles.workTabBody}>
+            <div className={styles.cardBlock}>
+              <div className={styles.cardBlockTitleRow}>
+                <h3 className={styles.cardBlockTitle}>ข้อมูลทั่วไป</h3>
+                {order.productionFormulaId || order.productionFormulaCode ? (
                   <Button
                     size="small"
                     type="link"
-                    style={{ paddingInline: 4 }}
+                    style={{ paddingInline: 0 }}
                     onClick={() => setFormulaOpen(true)}
                   >
                     ดูสูตร
                   </Button>
-                </span>
+                ) : null}
               </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Cycle เป้าหมาย</span>
-                <span className={styles.infoValue}>
-                  {order.cycleTargetHours} ชม.
-                </span>
-              </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>ชั่วโมงแรงงาน (แผน)</span>
-                <span className={styles.infoValue}>
-                  {order.plannedLaborHours
-                    ? `${order.plannedLaborHours} ชม.`
-                    : "-"}
-                </span>
-              </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>สถานะ</span>
-                <span className={styles.infoValue}>
-                  <Tag>{PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status}</Tag>
-                </span>
-              </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>เริ่มผลิตโดย</span>
-                <span className={styles.infoValue}>
-                  {order.startedBy?.displayName ?? "-"} · {fmtDate(order.startedAt)}
-                </span>
-              </div>
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>เสร็จสิ้นโดย</span>
-                <span className={styles.infoValue}>
-                  {order.completedBy?.displayName ?? "-"} · {fmtDate(order.completedAt)}
-                </span>
+              <div className={styles.infoGrid}>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>วันที่ผลิต</span>
+                  <span className={styles.infoValue}>
+                    {formatProductionDateRange(
+                      order.productionDate,
+                      order.productionDateEnd,
+                    )}
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>เลขที่ผลิต</span>
+                  <span className={styles.infoValue}>{order.orderNo}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>ชื่อสินค้า</span>
+                  <span className={styles.infoValue}>
+                    {outputPlanLines
+                      .map((l) => l.itemNameTh || l.itemCode)
+                      .filter(Boolean)
+                      .join(" / ") || "-"}
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>สถานะ</span>
+                  <span className={styles.statusValue}>
+                    <span
+                      className={`${styles.statusDot} ${
+                        order.status === ProductionOrderStatus.IN_PROGRESS
+                          ? styles.statusDotActive
+                          : ""
+                      }`}
+                    />
+                    {PRODUCTION_ORDER_STATUS_LABEL[order.status] ??
+                      order.status}
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>ผู้ปฏิบัติงาน</span>
+                  <span className={styles.infoValue}>
+                    {order.leadOperatorName ?? "-"}
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>เครื่องจักรหลัก</span>
+                  <span className={styles.infoValue}>
+                    {[
+                      order.batchNo,
+                      order.productionFormulaNameTh ||
+                        order.productionFormulaCode,
+                    ]
+                      .filter(Boolean)
+                      .join(" - ") || "-"}
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>รอบการผลิต</span>
+                  <span className={styles.infoValue}>
+                    {order.cycleId ? (
+                      <Link href={`/production/cycles/${order.cycleId}`}>
+                        {order.cycleNo ?? "ดูรอบ"}
+                      </Link>
+                    ) : (
+                      "-"
+                    )}
+                  </span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.infoLabel}>หมายเหตุ</span>
+                  <span className={styles.infoValue}>{order.remark || "-"}</span>
+                </div>
               </div>
             </div>
 
-            {summary ? <ProductionOrderYieldCard summary={summary} /> : null}
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h3>สรุปผลการผลิต</h3>
+              </div>
+              <div className={styles.summaryGrid}>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>รวมแผน</span>
+                  <span className={styles.summaryValue}>
+                    {fmt(summary?.totalPlannedOutputQty ?? "0")}
+                    <Typography.Text
+                      type="secondary"
+                      style={{ fontSize: 14, fontWeight: 500, marginLeft: 6 }}
+                    >
+                      {outputPlanLines[0]?.unitCode ?? ""}
+                    </Typography.Text>
+                  </span>
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>ผลิตจริง</span>
+                  <span
+                    className={`${styles.summaryValue} ${styles.summaryValueAccent}`}
+                  >
+                    {fmt(summary?.totalOutputQty ?? "0")}
+                    <Typography.Text
+                      type="secondary"
+                      style={{ fontSize: 14, fontWeight: 500, marginLeft: 6 }}
+                    >
+                      {outputPlanLines[0]?.unitCode ?? ""}
+                    </Typography.Text>
+                  </span>
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>ความคืบหน้า</span>
+                  <span className={styles.summaryValue}>
+                    {(() => {
+                      const planned = Number(summary?.totalPlannedOutputQty ?? 0);
+                      const actual = Number(summary?.totalOutputQty ?? 0);
+                      const pct =
+                        planned > 0
+                          ? Math.min(100, Math.round((actual / planned) * 1000) / 10)
+                          : 0;
+                      return `${pct}%`;
+                    })()}
+                  </span>
+                  <Progress
+                    percent={(() => {
+                      const planned = Number(summary?.totalPlannedOutputQty ?? 0);
+                      const actual = Number(summary?.totalOutputQty ?? 0);
+                      return planned > 0
+                        ? Math.min(100, (actual / planned) * 100)
+                        : 0;
+                    })()}
+                    showInfo={false}
+                    strokeColor="#739816"
+                    size="small"
+                  />
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>Yield เฉลี่ย (แผน)</span>
+                  <span className={styles.summaryValue}>
+                    {summary ? `${summary.plannedYieldPercent}%` : "-"}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h3>แผนผลผลิต</h3>
+                <h3>แผนผลิต</h3>
               </div>
               <Table
                 className={masterStyles.dataTable}
@@ -807,14 +876,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={outputPlanLines}
                 locale={{ emptyText: "ไม่มีแผนผลผลิต" }}
                 columns={[
-    {
-      title: "ลำดับ",
-      key: "seq",
-      width: 64,
-      align: "center",
-      render: (_: unknown, __: unknown, index: number) => index + 1,
-    },
-    {
+                  {
+                    title: "ลำดับ",
+                    key: "seq",
+                    width: 64,
+                    align: "center",
+                    render: (_: unknown, __: unknown, index: number) =>
+                      index + 1,
+                  },
+                  {
                     title: "สินค้า",
                     key: "item",
                     render: (_, row) =>
@@ -827,15 +897,104 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     dataIndex: "plannedQty",
                     key: "plannedQty",
                     align: "right",
-                    render: (v: string, row) => `${fmt(v)} ${row.unitCode ?? ""}`,
+                    render: (v: string, row) =>
+                      `${fmt(v)} ${row.unitCode ?? ""}`,
                   },
                   {
-                    title: "เข้าคลังแล้ว",
+                    title: "จริง",
                     dataIndex: "actualQty",
                     key: "actualQty",
                     align: "right",
                     render: (_, row) =>
                       `${fmt(row.actualQty ?? "0")} ${row.unitCode ?? ""}`,
+                  },
+                  {
+                    title: "Yield (แผน)",
+                    key: "plannedYield",
+                    align: "right",
+                    render: (_, row) => {
+                      const line = summary?.yieldCompareByItem.find(
+                        (y) => y.itemId === row.itemId,
+                      );
+                      return line ? `${line.plannedYieldPercent}%` : "-";
+                    },
+                  },
+                  {
+                    title: "Yield (จริง)",
+                    key: "actualYield",
+                    align: "right",
+                    render: (_, row) => {
+                      const line = summary?.yieldCompareByItem.find(
+                        (y) => y.itemId === row.itemId,
+                      );
+                      return line ? `${line.actualYieldPercent}%` : "-";
+                    },
+                  },
+                ]}
+              />
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionHead}>
+                <h3>วัตถุดิบที่ใช้จริง</h3>
+              </div>
+              <Table
+                className={masterStyles.dataTable}
+                rowKey="id"
+                size="small"
+                pagination={false}
+                dataSource={order.inputItems}
+                columns={[
+                  {
+                    title: "ลำดับ",
+                    key: "seq",
+                    width: 64,
+                    align: "center",
+                    render: (_: unknown, __: unknown, index: number) =>
+                      index + 1,
+                  },
+                  {
+                    title: "สินค้า",
+                    key: "item",
+                    render: (_, row) =>
+                      row.itemCode
+                        ? `${row.itemCode} — ${row.itemNameTh ?? ""}`
+                        : row.itemId,
+                  },
+                  {
+                    title: "คลัง",
+                    dataIndex: "warehouseCode",
+                    key: "warehouseCode",
+                  },
+                  {
+                    title: "ตำแหน่ง",
+                    dataIndex: "locationCode",
+                    key: "locationCode",
+                  },
+                  { title: "Lot", dataIndex: "lotNo", key: "lotNo" },
+                  {
+                    title: `แผน (${order.inputItems[0]?.unitCode ?? "กก."})`,
+                    dataIndex: "plannedQty",
+                    key: "plannedQty",
+                    align: "right",
+                    render: (v: string) => fmt(v),
+                  },
+                  {
+                    title: `จริง (${order.inputItems[0]?.unitCode ?? "กก."})`,
+                    dataIndex: "actualQty",
+                    key: "actualQty",
+                    align: "right",
+                    render: (v: string) => fmt(v),
+                  },
+                  {
+                    title: `คงเหลือ (${order.inputItems[0]?.unitCode ?? "กก."})`,
+                    key: "remaining",
+                    align: "right",
+                    render: (_, row) => {
+                      const planned = Number(row.plannedQty) || 0;
+                      const actual = Number(row.actualQty) || 0;
+                      return fmt(String(Math.max(0, planned - actual)));
+                    },
                   },
                 ]}
               />
@@ -854,14 +1013,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   dataSource={wastePlanLines}
                   locale={{ emptyText: "ไม่มีของเสีย" }}
                   columns={[
-    {
-      title: "ลำดับ",
-      key: "seq",
-      width: 64,
-      align: "center",
-      render: (_: unknown, __: unknown, index: number) => index + 1,
-    },
-    {
+                    {
+                      title: "ลำดับ",
+                      key: "seq",
+                      width: 64,
+                      align: "center",
+                      render: (_: unknown, __: unknown, index: number) =>
+                        index + 1,
+                    },
+                    {
                       title: "สินค้า",
                       key: "item",
                       render: (_, row) =>
@@ -874,7 +1034,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       dataIndex: "plannedQty",
                       key: "plannedQty",
                       align: "right",
-                      render: (v: string, row) => `${fmt(v)} ${row.unitCode ?? ""}`,
+                      render: (v: string, row) =>
+                        `${fmt(v)} ${row.unitCode ?? ""}`,
                     },
                     {
                       title: "เสียจริง",
@@ -891,7 +1052,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       render: (v?: string) =>
                         v ? (
                           <Tag>
-                            {PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL[v] ?? v}
+                            {PRODUCTION_ORDER_WASTE_DISPOSAL_STATUS_LABEL[v] ??
+                              v}
                           </Tag>
                         ) : (
                           "-"
@@ -902,64 +1064,33 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               </div>
             ) : null}
 
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h3>วัตถุดิบที่ต้องใช้</h3>
-              </div>
-              <Table
-                className={masterStyles.dataTable}
-                rowKey="id"
-                size="small"
-                pagination={false}
-                dataSource={order.inputItems}
-                columns={[
-    {
-      title: "ลำดับ",
-      key: "seq",
-      width: 64,
-      align: "center",
-      render: (_: unknown, __: unknown, index: number) => index + 1,
-    },
-    {
-                    title: "สินค้า",
-                    key: "item",
-                    render: (_, row) =>
-                      row.itemCode ? `${row.itemCode} — ${row.itemNameTh ?? ""}` : row.itemId,
-                  },
-                  { title: "คลัง", dataIndex: "warehouseCode", key: "warehouseCode" },
-                  { title: "ตำแหน่ง", dataIndex: "locationCode", key: "locationCode" },
-                  { title: "Lot", dataIndex: "lotNo", key: "lotNo" },
-                  {
-                    title: "วางแผน",
-                    dataIndex: "plannedQty",
-                    key: "plannedQty",
-                    align: "right",
-                    render: (v: string) => fmt(v),
-                  },
-                  {
-                    title: "ตัดจริง",
-                    dataIndex: "actualQty",
-                    key: "actualQty",
-                    align: "right",
-                    render: (v: string) => fmt(v),
-                  },
-                ]}
-              />
-            </div>
-
-            <div className={styles.section}>
-              <div className={styles.sectionHead}>
-                <h3>บันทึกการผลิตรายกะ</h3>
-              </div>
-              <ShiftRecordsPanel
-                orderId={order.id}
-                canEdit={orderActions.canEdit}
-                started={isRunning || order.status === ProductionOrderStatus.COMPLETED}
-                recordingConfigSnapshot={order.recordingConfigSnapshot}
-                liveRecordingConfig={order.liveRecordingConfig}
-              />
-            </div>
-
+            <Tabs
+              className={styles.workSubTabs}
+              activeKey={workSubTab}
+              onChange={setWorkSubTab}
+              items={[
+                {
+                  key: "ops",
+                  label: "บันทึกการดำเนินงาน",
+                  children: (
+                    <ShiftRecordsPanel
+                      orderId={order.id}
+                      canEdit={orderActions.canEdit}
+                      started={
+                        isRunning ||
+                        order.status === ProductionOrderStatus.COMPLETED
+                      }
+                      recordingConfigSnapshot={order.recordingConfigSnapshot}
+                      liveRecordingConfig={order.liveRecordingConfig}
+                      inputStockMode={order.inputStockMode}
+                      inputItems={order.inputItems}
+                    />
+                  ),
+                },
+                {
+                  key: "downtime",
+                  label: "Downtime",
+                  children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h3>Downtime</h3>
@@ -1017,7 +1148,12 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 ]}
               />
             </div>
-
+                  ),
+                },
+                {
+                  key: "logs",
+                  label: "บันทึกระหว่างผลิต",
+                  children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h3>บันทึกระหว่างผลิต</h3>
@@ -1047,7 +1183,12 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 ]}
               />
             </div>
-
+                  ),
+                },
+                {
+                  key: "trace",
+                  label: "Trace วัตถุดิบ / ผลผลิต",
+                  children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h3>Trace: วัตถุดิบที่เบิก / ผลผลิตเข้าคลัง</h3>
@@ -1116,7 +1257,12 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 ]}
               />
             </div>
-
+                  ),
+                },
+                {
+                  key: "stockCut",
+                  label: "สต็อกที่ตัดจริง",
+                  children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <h3>สต๊อกที่ใบนี้ตัดจริง</h3>
@@ -1184,7 +1330,12 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 ]}
               />
             </div>
-
+                  ),
+                },
+                {
+                  key: "receiveHistory",
+                  label: "ประวัติการรับผลผลิตเข้าคลัง",
+                  children: (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <div>
@@ -1320,6 +1471,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 ]}
               />
             </div>
+                  ),
+                },
+              ]}
+            />
 
             {hasSourceLines ? (
               <div className={styles.section}>
@@ -1590,7 +1745,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 />
               </div>
             ) : null}
-                    </>
+                    </div>
                   ),
                 },
                 {

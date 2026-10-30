@@ -55,17 +55,115 @@ type StartModalProps = {
  * ซึ่งเป็นวิธีที่ทำให้สิ่งที่ผู้ใช้กำลังพิมพ์ไม่ถูกล้างเมื่อข้อมูลเบื้องหลัง refetch
  */
 export default function ProductionOrderStartModal(props: StartModalProps) {
+  const deferred =
+    props.order.inputStockMode === "ON_SHIFT_CONFIRM";
   return (
     <Modal
       open={props.open}
-      title="เริ่มผลิต — ยืนยันวัตถุดิบที่ใช้จริง"
-      width={880}
+      title={
+        deferred
+          ? "เริ่มผลิต"
+          : "เริ่มผลิต — ยืนยันวัตถุดิบที่ใช้จริง"
+      }
+      width={deferred ? 560 : 880}
       footer={null}
       destroyOnHidden
       onCancel={props.onCancel}
     >
-      <StartModalBody {...props} />
+      {deferred ? (
+        <DeferredStartBody {...props} />
+      ) : (
+        <StartModalBody {...props} />
+      )}
     </Modal>
+  );
+}
+
+function OperatorShiftFields({
+  leadOperatorId,
+  shiftId,
+  setLeadOperatorId,
+  setShiftId,
+}: {
+  leadOperatorId?: string;
+  shiftId?: string;
+  setLeadOperatorId: (v?: string) => void;
+  setShiftId: (v?: string) => void;
+}) {
+  const lookups = useProductionOrderLookupsQuery();
+  return (
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "12px 0" }}>
+      <div className={styles.cellStack} style={{ flex: 2, minWidth: 240 }}>
+        <span className={styles.cellMuted}>ผู้ปฏิบัติงานหลัก (ไม่บังคับ)</span>
+        <Select
+          allowClear
+          showSearch
+          optionFilterProp="label"
+          placeholder="เลือกพนักงาน"
+          loading={lookups.isLoading}
+          value={leadOperatorId}
+          onChange={setLeadOperatorId}
+          options={(lookups.data?.data.operators ?? []).map((o) => ({
+            value: o.id,
+            label: `${o.employeeCode ? o.employeeCode + " " : ""}${o.displayName}${o.position ? " · " + o.position : ""}`,
+          }))}
+        />
+      </div>
+      <div className={styles.cellStack} style={{ flex: 1, minWidth: 180 }}>
+        <span className={styles.cellMuted}>กะที่เริ่มผลิต (ไม่บังคับ)</span>
+        <Select
+          allowClear
+          placeholder="เลือกกะ"
+          loading={lookups.isLoading}
+          value={shiftId}
+          onChange={setShiftId}
+          options={(lookups.data?.data.shifts ?? []).map((s) => ({
+            value: s.id,
+            label: `${s.name} (${s.startTime}–${s.endTime})`,
+          }))}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** โหมด ON_SHIFT_CONFIRM — เริ่มผลิตโดยไม่ตัดสต๊อก */
+function DeferredStartBody({
+  loading,
+  onCancel,
+  onConfirm,
+  order,
+}: StartModalProps) {
+  const [leadOperatorId, setLeadOperatorId] = useState<string | undefined>(
+    order.leadOperatorId,
+  );
+  const [shiftId, setShiftId] = useState<string | undefined>(order.shiftId);
+  return (
+    <>
+      <Alert
+        type="info"
+        showIcon
+        className={styles.notice}
+        title="เริ่มผลิตโดยยังไม่ตัดสต๊อกวัตถุดิบ"
+        description="ระบบจะตัดสต๊อกเมื่อยืนยันบันทึกผลรายกะ และเลือกคลัง/Lot ตอนนั้น"
+      />
+      <OperatorShiftFields
+        leadOperatorId={leadOperatorId}
+        shiftId={shiftId}
+        setLeadOperatorId={setLeadOperatorId}
+        setShiftId={setShiftId}
+      />
+      <div className={styles.footer}>
+        <Button onClick={onCancel}>ยกเลิก</Button>
+        <Button
+          type="primary"
+          loading={loading}
+          onClick={() => onConfirm({ leadOperatorId, shiftId })}
+        >
+          เริ่มผลิต
+        </Button>
+      </div>
+    </>
   );
 }
 
@@ -82,8 +180,6 @@ function StartModalBody({
     })),
   );
   const [reason, setReason] = useState("");
-  // M5.2: ผู้ปฏิบัติงานหลักและกะที่เริ่มผลิต (ไม่บังคับ)
-  const lookups = useProductionOrderLookupsQuery();
   const [leadOperatorId, setLeadOperatorId] = useState<string | undefined>(order.leadOperatorId);
   const [shiftId, setShiftId] = useState<string | undefined>(order.shiftId);
 
@@ -255,38 +351,12 @@ function StartModalBody({
         columns={columns}
       />
 
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", margin: "12px 0" }}>
-        <div className={styles.cellStack} style={{ flex: 2, minWidth: 240 }}>
-          <span className={styles.cellMuted}>ผู้ปฏิบัติงานหลัก (ไม่บังคับ)</span>
-          <Select
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            placeholder="เลือกพนักงาน"
-            loading={lookups.isLoading}
-            value={leadOperatorId}
-            onChange={setLeadOperatorId}
-            options={(lookups.data?.data.operators ?? []).map((o) => ({
-              value: o.id,
-              label: `${o.employeeCode ? o.employeeCode + " " : ""}${o.displayName}${o.position ? " · " + o.position : ""}`,
-            }))}
-          />
-        </div>
-        <div className={styles.cellStack} style={{ flex: 1, minWidth: 180 }}>
-          <span className={styles.cellMuted}>กะที่เริ่มผลิต (ไม่บังคับ)</span>
-          <Select
-            allowClear
-            placeholder="เลือกกะ"
-            loading={lookups.isLoading}
-            value={shiftId}
-            onChange={setShiftId}
-            options={(lookups.data?.data.shifts ?? []).map((s) => ({
-              value: s.id,
-              label: `${s.name} (${s.startTime}–${s.endTime})`,
-            }))}
-          />
-        </div>
-      </div>
+      <OperatorShiftFields
+        leadOperatorId={leadOperatorId}
+        shiftId={shiftId}
+        setLeadOperatorId={setLeadOperatorId}
+        setShiftId={setShiftId}
+      />
 
       <div className={styles.totals}>
         <Total label="รวมตามแผน" value={fmt(totals.planned)} />

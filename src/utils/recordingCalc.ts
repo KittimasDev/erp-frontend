@@ -68,6 +68,20 @@ export function computeRecordingFieldResult(
   }
 }
 
+/** ปริมาณในหน่วย stock (คูณ unitToStockFactor ถ้ามี) */
+export function computeRecordingFieldStockQty(
+  field: RecordingFieldDef,
+  values: RecordingFieldValue | undefined,
+): number | null {
+  const raw = computeRecordingFieldResult(field, values);
+  if (raw === null) return null;
+  const factor =
+    field.unitToStockFactor != null && field.unitToStockFactor > 0
+      ? field.unitToStockFactor
+      : 1;
+  return round3(raw * factor);
+}
+
 export function accumulateRecordingResults(
   config: ProductionRecordingConfig | undefined,
   recordsValues: RecordingFieldValues[],

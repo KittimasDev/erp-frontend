@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api/client";
 import * as api from "@/lib/api/production-cycles";
 import { getAccessToken } from "@/lib/auth/token";
 import type {
+  ConfirmShiftRecordBody,
   CreateMachineDeviceBody,
   CreateMachineTagBody,
   CreateShiftRecordBody,
@@ -125,6 +126,29 @@ export function useDeleteShiftRecordMutation() {
     mutationFn: (id: string) => api.deleteShiftRecord(getAccessToken(), id),
     onSuccess: () => done("ลบบันทึกการผลิตรายกะแล้ว"),
     onError: (e) => fail(e, "ลบบันทึกไม่สำเร็จ"),
+  });
+}
+
+export function useConfirmShiftRecordMutation() {
+  const { done, fail } = useHelpers([
+    shiftRecordsKey,
+    productionCyclesKey,
+    ["production-orders"],
+  ]);
+  return useMutation({
+    mutationFn: (v: { id: string; body: ConfirmShiftRecordBody }) =>
+      api.confirmShiftRecord(getAccessToken(), v.id, v.body),
+    onSuccess: () => done("ยืนยันบันทึกกะและตัดสต๊อกแล้ว"),
+    onError: (e) => fail(e, "ยืนยันบันทึกกะไม่สำเร็จ"),
+  });
+}
+
+export function useUnconfirmShiftRecordMutation() {
+  const { done, fail } = useHelpers([shiftRecordsKey, productionCyclesKey]);
+  return useMutation({
+    mutationFn: (id: string) => api.unconfirmShiftRecord(getAccessToken(), id),
+    onSuccess: () => done("ยกเลิกยืนยันและคืนสต๊อกแล้ว"),
+    onError: (e) => fail(e, "ยกเลิกยืนยันไม่สำเร็จ"),
   });
 }
 

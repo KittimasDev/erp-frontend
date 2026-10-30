@@ -1,5 +1,6 @@
 import { apiFetch } from "./client";
 import type {
+  ConfirmShiftRecordBody,
   CreateMachineDeviceBody,
   CreateMachineTagBody,
   CreateShiftRecordBody,
@@ -56,6 +57,21 @@ export const updateShiftRecord = (token: string, id: string, body: UpdateShiftRe
   apiFetch<Res<ShiftRecord>>(`${RECORDS}/${id}`, { method: "PATCH", token, body });
 export const deleteShiftRecord = (token: string, id: string) =>
   apiFetch<{ message: string }>(`${RECORDS}/${id}`, { method: "DELETE", token });
+export const confirmShiftRecord = (
+  token: string,
+  id: string,
+  body: ConfirmShiftRecordBody,
+) =>
+  apiFetch<Res<ShiftRecord>>(`${RECORDS}/${id}/confirm`, {
+    method: "POST",
+    token,
+    body,
+  });
+export const unconfirmShiftRecord = (token: string, id: string) =>
+  apiFetch<Res<ShiftRecord>>(`${RECORDS}/${id}/unconfirm`, {
+    method: "POST",
+    token,
+  });
 
 // ── Machine Integration
 export const getMachineDevices = (token: string) => apiFetch<Res<MachineDevice[]>>(DEVICES, { token });

@@ -64,9 +64,9 @@ export type ProductionOrderInputItem = {
   itemId: string;
   itemCode?: string;
   itemNameTh?: string;
-  warehouseId: string;
+  warehouseId?: string;
   warehouseCode?: string;
-  locationId: string;
+  locationId?: string;
   locationCode?: string;
   lotId?: string;
   lotNo?: string;
@@ -149,6 +149,17 @@ export type ProductionOrder = {
   /** วันสิ้นสุดช่วงผลิต — ว่างหรือเท่าวันเริ่ม = วันเดียว */
   productionDateEnd?: string;
   status: string;
+  /** AT_START = ตัดตอนเริ่มผลิต · ON_SHIFT_CONFIRM = ตัดตอนยืนยันกะ */
+  inputStockMode?: string;
+  stockAvailability?: Array<{
+    itemId: string;
+    itemCode?: string;
+    itemNameTh?: string;
+    plannedQty: string;
+    availableQty: string;
+    sufficient: boolean;
+    shortfallQty: string;
+  }>;
   remark?: string;
   requestedById?: string;
   requestedBy?: ProductionOrderUserSummary;
@@ -290,9 +301,9 @@ export type StartProductionOrderBody = {
 
 export type CreateProductionOrderInputItemBody = {
   itemId: string;
-  warehouseId: string;
-  locationId: string;
-  lotId: string;
+  warehouseId?: string;
+  locationId?: string;
+  lotId?: string;
   unitId: string;
   plannedQty: number;
   remark?: string;

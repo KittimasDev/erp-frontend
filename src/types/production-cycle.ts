@@ -136,6 +136,18 @@ export type ProductionCycleSummary = {
 
 // ─── บันทึกการผลิตรายกะ (M5.2/M5.4) ──────────────────────────────────────────
 
+export type ShiftRecordStockLine = {
+  id: string;
+  recordingFieldId?: string;
+  itemId: string;
+  warehouseId: string;
+  locationId: string;
+  lotId: string;
+  unitId: string;
+  quantity: string;
+  stockMovementId?: string;
+};
+
 export type ShiftRecord = {
   id: string;
   productionOrderId: string;
@@ -144,6 +156,10 @@ export type ShiftRecord = {
   recordDate: string;
   shiftId: string;
   shiftName: string;
+  /** DRAFT | CONFIRMED */
+  status: string;
+  confirmedAt?: string;
+  confirmedById?: string;
   inputTireKg: number;
   operatingHours: number;
   feedRateKgH?: number;
@@ -154,10 +170,25 @@ export type ShiftRecord = {
   recordingConfigSnapshot?: ProductionRecordingConfig | null;
   /** ผลคำนวณต่อ field.id จาก snapshot ของแถว */
   computedResults?: Record<string, number | null>;
+  stockLines?: ShiftRecordStockLine[];
   operators: Array<{ id: string; displayName: string }>;
   remark?: string;
   recordedByName?: string;
   createdAt: string;
+};
+
+export type ConfirmShiftRecordStockLineBody = {
+  fieldId?: string;
+  itemId: string;
+  warehouseId: string;
+  locationId: string;
+  lotId: string;
+  quantity: number;
+  unitId: string;
+};
+
+export type ConfirmShiftRecordBody = {
+  stockLines: ConfirmShiftRecordStockLineBody[];
 };
 
 export type CreateShiftRecordBody = {
