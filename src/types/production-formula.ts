@@ -48,17 +48,77 @@ export type ProductionFormulaLine = {
   sortOrder: number;
 };
 
+export const RECORDING_CALC_TYPES = [
+  "DIRECT",
+  "METER_DELTA",
+  "HOURS_TIMES_RATE",
+  "QTY_TIMES_UNIT_WEIGHT",
+  "INFORMATION",
+] as const;
+export type RecordingCalcType = (typeof RECORDING_CALC_TYPES)[number];
+
+export const RECORDING_CALC_TYPE_LABEL: Record<RecordingCalcType, string> = {
+  DIRECT: "กรอกตัวเลขโดยตรง",
+  METER_DELTA: "มิเตอร์สะสม (ปลายกะ − ต้นกะ)",
+  HOURS_TIMES_RATE: "ชั่วโมงทำงาน × อัตรา",
+  QTY_TIMES_UNIT_WEIGHT: "จำนวน × น้ำหนักต่อหน่วย",
+  INFORMATION: "ข้อมูลประกอบ",
+};
+
+export const RECORDING_RESULT_ROLES = [
+  "INPUT",
+  "OUTPUT",
+  "TRACKING",
+  "INFORMATION",
+] as const;
+export type RecordingResultRole = (typeof RECORDING_RESULT_ROLES)[number];
+
+export const RECORDING_RESULT_ROLE_LABEL: Record<RecordingResultRole, string> = {
+  INPUT: "Input — วัตถุดิบใน BOM",
+  OUTPUT: "Output — ผลผลิตใน BOM",
+  TRACKING: "Tracking — ติดตาม (เช่น Silo)",
+  INFORMATION: "Information — ข้อมูลประกอบ",
+};
+
+export type RecordingInfoValueKind =
+  | "NUMBER"
+  | "TEXT"
+  | "TEMPERATURE"
+  | "RPM"
+  | "QC";
+
+export type RecordingFieldDef = {
+  id: string;
+  sortOrder: number;
+  code: string;
+  label: string;
+  unitLabel?: string;
+  required: boolean;
+  calcType: RecordingCalcType;
+  infoValueKind?: RecordingInfoValueKind;
+  resultRole: RecordingResultRole;
+  linkedLineRole?: "INPUT" | "OUTPUT" | null;
+  linkedItemId?: string | null;
+  stockUnitId?: string | null;
+  unitToStockFactor?: number | null;
+};
+
+export type ProductionRecordingConfig = {
+  fields: RecordingFieldDef[];
+};
+
 export type ProductionFormula = {
   id: string;
   formulaCode: string;
   nameTh: string;
   description?: string;
   batchLabel?: string;
-  /** บวกขึ้นเมื่อบรรทัดเปลี่ยน — ใบสั่งผลิตเก็บเลขนี้ไว้เพื่อย้อนบอกที่มาของแผน */
+  /** บวกขึ้นเมื่อบรรทัดหรือ recording config เปลี่ยน */
   versionNo: number;
   isActive: boolean;
   sortOrder: number;
   remark?: string;
+  recordingConfig?: ProductionRecordingConfig;
   lines: ProductionFormulaLine[];
   massBalance: ProductionFormulaMassBalance;
   /** คำเตือนที่ไม่บล็อกการบันทึก */
@@ -118,13 +178,14 @@ export type CreateProductionFormulaBody = {
   isActive?: boolean;
   sortOrder?: number;
   remark?: string;
+  recordingConfig?: ProductionRecordingConfig;
   lines: ProductionFormulaLineBody[];
 };
 
 /** ส่ง `lines` มาคือแทนที่ทั้งชุด ไม่ส่งคือไม่แตะ */
 export type UpdateProductionFormulaBody = Partial<
   Omit<CreateProductionFormulaBody, "formulaCode" | "lines">
-> & { lines?: ProductionFormulaLineBody[] };
+> & { lines?: ProductionFormulaLineBody[]; recordingConfig?: ProductionRecordingConfig };
 
 export type QueryProductionFormulasParams = {
   search?: string;

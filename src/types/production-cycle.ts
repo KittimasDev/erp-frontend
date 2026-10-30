@@ -1,5 +1,10 @@
 // ─── รอบผลิต 45+3 วัน (M5.1) + รายงานสรุปรอบ (M5.9) ─────────────────────────────
 
+import type {
+  RecordingFieldValue,
+  RecordingFieldValues,
+} from "@/utils/recordingCalc";
+
 export type ProductionCyclePhase =
   | "NOT_STARTED"
   | "RUNNING"
@@ -142,6 +147,10 @@ export type ShiftRecord = {
   operatingHours: number;
   feedRateKgH?: number;
   feedRateCalculated: boolean;
+  /** ค่าฟิลด์ไดนามิกตาม recordingConfigSnapshot (key = field.id) */
+  values?: RecordingFieldValues;
+  /** ผลคำนวณต่อ field.id จาก snapshot ของใบ */
+  computedResults?: Record<string, number | null>;
   operators: Array<{ id: string; displayName: string }>;
   remark?: string;
   recordedByName?: string;
@@ -152,9 +161,10 @@ export type CreateShiftRecordBody = {
   productionOrderId: string;
   recordDate: string;
   shiftId: string;
-  inputTireKg: number;
-  operatingHours: number;
+  inputTireKg?: number;
+  operatingHours?: number;
   feedRateKgH?: number;
+  values?: RecordingFieldValues;
   operatorIds?: string[];
   remark?: string;
 };
@@ -163,9 +173,12 @@ export type UpdateShiftRecordBody = {
   inputTireKg?: number;
   operatingHours?: number;
   feedRateKgH?: number;
+  values?: RecordingFieldValues;
   operatorIds?: string[];
   remark?: string;
 };
+
+export type { RecordingFieldValue };
 
 export type ProductionOrderLookups = {
   operators: Array<{ id: string; displayName: string; employeeCode?: string; position?: string }>;

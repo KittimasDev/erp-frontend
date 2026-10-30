@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Alert,
   Button,
@@ -11,6 +11,7 @@ import {
   Radio,
   Select,
   Switch,
+  Tabs,
   Tag,
 } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
@@ -19,10 +20,12 @@ import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import type {
   ProductionFormula,
   ProductionFormulaLineBody,
+  ProductionRecordingConfig,
   UpdateProductionFormulaBody,
 } from "@/types/production-formula";
 import { FORMULA_LINE_ROLE_LABEL } from "@/types/production-formula";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import RecordingConfigEditor from "./RecordingConfigEditor";
 import styles from "./production-formulas.module.css";
 
 /** ผูกปุ่มบันทึกบน footer ของ Modal เข้ากับ <form> ที่อยู่ใน Body */
@@ -108,7 +111,6 @@ export default function FormulaFormModal({
       open={open}
       title={null}
       onCancel={onCancel}
-      width={1040}
       centered
       destroyOnHidden
       className={masterStyles.masterModal}
@@ -123,6 +125,7 @@ export default function FormulaFormModal({
         ไม่ทำงานตอนเปิดซ้ำ)
       */
       okButtonProps={{ htmlType: "submit", form: FORM_ID }}
+      width={1100}
     >
       <div className={masterStyles.modalHeader}>
         <div className={masterStyles.modalIcon}>{formula ? "✎" : "+"}</div>
@@ -133,7 +136,7 @@ export default function FormulaFormModal({
           <h2>{formula ? `แก้ไขสูตร ${formula.formulaCode}` : "สร้างสูตรการผลิต"}</h2>
           <p>
             ตั้งว่า 1 รอบใช้อะไรเท่าไหร่ แล้วได้อะไรออกมาเท่าไหร่ —
-            หน้าสร้างใบสั่งผลิตจะคิดประมาณการให้ตามจำนวนที่ต้องการ
+            และกำหนดรูปแบบบันทึกผลการผลิตตามสูตร
           </p>
         </div>
       </div>
@@ -153,6 +156,10 @@ function FormulaFormBody({
 }) {
   const [form] = Form.useForm<FormValues>();
   const isEdit = Boolean(formula);
+  const [recordingConfig, setRecordingConfig] =
+    useState<ProductionRecordingConfig>(() => ({
+      fields: formula?.recordingConfig?.fields ?? [],
+    }));
 
   const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
   const items = useMemo(() => itemsQuery.data?.data ?? [], [itemsQuery.data]);
@@ -291,6 +298,9 @@ function FormulaFormBody({
       isActive: values.isActive,
       sortOrder: values.sortOrder,
       remark: values.remark,
+      recordingConfig: {
+        fields: recordingConfig.fields.map((f, i) => ({ ...f, sortOrder: i })),
+      },
       lines: allLines,
     };
 
@@ -299,6 +309,25 @@ function FormulaFormBody({
 
   const inputCount = linesByRole.INPUT.filter((l) => l?.itemId).length;
   const outputCount = linesByRole.OUTPUT.filter((l) => l?.itemId).length;
+
+  const bomLineOptions = useMemo(
+    () =>
+      lines
+        .filter(
+          (line) =>
+            line?.itemId &&
+            (line.lineRole === "INPUT" || line.lineRole === "OUTPUT"),
+        )
+        .map((line) => {
+          const item = itemById.get(line.itemId as string);
+          return {
+            itemId: line.itemId as string,
+            lineRole: line.lineRole as "INPUT" | "OUTPUT",
+            label: `${line.lineRole} · ${item?.itemCode ?? ""} ${item?.itemNameTh ?? line.itemId}`,
+          };
+        }),
+    [lines, itemById],
+  );
 
   return (
     <Form
@@ -310,6 +339,13 @@ function FormulaFormBody({
       initialValues={initialValues}
       onFinish={submit}
     >
+      <Tabs
+        items={[
+          {
+            key: "formula",
+            label: "ข้อมูลสูตร (Input / Output / Waste)",
+            children: (
+              <>
       <div className={masterStyles.formGrid}>
         <Form.Item
           name="formulaCode"
@@ -497,7 +533,22 @@ function FormulaFormBody({
       <Form.Item name="remark" label="หมายเหตุ" style={{ marginTop: 12 }}>
         <Input.TextArea rows={2} maxLength={2000} />
       </Form.Item>
-
+              </>
+            ),
+          },
+          {
+            key: "recording",
+            label: "การตั้งค่าบันทึกผลการผลิต",
+            children: (
+              <RecordingConfigEditor
+                value={recordingConfig}
+                onChange={setRecordingConfig}
+                bomLines={bomLineOptions}
+              />
+            ),
+          },
+        ]}
+      />
     </Form>
   );
 }

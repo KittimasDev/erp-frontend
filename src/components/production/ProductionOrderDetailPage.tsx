@@ -951,6 +951,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 orderId={order.id}
                 canEdit={orderActions.canEdit}
                 started={isRunning || order.status === ProductionOrderStatus.COMPLETED}
+                recordingConfigSnapshot={order.recordingConfigSnapshot}
               />
             </div>
 
