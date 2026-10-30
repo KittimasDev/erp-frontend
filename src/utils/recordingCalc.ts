@@ -105,3 +105,70 @@ export function accumulateRecordingResults(
       };
     });
 }
+
+/** รวมยอดข้ามแถวที่อาจคนละ field.id — กุญแจ = resultRole + linkedItemId + code */
+export function accumulateAcrossShiftConfigs(
+  records: Array<{
+    config?: ProductionRecordingConfig | null;
+    values?: RecordingFieldValues;
+  }>,
+) {
+  type Acc = {
+    key: string;
+    code: string;
+    label: string;
+    resultRole: string;
+    linkedItemId: string | null;
+    unitLabel?: string;
+    total: number;
+  };
+  const map = new Map<string, Acc>();
+  for (const rec of records) {
+    for (const field of rec.config?.fields ?? []) {
+      if (
+        field.resultRole !== "INPUT" &&
+        field.resultRole !== "OUTPUT" &&
+        field.resultRole !== "TRACKING"
+      ) {
+        continue;
+      }
+      const part = computeRecordingFieldResult(field, rec.values?.[field.id]);
+      if (part === null) continue;
+      const factor =
+        field.unitToStockFactor != null && field.unitToStockFactor > 0
+          ? field.unitToStockFactor
+          : 1;
+      const key = `${field.resultRole}|${field.linkedItemId ?? ""}|${field.code}`;
+      const prev = map.get(key);
+      if (prev) {
+        prev.total = round3(prev.total + part * factor);
+      } else {
+        map.set(key, {
+          key,
+          code: field.code,
+          label: field.label,
+          resultRole: field.resultRole,
+          linkedItemId: field.linkedItemId ?? null,
+          unitLabel: field.unitLabel,
+          total: round3(part * factor),
+        });
+      }
+    }
+  }
+  return [...map.values()];
+}
+
+/** หาผลของแถวตาม code (แถวละ config อาจคนละ field.id) */
+export function resultForCodeOnRecord(
+  code: string,
+  config: ProductionRecordingConfig | undefined | null,
+  values: RecordingFieldValues | undefined,
+  computedResults?: Record<string, number | null>,
+): number | null {
+  const field = (config?.fields ?? []).find((f) => f.code === code);
+  if (!field) return null;
+  if (computedResults && field.id in computedResults) {
+    return computedResults[field.id] ?? null;
+  }
+  return computeRecordingFieldResult(field, values?.[field.id]);
+}

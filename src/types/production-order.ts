@@ -135,8 +135,10 @@ export type ProductionOrder = {
   productionFormulaNameTh?: string;
   /** เลขรุ่นของสูตรตอนที่ใช้ — ตอบได้ว่าคิดมาจากสูตรรุ่นไหน */
   productionFormulaVersionNo?: number;
-  /** snapshot การตั้งค่าบันทึกผลตอนสร้างใบ — แก้ Master แล้วไม่กระทบใบเก่า */
+  /** snapshot ตอนสร้างใบ (ประวัติ/fallback แถวกะเก่า) */
   recordingConfigSnapshot?: ProductionRecordingConfig | null;
+  /** ฟอร์มจากสูตรปัจจุบัน — ใช้ตอนกดเพิ่มบันทึกกะใหม่ */
+  liveRecordingConfig?: ProductionRecordingConfig | null;
   formulaTargetQty?: string;
   formulaDriverItemId?: string;
   salesOrderNo?: string;

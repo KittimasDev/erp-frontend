@@ -1,5 +1,6 @@
 // ─── รอบผลิต 45+3 วัน (M5.1) + รายงานสรุปรอบ (M5.9) ─────────────────────────────
 
+import type { ProductionRecordingConfig } from "./production-formula";
 import type {
   RecordingFieldValue,
   RecordingFieldValues,
@@ -147,9 +148,11 @@ export type ShiftRecord = {
   operatingHours: number;
   feedRateKgH?: number;
   feedRateCalculated: boolean;
-  /** ค่าฟิลด์ไดนามิกตาม recordingConfigSnapshot (key = field.id) */
+  /** ค่าฟิลด์ไดนามิกตาม recordingConfigSnapshot ของแถว (key = field.id) */
   values?: RecordingFieldValues;
-  /** ผลคำนวณต่อ field.id จาก snapshot ของใบ */
+  /** สำเนาฟอร์ม ณ เวลาสร้างแถว — ใช้ตอนแก้/แสดงแถวนี้ */
+  recordingConfigSnapshot?: ProductionRecordingConfig | null;
+  /** ผลคำนวณต่อ field.id จาก snapshot ของแถว */
   computedResults?: Record<string, number | null>;
   operators: Array<{ id: string; displayName: string }>;
   remark?: string;

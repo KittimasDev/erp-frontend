@@ -34,8 +34,9 @@ import type {
 } from "@/types/production-formula";
 import { RECORDING_RESULT_ROLE_LABEL } from "@/types/production-formula";
 import {
-  accumulateRecordingResults,
+  accumulateAcrossShiftConfigs,
   computeRecordingFieldResult,
+  resultForCodeOnRecord,
   type RecordingFieldValue,
   type RecordingFieldValues,
 } from "@/utils/recordingCalc";
@@ -533,40 +534,79 @@ function LegacyRecordModal({
   );
 }
 
-/** บันทึกการผลิตรายกะของใบสั่งผลิต — ไดนามิกจาก snapshot หรือ UI เดิม (Pyrolysis) */
+function configForRow(
+  row: ShiftRecord,
+  orderFallback?: ProductionRecordingConfig | null,
+): ProductionRecordingConfig | null {
+  const snap = row.recordingConfigSnapshot;
+  if (snap?.fields?.length) return snap;
+  if (orderFallback?.fields?.length) return orderFallback;
+  return null;
+}
+
+/** บันทึกการผลิตรายกะ — แถวใหม่ตามสูตรสด · แถวเก่ายึด snapshot ของแถว */
 export default function ShiftRecordsPanel({
   orderId,
   canEdit,
   started,
   recordingConfigSnapshot,
+  liveRecordingConfig,
 }: {
   orderId: string;
   canEdit: boolean;
   started: boolean;
   recordingConfigSnapshot?: ProductionRecordingConfig | null;
+  liveRecordingConfig?: ProductionRecordingConfig | null;
 }) {
   const query = useShiftRecordsQuery({ productionOrderId: orderId });
   const remove = useDeleteShiftRecordMutation();
   const [editing, setEditing] = useState<ShiftRecord | "new" | null>(null);
   const rows = query.data?.data ?? [];
-  const fields = sortedFields(recordingConfigSnapshot);
-  const isDynamic = fields.length > 0;
+
+  const newFormConfig =
+    liveRecordingConfig?.fields?.length
+      ? liveRecordingConfig
+      : recordingConfigSnapshot?.fields?.length
+        ? recordingConfigSnapshot
+        : null;
+  const newFormFields = sortedFields(newFormConfig);
+
+  const hasAnyDynamic =
+    Boolean(newFormConfig?.fields?.length) ||
+    rows.some((r) => (configForRow(r, recordingConfigSnapshot)?.fields.length ?? 0) > 0);
+
+  const columnFields = useMemo(() => {
+    const byCode = new Map<string, RecordingFieldDef>();
+    for (const f of newFormFields) {
+      if (f.resultRole === "INFORMATION") continue;
+      byCode.set(f.code, f);
+    }
+    for (const row of rows) {
+      for (const f of sortedFields(configForRow(row, recordingConfigSnapshot))) {
+        if (f.resultRole === "INFORMATION") continue;
+        if (!byCode.has(f.code)) byCode.set(f.code, f);
+      }
+    }
+    return [...byCode.values()];
+  }, [newFormFields, rows, recordingConfigSnapshot]);
 
   const legacyTotals = useMemo(() => {
-    if (isDynamic) return null;
+    if (hasAnyDynamic) return null;
     return {
       totalInput: rows.reduce((a, r) => a + r.inputTireKg, 0),
       totalHours: rows.reduce((a, r) => a + r.operatingHours, 0),
     };
-  }, [isDynamic, rows]);
+  }, [hasAnyDynamic, rows]);
 
   const accumulated = useMemo(() => {
-    if (!isDynamic) return [];
-    return accumulateRecordingResults(
-      recordingConfigSnapshot ?? undefined,
-      rows.map((r) => r.values ?? {}),
+    if (!hasAnyDynamic) return [];
+    return accumulateAcrossShiftConfigs(
+      rows.map((r) => ({
+        config: configForRow(r, recordingConfigSnapshot),
+        values: r.values,
+      })),
     );
-  }, [isDynamic, recordingConfigSnapshot, rows]);
+  }, [hasAnyDynamic, recordingConfigSnapshot, rows]);
 
   const columns: ColumnsType<ShiftRecord> = useMemo(() => {
     const base: ColumnsType<ShiftRecord> = [
@@ -586,17 +626,20 @@ export default function ShiftRecordsPanel({
       { title: "กะ", dataIndex: "shiftName", width: 110 },
     ];
 
-    if (isDynamic) {
-      for (const field of fields) {
-        if (field.resultRole === "INFORMATION") continue;
+    if (hasAnyDynamic) {
+      for (const field of columnFields) {
         base.push({
           title: `${field.label || field.code}${field.unitLabel ? ` (${field.unitLabel})` : ""}`,
-          key: field.id,
+          key: `code:${field.code}`,
           align: "right",
           render: (_v, r) =>
             n(
-              r.computedResults?.[field.id] ??
-                computeRecordingFieldResult(field, r.values?.[field.id]),
+              resultForCodeOnRecord(
+                field.code,
+                configForRow(r, recordingConfigSnapshot),
+                r.values,
+                r.computedResults,
+              ),
               3,
             ),
         });
@@ -666,7 +709,7 @@ export default function ShiftRecordsPanel({
     }
 
     return base;
-  }, [canEdit, fields, isDynamic, remove]);
+  }, [canEdit, columnFields, hasAnyDynamic, recordingConfigSnapshot, remove]);
 
   const roleColor = (role: string) => {
     if (role === "INPUT") return "blue";
@@ -674,8 +717,27 @@ export default function ShiftRecordsPanel({
     return "default";
   };
 
+  const editFields =
+    editing && editing !== "new"
+      ? sortedFields(
+          configForRow(editing, recordingConfigSnapshot) ?? newFormConfig,
+        )
+      : newFormFields;
+  const useDynamicModal =
+    editing === "new"
+      ? newFormFields.length > 0
+      : editing
+        ? editFields.length > 0
+        : false;
+
   return (
     <div>
+      {hasAnyDynamic ? (
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
+          รายการใหม่ใช้ฟอร์มตามสูตรปัจจุบัน · รายการเก่าคงตามตอนบันทึก
+        </Typography.Paragraph>
+      ) : null}
+
       <Table
         className={masterStyles.dataTable}
         rowKey="id"
@@ -684,7 +746,11 @@ export default function ShiftRecordsPanel({
         dataSource={rows}
         loading={query.isFetching}
         pagination={{ pageSize: 15, hideOnSinglePage: true }}
-        scroll={isDynamic ? { x: Math.max(800, 300 + fields.length * 120) } : undefined}
+        scroll={
+          hasAnyDynamic
+            ? { x: Math.max(800, 300 + columnFields.length * 120) }
+            : undefined
+        }
         locale={{
           emptyText: started
             ? "ยังไม่มีบันทึกรายกะ"
@@ -730,7 +796,7 @@ export default function ShiftRecordsPanel({
         <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
           <Typography.Text type="secondary">ยอดสะสมจากกะ:</Typography.Text>
           {accumulated.map((row) => (
-            <Tag key={row.fieldId} color={roleColor(row.resultRole)}>
+            <Tag key={row.key} color={roleColor(row.resultRole)}>
               {row.label || row.code}: {n(row.total, 3)}
               {row.unitLabel ? ` ${row.unitLabel}` : ""}
             </Tag>
@@ -738,13 +804,13 @@ export default function ShiftRecordsPanel({
         </div>
       ) : null}
 
-      {canEdit && started && !isDynamic ? (
+      {canEdit && started && !newFormFields.length ? (
         <Alert
           style={{ marginTop: 12 }}
           type="info"
           showIcon
           title="ยังไม่มีฟอร์มบันทึกตามสูตร"
-          description="ไปตั้งแท็บ «การตั้งค่าบันทึกผลการผลิต» ใน Master สูตรที่ใบนี้ใช้อยู่ แล้วรีเฟรชหน้านี้ — ระบบจะล็อกค่าลงใบครั้งเดียว"
+          description="ไปตั้งแท็บ «การตั้งค่าบันทึกผลการผลิต» ใน Master สูตรที่ใบนี้ใช้อยู่ แล้วรีเฟรชหน้านี้ — รายการใหม่จะใช้ฟอร์มล่าสุด"
         />
       ) : null}
 
@@ -760,12 +826,12 @@ export default function ShiftRecordsPanel({
       ) : null}
 
       {editing ? (
-        isDynamic ? (
+        useDynamicModal ? (
           <DynamicRecordModal
             key={editing === "new" ? "new" : editing.id}
             orderId={orderId}
             record={editing === "new" ? null : editing}
-            fields={fields}
+            fields={editing === "new" ? newFormFields : editFields}
             onClose={() => setEditing(null)}
           />
         ) : (
