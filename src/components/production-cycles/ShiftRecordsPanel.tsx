@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  Alert,
   Button,
   DatePicker,
   Form,
@@ -737,6 +738,16 @@ export default function ShiftRecordsPanel({
         </div>
       ) : null}
 
+      {canEdit && started && !isDynamic ? (
+        <Alert
+          style={{ marginTop: 12 }}
+          type="info"
+          showIcon
+          title="ยังไม่มีฟอร์มบันทึกตามสูตร"
+          description="ไปตั้งแท็บ «การตั้งค่าบันทึกผลการผลิต» ใน Master สูตรที่ใบนี้ใช้อยู่ แล้วรีเฟรชหน้านี้ — ระบบจะล็อกค่าลงใบครั้งเดียว"
+        />
+      ) : null}
+
       {canEdit && started ? (
         <Button
           style={{ marginTop: 8 }}
@@ -744,7 +755,7 @@ export default function ShiftRecordsPanel({
           icon={<PlusOutlined />}
           onClick={() => setEditing("new")}
         >
-          บันทึกการผลิตรายกะ
+          เพิ่มบันทึก
         </Button>
       ) : null}
 

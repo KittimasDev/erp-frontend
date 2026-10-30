@@ -1,7 +1,16 @@
 "use client";
 
 import { useMemo, type KeyboardEvent } from "react";
-import { Alert, Button, InputNumber, Select, Table, Tag, Tooltip } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  InputNumber,
+  Select,
+  Table,
+  Tag,
+  Tooltip,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { CalculatorOutlined } from "@ant-design/icons";
 
@@ -36,6 +45,10 @@ type Props = {
   disabled?: boolean;
   /** เติมลงฟอร์มไปแล้วหรือยัง — ใช้บอกสถานะให้ผู้ใช้เห็น */
   applied?: boolean;
+  /** จำนวนวันผลิตจากช่วงวันที่ (นับรวมวันแรก–วันสุดท้าย) */
+  productionDayCount?: number;
+  multiplyByProductionDays?: boolean;
+  onMultiplyByProductionDays?: (checked: boolean) => void;
 };
 
 function fmtQty(value: number) {
@@ -98,6 +111,9 @@ export default function ProductionFormulaPlannerPanel({
   onApply,
   disabled,
   applied,
+  productionDayCount = 1,
+  multiplyByProductionDays = false,
+  onMultiplyByProductionDays,
 }: Props) {
   const selected = useMemo(
     () => formulas.find((formula) => formula.id === formulaId),
@@ -111,6 +127,16 @@ export default function ProductionFormulaPlannerPanel({
   });
   const scale = scaleQuery.data?.data;
 
+  const dayFactor =
+    multiplyByProductionDays && productionDayCount > 1
+      ? productionDayCount
+      : 1;
+
+  const scaleLineQty = (line: ProductionFormulaScaleLine) => ({
+    ...line,
+    plannedQty: Number((line.plannedQty * dayFactor).toFixed(3)),
+  });
+
   const grouped = useMemo(() => {
     const lines = scale?.lines ?? [];
     return {
@@ -119,6 +145,17 @@ export default function ProductionFormulaPlannerPanel({
       wastes: lines.filter((line) => line.lineRole === "WASTE"),
     };
   }, [scale]);
+
+  const previewGrouped = useMemo(
+    () => ({
+      inputs: grouped.inputs.map(scaleLineQty),
+      outputs: grouped.outputs.map(scaleLineQty),
+      wastes: grouped.wastes.map(scaleLineQty),
+    }),
+    // scaleLineQty closes over dayFactor
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [grouped, dayFactor],
+  );
 
   const driverOptions = useMemo(() => {
     if (!selected) return [];
@@ -171,15 +208,19 @@ export default function ProductionFormulaPlannerPanel({
       ),
     },
     {
-      title: "ประมาณการ",
+      title:
+        dayFactor > 1
+          ? `ประมาณการ (×${dayFactor} วัน)`
+          : "ประมาณการ",
       key: "plannedQty",
-      width: 150,
+      width: 160,
       align: "right",
       render: (_v, row) => {
         const zero = scale?.roundedToZeroLineIds.includes(row.lineId);
+        const qty = Number((row.plannedQty * dayFactor).toFixed(3));
         return (
           <strong className={zero ? styles.qtyBad : styles.qty}>
-            {fmtQty(row.plannedQty)} {row.unitCode ?? ""}
+            {fmtQty(qty)} {row.unitCode ?? ""}
           </strong>
         );
       },
@@ -284,7 +325,7 @@ export default function ProductionFormulaPlannerPanel({
               if (!scale || !formulaId || targetQty === null) return;
               const driver = scale.lines.find((line) => line.isDriver);
               onApply({
-                ...grouped,
+                ...previewGrouped,
                 formulaId,
                 targetQty,
                 driverItemId: driver?.itemId ?? "",
@@ -296,9 +337,26 @@ export default function ProductionFormulaPlannerPanel({
         </div>
       </div>
 
+      {onMultiplyByProductionDays ? (
+        <Checkbox
+          checked={multiplyByProductionDays}
+          disabled={disabled || productionDayCount <= 1}
+          onChange={(e) => onMultiplyByProductionDays(e.target.checked)}
+          style={{ marginBottom: 8 }}
+        >
+          คูณจำนวนวันผลิต
+          {productionDayCount > 1
+            ? ` (${productionDayCount} วัน)`
+            : " — เลือกช่วงวันที่ผลิตก่อน"}
+        </Checkbox>
+      ) : null}
+
       {selected?.batchLabel ? (
         <div className={styles.batchLabel}>
           ขนาด 1 รอบตามสูตร: {selected.batchLabel}
+          {dayFactor > 1
+            ? ` · แผนนี้คูณ ${dayFactor} วันผลิตแล้ว`
+            : null}
         </div>
       ) : null}
 

@@ -29,6 +29,7 @@ import {
 import dayjs from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { formatProductionDateRange } from "@/utils/formatProductionDateRange";
 import {
   useProductionOrderQuery,
   useProductionOrderSummaryQuery,
@@ -712,7 +713,10 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               <div className={styles.infoItem}>
                 <span className={styles.infoLabel}>วันที่ผลิต</span>
                 <span className={styles.infoValue}>
-                  {dayjs(order.productionDate).format("DD/MM/YYYY")}
+                  {formatProductionDateRange(
+                    order.productionDate,
+                    order.productionDateEnd,
+                  )}
                 </span>
               </div>
               <div className={styles.infoItem}>

@@ -144,6 +144,8 @@ export type ProductionOrder = {
   cycleTargetHours: string;
   plannedLaborHours?: string;
   productionDate: string;
+  /** วันสิ้นสุดช่วงผลิต — ว่างหรือเท่าวันเริ่ม = วันเดียว */
+  productionDateEnd?: string;
   status: string;
   remark?: string;
   requestedById?: string;
@@ -306,6 +308,8 @@ export type CreateProductionOrderPlanLineBody = {
 
 export type CreateProductionOrderBody = {
   productionDate: string;
+  /** วันสิ้นสุดช่วงผลิต — ไม่ส่งหรือเท่าวันเริ่ม = วันเดียว */
+  productionDateEnd?: string;
   productionRequestId?: string;
   remark?: string;
   batchNo?: string;
@@ -331,6 +335,7 @@ export type BulkCreateProductionOrderSelectionBody = {
 
 export type BulkCreateProductionOrdersBody = {
   productionDate: string;
+  productionDateEnd?: string;
   batchNo?: string;
   remark?: string;
   cycleTargetHours?: number;

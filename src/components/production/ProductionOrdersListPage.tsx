@@ -16,6 +16,7 @@ import {
   PRODUCTION_ORDER_STATUS_LABEL,
   ProductionOrderStatus,
 } from "@/types/production-order";
+import { formatProductionDateRange } from "@/utils/formatProductionDateRange";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -85,9 +86,9 @@ export default function ProductionOrdersListPage() {
     },
     {
       title: "วันที่ผลิต",
-      dataIndex: "productionDate",
       key: "productionDate",
-      render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
+      render: (_: unknown, row: ProductionOrder) =>
+        formatProductionDateRange(row.productionDate, row.productionDateEnd),
     },
     {
       title: "Cycle เป้าหมาย (ชม.)",

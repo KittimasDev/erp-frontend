@@ -444,7 +444,13 @@ export default function ProductionOrderCreatePage() {
   const requestQuery = useProductionRequestQuery(productionRequestId);
   const productionRequest = requestQuery.data?.data;
 
-  const [productionDate, setProductionDate] = useState<Dayjs>(dayjs());
+  const [productionDateRange, setProductionDateRange] = useState<
+    [Dayjs, Dayjs]
+  >([dayjs(), dayjs()]);
+  const productionDayCount =
+    productionDateRange[1].diff(productionDateRange[0], "day") + 1;
+  const [multiplyByProductionDays, setMultiplyByProductionDays] =
+    useState(false);
   const [batchNo, setBatchNo] = useState("");
   const [cycleTargetHours, setCycleTargetHours] = useState<number | null>(48);
   const [plannedLaborHours, setPlannedLaborHours] = useState<number | null>(null);
@@ -712,10 +718,14 @@ export default function ProductionOrderCreatePage() {
       **ยอมให้เปิดใบสั่งผลิตใบที่สองจากใบขอผลิตเดิมได้** ซึ่งเส้นรวมไม่ยอม —
       บังคับทุกอย่างไปเส้นรวมจะเป็นการเปลี่ยนกฎธุรกิจที่ไม่มีใครสั่ง
     */
+    const productionDate = productionDateRange[0].format("YYYY-MM-DD");
+    const productionDateEnd = productionDateRange[1].format("YYYY-MM-DD");
+
     if (selections.length > 0) {
       consolidatedMutation.mutate(
         {
-          productionDate: productionDate.format("YYYY-MM-DD"),
+          productionDate,
+          productionDateEnd,
           batchNo: batchNo.trim() || undefined,
           cycleTargetHours: cycleTargetHours ?? undefined,
           plannedLaborHours: plannedLaborHours ?? undefined,
@@ -733,7 +743,8 @@ export default function ProductionOrderCreatePage() {
 
     createMutation.mutate(
       {
-        productionDate: productionDate.format("YYYY-MM-DD"),
+        productionDate,
+        productionDateEnd,
         productionRequestId,
         batchNo: batchNo.trim() || undefined,
         cycleTargetHours: cycleTargetHours ?? undefined,
@@ -833,12 +844,24 @@ export default function ProductionOrderCreatePage() {
           <div className={styles.fieldGrid}>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>วันที่ผลิต</span>
-              <DatePicker
+              <DatePicker.RangePicker
                 style={{ width: "100%" }}
-                value={productionDate}
+                allowEmpty={[false, false]}
+                value={productionDateRange}
                 format="DD/MM/YYYY"
-                onChange={(value) => value && setProductionDate(value)}
+                onChange={(value) => {
+                  if (value?.[0] && value[1]) {
+                    setProductionDateRange([value[0], value[1]]);
+                    if (value[1].diff(value[0], "day") + 1 <= 1) {
+                      setMultiplyByProductionDays(false);
+                    }
+                  }
+                }}
               />
+              <span style={{ fontSize: 12, color: "#8a9199", marginTop: 4 }}>
+                จำนวนวันผลิต: {productionDayCount} วัน
+                {productionDayCount === 1 ? " (เลือกวันเดียวหรือช่วงเดียวกันได้)" : ""}
+              </span>
             </div>
             <div className={styles.field}>
               <span className={styles.fieldLabel}>เลข Batch (ไม่บังคับ)</span>
@@ -920,6 +943,9 @@ export default function ProductionOrderCreatePage() {
               applied={Boolean(
                 appliedPlan && appliedPlan.formulaId === formulaId,
               )}
+              productionDayCount={productionDayCount}
+              multiplyByProductionDays={multiplyByProductionDays}
+              onMultiplyByProductionDays={setMultiplyByProductionDays}
             />
 
             <section className={styles.formCard}>
