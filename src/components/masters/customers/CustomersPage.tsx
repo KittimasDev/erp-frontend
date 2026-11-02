@@ -23,6 +23,7 @@ import {
   SearchOutlined,
   StopOutlined,
   TeamOutlined,
+  UploadOutlined,
   UserAddOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -34,7 +35,12 @@ import {
   useActivateCustomerMutation,
   useDeactivateCustomerMutation,
 } from "@/hooks/customers/useActivateDeactivateCustomerMutation";
+import CsvImportModal, {
+  CUSTOMER_CSV_HINT,
+  CUSTOMER_CSV_TEMPLATE,
+} from "@/components/masters/shared/CsvImportModal";
 import { useCreateCustomerMutation } from "@/hooks/customers/useCreateCustomerMutation";
+import { useImportCustomersCsvMutation } from "@/hooks/customers/useImportCustomersCsvMutation";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { CUSTOMER_TYPES } from "@/types/customers";
 import type {
@@ -122,6 +128,7 @@ export default function CustomersPage() {
   const [form] = Form.useForm<CustomerFilterFormValues>();
 
   const [page, setPage] = useState(1);
+  const [importOpen, setImportOpen] = useState(false);
   const pageSize = 10;
 
   /** เพิ่ม/แก้ไขลูกค้า = สิทธิ์ของหน้าข้อมูลลูกค้าใน Permission Matrix */
@@ -150,6 +157,7 @@ export default function CustomersPage() {
 
   const customersQuery = useCustomersQuery(filters);
   const createMutation = useCreateCustomerMutation();
+  const importMutation = useImportCustomersCsvMutation();
   const activateMutation = useActivateCustomerMutation();
   const deactivateMutation = useDeactivateCustomerMutation();
 
@@ -397,15 +405,26 @@ export default function CustomersPage() {
           </div>
 
           {canManageCustomers ? (
-            <Button
-              type="primary"
-              size="large"
-              className={`${styles.createButton} ${pageStyles.createButton}`}
-              icon={<PlusOutlined />}
-              onClick={() => setCreateOpen(true)}
-            >
-              เพิ่มลูกค้า
-            </Button>
+            <div className={styles.headerActions}>
+              {customerActions.canAdd ? (
+                <Button
+                  size="large"
+                  icon={<UploadOutlined />}
+                  onClick={() => setImportOpen(true)}
+                >
+                  นำเข้า CSV
+                </Button>
+              ) : null}
+              <Button
+                type="primary"
+                size="large"
+                className={`${styles.createButton} ${pageStyles.createButton}`}
+                icon={<PlusOutlined />}
+                onClick={() => setCreateOpen(true)}
+              >
+                เพิ่มลูกค้า
+              </Button>
+            </div>
           ) : (
             <div />
           )}
@@ -610,6 +629,19 @@ export default function CustomersPage() {
         </div>
       </section>
 
+      <CsvImportModal
+        open={importOpen}
+        title="นำเข้าลูกค้าจาก CSV"
+        templateFileName="customers-import-template.csv"
+        templateCsv={CUSTOMER_CSV_TEMPLATE}
+        hint={CUSTOMER_CSV_HINT}
+        importing={importMutation.isPending}
+        onClose={() => setImportOpen(false)}
+        onImport={async (file) => {
+          const response = await importMutation.mutateAsync(file);
+          return response.data;
+        }}
+      />
       <CustomerFormModal
         open={createOpen}
         mode="create"

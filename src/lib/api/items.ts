@@ -1,4 +1,5 @@
 import { apiDownloadBlob, apiFetch, apiUpload } from "./client";
+import type { CsvImportApiResponse } from "@/types/csv-import";
 import type {
   CreateItemRequest,
   ItemApiResponse,
@@ -114,6 +115,16 @@ export function deleteItem(token: string, id: string) {
     method: "DELETE",
     token,
   });
+}
+
+export function importItemsCsv(token: string | null, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<CsvImportApiResponse>(
+    "/api/master-data/items/import-csv",
+    formData,
+    { token },
+  );
 }
 
 export function uploadItemImage(token: string, itemId: string, file: File) {

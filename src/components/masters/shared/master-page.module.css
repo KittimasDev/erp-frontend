@@ -104,6 +104,15 @@
   font-size: 14px;
 }
 
+.headerActions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .createButton {
   position: relative;
   z-index: 1;
@@ -533,6 +542,7 @@
     grid-template-columns: auto 1fr;
   }
 
+  .headerActions,
   .createButton {
     grid-column: 1 / -1;
     width: 100%;

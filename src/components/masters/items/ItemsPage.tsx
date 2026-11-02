@@ -22,6 +22,7 @@ import {
   EditOutlined,
   PlusOutlined,
   SearchOutlined,
+  UploadOutlined,
   StopOutlined,
   SwapOutlined,
 } from "@ant-design/icons";
@@ -29,7 +30,12 @@ import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
+import CsvImportModal, {
+  ITEM_CSV_HINT,
+  ITEM_CSV_TEMPLATE,
+} from "@/components/masters/shared/CsvImportModal";
 import { useCreateItemMutation } from "@/hooks/items/useCreateItemMutation";
+import { useImportItemsCsvMutation } from "@/hooks/items/useImportItemsCsvMutation";
 import { useDeleteItemMutation } from "@/hooks/items/useDeleteItemMutation";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { useItemStockSummaryQuery } from "@/hooks/items/useItemStockSummaryQuery";
@@ -211,6 +217,7 @@ export default function ItemsPage() {
   const [form] = Form.useForm<ItemFilterFormValues>();
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [page, setPage] = useState(1);
@@ -240,6 +247,7 @@ export default function ItemsPage() {
   const categoriesQuery = useItemCategoriesQuery();
   const unitsQuery = useUnitsQuery();
   const createMutation = useCreateItemMutation();
+  const importMutation = useImportItemsCsvMutation();
   const updateMutation = useUpdateItemMutation();
   const deleteMutation = useDeleteItemMutation();
 
@@ -545,15 +553,24 @@ export default function ItemsPage() {
         </div>
 
         {canAdd ? (
-          <Button
-            type="primary"
-            size="large"
-            className={styles.createButton}
-            icon={<PlusOutlined />}
-            onClick={openCreateModal}
-          >
-            เพิ่มสินค้า
-          </Button>
+          <div className={styles.headerActions}>
+            <Button
+              size="large"
+              icon={<UploadOutlined />}
+              onClick={() => setImportOpen(true)}
+            >
+              นำเข้า CSV
+            </Button>
+            <Button
+              type="primary"
+              size="large"
+              className={styles.createButton}
+              icon={<PlusOutlined />}
+              onClick={openCreateModal}
+            >
+              เพิ่มสินค้า
+            </Button>
+          </div>
         ) : (
           <div />
         )}
@@ -827,6 +844,19 @@ export default function ItemsPage() {
         )}
       </div>
 
+      <CsvImportModal
+        open={importOpen}
+        title="นำเข้าสินค้าจาก CSV"
+        templateFileName="items-import-template.csv"
+        templateCsv={ITEM_CSV_TEMPLATE}
+        hint={ITEM_CSV_HINT}
+        importing={importMutation.isPending}
+        onClose={() => setImportOpen(false)}
+        onImport={async (file) => {
+          const response = await importMutation.mutateAsync(file);
+          return response.data;
+        }}
+      />
       <ItemFormModal
         open={modalOpen}
         mode={modalMode}

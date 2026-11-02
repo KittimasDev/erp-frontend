@@ -524,8 +524,8 @@ function DynamicRecordModal({
   return (
     <Modal
       open
-      width={720}
-      className={masterStyles.masterModal}
+      width={760}
+      className={`${masterStyles.masterModal} ${modalStyles.shiftModal}`}
       title={
         record
           ? `แก้บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
@@ -709,8 +709,8 @@ function LegacyRecordModal({
   return (
     <Modal
       open
-      width={720}
-      className={masterStyles.masterModal}
+      width={760}
+      className={`${masterStyles.masterModal} ${modalStyles.shiftModal}`}
       title={
         record
           ? `แก้บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`

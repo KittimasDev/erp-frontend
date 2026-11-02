@@ -1,4 +1,5 @@
-import { apiFetch } from "./client";
+import { apiFetch, apiUpload } from "./client";
+import type { CsvImportApiResponse } from "@/types/csv-import";
 import type {
   CreateCustomerRequest,
   CustomerApiResponse,
@@ -43,6 +44,14 @@ export function getCustomers(token: string, params?: CustomerQueryParams) {
 export function getCustomer(token: string, id: string) {
   return apiFetch<CustomerApiResponse>(`/api/customers/${id}`, {
     method: "GET",
+    token,
+  });
+}
+
+export function importCustomersCsv(token: string | null, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiUpload<CsvImportApiResponse>("/api/customers/import-csv", formData, {
     token,
   });
 }
