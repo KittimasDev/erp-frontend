@@ -59,7 +59,11 @@ export function computeRecordingFieldResult(
       return round3(qty * unitWeight);
     }
     case "INFORMATION":
-      if (field.infoValueKind === "TEXT" || field.infoValueKind === "QC") {
+      if (
+        field.infoValueKind === "TEXT" ||
+        field.infoValueKind === "QC" ||
+        field.infoValueKind === "RPM"
+      ) {
         return null;
       }
       return num(v.amount);

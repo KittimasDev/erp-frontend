@@ -102,17 +102,34 @@ function sortedFields(config?: ProductionRecordingConfig | null) {
 
 function Control({
   label,
+  required,
   children,
 }: {
   label: string;
+  required?: boolean;
   children: ReactNode;
 }) {
   return (
     <div className={modalStyles.controlItem}>
-      <span className={modalStyles.controlLabel}>{label}</span>
+      <span className={modalStyles.controlLabel}>
+        {label}
+        {required ? (
+          <span className={modalStyles.controlRequired} aria-hidden>
+            *
+          </span>
+        ) : null}
+      </span>
       {children}
     </div>
   );
+}
+
+/** ป้ายบทบาทใต้ชื่อฟิลด์ — TRACKING โชว์แบบ Input ตาม mock ฟอร์มบันทึกกะ */
+function fieldRoleSubtitle(field: RecordingFieldDef) {
+  if (field.resultRole === "TRACKING" || field.resultRole === "INPUT") {
+    return RECORDING_RESULT_ROLE_LABEL.INPUT;
+  }
+  return RECORDING_RESULT_ROLE_LABEL[field.resultRole] ?? field.resultRole;
 }
 
 function BomFieldControls({
@@ -130,10 +147,12 @@ function BomFieldControls({
   const patch = (partial: RecordingFieldValue) => onChange({ ...v, ...partial });
   const addon = unitAddon(field.unitLabel);
 
+  const req = Boolean(field.required);
+
   if (field.calcType === "METER_DELTA") {
     return (
       <div className={modalStyles.bomControlsWide}>
-        <Control label="ต้นกะ (มิเตอร์)">
+        <Control label="ต้นกะ (มิเตอร์)" required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -142,7 +161,7 @@ function BomFieldControls({
             onChange={(meterStart) => patch({ meterStart })}
           />
         </Control>
-        <Control label="ปลายกะ (มิเตอร์)">
+        <Control label="ปลายกะ (มิเตอร์)" required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -158,7 +177,7 @@ function BomFieldControls({
   if (field.calcType === "HOURS_TIMES_RATE") {
     return (
       <div className={modalStyles.bomControls}>
-        <Control label="ปริมาณ">
+        <Control label="ปริมาณ" required={req}>
           <InputNumber
             readOnly
             precision={3}
@@ -168,7 +187,7 @@ function BomFieldControls({
             placeholder="คำนวณอัตโนมัติ"
           />
         </Control>
-        <Control label="ชั่วโมง">
+        <Control label="ชั่วโมง" required={req}>
           <InputNumber
             min={0}
             max={24}
@@ -178,7 +197,7 @@ function BomFieldControls({
             onChange={(hours) => patch({ hours })}
           />
         </Control>
-        <Control label="อัตรา">
+        <Control label="อัตรา" required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -194,7 +213,7 @@ function BomFieldControls({
   if (field.calcType === "QTY_TIMES_UNIT_WEIGHT") {
     return (
       <div className={modalStyles.bomControls}>
-        <Control label="ปริมาณ">
+        <Control label="ปริมาณ" required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -204,7 +223,7 @@ function BomFieldControls({
             addonAfter={addon}
           />
         </Control>
-        <Control label="ชั่วโมง">
+        <Control label="ชั่วโมง" required={req}>
           <InputNumber
             min={0}
             max={24}
@@ -214,7 +233,7 @@ function BomFieldControls({
             onChange={(hours) => patch({ hours })}
           />
         </Control>
-        <Control label="อัตรา">
+        <Control label="อัตรา" required={req}>
           <InputNumber
             min={0}
             precision={3}
@@ -229,7 +248,7 @@ function BomFieldControls({
 
   return (
     <div className={modalStyles.bomControls}>
-      <Control label="ปริมาณ">
+      <Control label="ปริมาณ" required={req}>
         <InputNumber
           min={0}
           precision={3}
@@ -239,7 +258,7 @@ function BomFieldControls({
           addonAfter={addon}
         />
       </Control>
-      <Control label="ชั่วโมง">
+      <Control label="ชั่วโมง" required={req}>
         <InputNumber
           min={0}
           max={24}
@@ -249,7 +268,7 @@ function BomFieldControls({
           onChange={(hours) => patch({ hours })}
         />
       </Control>
-      <Control label="อัตรา">
+      <Control label="อัตรา" required={req}>
         <InputNumber
           min={0}
           precision={3}
@@ -275,7 +294,12 @@ function InfoFieldControls({
   const patch = (partial: RecordingFieldValue) => onChange({ ...v, ...partial });
   const placeholder = `ระบุค่า ${field.label || field.code}`;
 
-  if (field.infoValueKind === "TEXT" || field.infoValueKind === "QC") {
+  // RPM / ข้อความ / QC ใน mock เป็นช่องพิมพ์ข้อความเต็มความกว้าง
+  if (
+    field.infoValueKind === "TEXT" ||
+    field.infoValueKind === "QC" ||
+    field.infoValueKind === "RPM"
+  ) {
     return (
       <Input
         value={v.text ?? undefined}
@@ -292,6 +316,9 @@ function InfoFieldControls({
       value={v.amount ?? undefined}
       onChange={(amount) => patch({ amount })}
       placeholder={placeholder}
+      addonAfter={
+        field.infoValueKind === "TEMPERATURE" ? "°C" : unitAddon(field.unitLabel)
+      }
     />
   );
 }
@@ -365,9 +392,7 @@ function BomFieldRow({
         >
           {field.label || field.code}
         </span>
-        <span className={modalStyles.bomSub}>
-          {RECORDING_RESULT_ROLE_LABEL[field.resultRole] ?? field.resultRole}
-        </span>
+        <span className={modalStyles.bomSub}>{fieldRoleSubtitle(field)}</span>
       </div>
       <Form.Item name={["values", field.id]} noStyle>
         <FieldValueBridge field={field} mode="bom" liveResult={liveResult} />
@@ -387,9 +412,7 @@ function InfoFieldRow({ field }: { field: RecordingFieldDef }) {
         >
           {field.label || field.code}
         </span>
-        <span className={modalStyles.bomSub}>
-          {RECORDING_RESULT_ROLE_LABEL[field.resultRole] ?? field.resultRole}
-        </span>
+        <span className={modalStyles.bomSub}>{fieldRoleSubtitle(field)}</span>
       </div>
       <Form.Item name={["values", field.id]} noStyle>
         <FieldValueBridge field={field} mode="info" />
@@ -461,7 +484,9 @@ function DynamicRecordModal({
         if (!f.required) return false;
         if (
           f.calcType === "INFORMATION" &&
-          (f.infoValueKind === "TEXT" || f.infoValueKind === "QC")
+          (f.infoValueKind === "TEXT" ||
+            f.infoValueKind === "QC" ||
+            f.infoValueKind === "RPM")
         ) {
           return !(values[f.id]?.text ?? "").trim();
         }
@@ -499,14 +524,16 @@ function DynamicRecordModal({
   return (
     <Modal
       open
-      width={760}
+      width={720}
+      className={masterStyles.masterModal}
       title={
         record
           ? `แก้บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
           : "บันทึกการผลิตรายกะ"
       }
-      okText="บันทึกร่าง"
+      okText="บันทึก"
       cancelText="ยกเลิก"
+      okButtonProps={{ className: modalStyles.saveButton }}
       confirmLoading={create.isPending || update.isPending}
       onCancel={onClose}
       destroyOnHidden
@@ -519,6 +546,8 @@ function DynamicRecordModal({
         initialValues={{
           recordDate: record ? dayjs(record.recordDate) : dayjs(),
           shiftId: record?.shiftId,
+          shiftStartTime: undefined,
+          shiftEndTime: undefined,
           operatorIds: record?.operators.map((o) => o.id) ?? [],
           remark: record?.remark,
           values: record?.values ?? {},
@@ -680,7 +709,8 @@ function LegacyRecordModal({
   return (
     <Modal
       open
-      width={760}
+      width={720}
+      className={masterStyles.masterModal}
       title={
         record
           ? `แก้บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
@@ -688,6 +718,7 @@ function LegacyRecordModal({
       }
       okText="บันทึก"
       cancelText="ยกเลิก"
+      okButtonProps={{ className: modalStyles.saveButton }}
       confirmLoading={create.isPending || update.isPending}
       onCancel={onClose}
       destroyOnHidden
@@ -802,7 +833,7 @@ function LegacyRecordModal({
                 <span className={modalStyles.bomSub}>Input — วัตถุดิบใน BOM</span>
               </div>
               <div className={modalStyles.bomControls}>
-                <Control label="ปริมาณ">
+                <Control label="ปริมาณ" required>
                   <Form.Item
                     name="inputTireKg"
                     rules={[{ required: true, message: "ใส่จำนวน" }]}
@@ -816,7 +847,7 @@ function LegacyRecordModal({
                     />
                   </Form.Item>
                 </Control>
-                <Control label="ชั่วโมง">
+                <Control label="ชั่วโมง" required>
                   <Form.Item
                     name="operatingHours"
                     rules={[{ required: true, message: "ใส่ชั่วโมง" }]}
@@ -1171,7 +1202,7 @@ export default function ShiftRecordsPanel({
             icon={<PlusOutlined />}
             onClick={() => setEditing("new")}
           >
-            เพิ่มบันทึกร่าง
+            เพิ่มบันทึก
           </Button>
         ) : null}
       </div>
