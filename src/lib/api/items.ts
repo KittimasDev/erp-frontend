@@ -117,6 +117,11 @@ export function deleteItem(token: string, id: string) {
   });
 }
 
+/** Excel template นำเข้าสินค้า — backend สร้างใหม่ทุกครั้งจาก Master Data (หมวด/หน่วย) ล่าสุด */
+export function downloadItemImportTemplate(token: string) {
+  return apiDownloadBlob("/api/master-data/items/import-template", { token });
+}
+
 export function importItemsCsv(token: string | null, file: File) {
   const formData = new FormData();
   formData.append("file", file);

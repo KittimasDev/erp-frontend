@@ -39,6 +39,9 @@ import CsvImportModal, {
   CUSTOMER_CSV_HINT,
   CUSTOMER_CSV_TEMPLATE,
 } from "@/components/masters/shared/CsvImportModal";
+import { downloadCustomerImportTemplate } from "@/lib/api/customers";
+import { getAccessToken } from "@/lib/auth/token";
+import { downloadBlob } from "@/utils/downloadTabularReport";
 import { useCreateCustomerMutation } from "@/hooks/customers/useCreateCustomerMutation";
 import { useImportCustomersCsvMutation } from "@/hooks/customers/useImportCustomersCsvMutation";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
@@ -412,7 +415,7 @@ export default function CustomersPage() {
                   icon={<UploadOutlined />}
                   onClick={() => setImportOpen(true)}
                 >
-                  นำเข้า CSV
+                  นำเข้า Excel / CSV
                 </Button>
               ) : null}
               <Button
@@ -631,7 +634,14 @@ export default function CustomersPage() {
 
       <CsvImportModal
         open={importOpen}
-        title="นำเข้าลูกค้าจาก CSV"
+        title="นำเข้าลูกค้าจาก Excel / CSV"
+        acceptExtensions={[".csv", ".xlsx"]}
+        onDownloadExcelTemplate={async () => {
+          const { blob, filename } = await downloadCustomerImportTemplate(
+            getAccessToken(),
+          );
+          downloadBlob(filename ?? "customers-import-template.xlsx", blob);
+        }}
         templateFileName="customers-import-template.csv"
         templateCsv={CUSTOMER_CSV_TEMPLATE}
         hint={CUSTOMER_CSV_HINT}

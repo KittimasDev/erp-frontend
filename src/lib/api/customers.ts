@@ -1,4 +1,4 @@
-import { apiFetch, apiUpload } from "./client";
+import { apiDownloadBlob, apiFetch, apiUpload } from "./client";
 import type { CsvImportApiResponse } from "@/types/csv-import";
 import type {
   CreateCustomerRequest,
@@ -54,6 +54,11 @@ export function importCustomersCsv(token: string | null, file: File) {
   return apiUpload<CsvImportApiResponse>("/api/customers/import-csv", formData, {
     token,
   });
+}
+
+/** Excel template นำเข้าลูกค้า — backend สร้างใหม่ทุกครั้งจากประเภทลูกค้าที่รองรับ ณ ตอนนั้น */
+export function downloadCustomerImportTemplate(token: string) {
+  return apiDownloadBlob("/api/customers/import-template", { token });
 }
 
 export function createCustomer(token: string, body: CreateCustomerRequest) {

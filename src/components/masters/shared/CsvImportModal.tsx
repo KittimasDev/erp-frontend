@@ -14,7 +14,7 @@ export const ITEM_CSV_TEMPLATE = [
 ].join("\r\n");
 
 export const ITEM_CSV_HINT =
-  "คอลัมน์บังคับ: code, name, itemCategoryId, unitId, warehouseGroup · itemCategoryId และ unitId ต้องเป็น UUID ที่มีอยู่แล้ว · itemType = RAW_MATERIAL | FINISHED_GOODS | CHEMICAL | CONSUMABLE | SPARE_PART · warehouseGroup = RAW_MATERIAL | CHEMICAL | FINISHED_GOODS | OIL_TANK | SPARE_PART | HOLD | REJECT · แถวตัวอย่างในเทมเพลตต้องแก้ก่อนนำเข้า";
+  "แนะนำ: ดาวน์โหลดเทมเพลต Excel (ตัวเลือกหมวดสินค้า/หน่วยนับดึงจาก Master Data ล่าสุด) แล้วเลือกจาก Dropdown ไม่ต้องกรอก UUID · ถ้า Master Data เปลี่ยน ให้ดาวน์โหลดเทมเพลตใหม่ · คอลัมน์บังคับ: code, name, itemCategoryId, unitId, warehouseGroup · itemCategoryId/unitId ใส่ UUID, \"รหัส — ชื่อ\" หรือรหัสก็ได้ (หมวด/หน่วยที่ถูกลบหรือปิดใช้งานแล้วจะไม่เข้า) · itemType = RAW_MATERIAL | FINISHED_GOODS | CHEMICAL | CONSUMABLE | SPARE_PART · warehouseGroup = RAW_MATERIAL | CHEMICAL | FINISHED_GOODS | OIL_TANK | SPARE_PART | HOLD | REJECT · isFinishedGood ต้องตรงกับ itemType · เทมเพลต CSV มีแถวตัวอย่างที่ต้องแก้ก่อนนำเข้า";
 
 export const CUSTOMER_CSV_TEMPLATE = [
   "customerCode,nameTh,taxId,address,contactName,contactPhone,email,customerType,defaultCreditDays,creditLimit",
@@ -22,7 +22,7 @@ export const CUSTOMER_CSV_TEMPLATE = [
 ].join("\r\n");
 
 export const CUSTOMER_CSV_HINT =
-  "คอลัมน์บังคับ: customerCode, nameTh · customerType = DOMESTIC | EXPORT | DEALER | GENERAL · แถวตัวอย่างในเทมเพลตต้องแก้รหัสให้ไม่ซ้ำก่อนนำเข้า";
+  "แนะนำ: ดาวน์โหลดเทมเพลต Excel แล้วเลือก customerType จาก Dropdown · คอลัมน์บังคับ: customerCode, nameTh · customerType = DOMESTIC | EXPORT | DEALER | GENERAL (ค่าอื่นแถวนั้นจะไม่เข้า ทั้ง Excel และ CSV) · เทมเพลต CSV มีแถวตัวอย่างที่ต้องแก้รหัสให้ไม่ซ้ำก่อนนำเข้า";
 
 type Props = {
   open: boolean;
@@ -33,7 +33,13 @@ type Props = {
   importing: boolean;
   onClose: () => void;
   onImport: (file: File) => Promise<CsvImportResult>;
+  /** นามสกุลไฟล์ที่เลือกได้ (พิมพ์เล็ก มีจุดนำหน้า) — ไม่ส่ง = เฉพาะ .csv เหมือนเดิม */
+  acceptExtensions?: string[];
+  /** ส่งมา = แสดงปุ่มดาวน์โหลดเทมเพลต Excel (โหลดจาก backend) เพิ่มจากปุ่ม CSV */
+  onDownloadExcelTemplate?: () => Promise<void>;
 };
+
+const DEFAULT_ACCEPT_EXTENSIONS = [".csv"];
 
 const DUPLICATE_MARK = "ถูกใช้งานแล้ว";
 
@@ -56,8 +62,18 @@ export default function CsvImportModal({
   importing,
   onClose,
   onImport,
+  acceptExtensions = DEFAULT_ACCEPT_EXTENSIONS,
+  onDownloadExcelTemplate,
 }: Props) {
   const { message, notification } = App.useApp();
+  const [downloadingExcel, setDownloadingExcel] = useState(false);
+  const acceptsExcel = acceptExtensions.includes(".xlsx");
+  const acceptAttr = acceptExtensions
+    .flatMap((ext) =>
+      ext === ".csv" ? [".csv", "text/csv"] : [ext],
+    )
+    .join(",");
+  const fileKindLabel = acceptsExcel ? "CSV / Excel" : "CSV";
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<CsvImportResult | null>(null);
 
@@ -91,11 +107,12 @@ export default function CsvImportModal({
 
   const handleImport = async () => {
     if (!file) {
-      message.warning("เลือกไฟล์ CSV ก่อน");
+      message.warning(`เลือกไฟล์ ${fileKindLabel} ก่อน`);
       return;
     }
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      message.error("รองรับเฉพาะไฟล์ .csv");
+    const fileName = file.name.toLowerCase();
+    if (!acceptExtensions.some((ext) => fileName.endsWith(ext))) {
+      message.error(`รองรับเฉพาะไฟล์ ${acceptExtensions.join(" / ")}`);
       return;
     }
     try {
@@ -127,6 +144,22 @@ export default function CsvImportModal({
     }
   };
 
+  const handleDownloadExcel = async () => {
+    if (!onDownloadExcelTemplate) {
+      return;
+    }
+    setDownloadingExcel(true);
+    try {
+      await onDownloadExcelTemplate();
+    } catch (error) {
+      message.error(
+        error instanceof ApiError ? error.message : "ดาวน์โหลดเทมเพลตไม่สำเร็จ",
+      );
+    } finally {
+      setDownloadingExcel(false);
+    }
+  };
+
   return (
     <Modal
       open={open}
@@ -141,14 +174,25 @@ export default function CsvImportModal({
     >
       <p style={{ marginTop: 0, color: "#64748b" }}>{hint}</p>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+        {onDownloadExcelTemplate ? (
+          <Button
+            type="primary"
+            ghost
+            icon={<DownloadOutlined />}
+            loading={downloadingExcel}
+            onClick={() => void handleDownloadExcel()}
+          >
+            ดาวน์โหลดเทมเพลต Excel
+          </Button>
+        ) : null}
         <Button
           icon={<DownloadOutlined />}
           onClick={() => downloadTemplate(templateFileName, templateCsv)}
         >
-          ดาวน์โหลดเทมเพลต
+          {onDownloadExcelTemplate ? "ดาวน์โหลดเทมเพลต CSV" : "ดาวน์โหลดเทมเพลต"}
         </Button>
         <Upload
-          accept=".csv,text/csv"
+          accept={acceptAttr}
           maxCount={1}
           beforeUpload={(next) => {
             setFile(next);
@@ -165,7 +209,7 @@ export default function CsvImportModal({
               : []
           }
         >
-          <Button icon={<UploadOutlined />}>เลือกไฟล์ CSV</Button>
+          <Button icon={<UploadOutlined />}>เลือกไฟล์ {fileKindLabel}</Button>
         </Upload>
       </div>
 

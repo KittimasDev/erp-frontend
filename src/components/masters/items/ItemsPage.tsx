@@ -34,6 +34,9 @@ import CsvImportModal, {
   ITEM_CSV_HINT,
   ITEM_CSV_TEMPLATE,
 } from "@/components/masters/shared/CsvImportModal";
+import { downloadItemImportTemplate } from "@/lib/api/items";
+import { getAccessToken } from "@/lib/auth/token";
+import { downloadBlob } from "@/utils/downloadTabularReport";
 import { useCreateItemMutation } from "@/hooks/items/useCreateItemMutation";
 import { useImportItemsCsvMutation } from "@/hooks/items/useImportItemsCsvMutation";
 import { useDeleteItemMutation } from "@/hooks/items/useDeleteItemMutation";
@@ -559,7 +562,7 @@ export default function ItemsPage() {
               icon={<UploadOutlined />}
               onClick={() => setImportOpen(true)}
             >
-              นำเข้า CSV
+              นำเข้า Excel / CSV
             </Button>
             <Button
               type="primary"
@@ -846,7 +849,14 @@ export default function ItemsPage() {
 
       <CsvImportModal
         open={importOpen}
-        title="นำเข้าสินค้าจาก CSV"
+        title="นำเข้าสินค้าจาก Excel / CSV"
+        acceptExtensions={[".csv", ".xlsx"]}
+        onDownloadExcelTemplate={async () => {
+          const { blob, filename } = await downloadItemImportTemplate(
+            getAccessToken(),
+          );
+          downloadBlob(filename ?? "items-import-template.xlsx", blob);
+        }}
         templateFileName="items-import-template.csv"
         templateCsv={ITEM_CSV_TEMPLATE}
         hint={ITEM_CSV_HINT}
