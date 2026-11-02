@@ -4,6 +4,11 @@ import { useEffect } from "react";
 import { Form, Input, Modal } from "antd";
 import { KeyOutlined } from "@ant-design/icons";
 
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MIN_MESSAGE,
+  PASSWORD_PLACEHOLDER,
+} from "@/lib/user/password-policy";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 type ResetPasswordFormValues = {
@@ -73,10 +78,10 @@ export default function ResetPasswordModal({
           name="newPassword"
           rules={[
             { required: true, message: "กรุณากรอกรหัสผ่านใหม่" },
-            { min: 8, message: "อย่างน้อย 8 ตัวอักษร" },
+            { min: PASSWORD_MIN_LENGTH, message: PASSWORD_MIN_MESSAGE },
           ]}
         >
-          <Input.Password placeholder="อย่างน้อย 8 ตัวอักษร" />
+          <Input.Password placeholder={PASSWORD_PLACEHOLDER} />
         </Form.Item>
         <Form.Item
           label="ยืนยันรหัสผ่าน"

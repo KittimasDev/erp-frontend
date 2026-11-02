@@ -5,6 +5,12 @@
   margin-bottom: 4px;
 }
 
+.actionBar :global(.ant-btn) {
+  height: 40px;
+  min-width: 160px;
+  padding-inline: 18px;
+}
+
 .tabs {
   min-width: 0;
 }

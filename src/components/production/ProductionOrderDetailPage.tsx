@@ -602,7 +602,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
             <div className={styles.actionBar}>
               {isDraft && canOperate ? (
                 <Button
-                  type="primary"
                   icon={<PlayCircleOutlined />}
                   loading={startMutation.isPending}
                   onClick={() => setStartOpen(true)}
@@ -613,7 +612,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
 
               {isDraft && canOperate ? (
                 <Button
-                  danger
                   loading={cancelMutation.isPending}
                   onClick={() => setCancelOpen(true)}
                 >
@@ -627,7 +625,6 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 (r) => r.status === "APPROVED",
               ) ? (
                 <Button
-                  danger
                   loading={cancelMutation.isPending}
                   onClick={() => setCancelOpen(true)}
                 >
@@ -673,7 +670,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   cancelText="ปิด"
                   onConfirm={() => resumeMutation.mutate({ id: orderId })}
                 >
-                  <Button type="primary" loading={resumeMutation.isPending}>
+                  <Button loading={resumeMutation.isPending}>
                     กลับมาเดินเครื่อง
                   </Button>
                 </Popconfirm>
@@ -686,11 +683,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               ) : null}
 
               {canReceiveOutput && canRequestOutput && canStillRequestOutput ? (
-                <Button
-                  type="primary"
-                  className={masterStyles.createButton}
-                  onClick={openReceiveModal}
-                >
+                <Button onClick={openReceiveModal}>
                   {/* ระหว่างผลิตเป็นการรับ "งวด" หนึ่ง ไม่ใช่ปิดยอดทั้งใบ */}
                   {isCompleted
                     ? "ขอรับผลผลิตเข้าคลัง"

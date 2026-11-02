@@ -17,6 +17,11 @@ import {
   type Role,
   type UpdateUserRequest,
 } from "@/types/users";
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MIN_MESSAGE,
+  PASSWORD_PLACEHOLDER,
+} from "@/lib/user/password-policy";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 const DEFAULT_DAYS_PER_MONTH = 30;
@@ -169,7 +174,7 @@ export default function UserFormModal({
         canLogin: values.canLogin,
         email: values.email?.trim() || undefined,
         phone: values.phone?.trim() || undefined,
-        password: values.canLogin ? values.password?.trim() : undefined,
+        password: values.canLogin ? values.password : undefined,
         roleIds: values.canLogin ? values.roleIds : [],
         isActive: values.isActive,
       });
@@ -403,10 +408,10 @@ export default function UserFormModal({
                 name="password"
                 rules={[
                   { required: true, message: "กรุณากรอกรหัสผ่าน" },
-                  { min: 8, message: "อย่างน้อย 8 ตัวอักษร" },
+                  { min: PASSWORD_MIN_LENGTH, message: PASSWORD_MIN_MESSAGE },
                 ]}
               >
-                <Input.Password placeholder="อย่างน้อย 8 ตัวอักษร" />
+                <Input.Password placeholder={PASSWORD_PLACEHOLDER} />
               </Form.Item>
             ) : null}
 

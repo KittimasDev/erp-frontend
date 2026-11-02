@@ -37,6 +37,18 @@ function actionLabel(action: string) {
       return "ลูกค้าตีกลับสินค้า";
     case "DELETE":
       return "ลบ";
+    case "APPROVE":
+      return "อนุมัติ";
+    case "REJECT":
+      return "ปฏิเสธ";
+    case "SUBMIT":
+      return "ส่งอนุมัติ";
+    case "FINALIZE":
+      return "สรุป/ปิดรายการ";
+    case "PRINT":
+      return "พิมพ์";
+    case "EXPORT":
+      return "ส่งออก";
     default:
       return action;
   }
@@ -46,7 +58,13 @@ function actionColor(action: string) {
   switch (action) {
     case "CREATE":
     case "CONFIRM":
+    case "APPROVE":
+    case "FINALIZE":
       return "green";
+    case "SUBMIT":
+    case "PRINT":
+    case "EXPORT":
+      return "purple";
     case "UPDATE":
     case "UPDATE_ITEMS":
     case "UPDATE_CUSTOMER_PO":
@@ -57,6 +75,7 @@ function actionColor(action: string) {
     case "CANCEL_ROUND":
     case "DELIVERY_RETURN":
     case "DELETE":
+    case "REJECT":
       return "red";
     default:
       return "default";

@@ -44,10 +44,18 @@ type FilterFormValues = {
 };
 
 const ACTION_OPTIONS = [
-  { value: "CREATE", label: "CREATE" },
-  { value: "UPDATE", label: "UPDATE" },
-  { value: "DELETE", label: "DELETE" },
-];
+  "LOGIN",
+  "LOGOUT",
+  "CREATE",
+  "UPDATE",
+  "DELETE",
+  "APPROVE",
+  "REJECT",
+  "PRINT",
+  "EXPORT",
+  "CONFIRM",
+  "CANCEL",
+].map((value) => ({ value, label: value }));
 
 const LIMIT = 20;
 
@@ -142,6 +150,13 @@ export default function AuditLogsPage() {
           ) : null}
         </div>
       ),
+    },
+    {
+      title: "IP Address",
+      dataIndex: "ipAddress",
+      key: "ipAddress",
+      width: 140,
+      render: (value?: string) => value ?? "—",
     },
     {
       title: "ผู้ทำรายการ",
@@ -309,7 +324,12 @@ export default function AuditLogsPage() {
           {detail ? (
             <pre className={styles.jsonPre}>
               {JSON.stringify(
-                { oldValue: detail.oldValue, newValue: detail.newValue },
+                {
+                  ipAddress: detail.ipAddress,
+                  userAgent: detail.userAgent,
+                  oldValue: detail.oldValue,
+                  newValue: detail.newValue,
+                },
                 null,
                 2,
               )}

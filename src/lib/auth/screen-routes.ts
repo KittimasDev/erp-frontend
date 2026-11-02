@@ -234,6 +234,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
 
   // Sales
   { prefix: "/customers", screenCodes: ["MASTERS_CUSTOMERS"] },
+  {
+    prefix: "/customers/sales-orders-in-production",
+    screenCodes: ["SALES_ORDERS_IN_PRODUCTION"],
+  },
   { prefix: "/quotations", screenCodes: ["QUOTATIONS"] },
   {
     prefix: "/sales-orders/stock-verification",
@@ -277,6 +281,8 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   // HRM / finance
   { prefix: "/hrm/dashboard", screenCodes: ["HRM_DASHBOARD"] },
   { prefix: "/hrm/shutdown-plans", screenCodes: ["HRM_SHUTDOWN"] },
+  { prefix: "/hrm/shifts", screenCodes: ["HRM_SHIFT"] },
+  { prefix: "/hrm/shift-assignments", screenCodes: ["HRM_SHIFT_ASSIGNMENT"] },
   { prefix: "/hrm/payroll", screenCodes: ["HRM_PAYROLL"] },
   { prefix: "/hrm/attendance-devices", screenCodes: ["HRM_ATTENDANCE_DEVICES"] },
   { prefix: "/hrm/attendance", screenCodes: ["HRM_ATTENDANCE"] },
@@ -420,6 +426,10 @@ const SCREEN_ROUTE_RULES: ScreenRouteRule[] = [
   // AccessDenied ก่อนที่ UserManagementPage จะได้ redirect ไป /profile
   { prefix: "/users", query: { tab: "signature" }, screenCodes: [] },
   { prefix: "/users", screenCodes: ["USERS", "ROLES", "PERMISSIONS"] },
+  {
+    prefix: "/masters/company-profile",
+    screenCodes: ["MASTERS_COMPANY_PROFILE"],
+  },
   { prefix: "/masters/vendors", screenCodes: ["MASTERS_VENDORS"] },
   { prefix: "/masters/items", screenCodes: ["MASTERS_ITEMS"] },
   { prefix: "/masters/chemicals", screenCodes: ["MASTERS_CHEMICALS"] },
@@ -646,6 +656,8 @@ export const SCREEN_CODE_HUB_HREF: Record<string, string> = {
   MAINTENANCE_DASHBOARD: "/maintenance/dashboard",
   USERS: "/users",
   HRM_SHUTDOWN: "/hrm/shutdown-plans",
+  HRM_SHIFT: "/hrm/shifts",
+  HRM_SHIFT_ASSIGNMENT: "/hrm/shift-assignments",
   HRM_DASHBOARD: "/hrm/dashboard",
   HRM_PAYROLL: "/hrm/payroll",
   HRM_ATTENDANCE: "/hrm/attendance",

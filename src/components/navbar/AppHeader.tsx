@@ -12,7 +12,12 @@ import {
   userHasRole,
   type StoredUser,
 } from "@/lib/auth/session";
-import { clearAccessToken } from "@/lib/auth/token";
+import { logout as logoutApi } from "@/lib/api/auth";
+import {
+  clearAccessToken,
+  getAccessToken,
+  hasAccessToken,
+} from "@/lib/auth/token";
 import {
   canAccessAnyScreen,
   canAccessScreen,
@@ -2685,6 +2690,10 @@ export default function AppHeader({
     user?.roles?.[0]?.roleName ?? user?.roles?.[0]?.roleCode ?? "ERP";
 
   const handleLogout = () => {
+    // บันทึกเหตุการณ์ออกจากระบบลง audit log — ไม่รอผลและไม่บล็อกการออกจากระบบ
+    if (hasAccessToken()) {
+      void logoutApi(getAccessToken());
+    }
     clearActivePortalModule();
     clearAccessToken();
     window.location.replace("/login");

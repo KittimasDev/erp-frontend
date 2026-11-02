@@ -58,3 +58,31 @@
     max-height: 50vh;
   }
 }
+
+.actionTag[data-action="LOGIN"],
+.actionTag[data-action="APPROVE"],
+.actionTag[data-action="CONFIRM"] {
+  color: #3f8600;
+  border-color: rgba(63, 134, 0, 0.25);
+  background: rgba(63, 134, 0, 0.1);
+}
+
+.actionTag[data-action="LOGOUT"],
+.actionTag[data-action="CANCEL"] {
+  color: #8c8c8c;
+  border-color: rgba(140, 140, 140, 0.25);
+  background: rgba(140, 140, 140, 0.1);
+}
+
+.actionTag[data-action="REJECT"] {
+  color: #cf1322;
+  border-color: rgba(207, 19, 34, 0.25);
+  background: rgba(207, 19, 34, 0.1);
+}
+
+.actionTag[data-action="PRINT"],
+.actionTag[data-action="EXPORT"] {
+  color: #531dab;
+  border-color: rgba(83, 29, 171, 0.25);
+  background: rgba(83, 29, 171, 0.1);
+}
