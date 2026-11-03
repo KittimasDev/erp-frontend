@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Button,
   Checkbox,
@@ -35,6 +35,7 @@ import {
 } from "@/lib/auth/permissions-access";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { RoleCode } from "@/lib/auth/role-codes";
+import { rememberPurchaseOrderListHref } from "@/lib/navigation/purchase-order-list-return";
 import type { PurchaseOrder } from "@/types/purchase-orders";
 import {
   listPurchaseRequests,
@@ -130,21 +131,87 @@ function formatMoney(value?: string) {
 
 export default function PurchaseOrdersListPage() {
   const router = useRouter();
-  const [poNo, setPoNo] = useState("");
-  const [status, setStatus] = useState<string | undefined>();
-  const [poDate, setPoDate] = useState<dayjs.Dayjs | null>(null);
-  const [itemIds, setItemIds] = useState<string[]>([]);
-  const [pendingItemIds, setPendingItemIds] = useState<string[]>([]);
-  const [applied, setApplied] = useState<{
-    poNo?: string;
-    status?: string;
-    poDateFrom?: string;
-    poDateTo?: string;
-    itemIds?: string[];
-  }>({});
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-  const [pendingPage, setPendingPage] = useState(1);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  /*
+    หน้า/ตัวกรอง/จำนวนต่อหน้าเก็บใน URL (?page=2&poNo=…) ไม่ใช่ state ในหน้า
+    เพื่อให้กดเข้าไปดูรายละเอียดแล้วย้อนกลับ (ปุ่มเบราว์เซอร์หรือปุ่ม "กลับ") ได้หน้าเดิมและตัวกรองเดิม
+    ไม่ reset ไปหน้า 1 — ใช้ replace เพื่อไม่ให้ทุกครั้งที่เปลี่ยนหน้าไปเพิ่มประวัติให้ต้องกดย้อนหลายที
+  */
+  const positiveInt = (key: string, fallback: number) => {
+    const n = Number(searchParams.get(key));
+    return Number.isInteger(n) && n > 0 ? n : fallback;
+  };
+  const csvParam = (key: string) =>
+    (searchParams.get(key) ?? "").split(",").filter(Boolean);
+
+  const page = positiveInt("page", 1);
+  const limitParam = positiveInt("limit", 10);
+  const limit = [10, 25, 50].includes(limitParam) ? limitParam : 10;
+  const pendingPage = positiveInt("prPage", 1);
+  const prItemsParam = searchParams.get("prItems") ?? "";
+  const pendingItemIds = useMemo(
+    () => prItemsParam.split(",").filter(Boolean),
+    [prItemsParam],
+  );
+
+  /** แก้เฉพาะคีย์ที่ส่งมา (undefined = ลบคีย์) ที่เหลือคงเดิม */
+  const updateParams = useCallback(
+    (patch: Record<string, string | undefined>) => {
+      const next = new URLSearchParams(searchParams.toString());
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === undefined || value === "") next.delete(key);
+        else next.set(key, value);
+      }
+      const qs = next.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+  const setPage = (value: number) =>
+    updateParams({ page: value > 1 ? String(value) : undefined });
+  const setPendingPage = (value: number) =>
+    updateParams({ prPage: value > 1 ? String(value) : undefined });
+  const setPendingItemIds = (value: string[]) =>
+    updateParams({
+      prItems: value.length ? value.join(",") : undefined,
+      prPage: undefined,
+    });
+
+  // ค่าในช่องกรอก (draft) เริ่มจาก URL — ใช้จริงเมื่อกด "ค้นหา" (applied อ่านจาก URL)
+  const [poNo, setPoNo] = useState(() => searchParams.get("poNo") ?? "");
+  const [status, setStatus] = useState<string | undefined>(
+    () => searchParams.get("status") || undefined,
+  );
+  const [poDate, setPoDate] = useState<dayjs.Dayjs | null>(() => {
+    const raw = searchParams.get("date");
+    const parsed = raw ? dayjs(raw) : null;
+    return parsed?.isValid() ? parsed : null;
+  });
+  const [itemIds, setItemIds] = useState<string[]>(() => csvParam("items"));
+  const poNoParam = searchParams.get("poNo") ?? "";
+  const statusParam = searchParams.get("status") ?? "";
+  const dateParam = searchParams.get("date") ?? "";
+  const itemsParam = searchParams.get("items") ?? "";
+  const applied = useMemo(() => {
+    const items = itemsParam.split(",").filter(Boolean);
+    return {
+      poNo: poNoParam || undefined,
+      status: statusParam || undefined,
+      poDateFrom: dateParam || undefined,
+      poDateTo: dateParam || undefined,
+      itemIds: items.length ? items : undefined,
+    };
+  }, [poNoParam, statusParam, dateParam, itemsParam]);
+
+  // จำ URL ปัจจุบันไว้ให้ปุ่ม "กลับ" ในหน้ารายละเอียด/แก้ไขใช้
+  const searchString = searchParams.toString();
+  useEffect(() => {
+    rememberPurchaseOrderListHref(
+      searchString ? `${pathname}?${searchString}` : pathname,
+    );
+  }, [pathname, searchString]);
   const pendingLimit = 10;
   /*
     ติ๊กเป็นราย "บรรทัด" ไม่ใช่ราย "ใบ" — ใบขอซื้อใบเดียวแตกเป็นใบสั่งซื้อได้หลายใบ
@@ -711,10 +778,7 @@ export default function PurchaseOrdersListPage() {
             placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
             aria-label="สินค้าในคิวใบขอซื้อ"
             value={pendingItemIds}
-            onChange={(value) => {
-              setPendingItemIds(value);
-              setPendingPage(1);
-            }}
+            onChange={(value) => setPendingItemIds(value)}
             options={itemOptions}
           />
           {selectedLines.length ? (
@@ -868,8 +932,13 @@ export default function PurchaseOrdersListPage() {
               setStatus(undefined);
               setPoDate(null);
               setItemIds([]);
-              setApplied({});
-              setPage(1);
+              updateParams({
+                poNo: undefined,
+                status: undefined,
+                date: undefined,
+                items: undefined,
+                page: undefined,
+              });
             }}
           >
             เคลียร์
@@ -879,13 +948,12 @@ export default function PurchaseOrdersListPage() {
             className={styles.primaryBtn}
             icon={<SearchOutlined />}
             onClick={() => {
-              setPage(1);
-              setApplied({
+              updateParams({
                 poNo: poNo.trim() || undefined,
                 status,
-                poDateFrom: poDate ? poDate.format("YYYY-MM-DD") : undefined,
-                poDateTo: poDate ? poDate.format("YYYY-MM-DD") : undefined,
-                itemIds: itemIds.length ? itemIds : undefined,
+                date: poDate ? poDate.format("YYYY-MM-DD") : undefined,
+                items: itemIds.length ? itemIds.join(",") : undefined,
+                page: undefined,
               });
             }}
           >
@@ -910,10 +978,12 @@ export default function PurchaseOrdersListPage() {
                 { label: "25", value: 25 },
                 { label: "50", value: 50 },
               ]}
-              onChange={(value) => {
-                setLimit(value);
-                setPage(1);
-              }}
+              onChange={(value) =>
+                updateParams({
+                  limit: value === 10 ? undefined : String(value),
+                  page: undefined,
+                })
+              }
             />
             <span>รายการ/หน้า</span>
           </div>

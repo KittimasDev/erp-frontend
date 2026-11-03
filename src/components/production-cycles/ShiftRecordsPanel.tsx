@@ -606,8 +606,12 @@ function DynamicRecordModal({
         initialValues={{
           recordDate: record ? dayjs(record.recordDate) : dayjs(),
           shiftId: record?.shiftId,
-          shiftStartTime: undefined,
-          shiftEndTime: undefined,
+          shiftStartTime: parseShiftClock(
+            shifts.find((s) => s.id === record?.shiftId)?.startTime,
+          ),
+          shiftEndTime: parseShiftClock(
+            shifts.find((s) => s.id === record?.shiftId)?.endTime,
+          ),
           operatorIds: record?.operators.map((o) => o.id) ?? [],
           remark: record?.remark,
           values: record?.values ?? {},
@@ -868,6 +872,12 @@ function LegacyRecordModal({
         initialValues={{
           recordDate: record ? dayjs(record.recordDate) : dayjs(),
           shiftId: record?.shiftId,
+          shiftStartTime: parseShiftClock(
+            shifts.find((s) => s.id === record?.shiftId)?.startTime,
+          ),
+          shiftEndTime: parseShiftClock(
+            shifts.find((s) => s.id === record?.shiftId)?.endTime,
+          ),
           inputTireKg: record?.inputTireKg,
           operatingHours: record?.operatingHours,
           feedRateKgH:

@@ -20,6 +20,7 @@ import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useEquipmentQuery } from "@/hooks/maintenance/useMaintenance";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
 import { validateRecordingEquipmentConfig } from "@/utils/recordingEquipment";
+import { validateRecordingBomLinks } from "@/utils/recordingBomLink";
 import type {
   ProductionFormula,
   ProductionFormulaLineBody,
@@ -290,6 +291,37 @@ function FormulaFormBody({
       message.error(equipmentErrors[0]);
       return;
     }
+    // ตัดรายการยกเว้นที่ค้าง: วัตถุดิบถูกลบจาก BOM แล้ว หรือภายหลังลิงก์ช่อง Input แล้ว
+    const inputIds = new Set(
+      bomLineOptions.filter((l) => l.lineRole === "INPUT").map((l) => l.itemId),
+    );
+    const linkedIds = new Set(
+      recordingConfig.fields.flatMap((f) =>
+        f.resultRole === "INPUT" && f.linkedItemId ? [f.linkedItemId] : [],
+      ),
+    );
+    const cleanConfig = {
+      ...recordingConfig,
+      bomExemptions: (recordingConfig.bomExemptions ?? []).filter(
+        (e) => inputIds.has(e.itemId) && !linkedIds.has(e.itemId),
+      ),
+    };
+    // เปิดใช้งานอยู่ต้องลิงก์ BOM ครบ · ปิดใช้งาน (ฉบับร่าง) บันทึกได้
+    if (values.isActive) {
+      const bomErrors = validateRecordingBomLinks(
+        cleanConfig,
+        bomLineOptions
+          .filter((l) => l.lineRole === "INPUT")
+          .map((l) => ({ itemId: l.itemId, label: l.label.replace(/^INPUT · /, "") })),
+      );
+      if (bomErrors.length > 0) {
+        message.error(
+          `${bomErrors.join(" · ")} — ลิงก์ให้ครบที่แท็บ "การตั้งค่าบันทึกผลการผลิต" หรือปิดสถานะใช้งานเพื่อบันทึกเป็นฉบับร่าง`,
+          8,
+        );
+        return;
+      }
+    }
     const collect = (role: string, rows?: LineValues[]) =>
       (rows ?? []).map((line, indexInRole) => ({
         lineRole: role,
@@ -317,6 +349,7 @@ function FormulaFormBody({
       remark: values.remark,
       recordingConfig: {
         equipmentIds: recordingConfig.equipmentIds ?? [],
+        bomExemptions: cleanConfig.bomExemptions,
         fields: recordingConfig.fields.map((f, i) => ({ ...f, sortOrder: i })),
       },
       lines: allLines,

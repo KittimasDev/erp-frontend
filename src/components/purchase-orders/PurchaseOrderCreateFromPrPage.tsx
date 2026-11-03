@@ -9,6 +9,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getPurchaseOrderListHref } from "@/lib/navigation/purchase-order-list-return";
 import {
   App,
   Button,
@@ -167,6 +168,11 @@ export default function PurchaseOrderCreateFromPrPage({
   preselectedPrItemIds,
 }: Props) {
   const router = useRouter();
+  /** กลับหน้ารายการใบสั่งซื้อพร้อมหน้า/ตัวกรองเดิม (ไม่ reset ไปหน้า 1) */
+  const goBackToList = (event: React.MouseEvent) => {
+    event.preventDefault();
+    router.push(getPurchaseOrderListHref());
+  };
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -471,7 +477,12 @@ export default function PurchaseOrderCreateFromPrPage({
         โหลดใบขอซื้อไม่สำเร็จ — ตรวจสิทธิ์ใบสั่งซื้อ (ADD/VIEW) ใน Permission
         Matrix
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับรายการใบสั่งซื้อ</Link>
+          <Link
+            href="/purchase-orders"
+            onClick={goBackToList}
+          >
+            กลับรายการใบสั่งซื้อ
+          </Link>
         </div>
       </div>
     );
@@ -482,7 +493,12 @@ export default function PurchaseOrderCreateFromPrPage({
       <div className={styles.page}>
         ไม่พบใบขอซื้อ{prs.length ? "บางใบ" : ""}
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับรายการใบสั่งซื้อ</Link>
+          <Link
+            href="/purchase-orders"
+            onClick={goBackToList}
+          >
+            กลับรายการใบสั่งซื้อ
+          </Link>
         </div>
       </div>
     );
@@ -495,7 +511,12 @@ export default function PurchaseOrderCreateFromPrPage({
         สร้างใบสั่งซื้อได้เฉพาะ PR สถานะ APPROVED — ใบที่ยังไม่ผ่าน:{" "}
         {notApprovedPrs.map((row) => `${row.prNo} (${row.status})`).join(", ")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับรายการใบสั่งซื้อ</Link>
+          <Link
+            href="/purchase-orders"
+            onClick={goBackToList}
+          >
+            กลับรายการใบสั่งซื้อ
+          </Link>
         </div>
       </div>
     );
@@ -526,7 +547,12 @@ export default function PurchaseOrderCreateFromPrPage({
           </div>
         ) : null}
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับรายการใบสั่งซื้อ</Link>
+          <Link
+            href="/purchase-orders"
+            onClick={goBackToList}
+          >
+            กลับรายการใบสั่งซื้อ
+          </Link>
         </div>
       </div>
     );
@@ -695,6 +721,7 @@ export default function PurchaseOrderCreateFromPrPage({
             href={
               isSinglePr ? `/purchase-requests/${pr.id}` : "/purchase-orders"
             }
+            onClick={isSinglePr ? undefined : goBackToList}
           >
             <Button icon={<ArrowLeftOutlined />}>
               {isSinglePr ? "กลับ PR" : "กลับรายการใบสั่งซื้อ"}

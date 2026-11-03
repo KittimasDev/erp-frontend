@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getPurchaseOrderBackHref } from "@/lib/navigation/purchase-order-list-return";
 import {
   App,
   Button,
@@ -182,7 +183,15 @@ export default function PurchaseOrderEditPage({ id }: Props) {
       <div className={styles.page}>
         ไม่พบใบสั่งซื้อ
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับ</Link>
+          <Link
+            href="/purchase-orders"
+            onClick={(event) => {
+              event.preventDefault();
+              router.push(getPurchaseOrderBackHref());
+            }}
+          >
+            กลับ
+          </Link>
         </div>
       </div>
     );

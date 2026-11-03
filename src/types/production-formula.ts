@@ -127,6 +127,8 @@ export type ProductionRecordingConfig = {
   fields: RecordingFieldDef[];
   /** เครื่องจักรที่สูตรนี้ใช้ (equipment.id) */
   equipmentIds?: string[];
+  /** วัตถุดิบ BOM ที่ไม่ต้องบันทึกผลรายกะ พร้อมเหตุผล */
+  bomExemptions?: { itemId: string; reason: string }[];
 };
 
 export type ProductionFormula = {

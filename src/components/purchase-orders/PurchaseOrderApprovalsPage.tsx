@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Breadcrumb,
   Button,
@@ -34,6 +34,10 @@ import {
   isMatrixPermissionMode,
 } from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
+import {
+  getPurchaseOrderListHref,
+  rememberPurchaseOrderApprovalsHref,
+} from "@/lib/navigation/purchase-order-list-return";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import type { PurchaseOrder } from "@/types/purchase-orders";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
@@ -55,8 +59,33 @@ function formatMoney(value?: string) {
 
 export default function PurchaseOrderApprovalsPage() {
   const router = useRouter();
-  const [page, setPage] = useState(1);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // หน้าปัจจุบันเก็บใน URL (?page=2) เพื่อให้ย้อนกลับจากหน้ารายละเอียดแล้วได้หน้าเดิม
+  const pageParam = Number(searchParams.get("page"));
+  const page = Number.isInteger(pageParam) && pageParam > 0 ? pageParam : 1;
   const limit = 10;
+  const setPage = useCallback(
+    (next: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (next > 1) params.set("page", String(next));
+      else params.delete("page");
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [pathname, router, searchParams],
+  );
+  const searchString = searchParams.toString();
+  useEffect(() => {
+    rememberPurchaseOrderApprovalsHref(
+      searchString ? `${pathname}?${searchString}` : pathname,
+    );
+  }, [pathname, searchString]);
+  /** กลับรายการใบสั่งซื้อพร้อมหน้า/ตัวกรองเดิม */
+  const goBackToList = (event: React.MouseEvent) => {
+    event.preventDefault();
+    router.push(getPurchaseOrderListHref());
+  };
   // modal เหตุผล — ใช้ทั้งไม่อนุมัติและส่งกลับแก้ไข
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [reviewAction, setReviewAction] = useState<"reject" | "return">(
@@ -201,7 +230,9 @@ export default function PurchaseOrderApprovalsPage() {
         PURCHASE_ORDER_APPROVALS · VIEW หรือ APPROVE ที่หน้าผู้ใช้งาน →
         การอนุญาต
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับรายการ</Link>
+          <Link href="/purchase-orders" onClick={goBackToList}>
+            กลับรายการ
+          </Link>
         </div>
       </div>
     );
@@ -212,7 +243,13 @@ export default function PurchaseOrderApprovalsPage() {
       <Breadcrumb
         className={styles.breadcrumb}
         items={[
-          { title: <Link href="/purchase-orders">ใบสั่งซื้อ</Link> },
+          {
+            title: (
+              <Link href="/purchase-orders" onClick={goBackToList}>
+                ใบสั่งซื้อ
+              </Link>
+            ),
+          },
           {
             title: (
               <span className={styles.breadcrumbActive}>รายการรออนุมัติ</span>

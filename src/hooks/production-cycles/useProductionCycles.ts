@@ -123,7 +123,7 @@ export function useUpdateShiftRecordMutation() {
   const { done, fail } = useHelpers([shiftRecordsKey, productionCyclesKey]);
   return useMutation({
     mutationFn: (v: { id: string; body: UpdateShiftRecordBody }) => api.updateShiftRecord(getAccessToken(), v.id, v.body),
-    onSuccess: () => done("แก้บันทึกการผลิตรายกะแล้ว"),
+    onSuccess: () => done("บันทึกผลการผลิตสำเร็จ"),
     onError: (e) => fail(e, "แก้บันทึกไม่สำเร็จ"),
   });
 }
@@ -152,7 +152,11 @@ export function useConfirmShiftRecordMutation() {
 }
 
 export function useUnconfirmShiftRecordMutation() {
-  const { done, fail } = useHelpers([shiftRecordsKey, productionCyclesKey]);
+  const { done, fail } = useHelpers([
+    shiftRecordsKey,
+    productionCyclesKey,
+    ["production-orders"],
+  ]);
   return useMutation({
     mutationFn: (id: string) => api.unconfirmShiftRecord(getAccessToken(), id),
     onSuccess: () => done("ยกเลิกยืนยันและคืนสต๊อกแล้ว"),

@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { getPurchaseOrderBackHref } from "@/lib/navigation/purchase-order-list-return";
 import { App, Button, Descriptions, Input, Modal, Spin, Table, Typography, Upload } from "antd";
 import type { UploadProps } from "antd";
 import type { ColumnsType } from "antd/es/table";
@@ -416,7 +417,15 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       <div className={styles.emptyCard}>
         ไม่พบใบสั่งซื้อ
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-orders">กลับรายการ</Link>
+          <Link
+            href="/purchase-orders"
+            onClick={(event) => {
+              event.preventDefault();
+              router.push(getPurchaseOrderBackHref());
+            }}
+          >
+            กลับรายการ
+          </Link>
         </div>
       </div>
     );
@@ -531,7 +540,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
         <div className={styles.headerActions}>
           <Button
             icon={<ArrowLeftOutlined />}
-            onClick={() => router.push("/purchase-orders")}
+            onClick={() => router.push(getPurchaseOrderBackHref())}
           >
             กลับ
           </Button>

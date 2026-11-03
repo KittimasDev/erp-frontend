@@ -135,6 +135,21 @@ export default function RecordingConfigEditor({
     setFields(fields.map((f) => (f.id === id ? { ...f, ...partial } : f)));
   };
 
+  const exemptions = value.bomExemptions ?? [];
+  const linkedInputIds = new Set(
+    fields.flatMap((f) =>
+      f.resultRole === "INPUT" && f.linkedItemId ? [f.linkedItemId] : [],
+    ),
+  );
+  // เฉพาะวัตถุดิบที่ยังอยู่ใน BOM — ตัดรายการยกเว้นที่ค้างจากบรรทัดที่ถูกลบ
+  const setExemptions = (next: { itemId: string; reason: string }[]) =>
+    onChange({
+      ...value,
+      bomExemptions: next.filter((e) =>
+        bomLines.some((l) => l.lineRole === "INPUT" && l.itemId === e.itemId),
+      ),
+    });
+
   const move = (index: number, dir: -1 | 1) => {
     const target = index + dir;
     if (target < 0 || target >= fields.length) return;
@@ -431,6 +446,69 @@ export default function RecordingConfigEditor({
       >
         เพิ่มรายการบันทึก
       </Button>
+
+      <Card size="small" title="การลิงก์วัตถุดิบ (BOM) กับช่องบันทึก Input">
+        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+          <Typography.Text type="secondary">
+            วัตถุดิบทุกตัวในสูตรต้องมีช่อง Input ที่ลิงก์ไว้ (เพื่อให้ตัดสต๊อกครบ) หรือยกเว้นพร้อมเหตุผล ·
+            ถ้ายังไม่ครบ บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่เปิดใช้งานไม่ได้
+          </Typography.Text>
+          {bomLines
+            .filter((l) => l.lineRole === "INPUT")
+            .map((l) => {
+              const isLinked = linkedInputIds.has(l.itemId);
+              const ex = exemptions.find((e) => e.itemId === l.itemId);
+              const name = l.label.replace(/^INPUT · /, "");
+              return (
+                <Space key={l.itemId} wrap size={8}>
+                  <Typography.Text>{name}</Typography.Text>
+                  {isLinked ? (
+                    <Tag color="green">ลิงก์แล้ว</Tag>
+                  ) : ex ? (
+                    <Tag color="gold">ยกเว้น</Tag>
+                  ) : (
+                    <Tag color="red">ยังไม่ได้ลิงก์</Tag>
+                  )}
+                  {!isLinked ? (
+                    <>
+                      <Switch
+                        size="small"
+                        checked={Boolean(ex)}
+                        checkedChildren="ไม่ต้องบันทึกรายกะ"
+                        unCheckedChildren="ไม่ต้องบันทึกรายกะ"
+                        onChange={(on) =>
+                          setExemptions(
+                            on
+                              ? [...exemptions, { itemId: l.itemId, reason: "" }]
+                              : exemptions.filter((e) => e.itemId !== l.itemId),
+                          )
+                        }
+                      />
+                      {ex ? (
+                        <Input
+                          size="small"
+                          style={{ width: 280 }}
+                          placeholder="เหตุผล (จำเป็น)"
+                          value={ex.reason}
+                          status={ex.reason.trim() ? undefined : "error"}
+                          onChange={(e) =>
+                            setExemptions(
+                              exemptions.map((x) =>
+                                x.itemId === l.itemId
+                                  ? { ...x, reason: e.target.value }
+                                  : x,
+                              ),
+                            )
+                          }
+                        />
+                      ) : null}
+                    </>
+                  ) : null}
+                </Space>
+              );
+            })}
+        </Space>
+      </Card>
 
       <Card size="small" title="ตัวอย่างฟอร์มบันทึกผล">
         {fields.length === 0 ? (
