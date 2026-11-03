@@ -471,7 +471,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       vatAmount: totals.vat + chargeVat,
       totalAmount: grandTotal,
       charges: charges.map((c) => ({
-        typeLabel: PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType,
+        typeLabel: c.expenseTypeName ?? PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType,
         description: c.description,
         amountBeforeVat: Number(c.amountBeforeVat) || 0,
         vatAmount: Number(c.vatAmount) || 0,
@@ -755,7 +755,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     <div className={styles.itemIndex}>{index + 1}</div>
                     <div className={styles.itemBody}>
                       <p className={styles.itemName}>
-                        {PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType}
+                        {c.expenseTypeName ?? PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType}
                         {" — "}
                         {c.description}
                       </p>

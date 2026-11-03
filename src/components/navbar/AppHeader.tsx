@@ -2119,6 +2119,15 @@ const masterMenus: MenuItem[] = [
     roles: [ROLE.ACCOUNTING_OFFICER],
   },
   {
+    // GL ของประเภทค่าใช้จ่ายกำหนดบัญชีของสมุดรายวันซื้อ — สิทธิ์เดียวกับผังบัญชี
+    key: "expense-types",
+    screenCode: "MASTERS_EXPENSE_TYPES",
+    label: "ประเภทค่าใช้จ่าย",
+    href: "/masters/expense-types",
+    icon: <IconCategory />,
+    roles: [ROLE.ACCOUNTING_OFFICER],
+  },
+  {
     // ตั้งกฎผิดทำให้ยอดสต๊อกทั้งระบบเพี้ยน จึงจำกัดเฉพาะระดับหัวหน้าฝ่าย
     key: "unit-conversions",
     screenCode: "MASTERS_UNIT_CONVERSIONS",

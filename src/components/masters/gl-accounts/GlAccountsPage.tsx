@@ -1,9 +1,36 @@
 "use client";
 
-import { useState } from "react";
-import { App, Button, Card, Form, Input, Modal, Popconfirm, Select, Space, Switch, Table, Tag, Typography } from "antd";
+import { useState, type ReactNode } from "react";
+import {
+  App,
+  Button,
+  Card,
+  Col,
+  Form,
+  Input,
+  Modal,
+  Popconfirm,
+  Row,
+  Select,
+  Space,
+  Switch,
+  Table,
+  Tag,
+  theme,
+  Typography,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import {
+  AppstoreOutlined,
+  CreditCardOutlined,
+  DeleteOutlined,
+  DollarOutlined,
+  EditOutlined,
+  PercentageOutlined,
+  PlusOutlined,
+  SaveOutlined,
+  WalletOutlined,
+} from "@ant-design/icons";
 
 import {
   useAccountSettingsQuery,
@@ -19,12 +46,25 @@ const SCREEN_CODE = "MASTERS_GL_ACCOUNTS";
 
 type FormValues = { code: string; name: string; isActive: boolean };
 
+const SETTING_GROUPS: Array<{ title: string; icon: ReactNode; keys: string[] }> = [
+  { title: "บัญชีหลัก (การซื้อ)", icon: <AppstoreOutlined />, keys: ["PURCHASE_DEFAULT", "AP_TRADE"] },
+  { title: "ภาษี", icon: <PercentageOutlined />, keys: ["INPUT_VAT", "WHT_PAYABLE"] },
+  {
+    title: "ค่าใช้จ่ายเพิ่มเติม",
+    icon: <DollarOutlined />,
+    keys: ["CHARGE_FREIGHT", "CHARGE_SERVICE", "CHARGE_OTHER"],
+  },
+  { title: "เงินล่วงหน้า / มัดจำ", icon: <WalletOutlined />, keys: ["ADVANCE_PAID", "DEPOSIT_PAID"] },
+  { title: "เงินสดและเช็คจ่าย", icon: <CreditCardOutlined />, keys: ["CASH_ON_HAND", "CHEQUE_PAYABLE"] },
+];
+
 /**
  * ผังบัญชีย่อ + การผูกบัญชีหลักของสมุดรายวันซื้อ
  * รหัสบัญชีต้องตรงกับ Express — สมุดรายวันซื้อใช้บัญชีเหล่านี้สร้างบรรทัดเดบิต/เครดิตและไฟล์ส่งออก
  */
 export default function GlAccountsPage() {
   const { message } = App.useApp();
+  const { token } = theme.useToken();
   const perms = useScreenActionPermissions(SCREEN_CODE);
   const [search, setSearch] = useState("");
   const [keyword, setKeyword] = useState("");
@@ -48,6 +88,25 @@ export default function GlAccountsPage() {
   const settings = settingsQuery.data ?? [];
   const valueOf = (key: string, saved: string | null) => (key in draft ? draft[key] : saved);
   const dirty = Object.keys(draft).length > 0;
+
+  // จัดกลุ่มตามประเภท — คีย์ที่ไม่อยู่ในกลุ่มใดจะตกไปกลุ่ม "อื่น ๆ" เพื่อไม่ให้ช่องหาย
+  const settingGroups = (() => {
+    const byKey = new Map<string, (typeof settings)[number]>(settings.map((s) => [s.settingKey, s]));
+    const used = new Set<string>();
+    const groups = SETTING_GROUPS.map((group) => ({
+      title: group.title,
+      icon: group.icon,
+      items: group.keys.flatMap((key) => {
+        const found = byKey.get(key);
+        if (!found) return [];
+        used.add(key);
+        return [found];
+      }),
+    }));
+    const rest = settings.filter((s) => !used.has(s.settingKey));
+    if (rest.length > 0) groups.push({ title: "อื่น ๆ", icon: null, items: rest });
+    return groups.filter((group) => group.items.length > 0);
+  })();
 
   const handleSaveSettings = () => {
     const payload = settings.map((s) => ({
@@ -121,7 +180,13 @@ export default function GlAccountsPage() {
         title="การผูกบัญชีหลักของสมุดรายวันซื้อ"
         extra={
           perms.canEdit ? (
-            <Button type="primary" disabled={!dirty} loading={saveSettings.isPending} onClick={handleSaveSettings}>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              disabled={!dirty}
+              loading={saveSettings.isPending}
+              onClick={handleSaveSettings}
+            >
               บันทึกการผูกบัญชี
             </Button>
           ) : null
@@ -133,21 +198,44 @@ export default function GlAccountsPage() {
           ค่าใช้จ่ายเพิ่มเติมจะแสดงเป็นบัญชีของตัวเองแยกบรรทัด ไม่รวมในซื้อสินค้า ·
           ถ้าบัญชีที่ใช้ยังไม่ผูก ระบบจะไม่ยอมส่งออกไป Express
         </Typography.Paragraph>
-        <Form layout="vertical" style={{ maxWidth: 560 }}>
-          {settings.map((s) => (
-            <Form.Item key={s.settingKey} label={s.label}>
-              <Select
-                allowClear
-                showSearch
-                optionFilterProp="label"
-                placeholder="ยังไม่ผูกบัญชี"
-                disabled={!perms.canEdit}
-                value={valueOf(s.settingKey, s.glAccountId) ?? undefined}
-                options={accountOptions}
-                onChange={(value) => setDraft((prev) => ({ ...prev, [s.settingKey]: value ?? null }))}
-              />
-            </Form.Item>
-          ))}
+        <Form layout="vertical" requiredMark={false}>
+          <Row gutter={[12, 12]}>
+            {settingGroups.map((group) => (
+              <Col key={group.title} xs={24} lg={12}>
+                <div
+                  style={{
+                    background: token.colorPrimaryBg,
+                    border: `1px solid ${token.colorPrimaryBorder}`,
+                    borderRadius: token.borderRadiusLG,
+                    padding: "10px 14px 2px",
+                    height: "100%",
+                  }}
+                >
+                  <Typography.Text strong style={{ display: "block", marginBottom: 8, color: token.colorPrimary }}>
+                    {group.icon} {group.title}
+                  </Typography.Text>
+                  <Row gutter={12}>
+                    {group.items.map((s) => (
+                      <Col key={s.settingKey} xs={24} sm={12}>
+                        <Form.Item label={s.label} style={{ marginBottom: 12 }}>
+                          <Select
+                            allowClear
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="ยังไม่ผูกบัญชี"
+                            disabled={!perms.canEdit}
+                            value={valueOf(s.settingKey, s.glAccountId) ?? undefined}
+                            options={accountOptions}
+                            onChange={(value) => setDraft((prev) => ({ ...prev, [s.settingKey]: value ?? null }))}
+                          />
+                        </Form.Item>
+                      </Col>
+                    ))}
+                  </Row>
+                </div>
+              </Col>
+            ))}
+          </Row>
         </Form>
       </Card>
 
@@ -170,11 +258,12 @@ export default function GlAccountsPage() {
             setKeyword(value.trim());
             setPage(1);
           }}
-          style={{ width: 300, marginBottom: 12 }}
+          style={{ width: "100%", maxWidth: 320, marginBottom: 12 }}
         />
         <Table
           rowKey="id"
-          size="middle"
+          size="small"
+          scroll={{ x: "max-content" }}
           loading={accountsQuery.isFetching}
           columns={columns}
           dataSource={accountsQuery.data ?? []}

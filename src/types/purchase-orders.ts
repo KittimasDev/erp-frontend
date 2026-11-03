@@ -126,6 +126,10 @@ export const PO_CHARGE_TYPE_LABEL: Record<string, string> = {
 export type PurchaseOrderCharge = {
   id: string;
   chargeType: string;
+  /** ประเภทค่าใช้จ่ายจาก Master (null = รายการเดิมที่ใช้ chargeType) */
+  expenseTypeId?: string | null;
+  expenseTypeCode?: string | null;
+  expenseTypeName?: string | null;
   description: string;
   amountBeforeVat: string;
   /** NONE / EXCLUSIVE / INCLUSIVE */
@@ -146,7 +150,10 @@ export type PurchaseOrderCharge = {
 
 export type PurchaseOrderChargeBody = {
   id?: string;
-  chargeType: string;
+  /** ไม่ส่งเมื่อมี expenseTypeId — backend กำหนดให้ตามประเภทค่าใช้จ่าย */
+  chargeType?: string;
+  /** null = ใช้ chargeType แบบเดิม · รายการเดิมที่ไม่ส่ง = คงค่าเดิม */
+  expenseTypeId?: string | null;
   description: string;
   amountBeforeVat: number;
   vatMode?: string;

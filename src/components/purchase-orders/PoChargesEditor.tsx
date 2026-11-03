@@ -5,6 +5,7 @@ import { Button, Form, Input, InputNumber, Select, Tag } from "antd";
 import type { FormInstance } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
+import { useExpenseTypesQuery } from "@/hooks/expense-types/useExpenseTypes";
 import {
   STANDARD_VAT_PERCENT,
   VAT_MODE_OPTIONS,
@@ -28,7 +29,11 @@ import styles from "./PurchaseOrderFormPage.module.css";
 /** ค่าในฟอร์มของค่าใช้จ่ายหนึ่งรายการ (ชื่อ _snap* / _allocated = client-only) */
 export type ChargeFormRow = {
   id?: string;
+  /** แบบเดิม (FREIGHT/SERVICE/OTHER) — ใช้เมื่อไม่ได้เลือกประเภทค่าใช้จ่ายจาก Master */
   chargeType?: string;
+  /** ประเภทค่าใช้จ่ายจาก Master — มี = backend กำหนด chargeType ให้ และสมุดรายวันใช้ GL ของประเภทนี้ */
+  expenseTypeId?: string;
+  _expenseTypeName?: string;
   description?: string;
   /** ยอดที่ผู้ใช้กรอก — EXCLUSIVE/NONE = ก่อน VAT, INCLUSIVE = รวม VAT */
   amountBeforeVat?: number;
@@ -76,6 +81,8 @@ export function chargesToFormRows(charges: PurchaseOrderCharge[] | undefined): C
     return {
       id: c.id,
       chargeType: c.chargeType,
+      expenseTypeId: c.expenseTypeId ?? undefined,
+      _expenseTypeName: c.expenseTypeName ?? undefined,
       description: c.description,
       amountBeforeVat:
         vatMode === VatMode.INCLUSIVE ? Number(c.totalAmount) : Number(c.amountBeforeVat),
@@ -96,7 +103,10 @@ export function chargeRowsToBody(rows: ChargeFormRow[] | undefined): PurchaseOrd
     const whtApplicable = whtType !== WithholdingTaxType.NONE && whtRate > 0;
     return {
       id: row.id,
-      chargeType: row.chargeType as string,
+      // มีประเภทจาก Master → ให้ backend กำหนด chargeType เอง (กันสองฟิลด์ขัดกัน) · ล้างประเภท = ส่ง null
+      ...(row.expenseTypeId
+        ? { expenseTypeId: row.expenseTypeId }
+        : { expenseTypeId: null, chargeType: row.chargeType as string }),
       description: (row.description ?? "").trim(),
       amountBeforeVat: Number(row.amountBeforeVat) || 0,
       vatMode: resolveVatMode(row.vatMode),
@@ -132,6 +142,25 @@ type Props = {
  */
 export default function PoChargesEditor({ form, disabled }: Props) {
   const watched = (Form.useWatch("charges", form) ?? []) as ChargeFormRow[];
+  const expenseTypesQuery = useExpenseTypesQuery({ isActive: true });
+  const activeTypes = expenseTypesQuery.data ?? [];
+  const defaultExpenseType =
+    activeTypes.find((t) => t.code === "FREIGHT") ?? activeTypes[0];
+
+  /** ตัวเลือกของแถว: ประเภทที่เปิดใช้งาน + ประเภทที่แถวนี้ใช้อยู่แล้วแม้ถูกปิดไปภายหลัง (ไม่ให้ค่าเดิมหาย) */
+  const optionsFor = (row: ChargeFormRow) => {
+    const options = activeTypes.map((t) => ({
+      value: t.id,
+      label: `${t.code} — ${t.nameTh}${t.glAccountId ? "" : " (ยังไม่ผูก GL)"}`,
+    }));
+    if (row.expenseTypeId && !options.some((o) => o.value === row.expenseTypeId)) {
+      options.push({
+        value: row.expenseTypeId,
+        label: `${row._expenseTypeName ?? "ประเภทเดิม"} (ปิดใช้งาน)`,
+      });
+    }
+    return options;
+  };
 
   return (
     <div className={styles.sectionBlock}>
@@ -188,12 +217,61 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                     }}
                   >
                     <Form.Item
-                      name={[field.name, "chargeType"]}
+                      name={[field.name, "expenseTypeId"]}
                       label="ประเภทค่าใช้จ่าย"
-                      rules={[{ required: true, message: "เลือกประเภท" }]}
+                      extra={
+                        locked
+                          ? "ล็อกแล้ว — มีการนำไปตั้งหนี้"
+                          : row.expenseTypeId
+                            ? "สมุดรายวันซื้อใช้บัญชี GL ของประเภทนี้"
+                            : "ไม่เลือก = ใช้ประเภทแบบเดิมด้านล่าง"
+                      }
+                      rules={[
+                        {
+                          validator: (_, value?: string) =>
+                            value || row.chargeType
+                              ? Promise.resolve()
+                              : Promise.reject(new Error("เลือกประเภท")),
+                        },
+                      ]}
                     >
-                      <Select options={CHARGE_TYPE_OPTIONS} placeholder="เลือกประเภท" disabled={disabled} />
+                      <Select
+                        allowClear
+                        showSearch
+                        optionFilterProp="label"
+                        options={optionsFor(row)}
+                        loading={expenseTypesQuery.isLoading}
+                        placeholder="เลือกประเภทค่าใช้จ่าย"
+                        disabled={disabled || locked}
+                        onChange={(value?: string) => {
+                          const type = activeTypes.find((t) => t.id === value);
+                          form.setFieldValue(
+                            ["charges", field.name, "_expenseTypeName"],
+                            type?.nameTh,
+                          );
+                          // ล้างประเภท → กลับไปใช้ chargeType แบบเดิม (ตั้งค่าตั้งต้นให้เลือกต่อได้ทันที)
+                          if (!value && !row.chargeType) {
+                            form.setFieldValue(["charges", field.name, "chargeType"], "FREIGHT");
+                          }
+                        }}
+                      />
                     </Form.Item>
+                    <Form.Item name={[field.name, "_expenseTypeName"]} hidden>
+                      <Input />
+                    </Form.Item>
+                    {!row.expenseTypeId ? (
+                      <Form.Item
+                        name={[field.name, "chargeType"]}
+                        label="ประเภท (แบบเดิม)"
+                        rules={[{ required: true, message: "เลือกประเภท" }]}
+                      >
+                        <Select
+                          options={CHARGE_TYPE_OPTIONS}
+                          placeholder="เลือกประเภท"
+                          disabled={disabled || locked}
+                        />
+                      </Form.Item>
+                    ) : null}
                     <Form.Item
                       name={[field.name, "description"]}
                       label="รายละเอียดค่าใช้จ่าย"
@@ -284,7 +362,10 @@ export default function PoChargesEditor({ form, disabled }: Props) {
               disabled={disabled}
               onClick={() =>
                 add({
-                  chargeType: "FREIGHT",
+                  // มีประเภทจาก Master → เริ่มที่ค่าขนส่ง · ยังโหลดไม่เสร็จ/ไม่มี → แบบเดิม
+                  chargeType: defaultExpenseType ? undefined : "FREIGHT",
+                  expenseTypeId: defaultExpenseType?.id,
+                  _expenseTypeName: defaultExpenseType?.nameTh,
                   vatMode: VatMode.EXCLUSIVE,
                   withholdingTaxType: WithholdingTaxType.NONE,
                 })
