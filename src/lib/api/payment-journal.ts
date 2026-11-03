@@ -8,6 +8,12 @@ import type {
   PaymentJournalSummary,
 } from "@/types/payment-journal";
 
+import type {
+  DocumentExportHistory,
+  ExportHistoryList,
+  ExpressExportPreview,
+} from "@/types/journal-export";
+
 import { apiFetch } from "./client";
 
 const BASE = "/api/reports/journals/payments";
@@ -71,4 +77,23 @@ export async function exportPaymentJournalToExpress(
     blob: await response.blob(),
     filename: match?.[1] ?? "payment-journal-express.csv",
   };
+}
+
+/** ตรวจก่อนส่งออก Express (ไม่เขียนข้อมูล) — นับใหม่/เคยส่งแล้ว เพื่อเตือนก่อนส่งซ้ำ */
+export function previewPaymentJournalExpress(token: string, body: PaymentExpressExportBody) {
+  return apiFetch<Res<ExpressExportPreview>>(`${BASE}/export/express-csv/preview`, {
+    token,
+    method: "POST",
+    body,
+  });
+}
+
+/** ประวัติการส่งออกทุกรอบ (ใหม่สุดก่อน) */
+export function getPaymentJournalExportHistory(token: string, params?: { page?: number; limit?: number }) {
+  return apiFetch<Res<ExportHistoryList>>(`${BASE}/export-history${buildQuery(params)}`, { token });
+}
+
+/** ประวัติการส่งออกของเอกสาร/รายการ 1 ใบ */
+export function getPaymentJournalDocumentExportHistory(token: string, id: string) {
+  return apiFetch<Res<DocumentExportHistory>>(`${BASE}/by-document/${id}/export-history`, { token });
 }

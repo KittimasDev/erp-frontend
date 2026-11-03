@@ -45,7 +45,10 @@ export type PaymentJournalItem = {
   /** ยอดจ่ายจริง */
   netAmount: number;
   isExportedToExpress: boolean;
+  /** ส่งออกครั้งล่าสุด */
   expressExportedAt?: string;
+  /** จำนวนครั้งที่ส่งออกไป Express (0 = ยังไม่เคย) */
+  exportCount: number;
   lines: JournalLine[];
   totalDebit: number;
   totalCredit: number;
@@ -81,8 +84,11 @@ export type PaymentJournalFilter = {
 export type PaymentJournalQuery = PaymentJournalFilter & { page?: number; limit?: number };
 
 export type PaymentExpressExportBody = {
-  dateFrom: string;
-  dateTo: string;
+  /** จำเป็นเมื่อไม่ส่ง documentIds */
+  dateFrom?: string;
+  dateTo?: string;
+  /** ส่งออกเฉพาะรายการจ่ายที่เลือก (ไม่ใช้ช่วงวันที่) */
+  documentIds?: string[];
   creditorId?: string;
   kind?: PaymentJournalKind;
   method?: PaymentJournalMethod;

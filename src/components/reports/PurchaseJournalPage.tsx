@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { App, Button, DatePicker, Input, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { FileTextOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
+import { FileTextOutlined, HistoryOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -12,12 +12,23 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import JournalAccountDetailPanel, {
   journalMasterDetailStyles as mdStyles,
 } from "@/components/reports/JournalAccountDetailPanel";
+import {
+  ExportCountTag,
+  ExportHistoryDrawer,
+  ExpressExportDialog,
+} from "@/components/reports/JournalExpressExport";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
 import styles from "@/components/reports/PurchaseJournalPage.module.css";
 import { usePurchaseJournalQuery, purchaseJournalQueryKey } from "@/hooks/purchase-journal/usePurchaseJournal";
-import { exportPurchaseJournalToExpress, getPurchaseJournalExport } from "@/lib/api/purchase-journal";
+import {
+  exportPurchaseJournalToExpress,
+  getPurchaseJournalDocumentExportHistory,
+  getPurchaseJournalExport,
+  getPurchaseJournalExportHistory,
+  previewPurchaseJournalExpress,
+} from "@/lib/api/purchase-journal";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
 import {
@@ -90,7 +101,10 @@ export default function PurchaseJournalPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const [sendingExpress, setSendingExpress] = useState(false);
-  const [reexport, setReexport] = useState(false);
+  // ส่งออกไป Express: 'range' = ตามช่วงวันที่, 'selected' = เฉพาะแถวที่ติ๊กเลือก
+  const [exportMode, setExportMode] = useState<"range" | "selected" | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const applySearch = () => {
     setRange(dRange);
@@ -99,6 +113,7 @@ export default function PurchaseJournalPage() {
     setKeyword(dSearch.trim());
     setPage(1);
     setSelectedId(null);
+    setSelectedKeys([]);
   };
   const clearFilters = () => {
     const fresh = defaultRange();
@@ -221,19 +236,26 @@ export default function PurchaseJournalPage() {
     }
   };
 
-  const handleExpress = async () => {
-    if (!filters.dateFrom || !filters.dateTo) return;
+  /** ขอบเขตการส่งออก: เลือกแถว (documentIds) หรือช่วงวันที่ — ใช้ทั้งตอนตรวจก่อนส่งและตอนส่งจริง */
+  const exportScope = (mode: "range" | "selected") =>
+    mode === "selected"
+      ? { documentIds: selectedKeys }
+      : {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+          docType: filters.docType,
+          search: filters.search,
+        };
+
+  const handleExpress = async (mode: "range" | "selected", reexport: boolean) => {
     setSendingExpress(true);
     try {
       const { count, blob, filename } = await exportPurchaseJournalToExpress(getAccessToken(), {
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-        docType: filters.docType,
-        search: filters.search,
+        ...exportScope(mode),
         reexport,
       });
       if (count === 0) {
-        message.info("ไม่มีรายการที่ยังไม่ได้ส่งในช่วงนี้");
+        message.info("ไม่มีรายการที่ต้องส่งออก");
         return;
       }
       const url = URL.createObjectURL(blob);
@@ -242,7 +264,10 @@ export default function PurchaseJournalPage() {
       link.download = filename;
       link.click();
       URL.revokeObjectURL(url);
-      message.success(`ส่งออก ${count.toLocaleString("th-TH")} เอกสารไป Express แล้ว`);
+      message.success(
+        `สร้างไฟล์ Express ${count.toLocaleString("th-TH")} เอกสารแล้ว${reexport ? " (รวมส่งซ้ำ)" : ""}`,
+      );
+      if (mode === "selected") setSelectedKeys([]);
       await queryClient.invalidateQueries({ queryKey: purchaseJournalQueryKey });
     } catch (error) {
       modal.error({
@@ -250,10 +275,12 @@ export default function PurchaseJournalPage() {
         content: (
           <div>
             <div>{error instanceof Error ? error.message : "ส่งออกไป Express ไม่สำเร็จ"}</div>
+            <div>ไม่มีการบันทึกว่าส่งออกสำเร็จ — แก้ไขแล้วลองใหม่ได้</div>
             <Link href="/masters/gl-accounts">ไปหน้าผังบัญชีและการผูกบัญชี</Link>
           </div>
         ),
       });
+      throw error;
     } finally {
       setSendingExpress(false);
     }
@@ -369,7 +396,17 @@ export default function PurchaseJournalPage() {
       title: "Express",
       key: "express",
       width: 96,
-      render: (_, row) => (row.isExportedToExpress ? <Tag color="green">ส่งแล้ว</Tag> : <Tag>ยังไม่ส่ง</Tag>),
+      render: (_, row) => (
+        <ExportCountTag
+          exported={row.isExportedToExpress}
+          exportCount={row.exportCount}
+          lastExportedAt={row.expressExportedAt}
+          docId={row.id}
+          loadDocHistory={(id) =>
+            getPurchaseJournalDocumentExportHistory(getAccessToken(), id).then((res) => res.data)
+          }
+        />
+      ),
     },
   ];
 
@@ -493,6 +530,9 @@ export default function PurchaseJournalPage() {
             </div>
             <Space>
               <span className={masterStyles.tableCount}>{data?.total ?? 0} เอกสาร</span>
+              <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
+                ประวัติการส่งออก
+              </Button>
               {expressDisabledReason ? (
                 <Tooltip title={expressDisabledReason}>
                   <span>
@@ -502,32 +542,16 @@ export default function PurchaseJournalPage() {
                   </span>
                 </Tooltip>
               ) : (
-                <Popconfirm
-                  title="ส่งออกไป Express"
-                  description={
-                    <div style={{ maxWidth: 320 }}>
-                      ส่งออกเอกสารที่ยังไม่เคยส่งในช่วง {formatDate(filters.dateFrom)} -{" "}
-                      {formatDate(filters.dateTo)} (หนึ่งแถวต่อบรรทัดบัญชี) แล้วทำเครื่องหมายว่าส่งแล้ว
-                      <div style={{ marginTop: 8 }}>
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={reexport}
-                            onChange={(event) => setReexport(event.target.checked)}
-                          />{" "}
-                          ส่งซ้ำรวมเอกสารที่เคยส่งแล้ว
-                        </label>
-                      </div>
-                    </div>
-                  }
-                  okText="ส่งออก"
-                  cancelText="ยกเลิก"
-                  onConfirm={() => void handleExpress()}
-                >
-                  <Button icon={<SendOutlined />} loading={sendingExpress}>
+                <>
+                  {selectedKeys.length > 0 ? (
+                    <Button icon={<SendOutlined />} onClick={() => setExportMode("selected")}>
+                      ส่งออกที่เลือก ({selectedKeys.length})
+                    </Button>
+                  ) : null}
+                  <Button icon={<SendOutlined />} loading={sendingExpress} onClick={() => setExportMode("range")}>
                     ส่งออกไป Express ({pending})
                   </Button>
-                </Popconfirm>
+                </>
               )}
             </Space>
           </div>
@@ -537,6 +561,16 @@ export default function PurchaseJournalPage() {
             bordered={false}
             rowKey="id"
             columns={columns}
+            rowSelection={
+              canExport
+                ? {
+                    selectedRowKeys: selectedKeys,
+                    preserveSelectedRowKeys: true,
+                    onChange: (keys) => setSelectedKeys(keys as string[]),
+                    columnWidth: 40,
+                  }
+                : undefined
+            }
             dataSource={items}
             loading={listQuery.isFetching}
             scroll={{ x: selected ? 1100 : 1520 }}
@@ -656,6 +690,32 @@ export default function PurchaseJournalPage() {
           />
         ) : null}
       </div>
+      <ExpressExportDialog
+        open={exportMode !== null}
+        title="ส่งออกสมุดรายวันซื้อไป Express"
+        unit="เอกสาร"
+        scopeLabel={
+          exportMode === "selected"
+            ? `เอกสารที่เลือก ${selectedKeys.length.toLocaleString("th-TH")} รายการ`
+            : `ช่วงวันที่เอกสาร ${formatDate(filters.dateFrom)} - ${formatDate(filters.dateTo)} (หนึ่งแถวต่อบรรทัดบัญชี)`
+        }
+        previewKey={JSON.stringify(exportScope(exportMode ?? "range"))}
+        loadPreview={() =>
+          previewPurchaseJournalExpress(getAccessToken(), exportScope(exportMode ?? "range")).then(
+            (res) => res.data,
+          )
+        }
+        onConfirm={(reexport) => handleExpress(exportMode ?? "range", reexport)}
+        onClose={() => setExportMode(null)}
+      />
+      <ExportHistoryDrawer
+        open={historyOpen}
+        title="ประวัติการส่งออกสมุดรายวันซื้อไป Express"
+        onClose={() => setHistoryOpen(false)}
+        loadHistory={(p) =>
+          getPurchaseJournalExportHistory(getAccessToken(), { page: p, limit: 20 }).then((res) => res.data)
+        }
+      />
     </section>
   );
 }

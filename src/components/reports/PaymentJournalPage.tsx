@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { App, Button, DatePicker, Input, Popconfirm, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
+import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { FileTextOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
+import { FileTextOutlined, HistoryOutlined, SearchOutlined, SendOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -12,12 +12,23 @@ import masterStyles from "@/components/masters/shared/master-page.module.css";
 import JournalAccountDetailPanel, {
   journalMasterDetailStyles as mdStyles,
 } from "@/components/reports/JournalAccountDetailPanel";
+import {
+  ExportCountTag,
+  ExportHistoryDrawer,
+  ExpressExportDialog,
+} from "@/components/reports/JournalExpressExport";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
 import styles from "@/components/reports/PaymentJournalPage.module.css";
 import { paymentJournalQueryKey, usePaymentJournalQuery } from "@/hooks/payment-journal/usePaymentJournal";
-import { exportPaymentJournalToExpress, getPaymentJournalExport } from "@/lib/api/payment-journal";
+import {
+  exportPaymentJournalToExpress,
+  getPaymentJournalDocumentExportHistory,
+  getPaymentJournalExport,
+  getPaymentJournalExportHistory,
+  previewPaymentJournalExpress,
+} from "@/lib/api/payment-journal";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { getAccessToken } from "@/lib/auth/token";
 import {
@@ -72,7 +83,10 @@ export default function PaymentJournalPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [downloading, setDownloading] = useState<ReportExportFormat | null>(null);
   const [sendingExpress, setSendingExpress] = useState(false);
-  const [reexport, setReexport] = useState(false);
+  // ส่งออกไป Express: 'range' = ตามช่วงวันที่, 'selected' = เฉพาะแถวที่ติ๊กเลือก
+  const [exportMode, setExportMode] = useState<"range" | "selected" | null>(null);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const applySearch = () => {
     setRange(dRange);
@@ -82,6 +96,7 @@ export default function PaymentJournalPage() {
     setKeyword(dSearch.trim());
     setPage(1);
     setSelectedId(null);
+    setSelectedKeys([]);
   };
   const clearFilters = () => {
     const fresh = defaultRange();
@@ -207,20 +222,27 @@ export default function PaymentJournalPage() {
     }
   };
 
-  const handleExpress = async () => {
-    if (!filters.dateFrom || !filters.dateTo) return;
+  /** ขอบเขตการส่งออก: เลือกแถว (documentIds) หรือช่วงวันที่ — ใช้ทั้งตอนตรวจก่อนส่งและตอนส่งจริง */
+  const exportScope = (mode: "range" | "selected") =>
+    mode === "selected"
+      ? { documentIds: selectedKeys }
+      : {
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+          kind: filters.kind,
+          method: filters.method,
+          search: filters.search,
+        };
+
+  const handleExpress = async (mode: "range" | "selected", reexport: boolean) => {
     setSendingExpress(true);
     try {
       const { count, blob, filename } = await exportPaymentJournalToExpress(getAccessToken(), {
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-        kind: filters.kind,
-        method: filters.method,
-        search: filters.search,
+        ...exportScope(mode),
         reexport,
       });
       if (count === 0) {
-        message.info("ไม่มีรายการที่ยังไม่ได้ส่งในช่วงนี้");
+        message.info("ไม่มีรายการที่ต้องส่งออก");
         return;
       }
       const url = URL.createObjectURL(blob);
@@ -229,7 +251,10 @@ export default function PaymentJournalPage() {
       link.download = filename;
       link.click();
       URL.revokeObjectURL(url);
-      message.success(`ส่งออก ${count.toLocaleString("th-TH")} รายการไป Express แล้ว`);
+      message.success(
+        `สร้างไฟล์ Express ${count.toLocaleString("th-TH")} รายการแล้ว${reexport ? " (รวมส่งซ้ำ)" : ""}`,
+      );
+      if (mode === "selected") setSelectedKeys([]);
       await queryClient.invalidateQueries({ queryKey: paymentJournalQueryKey });
     } catch (error) {
       modal.error({
@@ -237,6 +262,7 @@ export default function PaymentJournalPage() {
         content: (
           <div>
             <div>{error instanceof Error ? error.message : "ส่งออกไป Express ไม่สำเร็จ"}</div>
+            <div>ไม่มีการบันทึกว่าส่งออกสำเร็จ — แก้ไขแล้วลองใหม่ได้</div>
             <Space orientation="vertical" size={0}>
               <Link href="/masters/gl-accounts">ไปหน้าผังบัญชีและการผูกบัญชี</Link>
               <Link href="/masters/company-profile">ไปหน้าข้อมูลบริษัท (บัญชีธนาคาร)</Link>
@@ -244,6 +270,7 @@ export default function PaymentJournalPage() {
           </div>
         ),
       });
+      throw error;
     } finally {
       setSendingExpress(false);
     }
@@ -374,7 +401,17 @@ export default function PaymentJournalPage() {
       title: "Express",
       key: "express",
       width: 96,
-      render: (_, row) => (row.isExportedToExpress ? <Tag color="green">ส่งแล้ว</Tag> : <Tag>ยังไม่ส่ง</Tag>),
+      render: (_, row) => (
+        <ExportCountTag
+          exported={row.isExportedToExpress}
+          exportCount={row.exportCount}
+          lastExportedAt={row.expressExportedAt}
+          docId={row.id}
+          loadDocHistory={(id) =>
+            getPaymentJournalDocumentExportHistory(getAccessToken(), id).then((res) => res.data)
+          }
+        />
+      ),
     },
   ];
 
@@ -506,6 +543,9 @@ export default function PaymentJournalPage() {
             </div>
             <Space>
               <span className={masterStyles.tableCount}>{data?.total ?? 0} รายการ</span>
+              <Button icon={<HistoryOutlined />} onClick={() => setHistoryOpen(true)}>
+                ประวัติการส่งออก
+              </Button>
               {expressDisabledReason ? (
                 <Tooltip title={expressDisabledReason}>
                   <span>
@@ -515,35 +555,16 @@ export default function PaymentJournalPage() {
                   </span>
                 </Tooltip>
               ) : (
-                <Popconfirm
-                  title="ส่งออกไป Express"
-                  description={
-                    <div style={{ maxWidth: 340 }}>
-                      ส่งออกรายการที่ยังไม่เคยส่งในช่วง {formatDate(filters.dateFrom)} -{" "}
-                      {formatDate(filters.dateTo)} (หนึ่งแถวต่อบรรทัดบัญชี) แล้วทำเครื่องหมายว่าส่งแล้ว
-                      <div style={{ marginTop: 6, color: "#cf1322" }}>
-                        ส่งแล้วจะยกเลิกบันทึกจ่ายเงินของรายการนั้นไม่ได้
-                      </div>
-                      <div style={{ marginTop: 8 }}>
-                        <label>
-                          <input
-                            type="checkbox"
-                            checked={reexport}
-                            onChange={(event) => setReexport(event.target.checked)}
-                          />{" "}
-                          ส่งซ้ำรวมรายการที่เคยส่งแล้ว
-                        </label>
-                      </div>
-                    </div>
-                  }
-                  okText="ส่งออก"
-                  cancelText="ยกเลิก"
-                  onConfirm={() => void handleExpress()}
-                >
-                  <Button icon={<SendOutlined />} loading={sendingExpress}>
+                <>
+                  {selectedKeys.length > 0 ? (
+                    <Button icon={<SendOutlined />} onClick={() => setExportMode("selected")}>
+                      ส่งออกที่เลือก ({selectedKeys.length})
+                    </Button>
+                  ) : null}
+                  <Button icon={<SendOutlined />} loading={sendingExpress} onClick={() => setExportMode("range")}>
                     ส่งออกไป Express ({pending})
                   </Button>
-                </Popconfirm>
+                </>
               )}
             </Space>
           </div>
@@ -553,6 +574,16 @@ export default function PaymentJournalPage() {
             bordered={false}
             rowKey="id"
             columns={columns}
+            rowSelection={
+              canExport
+                ? {
+                    selectedRowKeys: selectedKeys,
+                    preserveSelectedRowKeys: true,
+                    onChange: (keys) => setSelectedKeys(keys as string[]),
+                    columnWidth: 40,
+                  }
+                : undefined
+            }
             dataSource={items}
             loading={listQuery.isFetching}
             scroll={{ x: selected ? 1100 : 1500 }}
@@ -667,6 +698,33 @@ export default function PaymentJournalPage() {
           />
         ) : null}
       </div>
+      <ExpressExportDialog
+        open={exportMode !== null}
+        title="ส่งออกสมุดรายวันจ่ายไป Express"
+        unit="รายการ"
+        scopeLabel={
+          exportMode === "selected"
+            ? `รายการจ่ายที่เลือก ${selectedKeys.length.toLocaleString("th-TH")} รายการ`
+            : `ช่วงวันที่จ่าย ${formatDate(filters.dateFrom)} - ${formatDate(filters.dateTo)} (หนึ่งแถวต่อบรรทัดบัญชี)`
+        }
+        extraNote="สมุดรายวันจ่ายคำนวณบรรทัดบัญชีสดจากผังบัญชีและบัญชีธนาคารปัจจุบัน — ถ้าตั้งค่าเปลี่ยนไปจากตอนส่งครั้งก่อน ไฟล์ซ้ำอาจต่างจากไฟล์เดิม"
+        previewKey={JSON.stringify(exportScope(exportMode ?? "range"))}
+        loadPreview={() =>
+          previewPaymentJournalExpress(getAccessToken(), exportScope(exportMode ?? "range")).then(
+            (res) => res.data,
+          )
+        }
+        onConfirm={(reexport) => handleExpress(exportMode ?? "range", reexport)}
+        onClose={() => setExportMode(null)}
+      />
+      <ExportHistoryDrawer
+        open={historyOpen}
+        title="ประวัติการส่งออกสมุดรายวันจ่ายไป Express"
+        onClose={() => setHistoryOpen(false)}
+        loadHistory={(p) =>
+          getPaymentJournalExportHistory(getAccessToken(), { page: p, limit: 20 }).then((res) => res.data)
+        }
+      />
     </section>
   );
 }

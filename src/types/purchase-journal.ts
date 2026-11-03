@@ -49,7 +49,10 @@ export type PurchaseJournalItem = {
   paymentVouchers: JournalDocRef[];
   reference?: JournalDocRef & { docType: JournalDocType };
   isExportedToExpress: boolean;
+  /** ส่งออกครั้งล่าสุด */
   expressExportedAt?: string;
+  /** จำนวนครั้งที่ส่งออกไป Express (0 = ยังไม่เคย) */
+  exportCount: number;
   lines: JournalLine[];
   totalDebit: number;
   totalCredit: number;
@@ -88,8 +91,11 @@ export type PurchaseJournalFilter = {
 export type PurchaseJournalQuery = PurchaseJournalFilter & { page?: number; limit?: number };
 
 export type ExpressExportBody = {
-  dateFrom: string;
-  dateTo: string;
+  /** จำเป็นเมื่อไม่ส่ง documentIds */
+  dateFrom?: string;
+  dateTo?: string;
+  /** ส่งออกเฉพาะเอกสารที่เลือก (ไม่ใช้ช่วงวันที่) */
+  documentIds?: string[];
   creditorId?: string;
   docType?: JournalDocType;
   search?: string;
