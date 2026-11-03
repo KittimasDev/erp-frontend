@@ -2128,6 +2128,15 @@ const masterMenus: MenuItem[] = [
     roles: [ROLE.ACCOUNTING_OFFICER],
   },
   {
+    // ประเภทเครื่องจักรกำหนดเครื่องที่สลับกันได้ใน MO — ฝั่งผลิต/ซ่อมบำรุงใช้
+    key: "equipment-types",
+    screenCode: "MASTERS_EQUIPMENT_TYPES",
+    label: "ประเภทเครื่องจักร",
+    href: "/masters/equipment-types",
+    icon: <IconCategory />,
+    roles: [ROLE.PRODUCTION_OFFICER, ROLE.WAREHOUSE_MANAGER, ...MAINTENANCE_ROLES],
+  },
+  {
     // ตั้งกฎผิดทำให้ยอดสต๊อกทั้งระบบเพี้ยน จึงจำกัดเฉพาะระดับหัวหน้าฝ่าย
     key: "unit-conversions",
     screenCode: "MASTERS_UNIT_CONVERSIONS",

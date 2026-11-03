@@ -87,6 +87,18 @@ export type RecordingInfoValueKind =
   | "RPM"
   | "QC";
 
+/**
+ * แหล่งข้อมูลของฟิลด์ — แยกจากวิธีคำนวณ (calcType) โดยตั้งใจ
+ * MANUAL = พนักงานกรอกหลังจบกะ (ใช้งานจริงตอนนี้) · AUTO = รับจากเครื่องจักร (รอพัฒนา Machine Integration)
+ */
+export const RECORDING_DATA_SOURCES = ["MANUAL", "AUTO"] as const;
+export type RecordingDataSource = (typeof RECORDING_DATA_SOURCES)[number];
+
+export const RECORDING_DATA_SOURCE_LABEL: Record<RecordingDataSource, string> = {
+  MANUAL: "กรอกด้วยมือ",
+  AUTO: "อัตโนมัติจากเครื่อง (รอพัฒนา)",
+};
+
 export type RecordingFieldDef = {
   id: string;
   sortOrder: number;
@@ -101,10 +113,20 @@ export type RecordingFieldDef = {
   linkedItemId?: string | null;
   stockUnitId?: string | null;
   unitToStockFactor?: number | null;
+  /** เครื่องจักรที่ฟิลด์นี้บันทึกค่า (equipment.id) — ไม่ผูก = ฟิลด์ทั่วไป */
+  equipmentId?: string | null;
+  /** MANUAL (default) / AUTO */
+  dataSource?: RecordingDataSource;
+  /** Device Tag (machine_tags.tag_code) เมื่อ dataSource = AUTO — เก็บเป็นรหัสเพื่อจับคู่ใหม่ได้เมื่อสลับเครื่องใน MO */
+  deviceTagCode?: string | null;
+  /** true = ผลของฟิลด์นี้คือ "ผลจริง" ที่ใช้เทียบ Capacity × ชั่วโมงเดินเครื่อง (1 ฟิลด์ต่อเครื่อง) */
+  compareToCapacity?: boolean;
 };
 
 export type ProductionRecordingConfig = {
   fields: RecordingFieldDef[];
+  /** เครื่องจักรที่สูตรนี้ใช้ (equipment.id) */
+  equipmentIds?: string[];
 };
 
 export type ProductionFormula = {

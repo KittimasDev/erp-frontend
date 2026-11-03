@@ -148,6 +148,54 @@ export type ShiftRecordStockLine = {
   stockMovementId?: string;
 };
 
+/** ชั่วโมงเดินเครื่องจริงรายเครื่องของกะหนึ่ง (Capacity/หน่วยคัดลอกจาก snapshot ของ MO) */
+export type ShiftMachineRun = {
+  equipmentId: string;
+  equipmentCode: string;
+  hours: number;
+  capacity?: number | null;
+  capacityUnitLabel?: string | null;
+  source: "MANUAL" | "AUTO";
+};
+
+/**
+ * OK = คำนวณได้ · อื่น ๆ = ไม่เปรียบเทียบเพราะเหตุนั้น
+ * (ไม่มี Capacity / ไม่ได้ติ๊กฟิลด์เทียบ / ไม่กรอกชั่วโมง / ยังไม่มีผลจริง / หน่วยไม่ตรง)
+ */
+export type MachineForecastStatus =
+  | "OK"
+  | "NO_CAPACITY"
+  | "NO_COMPARE_FIELD"
+  | "NO_HOURS"
+  | "NO_ACTUAL"
+  | "UNIT_MISMATCH";
+
+/** ผลคาดการณ์ (Capacity × ชั่วโมงเดินเครื่องจริง) เทียบผลจริงรายเครื่อง — ไม่มีค่ารวมข้ามเครื่อง */
+export type MachineForecast = {
+  equipmentId: string;
+  equipmentCode: string;
+  equipmentName: string;
+  capacity?: number | null;
+  capacityUnitLabel?: string | null;
+  hours?: number | null;
+  compareFieldId?: string | null;
+  compareFieldCode?: string | null;
+  forecast?: number | null;
+  actual?: number | null;
+  diff?: number | null;
+  pctOfCapacity?: number | null;
+  status: MachineForecastStatus;
+};
+
+export const MACHINE_FORECAST_STATUS_LABEL: Record<MachineForecastStatus, string> = {
+  OK: "คำนวณได้",
+  NO_CAPACITY: "เครื่องยังไม่ตั้ง Capacity",
+  NO_COMPARE_FIELD: "สูตรยังไม่ติ๊กฟิลด์เทียบกำลังผลิต",
+  NO_HOURS: "ยังไม่กรอกชั่วโมงเดินเครื่อง",
+  NO_ACTUAL: "ยังไม่มีผลจริง",
+  UNIT_MISMATCH: "หน่วยไม่ตรงกับหน่วยกำลังผลิต",
+};
+
 export type ShiftRecord = {
   id: string;
   productionOrderId: string;
@@ -170,6 +218,10 @@ export type ShiftRecord = {
   recordingConfigSnapshot?: ProductionRecordingConfig | null;
   /** ผลคำนวณต่อ field.id จาก snapshot ของแถว */
   computedResults?: Record<string, number | null>;
+  /** ชั่วโมงเดินเครื่องจริงรายเครื่อง — แถวเดิม/ใบที่ไม่ผูกเครื่องไม่มี */
+  machineRuns?: ShiftMachineRun[];
+  /** ผลคาดการณ์เทียบผลจริงรายเครื่อง (คำนวณจาก snapshot ของใบ) */
+  machineForecasts?: MachineForecast[];
   stockLines?: ShiftRecordStockLine[];
   operators: Array<{ id: string; displayName: string }>;
   remark?: string;
@@ -199,6 +251,8 @@ export type CreateShiftRecordBody = {
   operatingHours?: number;
   feedRateKgH?: number;
   values?: RecordingFieldValues;
+  /** ไม่บังคับ — ส่งเฉพาะเครื่องที่กรอกชั่วโมง */
+  machineRuns?: Array<{ equipmentId: string; hours: number }>;
   operatorIds?: string[];
   remark?: string;
 };
@@ -208,6 +262,8 @@ export type UpdateShiftRecordBody = {
   operatingHours?: number;
   feedRateKgH?: number;
   values?: RecordingFieldValues;
+  /** ส่งมา = แทนที่ทั้งชุด (ส่ง [] = ล้างชั่วโมงทั้งหมด) · ไม่ส่ง = ไม่แตะ */
+  machineRuns?: Array<{ equipmentId: string; hours: number }>;
   operatorIds?: string[];
   remark?: string;
 };

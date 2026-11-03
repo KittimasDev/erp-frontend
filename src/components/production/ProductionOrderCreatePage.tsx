@@ -38,6 +38,7 @@ import {
 } from "@/hooks/production-orders/useProductionOrderMutations";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import FormulaReferenceCards from "./FormulaReferenceCards";
+import MachineSelectionCard from "./MachineSelectionCard";
 import ProductionRequestPickerModal from "./ProductionRequestPickerModal";
 import SelectedProductionRequestsCard, {
   selectionKeyOf,
@@ -410,6 +411,8 @@ export default function ProductionOrderCreatePage() {
     [formulasQuery.data],
   );
   const [formulaId, setFormulaId] = useState<string | undefined>();
+  // formulaEquipmentId → equipmentId ที่ผู้ใช้เลือกแทน (ไม่มี key = ใช้ตามสูตร) — เปลี่ยนสูตรแล้วล้าง
+  const [machineChoices, setMachineChoices] = useState<Record<string, string>>({});
   const [driverLineId, setDriverLineId] = useState<string | undefined>();
   const [targetQty, setTargetQty] = useState<number | null>(null);
   /** ที่มาของแผนที่ถูกเติมลงฟอร์มแล้ว — ส่งไปเก็บบนใบตอนบันทึก */
@@ -615,10 +618,17 @@ export default function ProductionOrderCreatePage() {
       ที่มาของแผน — เก็บไว้ให้ตอบได้ว่าทำไมใบนี้ประมาณการเท่านี้ แม้สูตรจะถูกแก้
       ภายหลัง (backend เก็บเลขรุ่นของสูตรให้เองจาก id ที่ส่งไป)
     */
+    const appliedFormula = formulas.find(
+      (formula) => formula.id === appliedPlan?.formulaId,
+    );
+    const machineBody = (appliedFormula?.recordingConfig?.equipmentIds ?? [])
+      .filter((id) => machineChoices[id] && machineChoices[id] !== id)
+      .map((id) => ({ formulaEquipmentId: id, equipmentId: machineChoices[id] }));
     const formulaProvenance = {
       productionFormulaId: appliedPlan?.formulaId,
       formulaTargetQty: appliedPlan?.targetQty,
       formulaDriverItemId: appliedPlan?.driverItemId || undefined,
+      ...(machineBody.length > 0 ? { machines: machineBody } : {}),
     };
 
     const goToOrder = {
@@ -846,6 +856,7 @@ export default function ProductionOrderCreatePage() {
                 next?.lines.find((line) => line.isDefaultDriver) ??
                 next?.lines.find((line) => line.lineRole === "OUTPUT");
               setDriverLineId(driver?.id);
+              setMachineChoices({});
             }}
           />
 
@@ -866,6 +877,12 @@ export default function ProductionOrderCreatePage() {
               productionDayCount={productionDayCount}
               multiplyByProductionDays={multiplyByProductionDays}
               onMultiplyByProductionDays={setMultiplyByProductionDays}
+            />
+
+            <MachineSelectionCard
+              formula={formulas.find((formula) => formula.id === formulaId)}
+              choices={machineChoices}
+              onChange={setMachineChoices}
             />
 
             <section className={styles.formCard}>

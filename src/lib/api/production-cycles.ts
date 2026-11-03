@@ -5,6 +5,7 @@ import type {
   CreateMachineTagBody,
   CreateShiftRecordBody,
   MachineDevice,
+  MachineForecast,
   MachineDeviceWithKey,
   MachineReading,
   MachineTag,
@@ -22,6 +23,13 @@ type Res<T> = { message: string; data: T };
 
 const CYCLES = "/api/production/cycles";
 const RECORDS = "/api/production/shift-records";
+
+export function getMachineSummary(token: string, productionOrderId: string) {
+  return apiFetch<{ message: string; data: MachineForecast[] }>(
+    `${RECORDS}/machine-summary?productionOrderId=${encodeURIComponent(productionOrderId)}`,
+    { token },
+  );
+}
 const DEVICES = "/api/production/machine-devices";
 
 // ── รอบผลิต

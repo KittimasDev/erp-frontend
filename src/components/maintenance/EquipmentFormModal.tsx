@@ -3,13 +3,17 @@
 import { Col, DatePicker, Form, Input, InputNumber, Modal, Row, Select } from "antd";
 import dayjs from "dayjs";
 
+import { useEquipmentTypesQuery } from "@/hooks/equipment-types/useEquipmentTypes";
+import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
 import { EQUIPMENT_STATUS_LABEL, type Equipment, type EquipmentBody } from "@/types/maintenance";
 
 type FormValues = {
   equipmentCode: string;
   name: string;
-  category?: string;
+  equipmentTypeId?: string;
+  capacity?: number | null;
+  capacityUnitId?: string;
   locationId?: string;
   status?: string;
   serialNumber?: string;
@@ -25,7 +29,6 @@ type FormValues = {
 type Props = {
   /** null = สร้างใหม่ */
   equipment: Equipment | null;
-  categories: string[];
   loading: boolean;
   onCancel: () => void;
   onSubmit: (body: EquipmentBody) => void;
@@ -34,9 +37,27 @@ type Props = {
 const fmt = (d?: dayjs.Dayjs | null) => (d ? d.format("YYYY-MM-DD") : "");
 
 /** ฟอร์มข้อมูลเครื่องจักร: รหัส/ชื่อ/หมวด/ตำแหน่ง/Serial/ประกัน/ชั่วโมงเดินเครื่อง */
-export default function EquipmentFormModal({ equipment, categories, loading, onCancel, onSubmit }: Props) {
+export default function EquipmentFormModal({ equipment, loading, onCancel, onSubmit }: Props) {
   const [form] = Form.useForm<FormValues>();
   const locationsQuery = useWarehouseLocationsQuery({ isActive: true });
+  const typesQuery = useEquipmentTypesQuery({ isActive: true });
+  const unitsQuery = useUnitsQuery({ isActive: true });
+
+  // ประเภท/หน่วยที่เครื่องนี้ใช้อยู่แต่ถูกปิดภายหลัง ต้องยังเห็นในตัวเลือก (ไม่ให้ค่าเดิมหาย)
+  const typeOptions = (typesQuery.data ?? []).map((t) => ({ value: t.id, label: `${t.code} — ${t.nameTh}` }));
+  if (equipment?.equipmentTypeId && !typeOptions.some((o) => o.value === equipment.equipmentTypeId)) {
+    typeOptions.push({
+      value: equipment.equipmentTypeId,
+      label: `${equipment.equipmentTypeName ?? "ประเภทเดิม"} (ปิดใช้งาน)`,
+    });
+  }
+  const unitOptions = (unitsQuery.data?.data ?? []).map((u) => ({ value: u.id, label: `${u.code} — ${u.nameTh}` }));
+  if (equipment?.capacityUnitId && !unitOptions.some((o) => o.value === equipment.capacityUnitId)) {
+    unitOptions.push({
+      value: equipment.capacityUnitId,
+      label: `${equipment.capacityUnitLabel ?? "หน่วยเดิม"} (ปิดใช้งาน)`,
+    });
+  }
   const editing = Boolean(equipment);
 
   return (
@@ -53,7 +74,10 @@ export default function EquipmentFormModal({ equipment, categories, loading, onC
           onSubmit({
             ...(editing ? {} : { equipmentCode: v.equipmentCode.trim() }),
             name: v.name.trim(),
-            category: v.category ?? "",
+            // ล้างประเภท = ส่ง null · Capacity กับหน่วยส่งคู่กันเสมอ (ว่างทั้งคู่ = ล้าง)
+            equipmentTypeId: v.equipmentTypeId ?? null,
+            capacity: v.capacity ?? null,
+            capacityUnitId: v.capacity != null ? (v.capacityUnitId ?? null) : null,
             locationId: v.locationId,
             status: editing ? v.status : undefined,
             serialNumber: v.serialNumber ?? "",
@@ -74,7 +98,9 @@ export default function EquipmentFormModal({ equipment, categories, loading, onC
         initialValues={{
           equipmentCode: equipment?.equipmentCode,
           name: equipment?.name,
-          category: equipment?.category,
+          equipmentTypeId: equipment?.equipmentTypeId ?? undefined,
+          capacity: equipment?.capacity ?? undefined,
+          capacityUnitId: equipment?.capacityUnitId ?? undefined,
           locationId: equipment?.locationId,
           status: equipment?.status ?? "ACTIVE",
           serialNumber: equipment?.serialNumber,
@@ -99,16 +125,65 @@ export default function EquipmentFormModal({ equipment, categories, loading, onC
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>
-            <Form.Item name="category" label="หมวด (Category)">
+            <Form.Item
+              name="equipmentTypeId"
+              label="ประเภทเครื่องจักร"
+              extra="จัดการรายการที่ ข้อมูลหลัก > ประเภทเครื่องจักร · MO สลับเครื่องได้เฉพาะประเภทเดียวกัน"
+            >
               <Select
                 allowClear
                 showSearch
-                placeholder="พิมพ์หรือเลือกหมวด"
-                options={categories.map((c) => ({ value: c, label: c }))}
-                // พิมพ์หมวดใหม่ได้ — ค่าที่พิมพ์ถูกใช้เป็นค่าของฟิลด์
-                onSearch={(text) => text && form.setFieldValue("category", text)}
-                notFoundContent="พิมพ์ชื่อหมวดใหม่ได้เลย"
+                optionFilterProp="label"
+                placeholder="เลือกประเภท"
+                loading={typesQuery.isLoading}
+                options={typeOptions}
               />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={8}>
+            <Form.Item
+              name="capacity"
+              label="กำลังผลิต (Capacity)"
+              extra="ต่อชั่วโมง — ใช้คาดการณ์/วิเคราะห์เท่านั้น"
+              rules={[
+                {
+                  validator: (_, value?: number | null) =>
+                    value == null || value > 0
+                      ? Promise.resolve()
+                      : Promise.reject(new Error("ต้องมากกว่า 0")),
+                },
+              ]}
+            >
+              <InputNumber min={0.001} precision={3} style={{ width: "100%" }} placeholder="เช่น 1200" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={8}>
+            <Form.Item
+              noStyle
+              shouldUpdate={(prev, next) => prev.capacity !== next.capacity}
+            >
+              {({ getFieldValue }) => (
+                <Form.Item
+                  name="capacityUnitId"
+                  label="หน่วยกำลังผลิต (ต่อชั่วโมง)"
+                  rules={[
+                    {
+                      required: getFieldValue("capacity") != null,
+                      message: "เลือกหน่วยกำลังผลิต",
+                    },
+                  ]}
+                >
+                  <Select
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    placeholder="เช่น กก."
+                    loading={unitsQuery.isLoading}
+                    options={unitOptions}
+                    disabled={getFieldValue("capacity") == null}
+                  />
+                </Form.Item>
+              )}
             </Form.Item>
           </Col>
           <Col xs={24} md={8}>

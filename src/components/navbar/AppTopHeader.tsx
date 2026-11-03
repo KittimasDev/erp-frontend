@@ -204,6 +204,7 @@ const PAGE_TITLES: Array<{ href: string; title: string }> = [
   { href: "/masters/units", title: "หน่วยนับ" },
   { href: "/masters/gl-accounts", title: "ผังบัญชีและการผูกบัญชี" },
   { href: "/masters/expense-types", title: "ประเภทค่าใช้จ่าย" },
+  { href: "/masters/equipment-types", title: "ประเภทเครื่องจักร" },
   { href: "/warehouses", title: "คลังสินค้า" },
   { href: "/masters/warehouse-types", title: "ประเภทคลัง" },
   { href: "/warehouse-locations", title: "ตำแหน่งจัดเก็บ" },

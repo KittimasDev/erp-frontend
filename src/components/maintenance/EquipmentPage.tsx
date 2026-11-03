@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button, Input, Select, Table, Tabs, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { ClearOutlined, PlusOutlined, SearchOutlined, ToolOutlined, WarningOutlined } from "@ant-design/icons";
@@ -17,6 +17,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 
 import BreakdownModal from "./BreakdownModal";
 import DowntimeSummaryTab from "./DowntimeSummaryTab";
+import { useEquipmentTypesQuery } from "@/hooks/equipment-types/useEquipmentTypes";
 import EquipmentFormModal from "./EquipmentFormModal";
 import EquipmentHistoryDrawer from "./EquipmentHistoryDrawer";
 import { fmtDate } from "./maintenance-format";
@@ -28,23 +29,20 @@ export default function EquipmentPage() {
   const [page, setPage] = useState(1);
   const [keyword, setKeyword] = useState("");
   const [applied, setApplied] = useState("");
-  const [category, setCategory] = useState<string>();
+  const [equipmentTypeId, setEquipmentTypeId] = useState<string>();
   const [status, setStatus] = useState<string>();
   const [editing, setEditing] = useState<Equipment | "new" | null>(null);
   const [historyOf, setHistoryOf] = useState<Equipment | null>(null);
   const [breakdownFor, setBreakdownFor] = useState<string | "any" | null>(null);
 
-  const query = useEquipmentQuery({ q: applied, category, status });
+  const typesQuery = useEquipmentTypesQuery();
   const allQuery = useEquipmentQuery({});
+  const query = useEquipmentQuery({ q: applied, equipmentTypeId, status });
   const create = useCreateEquipmentMutation();
   const update = useUpdateEquipmentMutation();
   const { canAdd, canEdit } = getScreenActionPermissions("EQUIPMENT");
 
   const rows = query.data?.data ?? [];
-  const categories = useMemo(
-    () => [...new Set((allQuery.data?.data ?? []).map((e) => e.category).filter((c): c is string => Boolean(c)))].sort(),
-    [allQuery.data],
-  );
 
   const columns: ColumnsType<Equipment> = [
     {
@@ -61,7 +59,14 @@ export default function EquipmentPage() {
         <div>
           <strong>{e.equipmentCode}</strong> — {e.name}
           <div style={{ fontSize: 12, color: "#8a94a6" }}>
-            {[e.category, e.manufacturer, e.model].filter(Boolean).join(" · ") || "—"}
+            {[
+              e.equipmentTypeName ?? e.category,
+              e.capacity != null ? `${e.capacity.toLocaleString("th-TH")} ${e.capacityUnitLabel ?? ""}/ชม.` : null,
+              e.manufacturer,
+              e.model,
+            ]
+              .filter(Boolean)
+              .join(" · ") || "—"}
           </div>
         </div>
       ),
@@ -166,15 +171,17 @@ export default function EquipmentPage() {
                         />
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500, whiteSpace: "nowrap" }}>
-                            หมวดหมู่:
+                            ประเภท:
                           </span>
                           <Select
                             allowClear
-                            placeholder="ทุกหมวด"
-                            style={{ width: 160 }}
-                            value={category}
-                            onChange={setCategory}
-                            options={categories.map((c) => ({ value: c, label: c }))}
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="ทุกประเภท"
+                            style={{ width: 180 }}
+                            value={equipmentTypeId}
+                            onChange={setEquipmentTypeId}
+                            options={(typesQuery.data ?? []).map((t) => ({ value: t.id, label: t.nameTh }))}
                           />
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -190,14 +197,14 @@ export default function EquipmentPage() {
                             options={Object.entries(EQUIPMENT_STATUS_LABEL).map(([value, label]) => ({ value, label }))}
                           />
                         </div>
-                        {(keyword || applied || category || status) && (
+                        {(keyword || applied || equipmentTypeId || status) && (
                           <Button
                             type="text"
                             icon={<ClearOutlined />}
                             onClick={() => {
                               setKeyword("");
                               setApplied("");
-                              setCategory(undefined);
+                              setEquipmentTypeId(undefined);
                               setStatus(undefined);
                             }}
                             style={{ color: "#64748b" }}
@@ -241,7 +248,6 @@ export default function EquipmentPage() {
           <EquipmentFormModal
             key={editing === "new" ? "new" : editing.id}
             equipment={editing === "new" ? null : editing}
-            categories={categories}
             loading={create.isPending || update.isPending}
             onCancel={() => setEditing(null)}
             onSubmit={(body) => {

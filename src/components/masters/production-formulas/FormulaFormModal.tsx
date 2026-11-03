@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   Alert,
+  App,
   Button,
   Form,
   Input,
@@ -16,7 +17,9 @@ import {
 } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
+import { useEquipmentQuery } from "@/hooks/maintenance/useMaintenance";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
+import { validateRecordingEquipmentConfig } from "@/utils/recordingEquipment";
 import type {
   ProductionFormula,
   ProductionFormulaLineBody,
@@ -159,6 +162,7 @@ function FormulaFormBody({
   const [recordingConfig, setRecordingConfig] =
     useState<ProductionRecordingConfig>(() => ({
       fields: formula?.recordingConfig?.fields ?? [],
+      equipmentIds: formula?.recordingConfig?.equipmentIds ?? [],
     }));
 
   const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });
@@ -272,7 +276,20 @@ function FormulaFormBody({
     };
   }, [lines, itemById]);
 
+  const { message } = App.useApp();
+  const equipmentQuery = useEquipmentQuery({});
+
   const submit = (values: FormValues) => {
+    // ตรวจส่วนเครื่องจักรก่อนส่ง (backend ตรวจซ้ำเป็นตัวตัดสิน)
+    const equipmentErrors = validateRecordingEquipmentConfig(
+      recordingConfig,
+      equipmentQuery.data?.data ?? [],
+      new Map(items.map((item) => [item.id, item.unitId as string])),
+    );
+    if (equipmentErrors.length > 0) {
+      message.error(equipmentErrors[0]);
+      return;
+    }
     const collect = (role: string, rows?: LineValues[]) =>
       (rows ?? []).map((line, indexInRole) => ({
         lineRole: role,
@@ -299,6 +316,7 @@ function FormulaFormBody({
       sortOrder: values.sortOrder,
       remark: values.remark,
       recordingConfig: {
+        equipmentIds: recordingConfig.equipmentIds ?? [],
         fields: recordingConfig.fields.map((f, i) => ({ ...f, sortOrder: i })),
       },
       lines: allLines,

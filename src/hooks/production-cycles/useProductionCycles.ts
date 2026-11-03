@@ -46,6 +46,14 @@ export const useShiftRecordsQuery = (params: { productionOrderId?: string; cycle
     enabled: enabled && Boolean(params.productionOrderId || params.cycleId),
   });
 
+/** ผลคาดการณ์เทียบผลจริงรายเครื่องของ MO — อยู่ใต้ shiftRecordsKey จึงโหลดใหม่เองเมื่อบันทึก/ยืนยันกะ */
+export const useMachineSummaryQuery = (productionOrderId?: string, enabled = true) =>
+  useQuery({
+    queryKey: [...shiftRecordsKey, "machine-summary", productionOrderId],
+    queryFn: () => api.getMachineSummary(getAccessToken(), productionOrderId as string),
+    enabled: enabled && Boolean(productionOrderId),
+  });
+
 export const useMachineDevicesQuery = () =>
   useQuery({
     queryKey: [...machineDevicesKey, "list"],

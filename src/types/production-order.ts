@@ -137,8 +137,10 @@ export type ProductionOrder = {
   productionFormulaVersionNo?: number;
   /** snapshot ตอนสร้างใบ (ประวัติ/fallback แถวกะเก่า) */
   recordingConfigSnapshot?: ProductionRecordingConfig | null;
-  /** ฟอร์มจากสูตรปัจจุบัน — ใช้ตอนกดเพิ่มบันทึกกะใหม่ */
+  /** ฟอร์มจากสูตรปัจจุบัน — ข้อมูลอ้างอิงเท่านั้น (บันทึกกะใหม่ใช้ recordingConfigSnapshot ของใบ) */
   liveRecordingConfig?: ProductionRecordingConfig | null;
+  /** เครื่องจักรที่ใช้ใน MO ณ เวลาสร้างใบ (Capacity/หน่วยเป็นค่าตอนนั้น) — ไม่มี = ใบที่ไม่ผูกเครื่อง */
+  machineSnapshot?: ProductionOrderMachineSnapshot | null;
   formulaTargetQty?: string;
   formulaDriverItemId?: string;
   salesOrderNo?: string;
@@ -319,6 +321,30 @@ export type CreateProductionOrderPlanLineBody = {
   sortOrder?: number;
 };
 
+export type ProductionOrderMachine = {
+  equipmentId: string;
+  code: string;
+  name: string;
+  equipmentTypeId: string | null;
+  equipmentTypeName: string | null;
+  capacity: number | null;
+  capacityUnitId: string | null;
+  capacityUnitCode: string | null;
+  capacityUnitLabel: string | null;
+  /** เครื่องที่สูตรกำหนดไว้เดิม (ต่างจาก equipmentId = ผู้ใช้สลับเครื่อง) */
+  formulaEquipmentId: string;
+};
+
+export type ProductionOrderMachineSnapshot = {
+  machines: ProductionOrderMachine[];
+};
+
+/** สลับเครื่องที่สูตรกำหนดเป็นเครื่องอื่นประเภทเดียวกัน */
+export type ProductionOrderMachineChoiceBody = {
+  formulaEquipmentId: string;
+  equipmentId: string;
+};
+
 export type CreateProductionOrderBody = {
   productionDate: string;
   /** วันสิ้นสุดช่วงผลิต — ไม่ส่งหรือเท่าวันเริ่ม = วันเดียว */
@@ -334,6 +360,8 @@ export type CreateProductionOrderBody = {
   productionFormulaId?: string;
   formulaTargetQty?: number;
   formulaDriverItemId?: string;
+  /** เฉพาะที่สลับจากเครื่องในสูตร (ไม่ส่ง = ใช้ตามสูตร) */
+  machines?: ProductionOrderMachineChoiceBody[];
 };
 
 export type BulkCreateProductionOrderSelectionBody = {
@@ -363,6 +391,7 @@ export type BulkCreateProductionOrdersBody = {
   productionFormulaId?: string;
   formulaTargetQty?: number;
   formulaDriverItemId?: string;
+  machines?: ProductionOrderMachineChoiceBody[];
 };
 
 export type CompleteProductionOrderWasteLineBody = {

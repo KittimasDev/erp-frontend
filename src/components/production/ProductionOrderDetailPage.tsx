@@ -1075,6 +1075,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       }
                       recordingConfigSnapshot={order.recordingConfigSnapshot}
                       liveRecordingConfig={order.liveRecordingConfig}
+                      machines={order.machineSnapshot?.machines}
                       inputStockMode={order.inputStockMode}
                       inputItems={order.inputItems}
                     />

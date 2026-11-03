@@ -11,6 +11,7 @@ import {
   Modal,
   Popconfirm,
   Select,
+  Space,
   Table,
   Tag,
   TimePicker,
@@ -30,13 +31,21 @@ import customParseFormat from "dayjs/plugin/customParseFormat";
 import {
   useCreateShiftRecordMutation,
   useDeleteShiftRecordMutation,
+  useMachineSummaryQuery,
   useProductionOrderLookupsQuery,
   useShiftRecordsQuery,
   useUnconfirmShiftRecordMutation,
   useUpdateShiftRecordMutation,
 } from "@/hooks/production-cycles/useProductionCycles";
-import type { ShiftRecord } from "@/types/production-cycle";
-import type { ProductionOrderInputItem } from "@/types/production-order";
+import {
+  MACHINE_FORECAST_STATUS_LABEL,
+  type MachineForecast,
+  type ShiftRecord,
+} from "@/types/production-cycle";
+import type {
+  ProductionOrderInputItem,
+  ProductionOrderMachine,
+} from "@/types/production-order";
 import ConfirmShiftStockModal from "./ConfirmShiftStockModal";
 import type {
   ProductionRecordingConfig,
@@ -94,6 +103,8 @@ type DynamicFormValues = {
   operatorIds?: string[];
   remark?: string;
   values: RecordingFieldValues;
+  /** equipmentId → ชั่วโมงเดินเครื่องจริงของเครื่องนั้น (ไม่บังคับ) */
+  machineHours?: Record<string, number | null | undefined>;
 };
 
 function sortedFields(config?: ProductionRecordingConfig | null) {
@@ -421,15 +432,47 @@ function InfoFieldRow({ field }: { field: RecordingFieldDef }) {
   );
 }
 
+const fmtNum = (v: number | null | undefined, digits = 2) =>
+  v == null
+    ? "—"
+    : v.toLocaleString("th-TH", { minimumFractionDigits: 0, maximumFractionDigits: digits });
+
+/** สรุปผลคาดการณ์เทียบผลจริงของเครื่องหนึ่ง (ใช้ทั้งในโมดัลแก้ไขและตารางสรุป) */
+function ForecastLine({ forecast }: { forecast?: MachineForecast }) {
+  if (!forecast) return null;
+  if (forecast.status !== "OK") {
+    return (
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        เปรียบเทียบกำลังผลิตไม่ได้: {MACHINE_FORECAST_STATUS_LABEL[forecast.status]}
+        {forecast.forecast != null ? ` (คาดการณ์ ${fmtNum(forecast.forecast)} ${forecast.capacityUnitLabel ?? ""})` : ""}
+      </Typography.Text>
+    );
+  }
+  return (
+    <Space size={[8, 4]} wrap>
+      <Tag>คาดการณ์ {fmtNum(forecast.forecast)} {forecast.capacityUnitLabel}</Tag>
+      <Tag color="blue">ผลจริง {fmtNum(forecast.actual)}</Tag>
+      <Tag color={(forecast.diff ?? 0) >= 0 ? "green" : "orange"}>
+        ส่วนต่าง {(forecast.diff ?? 0) > 0 ? "+" : ""}
+        {fmtNum(forecast.diff)}
+      </Tag>
+      <Tag color="geekblue">{fmtNum(forecast.pctOfCapacity)}% ของกำลังผลิต</Tag>
+    </Space>
+  );
+}
+
 function DynamicRecordModal({
   orderId,
   record,
   fields,
+  machines,
   onClose,
 }: {
   orderId: string;
   record: ShiftRecord | null;
   fields: RecordingFieldDef[];
+  /** เครื่องจักรของ MO (snapshot) — ว่าง = ใบที่ไม่ผูกเครื่อง แสดงฟอร์มเหมือนเดิม */
+  machines: ProductionOrderMachine[];
   onClose: () => void;
 }) {
   const [form] = Form.useForm<DynamicFormValues>();
@@ -452,11 +495,19 @@ function DynamicRecordModal({
     return map;
   }, [fields, watchedValues]);
 
-  const inputFields = fields.filter(
+  // ฟิลด์ที่ผูกเครื่อง (ตาม snapshot ของ MO) แยกไปแสดงเป็นกลุ่มตามเครื่อง · ที่เหลือแสดงตามเดิม
+  const machineIds = new Set(machines.map((m) => m.equipmentId));
+  const isMachineField = (f: RecordingFieldDef) =>
+    Boolean(f.equipmentId && machineIds.has(f.equipmentId));
+  const generalFields = fields.filter((f) => !isMachineField(f));
+  const inputFields = generalFields.filter(
     (f) => f.resultRole === "INPUT" || f.resultRole === "TRACKING",
   );
-  const outputFields = fields.filter((f) => f.resultRole === "OUTPUT");
-  const infoFields = fields.filter((f) => f.resultRole === "INFORMATION");
+  const outputFields = generalFields.filter((f) => f.resultRole === "OUTPUT");
+  const infoFields = generalFields.filter((f) => f.resultRole === "INFORMATION");
+  const watchedHours = Form.useWatch("machineHours", form) as
+    | Record<string, number | null | undefined>
+    | undefined;
 
   const applyShiftTimes = (shiftId?: string) => {
     const shift = shifts.find((s) => s.id === shiftId);
@@ -501,13 +552,21 @@ function DynamicRecordModal({
         ]);
         return Promise.reject();
       }
+      // ชั่วโมงเดินเครื่องรายเครื่อง (ไม่บังคับ) — ส่งเฉพาะเครื่องที่กรอก · แก้แถวเดิมส่งทั้งชุดเพื่อให้ล้างได้
+      const machineRuns = machines.flatMap((m) => {
+        const hours = v.machineHours?.[m.equipmentId];
+        return hours == null ? [] : [{ equipmentId: m.equipmentId, hours: Number(hours) }];
+      });
       const common = {
         values,
         operatorIds: v.operatorIds ?? [],
         remark: v.remark?.trim() || undefined,
       };
       if (record) {
-        update.mutate({ id: record.id, body: common }, { onSuccess: onClose });
+        update.mutate(
+          { id: record.id, body: machines.length > 0 ? { ...common, machineRuns } : common },
+          { onSuccess: onClose },
+        );
       } else {
         create.mutate(
           {
@@ -515,6 +574,7 @@ function DynamicRecordModal({
             recordDate: v.recordDate.format("YYYY-MM-DD"),
             shiftId: v.shiftId,
             ...common,
+            ...(machineRuns.length > 0 ? { machineRuns } : {}),
           },
           { onSuccess: onClose },
         );
@@ -551,6 +611,9 @@ function DynamicRecordModal({
           operatorIds: record?.operators.map((o) => o.id) ?? [],
           remark: record?.remark,
           values: record?.values ?? {},
+          machineHours: Object.fromEntries(
+            (record?.machineRuns ?? []).map((r) => [r.equipmentId, r.hours]),
+          ),
         }}
       >
         <div className={modalStyles.modalBody}>
@@ -610,6 +673,59 @@ function DynamicRecordModal({
               </Form.Item>
             </div>
           </ModalSection>
+
+          {machines.map((machine) => {
+            const machineFields = fields.filter((f) => f.equipmentId === machine.equipmentId);
+            const hours = watchedHours?.[machine.equipmentId];
+            const livePreview =
+              hours != null && machine.capacity != null
+                ? Math.round(machine.capacity * Number(hours) * 1000) / 1000
+                : null;
+            const saved = record?.machineForecasts?.find(
+              (f) => f.equipmentId === machine.equipmentId,
+            );
+            return (
+              <ModalSection
+                key={machine.equipmentId}
+                icon={<SettingOutlined />}
+                title={`${machine.code} — ${machine.name}`}
+              >
+                <Space size={[8, 4]} wrap style={{ marginBottom: 8 }}>
+                  {machine.equipmentTypeName ? <Tag>{machine.equipmentTypeName}</Tag> : null}
+                  <Tag color="geekblue">
+                    กำลังผลิต{" "}
+                    {machine.capacity != null
+                      ? `${fmtNum(machine.capacity)} ${machine.capacityUnitLabel ?? ""}/ชม.`
+                      : "ยังไม่ตั้ง"}
+                  </Tag>
+                  {machine.formulaEquipmentId !== machine.equipmentId ? (
+                    <Tag color="orange">สลับจากเครื่องในสูตร</Tag>
+                  ) : null}
+                </Space>
+                <Form.Item
+                  name={["machineHours", machine.equipmentId]}
+                  label="ชั่วโมงเดินเครื่องจริงของเครื่องนี้"
+                  extra={
+                    livePreview != null
+                      ? `ผลคาดการณ์ = ${fmtNum(machine.capacity)} × ${fmtNum(Number(hours))} ชม. = ${fmtNum(livePreview, 3)} ${machine.capacityUnitLabel ?? ""} (เทียบผลจริงหลังบันทึก)`
+                      : "ไม่บังคับ — ไม่กรอก = ไม่คำนวณผลคาดการณ์ของเครื่องนี้"
+                  }
+                >
+                  <InputNumber min={0} max={24} precision={2} style={{ width: 200 }} addonAfter="ชม." />
+                </Form.Item>
+                <div className={modalStyles.fieldBlock}>
+                  {machineFields.map((field) =>
+                    field.resultRole === "INFORMATION" ? (
+                      <InfoFieldRow key={field.id} field={field} />
+                    ) : (
+                      <BomFieldRow key={field.id} field={field} liveResult={liveResults[field.id]} />
+                    ),
+                  )}
+                </div>
+                <ForecastLine forecast={saved} />
+              </ModalSection>
+            );
+          })}
 
           {inputFields.length > 0 ? (
             <ModalSection icon={<InboxOutlined />} title="วัตถุดิบเข้า">
@@ -915,13 +1031,14 @@ function configForRow(
   return null;
 }
 
-/** บันทึกการผลิตรายกะ — แถวใหม่ตามสูตรสด · แถวเก่ายึด snapshot ของแถว */
+/** บันทึกการผลิตรายกะ — แถวใหม่ตาม snapshot ของ MO (ไม่ดึงสูตรล่าสุด) · แถวเก่ายึด snapshot ของแถว */
 export default function ShiftRecordsPanel({
   orderId,
   canEdit,
   started,
   recordingConfigSnapshot,
   liveRecordingConfig,
+  machines = [],
   inputStockMode,
   inputItems = [],
 }: {
@@ -930,6 +1047,8 @@ export default function ShiftRecordsPanel({
   started: boolean;
   recordingConfigSnapshot?: ProductionRecordingConfig | null;
   liveRecordingConfig?: ProductionRecordingConfig | null;
+  /** เครื่องจักรของ MO (snapshot) */
+  machines?: ProductionOrderMachine[];
   inputStockMode?: string;
   inputItems?: ProductionOrderInputItem[];
 }) {
@@ -941,12 +1060,14 @@ export default function ShiftRecordsPanel({
   const rows = query.data?.data ?? [];
   const cutOnConfirm = inputStockMode === "ON_SHIFT_CONFIRM";
 
+  // snapshot ของ MO ก่อน — แก้สูตรภายหลังไม่กระทบใบนี้ · สูตรสดเป็น fallback เฉพาะใบเก่าที่ snapshot ว่าง
   const newFormConfig =
-    liveRecordingConfig?.fields?.length
-      ? liveRecordingConfig
-      : recordingConfigSnapshot?.fields?.length
-        ? recordingConfigSnapshot
+    recordingConfigSnapshot?.fields?.length
+      ? recordingConfigSnapshot
+      : liveRecordingConfig?.fields?.length
+        ? liveRecordingConfig
         : null;
+  const machineSummary = useMachineSummaryQuery(orderId, machines.length > 0);
   const newFormFields = sortedFields(newFormConfig);
 
   const hasAnyDynamic =
@@ -1267,6 +1388,71 @@ export default function ShiftRecordsPanel({
         }}
       />
 
+      {machines.length > 0 ? (
+        <div style={{ marginTop: 16 }}>
+          <Typography.Text strong>ผลคาดการณ์เทียบผลจริงรายเครื่อง</Typography.Text>
+          <Typography.Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
+            คาดการณ์ = กำลังผลิต × ชั่วโมงเดินเครื่องจริง รวมเฉพาะกะที่กรอกชั่วโมงและผลจริงครบ ·
+            เทียบเฉพาะหน่วยที่ตรงกัน · ไม่รวมกำลังผลิตข้ามเครื่อง (เครื่องที่ทำงานต่อเนื่องกันจะนับซ้ำ)
+          </Typography.Paragraph>
+          <Table<MachineForecast>
+            size="small"
+            rowKey="equipmentId"
+            pagination={false}
+            loading={machineSummary.isFetching}
+            dataSource={machineSummary.data?.data ?? []}
+            locale={{ emptyText: "ยังไม่มีบันทึกกะ" }}
+            scroll={{ x: "max-content" }}
+            columns={[
+              {
+                title: "เครื่องจักร",
+                key: "machine",
+                render: (_: unknown, f: MachineForecast) => `${f.equipmentCode} — ${f.equipmentName}`,
+              },
+              {
+                title: "กำลังผลิต/ชม.",
+                key: "capacity",
+                align: "right",
+                render: (_: unknown, f: MachineForecast) =>
+                  f.capacity != null ? `${fmtNum(f.capacity)} ${f.capacityUnitLabel ?? ""}` : "—",
+              },
+              { title: "ชั่วโมงเดินเครื่อง", dataIndex: "hours", align: "right", render: (v?: number | null) => fmtNum(v) },
+              {
+                title: "ผลคาดการณ์",
+                dataIndex: "forecast",
+                align: "right",
+                render: (v?: number | null) => fmtNum(v, 3),
+              },
+              {
+                title: "ผลจริง",
+                dataIndex: "actual",
+                align: "right",
+                render: (v?: number | null, f?: MachineForecast) =>
+                  f?.status === "OK" ? fmtNum(v, 3) : "—",
+              },
+              {
+                title: "ส่วนต่าง",
+                dataIndex: "diff",
+                align: "right",
+                render: (v?: number | null) => (v == null ? "—" : `${v > 0 ? "+" : ""}${fmtNum(v, 3)}`),
+              },
+              {
+                title: "% ของกำลังผลิต",
+                dataIndex: "pctOfCapacity",
+                align: "right",
+                render: (v?: number | null) => (v == null ? "—" : `${fmtNum(v)}%`),
+              },
+              {
+                title: "สถานะ",
+                dataIndex: "status",
+                render: (s: MachineForecast["status"]) =>
+                  s === "OK" ? <Tag color="green">คำนวณได้</Tag> : <Tag>{MACHINE_FORECAST_STATUS_LABEL[s]}</Tag>,
+              },
+            ]}
+          />
+        </div>
+      ) : null}
+
       {accumulated.length > 0 ? (
         <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
           <Typography.Text type="secondary">ยอดสะสมจากกะ:</Typography.Text>
@@ -1286,6 +1472,7 @@ export default function ShiftRecordsPanel({
             orderId={orderId}
             record={editing === "new" ? null : editing}
             fields={editing === "new" ? newFormFields : editFields}
+            machines={machines}
             onClose={() => setEditing(null)}
           />
         ) : (

@@ -41,7 +41,15 @@ export type Equipment = {
   locationId?: string;
   locationCode?: string;
   status: string;
+  /** ชื่อประเภทเครื่องจักร (ระบบเขียนให้ตามประเภทใน Master — อ่านอย่างเดียว) */
   category?: string;
+  /** ประเภทเครื่องจักรจาก Master (/masters/equipment-types) */
+  equipmentTypeId?: string | null;
+  equipmentTypeName?: string | null;
+  /** กำลังผลิตต่อชั่วโมง — ใช้คาดการณ์/วิเคราะห์เท่านั้น */
+  capacity?: number | null;
+  capacityUnitId?: string | null;
+  capacityUnitLabel?: string | null;
   serialNumber?: string;
   manufacturer?: string;
   model?: string;
@@ -58,7 +66,11 @@ export type EquipmentBody = {
   name?: string;
   locationId?: string;
   status?: string;
-  category?: string;
+  /** null = ล้างประเภท */
+  equipmentTypeId?: string | null;
+  /** ต้องส่งคู่กัน (หรือ null ทั้งคู่) */
+  capacity?: number | null;
+  capacityUnitId?: string | null;
   serialNumber?: string;
   manufacturer?: string;
   model?: string;
@@ -69,7 +81,7 @@ export type EquipmentBody = {
   remark?: string;
 };
 
-export type EquipmentQuery = { q?: string; category?: string; status?: string };
+export type EquipmentQuery = { q?: string; equipmentTypeId?: string; status?: string };
 
 // ── PM ──
 export type PmScheduleType = "CALENDAR" | "CYCLE";
