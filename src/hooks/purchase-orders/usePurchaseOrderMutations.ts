@@ -16,6 +16,7 @@ import {
   updatePurchaseOrder,
 } from "@/lib/api/purchase-orders";
 import { getAccessToken } from "@/lib/auth/token";
+import { poDeliverySchedulesQueryKey } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
 import {
   ATTACHMENT_GROUP_QUOTATION,
   DOCUMENT_TYPE_PO,
@@ -90,7 +91,10 @@ export function useUpdatePurchaseOrderMutation() {
     mutationFn: ({ id, body }: { id: string; body: UpdatePurchaseOrderBody }) =>
       updatePurchaseOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
-      await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey }),
+        queryClient.invalidateQueries({ queryKey: poDeliverySchedulesQueryKey }),
+      ]);
       message.success(response.message || "แก้ไขใบสั่งซื้อสำเร็จแล้ว");
     },
     onError: (error: Error) => {

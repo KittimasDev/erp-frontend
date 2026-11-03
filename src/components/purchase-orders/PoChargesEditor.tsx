@@ -164,7 +164,7 @@ export default function PoChargesEditor({ form, disabled }: Props) {
 
   return (
     <div className={styles.sectionBlock}>
-      <div className={styles.sectionHead}>
+      <div className={styles.chargeHead}>
         <h2 className={styles.sectionTitle}>ค่าใช้จ่ายเพิ่มเติม</h2>
         <p className={styles.sectionHint}>
           ค่าขนส่ง ค่าบริการ หรือค่าใช้จ่ายอื่น ๆ ของ Supplier รายนี้ — แยกจากรายการสินค้า ไม่เข้าสต๊อก/Lot
@@ -173,7 +173,7 @@ export default function PoChargesEditor({ form, disabled }: Props) {
       </div>
       <Form.List name="charges">
         {(fields, { add, remove }) => (
-          <div>
+          <div className={styles.chargeList}>
             {fields.map((field, index) => {
               const row = watched[index] ?? {};
               const vatMode = resolveVatMode(row.vatMode);
@@ -186,8 +186,8 @@ export default function PoChargesEditor({ form, disabled }: Props) {
               const allocated = row._allocated ?? 0;
               const locked = allocated > 0;
               return (
-                <div key={field.key} className={styles.lineCard}>
-                  <div className={styles.lineCardHeader}>
+                <div key={field.key} className={styles.chargeCard}>
+                  <div className={styles.chargeCardHeader}>
                     <strong>ค่าใช้จ่ายรายการที่ {index + 1}</strong>
                     <span>
                       {locked ? (
@@ -209,13 +209,7 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                   <Form.Item name={[field.name, "_allocated"]} hidden>
                     <InputNumber />
                   </Form.Item>
-                  <div
-                    style={{
-                      display: "grid",
-                      gap: 12,
-                      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-                    }}
-                  >
+                  <div className={styles.chargeFields}>
                     <Form.Item
                       name={[field.name, "expenseTypeId"]}
                       label="ประเภทค่าใช้จ่าย"
@@ -351,7 +345,7 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                       </Form.Item>
                     ) : null}
                   </div>
-                  <div style={{ textAlign: "right" }}>
+                  <div className={styles.chargeSummary}>
                     VAT {money(totals.vat)} · รวม <strong>{money(totals.total)}</strong>
                   </div>
                 </div>

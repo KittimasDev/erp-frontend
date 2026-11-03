@@ -203,6 +203,67 @@
   font-size: 13px;
 }
 
+.chargeHead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chargeList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chargeCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--pr-border);
+  border-radius: 14px;
+  background: #fafbfc;
+}
+
+.chargeCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chargeCardHeader strong {
+  color: var(--pr-text);
+  font-size: 13px;
+}
+
+.chargeFields {
+  display: grid;
+  gap: 16px 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.chargeFields :global(.ant-form-item) {
+  margin-bottom: 0;
+}
+
+.chargeFields :global(.ant-form-item-label) {
+  padding-bottom: 8px;
+}
+
+.chargeFields :global(.ant-form-item-extra) {
+  margin-top: 8px;
+  min-height: 0;
+}
+
+.chargeSummary {
+  margin: 0;
+  padding: 8px 0 2px;
+  text-align: right;
+}
+
 .lineGrid {
   display: grid;
   grid-template-columns: 1.4fr 0.7fr 0.9fr;

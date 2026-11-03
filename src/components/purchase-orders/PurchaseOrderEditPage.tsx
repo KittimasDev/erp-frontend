@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  App,
   Button,
   DatePicker,
   Form,
@@ -19,6 +20,7 @@ import { useVendorsQuery } from "@/hooks/vendors/useVendorsQuery";
 import { usePaymentTermsQuery } from "@/hooks/payment-terms/usePaymentTermsQuery";
 import { useUpdatePurchaseOrderMutation } from "@/hooks/purchase-orders/usePurchaseOrderMutations";
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
+import { usePoDeliverySchedulesQuery } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
 import {
   resolveVatMode,
   resolveWithholdingPercent,
@@ -31,6 +33,9 @@ import {
 import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
 import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
+import PoDeliverySchedulesEditor, {
+  sumScheduledQty,
+} from "./PoDeliverySchedulesEditor";
 import PoChargesEditor, {
   chargeRowsToBody,
   chargesToFormRows,
@@ -65,6 +70,10 @@ type FormValues = {
   remark?: string;
   items: LineValues[];
   charges?: ChargeFormRow[];
+  deliverySchedules?: Array<{
+    deliveryDate?: dayjs.Dayjs;
+    items?: Array<{ purchaseRequestItemId: string; quantity?: number }>;
+  }>;
 };
 
 const PAYMENT_METHOD_OPTIONS = Object.entries(SUPPLIER_PAYMENT_METHOD_LABEL).map(
@@ -75,8 +84,10 @@ type Props = { id: string };
 
 export default function PurchaseOrderEditPage({ id }: Props) {
   const router = useRouter();
+  const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const detailQuery = usePurchaseOrderQuery(id);
+  const schedulesQuery = usePoDeliverySchedulesQuery(id);
   const updateMutation = useUpdatePurchaseOrderMutation();
 
   const vendorsQuery = useVendorsQuery({ isActive: true });
@@ -92,9 +103,23 @@ export default function PurchaseOrderEditPage({ id }: Props) {
     | ChargeFormRow[]
     | undefined;
   const chargePreview = usePoChargesPreview(watchedCharges);
+  const schedules = schedulesQuery.data?.data;
+
+  const scheduleSourceLines = useMemo(
+    () =>
+      watchedItems
+        .filter((item) => item?.purchaseRequestItemId)
+        .map((item) => ({
+          purchaseRequestItemId: item.purchaseRequestItemId!,
+          label: item.itemLabel || "สินค้า",
+          quantity: Number(item.quantity) || 0,
+          unitLabel: item.unitLabel || "",
+        })),
+    [watchedItems],
+  );
 
   useEffect(() => {
-    if (!data) return;
+    if (!data || !schedules) return;
     // ใบที่ถูกส่งกลับแก้ไขต้องเข้าฟอร์มได้ ไม่งั้นแก้ตามที่หัวหน้าสั่งไม่ได้เลย
     if (data.status !== "DRAFT" && data.status !== "REVISING") {
       router.replace(`/purchase-orders/${data.id}`);
@@ -114,6 +139,21 @@ export default function PurchaseOrderEditPage({ id }: Props) {
       discountAmount: Number(data.discountAmount),
       remark: data.remark,
       charges: chargesToFormRows(data.charges),
+      deliverySchedules: schedules.map((round) => ({
+        deliveryDate: dayjs(round.deliveryDate),
+        items: (round.items ?? [])
+          .map((line) => {
+            const poItem = (data.items ?? []).find(
+              (item) => item.id === line.purchaseOrderItemId,
+            );
+            if (!poItem?.purchaseRequestItemId) return null;
+            return {
+              purchaseRequestItemId: poItem.purchaseRequestItemId,
+              quantity: Number(line.quantity),
+            };
+          })
+          .filter((line) => line != null),
+      })),
       items: (data.items ?? []).map((item) => ({
         id: item.id,
         purchaseRequestItemId: item.purchaseRequestItemId,
@@ -127,9 +167,9 @@ export default function PurchaseOrderEditPage({ id }: Props) {
         description: item.description,
       })),
     });
-  }, [data, form, router]);
+  }, [data, form, router, schedules]);
 
-  if (detailQuery.isLoading) {
+  if (detailQuery.isLoading || schedulesQuery.isLoading) {
     return (
       <div className={styles.page}>
         <Spin /> กำลังโหลด...
@@ -148,7 +188,35 @@ export default function PurchaseOrderEditPage({ id }: Props) {
     );
   }
 
+  if (schedulesQuery.isError || !schedules) {
+    return (
+      <div className={styles.page}>
+        โหลดรอบจัดส่งไม่สำเร็จ
+        <div style={{ marginTop: 12 }}>
+          <Link href={`/purchase-orders/${id}`}>กลับ</Link>
+        </div>
+      </div>
+    );
+  }
+
   const onFinish = async (values: FormValues) => {
+    const rounds = values.deliverySchedules ?? [];
+    if (!rounds.length || rounds.some((round) => !round.deliveryDate)) {
+      message.error("ต้องมีอย่างน้อย 1 รอบจัดส่งและระบุวันที่กำหนดส่ง");
+      return;
+    }
+    for (const line of values.items) {
+      if (!line.purchaseRequestItemId) continue;
+      const ordered = Number(line.quantity) || 0;
+      const scheduled = sumScheduledQty(rounds, line.purchaseRequestItemId);
+      if (Math.abs(scheduled - ordered) > 0.0005) {
+        message.error(
+          `จำนวนรอบของ ${line.itemLabel || "สินค้า"} ต้องเท่ากับจำนวนที่สั่ง (${scheduled.toFixed(3)}/${ordered.toFixed(3)})`,
+        );
+        return;
+      }
+    }
+
     const response = await updateMutation.mutateAsync({
       id,
       body: {
@@ -180,6 +248,20 @@ export default function PurchaseOrderEditPage({ id }: Props) {
         })),
         // ส่งรายการทั้งชุดเสมอ (upsert ตาม id) — ที่ตั้งหนี้แล้วลบ/ลดต่ำกว่ายอดที่ตั้งไม่ได้ backend ตรวจให้
         charges: chargeRowsToBody(values.charges),
+        deliverySchedules: rounds
+          .map((round) => ({
+            deliveryDate: round.deliveryDate!.format("YYYY-MM-DD"),
+            items: (round.items ?? [])
+              .filter(
+                (item) =>
+                  item.purchaseRequestItemId && Number(item.quantity) > 0,
+              )
+              .map((item) => ({
+                purchaseRequestItemId: item.purchaseRequestItemId,
+                quantity: Number(item.quantity),
+              })),
+          }))
+          .filter((round) => round.items.length > 0),
       },
     });
     router.push(`/purchase-orders/${response.data.id}`);
@@ -330,6 +412,13 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                           </Form.Item>
                           <Form.Item
                             {...restField}
+                            name={[name, "purchaseRequestItemId"]}
+                            hidden
+                          >
+                            <Input />
+                          </Form.Item>
+                          <Form.Item
+                            {...restField}
                             name={[name, "itemId"]}
                             hidden
                           >
@@ -376,6 +465,11 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                   )}
                 </Form.List>
               </div>
+
+              <PoDeliverySchedulesEditor
+                form={form}
+                sourceLines={scheduleSourceLines}
+              />
 
               <PoChargesEditor form={form} disabled={updateMutation.isPending} />
             </div>

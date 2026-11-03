@@ -311,6 +311,11 @@ export type UpdatePurchaseOrderBody = {
   items?: UpdatePurchaseOrderItemBody[];
   /** ไม่ส่ง = ไม่แตะค่าเดิม · [] = ลบทั้งหมด · รายการ = upsert ตาม id */
   charges?: PurchaseOrderChargeBody[];
+  /** ไม่ส่ง = ไม่แตะรอบเดิม · ส่งมา = เขียนทับทั้งชุด */
+  deliverySchedules?: Array<{
+    deliveryDate: string;
+    items: Array<{ purchaseRequestItemId: string; quantity: number }>;
+  }>;
 };
 
 /** ปฏิเสธ / ส่งกลับแก้ไข ใบสั่งซื้อ */
