@@ -99,27 +99,29 @@ export function DashboardShell({
   return (
     <section className={styles.page}>
       <div className={styles.header}>
-        <div className={styles.eyebrow}>{eyebrow}</div>
-        <h2 className={styles.title}>{title}</h2>
-        <span className={styles.subtitle}>{subtitle}</span>
-      </div>
-      {range && onRangeChange ? (
-        <div className={styles.toolbar}>
-          <div className={styles.field}>
-            <span>ช่วงวันที่ (กว้างสุด 90 วัน)</span>
-            <DatePicker.RangePicker
-              value={range}
-              allowClear={false}
-              format="DD/MM/YYYY"
-              onChange={(v) => {
-                if (v?.[0] && v[1]) onRangeChange([v[0], v[1]]);
-              }}
-            />
-          </div>
-          {loading ? <Spin size="small" /> : null}
-          {extra ? <div style={{ marginLeft: "auto" }}>{extra}</div> : null}
+        <div className={styles.headCopy}>
+          <div className={styles.eyebrow}>{eyebrow}</div>
+          <h2 className={styles.title}>{title}</h2>
+          <span className={styles.subtitle}>{subtitle}</span>
         </div>
-      ) : null}
+        {range && onRangeChange ? (
+          <div className={styles.headTools}>
+            <div className={styles.field}>
+              <span>ช่วงวันที่ (กว้างสุด 90 วัน)</span>
+              <DatePicker.RangePicker
+                value={range}
+                allowClear={false}
+                format="DD/MM/YYYY"
+                onChange={(v) => {
+                  if (v?.[0] && v[1]) onRangeChange([v[0], v[1]]);
+                }}
+              />
+            </div>
+            {loading ? <Spin size="small" /> : null}
+            {extra ? <div>{extra}</div> : null}
+          </div>
+        ) : null}
+      </div>
       {error ? (
         <Alert
           type="error"
@@ -133,8 +135,18 @@ export function DashboardShell({
   );
 }
 
-export function KpiGrid({ children }: { children: ReactNode }) {
-  return <div className={styles.kpis}>{children}</div>;
+export function KpiGrid({ children, hero }: { children: ReactNode; hero?: boolean }) {
+  return <div className={`${styles.kpis} ${hero ? styles.kpisHero : ""}`}>{children}</div>;
+}
+
+/** หัวข้อกลุ่มของหน้า เช่น "ตัวเลขหลัก" */
+export function SectionTitle({ children, hint }: { children: ReactNode; hint?: ReactNode }) {
+  return (
+    <div className={styles.section}>
+      {children}
+      {hint ? <small>{hint}</small> : null}
+    </div>
+  );
 }
 
 export function KpiCard({
@@ -142,16 +154,25 @@ export function KpiCard({
   value,
   note,
   tone = "default",
+  icon,
+  hero,
 }: {
   label: string;
   value: ReactNode;
   note?: ReactNode;
   tone?: "default" | "good" | "warn" | "bad";
+  /** ไอคอนในกรอบสีตาม tone */
+  icon?: ReactNode;
+  /** การ์ดตัวเลขหลัก — ใหญ่กว่า */
+  hero?: boolean;
 }) {
   const toneClass = { default: styles.toneDefault, good: styles.toneGood, warn: styles.toneWarn, bad: styles.toneBad }[tone];
   return (
-    <div className={`${styles.kpi} ${toneClass}`}>
-      <div className={styles.kpiLabel}>{label}</div>
+    <div className={`${styles.kpi} ${toneClass} ${hero ? styles.kpiHero : ""}`}>
+      <div className={styles.kpiHead}>
+        {icon ? <span className={styles.kpiIcon}>{icon}</span> : null}
+        <div className={styles.kpiLabel}>{label}</div>
+      </div>
       <div className={styles.kpiValue}>{value}</div>
       {note ? <div className={styles.kpiNote}>{note}</div> : null}
     </div>

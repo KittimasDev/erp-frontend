@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Tooltip } from "antd";
 import MenuSearchPalette from "./MenuSearchPalette";
@@ -102,6 +102,9 @@ export default function HomePortalPage() {
   const [todayLabel, setTodayLabel] = useState("");
   const [permsTick, setPermsTick] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  // จำนวนคอลัมน์จริงของกริด (เปลี่ยนตามความกว้างหน้าจอ) — ไว้ให้การ์ดแถวเดียวกันขึ้นพร้อมกัน
+  const [cols, setCols] = useState(5);
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -129,6 +132,19 @@ export default function HomePortalPage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const measure = () => {
+      const n = getComputedStyle(el).gridTemplateColumns.split(" ").filter(Boolean).length;
+      if (n > 0) setCols(n);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mounted, permsTick]);
 
   useEffect(() => {
     const onPermissionsUpdated = () => {
@@ -218,7 +234,7 @@ export default function HomePortalPage() {
             : "ยังไม่มีโมดูลตามสิทธิ์ของคุณ — ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์การใช้งาน"}
         </div>
       ) : (
-        <div className={styles.grid}>
+        <div className={styles.grid} ref={gridRef}>
           {modules.map((mod, index) => {
             const breakdown = badgeBreakdownForScreenCodes(
               badgeCounts,
@@ -244,7 +260,7 @@ export default function HomePortalPage() {
                 <button
                   type="button"
                   className={`${styles.tile} ${TONE_CLASS[mod.tone]}`}
-                  style={{ ["--i" as string]: index }}
+                  style={{ ["--row" as string]: Math.floor(index / cols) }}
                   onClick={() => openModule(mod)}
                   aria-label={
                     showPendingBadge

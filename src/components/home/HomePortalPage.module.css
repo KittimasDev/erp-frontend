@@ -477,6 +477,28 @@
 
 
 /* ───────── animation ───────── */
+@keyframes tileIn {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes iconPop {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-8deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;
@@ -577,8 +599,14 @@
 }
 
 .tile {
-  animation: riseIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
-  animation-delay: calc(0.25s + var(--i, 0) * 55ms);
+  /* การ์ดแถวเดียวกันขึ้นพร้อมกัน แล้วไล่ทีละแถว (--row) */
+  animation: tileIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(0.2s + var(--row, 0) * 110ms);
+}
+
+.tile .tileIcon {
+  animation: iconPop 0.55s cubic-bezier(0.3, 1.5, 0.5, 1) backwards;
+  animation-delay: calc(0.38s + var(--row, 0) * 110ms);
 }
 
 .tile::after {
@@ -620,7 +648,8 @@
   .heroCopy > *,
   .heroMeta,
   .searchTrigger,
-  .tile {
+  .tile,
+  .tile .tileIcon {
     animation: none;
   }
 
