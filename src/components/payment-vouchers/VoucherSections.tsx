@@ -5,7 +5,7 @@ import { Card, Descriptions, Table, Tag, Timeline, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
-import { VOUCHER_EVENT_LABEL, type VoucherApDocument, type VoucherPersonAction, type VoucherSourceInfo } from "@/types/payment-vouchers";
+import { VOUCHER_EVENT_LABEL, type VoucherApDocument, type VoucherPersonAction, type VoucherSourceInfo, type WhtLine } from "@/types/payment-vouchers";
 import { fmtMoney, sourceHref, sourceLabel } from "./paymentVoucherUtils";
 
 const dt = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—");
@@ -74,6 +74,52 @@ export function SupplierCard({ supplier }: { supplier: VoucherSourceInfo["suppli
   );
 }
 
+/** ตารางรายการ WHT แยกประเภทเงินได้ / ฐาน / อัตราจริง / ยอดหัก */
+export function WhtLinesTable({
+  lines,
+  total,
+}: {
+  lines: Array<{ incomeType?: string; baseAmount: string; rate: string; whtAmount: string }>;
+  total: number | string;
+}) {
+  return (
+    <div style={{ overflowX: "auto", margin: "12px 0" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr>
+            {["ประเภทเงินได้", "ฐานภาษี", "อัตรา", "ยอดหัก"].map((h, i) => (
+              <th
+                key={h}
+                style={{ textAlign: i === 0 ? "left" : "right", padding: "6px 10px", borderBottom: "1px solid #e1e2dd", color: "#6b727a", fontWeight: 500 }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((l, i) => (
+            <tr key={`${l.incomeType ?? ""}-${l.rate}-${i}`}>
+              <td style={{ padding: "6px 10px" }}>{l.incomeType || "ไม่ระบุประเภท (ต้นทางไม่ได้ตั้งไว้)"}</td>
+              <td style={{ padding: "6px 10px", textAlign: "right" }}>{fmtMoney(l.baseAmount)}</td>
+              <td style={{ padding: "6px 10px", textAlign: "right" }}>{Number(l.rate)}%</td>
+              <td style={{ padding: "6px 10px", textAlign: "right" }}>{fmtMoney(l.whtAmount)}</td>
+            </tr>
+          ))}
+          <tr>
+            <td colSpan={3} style={{ padding: "6px 10px", fontWeight: 600, borderTop: "1px solid #e1e2dd" }}>
+              รวมภาษีหัก ณ ที่จ่าย
+            </td>
+            <td style={{ padding: "6px 10px", textAlign: "right", fontWeight: 600, borderTop: "1px solid #e1e2dd" }}>
+              {fmtMoney(total)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /** 2.5 ข้อมูลภาษี */
 export function TaxCard({
   vat,
@@ -81,25 +127,32 @@ export function TaxCard({
   whtRate,
   whtAmount,
   net,
+  whtLines,
 }: {
   vat: number | string;
   whtBase: number | string;
   whtRate: number | string;
   whtAmount: number | string;
   net: number | string;
+  /** รายการแยกอัตรา — มีมากกว่า 1 บรรทัดจะแสดงตารางแทนอัตราเดียว */
+  whtLines?: WhtLine[];
 }) {
   const hasWht = Number(whtAmount) > 0;
+  const multi = hasWht && (whtLines?.length ?? 0) > 1;
   return (
     <Card title="ข้อมูลภาษี (VAT / หัก ณ ที่จ่าย)" size="small">
       <Descriptions bordered size="small" column={{ xs: 1, md: 2, xl: 3 }}>
         <Descriptions.Item label="VAT">{fmtMoney(vat)}</Descriptions.Item>
         <Descriptions.Item label="ฐานภาษีหัก ณ ที่จ่าย">{hasWht ? fmtMoney(whtBase) : "—"}</Descriptions.Item>
-        <Descriptions.Item label="อัตรา WHT">{hasWht ? `${Number(whtRate)}%` : "ไม่มี"}</Descriptions.Item>
+        <Descriptions.Item label="อัตรา WHT">
+          {!hasWht ? "ไม่มี" : multi ? "หลายอัตรา (ดูรายการด้านล่าง)" : `${Number(whtRate)}%`}
+        </Descriptions.Item>
         <Descriptions.Item label="ยอด WHT">{fmtMoney(whtAmount)}</Descriptions.Item>
         <Descriptions.Item label="ยอดสุทธิจ่าย" span={2}>
           <Typography.Text strong>{fmtMoney(net)}</Typography.Text>
         </Descriptions.Item>
       </Descriptions>
+      {multi ? <WhtLinesTable lines={whtLines ?? []} total={whtAmount} /> : null}
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
         WHT คิดจากหัว PO (ค่าสินค้า) และ/หรือค่าใช้จ่ายที่ติ๊กหัก ณ ที่จ่าย — ฐานก่อน VAT · ไม่หักมัดจำ/ใบปรับหนี้ซ้ำ (คำนวณใน AP แล้ว)
       </Typography.Text>

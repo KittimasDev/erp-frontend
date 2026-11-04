@@ -180,6 +180,8 @@ export type PaymentVoucherDetail = VoucherSourceInfo & {
   vatAmount: string;
   whtBaseAmount: string;
   whtRate: string;
+  /** รายการ WHT แยกอัตรา — ว่าง/ไม่มี = PV เก่าหรือไม่มี WHT */
+  whtLines?: WhtLine[];
   expressStatus: string;
   createdByAction?: VoucherPersonAction;
   submittedByAction?: VoucherPersonAction;
@@ -267,6 +269,17 @@ export type PaymentRecordAttachment = {
 
 export type WhtParty = { name: string; taxId?: string; address?: string };
 
+/** รายการ WHT แยกประเภทเงินได้/อัตราจริง (ไม่ใช่อัตราเฉลี่ย) */
+export type WhtLine = {
+  /** ไม่ระบุ = ต้นทางไม่มีประเภทเงินได้ */
+  incomeType?: string;
+  baseAmount: string;
+  rate: string;
+  whtAmount: string;
+};
+
+export type WhtCertificateLine = Omit<WhtLine, "incomeType"> & { incomeType: string };
+
 export type WhtCertificate = {
   id: string;
   certNo: string;
@@ -277,6 +290,8 @@ export type WhtCertificate = {
   baseAmount: string;
   rate: string;
   whtAmount: string;
+  /** หลายอัตรา = หลายบรรทัด · rate ของหัวเอกสารเป็น 0 ไม่ใช่อัตราเฉลี่ย */
+  lines?: WhtCertificateLine[];
   payer: WhtParty;
   payee: WhtParty;
   issuedByName?: string;

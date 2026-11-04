@@ -15,6 +15,8 @@ export type WhtCertificatePdfData = {
   baseAmount: number;
   rate: number;
   whtAmount: number;
+  /** รายการแยกประเภทเงินได้/อัตราจริง — ไม่ส่งมา = บรรทัดเดียวจากค่าหัวเอกสาร */
+  lines?: Array<{ incomeType: string; baseAmount: number; rate: number; whtAmount: number }>;
   issuedAt: string;
   issuedByName?: string;
   payer: { name: string; taxId?: string; address?: string };
@@ -51,6 +53,9 @@ function party(title: string, p: WhtCertificatePdfData["payer"]) {
 
 function pageHtml(d: WhtCertificatePdfData) {
   const form3 = d.taxForm === "PND3";
+  const rows = d.lines?.length
+    ? d.lines
+    : [{ incomeType: d.incomeType, baseAmount: d.baseAmount, rate: d.rate, whtAmount: d.whtAmount }];
   return `
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap");
@@ -111,13 +116,18 @@ function pageHtml(d: WhtCertificatePdfData) {
           </tr>
         </thead>
         <tbody>
+          ${rows
+            .map(
+              (l) => `
           <tr>
-            <td>${escapeHtml(dash(d.incomeType))}</td>
+            <td>${escapeHtml(dash(l.incomeType))}</td>
             <td>${escapeHtml(thaiDate(d.paymentDate))}</td>
-            <td class="r">${money(d.baseAmount)}</td>
-            <td class="r">${d.rate}%</td>
-            <td class="r">${money(d.whtAmount)}</td>
-          </tr>
+            <td class="r">${money(l.baseAmount)}</td>
+            <td class="r">${l.rate}%</td>
+            <td class="r">${money(l.whtAmount)}</td>
+          </tr>`,
+            )
+            .join("")}
           <tr class="wht-total">
             <td colspan="2">รวมเงินที่จ่ายและภาษีที่หักนำส่ง</td>
             <td class="r">${money(d.baseAmount)}</td>

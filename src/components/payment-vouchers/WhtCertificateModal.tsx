@@ -11,6 +11,7 @@ import {
 } from "@/types/payment-vouchers";
 import type { WhtCertificatePdfData } from "@/utils/generateWhtCertificatePdf";
 import { fmtMoney } from "./paymentVoucherUtils";
+import { WhtLinesTable } from "./VoucherSections";
 
 type FormValues = { taxForm: string; incomeType: string };
 
@@ -24,6 +25,16 @@ export function certToPdfData(cert: WhtCertificate, referenceText?: string): Wht
     baseAmount: Number(cert.baseAmount),
     rate: Number(cert.rate),
     whtAmount: Number(cert.whtAmount),
+    // หนังสือรับรองเก่าไม่มีรายการแยก → บรรทัดเดียวจากหัวเอกสาร
+    lines: (cert.lines?.length
+      ? cert.lines
+      : [{ incomeType: cert.incomeType, baseAmount: cert.baseAmount, rate: cert.rate, whtAmount: cert.whtAmount }]
+    ).map((l) => ({
+      incomeType: l.incomeType,
+      baseAmount: Number(l.baseAmount),
+      rate: Number(l.rate),
+      whtAmount: Number(l.whtAmount),
+    })),
     issuedAt: cert.issuedAt,
     issuedByName: cert.issuedByName,
     payer: cert.payer,
@@ -94,16 +105,31 @@ export default function WhtCertificateModal({
         </Descriptions.Item>
         <Descriptions.Item label="วันที่จ่ายเงิน">{detail.paymentDate}</Descriptions.Item>
         <Descriptions.Item label="ฐานภาษี">{fmtMoney(base)}</Descriptions.Item>
-        <Descriptions.Item label="อัตราภาษี">{Number(detail.voucherDetail.whtRate)}%</Descriptions.Item>
+        <Descriptions.Item label="อัตราภาษี">
+          {(detail.voucherDetail.whtLines?.length ?? 0) > 1
+            ? "หลายอัตรา (ดูรายการด้านล่าง)"
+            : `${Number(detail.voucherDetail.whtRate)}%`}
+        </Descriptions.Item>
         <Descriptions.Item label="ภาษีที่หัก ณ ที่จ่าย">
           <Typography.Text strong>{fmtMoney(v.whtAmount)}</Typography.Text>
         </Descriptions.Item>
       </Descriptions>
+      {(detail.voucherDetail.whtLines?.length ?? 0) > 1 ? (
+        <WhtLinesTable lines={detail.voucherDetail.whtLines ?? []} total={v.whtAmount} />
+      ) : null}
       <Form form={form} layout="vertical" initialValues={{ taxForm: "PND53" }}>
         <Form.Item name="taxForm" label="แบบยื่นภาษี" rules={[{ required: true, message: "เลือกแบบยื่น" }]}>
           <Select options={Object.entries(WHT_TAX_FORM_LABEL).map(([value, label]) => ({ value, label }))} />
         </Form.Item>
-        <Form.Item name="incomeType" label="ประเภทเงินได้ที่จ่าย" rules={[{ required: true, min: 2, message: "ระบุประเภทเงินได้" }]}>
+        <Form.Item
+          name="incomeType"
+          label="ประเภทเงินได้ที่จ่าย"
+          extra={
+            (detail.voucherDetail.whtLines?.length ?? 0) > 1
+              ? "ใช้เฉพาะรายการที่ต้นทางไม่ได้ระบุประเภทเงินได้ — รายการที่ระบุไว้แล้วใช้ตามต้นทาง"
+              : undefined
+          }
+          rules={[{ required: true, min: 2, message: "ระบุประเภทเงินได้" }]}>
           <AutoComplete
             options={WHT_INCOME_TYPE_OPTIONS.map((value) => ({ value }))}
             placeholder="เลือกหรือพิมพ์ประเภทเงินได้"

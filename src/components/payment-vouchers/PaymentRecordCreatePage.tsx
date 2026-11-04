@@ -145,7 +145,7 @@ export default function PaymentRecordCreatePage({ voucherId }: { voucherId: stri
       </Card>
       <ReferenceCard info={d} sourceType={v.sourceType ?? "PURCHASE_ORDER"} purchaseOrderId={v.purchaseOrderId} />
       <SupplierCard supplier={d.supplier} />
-      <TaxCard vat={d.vatAmount} whtBase={d.whtBaseAmount} whtRate={d.whtRate} whtAmount={v.whtAmount} net={v.netAmount} />
+      <TaxCard vat={d.vatAmount} whtBase={d.whtBaseAmount} whtRate={d.whtRate} whtAmount={v.whtAmount} net={v.netAmount} whtLines={d.whtLines} />
       <SummaryCard info={d} amount={v.totalAmount} wht={v.whtAmount} net={v.netAmount} />
 
       <Card title="รายละเอียดการจ่ายเงินจริง" size="small">

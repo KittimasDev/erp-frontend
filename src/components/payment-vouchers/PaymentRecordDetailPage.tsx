@@ -26,6 +26,7 @@ import {
 import { openWhtCertificatePdf } from "@/utils/generateWhtCertificatePdf";
 import { bankLabel, paymentMethodLabel } from "./PaymentMethodFields";
 import WhtCertificateModal, { certToPdfData } from "./WhtCertificateModal";
+import { WhtLinesTable } from "./VoucherSections";
 import { PV_BASE_PATH, PAYMENT_RECORDS_PATH, fmtMoney, kindLabel, referenceLine, sourceLabel } from "./paymentVoucherUtils";
 
 const dt = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—");
@@ -234,7 +235,11 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
             {Number(pv.whtAmount) > 0 ? fmtMoney(info.whtBaseAmount) : "—"}
           </Descriptions.Item>
           <Descriptions.Item label="อัตรา WHT">
-            {Number(pv.whtAmount) > 0 ? `${Number(info.whtRate)}%` : "—"}
+            {Number(pv.whtAmount) <= 0
+              ? "—"
+              : (info.whtLines?.length ?? 0) > 1
+                ? "หลายอัตรา (ดูในหนังสือรับรอง)"
+                : `${Number(info.whtRate)}%`}
           </Descriptions.Item>
           <Descriptions.Item label="ภาษีหัก ณ ที่จ่าย">{fmtMoney(pv.whtAmount)}</Descriptions.Item>
           <Descriptions.Item label="ยอดโอนสุทธิ (ตาม PV)">
@@ -270,10 +275,18 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
             <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>
               <Descriptions.Item label="เลขที่">{cert.certNo}</Descriptions.Item>
               <Descriptions.Item label="แบบยื่น">{WHT_TAX_FORM_LABEL[cert.taxForm] ?? cert.taxForm}</Descriptions.Item>
-              <Descriptions.Item label="ประเภทเงินได้">{cert.incomeType}</Descriptions.Item>
-              <Descriptions.Item label="ฐานภาษี">{fmtMoney(cert.baseAmount)}</Descriptions.Item>
-              <Descriptions.Item label="อัตรา">{Number(cert.rate)}%</Descriptions.Item>
-              <Descriptions.Item label="ภาษีที่หัก">{fmtMoney(cert.whtAmount)}</Descriptions.Item>
+              {(cert.lines?.length ?? 0) > 1 ? (
+                <Descriptions.Item label="รายการภาษีที่หัก" span={2}>
+                  <WhtLinesTable lines={cert.lines ?? []} total={cert.whtAmount} />
+                </Descriptions.Item>
+              ) : (
+                <>
+                  <Descriptions.Item label="ประเภทเงินได้">{cert.incomeType}</Descriptions.Item>
+                  <Descriptions.Item label="ฐานภาษี">{fmtMoney(cert.baseAmount)}</Descriptions.Item>
+                  <Descriptions.Item label="อัตรา">{Number(cert.lines?.[0]?.rate ?? cert.rate)}%</Descriptions.Item>
+                  <Descriptions.Item label="ภาษีที่หัก">{fmtMoney(cert.whtAmount)}</Descriptions.Item>
+                </>
+              )}
               <Descriptions.Item label="ออกโดย / วันที่ออก" span={2}>
                 {cert.issuedByName ?? "—"} · {dt(cert.issuedAt)}{" "}
                 <Button size="small" type="link" onClick={() => void viewCert(cert)}>

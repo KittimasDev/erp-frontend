@@ -216,7 +216,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
         <ApAllocationTable rows={d.apDocuments} />
       </Card>
 
-      <TaxCard vat={d.vatAmount} whtBase={d.whtBaseAmount} whtRate={d.whtRate} whtAmount={v.whtAmount} net={v.netAmount} />
+      <TaxCard vat={d.vatAmount} whtBase={d.whtBaseAmount} whtRate={d.whtRate} whtAmount={v.whtAmount} net={v.netAmount} whtLines={d.whtLines} />
       <SummaryCard info={d} amount={v.totalAmount} wht={v.whtAmount} net={v.netAmount} />
 
       <Card title="7. วิธีชำระเงินและบัญชีที่ใช้จ่าย" size="small">
