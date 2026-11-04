@@ -1,23 +1,15 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { LogoutOutlined } from "@ant-design/icons";
 
 import {
   getStoredUser,
-  initialsFromUser,
   isAdministrator,
   userHasRole,
   type StoredUser,
 } from "@/lib/auth/session";
-import { logout as logoutApi } from "@/lib/api/auth";
-import {
-  clearAccessToken,
-  getAccessToken,
-  hasAccessToken,
-} from "@/lib/auth/token";
 import {
   canAccessAnyScreen,
   canAccessScreen,
@@ -2759,20 +2751,6 @@ export default function AppHeader({
     };
   }, []);
 
-  const avatarLabel = useMemo(() => initialsFromUser(user), [user]);
-  const roleLabel =
-    user?.roles?.[0]?.roleName ?? user?.roles?.[0]?.roleCode ?? "ERP";
-
-  const handleLogout = () => {
-    // บันทึกเหตุการณ์ออกจากระบบลง audit log — ไม่รอผลและไม่บล็อกการออกจากระบบ
-    if (hasAccessToken()) {
-      void logoutApi(getAccessToken());
-    }
-    clearActivePortalModule();
-    clearAccessToken();
-    window.location.replace("/login");
-  };
-
   // permissionsTick / portalTick force re-filter after AuthGuard / portal tile
   void permissionsTick;
   void portalTick;
@@ -3366,34 +3344,6 @@ export default function AppHeader({
           ) : null}
         </div>
 
-        <div className={styles.sidebarBottom}>
-          {/* กดที่ตัวเอง → หน้าโปรไฟล์ (ข้อมูล + ลายเซ็น) ทุกคนเข้าได้ */}
-          <button
-            type="button"
-            className={styles.sidebarProfile}
-            onClick={() => router.push("/profile")}
-            title="โปรไฟล์ของฉัน"
-            aria-label="โปรไฟล์ของฉัน"
-          >
-            <span className={styles.avatar}>{avatarLabel}</span>
-
-            <span className={styles.profileText}>
-              <strong>{user?.displayName || user?.username || "ผู้ใช้"}</strong>
-              <span>{roleLabel}</span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className={styles.logoutButton}
-            onClick={handleLogout}
-            title="ออกจากระบบ"
-            aria-label="ออกจากระบบ"
-          >
-            <LogoutOutlined />
-            <span className={styles.logoutLabel}>ออกจากระบบ</span>
-          </button>
-        </div>
       </div>
     </aside>
   );

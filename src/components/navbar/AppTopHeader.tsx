@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { App, Button, Empty, Popover, Typography } from "antd";
 import dayjs from "dayjs";
+import { GlobalOutlined, LogoutOutlined, UserOutlined } from "@ant-design/icons";
+
+import LanguageFlag from "@/components/common/LanguageFlag";
 
 import {
   useMarkAllNotificationsReadMutation,
@@ -13,7 +16,10 @@ import {
 } from "@/hooks/notifications/useNotificationsQueries";
 import { useStoredUser } from "@/hooks/auth/useStoredUser";
 import { initialsFromUser } from "@/lib/auth/session";
-import { hasAccessToken } from "@/lib/auth/token";
+import { logout as logoutApi } from "@/lib/api/auth";
+import { clearActivePortalModule } from "@/lib/auth/portal-module";
+import { clearAccessToken, getAccessToken, hasAccessToken } from "@/lib/auth/token";
+import { setLanguage, useLanguage, type Language } from "@/lib/i18n/language";
 import {
   isFgInventoryScope,
   isRmInventoryScope,
@@ -406,8 +412,31 @@ function resolvePageTitle(
   return "ภาพรวมระบบ";
 }
 
-function formatThaiDate(date: Date) {
-  return date.toLocaleDateString("th-TH", {
+/** ข้อความของเมนูผู้ใช้ (แปลแล้วทั้งสองภาษา) */
+const USER_MENU_TEXT: Record<Language, Record<string, string>> = {
+  th: {
+    profile: "โปรไฟล์ของฉัน",
+    language: "ภาษา",
+    logout: "ออกจากระบบ",
+    userFallback: "ผู้ใช้",
+    openMenu: "เมนูผู้ใช้",
+  },
+  en: {
+    profile: "My profile",
+    language: "Language",
+    logout: "Sign out",
+    userFallback: "User",
+    openMenu: "User menu",
+  },
+};
+
+const LANGUAGE_OPTIONS: Array<{ value: Language; label: string }> = [
+  { value: "th", label: "ไทย" },
+  { value: "en", label: "English" },
+];
+
+function formatThaiDate(date: Date, language: Language = "th") {
+  return date.toLocaleDateString(language === "en" ? "en-GB" : "th-TH", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -461,6 +490,9 @@ export default function AppTopHeader() {
   const isLoggedIn = hasAccessToken();
   const storedUser = useStoredUser();
   const [open, setOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const language = useLanguage();
+  const t = USER_MENU_TEXT[language];
   const toastedIdsRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
 
@@ -468,7 +500,7 @@ export default function AppTopHeader() {
     () => resolvePageTitle(pathname, searchParams, usersTab),
     [pathname, searchParams, usersTab],
   );
-  const todayLabel = useMemo(() => formatThaiDate(new Date()), []);
+  const todayLabel = useMemo(() => formatThaiDate(new Date(), language), [language]);
 
   const listQuery = useNotificationsQuery({ enabled: isLoggedIn });
   const unreadQuery = useNotificationsUnreadCountQuery({
@@ -573,6 +605,76 @@ export default function AppTopHeader() {
     </div>
   );
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
+  const handleLogout = () => {
+    // บันทึกเหตุการณ์ออกจากระบบลง audit log — ไม่รอผลและไม่บล็อกการออกจากระบบ
+    if (hasAccessToken()) {
+      void logoutApi(getAccessToken());
+    }
+    clearActivePortalModule();
+    clearAccessToken();
+    window.location.replace("/login");
+  };
+
+  const userName = storedUser?.displayName || storedUser?.username || t.userFallback;
+  const userRole = storedUser?.roles?.[0]?.roleName ?? storedUser?.roles?.[0]?.roleCode ?? "ERP";
+
+  const userMenu = (
+    <div className={styles.userMenu}>
+      <div className={styles.userMenuHead}>
+        <span className={styles.userMenuAvatar}>{initialsFromUser(storedUser)}</span>
+        <span className={styles.userMenuWho}>
+          <strong>{userName}</strong>
+          <span>{userRole}</span>
+        </span>
+      </div>
+
+      <button
+        type="button"
+        className={styles.userMenuItem}
+        onClick={() => {
+          setUserMenuOpen(false);
+          router.push("/profile");
+        }}
+      >
+        <UserOutlined />
+        <span>{t.profile}</span>
+      </button>
+
+      <div className={styles.userMenuSection}>
+        <span className={styles.userMenuSectionTitle}>
+          <GlobalOutlined /> {t.language}
+          <span className={styles.userMenuCurrent}>
+            <LanguageFlag language={language} size={16} ring={false} />
+            {language === "th" ? "ไทย" : "English"}
+          </span>
+        </span>
+        <div className={styles.langSwitch} role="group" aria-label={t.language}>
+          {LANGUAGE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`${styles.langOption} ${language === opt.value ? styles.langOptionActive : ""}`}
+              aria-pressed={language === opt.value}
+              onClick={() => setLanguage(opt.value)}
+            >
+              <LanguageFlag language={opt.value} size={20} ring={false} />
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button type="button" className={`${styles.userMenuItem} ${styles.userMenuLogout}`} onClick={handleLogout}>
+        <LogoutOutlined />
+        <span>{t.logout}</span>
+      </button>
+    </div>
+  );
+
   return (
     <header className={styles.topHeader}>
       <div className={styles.topHeaderInner}>
@@ -621,17 +723,29 @@ export default function AppTopHeader() {
           )}
 
           {isLoggedIn ? (
-            <button
-              type="button"
-              className={styles.profileButton}
-              onClick={() => router.push("/profile")}
-              title={`โปรไฟล์ของฉัน${
-                storedUser?.displayName ? ` — ${storedUser.displayName}` : ""
-              }`}
-              aria-label="โปรไฟล์ของฉัน"
+            <Popover
+              trigger="click"
+              placement="bottomRight"
+              open={userMenuOpen}
+              onOpenChange={setUserMenuOpen}
+              content={userMenu}
+              arrow={false}
+              overlayClassName={styles.userMenuPopover}
             >
-              {initialsFromUser(storedUser)}
-            </button>
+              <button
+                type="button"
+                className={styles.profileButton}
+                title={`${userName} — ${t.openMenu}`}
+                aria-label={t.openMenu}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+              >
+                {initialsFromUser(storedUser)}
+                <span className={styles.profileFlag}>
+                  <LanguageFlag language={language} size={16} />
+                </span>
+              </button>
+            </Popover>
           ) : null}
         </div>
       </div>
