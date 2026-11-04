@@ -121,6 +121,8 @@ export type RecordingFieldDef = {
   deviceTagCode?: string | null;
   /** true = ผลของฟิลด์นี้คือ "ผลจริง" ที่ใช้เทียบ Capacity × ชั่วโมงเดินเครื่อง (1 ฟิลด์ต่อเครื่อง) */
   compareToCapacity?: boolean;
+  /** INPUT ที่ลิงก์ BOM: ไม่ระบุ/true = ตัด Stock ตอน Confirm กะ · false = บันทึกข้อมูลอย่างเดียว (ตัดได้ 1 ฟิลด์ต่อวัตถุดิบ) */
+  stockDeduct?: boolean;
 };
 
 export type ProductionRecordingConfig = {

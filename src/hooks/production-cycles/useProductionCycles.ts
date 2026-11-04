@@ -6,6 +6,7 @@ import { App } from "antd";
 import { ApiError } from "@/lib/api/client";
 import * as api from "@/lib/api/production-cycles";
 import { getAccessToken } from "@/lib/auth/token";
+import { inventoryQueryKey } from "@/hooks/inventory/useInventoryQueries";
 import type {
   ConfirmShiftRecordBody,
   CreateMachineDeviceBody,
@@ -142,6 +143,8 @@ export function useConfirmShiftRecordMutation() {
     shiftRecordsKey,
     productionCyclesKey,
     ["production-orders"],
+    // ตัด/คืนสต๊อกจริง — แท็บ "สต็อกที่ตัดจริง" (stock movements) ต้องโหลดใหม่ด้วย
+    inventoryQueryKey,
   ]);
   return useMutation({
     mutationFn: (v: { id: string; body: ConfirmShiftRecordBody }) =>
@@ -156,6 +159,7 @@ export function useUnconfirmShiftRecordMutation() {
     shiftRecordsKey,
     productionCyclesKey,
     ["production-orders"],
+    inventoryQueryKey,
   ]);
   return useMutation({
     mutationFn: (id: string) => api.unconfirmShiftRecord(getAccessToken(), id),

@@ -141,6 +141,14 @@ export default function RecordingConfigEditor({
       f.resultRole === "INPUT" && f.linkedItemId ? [f.linkedItemId] : [],
     ),
   );
+  const unlinkedNames = bomLines
+    .filter(
+      (l) =>
+        l.lineRole === "INPUT" &&
+        !linkedInputIds.has(l.itemId) &&
+        !exemptions.some((e) => e.itemId === l.itemId),
+    )
+    .map((l) => l.label.replace(/^INPUT · /, ""));
   // เฉพาะวัตถุดิบที่ยังอยู่ใน BOM — ตัดรายการยกเว้นที่ค้างจากบรรทัดที่ถูกลบ
   const setExemptions = (next: { itemId: string; reason: string }[]) =>
     onChange({
@@ -262,14 +270,76 @@ export default function RecordingConfigEditor({
             placeholder="เลือกสินค้า"
             options={options}
             value={row.linkedItemId ?? undefined}
-            onChange={(itemId) =>
-              patch(row.id, {
+            onChange={(itemId) => {
+              const base = {
                 linkedItemId: itemId ?? null,
                 linkedLineRole: itemId
                   ? (row.resultRole as "INPUT" | "OUTPUT")
                   : null,
-              })
-            }
+              };
+              // วัตถุดิบนี้มีช่องอื่นตัด Stock อยู่แล้ว → ช่องใหม่เป็น "บันทึกอย่างเดียว" กันตัดซ้ำ
+              const taken =
+                row.resultRole === "INPUT" &&
+                itemId &&
+                fields.some(
+                  (f) =>
+                    f.id !== row.id &&
+                    f.resultRole === "INPUT" &&
+                    f.linkedItemId === itemId &&
+                    f.stockDeduct !== false,
+                );
+              if (taken) {
+                setFields(
+                  fields.map((f) =>
+                    f.id === row.id
+                      ? { ...f, ...base, stockDeduct: false }
+                      : f.resultRole === "INPUT" &&
+                          f.linkedItemId === itemId &&
+                          f.stockDeduct === undefined
+                        ? { ...f, stockDeduct: true }
+                        : f,
+                  ),
+                );
+                return;
+              }
+              patch(row.id, { ...base, stockDeduct: undefined });
+            }}
+          />
+        );
+      },
+    },
+    {
+      title: "จุดตัด Stock",
+      width: 170,
+      render: (_v, row) => {
+        if (row.resultRole !== "INPUT" || !row.linkedItemId) {
+          return <Typography.Text type="secondary">—</Typography.Text>;
+        }
+        return (
+          <Select
+            size="small"
+            style={{ width: "100%" }}
+            options={[
+              { value: "deduct", label: "ตัด Stock" },
+              { value: "record", label: "บันทึกข้อมูลอย่างเดียว" },
+            ]}
+            value={row.stockDeduct === false ? "record" : "deduct"}
+            onChange={(v) => {
+              if (v === "record") {
+                patch(row.id, { stockDeduct: false });
+                return;
+              }
+              // เลือกตัดที่ช่องนี้ → ช่องอื่นของวัตถุดิบเดียวกันเป็นบันทึกอย่างเดียว (ตัดได้ 1 จุด)
+              setFields(
+                fields.map((f) =>
+                  f.id === row.id
+                    ? { ...f, stockDeduct: true }
+                    : f.resultRole === "INPUT" && f.linkedItemId === row.linkedItemId
+                      ? { ...f, stockDeduct: false }
+                      : f,
+                ),
+              );
+            }}
           />
         );
       },
@@ -453,6 +523,14 @@ export default function RecordingConfigEditor({
             วัตถุดิบทุกตัวในสูตรต้องมีช่อง Input ที่ลิงก์ไว้ (เพื่อให้ตัดสต๊อกครบ) หรือยกเว้นพร้อมเหตุผล ·
             ถ้ายังไม่ครบ บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่เปิดใช้งานไม่ได้
           </Typography.Text>
+          {unlinkedNames.length > 0 ? (
+            <Alert
+              type="warning"
+              showIcon
+              message={`ยังไม่ได้ลิงก์ ${unlinkedNames.length} รายการ: ${unlinkedNames.join(", ")}`}
+              description="บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่ต้องลิงก์หรือยกเว้นพร้อมเหตุผลให้ครบก่อนเปิดใช้งาน"
+            />
+          ) : null}
           {bomLines
             .filter((l) => l.lineRole === "INPUT")
             .map((l) => {

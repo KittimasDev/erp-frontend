@@ -74,6 +74,8 @@ export default function ConfirmShiftStockModal({
         continue;
       }
       if (!field.linkedItemId) continue;
+      // บันทึกข้อมูลอย่างเดียว — ไม่ตัด Stock
+      if (field.stockDeduct === false) continue;
       const qty = computeRecordingFieldStockQty(field, values[field.id]);
       if (qty === null || qty <= 1e-9) continue;
       const fromOrder = inputItems.find((i) => i.itemId === field.linkedItemId);

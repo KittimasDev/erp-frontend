@@ -164,6 +164,8 @@ function FormulaFormBody({
     useState<ProductionRecordingConfig>(() => ({
       fields: formula?.recordingConfig?.fields ?? [],
       equipmentIds: formula?.recordingConfig?.equipmentIds ?? [],
+      // โหลดรายการยกเว้น+เหตุผลเดิมกลับมา ไม่งั้นแก้สูตรแล้วเหตุผลหายและบันทึกทับเป็นว่าง
+      bomExemptions: formula?.recordingConfig?.bomExemptions ?? [],
     }));
 
   const itemsQuery = useItemsQuery({ isActive: true, isStockItem: true });

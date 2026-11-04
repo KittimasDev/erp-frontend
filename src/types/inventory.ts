@@ -142,6 +142,8 @@ export type StockMovementQueryParams = {
    * ของตัวเอง ร่องรอยมีแค่แถวใน `stock_movements` ที่ใช้เลขใบสั่งผลิตแทนเลขใบเบิก
    */
   referenceDocId?: string;
+  /** movement ทั้งหมดของใบสั่งผลิต (ตัดตอนเริ่มผลิต + ตัด/คืนจากยืนยันกะ) */
+  productionOrderId?: string;
   from?: string;
   to?: string;
   itemCategoryCode?: string;

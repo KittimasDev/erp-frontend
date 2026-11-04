@@ -66,7 +66,6 @@ import {
   canRequestMoreProductionOutput,
   PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL,
   ProductionOutputRequestStatus,
-  REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
 } from "@/types/production-output-stock-request";
 import type { CreateProductionOutputStockRequestFromOrderBody } from "@/types/production-output-stock-request";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
@@ -184,10 +183,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     ตัดสต๊อกอะไรไปจริง ๆ
   */
   const stockMovementsQuery = useStockMovementsQuery(
-    {
-      referenceDocType: REFERENCE_DOC_TYPE_PRODUCTION_ORDER,
-      referenceDocId: orderId,
-    },
+    // รวมทั้งตัดตอนเริ่มผลิต และตัด/คืนจากยืนยัน/ยกเลิกยืนยันบันทึกกะ
+    { productionOrderId: orderId },
     { enabled: Boolean(orderId) },
   );
 
@@ -763,13 +760,15 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>เครื่องจักรหลัก</span>
                   <span className={styles.infoValue}>
-                    {[
-                      order.batchNo,
-                      order.productionFormulaNameTh ||
-                        order.productionFormulaCode,
-                    ]
-                      .filter(Boolean)
-                      .join(" - ") || "-"}
+                    {(() => {
+                      // เครื่องแรกใน snapshot ของ MO = เครื่องหลัก (ลำดับตามสูตร · รวมเครื่องที่ผู้ใช้สลับแล้ว)
+                      const machines = order.machineSnapshot?.machines ?? [];
+                      const main = machines[0];
+                      if (!main) return "-";
+                      const extra =
+                        machines.length > 1 ? ` (+${machines.length - 1} เครื่อง)` : "";
+                      return `${main.code} - ${main.name}${extra}`;
+                    })()}
                   </span>
                 </div>
                 <div className={styles.infoItem}>
@@ -1276,7 +1275,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 dataSource={stockMovementsQuery.data?.data ?? []}
                 locale={{
                   emptyText:
-                    "ยังไม่มีการตัดสต๊อก — สต๊อกจะขยับตอนกดเริ่มผลิตเท่านั้น",
+                    "ยังไม่มีการตัดสต๊อก — สต๊อกขยับตอนกดเริ่มผลิต หรือตอนยืนยันบันทึกกะ (ใบที่ตัดตอนยืนยันกะ)",
                 }}
                 columns={[
     {
@@ -1311,7 +1310,19 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     align: "right",
                     width: 130,
                     render: (_, row) =>
-                      `${fmt(row.quantityOut)} ${row.unitCode ?? ""}`,
+                      Number(row.quantityOut) > 0
+                        ? `${fmt(row.quantityOut)} ${row.unitCode ?? ""}`
+                        : "—",
+                  },
+                  {
+                    title: "คืนเข้า",
+                    key: "in",
+                    align: "right",
+                    width: 130,
+                    render: (_, row) =>
+                      Number(row.quantityIn) > 0
+                        ? `${fmt(row.quantityIn)} ${row.unitCode ?? ""}`
+                        : "—",
                   },
                   {
                     title: "คงเหลือหลังตัด",

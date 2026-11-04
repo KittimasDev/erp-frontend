@@ -74,8 +74,9 @@ export type EquipmentBody = {
   serialNumber?: string;
   manufacturer?: string;
   model?: string;
-  installedDate?: string;
-  warrantyExpiryDate?: string;
+  /** ไม่ระบุ/ล้างวันที่ = null (ห้ามส่ง "") */
+  installedDate?: string | null;
+  warrantyExpiryDate?: string | null;
   warrantyNote?: string;
   runningHours?: number;
   remark?: string;

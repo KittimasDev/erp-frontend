@@ -34,7 +34,7 @@ type Props = {
   onSubmit: (body: EquipmentBody) => void;
 };
 
-const fmt = (d?: dayjs.Dayjs | null) => (d ? d.format("YYYY-MM-DD") : "");
+const fmt = (d?: dayjs.Dayjs | null) => (d ? d.format("YYYY-MM-DD") : null);
 
 /** ฟอร์มข้อมูลเครื่องจักร: รหัส/ชื่อ/หมวด/ตำแหน่ง/Serial/ประกัน/ชั่วโมงเดินเครื่อง */
 export default function EquipmentFormModal({ equipment, loading, onCancel, onSubmit }: Props) {
