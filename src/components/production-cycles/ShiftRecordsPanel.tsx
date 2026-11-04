@@ -20,6 +20,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import {
   CalendarOutlined,
+  EyeOutlined,
   FileTextOutlined,
   InboxOutlined,
   PlusOutlined,
@@ -466,6 +467,7 @@ function DynamicRecordModal({
   record,
   fields,
   machines,
+  readOnly = false,
   onClose,
 }: {
   orderId: string;
@@ -473,6 +475,8 @@ function DynamicRecordModal({
   fields: RecordingFieldDef[];
   /** เครื่องจักรของ MO (snapshot) — ว่าง = ใบที่ไม่ผูกเครื่อง แสดงฟอร์มเหมือนเดิม */
   machines: ProductionOrderMachine[];
+  /** โหมดดูอย่างเดียว — ฟอร์มเดียวกันแต่ปิดทุกช่อง ไม่มีปุ่มบันทึก */
+  readOnly?: boolean;
   onClose: () => void;
 }) {
   const [form] = Form.useForm<DynamicFormValues>();
@@ -588,19 +592,25 @@ function DynamicRecordModal({
       className={`${masterStyles.masterModal} ${modalStyles.shiftModal}`}
       title={
         record
-          ? `แก้บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
+          ? `${readOnly ? "ดู" : "แก้"}บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
           : "บันทึกการผลิตรายกะ"
       }
       okText="บันทึก"
-      cancelText="ยกเลิก"
+      cancelText={readOnly ? "ปิด" : "ยกเลิก"}
       okButtonProps={{ className: modalStyles.saveButton }}
       confirmLoading={create.isPending || update.isPending}
       onCancel={onClose}
       destroyOnHidden
       onOk={save}
+      footer={
+        readOnly ? (
+          <Button onClick={onClose}>ปิด</Button>
+        ) : undefined
+      }
     >
       <Form
         form={form}
+        disabled={readOnly}
         layout="vertical"
         className={modalStyles.formItemTight}
         initialValues={{
@@ -800,10 +810,12 @@ function DynamicRecordModal({
 function LegacyRecordModal({
   orderId,
   record,
+  readOnly = false,
   onClose,
 }: {
   orderId: string;
   record: ShiftRecord | null;
+  readOnly?: boolean;
   onClose: () => void;
 }) {
   const [form] = Form.useForm<LegacyValues>();
@@ -833,15 +845,16 @@ function LegacyRecordModal({
       className={`${masterStyles.masterModal} ${modalStyles.shiftModal}`}
       title={
         record
-          ? `แก้บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
+          ? `${readOnly ? "ดู" : "แก้"}บันทึกรายกะ — ${record.shiftName} ${dayjs(record.recordDate).format("DD/MM/YYYY")}`
           : "บันทึกการผลิตรายกะ"
       }
       okText="บันทึก"
-      cancelText="ยกเลิก"
+      cancelText={readOnly ? "ปิด" : "ยกเลิก"}
       okButtonProps={{ className: modalStyles.saveButton }}
       confirmLoading={create.isPending || update.isPending}
       onCancel={onClose}
       destroyOnHidden
+      footer={readOnly ? <Button onClick={onClose}>ปิด</Button> : undefined}
       onOk={() =>
         void form.validateFields().then((v) => {
           const common = {
@@ -867,6 +880,7 @@ function LegacyRecordModal({
     >
       <Form
         form={form}
+        disabled={readOnly}
         layout="vertical"
         className={modalStyles.formItemTight}
         initialValues={{
@@ -1067,6 +1081,7 @@ export default function ShiftRecordsPanel({
   const unconfirm = useUnconfirmShiftRecordMutation();
   const [editing, setEditing] = useState<ShiftRecord | "new" | null>(null);
   const [confirming, setConfirming] = useState<ShiftRecord | null>(null);
+  const [viewing, setViewing] = useState<ShiftRecord | null>(null);
   const rows = query.data?.data ?? [];
   const cutOnConfirm = inputStockMode === "ON_SHIFT_CONFIRM";
 
@@ -1207,21 +1222,24 @@ export default function ShiftRecordsPanel({
           : "—",
     });
 
-    if (canEdit) {
+    {
       base.push({
         title: "การจัดการ",
         key: "act",
-        width: cutOnConfirm ? 260 : 140,
+        width: canEdit ? (cutOnConfirm ? 300 : 180) : 80,
         render: (_v, r) => {
           const confirmed = r.status === "CONFIRMED";
           return (
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {!confirmed ? (
+              <Button size="small" icon={<EyeOutlined />} onClick={() => setViewing(r)}>
+                ดู
+              </Button>
+              {!canEdit ? null : !confirmed ? (
                 <Button size="small" onClick={() => setEditing(r)}>
                   แก้ไข
                 </Button>
               ) : null}
-              {cutOnConfirm && !confirmed ? (
+              {canEdit && cutOnConfirm && !confirmed ? (
                 <Button
                   size="small"
                   type="primary"
@@ -1230,7 +1248,7 @@ export default function ShiftRecordsPanel({
                   ยืนยัน/ตัดสต๊อก
                 </Button>
               ) : null}
-              {cutOnConfirm && confirmed ? (
+              {canEdit && cutOnConfirm && confirmed ? (
                 <Popconfirm
                   title="ยกเลิกยืนยันและคืนสต๊อก?"
                   okText="ยกเลิกยืนยัน"
@@ -1240,7 +1258,7 @@ export default function ShiftRecordsPanel({
                   <Button size="small">ยกเลิกยืนยัน</Button>
                 </Popconfirm>
               ) : null}
-              {!confirmed ? (
+              {canEdit && !confirmed ? (
                 <Popconfirm
                   title="ลบบันทึกนี้?"
                   okText="ลบ"
@@ -1501,6 +1519,33 @@ export default function ShiftRecordsPanel({
             onClose={() => setEditing(null)}
           />
         )
+      ) : null}
+
+      {viewing ? (
+        (() => {
+          const viewFields = sortedFields(
+            configForRow(viewing, recordingConfigSnapshot) ?? newFormConfig,
+          );
+          return viewFields.length > 0 ? (
+            <DynamicRecordModal
+              key={`view-${viewing.id}`}
+              orderId={orderId}
+              record={viewing}
+              fields={viewFields}
+              machines={machines}
+              readOnly
+              onClose={() => setViewing(null)}
+            />
+          ) : (
+            <LegacyRecordModal
+              key={`view-${viewing.id}`}
+              orderId={orderId}
+              record={viewing}
+              readOnly
+              onClose={() => setViewing(null)}
+            />
+          );
+        })()
       ) : null}
 
       {confirming ? (

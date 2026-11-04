@@ -10,9 +10,11 @@ import {
   Spin,
   Table,
   Tag,
+  Tooltip,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
+  InfoCircleOutlined,
   ClearOutlined,
   HistoryOutlined,
   SearchOutlined,
@@ -280,11 +282,18 @@ export default function StockMovementsPage() {
       render: (value: string) => formatMoney(value),
     },
     {
-      title: "ยอดคงเหลือ",
+      title: (
+        <Tooltip title="ยอดรวมสินค้าทุก Lot ในคลังและตำแหน่งนั้น ณ เวลาที่เกิดรายการ ไม่ใช่ยอดคงเหลือของ Lot ในแถวนี้">
+          <span>
+            ยอดคงเหลือรวมหลังรายการ{" "}
+            <InfoCircleOutlined style={{ color: "#8c8c8c" }} />
+          </span>
+        </Tooltip>
+      ),
       dataIndex: "balanceQuantityAfter",
       key: "balanceQuantityAfter",
       align: "right",
-      width: 120,
+      width: 170,
       render: (v: string) => (
         <span className={styles.qtyBalance}>{formatQty(v)}</span>
       ),

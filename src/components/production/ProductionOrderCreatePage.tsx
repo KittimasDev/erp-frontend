@@ -979,7 +979,7 @@ export default function ProductionOrderCreatePage() {
                 row={row}
                 index={index}
                 removable={outputRows.length > 1}
-                isFinishedGood
+                stockItemsOnly
                 unitCtx={unitCtx}
                 onChange={(next) =>
                   setOutputRows((prev) =>
