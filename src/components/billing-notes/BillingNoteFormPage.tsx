@@ -187,8 +187,19 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
   const [appointmentInput, setAppointmentInput] = useState<Dayjs | null | undefined>(undefined);
   const [remarkInput, setRemarkInput] = useState<string | undefined>(undefined);
   const billingDate = billingDateInput === undefined ? dayjs(detail?.billingDate) : billingDateInput;
+  // วันที่นัดชำระตั้งต้น = วันครบกำหนดชำระของใบตั้งหนี้ (AP) — หลาย AP ใช้ใบที่ครบกำหนดเร็วที่สุด · ผู้ใช้แก้เองได้
+  const earliestApDue = useMemo(() => {
+    const dues = rows.map((r) => r.dueDate?.slice(0, 10)).filter((d): d is string => Boolean(d));
+    return dues.length ? dues.reduce((min, d) => (d < min ? d : min)) : null;
+  }, [rows]);
   const appointment =
-    appointmentInput === undefined ? (detail?.appointmentDate ? dayjs(detail.appointmentDate) : null) : appointmentInput;
+    appointmentInput === undefined
+      ? detail?.appointmentDate
+        ? dayjs(detail.appointmentDate)
+        : earliestApDue
+          ? dayjs(earliestApDue)
+          : null
+      : appointmentInput;
   const remark = remarkInput ?? detail?.remark ?? "";
   const [addOpen, setAddOpen] = useState(false);
 
