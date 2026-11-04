@@ -28,6 +28,7 @@ import { bankLabel, paymentMethodLabel } from "./PaymentMethodFields";
 import WhtCertificateModal, { certToPdfData } from "./WhtCertificateModal";
 import { WhtLinesTable } from "./VoucherSections";
 import { PV_BASE_PATH, PAYMENT_RECORDS_PATH, fmtMoney, kindLabel, referenceLine, sourceLabel } from "./paymentVoucherUtils";
+import PageHeader from "@/components/common/PageHeader";
 
 const dt = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm") : "—");
 const HISTORY_ACTIONS = ["PAY", "WHT_ISSUE", "PAYMENT_CANCEL"];
@@ -149,18 +150,22 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <Space wrap>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PAYMENT_RECORDS_PATH)}>
+      <PageHeader
+        title={<>{d.paymentNo ?? "รายการจ่าย"}</>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PAYMENT_RECORDS_PATH)}>
               กลับ
             </Button>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {d.paymentNo ?? "รายการจ่าย"}
-            </Typography.Title>
-            <Tag color={PAYMENT_RECORD_STATUS_COLOR[d.status]}>{PAYMENT_RECORD_STATUS_LABEL[d.status] ?? d.status}</Tag>
-          </Space>
-          <Space wrap>
+          </>
+        }
+        meta={
+          <>
+<Tag color={PAYMENT_RECORD_STATUS_COLOR[d.status]}>{PAYMENT_RECORD_STATUS_LABEL[d.status] ?? d.status}</Tag>
+          </>
+        }
+        actions={
+          <>
             {d.status === "PAID" && d.hasWht && !cert && perms.canAdd ? (
               <Button type="primary" onClick={() => setWhtOpen(true)}>
                 ออกหนังสือรับรองหัก ณ ที่จ่าย
@@ -186,9 +191,10 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
                 </span>
               </Tooltip>
             ) : null}
-          </Space>
-        </div>
-      </Card>
+          
+          </>
+        }
+      />
 
       {d.status === "CANCELLED" ? (
         <Alert

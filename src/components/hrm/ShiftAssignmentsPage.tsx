@@ -51,6 +51,7 @@ import {
   formatWorkMinutes,
   lateCutoffTime,
 } from "./shiftDisplay";
+import PageHeader from "@/components/common/PageHeader";
 
 type RangeMode = "day" | "month" | "custom";
 type ViewMode = "day" | "person" | "events" | "roster";
@@ -863,22 +864,16 @@ export default function ShiftAssignmentsPage() {
   return (
     <MasterPageGate isLoading={assignmentsQuery.isLoading}>
       <div className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <TeamOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>HRM</p>
-            <h1 className={styles.pageTitle}>รายการเข้ากะ</h1>
-            <p className={styles.pageSubtitle}>
-              ดูว่าใครเข้ากะวันไหน เวลาไหน ใครลาหรือมี OT ทับกะบ้าง
+        <PageHeader
+          eyebrow="HRM"
+          icon={<TeamOutlined />}
+          title="รายการเข้ากะ"
+          subtitle={<>ดูว่าใครเข้ากะวันไหน เวลาไหน ใครลาหรือมี OT ทับกะบ้าง
               กดที่ชื่อพนักงานเพื่อดูตารางกะรายคน — จัดรอบกะได้ที่{" "}
               <Link href="/hrm/shifts" className={styles.headerLink}>
                 ปฏิทินตารางกะ
-              </Link>
-            </p>
-          </div>
-        </header>
+              </Link></>}
+        />
 
         <div className={styles.toolbar}>
           <label className={styles.filterField}>

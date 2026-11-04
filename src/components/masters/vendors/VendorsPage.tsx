@@ -38,6 +38,7 @@ import type {
 
 import VendorFormModal from "./VendorFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type VendorFilterFormValues = {
   name?: string;
@@ -367,22 +368,13 @@ export default function VendorsPage() {
   return (
     <MasterPageGate isLoading={vendorsQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            ผู้ขาย
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการข้อมูลผู้ขายสำหรับระบบจัดซื้อและใบสั่งซื้อ
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="ผู้ขาย"
+        subtitle="จัดการข้อมูลผู้ขายสำหรับระบบจัดซื้อและใบสั่งซื้อ"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -391,7 +383,9 @@ export default function VendorsPage() {
         >
           เพิ่มผู้ขาย
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

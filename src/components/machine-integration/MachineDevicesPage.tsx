@@ -29,6 +29,7 @@ import {
   type MachineTag,
 } from "@/types/production-cycle";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const fmtTime = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm:ss") : "—");
 
@@ -288,17 +289,17 @@ export default function MachineDevicesPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}><ApiOutlined /></div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>PRODUCTION · MACHINE INTEGRATION</div>
-            <Typography.Title level={2} className={styles.pageTitle}>อุปกรณ์เครื่องจักร (Machine Integration)</Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              ทะเบียนอุปกรณ์และแท็ก + API รับค่าจากเครื่อง (HTTP Push) — โครงรองรับ OPC-UA / Modbus / MQTT โดยเสียบ driver ภายหลังได้
-            </Typography.Text>
-          </div>
-          {canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setEditing("new")}>ลงทะเบียนอุปกรณ์</Button> : <div />}
-        </div>
+        <PageHeader
+          eyebrow="PRODUCTION · MACHINE INTEGRATION"
+          icon={<ApiOutlined />}
+          title="อุปกรณ์เครื่องจักร (Machine Integration)"
+          subtitle="ทะเบียนอุปกรณ์และแท็ก + API รับค่าจากเครื่อง (HTTP Push) — โครงรองรับ OPC-UA / Modbus / MQTT โดยเสียบ driver ภายหลังได้"
+          actions={
+            <>
+{canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setEditing("new")}>ลงทะเบียนอุปกรณ์</Button> : <div />}
+            </>
+          }
+        />
         <Alert
           type="info"
           showIcon

@@ -55,6 +55,7 @@ import type {
 import styles from "@/components/masters/shared/master-page.module.css";
 import pageStyles from "./customers-page.module.css";
 import CustomerFormModal from "./CustomerFormModal";
+import PageHeader from "@/components/common/PageHeader";
 
 const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   DOMESTIC: "ในประเทศ",
@@ -380,34 +381,14 @@ export default function CustomersPage() {
   return (
     <MasterPageGate isLoading={customersQuery.isLoading}>
       <section className={`${styles.page} ${pageStyles.page}`}>
-        <div className={`${styles.pageHeader} ${pageStyles.pageHeader}`}>
-          <div
-            className={`${styles.headerAccent} ${pageStyles.headerAccent}`}
-            aria-hidden
-          >
-            <TeamOutlined />
-          </div>
-
-          <div className={styles.headerContent}>
-            <div className={`${styles.eyebrow} ${pageStyles.eyebrow}`}>
-              MASTER DATA
-            </div>
-
-            <Typography.Title
-              level={2}
-              className={`${styles.pageTitle} ${pageStyles.pageTitle}`}
-            >
-              ลูกค้า
-            </Typography.Title>
-
-            <Typography.Text
-              className={`${styles.pageSubtitle} ${pageStyles.pageSubtitle}`}
-            >
-              ฐานข้อมูลลูกค้าสำหรับใช้ต่อในใบเสนอราคา ใบสั่งขาย และใบส่งของ
-            </Typography.Text>
-          </div>
-
-          {canManageCustomers ? (
+        <PageHeader
+          eyebrow="MASTER DATA"
+          icon={<TeamOutlined />}
+          title="ลูกค้า"
+          subtitle="ฐานข้อมูลลูกค้าสำหรับใช้ต่อในใบเสนอราคา ใบสั่งขาย และใบส่งของ"
+          actions={
+            <>
+{canManageCustomers ? (
             <div className={styles.headerActions}>
               {customerActions.canAdd ? (
                 <Button
@@ -431,7 +412,9 @@ export default function CustomersPage() {
           ) : (
             <div />
           )}
-        </div>
+            </>
+          }
+        />
 
         <div className={`${styles.summaryRow} ${pageStyles.summaryRow}`}>
           <div className={`${summaryCardClass} ${pageStyles.cardTotal}`}>

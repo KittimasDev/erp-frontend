@@ -38,6 +38,7 @@ import {
 } from "@/types/stock-adjustments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./StockAdjustmentDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -126,27 +127,23 @@ export default function StockAdjustmentDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <SwapOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Stock Adjustment</p>
-          <h1 className={styles.pageTitle}>{data.adjustmentNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {formatDate(data.adjustmentDate)} · {data.items?.length ?? 0}{" "}
-            รายการ · {stockAdjustmentTypeDisplayName(data)}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Stock Adjustment"
+        icon={<SwapOutlined />}
+        title={data.adjustmentNo}
+        subtitle={<>{formatDate(data.adjustmentDate)} · {data.items?.length ?? 0}{" "}
+            รายการ · {stockAdjustmentTypeDisplayName(data)}</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(scopePath("/inventory/stock-adjustments"))}
           >
             กลับ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

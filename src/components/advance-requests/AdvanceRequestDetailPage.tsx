@@ -20,6 +20,7 @@ import {
   WHT_TYPE_LABEL,
 } from "@/types/advance-payment-requests";
 import { ADVANCE_BASE_PATH, ADVANCE_SCREEN } from "./AdvanceRequestsListPage";
+import PageHeader from "@/components/common/PageHeader";
 
 /** หน้าใบสำคัญจ่าย (2 ตาราง) — ปุ่ม "ดูใบสำคัญจ่าย" ไปรายละเอียด PV ที่สร้างจากรายการนี้ ถ้ายังไม่มี id ไปหน้ารายการ */
 const PV_PATH = "/finance/payables/payment-vouchers";
@@ -39,14 +40,20 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <Space>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(ADVANCE_BASE_PATH)}>กลับ</Button>
-            <Typography.Title level={3} style={{ margin: 0 }}>{r.requestNo}</Typography.Title>
-            <Tag color={ADVANCE_STATUS_COLOR[r.status]}>{ADVANCE_STATUS_LABEL[r.status] ?? r.status}</Tag>
-          </Space>
-          <Space>
+      <PageHeader
+        title={<>{r.requestNo}</>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push(ADVANCE_BASE_PATH)}>กลับ</Button>
+          </>
+        }
+        meta={
+          <>
+<Tag color={ADVANCE_STATUS_COLOR[r.status]}>{ADVANCE_STATUS_LABEL[r.status] ?? r.status}</Tag>
+          </>
+        }
+        actions={
+          <>
             {r.status === "DRAFT" && (perms.canEdit || perms.canApprove) ? (
               <Button type="primary" onClick={() => router.push(`${ADVANCE_BASE_PATH}/${r.id}/edit`)}>แก้ไข / ตรวจ WHT / ยืนยัน</Button>
             ) : null}
@@ -57,9 +64,10 @@ export default function AdvanceRequestDetailPage({ id }: { id: string }) {
             {r.status === "DRAFT" && perms.canDelete ? (
               <Button danger onClick={() => setCancelling(true)}>ยกเลิกรายการ</Button>
             ) : null}
-          </Space>
-        </div>
-      </Card>
+          
+          </>
+        }
+      />
 
       {r.status === "PENDING_PV" ? (
         <Alert type="success" showIcon title="ยืนยันรายการแล้ว — พร้อมนำไปสร้างใบสำคัญจ่าย (PV) ขั้นตอนถัดไป" description={r.confirmedAt ? `ยืนยันเมื่อ ${dayjs(r.confirmedAt).format("DD/MM/YYYY HH:mm")}` : undefined} />

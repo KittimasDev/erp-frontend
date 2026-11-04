@@ -43,6 +43,7 @@ import { AP_DOCUMENT_STATUS_COLOR, AP_DOCUMENT_STATUS_LABEL } from "@/types/ap-d
 import { PO_CHARGE_TYPE_LABEL } from "@/types/purchase-orders";
 
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money, previewTotals, termText } from "./apDocumentConfig";
+import PageHeader from "@/components/common/PageHeader";
 
 const config = AP_DOCUMENT_CONFIG.invoice;
 const toDate = (v?: Dayjs) => (v ? v.format("YYYY-MM-DD") : undefined);
@@ -441,23 +442,27 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <Space wrap>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
+      <PageHeader
+        title={<>{id ? `แก้ไขใบตั้งหนี้ ${existing?.docNo ?? ""}` : "สร้างใบตั้งหนี้"}</>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
             กลับ
           </Button>
-          <Typography.Title level={3} style={{ margin: 0 }}>
-            {id ? `แก้ไขใบตั้งหนี้ ${existing?.docNo ?? ""}` : "สร้างใบตั้งหนี้"}
-          </Typography.Title>
-          <Tag color={AP_DOCUMENT_STATUS_COLOR[status]}>{AP_DOCUMENT_STATUS_LABEL[status] ?? status}</Tag>
-        </Space>
-        {existing?.status === "REJECTED" && existing.rejectReason ? (
+          </>
+        }
+        meta={
+          <>
+<Tag color={AP_DOCUMENT_STATUS_COLOR[status]}>{AP_DOCUMENT_STATUS_LABEL[status] ?? status}</Tag>
+          </>
+        }
+      />
+      {existing?.status === "REJECTED" && existing.rejectReason ? (
           <Alert style={{ marginTop: 12 }} type="error" showIcon title="ไม่อนุมัติ — แก้ไขแล้วส่งอนุมัติใหม่" description={existing.rejectReason} />
         ) : null}
-        {!allowed ? (
+      {!allowed ? (
           <Alert style={{ marginTop: 12 }} type="warning" showIcon title={`บัญชีนี้ไม่มีสิทธิ์${id ? "แก้ไข" : "สร้าง"}ใบตั้งหนี้`} />
         ) : null}
-      </Card>
 
       <Form<FormValues>
         form={form}

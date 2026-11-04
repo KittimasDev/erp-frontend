@@ -41,6 +41,7 @@ import type {
 } from "@/types/procurement-dashboard";
 
 import styles from "./ProcurementDashboardPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const GREEN = "#739816";
 const GREEN_DARK = "#627F13";
@@ -311,19 +312,12 @@ export default function ProcurementDashboardPage() {
   return (
     <MasterPageGate isLoading={summaryQuery.isLoading}>
       <div className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <FileTextOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>Procurement</p>
-            <h1 className={styles.pageTitle}>ติดตามจัดซื้อ</h1>
-            <p className={styles.pageSubtitle}>
-              สรุปสถานะสายงาน ใบขอซื้อ → ใบสั่งซื้อ → ใบรับของ → จ่ายเงิน
-              ในหน้าเดียว
-            </p>
-          </div>
-        </header>
+        <PageHeader
+          eyebrow="Procurement"
+          icon={<FileTextOutlined />}
+          title="ติดตามจัดซื้อ"
+          subtitle="สรุปสถานะสายงาน ใบขอซื้อ → ใบสั่งซื้อ → ใบรับของ → จ่ายเงิน ในหน้าเดียว"
+        />
 
         <div className={styles.toolbar}>
           <label className={styles.filterField}>

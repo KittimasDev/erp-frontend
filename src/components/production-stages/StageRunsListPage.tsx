@@ -18,6 +18,7 @@ import {
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { stageTypeLabel, type StageModuleConfig } from "./stage-modules";
 import styles from "./StageRunPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const PAGE_SIZE = 20;
 
@@ -196,14 +197,13 @@ export default function StageRunsListPage({
   return (
     <MasterPageGate isLoading={listQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>{config.headerAccent}</div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>{config.eyebrow}</div>
-            <h2 className={masterStyles.pageTitle}>{config.title}</h2>
-            <span className={masterStyles.pageSubtitle}>{config.subtitle}</span>
-          </div>
-          {actions.canAdd ? (
+        <PageHeader
+          eyebrow={config.eyebrow}
+          title={config.title}
+          subtitle={config.subtitle}
+          actions={
+            <>
+{actions.canAdd ? (
             <Button
               type="primary"
               className={masterStyles.createButton}
@@ -213,7 +213,9 @@ export default function StageRunsListPage({
               สร้างรอบการทำงาน
             </Button>
           ) : null}
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.summaryRow}>
           <SummaryCard label="ร่าง (ในหน้านี้)" value={pageStats.draft} />

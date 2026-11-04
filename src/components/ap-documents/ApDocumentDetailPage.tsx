@@ -65,6 +65,7 @@ import {
 } from "@/types/ap-documents";
 
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money } from "./apDocumentConfig";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { kind: ApDocumentKind; id: string };
 
@@ -383,24 +384,22 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card
-        title={
-          <Space wrap>
-            <span>
-              {config.shortLabel} {doc.docNo}
-            </span>
-            <Tag color={AP_DOCUMENT_STATUS_COLOR[doc.status]}>
+      <PageHeader
+        title={<>{config.shortLabel} {doc.docNo}</>}
+        meta={
+          <>
+<Tag color={AP_DOCUMENT_STATUS_COLOR[doc.status]}>
               {AP_DOCUMENT_STATUS_LABEL[doc.status] ?? doc.status}
             </Tag>
-            {doc.usageStatus ? (
+{doc.usageStatus ? (
               <Tag color={AP_USAGE_STATUS_COLOR[doc.usageStatus] ?? "default"}>
                 {AP_USAGE_STATUS_LABEL[doc.usageStatus] ?? doc.usageStatus}
               </Tag>
             ) : null}
-          </Space>
+          </>
         }
-        extra={
-          <Space wrap>
+        actions={
+          <>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(config.basePath)}>
               กลับ
             </Button>
@@ -467,9 +466,12 @@ export default function ApDocumentDetailPage({ kind, id }: Props) {
                 ยกเลิก
               </Button>
             ) : null}
-          </Space>
+          
+          </>
         }
-      >
+      />
+
+      <Card>
         {doc.status === "CANCELLED" ? (
           <Alert
             type="error"

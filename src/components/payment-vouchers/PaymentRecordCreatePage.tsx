@@ -31,6 +31,7 @@ import { bankLabel, PAYMENT_METHOD_OPTIONS } from "./PaymentMethodFields";
 import { validatePvFile } from "./PvAttachmentsPanel";
 import { ReferenceCard, SummaryCard, SupplierCard, TaxCard } from "./VoucherSections";
 import { PAYMENT_RECORDS_PATH, fmtMoney, kindLabel, referenceLine } from "./paymentVoucherUtils";
+import PageHeader from "@/components/common/PageHeader";
 
 type FormValues = {
   documentDate: Dayjs;
@@ -119,22 +120,28 @@ export default function PaymentRecordCreatePage({ voucherId }: { voucherId: stri
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <Space>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PAYMENT_RECORDS_PATH)}>
+      <PageHeader
+        title={<>บันทึกจ่ายเงิน</>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PAYMENT_RECORDS_PATH)}>
               กลับ
             </Button>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              บันทึกจ่ายเงิน
-            </Typography.Title>
-            <Tag color="blue">อนุมัติแล้ว (รอจ่ายเงิน)</Tag>
-          </Space>
-          <Typography.Text type="secondary">
+          </>
+        }
+        meta={
+          <>
+<Tag color="blue">อนุมัติแล้ว (รอจ่ายเงิน)</Tag>
+          </>
+        }
+        actions={
+          <>
+<Typography.Text type="secondary">
             PV {v.voucherNo} · อ้างอิง {referenceLine(d) || "—"}
           </Typography.Text>
-        </div>
-      </Card>
+          </>
+        }
+      />
 
       <Card title="ข้อมูลจากใบสำคัญจ่าย (อ่านอย่างเดียว)" size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 3 }}>

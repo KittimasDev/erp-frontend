@@ -14,6 +14,7 @@ import type { ReturnNoteItem, ReturnNoteStatus } from "@/types/return-notes";
 import { RETURN_NOTE_STATUS_LABEL } from "@/types/return-notes";
 import ReturnInspectionSortModal from "./ReturnInspectionSortModal";
 import styles from "./ReturnNoteDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -113,13 +114,17 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <Link href="/return-notes/inspections">
-        <ArrowLeftOutlined /> รอตรวจสอบ
-      </Link>
+      <PageHeader
+        title="ตรวจสอบและคัดแยกสินค้า"
+        subtitle={data.returnNoteNo}
+        back={
+          <Link href="/return-notes/inspections">
+            <ArrowLeftOutlined /> รอตรวจสอบ
+          </Link>
+        }
+      />
       <div className={styles.layout}>
         <section>
-          <h1 className={styles.pageTitle}>ตรวจสอบและคัดแยกสินค้า</h1>
-          <p className={styles.pageSubtitle}>{data.returnNoteNo}</p>
           <Table
             rowKey="id"
             columns={columns}

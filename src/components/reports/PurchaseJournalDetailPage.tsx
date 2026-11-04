@@ -27,6 +27,7 @@ import {
   JOURNAL_DOC_TYPE_LABEL,
   type JournalDocType,
 } from "@/types/purchase-journal";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PURCHASES";
 const LIST_PATH = "/reports/journals/purchases";
@@ -135,12 +136,10 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <Typography.Title level={3} style={{ margin: 0 }}>
-            รายการ{docTypeLabel} {entry.docNo}
-          </Typography.Title>
-          <Space wrap>
+      <PageHeader
+        title={<>รายการ{docTypeLabel} {entry.docNo}</>}
+        actions={
+          <>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
               กลับรายการ
             </Button>
@@ -185,9 +184,9 @@ export default function PurchaseJournalDetailPage({ id }: Props) {
             <Link href={`${DOC_BASE_PATH[entry.docType]}/${entry.id}`}>
               <Button type="primary">{GO_DOC_LABEL[entry.docType]}</Button>
             </Link>
-          </Space>
-        </div>
-      </Card>
+          </>
+        }
+      />
 
       <Card title="ข้อมูลเอกสาร" size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>

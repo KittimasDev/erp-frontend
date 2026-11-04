@@ -48,6 +48,7 @@ import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
 import type { PickingItem } from "@/types/pickings";
 import { PICKING_STATUS_LABEL } from "@/types/pickings";
 import styles from "./PickingFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string; mode: "view" | "edit" };
 
@@ -378,12 +379,13 @@ export default function PickingFormPage({ id, mode }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent}>
-          <InboxOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <div className={styles.backRow}>
+      <PageHeader
+        eyebrow={editable ? "Picking · Edit" : "Picking · Detail"}
+        icon={<InboxOutlined />}
+        title={data.pickingNo}
+        back={
+          <>
+<div className={styles.backRow}>
             <Link href="/pickings" className={styles.backLink}>
               <ArrowLeftOutlined /> กลับรายการใบจ่าย
             </Link>
@@ -398,11 +400,11 @@ export default function PickingFormPage({ id, mode }: Props) {
               <ShoppingCartOutlined /> กลับใบสั่งขาย
             </Link>
           </div>
-          <p className={styles.eyebrow}>
-            {editable ? "Picking · Edit" : "Picking · Detail"}
-          </p>
-          <h1 className={styles.pageTitle}>{data.pickingNo}</h1>
-          <div className={styles.metaRow}>
+          </>
+        }
+        meta={
+          <>
+<div className={styles.metaRow}>
             {data.salesOrderId ? (
               <Link
                 href={`/sales-orders/${data.salesOrderId}`}
@@ -434,9 +436,11 @@ export default function PickingFormPage({ id, mode }: Props) {
               {statusLabel}
             </Tag>
           </div>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+          </>
+        }
+        actions={
+          <>
+<Button
             className={styles.secondaryBtn}
             icon={<ShoppingCartOutlined />}
             onClick={() =>
@@ -568,8 +572,9 @@ export default function PickingFormPage({ id, mode }: Props) {
           >
             กลับรายการ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {!editable && data.status === "DRAFT" ? (
         <Alert

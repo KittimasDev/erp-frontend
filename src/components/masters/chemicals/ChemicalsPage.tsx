@@ -15,6 +15,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 
 import ChemicalProfileModal from "./ChemicalProfileModal";
 import HazardMatrixTab from "./HazardMatrixTab";
+import PageHeader from "@/components/common/PageHeader";
 
 /** หน้า /masters/chemicals — ข้อมูลสารเคมี (ผู้ผลิต/CAS/Hazard Class/SDS) + ตารางห้ามเก็บรวม */
 export default function ChemicalsPage() {
@@ -79,21 +80,12 @@ export default function ChemicalsPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <ExperimentOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>MASTER · CHEMICAL</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              สารเคมี
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              ผู้ผลิต เลข CAS Hazard Class และ Safety Data Sheet ของสินค้าประเภทสารเคมี · ตารางห้ามเก็บรวมใช้เตือนตอนรับของ/โอนย้าย
-            </Typography.Text>
-          </div>
-          <div />
-        </div>
+        <PageHeader
+          eyebrow="MASTER · CHEMICAL"
+          icon={<ExperimentOutlined />}
+          title="สารเคมี"
+          subtitle="ผู้ผลิต เลข CAS Hazard Class และ Safety Data Sheet ของสินค้าประเภทสารเคมี · ตารางห้ามเก็บรวมใช้เตือนตอนรับของ/โอนย้าย"
+        />
 
         <div className={styles.tableCard}>
           <Tabs

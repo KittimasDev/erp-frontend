@@ -23,6 +23,7 @@ import {
 import LabCoaHistoryTab from "./LabCoaHistoryTab";
 import LabSampleCreateModal from "./LabSampleCreateModal";
 import styles from "./LabSamplesListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -140,19 +141,14 @@ export default function LabSamplesListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <ExperimentOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Laboratory · LIMS</p>
-          <h1 className={styles.pageTitle}>ตัวอย่างตรวจสอบ</h1>
-          <p className={styles.pageSubtitle}>
-            ลงทะเบียนตัวอย่างจากการผลิต วัตถุดิบ สารเคมี สินค้าสำเร็จรูป
-            พร้อมผูก Lot · พิมพ์ Certificate of Analysis (COA)
-          </p>
-        </div>
-        {canAdd ? (
+      <PageHeader
+        eyebrow="Laboratory · LIMS"
+        icon={<ExperimentOutlined />}
+        title="ตัวอย่างตรวจสอบ"
+        subtitle="ลงทะเบียนตัวอย่างจากการผลิต วัตถุดิบ สารเคมี สินค้าสำเร็จรูป พร้อมผูก Lot · พิมพ์ Certificate of Analysis (COA)"
+        actions={
+          <>
+{canAdd ? (
           <Button
             type="primary"
             size="large"
@@ -162,7 +158,9 @@ export default function LabSamplesListPage() {
             ลงทะเบียนตัวอย่าง
           </Button>
         ) : null}
-      </header>
+          </>
+        }
+      />
 
       <Tabs
         activeKey={tab}

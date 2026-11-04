@@ -19,6 +19,7 @@ import { useDeliveryScheduleStockStatusQuery } from "@/hooks/delivery-schedules/
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { ReadySalesOrder } from "@/types/pickings";
 import styles from "./PickingsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 /**
  * แถบ ต้องการ / มี / ขาด ของรอบที่กางออกดู
@@ -214,19 +215,18 @@ export default function CreatePickingSelectSoPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerContent}>
-          <Link href="/pickings" className={styles.backLink ?? undefined}>
+      <PageHeader
+        eyebrow="Picking · Create"
+        title="เลือกรอบจัดส่งที่พร้อมจ่าย"
+        subtitle="1 รอบ = 1 ใบจ่าย · ใบสั่งขายใบเดียวแบ่งส่งได้หลายรอบ จึงโผล่ได้หลายแถว — กางแถวเพื่อดูว่าของครบไหมก่อนกดสร้าง"
+        back={
+          <>
+<Link href="/pickings" className={styles.backLink ?? undefined}>
             <ArrowLeftOutlined /> กลับรายการ
           </Link>
-          <p className={styles.eyebrow}>Picking · Create</p>
-          <h1 className={styles.pageTitle}>เลือกรอบจัดส่งที่พร้อมจ่าย</h1>
-          <p className={styles.pageSubtitle}>
-            1 รอบ = 1 ใบจ่าย · ใบสั่งขายใบเดียวแบ่งส่งได้หลายรอบ จึงโผล่ได้หลายแถว
-            — กางแถวเพื่อดูว่าของครบไหมก่อนกดสร้าง
-          </p>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <section className={styles.tableCard}>
         <Alert

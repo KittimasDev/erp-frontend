@@ -41,6 +41,7 @@ import {
 } from "@/hooks/gl-accounts/useGlAccounts";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { GlAccount } from "@/types/gl-accounts";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "MASTERS_GL_ACCOUNTS";
 
@@ -176,6 +177,11 @@ export default function GlAccountsPage() {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+      <PageHeader
+        title="ผังบัญชีและการผูกบัญชี"
+        subtitle="ตั้งค่าบัญชีหลักของสมุดรายวันซื้อ และจัดการผังบัญชีสำหรับส่งออก Express"
+      />
+
       <Card
         title="การผูกบัญชีหลักของสมุดรายวันซื้อ"
         extra={

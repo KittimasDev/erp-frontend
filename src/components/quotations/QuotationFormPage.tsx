@@ -58,6 +58,7 @@ import {
 } from "@/lib/money/vat-totals";
 
 import styles from "./QuotationFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   itemId?: string;
@@ -432,22 +433,14 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileTextOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>ใบเสนอราคา</p>
-          <h1 className={styles.pageTitle}>
-            {mode === "create" ? "สร้างใบเสนอราคา" : "แก้ไขใบเสนอราคา"}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            เลือกลูกค้าและสินค้าสำเร็จรูป — แสดงยอดคงเหลือเพื่ออ้างอิง
-            (ยังไม่ตัดสต๊อก)
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="ใบเสนอราคา"
+        icon={<FileTextOutlined />}
+        title={mode === "create" ? "สร้างใบเสนอราคา" : "แก้ไขใบเสนอราคา"}
+        subtitle="เลือกลูกค้าและสินค้าสำเร็จรูป — แสดงยอดคงเหลือเพื่ออ้างอิง (ยังไม่ตัดสต๊อก)"
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() =>
               router.push(
@@ -457,8 +450,9 @@ export default function QuotationFormPage({ mode, id }: Props) {
           >
             กลับ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.formCard}>

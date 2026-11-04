@@ -38,6 +38,7 @@ import type { ProductionFormula } from "@/types/production-formula";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./production-formulas.module.css";
 import FormulaFormModal from "./FormulaFormModal";
+import PageHeader from "@/components/common/PageHeader";
 
 type FilterValues = {
   search?: string;
@@ -288,20 +289,13 @@ export default function ProductionFormulasPage() {
   return (
     <MasterPageGate isLoading={listQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>สูตร</div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>
-              MASTER DATA · PRODUCTION FORMULAS
-            </div>
-            <h2 className={masterStyles.pageTitle}>สูตรการผลิต</h2>
-            <span className={masterStyles.pageSubtitle}>
-              ตั้งไว้ว่า 1 รอบใช้อะไรเท่าไหร่ แล้วได้อะไรออกมาเท่าไหร่ —
-              หน้าสร้างใบสั่งผลิตจะคิดประมาณการให้ตามจำนวนที่ต้องการ
-              ตั้งจากผลผลิตหรือจากวัตถุดิบก็ได้
-            </span>
-          </div>
-          {actions.canAdd ? (
+        <PageHeader
+          eyebrow="MASTER DATA · PRODUCTION FORMULAS"
+          title="สูตรการผลิต"
+          subtitle="ตั้งไว้ว่า 1 รอบใช้อะไรเท่าไหร่ แล้วได้อะไรออกมาเท่าไหร่ — หน้าสร้างใบสั่งผลิตจะคิดประมาณการให้ตามจำนวนที่ต้องการ ตั้งจากผลผลิตหรือจากวัตถุดิบก็ได้"
+          actions={
+            <>
+{actions.canAdd ? (
             <Button
               type="primary"
               className={masterStyles.createButton}
@@ -314,7 +308,9 @@ export default function ProductionFormulasPage() {
               สร้างสูตร
             </Button>
           ) : null}
-        </div>
+            </>
+          }
+        />
 
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>

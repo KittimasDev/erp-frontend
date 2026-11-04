@@ -18,6 +18,7 @@ import {
 } from "@/types/production-order";
 import { formatProductionDateRange } from "@/utils/formatProductionDateRange";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const STATUS_COLOR: Record<string, string> = {
   DRAFT: "default",
@@ -152,16 +153,13 @@ export default function ProductionOrdersListPage() {
   return (
     <MasterPageGate isLoading={listQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>PO</div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>PRODUCTION · PYROLYSIS</div>
-            <h2 className={masterStyles.pageTitle}>ใบสั่งผลิต (Pyrolysis)</h2>
-            <span className={masterStyles.pageSubtitle}>
-              สร้าง / เริ่มผลิต / บันทึกผล / ขอรับผลผลิตเข้าคลัง
-            </span>
-          </div>
-          <Button
+        <PageHeader
+          eyebrow="PRODUCTION · PYROLYSIS"
+          title="ใบสั่งผลิต (Pyrolysis)"
+          subtitle="สร้าง / เริ่มผลิต / บันทึกผล / ขอรับผลผลิตเข้าคลัง"
+          actions={
+            <>
+<Button
             type="primary"
             className={masterStyles.createButton}
             icon={<PlusOutlined className={masterStyles.plusIcon} />}
@@ -169,7 +167,9 @@ export default function ProductionOrdersListPage() {
           >
             สร้างใบสั่งผลิต
           </Button>
-        </div>
+            </>
+          }
+        />
 
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>

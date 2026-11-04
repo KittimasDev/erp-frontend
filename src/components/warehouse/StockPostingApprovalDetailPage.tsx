@@ -37,6 +37,7 @@ import {
   StockPostingRequestStatus,
 } from "@/types/stock-posting-request";
 import styles from "@/components/weighbridge/WeighbridgeDashboardPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = {
   requestId: string;
@@ -328,16 +329,21 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
   return (
     <MasterPageGate isLoading={detailQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.detailToolbar}>
-          <Button
+        <PageHeader
+          eyebrow="Raw Tire Receiving"
+          title="รายละเอียดคำขออนุมัติรับยางเข้าคลัง"
+          back={
+            <Button
             type="text"
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/warehouse/stock-posting-approvals")}
           >
             กลับรายการอนุมัติ
           </Button>
-          <div className={styles.detailTitleTags}>
-            <Button
+          }
+          actions={
+            <>
+<Button
               icon={<ReloadOutlined />}
               loading={detailQuery.isFetching}
               onClick={() => void detailQuery.refetch()}
@@ -403,8 +409,9 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                 </Button>
               </>
             ) : null}
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {detailQuery.isError ? (
           <div className={styles.card}>

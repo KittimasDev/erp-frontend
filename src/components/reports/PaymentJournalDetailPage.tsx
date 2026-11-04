@@ -25,6 +25,7 @@ import {
   PAYMENT_METHOD_LABEL,
   type PaymentJournalItem,
 } from "@/types/payment-journal";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PAYMENTS";
 const LIST_PATH = "/reports/journals/payments";
@@ -134,12 +135,10 @@ export default function PaymentJournalDetailPage({ id }: Props) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <Typography.Title level={3} style={{ margin: 0 }}>
-            รายการจ่ายเงิน {entry.paymentNo ?? entry.voucher.no}
-          </Typography.Title>
-          <Space wrap>
+      <PageHeader
+        title={<>รายการจ่ายเงิน {entry.paymentNo ?? entry.voucher.no}</>}
+        actions={
+          <>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
               กลับรายการ
             </Button>
@@ -168,9 +167,9 @@ export default function PaymentJournalDetailPage({ id }: Props) {
             <Link href={`${PAYMENT_RECORD_PATH}/${entry.id}`}>
               <Button type="primary">ไปที่บันทึกจ่ายเงิน</Button>
             </Link>
-          </Space>
-        </div>
-      </Card>
+          </>
+        }
+      />
 
       <Card title="ข้อมูลเอกสาร" size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 2 }}>

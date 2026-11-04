@@ -34,6 +34,7 @@ import type {
   NotificationEventSummary,
 } from "@/types/notification-settings";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const NOTIFICATION_MENU_GROUP_ORDER = [
   "รับซื้อยาง",
@@ -313,17 +314,13 @@ export default function NotificationSettingsPage({
     return (
       <MasterPageGate isLoading={!embedded && eventQuery.isLoading}>
         <section className={masterStyles.page}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 16,
-              marginBottom: 16,
-            }}
-          >
-            <div>
-              <Button
+          <PageHeader
+            title={<>{detail?.nameTh ?? "ตั้งค่าแจ้งเตือน"}</>}
+            subtitle={<>{detail?.descriptionTh ??
+                  "เลือกบทบาทที่จะได้รับการแจ้งเตือนเมื่อมีรายการใหม่"}</>}
+            back={
+              <>
+<Button
                 type="text"
                 icon={<ArrowLeftOutlined />}
                 onClick={backToList}
@@ -331,14 +328,11 @@ export default function NotificationSettingsPage({
               >
                 กลับรายการแจ้งเตือน
               </Button>
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                {detail?.nameTh ?? "ตั้งค่าแจ้งเตือน"}
-              </Typography.Title>
-              <Typography.Text type="secondary">
-                {detail?.descriptionTh ??
-                  "เลือกบทบาทที่จะได้รับการแจ้งเตือนเมื่อมีรายการใหม่"}
-              </Typography.Text>
-              {detail?.href ? (
+              </>
+            }
+            meta={
+              <>
+{detail?.href ? (
                 <div>
                   <Button
                     type="link"
@@ -350,8 +344,10 @@ export default function NotificationSettingsPage({
                   </Button>
                 </div>
               ) : null}
-            </div>
-            <Space wrap>
+              </>
+            }
+            actions={
+              <>
               <Button
                 icon={<ExperimentOutlined />}
                 disabled={enabledCount === 0 || dirty}
@@ -369,8 +365,10 @@ export default function NotificationSettingsPage({
               >
                 บันทึก
               </Button>
-            </Space>
-          </div>
+            
+              </>
+            }
+          />
 
           {detail && enabledCount === 0 ? (
             <Alert
@@ -398,16 +396,11 @@ export default function NotificationSettingsPage({
   return (
     <MasterPageGate isLoading={eventsQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div style={{ marginBottom: 16 }}>
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            <BellOutlined style={{ marginRight: 8 }} />
-            ประเภทการแจ้งเตือน
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            เลือกรายการเพื่อกำหนดว่าบทบาทไหนจะได้รับแจ้งเตือนเมื่อมีงานเข้าคิว
-            {events.length > 0 ? ` (${events.length} รายการ)` : null}
-          </Typography.Text>
-        </div>
+        <PageHeader
+          icon={<BellOutlined />}
+          title="ประเภทการแจ้งเตือน"
+          subtitle={<>เลือกรายการเพื่อกำหนดว่าบทบาทไหนจะได้รับแจ้งเตือนเมื่อมีงานเข้าคิว{events.length > 0 ? ` (${events.length} รายการ)` : null}</>}
+        />
 
         {eventsError ? (
           <Alert

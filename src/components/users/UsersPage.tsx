@@ -55,6 +55,7 @@ import UserFormModal from "./UserFormModal";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./UsersPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type FilterFormValues = {
   q?: string;
@@ -407,22 +408,14 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
     >
       <section className={masterStyles.page}>
         {!embedded ? (
-          <div className={masterStyles.pageHeader}>
-            <div className={masterStyles.headerAccent}>
-              <TeamOutlined />
-            </div>
-
-            <div className={masterStyles.headerContent}>
-              <div className={masterStyles.eyebrow}>SECURITY</div>
-              <Typography.Title level={2} className={masterStyles.pageTitle}>
-                จัดการผู้ใช้งาน
-              </Typography.Title>
-              <Typography.Text className={masterStyles.pageSubtitle}>
-                สร้างบัญชี กำหนด Role รีเซ็ตรหัสผ่าน และเปิด/ปิดการใช้งาน
-              </Typography.Text>
-            </div>
-
-            <Button
+          <PageHeader
+            eyebrow="SECURITY"
+            icon={<TeamOutlined />}
+            title="จัดการผู้ใช้งาน"
+            subtitle="สร้างบัญชี กำหนด Role รีเซ็ตรหัสผ่าน และเปิด/ปิดการใช้งาน"
+            actions={
+              <>
+<Button
               type="primary"
               size="large"
               className={masterStyles.createButton}
@@ -435,7 +428,9 @@ export default function UsersPage({ embedded = false }: UsersPageProps) {
             >
               เพิ่มผู้ใช้งาน
             </Button>
-          </div>
+              </>
+            }
+          />
         ) : null}
 
         <div className={masterStyles.summaryRow}>

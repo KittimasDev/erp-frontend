@@ -51,6 +51,7 @@ import {
 
 import OtSettingsModal from "./OtSettingsModal";
 import styles from "./OvertimeRequestsPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const GREEN = "#8ab933";
 const ORANGE = "#fa8c16";
@@ -378,22 +379,20 @@ export default function OvertimeRequestsPage() {
   return (
     <MasterPageGate isLoading={summaryQuery.isLoading}>
       <div className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <FieldTimeOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>HRM</p>
-            <h1 className={styles.pageTitle}>คำขอทำงานล่วงเวลา (OT)</h1>
-            <p className={styles.pageSubtitle}>
-              พนักงานยื่นคำขอเองผ่านมือถือที่ <code>/overtime</code> —
-              หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้
-            </p>
-          </div>
-          <Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
+        <PageHeader
+          eyebrow="HRM"
+          icon={<FieldTimeOutlined />}
+          title="คำขอทำงานล่วงเวลา (OT)"
+          subtitle={<>พนักงานยื่นคำขอเองผ่านมือถือที่ <code>/overtime</code> —
+              หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้</>}
+          actions={
+            <>
+<Button icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
             ตั้งค่าอัตรา OT
           </Button>
-        </header>
+            </>
+          }
+        />
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAlert}`}>

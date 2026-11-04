@@ -12,6 +12,7 @@ import { useCustomerQuery } from "@/hooks/customers/useCustomerQuery";
 import { CUSTOMER_TYPES } from "@/types/customers";
 import type { CreateCustomerRequest } from "@/types/customers";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   DOMESTIC: "ในประเทศ",
@@ -129,31 +130,22 @@ export default function CustomerFormPage({
   return (
     <MasterPageGate isLoading={!isCreateMode && customerQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <Button
+        <PageHeader
+          eyebrow={isCreateMode ? "CREATE CUSTOMER" : "EDIT CUSTOMER"}
+          title={isCreateMode ? "เพิ่มลูกค้า" : "แก้ไขข้อมูลลูกค้า"}
+          subtitle={isCreateMode ? "กรอกข้อมูลลูกค้าใหม่ รหัสลูกค้าต้องไม่ซ้ำ" : "แก้ไขรายละเอียดลูกค้าและสถานะการใช้งาน"}
+          actions={
+            <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={goBack}
             className={styles.editButton}
           >
             กลับ
           </Button>
-
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>
-              {isCreateMode ? "CREATE CUSTOMER" : "EDIT CUSTOMER"}
-            </div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              {isCreateMode ? "เพิ่มลูกค้า" : "แก้ไขข้อมูลลูกค้า"}
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              {isCreateMode
-                ? "กรอกข้อมูลลูกค้าใหม่ รหัสลูกค้าต้องไม่ซ้ำ"
-                : "แก้ไขรายละเอียดลูกค้าและสถานะการใช้งาน"}
-            </Typography.Text>
-          </div>
-
-          <div />
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.tableCard}>
           <Form

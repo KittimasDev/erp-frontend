@@ -28,6 +28,7 @@ import {
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money } from "./apDocumentConfig";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { kind: ApDocumentKind };
 
@@ -336,18 +337,14 @@ export default function ApDocumentsListPage({ kind }: Props) {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            FINANCE · PAYABLES
-          </div>
-          <h2 className={masterStyles.pageTitle}>{config.title}</h2>
-          {subtitle ? <span className={masterStyles.pageSubtitle}>{subtitle}</span> : null}
-        </div>
-        <Space>
+      <PageHeader
+        eyebrow="FINANCE · PAYABLES"
+        icon={<FileTextOutlined />}
+        title={config.title}
+        subtitle={subtitle}
+        actions={
+          <>
+<Space>
           {isNote ? (
             <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
           ) : null}
@@ -361,7 +358,9 @@ export default function ApDocumentsListPage({ kind }: Props) {
             </Button>
           ) : null}
         </Space>
-      </div>
+          </>
+        }
+      />
 
       <div className={`${styles.statRow} ${styles.statRow2}`}>
         <div className={styles.statChip}>

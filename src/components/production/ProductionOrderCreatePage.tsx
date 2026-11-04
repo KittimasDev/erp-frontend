@@ -60,6 +60,7 @@ import type {
 } from "@/types/production-order";
 import { ProductionOrderPlanLineType } from "@/types/production-order";
 import styles from "./ProductionOrderCreatePage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 export type Row = {
   key: number;
@@ -691,24 +692,22 @@ export default function ProductionOrderCreatePage() {
   return (
     <MasterPageGate>
       <div className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <ExperimentOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <Link
+        <PageHeader
+          eyebrow="Production · Pyrolysis"
+          icon={<ExperimentOutlined />}
+          title="สร้างใบสั่งผลิต"
+          subtitle="ระบุวัตถุดิบและ Lot ที่จะใช้ — สถานะเริ่มต้น DRAFT"
+          back={
+            <>
+<Link
               href="/production/production-orders"
               className={styles.backLink}
             >
               <ArrowLeftOutlined /> กลับรายการ
             </Link>
-            <p className={styles.eyebrow}>Production · Pyrolysis</p>
-            <h1 className={styles.pageTitle}>สร้างใบสั่งผลิต</h1>
-            <p className={styles.pageSubtitle}>
-              ระบุวัตถุดิบและ Lot ที่จะใช้ — สถานะเริ่มต้น DRAFT
-            </p>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         {productionRequestId ? (
           <section className={styles.formCard}>

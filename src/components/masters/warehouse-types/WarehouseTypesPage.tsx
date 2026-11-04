@@ -20,6 +20,7 @@ import type {
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import WarehouseTypeFormModal, { MENU_SCOPE_OPTIONS } from "./WarehouseTypeFormModal";
+import PageHeader from "@/components/common/PageHeader";
 
 function behaviorTags(type: WarehouseTypeMaster) {
   const tags: { key: string; label: string; color: string }[] = [];
@@ -215,19 +216,13 @@ export default function WarehouseTypesPage() {
   return (
     <MasterPageGate isLoading={listQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div />
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>MASTER DATA</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              ประเภทคลัง
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              ตั้งชื่อและพฤติกรรมของคลังแต่ละประเภท — ขายได้ไหม รับของเข้าเป็นของพักไหม
-              ใช้รับของคืนแบบไหน และขึ้นในเมนูกลุ่มไหน
-            </Typography.Text>
-          </div>
-          <Button
+        <PageHeader
+          eyebrow="MASTER DATA"
+          title="ประเภทคลัง"
+          subtitle="ตั้งชื่อและพฤติกรรมของคลังแต่ละประเภท — ขายได้ไหม รับของเข้าเป็นของพักไหม ใช้รับของคืนแบบไหน และขึ้นในเมนูกลุ่มไหน"
+          actions={
+            <>
+<Button
             type="primary"
             size="large"
             className={styles.createButton}
@@ -236,7 +231,9 @@ export default function WarehouseTypesPage() {
           >
             เพิ่มประเภท
           </Button>
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.filterCard}>
           <Row gutter={[16, 12]}>

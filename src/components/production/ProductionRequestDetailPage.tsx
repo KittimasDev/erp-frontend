@@ -37,6 +37,7 @@ import type {
 import { PRODUCTION_ORDER_STATUS_LABEL } from "@/types/production-order";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionOrderDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = {
   requestId: string;
@@ -195,10 +196,14 @@ export default function ProductionRequestDetailPage({ requestId }: Props) {
   return (
     <MasterPageGate isLoading={detailQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>PR</div>
-          <div className={masterStyles.headerContent}>
-            <button
+        <PageHeader
+          eyebrow="PRODUCTION · ใบขอผลิต"
+          title={request?.requestNo ?? "-"}
+          subtitle={<>อ้างอิงใบสั่งขาย {request?.soNo ?? "-"} ·{" "}
+              {request?.customerName ?? "-"}</>}
+          back={
+            <>
+<button
               type="button"
               style={{
                 border: 0,
@@ -210,19 +215,16 @@ export default function ProductionRequestDetailPage({ requestId }: Props) {
             >
               <ArrowLeftOutlined /> กลับรายการ
             </button>
-            <div className={masterStyles.eyebrow}>PRODUCTION · ใบขอผลิต</div>
-            <h2 className={masterStyles.pageTitle}>
-              {request?.requestNo ?? "-"}
-            </h2>
-            <span className={masterStyles.pageSubtitle}>
-              อ้างอิงใบสั่งขาย {request?.soNo ?? "-"} ·{" "}
-              {request?.customerName ?? "-"}
-            </span>
-          </div>
-          {statusDisplay ? (
+            </>
+          }
+          actions={
+            <>
+{statusDisplay ? (
             <Tag color={statusDisplay.color}>{statusDisplay.label}</Tag>
           ) : null}
-        </div>
+            </>
+          }
+        />
 
         {request?.sourceSoCancelled ? (
           <Alert

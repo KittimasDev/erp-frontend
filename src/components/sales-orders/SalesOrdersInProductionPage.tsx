@@ -20,6 +20,7 @@ import {
 } from "@/types/sales-orders";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./SalesOrdersInProductionPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const PR_STATUS_COLOR: Record<string, string> = {
   PENDING: "default",
@@ -256,17 +257,11 @@ export default function SalesOrdersInProductionPage() {
   return (
     <MasterPageGate>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>SO</div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>SALES · รอยืนยันใบสั่งขาย</div>
-            <h2 className={masterStyles.pageTitle}>ใบสั่งขายที่ส่งผลิต</h2>
-            <span className={masterStyles.pageSubtitle}>
-              เห็นสินค้าต่อใบและยอดที่ยังต้องการ โดยไม่ต้องเปิดใบสั่งขายทีละใบ
-              ของในคลังเป็นยอดรวม ต้องเลือกจัดลง SO ใบไหนก่อน
-            </span>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="SALES · รอยืนยันใบสั่งขาย"
+          title="ใบสั่งขายที่ส่งผลิต"
+          subtitle="เห็นสินค้าต่อใบและยอดที่ยังต้องการ โดยไม่ต้องเปิดใบสั่งขายทีละใบ ของในคลังเป็นยอดรวม ต้องเลือกจัดลง SO ใบไหนก่อน"
+        />
 
         {bannerPools.length ? (
           <div className={styles.poolBanner}>

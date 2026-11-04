@@ -36,6 +36,7 @@ import {
   type DeviceScanStatus,
 } from "@/types/attendance-devices";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const fmt = (iso?: string | null) => (iso ? dayjs(iso).format("DD/MM/YYYY HH:mm:ss") : "—");
 
@@ -188,23 +189,19 @@ export default function AttendanceDevicesPage() {
   return (
     <MasterPageGate isLoading={devicesQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <ScanOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>HRM · FINGER SCAN / RFID</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              เครื่องสแกนนิ้ว / RFID
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              ลงทะเบียนเครื่องแล้วให้เครื่อง/ตัวกลางยิงสแกนเข้าระบบ — ลงเวลาเข้า-ออกงานให้อัตโนมัติ
-            </Typography.Text>
-          </div>
-          <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+        <PageHeader
+          eyebrow="HRM · FINGER SCAN / RFID"
+          icon={<ScanOutlined />}
+          title="เครื่องสแกนนิ้ว / RFID"
+          subtitle="ลงทะเบียนเครื่องแล้วให้เครื่อง/ตัวกลางยิงสแกนเข้าระบบ — ลงเวลาเข้า-ออกงานให้อัตโนมัติ"
+          actions={
+            <>
+<Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
             ลงทะเบียนเครื่อง
           </Button>
-        </div>
+            </>
+          }
+        />
 
         <Alert
           type="info"

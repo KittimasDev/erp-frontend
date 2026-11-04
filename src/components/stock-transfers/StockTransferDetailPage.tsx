@@ -24,6 +24,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { useStockTransferQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
 import { STOCK_TRANSFER_STATUS_LABEL } from "@/types/stock-transfers";
 import styles from "./StockTransferDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -82,26 +83,22 @@ export default function StockTransferDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <SwapOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Stock Transfer</p>
-          <h1 className={styles.pageTitle}>{data.transferNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {formatDate(data.transferDate)} · {data.items?.length ?? 0} รายการ
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Stock Transfer"
+        icon={<SwapOutlined />}
+        title={data.transferNo}
+        subtitle={<>{formatDate(data.transferDate)} · {data.items?.length ?? 0} รายการ</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(scopePath("/inventory/stock-transfers"))}
           >
             กลับ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

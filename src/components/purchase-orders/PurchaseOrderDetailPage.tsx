@@ -76,6 +76,7 @@ import { SUPPLIER_PAYMENT_STATUS_LABEL } from "@/types/purchase-payments";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import PoDeliverySchedulesSection from "./PoDeliverySchedulesSection";
 import styles from "./PurchaseOrderDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -530,20 +531,15 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileTextOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Purchase Order</p>
-          <h1 className={styles.pageTitle}>{data.poNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {data.creditor?.nameTh ?? "—"} · {formatDate(data.poDate)} ·{" "}
-            {data.items?.length ?? 0} รายการ
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Purchase Order"
+        icon={<FileTextOutlined />}
+        title={data.poNo}
+        subtitle={<>{data.creditor?.nameTh ?? "—"} · {formatDate(data.poDate)} ·{" "}
+            {data.items?.length ?? 0} รายการ</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(getPurchaseOrderBackHref())}
           >
@@ -557,8 +553,9 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           >
             พิมพ์ PDF
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

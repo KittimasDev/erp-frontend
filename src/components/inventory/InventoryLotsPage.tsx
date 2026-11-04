@@ -36,6 +36,7 @@ import {
 } from "@/types/inventory";
 import { getInventoryPageScope, inventoryScopeApiFilter } from "./inventory-page-copy";
 import styles from "./InventoryLotsPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatQty(value?: string) {
   const num = Number(value ?? 0);
@@ -471,15 +472,7 @@ export default function InventoryLotsPage() {
   return (
     <MasterPageGate isLoading={lotsQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.header}>
-          <div className={styles.headerMain}>
-            <div className={styles.eyebrow}>{copy.eyebrow}</div>
-            <Typography.Title level={2} className={styles.title}>
-              {copy.title}
-            </Typography.Title>
-            <span className={styles.subtitle}>{copy.subtitle}</span>
-          </div>
-        </div>
+        <PageHeader eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
 
         {pageError ? (
           <Alert

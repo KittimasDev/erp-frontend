@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 import { usePendingStockVerificationQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import type { StockVerificationPendingOrder } from "@/types/sales-orders";
 import styles from "./StockVerificationListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -103,18 +104,12 @@ export default function StockVerificationListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <SearchOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Stock Verification</p>
-          <h1 className={styles.pageTitle}>ตรวจสอบสต๊อกขาย</h1>
-          <p className={styles.pageSubtitle}>
-            ใบสั่งขายที่ยืนยันแล้วและรอตรวจยอดพร้อมขาย — ยังไม่ตัดสต๊อก
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Sales · Stock Verification"
+        icon={<SearchOutlined />}
+        title="ตรวจสอบสต๊อกขาย"
+        subtitle="ใบสั่งขายที่ยืนยันแล้วและรอตรวจยอดพร้อมขาย — ยังไม่ตัดสต๊อก"
+      />
 
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>

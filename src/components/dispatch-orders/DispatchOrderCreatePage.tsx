@@ -17,6 +17,7 @@ import { getFifoLotSuggestion } from "@/lib/api/dispatch-orders";
 import { getAccessToken } from "@/lib/auth/token";
 import type { CreateDispatchOrderItemInput } from "@/types/dispatch-orders";
 import styles from "./DispatchOrderDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { salesOrderId: string };
 
@@ -184,26 +185,22 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <CarOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Dispatch Order</p>
-          <h1 className={styles.pageTitle}>สร้างใบจ่ายสินค้า (Picking)</h1>
-          <p className={styles.pageSubtitle}>
-            จากใบสั่งขาย {so.soNo} — เลือก Lot ให้อัตโนมัติแบบ FIFO
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Sales · Dispatch Order"
+        icon={<CarOutlined />}
+        title="สร้างใบจ่ายสินค้า (Picking)"
+        subtitle={<>จากใบสั่งขาย {so.soNo} — เลือก Lot ให้อัตโนมัติแบบ FIFO</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(`/sales-orders/${salesOrderId}`)}
           >
             กลับ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

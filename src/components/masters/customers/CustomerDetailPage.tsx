@@ -23,6 +23,7 @@ import { SALES_ORDER_STATUS_LABEL } from "@/types/sales-orders";
 import type { SalesOrder, SalesOrderStatus } from "@/types/sales-orders";
 import styles from "@/components/masters/shared/master-page.module.css";
 import detailStyles from "./customer-detail.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   DOMESTIC: "ในประเทศ",
@@ -243,8 +244,14 @@ export default function CustomerDetailPage({ id }: Props) {
 
   return (
     <section className={styles.page}>
-      <div className={detailStyles.backRow}>
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        icon={<TeamOutlined />}
+        title={data.nameTh}
+        subtitle={<>ประเภทลูกค้า: {customerTypeLabel} • ลงทะเบียนเมื่อวันที่{" "}
+            {formatLongDate(data.createdAt)}</>}
+        back={
+          <Button
           type="text"
           icon={<LeftOutlined />}
           className={detailStyles.backLink}
@@ -252,20 +259,9 @@ export default function CustomerDetailPage({ id }: Props) {
         >
           ย้อนกลับ
         </Button>
-      </div>
-
-      <div className={detailStyles.heroCard}>
-        <div className={styles.headerAccent} aria-hidden>
-          <TeamOutlined />
-        </div>
-
-        <div className={detailStyles.heroContent}>
-          <div className={detailStyles.heroTitleRow}>
-            <Typography.Title level={3} className={detailStyles.heroTitle}>
-              {data.nameTh}
-            </Typography.Title>
-
-            {data.isActive ? (
+        }
+        meta={
+          <>{data.isActive ? (
               <Tag className={`${styles.statusTag} ${styles.statusActive}`}>
                 <span className={styles.statusDot} />
                 ใช้งาน
@@ -275,16 +271,10 @@ export default function CustomerDetailPage({ id }: Props) {
                 <span className={styles.statusDot} />
                 ปิดใช้งาน
               </Tag>
-            )}
-          </div>
-
-          <span className={detailStyles.heroMeta}>
-            ประเภทลูกค้า: {customerTypeLabel} • ลงทะเบียนเมื่อวันที่{" "}
-            {formatLongDate(data.createdAt)}
-          </span>
-        </div>
-
-        {canManageCustomers ? (
+            )}</>
+        }
+        actions={
+          <>{canManageCustomers ? (
           <Space className={detailStyles.heroActions}>
             {data.isActive ? (
               <Popconfirm
@@ -321,8 +311,9 @@ export default function CustomerDetailPage({ id }: Props) {
               แก้ไขข้อมูล
             </Button>
           </Space>
-        ) : null}
-      </div>
+        ) : null}</>
+        }
+      />
 
       <div className={detailStyles.infoGrid}>
         <InfoCard

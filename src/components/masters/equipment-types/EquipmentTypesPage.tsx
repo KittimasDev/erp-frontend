@@ -12,6 +12,7 @@ import {
 } from "@/hooks/equipment-types/useEquipmentTypes";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { EquipmentType } from "@/types/equipment-types";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "MASTERS_EQUIPMENT_TYPES";
 
@@ -92,16 +93,18 @@ export default function EquipmentTypesPage() {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card
+      <PageHeader
         title="ประเภทเครื่องจักร"
-        extra={
+        actions={
           perms.canAdd ? (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => openForm("new")}>
               เพิ่มประเภท
             </Button>
           ) : null
         }
-      >
+      />
+
+      <Card>
         <Typography.Paragraph type="secondary">
           ใช้จัดกลุ่มเครื่องจักรที่หน้า Equipment — ในใบสั่งผลิต (MO) สลับเครื่องที่สูตรกำหนดเป็นเครื่องอื่นได้เฉพาะ
           เครื่องที่เป็นประเภทเดียวกัน · ประเภทที่ปิดใช้งานเลือกกับเครื่องจักรใหม่ไม่ได้

@@ -1,0 +1,127 @@
+/* หัวหน้ามาตรฐาน — หน้าตาเหมือน .hero ของ /reports/receiving (สีกำหนดบน .hero เอง ไม่พึ่งตัวแปรของหน้าอื่น) */
+.hero {
+  --ph-green: var(--erp-green, #8ab933);
+  --ph-green-dark: var(--erp-green-dark, #6f9720);
+  --ph-ink: var(--erp-text, #2f343a);
+  --ph-muted: var(--erp-muted, #8a9199);
+
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px 20px;
+  padding: 22px 24px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(111, 151, 32, 0.18);
+  background:
+    radial-gradient(ellipse 80% 120% at 100% 0%, rgba(115, 152, 22, 0.22), transparent 55%),
+    radial-gradient(ellipse 50% 80% at 0% 100%, rgba(61, 139, 116, 0.12), transparent 50%),
+    linear-gradient(145deg, #fbfcf8 0%, #f0f5e8 48%, #e8f0dc 100%);
+  box-shadow: 0 12px 32px rgba(47, 52, 58, 0.06);
+}
+
+.main {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.back {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 5px 10px 5px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(111, 151, 32, 0.2);
+  color: var(--ph-green-dark);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badgeIcon {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, #8ca527, var(--ph-green-dark));
+  font-size: 13px;
+}
+
+.badgeText {
+  padding-right: 2px;
+}
+
+.title {
+  margin: 0;
+  color: var(--ph-ink);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  max-width: 62ch;
+  color: var(--ph-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.controls {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 960px) {
+  .actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .hero {
+    padding: 18px 16px 16px;
+    border-radius: 16px;
+  }
+}

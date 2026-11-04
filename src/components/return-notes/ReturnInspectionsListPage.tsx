@@ -9,6 +9,7 @@ import { FileSearchOutlined, SearchOutlined } from "@ant-design/icons";
 import { usePendingInspectionsQuery } from "@/hooks/return-notes/useReturnNotesQuery";
 import type { ReturnNote } from "@/types/return-notes";
 import styles from "./ReturnNotesListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatQty(value: string) {
   const n = Number(value);
@@ -110,14 +111,10 @@ export default function ReturnInspectionsListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <h1 className={styles.pageTitle}>รอตรวจสอบ</h1>
-          <p className={styles.pageSubtitle}>
-            สินค้าที่รับเข้าคลังตรวจสอบแล้ว รอคัดแยกของดีและของเสีย
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        title="รอตรวจสอบ"
+        subtitle="สินค้าที่รับเข้าคลังตรวจสอบแล้ว รอคัดแยกของดีและของเสีย"
+      />
 
       <div className={styles.filterCard}>
         <Input

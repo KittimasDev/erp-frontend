@@ -27,6 +27,7 @@ import {
   type BillingNoteDetailItem,
   type BillingNotePv,
 } from "@/types/billing-notes";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "FINANCE_BILLING_NOTES";
 const BASE_PATH = "/finance/payables/billing-notes";
@@ -224,20 +225,25 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Space wrap style={{ justifyContent: "space-between", width: "100%" }}>
-        <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(BASE_PATH)}>
+      <PageHeader
+        title={<>ใบวางบิล {n.billingNo}</>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push(BASE_PATH)}>
             กลับ
           </Button>
-          <Typography.Title level={4} style={{ margin: 0 }}>
-            ใบวางบิล {n.billingNo}
-          </Typography.Title>
-          <Tag color={BILLING_NOTE_STATUS_COLOR[n.status] ?? "default"}>{BILLING_NOTE_STATUS_LABEL[n.status] ?? n.status}</Tag>
-          {isConfirmed ? (
+          </>
+        }
+        meta={
+          <>
+<Tag color={BILLING_NOTE_STATUS_COLOR[n.status] ?? "default"}>{BILLING_NOTE_STATUS_LABEL[n.status] ?? n.status}</Tag>
+{isConfirmed ? (
             <Tag color={BILLING_PV_STATUS_COLOR[n.pvStatus] ?? "default"}>{BILLING_PV_STATUS_LABEL[n.pvStatus] ?? n.pvStatus}</Tag>
           ) : null}
-        </Space>
-        <Space wrap>
+          </>
+        }
+        actions={
+          <>
           {isDraft && perms.canEdit ? (
             <>
               <Button onClick={() => router.push(`${BASE_PATH}/${n.id}/edit`)}>แก้ไข</Button>
@@ -271,8 +277,10 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
               ยกเลิก
             </Button>
           ) : null}
-        </Space>
-      </Space>
+        
+          </>
+        }
+      />
 
       {n.status === "CANCELLED" ? (
         <Alert

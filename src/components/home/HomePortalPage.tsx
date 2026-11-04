@@ -4,21 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Tooltip } from "antd";
 import MenuSearchPalette from "./MenuSearchPalette";
-import {
-  ArrowRightOutlined,
-  CalendarOutlined,
-  SearchOutlined,
-  ExperimentOutlined,
-  FundOutlined,
-  InboxOutlined,
-  SettingOutlined,
-  ShoppingCartOutlined,
-  ShoppingOutlined,
-  TeamOutlined,
-  ThunderboltOutlined,
-  TruckOutlined,
-  WalletOutlined,
-} from "@ant-design/icons";
+import { ArrowRightOutlined, CalendarOutlined, SearchOutlined } from "@ant-design/icons";
+import { moduleIcon } from "./module-icons";
 
 import {
   getStoredPermissions,
@@ -58,33 +45,6 @@ const TONE_CLASS: Record<PortalModuleTone, string> = {
   cyan: styles.toneCyan,
   stone: styles.toneStone,
 };
-
-function moduleIcon(key: string) {
-  switch (key) {
-    case "raw-tire":
-      return <TruckOutlined aria-hidden />;
-    case "purchase":
-      return <ShoppingCartOutlined aria-hidden />;
-    case "rm-warehouse":
-      return <InboxOutlined aria-hidden />;
-    case "production":
-      return <ThunderboltOutlined aria-hidden />;
-    case "fg-warehouse":
-      return <ShoppingOutlined aria-hidden />;
-    case "sales":
-      return <TeamOutlined aria-hidden />;
-    case "laboratory":
-      return <ExperimentOutlined aria-hidden />;
-    case "finance":
-      return <WalletOutlined aria-hidden />;
-    case "reports":
-      return <FundOutlined aria-hidden />;
-    case "master":
-      return <SettingOutlined aria-hidden />;
-    default:
-      return <InboxOutlined aria-hidden />;
-  }
-}
 
 function formatThaiDate(date: Date) {
   return date.toLocaleDateString("th-TH", {

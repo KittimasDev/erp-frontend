@@ -14,6 +14,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import PayrollDetailDrawer from "./PayrollDetailDrawer";
 import PayrollSettingsModal from "./PayrollSettingsModal";
 import { formatBeRange } from "./shutdownPlanFormat";
+import PageHeader from "@/components/common/PageHeader";
 
 const money = (v: number) =>
   v.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -96,20 +97,14 @@ export default function PayrollPage() {
   return (
     <MasterPageGate isLoading={runsQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <DollarOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>HRM · PAYROLL</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              เงินเดือน
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              คำนวณเงินเดือน/ค่าแรง + OT หักขาด/ลาไม่รับเงิน/ประกันสังคม เป็นงวด แล้วส่งออก Excel/CSV
-            </Typography.Text>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
+        <PageHeader
+          eyebrow="HRM · PAYROLL"
+          icon={<DollarOutlined />}
+          title="เงินเดือน"
+          subtitle="คำนวณเงินเดือน/ค่าแรง + OT หักขาด/ลาไม่รับเงิน/ประกันสังคม เป็นงวด แล้วส่งออก Excel/CSV"
+          actions={
+            <>
+<div style={{ display: "flex", gap: 8 }}>
             <Button size="large" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
               ตั้งค่า
             </Button>
@@ -117,7 +112,9 @@ export default function PayrollPage() {
               สร้างงวดเงินเดือน
             </Button>
           </div>
-        </div>
+            </>
+          }
+        />
 
         <Alert
           type="info"

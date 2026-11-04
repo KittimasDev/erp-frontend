@@ -53,6 +53,7 @@ import {
   packageTypeLabel,
 } from "@/types/packings";
 import styles from "./PackingFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string; mode: "view" | "edit" };
 
@@ -287,12 +288,13 @@ export default function PackingFormPage({ id, mode }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent}>
-          <InboxOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <div className={styles.backRow}>
+      <PageHeader
+        eyebrow={editable ? "Packing · Edit" : "Packing · Detail"}
+        icon={<InboxOutlined />}
+        title={data.packingNo}
+        back={
+          <>
+<div className={styles.backRow}>
             <Link href="/packings" className={styles.backLink}>
               <ArrowLeftOutlined /> กลับรายการใบบรรจุ
             </Link>
@@ -307,11 +309,11 @@ export default function PackingFormPage({ id, mode }: Props) {
               <ShoppingCartOutlined /> กลับใบสั่งขาย
             </Link>
           </div>
-          <p className={styles.eyebrow}>
-            {editable ? "Packing · Edit" : "Packing · Detail"}
-          </p>
-          <h1 className={styles.pageTitle}>{data.packingNo}</h1>
-          <div className={styles.metaRow}>
+          </>
+        }
+        meta={
+          <>
+<div className={styles.metaRow}>
             {data.pickingId ? (
               <Link
                 href={`/pickings/${data.pickingId}`}
@@ -353,9 +355,11 @@ export default function PackingFormPage({ id, mode }: Props) {
               {statusLabel}
             </Tag>
           </div>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+          </>
+        }
+        actions={
+          <>
+<Button
             className={styles.secondaryBtn}
             icon={<ShoppingCartOutlined />}
             onClick={() =>
@@ -458,8 +462,9 @@ export default function PackingFormPage({ id, mode }: Props) {
               แก้ไข
             </Button>
           ) : null}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {data.status === "CONFIRMED" ? (
         <Alert

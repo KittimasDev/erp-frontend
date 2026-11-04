@@ -42,6 +42,7 @@ import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import type { PurchaseOrder } from "@/types/purchase-orders";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "@/components/purchase-requests/purchase-request.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -258,10 +259,7 @@ export default function PurchaseOrderApprovalsPage() {
         ]}
       />
 
-      <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>รายการใบสั่งซื้อรออนุมัติ</h1>
-        <div className={styles.titleLine} />
-      </div>
+      <PageHeader title="รายการใบสั่งซื้อรออนุมัติ" />
 
       {!canApprove ? (
         <p style={{ marginBottom: 12, color: "#8a9199" }}>

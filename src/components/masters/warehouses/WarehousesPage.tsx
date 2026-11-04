@@ -41,6 +41,7 @@ import type {
 
 import styles from "@/components/masters/shared/master-page.module.css";
 import WarehouseFormModal from "./WarehouseFormModal";
+import PageHeader from "@/components/common/PageHeader";
 
 type WarehouseFilterFormValues = {
   code?: string;
@@ -391,22 +392,13 @@ export default function WarehousesPage() {
   return (
     <MasterPageGate isLoading={warehousesQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            คลังสินค้า
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการคลังสินค้า กลุ่มคลัง และการตั้งค่าสต็อก/QC
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="คลังสินค้า"
+        subtitle="จัดการคลังสินค้า กลุ่มคลัง และการตั้งค่าสต็อก/QC"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -415,7 +407,9 @@ export default function WarehousesPage() {
         >
           เพิ่มคลังสินค้า
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

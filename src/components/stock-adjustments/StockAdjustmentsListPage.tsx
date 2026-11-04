@@ -36,6 +36,7 @@ import {
   stockAdjustmentTypeDisplayName,
 } from "@/types/stock-adjustments";
 import styles from "./StockAdjustmentsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -248,20 +249,14 @@ export default function StockAdjustmentsListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <SwapOutlined />
-            </span>
-            Warehouse · Stock Adjustment
-          </div>
-          <h1 className={styles.pageTitle}>ใบปรับปรุงสต๊อก</h1>
-          <p className={styles.pageSubtitle}>
-            เปิดใบร่าง ส่งอนุมัติ แล้วให้หัวหน้าคลังอนุมัติเพื่อปรับยอดสต๊อกจริง
-          </p>
-        </div>
-        {canAdd ? (
+      <PageHeader
+        eyebrow="Warehouse · Stock Adjustment"
+        icon={<SwapOutlined />}
+        title="ใบปรับปรุงสต๊อก"
+        subtitle="เปิดใบร่าง ส่งอนุมัติ แล้วให้หัวหน้าคลังอนุมัติเพื่อปรับยอดสต๊อกจริง"
+        actions={
+          <>
+{canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}
@@ -272,7 +267,9 @@ export default function StockAdjustmentsListPage() {
             </Button>
           </div>
         ) : null}
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <button

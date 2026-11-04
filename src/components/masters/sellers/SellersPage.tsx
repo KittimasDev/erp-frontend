@@ -38,6 +38,7 @@ import type {
 
 import SellerFormModal from "./SellerFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type SellerFilterFormValues = {
   code?: string;
@@ -398,22 +399,13 @@ export default function SellersPage() {
   return (
     <MasterPageGate isLoading={sellersQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            ผู้ขายยาง
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการข้อมูลผู้ขายยางรถยนต์ใช้แล้ว ติดต่อ และวิธีชำระเงิน
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="ผู้ขายยาง"
+        subtitle="จัดการข้อมูลผู้ขายยางรถยนต์ใช้แล้ว ติดต่อ และวิธีชำระเงิน"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -422,7 +414,9 @@ export default function SellersPage() {
         >
           เพิ่มผู้ขาย
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

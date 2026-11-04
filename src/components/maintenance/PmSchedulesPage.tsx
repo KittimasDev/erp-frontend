@@ -19,6 +19,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 
 import { fmtDate } from "./maintenance-format";
 import PmScheduleFormModal from "./PmScheduleFormModal";
+import PageHeader from "@/components/common/PageHeader";
 
 const DUE_COLOR: Record<PmDueState, string> = { NOT_DUE: "default", UPCOMING: "gold", DUE: "orange", OVERDUE: "red" };
 const DUE_TEXT: Record<PmDueState, string> = { NOT_DUE: "ยังไม่ถึง", UPCOMING: "ใกล้ถึงกำหนด", DUE: "ถึงกำหนด", OVERDUE: "เกินกำหนด" };
@@ -128,20 +129,14 @@ export default function PmSchedulesPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <CalendarOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>MAINTENANCE · PM</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              แผน PM (บำรุงรักษาเชิงป้องกัน)
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              รายวัน/รายสัปดาห์/ทุก N วัน หรือทุก N รอบผลิต · ระบบสร้างใบสั่งงานและแจ้งเตือนล่วงหน้าให้เตรียมอะไหล่และช่าง
-            </Typography.Text>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
+        <PageHeader
+          eyebrow="MAINTENANCE · PM"
+          icon={<CalendarOutlined />}
+          title="แผน PM (บำรุงรักษาเชิงป้องกัน)"
+          subtitle="รายวัน/รายสัปดาห์/ทุก N วัน หรือทุก N รอบผลิต · ระบบสร้างใบสั่งงานและแจ้งเตือนล่วงหน้าให้เตรียมอะไหล่และช่าง"
+          actions={
+            <>
+<div style={{ display: "flex", gap: 8 }}>
             {canEdit ? (
               <Popconfirm
                 title="ตรวจแผน PM ตอนนี้?"
@@ -161,7 +156,9 @@ export default function PmSchedulesPage() {
               </Button>
             ) : null}
           </div>
-        </div>
+            </>
+          }
+        />
 
         <Alert
           type="info"

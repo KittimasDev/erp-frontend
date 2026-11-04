@@ -34,6 +34,7 @@ import {
 } from "@/utils/downloadTabularReport";
 
 import styles from "./RawTirePurchaseReportPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const TITLE = "รายงานแสดงสรุปยอดเคลื่อนไหวสินค้า";
 
@@ -455,28 +456,23 @@ export default function StockMovementSummaryReportPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <SwapOutlined />
-            </span>
-            Reports · Stock Movements
-          </div>
-          <h1 className={styles.pageTitle}>{TITLE}</h1>
-          <p className={styles.pageSubtitle}>
-            ยอดยกมา รับเข้า จ่ายออก ปรับปรุง และยอดยกไป แยกตามสินค้าและ Lot ในช่วงวันที่ที่เลือก
-          </p>
-        </div>
-        <div className={styles.heroActions}>
+      <PageHeader
+        eyebrow="Reports · Stock Movements"
+        icon={<SwapOutlined />}
+        title={TITLE}
+        subtitle="ยอดยกมา รับเข้า จ่ายออก ปรับปรุง และยอดยกไป แยกตามสินค้าและ Lot ในช่วงวันที่ที่เลือก"
+        actions={
+          <>
+
           <ReportExportButtons
             canExport={canExport}
             csvRequiresExport
             downloading={exporting}
             onExport={(format) => void handleExport(format)}
           />
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>

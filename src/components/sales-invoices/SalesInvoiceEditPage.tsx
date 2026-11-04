@@ -10,6 +10,7 @@ import dayjs from "dayjs";
 import { useUpdateSalesInvoiceMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import { useSalesInvoiceQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import styles from "./SalesInvoiceFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type FormValues = {
   invoiceDate: dayjs.Dayjs;
@@ -72,26 +73,22 @@ export default function SalesInvoiceEditPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileTextOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales Invoices · Edit Draft</p>
-          <h1 className={styles.pageTitle}>{data.invoiceNo}</h1>
-          <p className={styles.pageSubtitle}>
-            แก้ไขหัวใบแจ้งหนี้ (เฉพาะ DRAFT)
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Sales Invoices · Edit Draft"
+        icon={<FileTextOutlined />}
+        title={data.invoiceNo}
+        subtitle="แก้ไขหัวใบแจ้งหนี้ (เฉพาะ DRAFT)"
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(`/sales-invoices/${id}`)}
           >
             กลับ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <section className={styles.formCard}>
         <Form form={form} layout="vertical" onFinish={onFinish}>

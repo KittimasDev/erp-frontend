@@ -47,6 +47,7 @@ import {
   TERM_TYPE_FILTER_LABEL,
   toPayableSheet,
 } from "./payableFormat";
+import PageHeader from "@/components/common/PageHeader";
 
 const PAGE_SIZE = 20;
 const DETAIL_BASE_PATH = "/finance/payables/creditors";
@@ -312,27 +313,22 @@ export default function PayablePurchaseOrdersPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            FINANCE · PAYABLES
-          </div>
-          <h2 className={masterStyles.pageTitle}>รายการจ่ายเงิน</h2>
-          <span className={masterStyles.pageSubtitle}>
-            ใบสั่งซื้อที่อนุมัติแล้ว 1 ใบต่อ 1 รายการ — หลังตั้งหนี้แล้ววันครบกำหนดมาจากใบตั้งหนี้
-            (แสดงวันเร็วสุดถ้ามีหลายใบ) · ยังไม่ตั้งหนี้ใช้ประมาณการจากเงื่อนไขใน PO · สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ
-          </span>
-        </div>
-        <ReportExportButtons
+      <PageHeader
+        eyebrow="FINANCE · PAYABLES"
+        icon={<FileTextOutlined />}
+        title="รายการจ่ายเงิน"
+        subtitle="ใบสั่งซื้อที่อนุมัติแล้ว 1 ใบต่อ 1 รายการ — หลังตั้งหนี้แล้ววันครบกำหนดมาจากใบตั้งหนี้ (แสดงวันเร็วสุดถ้ามีหลายใบ) · ยังไม่ตั้งหนี้ใช้ประมาณการจากเงื่อนไขใน PO · สถานะเทียบยอดจ่ายจริงกับยอดทั้งใบ"
+        actions={
+          <>
+<ReportExportButtons
           canExport={canExport}
           downloading={downloading}
           onExport={(format) => void handleExport(format)}
           csvRequiresExport
         />
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>

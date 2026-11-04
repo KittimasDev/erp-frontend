@@ -34,6 +34,7 @@ import {
 } from "@/types/sales-orders";
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./StockVerificationDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -412,24 +413,19 @@ export default function StockVerificationDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <SearchOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Stock Verification</p>
-          <h1 className={styles.pageTitle}>{soNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {order?.customer
+      <PageHeader
+        eyebrow="Sales · Stock Verification"
+        icon={<SearchOutlined />}
+        title={soNo}
+        subtitle={<>{order?.customer
               ? `${order.customer.customerCode} — ${order.customer.nameTh}`
               : "—"}{" "}
             · วันที่ SO {formatDate(order?.soDate)} ·{" "}
             {SALES_ORDER_STATUS_LABEL[soStatus as SalesOrderStatus] ??
-              soStatus}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+              soStatus}</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/sales-orders/stock-verification")}
           >
@@ -449,8 +445,9 @@ export default function StockVerificationDetailPage({ id }: Props) {
             ตรวจสอบใหม่
           </Button>
           {renderPrimaryAction()}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

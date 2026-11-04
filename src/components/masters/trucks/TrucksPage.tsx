@@ -38,6 +38,7 @@ import type {
 
 import TruckFormModal from "./TruckFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type TruckFilterFormValues = {
   code?: string;
@@ -401,22 +402,13 @@ export default function TrucksPage() {
   return (
     <MasterPageGate isLoading={trucksQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            รถบรรทุก
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการทะเบียนรถบรรทุกที่ใช้รับซื้อหรือขนส่งยาง
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="รถบรรทุก"
+        subtitle="จัดการทะเบียนรถบรรทุกที่ใช้รับซื้อหรือขนส่งยาง"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -425,7 +417,9 @@ export default function TrucksPage() {
         >
           เพิ่มรถบรรทุก
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

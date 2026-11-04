@@ -78,6 +78,7 @@ import PoDeliverySchedulesEditor, {
   sumScheduledQty,
 } from "./PoDeliverySchedulesEditor";
 import styles from "./PurchaseOrderFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   /* ติ๊กเลือกรายบรรทัด — สินค้าในใบเดียวมักคนละเจ้า ต้องแตกเป็นหลายใบสั่งซื้อ */
@@ -700,23 +701,17 @@ export default function PurchaseOrderCreateFromPrPage({
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileAddOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Purchase Order</p>
-          <h1 className={styles.pageTitle}>
-            {isSinglePr
+      <PageHeader
+        eyebrow="Purchase Order"
+        icon={<FileAddOutlined />}
+        title={<>{isSinglePr
               ? "สร้างใบสั่งซื้อจาก PR"
-              : `รวมใบขอซื้อ ${prs.length} ใบเป็นใบสั่งซื้อเดียว`}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            อ้างอิง {prs.map((row) => row.prNo).join(", ")} ·
-            คัดลอกรายการสินค้าจากใบขอซื้อ
-          </p>
-        </div>
-        <div className={styles.backLink}>
+              : `รวมใบขอซื้อ ${prs.length} ใบเป็นใบสั่งซื้อเดียว`}</>}
+        subtitle={<>อ้างอิง {prs.map((row) => row.prNo).join(", ")} ·
+            คัดลอกรายการสินค้าจากใบขอซื้อ</>}
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link
             href={
               isSinglePr ? `/purchase-requests/${pr.id}` : "/purchase-orders"
@@ -728,7 +723,9 @@ export default function PurchaseOrderCreateFromPrPage({
             </Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <Form
         form={form}

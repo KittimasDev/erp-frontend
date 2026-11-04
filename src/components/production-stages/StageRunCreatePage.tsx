@@ -27,6 +27,7 @@ import { useCreateStageRunMutation } from "@/hooks/production-stages/useStageRun
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import type { StageModuleConfig } from "./stage-modules";
 import styles from "./StageRunPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function fmtQty(value?: string | number) {
   const num = Number(value ?? 0);
@@ -163,22 +164,21 @@ export default function StageRunCreatePage({
   return (
     <MasterPageGate isLoading={lotsQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>{config.headerAccent}</div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>{config.eyebrow}</div>
-            <h2 className={masterStyles.pageTitle}>สร้างรอบการทำงาน</h2>
-            <span className={masterStyles.pageSubtitle}>
-              บันทึกเป็นร่างก่อน — สต๊อกจะถูกตัดตอนกด &quot;เริ่มงาน&quot; ในหน้ารายละเอียด
-            </span>
-          </div>
-          <Button
+        <PageHeader
+          eyebrow={config.eyebrow}
+          title="สร้างรอบการทำงาน"
+          subtitle="บันทึกเป็นร่างก่อน — สต๊อกจะถูกตัดตอนกด &quot;เริ่มงาน&quot; ในหน้ารายละเอียด"
+          actions={
+            <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(config.routeBase)}
           >
             กลับ
           </Button>
-        </div>
+            </>
+          }
+        />
 
         {actions.canAdd ? null : (
           <Alert

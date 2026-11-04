@@ -59,6 +59,7 @@ import {
   vatAmountLabel,
 } from "@/lib/money/vat-totals";
 import styles from "./SalesInvoiceDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -352,20 +353,15 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileTextOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales Invoices · AR</p>
-          <h1 className={styles.pageTitle}>{data.invoiceNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {data.customer?.nameTh ?? "—"} · {formatDate(data.invoiceDate)} ·{" "}
-            {formatMoney(data.totalAmount)} บาท
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Sales Invoices · AR"
+        icon={<FileTextOutlined />}
+        title={data.invoiceNo}
+        subtitle={<>{data.customer?.nameTh ?? "—"} · {formatDate(data.invoiceDate)} ·{" "}
+            {formatMoney(data.totalAmount)} บาท</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/sales-invoices")}
           >
@@ -445,8 +441,9 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               รับชำระ
             </Button>
           ) : null}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

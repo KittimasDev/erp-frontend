@@ -21,6 +21,7 @@ import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWareh
 import type { Item } from "@/types/items";
 import type { Unit } from "@/types/units";
 import styles from "./GoodsReceiptFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const EMPTY_ITEMS: Item[] = [];
 const EMPTY_UNITS: Unit[] = [];
@@ -159,21 +160,21 @@ export default function GoodsReceiptEditPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <EditOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Goods Receipt</p>
-          <h1 className={styles.pageTitle}>แก้ไขใบรับของ</h1>
-          <p className={styles.pageSubtitle}>{data.grNo}</p>
-        </div>
-        <div className={styles.backLink}>
+      <PageHeader
+        eyebrow="Goods Receipt"
+        icon={<EditOutlined />}
+        title="แก้ไขใบรับของ"
+        subtitle={data.grNo}
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link href={`/goods-receipts/${data.id}`}>
             <Button icon={<ArrowLeftOutlined />}>กลับ</Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <div className={styles.layout}>

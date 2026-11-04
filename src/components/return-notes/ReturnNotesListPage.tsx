@@ -23,6 +23,7 @@ import {
   RejectReturnNoteModal,
 } from "./ReturnNoteDecisionModals";
 import styles from "./ReturnNotesListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function StatusPill({ status }: { status: string }) {
   const tone =
@@ -241,20 +242,14 @@ export default function ReturnNotesListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <RollbackOutlined />
-            </span>
-            Finished Goods · Return Note
-          </div>
-          <h1 className={styles.pageTitle}>คืนสินค้า</h1>
-          <p className={styles.pageSubtitle}>
-            บันทึกสินค้าที่ลูกค้าตีกลับ อ้างอิงใบจ่ายสินค้า แล้วให้คลังอนุมัติรับเข้าคลังตรวจสอบ
-          </p>
-        </div>
-        {canAdd ? (
+      <PageHeader
+        eyebrow="Finished Goods · Return Note"
+        icon={<RollbackOutlined />}
+        title="คืนสินค้า"
+        subtitle="บันทึกสินค้าที่ลูกค้าตีกลับ อ้างอิงใบจ่ายสินค้า แล้วให้คลังอนุมัติรับเข้าคลังตรวจสอบ"
+        actions={
+          <>
+{canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}
@@ -265,7 +260,9 @@ export default function ReturnNotesListPage() {
             </Button>
           </div>
         ) : null}
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         {chips.map((chip) => (

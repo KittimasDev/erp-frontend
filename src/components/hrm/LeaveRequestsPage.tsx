@@ -54,6 +54,7 @@ import {
 } from "@/types/leave";
 
 import styles from "./LeaveRequestsPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const GREEN = "#8ab933";
 const MUTED = "#77777C";
@@ -396,20 +397,18 @@ export default function LeaveRequestsPage() {
   return (
     <MasterPageGate isLoading={summaryQuery.isLoading}>
       <div className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <CalendarOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>HRM</p>
-            <h1 className={styles.pageTitle}>คำขอลางาน</h1>
-            <p className={styles.pageSubtitle}>
-              พนักงานยื่นคำขอเองผ่านมือถือที่ <code>/leave</code> —
-              หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้
-            </p>
-          </div>
-          <Button onClick={() => setMinStaffingOpen(true)}>ตั้งกำลังคนขั้นต่ำ</Button>
-        </header>
+        <PageHeader
+          eyebrow="HRM"
+          icon={<CalendarOutlined />}
+          title="คำขอลางาน"
+          subtitle={<>พนักงานยื่นคำขอเองผ่านมือถือที่ <code>/leave</code> —
+              หน้านี้ไว้พิจารณาอนุมัติ เลือกหลายรายการพร้อมกันได้</>}
+          actions={
+            <>
+<Button onClick={() => setMinStaffingOpen(true)}>ตั้งกำลังคนขั้นต่ำ</Button>
+            </>
+          }
+        />
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAlert}`}>

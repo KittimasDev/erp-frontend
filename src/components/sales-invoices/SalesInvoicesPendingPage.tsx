@@ -17,6 +17,7 @@ import { usePendingSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInv
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { PendingSalesInvoiceDelivery } from "@/types/sales-invoices";
 import styles from "./SalesInvoicesPendingPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -138,25 +139,19 @@ export default function SalesInvoicesPendingPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            Sales · Pending Invoices
-          </div>
-          <h1 className={styles.pageTitle}>รอออกใบแจ้งหนี้</h1>
-          <p className={styles.pageSubtitle}>
-            Delivery Order สถานะส่งมอบแล้ว ที่ยังไม่มีใบแจ้งหนี้ใช้งาน
-          </p>
-        </div>
-        <div className={styles.heroActions}>
-          <Link href="/sales-invoices">
+      <PageHeader
+        eyebrow="Sales · Pending Invoices"
+        icon={<FileTextOutlined />}
+        title="รอออกใบแจ้งหนี้"
+        subtitle="Delivery Order สถานะส่งมอบแล้ว ที่ยังไม่มีใบแจ้งหนี้ใช้งาน"
+        actions={
+          <>
+<Link href="/sales-invoices">
             <Button icon={<HistoryOutlined />}>ประวัติใบแจ้งหนี้</Button>
           </Link>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>

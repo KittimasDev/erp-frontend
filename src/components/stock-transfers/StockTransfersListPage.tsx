@@ -22,6 +22,7 @@ import { useStockTransfersQuery } from "@/hooks/stock-transfers/useStockTransfer
 import type { StockTransfer } from "@/types/stock-transfers";
 import { STOCK_TRANSFER_STATUS_LABEL } from "@/types/stock-transfers";
 import styles from "./StockTransfersListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -200,20 +201,14 @@ export default function StockTransfersListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <SwapOutlined />
-            </span>
-            Warehouse · Stock Transfer
-          </div>
-          <h1 className={styles.pageTitle}>โอนย้ายสินค้า</h1>
-          <p className={styles.pageSubtitle}>
-            สร้างใบโอน (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัด+เพิ่มสต๊อกจริง
-          </p>
-        </div>
-        {canAdd ? (
+      <PageHeader
+        eyebrow="Warehouse · Stock Transfer"
+        icon={<SwapOutlined />}
+        title="โอนย้ายสินค้า"
+        subtitle="สร้างใบโอน (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัด+เพิ่มสต๊อกจริง"
+        actions={
+          <>
+{canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}
@@ -224,7 +219,9 @@ export default function StockTransfersListPage() {
             </Button>
           </div>
         ) : null}
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <button

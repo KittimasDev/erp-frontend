@@ -26,6 +26,7 @@ import {
 import { useStockIssueQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
 import type { CreateStockIssueBody } from "@/types/stock-issues";
 import styles from "./MaterialIssueFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   itemId?: string;
@@ -163,31 +164,21 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <SwapOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>{chemicalOnly ? "Chemical Issue" : "Material Issue"}</p>
-          <h1 className={styles.pageTitle}>
-            {chemicalOnly
-              ? "เบิกสารเคมี"
-              : mode === "create"
-                ? "สร้างใบเบิกของ"
-                : "แก้ไขใบเบิกของ"}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            {chemicalOnly
-              ? "เลือกสารเคมีและ Lot (ผ่านการตรวจ COA และยังไม่หมดอายุ) ผูกใบสั่งผลิตที่นำไปใช้ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด — ใบเบิกอยู่ในรายการใบเบิกของตามปกติ"
-              : "เลือกสินค้า/Lot ที่มีสต๊อกพอ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด"}
-          </p>
-        </div>
-        <div className={styles.backLink}>
+      <PageHeader
+        eyebrow={chemicalOnly ? "Chemical Issue" : "Material Issue"}
+        icon={<SwapOutlined />}
+        title={chemicalOnly ? "เบิกสารเคมี" : mode === "create" ? "สร้างใบเบิกของ" : "แก้ไขใบเบิกของ"}
+        subtitle={chemicalOnly ? "เลือกสารเคมีและ Lot (ผ่านการตรวจ COA และยังไม่หมดอายุ) ผูกใบสั่งผลิตที่นำไปใช้ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด — ใบเบิกอยู่ในรายการใบเบิกของตามปกติ" : "เลือกสินค้า/Lot ที่มีสต๊อกพอ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด"}
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link href="/inventory/material-issues">
             <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <Form
         form={form}

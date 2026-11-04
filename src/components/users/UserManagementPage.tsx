@@ -24,6 +24,7 @@ import RolesPage from "./RolesPage";
 import UsersPage from "./UsersPage";
 import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./UserManagementPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type ManagementTab =
   | "users"
@@ -111,22 +112,12 @@ export default function UserManagementPage() {
   return (
     <MasterPageGate>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>
-            <TeamOutlined />
-          </div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>SECURITY · ORGANIZATION</div>
-            <Typography.Title level={2} className={masterStyles.pageTitle}>
-              บุคคล / ผู้ใช้งาน · แผนก · แผนกย่อย · ตำแหน่ง · บทบาท
-            </Typography.Title>
-            <Typography.Text className={masterStyles.pageSubtitle}>
-              บุคคล = ข้อมูล HR + บัญชี login ที่เดียวกัน · แผนก = ส่วนงาน · แผนกย่อย = หน่วยย่อยใต้แผนก · ตำแหน่ง = ตำแหน่งงาน ·
-              บทบาท = สิทธิ์ใช้งานระบบ
-            </Typography.Text>
-          </div>
-          <div />
-        </div>
+        <PageHeader
+          eyebrow="SECURITY · ORGANIZATION"
+          icon={<TeamOutlined />}
+          title="บุคคล / ผู้ใช้งาน · แผนก · แผนกย่อย · ตำแหน่ง · บทบาท"
+          subtitle="บุคคล = ข้อมูล HR + บัญชี login ที่เดียวกัน · แผนก = ส่วนงาน · แผนกย่อย = หน่วยย่อยใต้แผนก · ตำแหน่ง = ตำแหน่งงาน · บทบาท = สิทธิ์ใช้งานระบบ"
+        />
 
         <div className={styles.hint}>
           ลำดับที่แนะนำ: สร้าง<strong> แผนก </strong>(ถ้าต้องการ) → สร้าง

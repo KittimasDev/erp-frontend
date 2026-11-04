@@ -23,6 +23,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { useStockCountQuery } from "@/hooks/stock-counts/useStockCountsQuery";
 import { STOCK_COUNT_STATUS_LABEL, STOCK_COUNT_TYPE_LABEL } from "@/types/stock-counts";
 import styles from "./StockCountDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -86,26 +87,22 @@ export default function StockCountDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileSearchOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Stock Count</p>
-          <h1 className={styles.pageTitle}>{data.countNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {formatDate(data.countDate)} · {data.items?.length ?? 0} รายการ
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Stock Count"
+        icon={<FileSearchOutlined />}
+        title={data.countNo}
+        subtitle={<>{formatDate(data.countDate)} · {data.items?.length ?? 0} รายการ</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(scopePath("/inventory/stock-counts"))}
           >
             กลับ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

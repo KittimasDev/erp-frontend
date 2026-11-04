@@ -52,6 +52,7 @@ import {
 } from "@/types/delivery-orders";
 import DeliveryResultModal from "./DeliveryResultModal";
 import styles from "./DeliveryOrderFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatWeightKg(value?: string) {
   if (value == null || value === "") return "—";
@@ -320,19 +321,20 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent}>
-          <CarOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <Link href="/delivery-orders" className={styles.backLink}>
+      <PageHeader
+        eyebrow={editable ? "Delivery · Edit" : "Delivery · Detail"}
+        icon={<CarOutlined />}
+        title={data.deliveryOrderNo}
+        back={
+          <>
+<Link href="/delivery-orders" className={styles.backLink}>
             <ArrowLeftOutlined /> กลับรายการ
           </Link>
-          <p className={styles.eyebrow}>
-            {editable ? "Delivery · Edit" : "Delivery · Detail"}
-          </p>
-          <h1 className={styles.pageTitle}>{data.deliveryOrderNo}</h1>
-          <div className={styles.metaRow}>
+          </>
+        }
+        meta={
+          <>
+<div className={styles.metaRow}>
             {data.salesOrderId ? (
               <Link
                 href={`/sales-orders/${data.salesOrderId}`}
@@ -394,9 +396,11 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               {statusLabel}
             </Tag>
           </div>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+          </>
+        }
+        actions={
+          <>
+<Button
             className={styles.secondaryBtn}
             icon={<FilePdfOutlined />}
             onClick={async () => {
@@ -513,8 +517,9 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               แก้ไข
             </Button>
           ) : null}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <DeliveryResultModal
         open={resultModalOpen}

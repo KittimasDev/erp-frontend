@@ -31,6 +31,7 @@ import {
   resolveQuotationFlow,
 } from "@/utils/quotation-flow";
 import styles from "./QuotationsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const PAGE_SIZE = 10;
 
@@ -398,20 +399,14 @@ export default function QuotationsListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileTextOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Quotation</p>
-          <h1 className={styles.pageTitle}>ใบเสนอราคา</h1>
-          <p className={styles.pageSubtitle}>
-            ใช้ใบเสนอราคาให้ลูกค้าพิจารณา และนำไปสร้าง SO เมื่อลูกค้าตอบรับ
-            โดยยังไม่ตัดสต๊อก
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          {canCreate ? (
+      <PageHeader
+        eyebrow="Sales · Quotation"
+        icon={<FileTextOutlined />}
+        title="ใบเสนอราคา"
+        subtitle="ใช้ใบเสนอราคาให้ลูกค้าพิจารณา และนำไปสร้าง SO เมื่อลูกค้าตอบรับ โดยยังไม่ตัดสต๊อก"
+        actions={
+          <>
+{canCreate ? (
             <Link href="/quotations/create">
               <Button
                 className={styles.primaryBtn}
@@ -422,8 +417,9 @@ export default function QuotationsListPage() {
               </Button>
             </Link>
           ) : null}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <section className={styles.filterCard}>
         <div className={styles.sectionHead}>

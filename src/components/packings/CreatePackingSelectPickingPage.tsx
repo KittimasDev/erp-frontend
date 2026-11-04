@@ -13,6 +13,7 @@ import { useReadyPickingsForPackingQuery } from "@/hooks/packings/usePackingsQue
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { ReadyPicking } from "@/types/packings";
 import styles from "./PackingsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 export default function CreatePackingSelectPickingPage() {
   const router = useRouter();
@@ -80,18 +81,18 @@ export default function CreatePackingSelectPickingPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerContent}>
-          <Link href="/packings" className={styles.backLink}>
+      <PageHeader
+        eyebrow="Packing · Create"
+        title="เลือกใบจ่ายสินค้าที่พร้อมบรรจุ"
+        subtitle="เฉพาะใบจ่ายสินค้าสถานะ CONFIRMED และยังไม่มีใบบรรจุที่ใช้งาน"
+        back={
+          <>
+<Link href="/packings" className={styles.backLink}>
             <ArrowLeftOutlined /> กลับรายการ
           </Link>
-          <p className={styles.eyebrow}>Packing · Create</p>
-          <h1 className={styles.pageTitle}>เลือกใบจ่ายสินค้าที่พร้อมบรรจุ</h1>
-          <p className={styles.pageSubtitle}>
-            เฉพาะใบจ่ายสินค้าสถานะ CONFIRMED และยังไม่มีใบบรรจุที่ใช้งาน
-          </p>
-        </div>
-      </header>
+          </>
+        }
+      />
       <section className={styles.tableCard}>
         <Table
           rowKey="id"

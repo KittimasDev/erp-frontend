@@ -55,6 +55,7 @@ import {
   PURCHASE_ORDER_STATUS_LABEL,
 } from "@/types/purchase-orders";
 import styles from "./GoodsReceiptFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const EMPTY_GRS: never[] = [];
 const EMPTY_WAREHOUSES: never[] = [];
@@ -628,23 +629,21 @@ export default function GoodsReceiptCreateFromPoPage({
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <InboxOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Goods Receipt</p>
-          <h1 className={styles.pageTitle}>{pageTitle}</h1>
-          <p className={styles.pageSubtitle}>
-            {po.poNo} · {po.creditor?.nameTh ?? "—"}
-          </p>
-        </div>
-        <div className={styles.backLink}>
+      <PageHeader
+        eyebrow="Goods Receipt"
+        icon={<InboxOutlined />}
+        title={pageTitle}
+        subtitle={<>{po.poNo} · {po.creditor?.nameTh ?? "—"}</>}
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link href={resolvedBackHref}>
             <Button icon={<ArrowLeftOutlined />}>กลับ</Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       {!hasReceivableLines ? (
         <Alert

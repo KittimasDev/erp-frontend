@@ -48,6 +48,7 @@ import {
 } from "@/types/production-request";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionRequestsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 export default function ProductionRequestsListPage() {
   const router = useRouter();
@@ -366,18 +367,15 @@ export default function ProductionRequestsListPage() {
   return (
     <MasterPageGate>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>PR</div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>PRODUCTION · จากใบสั่งขาย</div>
-            <h2 className={masterStyles.pageTitle}>ใบขอผลิต</h2>
-            <span className={masterStyles.pageSubtitle}>
-              เลือกหลายใบสถานะรอเปิดใบสั่งผลิต เพื่อสร้างใบสั่งผลิตใบเดียว
+        <PageHeader
+          eyebrow="PRODUCTION · จากใบสั่งขาย"
+          title="ใบขอผลิต"
+          subtitle={<>เลือกหลายใบสถานะรอเปิดใบสั่งผลิต เพื่อสร้างใบสั่งผลิตใบเดียว
               ที่ผูกทุกรายการไว้ด้วยกัน
-              {canViewAll ? "" : " · แสดงเฉพาะใบที่คุณเป็นผู้ขอ"}
-            </span>
-          </div>
-          {canCreate ? (
+              {canViewAll ? "" : " · แสดงเฉพาะใบที่คุณเป็นผู้ขอ"}</>}
+          actions={
+            <>
+{canCreate ? (
             <Button
               type="primary"
               className={masterStyles.createButton}
@@ -389,7 +387,9 @@ export default function ProductionRequestsListPage() {
               สร้างใบขอผลิต
             </Button>
           ) : null}
-        </div>
+            </>
+          }
+        />
 
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>

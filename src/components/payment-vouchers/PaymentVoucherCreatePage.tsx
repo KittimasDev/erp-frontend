@@ -20,6 +20,7 @@ import {
   TaxCard,
 } from "./VoucherSections";
 import { PV_BASE_PATH, fmtMoney, kindLabel, prorateAmount, referenceLine } from "./paymentVoucherUtils";
+import PageHeader from "@/components/common/PageHeader";
 
 type FormValues = {
   voucherDate: Dayjs;
@@ -139,22 +140,28 @@ export default function PaymentVoucherCreatePage({ queueItemId }: { queueItemId:
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <Space>
-            <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PV_BASE_PATH)}>
+      <PageHeader
+        title={<>สร้างใบสำคัญจ่าย</>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PV_BASE_PATH)}>
               กลับ
             </Button>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              สร้างใบสำคัญจ่าย
-            </Typography.Title>
-            <Tag color="gold">ร่าง (ยังไม่บันทึก)</Tag>
-          </Space>
-          <Typography.Text type="secondary">
+          </>
+        }
+        meta={
+          <>
+<Tag color="gold">ร่าง (ยังไม่บันทึก)</Tag>
+          </>
+        }
+        actions={
+          <>
+<Typography.Text type="secondary">
             อ้างอิง {referenceLine(ctx) || item.sourceNo} · คิว {item.queueNo}
           </Typography.Text>
-        </div>
-      </Card>
+          </>
+        }
+      />
 
       <Card title="ข้อมูลเอกสาร" size="small">
         <Descriptions bordered size="small" column={{ xs: 1, md: 3 }}>

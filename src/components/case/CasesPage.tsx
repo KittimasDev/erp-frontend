@@ -36,6 +36,7 @@ import { TEMP_CASE_STATUS_LABEL } from "@/types/temp-cases";
 import CaseDashboardModal from "./CaseDashboardModal";
 import CaseFormModal, { type CaseFormSubmitPayload } from "./CaseFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type StatusFilter = "ALL" | TempCaseStatus;
 
@@ -302,19 +303,13 @@ export default function CasesPage() {
   return (
     <MasterPageGate isLoading={categoriesQuery.isLoading && !categories.length}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div />
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>TEMP TRACKER</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              Case / Issue
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              บันทึกเคสจากหน้าจอในระบบสำหรับทีม — หน้าชั่วคราว
-              ลบทิ้งได้เมื่อจบโปรเจกต์
-            </Typography.Text>
-          </div>
-          <Space>
+        <PageHeader
+          eyebrow="TEMP TRACKER"
+          title="Case / Issue"
+          subtitle="บันทึกเคสจากหน้าจอในระบบสำหรับทีม — หน้าชั่วคราว ลบทิ้งได้เมื่อจบโปรเจกต์"
+          actions={
+            <>
+<Space>
             <Button size="large" onClick={() => setDashboardOpen(true)}>
               Dashboard
             </Button>
@@ -328,7 +323,9 @@ export default function CasesPage() {
               เพิ่มเคส
             </Button>
           </Space>
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.summaryRow}>
           <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

@@ -35,6 +35,7 @@ import {
 } from "@/utils/downloadTabularReport";
 
 import styles from "./RawTirePurchaseReportPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const TITLE = "รายงานแสดงสินค้าคงเหลือ";
 
@@ -379,28 +380,23 @@ export default function StockBalanceReportPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <InboxOutlined />
-            </span>
-            Reports · Stock Balance
-          </div>
-          <h1 className={styles.pageTitle}>{TITLE}</h1>
-          <p className={styles.pageSubtitle}>
-            ยอดคงเหลือ ณ สิ้นวันที่เลือก แยกตามสินค้า Lot และคลัง พร้อมยอดจองและยอดพร้อมใช้
-          </p>
-        </div>
-        <div className={styles.heroActions}>
+      <PageHeader
+        eyebrow="Reports · Stock Balance"
+        icon={<InboxOutlined />}
+        title={TITLE}
+        subtitle="ยอดคงเหลือ ณ สิ้นวันที่เลือก แยกตามสินค้า Lot และคลัง พร้อมยอดจองและยอดพร้อมใช้"
+        actions={
+          <>
+
           <ReportExportButtons
             canExport={canExport}
             csvRequiresExport
             downloading={exporting}
             onExport={(format) => void handleExport(format)}
           />
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>

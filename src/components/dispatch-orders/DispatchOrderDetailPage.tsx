@@ -28,6 +28,7 @@ import {
   type DispatchOrderStatus,
 } from "@/types/dispatch-orders";
 import styles from "./DispatchOrderDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -98,27 +99,23 @@ export default function DispatchOrderDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <CarOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Dispatch Order</p>
-          <h1 className={styles.pageTitle}>{data.dispatchNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {data.salesOrderNo ? `ใบสั่งขาย ${data.salesOrderNo}` : "—"} ·{" "}
-            {formatDate(data.dispatchDate)} · คลัง {data.warehouseCode ?? "—"}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Sales · Dispatch Order"
+        icon={<CarOutlined />}
+        title={data.dispatchNo}
+        subtitle={<>{data.salesOrderNo ? `ใบสั่งขาย ${data.salesOrderNo}` : "—"} ·{" "}
+            {formatDate(data.dispatchDate)} · คลัง {data.warehouseCode ?? "—"}</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/dispatch-orders")}
           >
             กลับ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

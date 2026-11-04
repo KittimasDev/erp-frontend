@@ -15,6 +15,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import TankBalanceReportTab from "./TankBalanceReportTab";
 import TankFormModal from "./TankFormModal";
 import TankReadingsDrawer from "./TankReadingsDrawer";
+import PageHeader from "@/components/common/PageHeader";
 
 const n = (v?: string | number) => Number(v ?? 0).toLocaleString("th-TH", { maximumFractionDigits: 3 });
 const STATUS_COLOR: Record<string, string> = { ACTIVE: "green", MAINTENANCE: "orange", INACTIVE: "default" };
@@ -99,17 +100,19 @@ export default function TanksPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}><ExperimentOutlined /></div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>OIL TANK FARM</div>
-            <Typography.Title level={2} className={styles.pageTitle}>ถังเก็บน้ำมัน</Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>ความจุและยอดคงเหลือรายถัง · วัดระดับจริงเทียบกับยอดในระบบ · รายงานยอดรายวัน/รายเดือน</Typography.Text>
-          </div>
-          {canAdd ? (
+        <PageHeader
+          eyebrow="OIL TANK FARM"
+          icon={<ExperimentOutlined />}
+          title="ถังเก็บน้ำมัน"
+          subtitle="ความจุและยอดคงเหลือรายถัง · วัดระดับจริงเทียบกับยอดในระบบ · รายงานยอดรายวัน/รายเดือน"
+          actions={
+            <>
+{canAdd ? (
             <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setEditing("new")}>เพิ่มถัง</Button>
           ) : <div />}
-        </div>
+            </>
+          }
+        />
         <div className={styles.tableCard}>
           <Tabs
             items={[

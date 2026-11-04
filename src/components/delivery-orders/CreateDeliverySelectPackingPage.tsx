@@ -21,6 +21,7 @@ import {
   packingPreviewColumns,
   packingPreviewRowKey,
 } from "./packingPreview";
+import PageHeader from "@/components/common/PageHeader";
 
 export default function CreateDeliverySelectPackingPage() {
   const router = useRouter();
@@ -131,19 +132,18 @@ export default function CreateDeliverySelectPackingPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerContent}>
-          <Link href="/delivery-orders" className={styles.backLink}>
+      <PageHeader
+        eyebrow="Delivery · Create"
+        title="เลือกใบบรรจุที่พร้อมส่ง"
+        subtitle="เลือกได้หลายใบบรรจุจากใบสั่งขายเดียวกัน (ต่างรอบได้) ระบบดึงสินค้าและจำนวนจากใบบรรจุให้อัตโนมัติ"
+        back={
+          <>
+<Link href="/delivery-orders" className={styles.backLink}>
             <ArrowLeftOutlined /> กลับรายการ
           </Link>
-          <p className={styles.eyebrow}>Delivery · Create</p>
-          <h1 className={styles.pageTitle}>เลือกใบบรรจุที่พร้อมส่ง</h1>
-          <p className={styles.pageSubtitle}>
-            เลือกได้หลายใบบรรจุจากใบสั่งขายเดียวกัน (ต่างรอบได้)
-            ระบบดึงสินค้าและจำนวนจากใบบรรจุให้อัตโนมัติ
-          </p>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {preselectMissing ? (
         <Alert

@@ -23,6 +23,7 @@ import type {
 
 import UnitConversionFormModal from "./UnitConversionFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function unitLabel(unit?: { code: string; nameTh: string } | null): string {
   if (!unit) {
@@ -241,23 +242,13 @@ export default function UnitConversionsPage() {
   return (
     <MasterPageGate isLoading={conversionsQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div />
-
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>MASTER DATA</div>
-
-            <Typography.Title level={2} className={styles.pageTitle}>
-              กฎแปลงหน่วยนับ
-            </Typography.Title>
-
-            <Typography.Text className={styles.pageSubtitle}>
-              ตั้งกฎให้กรอกเอกสารด้วยหน่วยอื่นได้
-              แล้วระบบแปลงกลับเป็นหน่วยหลักของสินค้าก่อนตัดสต๊อก
-            </Typography.Text>
-          </div>
-
-          {canAdd ? (
+        <PageHeader
+          eyebrow="MASTER DATA"
+          title="กฎแปลงหน่วยนับ"
+          subtitle="ตั้งกฎให้กรอกเอกสารด้วยหน่วยอื่นได้ แล้วระบบแปลงกลับเป็นหน่วยหลักของสินค้าก่อนตัดสต๊อก"
+          actions={
+            <>
+{canAdd ? (
             <Button
               type="primary"
               size="large"
@@ -271,7 +262,9 @@ export default function UnitConversionsPage() {
             // pageHeader เป็น grid 3 คอลัมน์ — ต้องคง element ที่สามไว้ ไม่งั้น layout เบี้ยว
             <div />
           )}
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.summaryRow}>
           <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

@@ -58,6 +58,7 @@ import type {
 
 import ItemFormModal from "./ItemFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type ItemFilterFormValues = {
   code?: string;
@@ -540,22 +541,13 @@ export default function ItemsPage() {
   return (
     <MasterPageGate isLoading={itemsQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            สินค้า / วัตถุดิบ
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการข้อมูลสินค้า วัตถุดิบ อะไหล่ และสินค้าสำเร็จรูป
-          </Typography.Text>
-        </div>
-
-        {canAdd ? (
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="สินค้า / วัตถุดิบ"
+        subtitle="จัดการข้อมูลสินค้า วัตถุดิบ อะไหล่ และสินค้าสำเร็จรูป"
+        actions={
+          <>
+{canAdd ? (
           <div className={styles.headerActions}>
             <Button
               size="large"
@@ -577,7 +569,9 @@ export default function ItemsPage() {
         ) : (
           <div />
         )}
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

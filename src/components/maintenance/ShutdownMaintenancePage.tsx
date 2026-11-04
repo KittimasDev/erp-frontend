@@ -21,6 +21,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import { fmtDate } from "./maintenance-format";
 import PlannedPartsEditor from "./PlannedPartsEditor";
 import TechnicianSelect from "./TechnicianSelect";
+import PageHeader from "@/components/common/PageHeader";
 
 type ManualValues = {
   equipmentId: string;
@@ -217,15 +218,12 @@ export default function ShutdownMaintenancePage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}><ToolOutlined /></div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>MAINTENANCE · SHUTDOWN</div>
-            <Typography.Title level={2} className={styles.pageTitle}>แผนซ่อมบำรุงช่วง Shutdown</Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>วางใบสั่งงาน PM ล่วงหน้าตามช่วง Shutdown พร้อมอะไหล่/ช่างที่ต้องเตรียม — แผน Shutdown สร้างที่ HRM &gt; แผนกำลังคนช่วง Shutdown</Typography.Text>
-          </div>
-          <div />
-        </div>
+        <PageHeader
+          eyebrow="MAINTENANCE · SHUTDOWN"
+          icon={<ToolOutlined />}
+          title="แผนซ่อมบำรุงช่วง Shutdown"
+          subtitle="วางใบสั่งงาน PM ล่วงหน้าตามช่วง Shutdown พร้อมอะไหล่/ช่างที่ต้องเตรียม — แผน Shutdown สร้างที่ HRM &gt; แผนกำลังคนช่วง Shutdown"
+        />
         <div className={styles.tableCard}>
           {selected ? (
             <PlanDetail key={selected.id} plan={selected} onBack={() => setSelected(null)} />

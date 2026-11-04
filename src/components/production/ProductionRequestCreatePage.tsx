@@ -41,6 +41,7 @@ import type {
   ProductionRequest,
 } from "@/types/production-request";
 import styles from "./ProductionOrderCreatePage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function toNumber(value?: string) {
   const num = Number(value ?? 0);
@@ -486,30 +487,24 @@ function ProductionRequestForm({
   return (
     <MasterPageGate>
       <div className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <ProfileOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <Link
+        <PageHeader
+          eyebrow="Production · จากใบสั่งขาย"
+          icon={<ProfileOutlined />}
+          title={<>{isEdit
+                ? `แก้ไขใบขอผลิต ${existing?.requestNo ?? ""}`
+                : "สร้างใบขอผลิต"}</>}
+          subtitle={isEdit ? "แก้ไขจำนวนและรายการได้ตราบที่ยังไม่มีใบสั่งผลิตอ้างอิง — เปลี่ยนใบสั่งขายไม่ได้" : "เลือกใบสั่งขาย 1 ใบ แล้วระบุจำนวนที่ขอผลิตของสินค้าใน SO นั้น · รับถึงใบที่ยืนยันแล้ว"}
+          back={
+            <>
+<Link
               href="/production/production-requests"
               className={styles.backLink}
             >
               <ArrowLeftOutlined /> กลับรายการ
             </Link>
-            <p className={styles.eyebrow}>Production · จากใบสั่งขาย</p>
-            <h1 className={styles.pageTitle}>
-              {isEdit
-                ? `แก้ไขใบขอผลิต ${existing?.requestNo ?? ""}`
-                : "สร้างใบขอผลิต"}
-            </h1>
-            <p className={styles.pageSubtitle}>
-              {isEdit
-                ? "แก้ไขจำนวนและรายการได้ตราบที่ยังไม่มีใบสั่งผลิตอ้างอิง — เปลี่ยนใบสั่งขายไม่ได้"
-                : "เลือกใบสั่งขาย 1 ใบ แล้วระบุจำนวนที่ขอผลิตของสินค้าใน SO นั้น · รับถึงใบที่ยืนยันแล้ว"}
-            </p>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         {/* มาจากหน้าเลือกรอบ — บอกให้ชัดว่าใบนี้ผูกกับรอบไหน
             เพราะมันเปลี่ยนว่าของที่ผลิตเสร็จจะไปเข้ารอบใด */}

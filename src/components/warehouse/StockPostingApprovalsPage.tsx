@@ -21,6 +21,7 @@ import {
   StockPostingRequestStatus,
 } from "@/types/stock-posting-request";
 import styles from "@/components/weighbridge/WeighbridgeDashboardPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const STATUS_FILTERS: {
   key: string;
@@ -215,19 +216,14 @@ export default function StockPostingApprovalsPage() {
   return (
     <MasterPageGate isLoading={approvalsQuery.isLoading}>
       <section className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <InboxOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>Warehouse</p>
-            <h1 className={styles.pageTitle}>อนุมัติรับเข้าคลัง</h1>
-            <p className={styles.pageSubtitle}>
-              หัวหน้าคลังตรวจสอบคำขอรับยางดิบ — อนุมัติแล้วระบบจึง POST สต๊อกจริง
-            </p>
-          </div>
-          <div className={styles.headerActions}>
-            <Button
+        <PageHeader
+          eyebrow="Warehouse"
+          icon={<InboxOutlined />}
+          title="อนุมัติรับเข้าคลัง"
+          subtitle="หัวหน้าคลังตรวจสอบคำขอรับยางดิบ — อนุมัติแล้วระบบจึง POST สต๊อกจริง"
+          actions={
+            <>
+<Button
               className={styles.dashboardButton}
               icon={<ReloadOutlined />}
               loading={approvalsQuery.isFetching}
@@ -235,8 +231,9 @@ export default function StockPostingApprovalsPage() {
             >
               รีเฟรช
             </Button>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         <div className={styles.statsStrip}>
           <div

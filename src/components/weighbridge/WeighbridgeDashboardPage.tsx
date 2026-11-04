@@ -66,6 +66,7 @@ import {
   TICKET_ORIGIN_LABEL,
 } from "./ticket-origin";
 import styles from "./WeighbridgeDashboardPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const { RangePicker } = DatePicker;
 
@@ -1277,17 +1278,12 @@ export default function WeighbridgeDashboardPage() {
         initialDateTo={t2900To}
       />
       <section className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <CarOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>Receiving</p>
-            <h1 className={styles.pageTitle}>รับซื้อยาง</h1>
-            <p className={styles.pageSubtitle}>
-              {`${dateLabel}${searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · ตั๋วที่เปิดเองและบัตรจากเครื่องชั่งอยู่ในตารางเดียวกัน กดแถวเพื่อดูรายละเอียด`}
-            </p>
-          </div>
+        <PageHeader
+          eyebrow="Receiving"
+          icon={<CarOutlined />}
+          title="รับซื้อยาง"
+          subtitle={`${dateLabel}${searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · ตั๋วที่เปิดเองและบัตรจากเครื่องชั่งอยู่ในตารางเดียวกัน กดแถวเพื่อดูรายละเอียด`}
+          controls={
                     <div className={styles.scopeSwitch}>
             <span
               className={[
@@ -1321,7 +1317,9 @@ export default function WeighbridgeDashboardPage() {
               ทั้งหมด
             </span>
           </div>
-          <div className={styles.headerActions}>
+          }
+          actions={
+            <>
             <Button
               icon={<FilePdfOutlined />}
               onClick={() => setDailySummaryOpen(true)}
@@ -1349,8 +1347,9 @@ export default function WeighbridgeDashboardPage() {
             >
               เปิดตั๋วชั่ง
             </Button>
-          </div>
-        </header>
+            </>
+          }
+        />
 
           <>
         <div className={styles.statsStrip}>

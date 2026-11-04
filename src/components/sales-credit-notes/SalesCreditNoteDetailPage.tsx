@@ -37,6 +37,7 @@ import {
   SALES_CREDIT_NOTE_STATUS_LABEL,
   type SalesCreditNote,
 } from "@/types/sales-credit-notes";
+import PageHeader from "@/components/common/PageHeader";
 
 const money = new Intl.NumberFormat("th-TH", {
   minimumFractionDigits: 2,
@@ -280,14 +281,17 @@ function DraftEditor({
   }
 
   return (
-    <Card
-      title={`${note.creditNoteNo} · ${SALES_CREDIT_NOTE_STATUS_LABEL.DRAFT}`}
-      extra={
-        <Button type="primary" loading={update.isPending} onClick={save}>
-          บันทึก
-        </Button>
-      }
-    >
+    <>
+      <PageHeader
+        title={`${note.creditNoteNo} · ${SALES_CREDIT_NOTE_STATUS_LABEL.DRAFT}`}
+        actions={
+          <Button type="primary" loading={update.isPending} onClick={save}>
+            บันทึก
+          </Button>
+        }
+      />
+
+      <Card>
       <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Space wrap>
           <DatePicker value={date} format="DD/MM/YYYY" onChange={(value) => value && setDate(value)} />
@@ -321,15 +325,17 @@ function DraftEditor({
           <Descriptions.Item label="ยอดรวมที่ลด">{money.format(total)}</Descriptions.Item>
         </Descriptions>
       </Space>
-    </Card>
+          </Card>
+    </>
   );
 }
 
 function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
   return (
-    <Card
-      title={`${note.creditNoteNo} · ${SALES_CREDIT_NOTE_STATUS_LABEL[note.status] ?? note.status}`}
-    >
+    <>
+      <PageHeader title={`${note.creditNoteNo} · ${SALES_CREDIT_NOTE_STATUS_LABEL[note.status] ?? note.status}`} />
+
+      <Card>
       <Descriptions column={2} size="small" style={{ marginBottom: 16 }}>
         <Descriptions.Item label="วันที่">{note.creditNoteDate}</Descriptions.Item>
         <Descriptions.Item label="ลูกค้า">{note.customerName}</Descriptions.Item>
@@ -394,7 +400,8 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
         <Descriptions.Item label="VAT">{money.format(note.vatAmount)}</Descriptions.Item>
         <Descriptions.Item label="ยอดรวมที่ลด">{money.format(note.totalAmount)}</Descriptions.Item>
       </Descriptions>
-    </Card>
+          </Card>
+    </>
   );
 }
 

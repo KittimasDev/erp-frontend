@@ -33,6 +33,7 @@ import {
   StageRunCompleteModal,
 } from "./StageRunActionModals";
 import styles from "./StageRunPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const GREEN = "#739816";
 const AMBER = "#F9BB0C";
@@ -130,28 +131,25 @@ export default function StageRunDetailPage({
   return (
     <MasterPageGate isLoading={runQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>{config.headerAccent}</div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>{config.eyebrow}</div>
-            <h2 className={masterStyles.pageTitle}>
-              {run.runNo}{" "}
+        <PageHeader
+          eyebrow={config.eyebrow}
+          title={<>{run.runNo}{" "}
               <Tag color={STAGE_RUN_STATUS_COLOR[run.status] ?? "default"}>
                 {STAGE_RUN_STATUS_LABEL[run.status] ?? run.status}
-              </Tag>
-            </h2>
-            <span className={masterStyles.pageSubtitle}>
-              {stageTypeLabel(config, run.stageType)} ·{" "}
-              {dayjs(run.runDate).format("DD/MM/YYYY")}
-            </span>
-          </div>
-          <Button
+              </Tag></>}
+          subtitle={<>{stageTypeLabel(config, run.stageType)} ·{" "}
+              {dayjs(run.runDate).format("DD/MM/YYYY")}</>}
+          actions={
+            <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(config.routeBase)}
           >
             กลับ
           </Button>
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.actionBar}>
           {isDraft && canOperate ? (

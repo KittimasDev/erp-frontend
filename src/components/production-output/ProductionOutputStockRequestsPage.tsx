@@ -35,6 +35,7 @@ import {
 } from "@/types/production-output-stock-request";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./ProductionOutputStockRequestsPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const STATUS_FILTERS: {
   key: string | undefined;
@@ -339,8 +340,13 @@ export default function ProductionOutputStockRequestsPage() {
   return (
     <MasterPageGate isLoading={listQuery.isLoading}>
       <section className={styles.page}>
-        <header className={styles.hero}>
-          {canViewProductionOrders ? (
+        <PageHeader
+          eyebrow="PRODUCTION · OUTPUT"
+          title="คำขอรับผลผลิตเข้าคลัง"
+          subtitle="ส่งคำขอจากใบสั่งผลิตที่เริ่มผลิตแล้ว ทยอยรับเป็นงวดได้ — รายการที่รออนุมัติจะถูกเน้นไว้ สต๊อกยังไม่เพิ่มจนกว่าหัวหน้าคลังจะอนุมัติที่เมนู คลัง FG"
+          actions={
+            <>
+{canViewProductionOrders ? (
             <Button
               icon={<ArrowLeftOutlined />}
               className={styles.backBtn}
@@ -349,17 +355,7 @@ export default function ProductionOutputStockRequestsPage() {
               กลับใบสั่งผลิต
             </Button>
           ) : null}
-          <div className={styles.heroMain}>
-            <p className={styles.eyebrow}>PRODUCTION · OUTPUT</p>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              คำขอรับผลผลิตเข้าคลัง
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              ส่งคำขอจากใบสั่งผลิตที่เริ่มผลิตแล้ว ทยอยรับเป็นงวดได้ — รายการที่รออนุมัติจะถูกเน้นไว้
-              สต๊อกยังไม่เพิ่มจนกว่าหัวหน้าคลังจะอนุมัติที่เมนู คลัง FG
-            </Typography.Text>
-          </div>
-          <div>
+<div>
             {canRequest ? (
               <Button
                 type="primary"
@@ -375,7 +371,9 @@ export default function ProductionOutputStockRequestsPage() {
               </Button>
             ) : null}
           </div>
-        </header>
+            </>
+          }
+        />
 
         {pendingCount > 0 ? (
           <div className={styles.pendingAlert} role="status">

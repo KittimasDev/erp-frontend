@@ -36,6 +36,7 @@ import { PURCHASE_ORDER_STATUS_LABEL } from "@/types/purchase-orders";
 import { SUPPLIER_PAYMENT_METHOD_LABEL } from "@/types/purchase-payments";
 
 import { describeTerm, formatThaiDate, money } from "./payableFormat";
+import PageHeader from "@/components/common/PageHeader";
 
 const LIST_PATH = "/finance/payables/creditors";
 const ADVANCE_REQUESTS_PATH = "/finance/payables/advance-requests";
@@ -115,18 +116,18 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card
-        title={
-          <Space wrap>
-            <span>รายการจ่ายเงิน {po.poNo}</span>
-            <Tag color={PAYABLE_ITEM_STATUS_COLOR[po.payableStatus] ?? "default"}>
+      <PageHeader
+        title={<>รายการจ่ายเงิน {po.poNo}</>}
+        meta={
+          <>
+<Tag color={PAYABLE_ITEM_STATUS_COLOR[po.payableStatus] ?? "default"}>
               {PAYABLE_ITEM_STATUS_LABEL[po.payableStatus as PayableItemStatus] ??
                 po.payableStatus}
             </Tag>
-          </Space>
+          </>
         }
-        extra={
-          <Space wrap>
+        actions={
+          <>
             {po.paymentTerm?.termType === "ADVANCE" && po.payableStatus !== "PAID" ? (
               <Button type="primary" onClick={() => router.push(ADVANCE_REQUESTS_PATH)}>
                 ขอจ่ายมัดจำ
@@ -135,9 +136,12 @@ export default function PayablePurchaseOrderDetailPage({ id }: Props) {
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(LIST_PATH)}>
               กลับ
             </Button>
-          </Space>
+          
+          </>
         }
-      >
+      />
+
+      <Card>
         <Alert
           type="info"
           showIcon

@@ -75,6 +75,7 @@ import type {
   SalesTrackingTimelineStep,
 } from "@/types/sales-tracking";
 import styles from "./SalesTrackingPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const PAGE_SIZE = 20;
 const HEADER_TIMELINE_STEPS = new Set([
@@ -755,21 +756,15 @@ export default function SalesTrackingPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <LineChartOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Tracking</p>
-          <h1 className={styles.pageTitle}>ติดตามการขายและจัดส่ง</h1>
-          <p className={styles.pageSubtitle}>
-            ภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery
+      <PageHeader
+        eyebrow="Sales · Tracking"
+        icon={<LineChartOutlined />}
+        title="ติดตามการขายและจัดส่ง"
+        subtitle={<>ภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery
             {trackingActions.canViewAll
               ? null
-              : " · แสดงเฉพาะเอกสารที่คุณเป็นผู้สร้าง"}
-          </p>
-        </div>
-      </header>
+              : " · แสดงเฉพาะเอกสารที่คุณเป็นผู้สร้าง"}</>}
+      />
 
       <Row gutter={[12, 12]}>
         {cards.map((card) => {

@@ -37,6 +37,7 @@ import type {
 
 import DepartmentFormModal from "./DepartmentFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type DepartmentFilterFormValues = {
   code?: string;
@@ -314,22 +315,13 @@ export default function DepartmentsPage({
     <MasterPageGate isLoading={!embedded && departmentsQuery.isLoading}>
       <section className={styles.page}>
       {!embedded ? (
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            แผนก
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการข้อมูลแผนกหรือส่วนงานภายในองค์กร
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="แผนก"
+        subtitle="จัดการข้อมูลแผนกหรือส่วนงานภายในองค์กร"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -338,7 +330,9 @@ export default function DepartmentsPage({
         >
           เพิ่มแผนก
         </Button>
-      </div>
+          </>
+        }
+      />
       ) : null}
 
       <div className={styles.summaryRow}>

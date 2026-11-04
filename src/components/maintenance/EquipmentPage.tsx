@@ -21,6 +21,7 @@ import { useEquipmentTypesQuery } from "@/hooks/equipment-types/useEquipmentType
 import EquipmentFormModal from "./EquipmentFormModal";
 import EquipmentHistoryDrawer from "./EquipmentHistoryDrawer";
 import { fmtDate } from "./maintenance-format";
+import PageHeader from "@/components/common/PageHeader";
 
 const STATUS_COLOR: Record<string, string> = { ACTIVE: "green", UNDER_MAINTENANCE: "orange", RETIRED: "default" };
 
@@ -112,20 +113,14 @@ export default function EquipmentPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <ToolOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>MAINTENANCE · EQUIPMENT</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              เครื่องจักร / อุปกรณ์
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              ข้อมูลเครื่อง หมวด Serial ประกัน · แจ้งเสีย · ประวัติซ่อมบำรุง · สรุป Downtime
-            </Typography.Text>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
+        <PageHeader
+          eyebrow="MAINTENANCE · EQUIPMENT"
+          icon={<ToolOutlined />}
+          title="เครื่องจักร / อุปกรณ์"
+          subtitle="ข้อมูลเครื่อง หมวด Serial ประกัน · แจ้งเสีย · ประวัติซ่อมบำรุง · สรุป Downtime"
+          actions={
+            <>
+<div style={{ display: "flex", gap: 8 }}>
             <Button size="large" danger icon={<WarningOutlined />} onClick={() => setBreakdownFor("any")}>
               แจ้งเสีย
             </Button>
@@ -135,7 +130,9 @@ export default function EquipmentPage() {
               </Button>
             ) : null}
           </div>
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.tableCard}>
           <Tabs

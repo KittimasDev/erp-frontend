@@ -1,5 +1,6 @@
 "use client";
 
+import PageHeader from "@/components/common/PageHeader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -333,14 +334,16 @@ export default function ApDocumentFormPage({ kind, id }: Props) {
 
   return (
     <>
-    <Card
+    <PageHeader
       title={id ? `แก้ไข${config.shortLabel} ${existing?.docNo ?? ""}` : `สร้าง${config.title}`}
-      extra={
+      actions={
         <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
           กลับ
         </Button>
       }
-    >
+    />
+
+    <Card>
       {!allowed ? (
         <Alert
           type="warning"

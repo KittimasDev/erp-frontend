@@ -29,6 +29,7 @@ import {
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money, termText } from "./apDocumentConfig";
+import PageHeader from "@/components/common/PageHeader";
 
 const PENDING_PAGE_SIZE = 5;
 const CHARGE_PAGE_SIZE = 5;
@@ -379,21 +380,17 @@ export default function ApInvoicesPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            FINANCE · PAYABLES
-          </div>
-          <h2 className={masterStyles.pageTitle}>ใบตั้งหนี้เจ้าหนี้</h2>
-          <span className={masterStyles.pageSubtitle}>
-            GRN ที่ยืนยันแล้วรอตั้งหนี้ · ค่าใช้จ่ายเพิ่มเติมใน PO · และใบตั้งหนี้ที่สร้างแล้ว
-          </span>
-        </div>
-        <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
-      </div>
+      <PageHeader
+        eyebrow="FINANCE · PAYABLES"
+        icon={<FileTextOutlined />}
+        title="ใบตั้งหนี้เจ้าหนี้"
+        subtitle="GRN ที่ยืนยันแล้วรอตั้งหนี้ · ค่าใช้จ่ายเพิ่มเติมใน PO · และใบตั้งหนี้ที่สร้างแล้ว"
+        actions={
+          <>
+<ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
+          </>
+        }
+      />
 
       <div className={`${styles.statRow} ${styles.statRow3}`}>
         <div className={styles.statChip}>

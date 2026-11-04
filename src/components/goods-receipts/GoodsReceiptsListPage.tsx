@@ -29,6 +29,7 @@ import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import DuePurchaseOrdersSection from "./DuePurchaseOrdersSection";
 import styles from "./GoodsReceiptsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -239,21 +240,14 @@ export default function GoodsReceiptsListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <InboxOutlined />
-            </span>
-            Warehouse · Goods Receipt
-          </div>
-          <h1 className={styles.pageTitle}>ใบรับของ</h1>
-          <p className={styles.pageSubtitle}>
-            รับสินค้าจากใบสั่งซื้อที่ยืนยันแล้ว — Confirm แล้วสต๊อกเข้าคลังจริง
-          </p>
-        </div>
-        <div className={styles.heroActions}>
-          <Link href="/purchase-orders">
+      <PageHeader
+        eyebrow="Warehouse · Goods Receipt"
+        icon={<InboxOutlined />}
+        title="ใบรับของ"
+        subtitle="รับสินค้าจากใบสั่งซื้อที่ยืนยันแล้ว — Confirm แล้วสต๊อกเข้าคลังจริง"
+        actions={
+          <>
+<Link href="/purchase-orders">
             <Button
               className={styles.secondaryBtn}
               icon={<ShoppingCartOutlined />}
@@ -261,8 +255,9 @@ export default function GoodsReceiptsListPage() {
               ไปที่ใบสั่งซื้อ
             </Button>
           </Link>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <DuePurchaseOrdersSection canAdd={canAdd} />
 

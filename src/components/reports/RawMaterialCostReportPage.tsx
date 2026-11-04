@@ -42,6 +42,7 @@ import {
   type RawMaterialCostExportContext,
 } from "@/utils/rawMaterialCostReportSheets";
 import styles from "./RawTirePurchaseReportPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const TAB_OPTIONS: Array<{ label: string; value: RawMaterialCostTab }> = [
   { label: "สรุปต้นทุนวัตถุดิบ", value: "summary" },
@@ -356,27 +357,22 @@ export default function RawMaterialCostReportPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <DollarOutlined />
-            </span>
-            Reports · Raw Material Cost
-          </div>
-          <h1 className={styles.pageTitle}>รายงานต้นทุนวัตถุดิบ</h1>
-          <p className={styles.pageSubtitle}>
-            ยกมา รับเข้า เบิกออก ปรับปรุง และคงเหลือของวัตถุดิบ พร้อมรายการเคลื่อนไหวต้นทุนตามเอกสาร และ Lot
-          </p>
-        </div>
-        <div className={styles.heroActions}>
+      <PageHeader
+        eyebrow="Reports · Raw Material Cost"
+        icon={<DollarOutlined />}
+        title="รายงานต้นทุนวัตถุดิบ"
+        subtitle="ยกมา รับเข้า เบิกออก ปรับปรุง และคงเหลือของวัตถุดิบ พร้อมรายการเคลื่อนไหวต้นทุนตามเอกสาร และ Lot"
+        actions={
+          <>
+
           <ReportExportButtons
             canExport={canExport}
             downloading={exporting}
             onExport={(format) => void handleExport(format)}
           />
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.modeBar}>
         <Segmented<RawMaterialCostTab> options={TAB_OPTIONS} value={tab} onChange={setTab} />

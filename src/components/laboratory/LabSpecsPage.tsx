@@ -17,6 +17,7 @@ import { LAB_SAMPLE_TYPE_LABEL, type LabSpec } from "@/types/laboratory";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import LabSpecFormModal from "./LabSpecFormModal";
+import PageHeader from "@/components/common/PageHeader";
 
 /** หน้า /laboratory/specs — Spec การตรวจ (พารามิเตอร์ + เกณฑ์ min/max) ตามประเภทตัวอย่าง/สินค้า (M8.3) */
 export default function LabSpecsPage() {
@@ -111,21 +112,14 @@ export default function LabSpecsPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <ExperimentOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>LABORATORY · SPEC</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              Spec การตรวจ
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              กำหนดพารามิเตอร์และเกณฑ์ผ่าน/ไม่ผ่านตามประเภทตัวอย่าง
-              (หรือสินค้าเฉพาะ) — ตอนคีย์ผลระบบตัดสินให้อัตโนมัติ
-            </Typography.Text>
-          </div>
-          {canAdd ? (
+        <PageHeader
+          eyebrow="LABORATORY · SPEC"
+          icon={<ExperimentOutlined />}
+          title="Spec การตรวจ"
+          subtitle="กำหนดพารามิเตอร์และเกณฑ์ผ่าน/ไม่ผ่านตามประเภทตัวอย่าง (หรือสินค้าเฉพาะ) — ตอนคีย์ผลระบบตัดสินให้อัตโนมัติ"
+          actions={
+            <>
+{canAdd ? (
             <Button
               type="primary"
               size="large"
@@ -137,7 +131,9 @@ export default function LabSpecsPage() {
           ) : (
             <div />
           )}
-        </div>
+            </>
+          }
+        />
         <div className={styles.tableCard}>
           <Table
             rowKey="id"

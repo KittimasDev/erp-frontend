@@ -30,6 +30,7 @@ import {
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 import styles from "./SalesOrdersListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 /**
  * กลุ่มสรุปด้านบน — จัดตาม "ใครถืองานอยู่" ไม่ใช่ไล่ตามชื่อสถานะ
@@ -386,22 +387,17 @@ export default function SalesOrdersListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <ShoppingCartOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>ขาย · ใบสั่งขาย</p>
-          <h1 className={styles.pageTitle}>ใบสั่งขาย</h1>
-          {/* สร้างจาก SALES_ORDER_FLOW_STEPS ไม่ hardcode — เดิมเขียน 6 ขั้น
-              ค้างไว้ ไม่ตรงกับแถบความคืบหน้าที่เหลือ 5 ขั้นหลังถอดขั้นตรวจสต๊อก */}
-          <p className={styles.pageSubtitle}>
-            ติดตาม {SALES_ORDER_FLOW_STEPS.length} ขั้นตอน:{" "}
+      <PageHeader
+        eyebrow="ขาย · ใบสั่งขาย"
+        icon={<ShoppingCartOutlined />}
+        title="ใบสั่งขาย"
+        subtitle={<>ติดตาม {SALES_ORDER_FLOW_STEPS.length} ขั้นตอน:{" "}
             {SALES_ORDER_FLOW_STEPS.map((step) => step.label).join(" → ")}
-            {!canViewAll ? " · แสดงเฉพาะเอกสารที่คุณสร้าง" : ""}
-          </p>
-        </div>
-      </header>
+            {!canViewAll ? " · แสดงเฉพาะเอกสารที่คุณสร้าง" : ""}</>}
+      >
+{/* สร้างจาก SALES_ORDER_FLOW_STEPS ไม่ hardcode — เดิมเขียน 6 ขั้น
+              ค้างไว้ ไม่ตรงกับแถบความคืบหน้าที่เหลือ 5 ขั้นหลังถอดขั้นตรวจสต๊อก */}
+      </PageHeader>
 
       <section className={styles.summaryGrid}>
         {SUMMARY_BUCKETS.map((item) => {

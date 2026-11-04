@@ -43,6 +43,7 @@ import {
 } from "@/types/raw-tire-purchase-receipt";
 import styles from "@/components/weighbridge/WeighbridgeDashboardPage.module.css";
 import lineStyles from "@/components/goods-receipts/GoodsReceiptFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type DestinationDraft = {
   key: string;
@@ -381,16 +382,21 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
       isLoading={existingQuery.isLoading || receiptQuery.isLoading}
     >
       <section className={styles.page}>
-        <div className={styles.detailToolbar}>
-          <Button
+        <PageHeader
+          eyebrow="Raw Tire Receiving"
+          title="ขอรับยางเข้าคลัง"
+          back={
+            <Button
             type="text"
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(`/receiving/receipts/${receiptId}`)}
           >
             กลับใบรับซื้อ
           </Button>
-          <div className={styles.detailTitleTags}>
-            <Button
+          }
+          actions={
+            <>
+<Button
               icon={<ReloadOutlined />}
               loading={receiptQuery.isFetching || existingQuery.isFetching}
               onClick={() => {
@@ -400,8 +406,9 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
             >
               รีเฟรช
             </Button>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {receiptQuery.isError || existingQuery.isError ? (
           <div className={styles.card}>

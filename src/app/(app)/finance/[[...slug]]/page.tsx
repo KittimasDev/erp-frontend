@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { Typography } from "antd";
+import PageHeader from "@/components/common/PageHeader";
 
 const FINANCE_PAGE_TITLES: Record<string, string> = {
   "": "การเงิน",
@@ -48,8 +48,7 @@ export default function FinanceSectionPage({
 
   return (
     <section>
-      <Typography.Title level={3}>{title}</Typography.Title>
-      <Typography.Text type="secondary">ยังไม่มีรายการ</Typography.Text>
+      <PageHeader title={title} subtitle="ยังไม่มีรายการ" />
     </section>
   );
 }

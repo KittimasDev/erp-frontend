@@ -42,6 +42,7 @@ import RowActionsMenu from "@/components/common/RowActionsMenu";
 import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import { formatErpDate } from "@/lib/datetime/erp-timezone";
 import styles from "./PurchaseRequestsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 /** ร่าง กับ ที่ถูกส่งกลับแก้ไข แก้ไข/ส่งอนุมัติ ได้เหมือนกัน — ตรงกับ guard ฝั่ง backend */
 const PR_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
@@ -289,19 +290,14 @@ export default function PurchaseRequestsListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileTextOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Purchase Request</p>
-          <h1 className={styles.pageTitle}>รายการใบขอซื้อ</h1>
-          <p className={styles.pageSubtitle}>
-            ดู ค้นหา และจัดการใบขอซื้อทั่วไป · สร้างใหม่แล้วส่งอนุมัติได้จากหน้ารายละเอียด
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          {canAccessApprovals ? (
+      <PageHeader
+        eyebrow="Purchase Request"
+        icon={<FileTextOutlined />}
+        title="รายการใบขอซื้อ"
+        subtitle="ดู ค้นหา และจัดการใบขอซื้อทั่วไป · สร้างใหม่แล้วส่งอนุมัติได้จากหน้ารายละเอียด"
+        actions={
+          <>
+{canAccessApprovals ? (
             <Link href="/purchase-requests/approvals">
               <Button className={styles.secondaryBtn} icon={<AuditOutlined />}>
                 รออนุมัติ
@@ -317,8 +313,9 @@ export default function PurchaseRequestsListPage() {
               สร้างใบขอซื้อ
             </Button>
           </Link>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>

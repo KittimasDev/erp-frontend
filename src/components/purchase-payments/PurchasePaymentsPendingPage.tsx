@@ -17,6 +17,7 @@ import { usePendingPurchasePaymentsQuery } from "@/hooks/purchase-payments/usePu
 import type { PendingSupplierPaymentPo } from "@/types/purchase-payments";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./PurchasePaymentsPendingPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -189,21 +190,14 @@ export default function PurchasePaymentsPendingPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <DollarOutlined />
-            </span>
-            Accounting · Supplier Payments
-          </div>
-          <h1 className={styles.pageTitle}>PO รอจ่ายเงิน</h1>
-          <p className={styles.pageSubtitle}>
-            Flow จ่ายจากใบสั่งซื้อโดยตรงปิดแล้ว — ใช้เมนูการเงินแทน
-          </p>
-        </div>
-        <div className={styles.heroActions}>
-          <Link href="/finance/payables/payment-vouchers">
+      <PageHeader
+        eyebrow="Accounting · Supplier Payments"
+        icon={<DollarOutlined />}
+        title="PO รอจ่ายเงิน"
+        subtitle="Flow จ่ายจากใบสั่งซื้อโดยตรงปิดแล้ว — ใช้เมนูการเงินแทน"
+        actions={
+          <>
+<Link href="/finance/payables/payment-vouchers">
             <Button type="primary" icon={<DollarOutlined />}>
               ไปใบสำคัญจ่าย
             </Button>
@@ -213,8 +207,9 @@ export default function PurchasePaymentsPendingPage() {
               ประวัติการจ่าย
             </Button>
           </Link>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <Alert
         type="info"

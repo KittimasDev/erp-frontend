@@ -26,6 +26,7 @@ import {
 } from "@/types/payment-vouchers";
 import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import { PV_BASE_PATH, sourceHref } from "./paymentVoucherUtils";
+import PageHeader from "@/components/common/PageHeader";
 
 export const PAYMENT_VOUCHER_SCREEN = "FINANCE_PAYMENT_VOUCHERS";
 const QUEUE_PAGE_SIZE = 5;
@@ -271,20 +272,12 @@ export default function PaymentVouchersPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            FINANCE · PAYABLES
-          </div>
-          <h2 className={masterStyles.pageTitle}>ใบสำคัญจ่าย</h2>
-          <span className={masterStyles.pageSubtitle}>
-            รายการที่ยืนยันแล้วพร้อมออกใบสำคัญจ่าย และใบสำคัญจ่ายที่สร้างแล้ว
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="FINANCE · PAYABLES"
+        icon={<FileTextOutlined />}
+        title="ใบสำคัญจ่าย"
+        subtitle="รายการที่ยืนยันแล้วพร้อมออกใบสำคัญจ่าย และใบสำคัญจ่ายที่สร้างแล้ว"
+      />
 
       <div className={`${styles.statRow} ${styles.statRow2}`}>
         <div className={styles.statChip}>

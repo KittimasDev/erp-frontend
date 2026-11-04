@@ -20,6 +20,7 @@ import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { OIL_DOC_STATUS_LABEL, type OilReceiving } from "@/types/oil-tank-farm";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const n = (v: string) => Number(v).toLocaleString("th-TH", { maximumFractionDigits: 3 });
 const STATUS_COLOR: Record<string, string> = { DRAFT: "gold", POSTED: "green", CANCELLED: "default" };
@@ -191,15 +192,17 @@ export default function ReceivingsPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}><ExperimentOutlined /></div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>OIL TANK FARM · RECEIVING</div>
-            <Typography.Title level={2} className={styles.pageTitle}>รับน้ำมันเข้าถัง</Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>รับจากฝ่ายผลิตพร้อม Batch และใบสั่งผลิต · Lot ใหม่ต้องผ่าน QC ก่อนใช้ (ผล Lab ปล่อย Lot ให้อัตโนมัติ)</Typography.Text>
-          </div>
-          {canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>สร้างใบรับ</Button> : <div />}
-        </div>
+        <PageHeader
+          eyebrow="OIL TANK FARM · RECEIVING"
+          icon={<ExperimentOutlined />}
+          title="รับน้ำมันเข้าถัง"
+          subtitle="รับจากฝ่ายผลิตพร้อม Batch และใบสั่งผลิต · Lot ใหม่ต้องผ่าน QC ก่อนใช้ (ผล Lab ปล่อย Lot ให้อัตโนมัติ)"
+          actions={
+            <>
+{canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>สร้างใบรับ</Button> : <div />}
+            </>
+          }
+        />
         <div className={styles.tableCard}>
           <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={query.data?.data ?? []} loading={query.isFetching} pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} ใบ` }} scroll={{ x: 1100 }} locale={{ emptyText: "ยังไม่มีใบรับน้ำมัน" }} />
         </div>

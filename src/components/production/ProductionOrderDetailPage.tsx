@@ -79,6 +79,7 @@ import {
   ProductionOrderPauseModal,
 } from "./ProductionOrderRunControlModals";
 import styles from "./ProductionOrderDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const ProductionOrderDataTab = dynamic(
   () => import("./ProductionOrderDataTab"),
@@ -589,31 +590,26 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   return (
     <MasterPageGate isLoading={detailQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>
-            {order?.status?.slice(0, 2) ?? "PO"}
-          </div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>PRODUCTION · PYROLYSIS</div>
-            <h2 className={masterStyles.pageTitle}>
-              {order?.orderNo ?? "ใบสั่งผลิต"}
-            </h2>
-            <span className={masterStyles.pageSubtitle}>
-              {order
+        <PageHeader
+          eyebrow="PRODUCTION · PYROLYSIS"
+          title={order?.orderNo ?? "ใบสั่งผลิต"}
+          subtitle={<>{order
                 ? PRODUCTION_ORDER_STATUS_LABEL[order.status] ?? order.status
                 : ""}
               {linkedRequestNos.length
                 ? ` · ใบขอผลิต ${linkedRequestNos.join(" · ")}`
-                : ""}
-            </span>
-          </div>
-          <Button
+                : ""}</>}
+          actions={
+            <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/production/production-orders")}
           >
             กลับรายการ
           </Button>
-        </div>
+            </>
+          }
+        />
 
         {order ? (
           <>

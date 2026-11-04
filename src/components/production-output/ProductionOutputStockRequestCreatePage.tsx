@@ -68,6 +68,7 @@ import type { ClassificationItem } from "@/types/raw-tire-classification";
 import { RECEIPT_STATUS_LABELS } from "@/types/raw-tire-classification";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./ProductionOutputStockRequestCreatePage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   itemId?: string;
@@ -771,24 +772,14 @@ export default function ProductionOutputStockRequestCreatePage({
       }
     >
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent} aria-hidden>
-            <InboxOutlined />
-          </div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>
-              PRODUCTION OUTPUT · STOCK IN
-            </div>
-            <Typography.Title level={2} className={masterStyles.pageTitle}>
-              ขอรับผลผลิตเข้าคลัง
-            </Typography.Title>
-            <Typography.Text className={masterStyles.pageSubtitle}>
-              เลือกสินค้าจาก master ที่เป็นสินค้าคลัง (is stock item) —
-              เช่น ผลผลิตหรือวัสดุอื่นที่ต้องการรับเข้า — เริ่มจากใบสั่งผลิต
-              ไม่ใช่ตั๋วชั่งรับซื้อยาง
-            </Typography.Text>
-          </div>
-          <Button
+        <PageHeader
+          eyebrow="PRODUCTION OUTPUT · STOCK IN"
+          icon={<InboxOutlined />}
+          title="ขอรับผลผลิตเข้าคลัง"
+          subtitle="เลือกสินค้าจาก master ที่เป็นสินค้าคลัง (is stock item) — เช่น ผลผลิตหรือวัสดุอื่นที่ต้องการรับเข้า — เริ่มจากใบสั่งผลิต ไม่ใช่ตั๋วชั่งรับซื้อยาง"
+          actions={
+            <>
+<Button
             icon={<ArrowLeftOutlined />}
             className={masterStyles.editButton}
             onClick={() =>
@@ -805,7 +796,9 @@ export default function ProductionOutputStockRequestCreatePage({
                   ? "กลับตั๋วชั่ง"
                   : "กลับรายการ"}
           </Button>
-        </div>
+            </>
+          }
+        />
 
         {isPurchaseInTicket ? (
           <Alert

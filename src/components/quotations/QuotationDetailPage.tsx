@@ -46,6 +46,7 @@ import {
   type QuotationFlowTone,
 } from "@/utils/quotation-flow";
 import styles from "./QuotationDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -208,23 +209,18 @@ export default function QuotationDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileTextOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>ใบเสนอราคา</p>
-          <h1 className={styles.pageTitle}>{data.quotationNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {data.customer
+      <PageHeader
+        eyebrow="ใบเสนอราคา"
+        icon={<FileTextOutlined />}
+        title={data.quotationNo}
+        subtitle={<>{data.customer
               ? `${data.customer.customerCode} — ${data.customer.nameTh}`
               : "—"}{" "}
             · {formatDate(data.quotationDate)} · {formatMoney(totals.total)}{" "}
-            บาท
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+            บาท</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/quotations")}
           >
@@ -233,8 +229,9 @@ export default function QuotationDetailPage({ id }: Props) {
           <Button icon={<FilePdfOutlined />} onClick={printPdf}>
             พิมพ์ PDF
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

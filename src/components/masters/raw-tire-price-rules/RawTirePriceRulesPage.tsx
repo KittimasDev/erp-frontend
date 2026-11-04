@@ -40,6 +40,7 @@ import type {
 
 import RawTirePriceRuleFormModal from "./RawTirePriceRuleFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type PriceRuleFilterFormValues = {
   code?: string;
@@ -406,22 +407,13 @@ export default function RawTirePriceRulesPage() {
   return (
     <MasterPageGate isLoading={rulesQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            กฎราคาซื้อยาง
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการราคารับซื้อยางตามประเภทและช่วงวันที่มีผล
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="กฎราคาซื้อยาง"
+        subtitle="จัดการราคารับซื้อยางตามประเภทและช่วงวันที่มีผล"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -430,7 +422,9 @@ export default function RawTirePriceRulesPage() {
         >
           เพิ่มกฎราคา
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

@@ -41,6 +41,7 @@ import type {
 
 import styles from "@/components/masters/shared/master-page.module.css";
 import WarehouseLocationFormModal from "./WarehouseLocationFormModal";
+import PageHeader from "@/components/common/PageHeader";
 
 type WarehouseLocationFilterFormValues = {
   warehouseId?: string;
@@ -359,22 +360,13 @@ export default function WarehouseLocationsPage() {
   return (
     <MasterPageGate isLoading={locationsQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            ตำแหน่งจัดเก็บ
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการตำแหน่งย่อยภายในคลังสินค้า เช่น DEFAULT, YARD-A
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="ตำแหน่งจัดเก็บ"
+        subtitle="จัดการตำแหน่งย่อยภายในคลังสินค้า เช่น DEFAULT, YARD-A"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -383,7 +375,9 @@ export default function WarehouseLocationsPage() {
         >
           เพิ่มตำแหน่งจัดเก็บ
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

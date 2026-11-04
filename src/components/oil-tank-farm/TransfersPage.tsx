@@ -18,6 +18,7 @@ import { useUnitsQuery } from "@/hooks/units/useUnitsQuery";
 import { getScreenActionPermissions } from "@/lib/auth/permissions-access";
 import { OIL_DOC_STATUS_LABEL, type OilTransfer } from "@/types/oil-tank-farm";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const n = (v: string | number) => Number(v).toLocaleString("th-TH", { maximumFractionDigits: 3 });
 const STATUS_COLOR: Record<string, string> = { DRAFT: "gold", POSTED: "green", CANCELLED: "default" };
@@ -171,15 +172,17 @@ export default function TransfersPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}><SwapOutlined /></div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>OIL TANK FARM · TRANSFER</div>
-            <Typography.Title level={2} className={styles.pageTitle}>โอนน้ำมันระหว่างถัง</Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>โอนตาม Lot พร้อมบันทึกปริมาณสูญเสีย · จองน้ำมันต้นทางตั้งแต่สร้างใบ</Typography.Text>
-          </div>
-          {canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>สร้างใบโอน</Button> : <div />}
-        </div>
+        <PageHeader
+          eyebrow="OIL TANK FARM · TRANSFER"
+          icon={<SwapOutlined />}
+          title="โอนน้ำมันระหว่างถัง"
+          subtitle="โอนตาม Lot พร้อมบันทึกปริมาณสูญเสีย · จองน้ำมันต้นทางตั้งแต่สร้างใบ"
+          actions={
+            <>
+{canAdd ? <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreating(true)}>สร้างใบโอน</Button> : <div />}
+            </>
+          }
+        />
         <div className={styles.tableCard}>
           <Table rowKey="id" className={styles.dataTable} columns={columns} dataSource={query.data?.data ?? []} loading={query.isFetching} pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} ใบ` }} scroll={{ x: 1000 }} locale={{ emptyText: "ยังไม่มีใบโอน" }} />
         </div>

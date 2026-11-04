@@ -27,6 +27,7 @@ import ReportExportButtons, {
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { toArAgingSheet } from "@/utils/salesReportSheets";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const BUCKET_COLOR: Record<string, string> = {
   not_due: "default",
@@ -180,21 +181,20 @@ export default function ArAgingReportPage() {
 
   return (
     <section className={masterStyles.page}>
-      <div className={masterStyles.pageHeader}>
-        <div className={masterStyles.headerAccent}>AR</div>
-        <div className={masterStyles.headerContent}>
-          <div className={masterStyles.eyebrow}>REPORTS · ACCOUNTS RECEIVABLE</div>
-          <h2 className={masterStyles.pageTitle}>รายงานสถานะลูกหนี้</h2>
-          <span className={masterStyles.pageSubtitle}>
-            ใบแจ้งหนี้ที่ยังไม่ชำระครบ พร้อมช่วงอายุหนี้
-          </span>
-        </div>
-        <ReportExportButtons
+      <PageHeader
+        eyebrow="REPORTS · ACCOUNTS RECEIVABLE"
+        title="รายงานสถานะลูกหนี้"
+        subtitle="ใบแจ้งหนี้ที่ยังไม่ชำระครบ พร้อมช่วงอายุหนี้"
+        actions={
+          <>
+<ReportExportButtons
           canExport={canExport}
           downloading={downloading}
           onExport={(format) => void handleExport(format)}
         />
-      </div>
+          </>
+        }
+      />
 
       <div className={masterStyles.summaryRow} style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         <div className={`${masterStyles.summaryCard} ${masterStyles.summaryTotal}`}>

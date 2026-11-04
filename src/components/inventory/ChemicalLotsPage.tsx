@@ -20,6 +20,7 @@ import {
   type CoaStatus,
 } from "@/types/chemicals";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const COA_COLOR: Record<CoaStatus, string> = {
   NOT_REQUIRED: "default",
@@ -203,25 +204,21 @@ export default function ChemicalLotsPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <ExperimentOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>INVENTORY · CHEMICAL</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              Lot สารเคมี / ตรวจ COA
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              สารเคมีที่รับเข้าจะอยู่สถานะรอตรวจ (Hold) จนกว่าจะแนบ COA และยืนยัน — Lot ที่ COA ยังไม่ผ่าน เบิกไม่ได้
-            </Typography.Text>
-          </div>
-          <Link href="/inventory/chemical-issues">
+        <PageHeader
+          eyebrow="INVENTORY · CHEMICAL"
+          icon={<ExperimentOutlined />}
+          title="Lot สารเคมี / ตรวจ COA"
+          subtitle="สารเคมีที่รับเข้าจะอยู่สถานะรอตรวจ (Hold) จนกว่าจะแนบ COA และยืนยัน — Lot ที่ COA ยังไม่ผ่าน เบิกไม่ได้"
+          actions={
+            <>
+<Link href="/inventory/chemical-issues">
             <Button size="large" type="primary">
               เบิกสารเคมี
             </Button>
           </Link>
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.tableCard}>
           <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>

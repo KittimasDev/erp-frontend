@@ -14,6 +14,7 @@ import {
   type DispatchOrderStatus,
 } from "@/types/dispatch-orders";
 import styles from "./DispatchOrdersListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function statusColor(status: string) {
   switch (status) {
@@ -118,18 +119,12 @@ export default function DispatchOrdersListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <CarOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Dispatch Order</p>
-          <h1 className={styles.pageTitle}>ใบจ่ายสินค้า</h1>
-          <p className={styles.pageSubtitle}>
-            ติดตามขั้นตอน Picking → Packing → Dispatch ของสินค้าสำเร็จรูป
-          </p>
-        </div>
-      </header>
+      <PageHeader
+        eyebrow="Sales · Dispatch Order"
+        icon={<CarOutlined />}
+        title="ใบจ่ายสินค้า"
+        subtitle="ติดตามขั้นตอน Picking → Packing → Dispatch ของสินค้าสำเร็จรูป"
+      />
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>

@@ -39,6 +39,7 @@ import {
 } from "@/utils/stock-movement-display";
 import { getInventoryPageScope, inventoryScopeApiFilter } from "./inventory-page-copy";
 import styles from "./StockMovementsPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type DraftFilters = {
   warehouseId?: string;
@@ -386,20 +387,20 @@ export default function StockMovementsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <HistoryOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>{copy.eyebrow}</p>
-          <h1 className={styles.pageTitle}>{copy.title}</h1>
-          <p className={styles.pageSubtitle}>{copy.subtitle}</p>
-        </div>
-        <div className={styles.headerMeta}>
+      <PageHeader
+        eyebrow={copy.eyebrow}
+        icon={<HistoryOutlined />}
+        title={copy.title}
+        subtitle={copy.subtitle}
+        controls={
+          <>
+<div className={styles.headerMeta}>
           <span className={styles.headerMetaLabel}>รายการที่พบ</span>
           <span className={styles.headerMetaValue}>{summary.total}</span>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryIn}`}>

@@ -42,6 +42,7 @@ import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateStockAdjustmentBody } from "@/types/stock-adjustments";
 import { STOCK_ADJUSTMENT_TYPE_LABEL } from "@/types/stock-adjustments";
 import styles from "./StockAdjustmentFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   itemId?: string;
@@ -252,25 +253,21 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <SwapOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Stock Adjustment</p>
-          <h1 className={styles.pageTitle}>
-            {mode === "create" ? "สร้างใบปรับปรุงสต๊อก" : "แก้ไขใบปรับปรุงสต๊อก"}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            กรอกจำนวนแบบมีเครื่องหมาย (+ เพิ่ม / − ลด) ต่อบรรทัด — สต๊อกจะเปลี่ยนเมื่ออนุมัติเท่านั้น
-          </p>
-        </div>
-        <div className={styles.backLink}>
+      <PageHeader
+        eyebrow="Stock Adjustment"
+        icon={<SwapOutlined />}
+        title={mode === "create" ? "สร้างใบปรับปรุงสต๊อก" : "แก้ไขใบปรับปรุงสต๊อก"}
+        subtitle="กรอกจำนวนแบบมีเครื่องหมาย (+ เพิ่ม / − ลด) ต่อบรรทัด — สต๊อกจะเปลี่ยนเมื่ออนุมัติเท่านั้น"
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link href={scopePath("/inventory/stock-adjustments")}>
             <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <Form
         form={form}

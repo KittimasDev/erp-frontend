@@ -39,6 +39,7 @@ import RoleFormModal from "./RoleFormModal";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./PermissionMatrixPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 /**
  * ลำดับคอลัมน์ที่ต้องการ — ไม่ใช่ "รายการคอลัมน์ทั้งหมด"
@@ -708,22 +709,17 @@ export default function PermissionMatrixPage({
     <MasterPageGate isLoading={!embedded && isLoading}>
       <section className={masterStyles.page}>
         {!embedded ? (
-          <div className={masterStyles.pageHeader}>
-            <div className={masterStyles.headerAccent}>
-              <SafetyCertificateOutlined />
-            </div>
-            <div className={masterStyles.headerContent}>
-              <div className={masterStyles.eyebrow}>SECURITY</div>
-              <Typography.Title level={2} className={masterStyles.pageTitle}>
-                Permission Matrix
-              </Typography.Title>
-              <Typography.Text className={masterStyles.pageSubtitle}>
-                กำหนดสิทธิ์รายหน้าจอต่อบทบาท — คอลัมน์ APPROVE
-                ใช้จำกัดเฉพาะ role ที่อนุมัติได้
-              </Typography.Text>
-            </div>
-            {headerActions}
-          </div>
+          <PageHeader
+            eyebrow="SECURITY"
+            icon={<SafetyCertificateOutlined />}
+            title="Permission Matrix"
+            subtitle="กำหนดสิทธิ์รายหน้าจอต่อบทบาท — คอลัมน์ APPROVE ใช้จำกัดเฉพาะ role ที่อนุมัติได้"
+            actions={
+              <>
+{headerActions}
+              </>
+            }
+          />
         ) : null}
 
         <div className={masterStyles.filterCard}>

@@ -20,6 +20,7 @@ import { useStockIssueQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./MaterialIssueDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -76,19 +77,14 @@ export default function MaterialIssueDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <SwapOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Material Issue</p>
-          <h1 className={styles.pageTitle}>{data.issueNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {formatDate(data.issueDate)} · {data.items?.length ?? 0} รายการ
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Material Issue"
+        icon={<SwapOutlined />}
+        title={data.issueNo}
+        subtitle={<>{formatDate(data.issueDate)} · {data.items?.length ?? 0} รายการ</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/inventory/material-issues")}
           >
@@ -132,8 +128,9 @@ export default function MaterialIssueDetailPage({ id }: Props) {
           >
             พิมพ์ PDF
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

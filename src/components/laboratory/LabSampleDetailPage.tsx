@@ -30,6 +30,7 @@ import {
 import LabResultsSection from "./LabResultsSection";
 import LabSignModal from "./LabSignModal";
 import styles from "./LabSampleDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -172,20 +173,15 @@ export default function LabSampleDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <ExperimentOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Laboratory · Sample</p>
-          <h1 className={styles.pageTitle}>{data.sampleNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {data.sampleType} · {formatDate(data.collectedDate)} ·{" "}
-            {LAB_SAMPLE_STATUS_LABEL[data.status] ?? data.status}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Laboratory · Sample"
+        icon={<ExperimentOutlined />}
+        title={data.sampleNo}
+        subtitle={<>{data.sampleType} · {formatDate(data.collectedDate)} ·{" "}
+            {LAB_SAMPLE_STATUS_LABEL[data.status] ?? data.status}</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/laboratory/samples")}
           >
@@ -210,8 +206,9 @@ export default function LabSampleDetailPage({ id }: Props) {
               พิมพ์ COA
             </Button>
           ) : null}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

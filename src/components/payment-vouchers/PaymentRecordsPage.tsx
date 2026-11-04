@@ -32,6 +32,7 @@ import type { SupplierPaymentVoucher } from "@/types/purchase-payments";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { PAYMENT_METHOD_OPTIONS, paymentMethodLabel } from "./PaymentMethodFields";
 import { PAYMENT_RECORDS_PATH, fmtMoney, kindLabel } from "./paymentVoucherUtils";
+import PageHeader from "@/components/common/PageHeader";
 
 const PAYABLE_PAGE_SIZE = 5;
 const PAID_PAGE_SIZE = 10;
@@ -239,21 +240,17 @@ export default function PaymentRecordsPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            FINANCE · PAYABLES
-          </div>
-          <h2 className={masterStyles.pageTitle}>บันทึกจ่ายเงิน</h2>
-          <span className={masterStyles.pageSubtitle}>
-            ใบสำคัญจ่ายที่อนุมัติแล้วรอบันทึกจ่ายจริง และรายการที่บันทึกจ่ายแล้ว
-          </span>
-        </div>
-        <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
-      </div>
+      <PageHeader
+        eyebrow="FINANCE · PAYABLES"
+        icon={<FileTextOutlined />}
+        title="บันทึกจ่ายเงิน"
+        subtitle="ใบสำคัญจ่ายที่อนุมัติแล้วรอบันทึกจ่ายจริง และรายการที่บันทึกจ่ายแล้ว"
+        actions={
+          <>
+<ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
+          </>
+        }
+      />
 
       <div className={`${styles.statRow} ${styles.statRow2}`}>
         <div className={styles.statChip}>

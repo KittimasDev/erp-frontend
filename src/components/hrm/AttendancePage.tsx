@@ -51,6 +51,7 @@ import {
 import { LEAVE_TYPE_LABEL } from "@/types/leave";
 
 import styles from "./AttendancePage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 /** สีกราฟ — ใช้ร่วมกับสี Tag ในตารางให้อ่านง่ายเป็นชุดเดียวกัน */
 const GREEN = "#8ab933";
@@ -334,18 +335,13 @@ export default function AttendancePage() {
   return (
     <MasterPageGate isLoading={summaryQuery.isLoading}>
       <div className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <ClockCircleOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>HRM</p>
-            <h1 className={styles.pageTitle}>บันทึกเวลาเข้า-ออกงาน</h1>
-            <p className={styles.pageSubtitle}>
-              รายการลงเวลาของพนักงาน เรียงจากล่าสุด ดูได้ทั้งรายวันและทั้งเดือน
-              พร้อมกราฟสรุป
-            </p>
-            <div className={styles.shareLink}>
+        <PageHeader
+          eyebrow="HRM"
+          icon={<ClockCircleOutlined />}
+          title="บันทึกเวลาเข้า-ออกงาน"
+          subtitle="รายการลงเวลาของพนักงาน เรียงจากล่าสุด ดูได้ทั้งรายวันและทั้งเดือน พร้อมกราฟสรุป"
+        >
+<div className={styles.shareLink}>
               <span>ลิงก์ให้พนักงานกดเข้า-ออกงาน</span>
               <code>{selfServiceUrl}</code>
               <Button
@@ -356,8 +352,7 @@ export default function AttendancePage() {
                 คัดลอก
               </Button>
             </div>
-          </div>
-        </header>
+        </PageHeader>
 
         <div className={styles.toolbar}>
           <label className={styles.filterField}>

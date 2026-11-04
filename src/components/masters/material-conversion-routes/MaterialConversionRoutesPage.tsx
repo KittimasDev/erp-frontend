@@ -23,6 +23,7 @@ import type { MaterialConversionRoute } from "@/types/material-conversion";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import RouteFormModal from "./RouteFormModal";
 import RouteStepsDrawer from "./RouteStepsDrawer";
+import PageHeader from "@/components/common/PageHeader";
 
 export default function MaterialConversionRoutesPage() {
   const actions = useScreenActionPermissions("MATERIAL_CONVERSION_ROUTES");
@@ -156,17 +157,13 @@ export default function MaterialConversionRoutesPage() {
   return (
     <MasterPageGate isLoading={listQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>MCR</div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>MASTER DATA · CONVERSION ROUTES</div>
-            <h2 className={masterStyles.pageTitle}>เส้นทางแปรสภาพวัตถุดิบ</h2>
-            <span className={masterStyles.pageSubtitle}>
-              ตั้งสายงานและขั้นตอนได้เอง — วัตถุดิบชนิดใหม่ที่ไม่ใช่ยางเพิ่มได้ที่นี่
-              ไม่ต้องแก้โค้ด · รหัสขั้นตอนไม่ซ้ำทั้งระบบและแก้ไม่ได้หลังมีเอกสารอ้างอิง
-            </span>
-          </div>
-          {actions.canAdd ? (
+        <PageHeader
+          eyebrow="MASTER DATA · CONVERSION ROUTES"
+          title="เส้นทางแปรสภาพวัตถุดิบ"
+          subtitle="ตั้งสายงานและขั้นตอนได้เอง — วัตถุดิบชนิดใหม่ที่ไม่ใช่ยางเพิ่มได้ที่นี่ ไม่ต้องแก้โค้ด · รหัสขั้นตอนไม่ซ้ำทั้งระบบและแก้ไม่ได้หลังมีเอกสารอ้างอิง"
+          actions={
+            <>
+{actions.canAdd ? (
             <Button
               type="primary"
               className={masterStyles.createButton}
@@ -179,7 +176,9 @@ export default function MaterialConversionRoutesPage() {
               สร้างเส้นทาง
             </Button>
           ) : null}
-        </div>
+            </>
+          }
+        />
 
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>

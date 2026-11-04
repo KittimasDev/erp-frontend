@@ -26,6 +26,7 @@ import {
   type PendingBillingAp,
 } from "@/types/billing-notes";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import PageHeader from "@/components/common/PageHeader";
 
 const PENDING_PAGE_SIZE = 5;
 const CREATED_PAGE_SIZE = 20;
@@ -301,20 +302,14 @@ export default function BillingNotesPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            FINANCE · PAYABLES
-          </div>
-          <h2 className={masterStyles.pageTitle}>ใบวางบิล</h2>
-          <span className={masterStyles.pageSubtitle}>
-            AP ที่อนุมัติแล้วรอวางบิล และใบวางบิลที่สร้างแล้ว — เลือกหลายใบของผู้ขายเดียวกันรวมเป็นใบเดียวได้
-          </span>
-        </div>
-        <Space>
+      <PageHeader
+        eyebrow="FINANCE · PAYABLES"
+        icon={<FileTextOutlined />}
+        title="ใบวางบิล"
+        subtitle="AP ที่อนุมัติแล้วรอวางบิล และใบวางบิลที่สร้างแล้ว — เลือกหลายใบของผู้ขายเดียวกันรวมเป็นใบเดียวได้"
+        actions={
+          <>
+<Space>
           {perms.canAdd ? (
             <Button type="primary" disabled={selected.length === 0} onClick={() => goCreate(selected.map((s) => s.apId))}>
               วางบิลที่เลือก ({selected.length})
@@ -322,7 +317,9 @@ export default function BillingNotesPage() {
           ) : null}
           <ReportExportButtons canExport downloading={downloading} onExport={(f) => void handleExport(f)} />
         </Space>
-      </div>
+          </>
+        }
+      />
 
       <div className={`${styles.statRow} ${styles.statRow2}`}>
         <div className={styles.statChip}>

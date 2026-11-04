@@ -12,6 +12,7 @@ import { useWarehouseLocationQuery } from "@/hooks/warehouse-locations/useWareho
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateWarehouseLocationRequest } from "@/types/warehouse-locations";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type WarehouseLocationFormValues = {
   warehouseId: string;
@@ -107,33 +108,22 @@ export default function WarehouseLocationFormPage({
       }
     >
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <Button
+        <PageHeader
+          eyebrow={isCreateMode ? "CREATE WAREHOUSE LOCATION" : "EDIT WAREHOUSE LOCATION"}
+          title={isCreateMode ? "เพิ่มตำแหน่งจัดเก็บ" : "แก้ไขตำแหน่งจัดเก็บ"}
+          subtitle={isCreateMode ? "เลือกคลังก่อน แล้วกำหนดรหัสตำแหน่ง (ห้ามซ้ำในคลังเดียวกัน)" : "แก้ไขรายละเอียดตำแหน่งจัดเก็บภายใต้คลังสินค้า"}
+          actions={
+            <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={goBack}
             className={styles.editButton}
           >
             กลับ
           </Button>
-
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>
-              {isCreateMode
-                ? "CREATE WAREHOUSE LOCATION"
-                : "EDIT WAREHOUSE LOCATION"}
-            </div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              {isCreateMode ? "เพิ่มตำแหน่งจัดเก็บ" : "แก้ไขตำแหน่งจัดเก็บ"}
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              {isCreateMode
-                ? "เลือกคลังก่อน แล้วกำหนดรหัสตำแหน่ง (ห้ามซ้ำในคลังเดียวกัน)"
-                : "แก้ไขรายละเอียดตำแหน่งจัดเก็บภายใต้คลังสินค้า"}
-            </Typography.Text>
-          </div>
-
-          <div />
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.tableCard}>
           <Form

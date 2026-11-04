@@ -31,6 +31,7 @@ import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { isPoPayableStatus } from "@/types/purchase-orders";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import styles from "./GoodsReceiptDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -178,20 +179,15 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <InboxOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Goods Receipt</p>
-          <h1 className={styles.pageTitle}>{data.grNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {data.creditor?.nameTh ?? "—"} · {formatDate(data.grDate)} ·{" "}
-            {data.items?.length ?? 0} รายการ
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Goods Receipt"
+        icon={<InboxOutlined />}
+        title={data.grNo}
+        subtitle={<>{data.creditor?.nameTh ?? "—"} · {formatDate(data.grDate)} ·{" "}
+            {data.items?.length ?? 0} รายการ</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/goods-receipts")}
           >
@@ -200,8 +196,9 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
           <Button icon={<FilePdfOutlined />} onClick={() => void printPdf()}>
             พิมพ์ PDF
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

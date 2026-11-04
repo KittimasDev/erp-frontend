@@ -40,6 +40,7 @@ import {
   type PurchaseJournalItem,
 } from "@/types/purchase-journal";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PURCHASES";
 const PAGE_SIZE = 10;
@@ -412,26 +413,22 @@ export default function PurchaseJournalPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            REPORTS · JOURNALS
-          </div>
-          <h2 className={masterStyles.pageTitle}>สมุดรายวันซื้อ</h2>
-          <span className={masterStyles.pageSubtitle}>
-            ใบตั้งหนี้ ใบเพิ่มหนี้ ใบลดหนี้ที่อนุมัติแล้ว แตกเป็นบรรทัดบัญชีเดบิต/เครดิต
-          </span>
-        </div>
-        <ReportExportButtons
+      <PageHeader
+        eyebrow="REPORTS · JOURNALS"
+        icon={<FileTextOutlined />}
+        title="สมุดรายวันซื้อ"
+        subtitle="ใบตั้งหนี้ ใบเพิ่มหนี้ ใบลดหนี้ที่อนุมัติแล้ว แตกเป็นบรรทัดบัญชีเดบิต/เครดิต"
+        actions={
+          <>
+<ReportExportButtons
           canExport={canExport}
           downloading={downloading}
           onExport={(format) => void handleExport(format)}
           csvRequiresExport
         />
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>

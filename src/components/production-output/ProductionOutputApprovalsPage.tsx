@@ -18,6 +18,7 @@ import { userHasRole } from "@/lib/auth/session";
 import type { ProductionOutputStockRequest } from "@/types/production-output-stock-request";
 import { PRODUCTION_OUTPUT_REQUEST_STATUS_LABEL } from "@/types/production-output-stock-request";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const PAGE_SIZE = 10;
 
@@ -154,19 +155,11 @@ export default function ProductionOutputApprovalsPage() {
   return (
     <MasterPageGate isLoading={approvalsQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div />
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>WAREHOUSE · PRODUCTION OUTPUT</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              อนุมัติรับผลผลิตเข้าคลัง
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              หัวหน้าคลังอนุมัติแล้วระบบจะ POST สต๊อก (RECEIVE) จริง
-            </Typography.Text>
-          </div>
-          <div />
-        </div>
+        <PageHeader
+          eyebrow="WAREHOUSE · PRODUCTION OUTPUT"
+          title="อนุมัติรับผลผลิตเข้าคลัง"
+          subtitle="หัวหน้าคลังอนุมัติแล้วระบบจะ POST สต๊อก (RECEIVE) จริง"
+        />
 
         {!canApprove ? (
           <Typography.Text

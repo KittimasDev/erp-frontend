@@ -17,6 +17,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import ShutdownPlanDetailDrawer from "./ShutdownPlanDetailDrawer";
 import ShutdownPlanFormModal from "./ShutdownPlanFormModal";
 import { formatBeRange } from "./shutdownPlanFormat";
+import PageHeader from "@/components/common/PageHeader";
 
 type StatusFilter = "ACTIVE" | "CANCELLED" | "ALL";
 
@@ -150,23 +151,19 @@ export default function ShutdownPlansPage() {
   return (
     <MasterPageGate isLoading={plansQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <ToolOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>HRM · SHUTDOWN</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              แผนกำลังคนช่วง Shutdown
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              วางกำลังคนช่วงหยุดเดินเครื่อง แยกจากตารางกะปกติ · สร้างแผนแล้วระบบลงวัน &quot;ซ่อมเครื่อง&quot; ในปฏิทินให้
-            </Typography.Text>
-          </div>
-          <Button type="primary" size="large" icon={<PlusOutlined />} onClick={openCreate}>
+        <PageHeader
+          eyebrow="HRM · SHUTDOWN"
+          icon={<ToolOutlined />}
+          title="แผนกำลังคนช่วง Shutdown"
+          subtitle="วางกำลังคนช่วงหยุดเดินเครื่อง แยกจากตารางกะปกติ · สร้างแผนแล้วระบบลงวัน &quot;ซ่อมเครื่อง&quot; ในปฏิทินให้"
+          actions={
+            <>
+<Button type="primary" size="large" icon={<PlusOutlined />} onClick={openCreate}>
             สร้างแผน Shutdown
           </Button>
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.tableCard}>
           <div className={styles.tableHeader}>

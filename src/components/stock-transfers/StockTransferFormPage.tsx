@@ -34,6 +34,7 @@ import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { InventoryLotBalanceRow } from "@/types/inventory";
 import type { CreateStockTransferBody } from "@/types/stock-transfers";
 import styles from "./StockTransferFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   itemId?: string;
@@ -229,25 +230,21 @@ export default function StockTransferFormPage({ mode, id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <SwapOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Stock Transfer</p>
-          <h1 className={styles.pageTitle}>
-            {mode === "create" ? "สร้างใบโอนย้ายสินค้า" : "แก้ไขใบโอนย้ายสินค้า"}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            เลือกสินค้า/Lot ต้นทางที่มีสต๊อกพอ และปลายทางที่ไม่ใช่ที่เดียวกับต้นทาง
-          </p>
-        </div>
-        <div className={styles.backLink}>
+      <PageHeader
+        eyebrow="Stock Transfer"
+        icon={<SwapOutlined />}
+        title={mode === "create" ? "สร้างใบโอนย้ายสินค้า" : "แก้ไขใบโอนย้ายสินค้า"}
+        subtitle="เลือกสินค้า/Lot ต้นทางที่มีสต๊อกพอ และปลายทางที่ไม่ใช่ที่เดียวกับต้นทาง"
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link href={scopePath("/inventory/stock-transfers")}>
             <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <Form
         form={form}

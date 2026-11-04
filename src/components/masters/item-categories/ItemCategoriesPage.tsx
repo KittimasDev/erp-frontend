@@ -37,6 +37,7 @@ import type {
 
 import ItemCategoryFormModal from "./ItemCategoryFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type ItemCategoryFilterFormValues = {
   code?: string;
@@ -318,22 +319,13 @@ export default function ItemCategoriesPage() {
   return (
     <MasterPageGate isLoading={itemCategoriesQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            หมวดหมู่สินค้า
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการหมวดหมู่สำหรับจัดกลุ่มสินค้า วัตถุดิบ และวัสดุต่าง ๆ
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="หมวดหมู่สินค้า"
+        subtitle="จัดการหมวดหมู่สำหรับจัดกลุ่มสินค้า วัตถุดิบ และวัสดุต่าง ๆ"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -342,7 +334,9 @@ export default function ItemCategoriesPage() {
         >
           เพิ่มหมวดหมู่
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

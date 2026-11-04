@@ -42,6 +42,7 @@ import {
 } from "@/utils/downloadTabularReport";
 
 import styles from "./RawTirePurchaseReportPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const TITLE = "รายงานสรุปยอดขาย";
 
@@ -705,28 +706,23 @@ export default function SalesSummaryReportPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <BarChartOutlined />
-            </span>
-            Reports · Sales by Item
-          </div>
-          <h1 className={styles.pageTitle}>{TITLE}</h1>
-          <p className={styles.pageSubtitle}>
-            ยอดขายจากใบสั่งขายที่ยืนยันแล้ว แยกตามลูกค้า ใบสั่งขาย และสินค้า พร้อมยอดส่งมอบและยอดค้างส่ง
-          </p>
-        </div>
-        <div className={styles.heroActions}>
+      <PageHeader
+        eyebrow="Reports · Sales by Item"
+        icon={<BarChartOutlined />}
+        title={TITLE}
+        subtitle="ยอดขายจากใบสั่งขายที่ยืนยันแล้ว แยกตามลูกค้า ใบสั่งขาย และสินค้า พร้อมยอดส่งมอบและยอดค้างส่ง"
+        actions={
+          <>
+
           <ReportExportButtons
             canExport={canExport}
             csvRequiresExport
             downloading={exporting}
             onExport={(format) => void handleExport(format)}
           />
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow} style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
         {cards.map((card) => (

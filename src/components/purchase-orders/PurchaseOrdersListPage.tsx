@@ -57,6 +57,7 @@ import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadg
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import styles from "./PurchaseOrdersListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 /** จำนวนรายการที่ยังไม่ถูกสั่งซื้อในใบขอซื้อใบนั้น */
 function countOpenItems(pr: PurchaseRequest) {
@@ -744,23 +745,19 @@ export default function PurchaseOrdersListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileTextOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Purchase Order</p>
-          <h1 className={styles.pageTitle}>รายการใบสั่งซื้อ</h1>
-          <p className={styles.pageSubtitle}>
-            หลังอนุมัติใบขอซื้อ รายการจะขึ้นด้านบนเพื่อสร้างใบสั่งซื้อ
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Link href="/purchase-requests">
+      <PageHeader
+        eyebrow="Purchase Order"
+        icon={<FileTextOutlined />}
+        title="รายการใบสั่งซื้อ"
+        subtitle="หลังอนุมัติใบขอซื้อ รายการจะขึ้นด้านบนเพื่อสร้างใบสั่งซื้อ"
+        actions={
+          <>
+<Link href="/purchase-requests">
             <Button className={styles.secondaryBtn}>ไปที่ใบขอซื้อ</Button>
           </Link>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>

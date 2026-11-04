@@ -7,6 +7,7 @@ import type { ColumnsType } from "antd/es/table";
 import { EyeOutlined, FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import PageHeader from "@/components/common/PageHeader";
 import ReportExportButtons, {
   type ReportExportFormat,
 } from "@/components/reports/ReportExportButtons";
@@ -364,28 +365,19 @@ export default function RawTirePurchaseReportPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            Reports · Raw Tire Purchase
-          </div>
-          <h1 className={styles.pageTitle}>รายงานรับซื้อรายวัน / รายเดือน</h1>
-          <p className={styles.pageSubtitle}>
-            สรุปใบรับซื้อยางที่อนุมัติแล้ว (CONFIRMED) กรองตามช่วงวันที่ ผู้ขาย ประเภทยาง
-            สถานะชำระเงิน และสถานะคลัง
-          </p>
-        </div>
-        <div className={styles.heroActions}>
+      <PageHeader
+        eyebrow="Reports · Raw Tire Purchase"
+        icon={<FileTextOutlined />}
+        title="รายงานรับซื้อรายวัน / รายเดือน"
+        subtitle="สรุปใบรับซื้อยางที่อนุมัติแล้ว (CONFIRMED) กรองตามช่วงวันที่ ผู้ขาย ประเภทยาง สถานะชำระเงิน และสถานะคลัง"
+        actions={
           <ReportExportButtons
             canExport={canExport}
             downloading={exporting}
             onExport={(format) => void handleExport(format)}
           />
-        </div>
-      </header>
+        }
+      />
 
       <div className={styles.modeBar}>
         <Segmented<RawTirePurchaseReportViewMode>

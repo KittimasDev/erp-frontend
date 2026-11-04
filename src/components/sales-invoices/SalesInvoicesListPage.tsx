@@ -23,6 +23,7 @@ import {
   SALES_INVOICE_STATUS_LABEL,
 } from "@/types/sales-invoices";
 import styles from "./SalesInvoicesListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function statusClass(status: string) {
   switch (status) {
@@ -224,21 +225,14 @@ export default function SalesInvoicesListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            Sales · Accounts Receivable
-          </div>
-          <h1 className={styles.pageTitle}>ใบแจ้งหนี้ขาย</h1>
-          <p className={styles.pageSubtitle}>
-            ออกบิลจากใบส่งสินค้าที่ส่งมอบแล้ว — ยืนยันโพสต์ และรับชำระเต็มจำนวน
-          </p>
-        </div>
-        <div className={styles.heroActions}>
-          <Link href="/sales-invoices/pending">
+      <PageHeader
+        eyebrow="Sales · Accounts Receivable"
+        icon={<FileTextOutlined />}
+        title="ใบแจ้งหนี้ขาย"
+        subtitle="ออกบิลจากใบส่งสินค้าที่ส่งมอบแล้ว — ยืนยันโพสต์ และรับชำระเต็มจำนวน"
+        actions={
+          <>
+<Link href="/sales-invoices/pending">
             <Button
               className={styles.primaryBtn}
               type="primary"
@@ -255,8 +249,9 @@ export default function SalesInvoicesListPage() {
               ) : null}
             </Button>
           </Link>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>

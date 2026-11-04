@@ -38,6 +38,7 @@ import type {
 
 import SellerBankAccountFormModal from "./SellerBankAccountFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type SellerBankAccountFilterFormValues = {
   sellerId?: string;
@@ -388,22 +389,13 @@ export default function SellerBankAccountsPage() {
   return (
     <MasterPageGate isLoading={accountsQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            บัญชีธนาคารผู้ขาย
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการบัญชีธนาคารสำหรับโอนเงินให้ผู้ขายยาง
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="บัญชีธนาคารผู้ขาย"
+        subtitle="จัดการบัญชีธนาคารสำหรับโอนเงินให้ผู้ขายยาง"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -412,7 +404,9 @@ export default function SellerBankAccountsPage() {
         >
           เพิ่มบัญชี
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

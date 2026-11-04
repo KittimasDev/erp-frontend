@@ -44,6 +44,7 @@ import EditProductionRoundModal from "./EditProductionRoundModal";
 import ProductionRoundDetailDrawer from "./ProductionRoundDetailDrawer";
 import { fmtDate } from "./schedule-dates";
 import styles from "./ProductionSchedulePage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const STATUS_LABEL: Record<ScheduleDisplayStatus, string> = {
   PENDING: "รอยืนยัน",
@@ -270,14 +271,11 @@ export default function ProductionSchedulePage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>ตารางการผลิต</h1>
-          <p className={styles.subtitle}>
-            ดูภาพรวมรายเดือน วางแผนและยืนยันรอบการผลิต แล้วติดตามรอบผลิตจริงในแท็บเดียว · รหัสรอบเป็นรหัสเดียวกันตั้งแต่ตอนวางแผน
-          </p>
-        </div>
-        <div className={styles.actions}>
+      <PageHeader
+        title="ตารางการผลิต"
+        subtitle="ดูภาพรวมรายเดือน วางแผนและยืนยันรอบการผลิต แล้วติดตามรอบผลิตจริงในแท็บเดียว · รหัสรอบเป็นรหัสเดียวกันตั้งแต่ตอนวางแผน"
+        actions={
+          <>
           {canEdit ? (
             <Button
               icon={<SettingOutlined />}
@@ -294,8 +292,9 @@ export default function ProductionSchedulePage() {
               สร้างแผนการผลิต
             </Button>
           ) : null}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {near.length > 0 ? (
         <Alert

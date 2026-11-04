@@ -15,6 +15,7 @@ import {
   type SalesCreditNote,
   type SalesCreditNotePendingRow,
 } from "@/types/sales-credit-notes";
+import PageHeader from "@/components/common/PageHeader";
 
 const money = new Intl.NumberFormat("th-TH", {
   minimumFractionDigits: 2,
@@ -145,6 +146,11 @@ export default function SalesCreditNotesPage() {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
+      <PageHeader
+        title="ใบลดหนี้"
+        subtitle="รอดำเนินการลดหนี้จากใบรับคืนสินค้า"
+      />
+
       <Card title="รอดำเนินการลดหนี้">
         <Space orientation="vertical" size={16} style={{ width: "100%" }}>
           {groups.length === 0 && !pendingQuery.isLoading ? (

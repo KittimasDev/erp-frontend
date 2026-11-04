@@ -35,6 +35,7 @@ import {
 } from "recharts";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import PageHeader from "@/components/common/PageHeader";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
 import { useWeighbridgeAnalyticsQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeAnalyticsQuery";
 import type { WeighbridgeAnalyticsSource } from "@/types/weighbridge-tickets";
@@ -243,20 +244,20 @@ export default function ReceivingAnalyticsDashboardPage() {
   return (
     <MasterPageGate isLoading={analyticsQuery.isLoading}>
       <section className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div>
-            <p className={styles.eyebrow}>Raw Tire · Receiving</p>
-            <h1 className={styles.pageTitle}>ภาพรวมรับซื้อยาง</h1>
-            <p className={styles.pageSubtitle}>
+        <PageHeader
+          eyebrow="Raw Tire · Receiving"
+          title="ภาพรวมรับซื้อยาง"
+          subtitle={
+            <>
               {dayjs(from).format("D MMM YYYY")} –{" "}
               {dayjs(to).format("D MMM YYYY")}
               {selectedClassificationLabel
                 ? ` · ${selectedClassificationLabel}`
                 : ""}
               {analyticsQuery.isFetching ? " · กำลังอัปเดต…" : ""}
-            </p>
-          </div>
-        </header>
+            </>
+          }
+        />
 
         <div className={styles.toolbar}>
           <div className={styles.toolbarFilters}>

@@ -28,6 +28,7 @@ import ShiftBulkModal from "./ShiftBulkModal";
 import ShiftDayDrawer from "./ShiftDayDrawer";
 import ShiftMasterModal from "./ShiftMasterModal";
 import styles from "./ShiftCalendarPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const PRODUCTION_DAY_META: Record<
   ShiftCalendarProductionDayType,
@@ -173,19 +174,12 @@ export default function ShiftCalendarPage() {
   return (
     <MasterPageGate isLoading={calendarQuery.isLoading}>
       <div className={styles.page}>
-        <header className={styles.pageHeader}>
-          <div className={styles.headerAccent} aria-hidden>
-            <CalendarOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>HRM</p>
-            <h1 className={styles.pageTitle}>ตารางกะการทำงาน</h1>
-            <p className={styles.pageSubtitle}>
-              จัดรอบกะลงปฏิทินรายวัน กดวันที่เพื่อดู/แก้รอบกะและรายชื่อคนในกะ
-              หรือกดหยุดวันซ่อมเครื่อง — พนักงานเห็นกะของตัวเองในหน้าลงเวลา
-            </p>
-          </div>
-        </header>
+        <PageHeader
+          eyebrow="HRM"
+          icon={<CalendarOutlined />}
+          title="ตารางกะการทำงาน"
+          subtitle="จัดรอบกะลงปฏิทินรายวัน กดวันที่เพื่อดู/แก้รอบกะและรายชื่อคนในกะ หรือกดหยุดวันซ่อมเครื่อง — พนักงานเห็นกะของตัวเองในหน้าลงเวลา"
+        />
 
         <div className={styles.toolbar}>
           <label className={styles.filterField}>

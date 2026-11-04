@@ -20,6 +20,7 @@ import {
 } from "@/types/purchase-payments";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import styles from "./PurchasePaymentsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function statusClass(status: string) {
   switch (status) {
@@ -225,28 +226,21 @@ export default function PurchasePaymentsListPage({
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <DollarOutlined />
-            </span>
-            Accounting · Payment History
-          </div>
-          <h1 className={styles.pageTitle}>ประวัติการจ่ายเงิน</h1>
-          <p className={styles.pageSubtitle}>
-            ใบสำคัญจ่าย Supplier จากใบสั่งซื้อ — ค้นหา ติดตามสถานะ
-            และเปิดดูรายละเอียดการจ่ายได้จากที่นี่
-          </p>
-        </div>
-        <div className={styles.heroActions}>
-          <Link href={secondaryHref}>
+      <PageHeader
+        eyebrow="Accounting · Payment History"
+        icon={<DollarOutlined />}
+        title="ประวัติการจ่ายเงิน"
+        subtitle="ใบสำคัญจ่าย Supplier จากใบสั่งซื้อ — ค้นหา ติดตามสถานะ และเปิดดูรายละเอียดการจ่ายได้จากที่นี่"
+        actions={
+          <>
+<Link href={secondaryHref}>
             <Button className={styles.primaryBtn} type="primary" icon={<DollarOutlined />}>
               {secondaryLabel}
             </Button>
           </Link>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>

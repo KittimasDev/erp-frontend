@@ -38,6 +38,7 @@ import {
   kindLabel,
   referenceLine,
 } from "./paymentVoucherUtils";
+import PageHeader from "@/components/common/PageHeader";
 
 type EditValues = {
   voucherDate: Dayjs;
@@ -114,23 +115,23 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <Space>
-              <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PV_BASE_PATH)}>
+      <PageHeader
+        title={<>{v.voucherNo}</>}
+        subtitle={<><Typography.Text type="secondary">อ้างอิง {referenceLine(d) || "—"}</Typography.Text></>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push(PV_BASE_PATH)}>
                 กลับ
               </Button>
-              <Typography.Title level={3} style={{ margin: 0 }}>
-                {v.voucherNo}
-              </Typography.Title>
-              <Tag color={VOUCHER_STATUS_COLOR[status]}>{VOUCHER_STATUS_LABEL[status] ?? status}</Tag>
-            </Space>
-            <div style={{ marginTop: 6 }}>
-              <Typography.Text type="secondary">อ้างอิง {referenceLine(d) || "—"}</Typography.Text>
-            </div>
-          </div>
-          <Space wrap>
+          </>
+        }
+        meta={
+          <>
+<Tag color={VOUCHER_STATUS_COLOR[status]}>{VOUCHER_STATUS_LABEL[status] ?? status}</Tag>
+          </>
+        }
+        actions={
+          <>
             {editable && perms.canEdit ? (
               <>
                 <Button loading={update.isPending} onClick={() => void saveEdit(false)}>
@@ -166,9 +167,10 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
                 ยกเลิก
               </Button>
             ) : null}
-          </Space>
-        </div>
-      </Card>
+          
+          </>
+        }
+      />
 
       {status === "REJECTED" && d.rejectReason ? (
         <Alert type="error" showIcon title="ไม่อนุมัติ — แก้ไขแล้วส่งอนุมัติใหม่ได้" description={d.rejectReason} />

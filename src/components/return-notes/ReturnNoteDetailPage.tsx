@@ -22,6 +22,7 @@ import {
   RejectReturnNoteModal,
 } from "./ReturnNoteDecisionModals";
 import styles from "./ReturnNoteDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -72,20 +73,15 @@ export default function ReturnNoteDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <RollbackOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Return Note</p>
-          <h1 className={styles.pageTitle}>{data.returnNoteNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {formatDateTime(data.createdAt)} · {data.items.length} รายการ ·{" "}
-            {data.customerName ?? "—"}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Return Note"
+        icon={<RollbackOutlined />}
+        title={data.returnNoteNo}
+        subtitle={<>{formatDateTime(data.createdAt)} · {data.items.length} รายการ ·{" "}
+            {data.customerName ?? "—"}</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/return-notes")}
           >
@@ -138,8 +134,9 @@ export default function ReturnNoteDetailPage({ id }: Props) {
           >
             พิมพ์ PDF
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

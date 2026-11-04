@@ -10,6 +10,7 @@ import { initialsFromUser } from "@/lib/auth/session";
 
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./profile.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const EMPTY = "—";
 
@@ -75,17 +76,17 @@ export default function ProfilePage() {
 
   return (
     <section className={masterStyles.page}>
-      <div className={masterStyles.pageHeader}>
-        <div className={styles.profileAvatar}>{initialsFromUser(me)}</div>
-        <div className={masterStyles.headerContent}>
-          <div className={masterStyles.eyebrow}>โปรไฟล์ของฉัน</div>
-          <Typography.Title level={2} className={masterStyles.pageTitle}>
-            {me.displayName || me.username}
-          </Typography.Title>
-          <Typography.Text className={masterStyles.pageSubtitle}>
-            {me.username}
-          </Typography.Text>
-          <div className={styles.roleTags}>
+      <PageHeader
+        eyebrow="โปรไฟล์ของฉัน"
+        title={me.displayName || me.username}
+        subtitle={me.username}
+        actions={
+          <>
+<div className={styles.profileAvatar}>{initialsFromUser(me)}</div>
+          </>
+        }
+      >
+<div className={styles.roleTags}>
             {(me.roles ?? []).length > 0 ? (
               (me.roles ?? []).map((role) => (
                 <Tag key={role.id} color="green">
@@ -99,9 +100,7 @@ export default function ProfilePage() {
               {me.isActive ? "ใช้งาน" : "ปิดใช้งาน"}
             </Tag>
           </div>
-        </div>
-        <div />
-      </div>
+      </PageHeader>
 
       <div className={masterStyles.tableCard}>
         <div className={masterStyles.tableHeader}>

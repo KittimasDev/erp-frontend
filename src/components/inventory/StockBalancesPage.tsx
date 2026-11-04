@@ -27,6 +27,7 @@ import type {
 } from "@/types/inventory";
 import { getInventoryPageScope, inventoryScopeApiFilter } from "./inventory-page-copy";
 import styles from "./StockBalancesPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const StockBalanceItemDetailDrawer = dynamic(
   () => import("./StockBalanceItemDetailDrawer"),
@@ -463,15 +464,7 @@ export default function StockBalancesPage() {
   return (
     <MasterPageGate>
       <section className={styles.page}>
-        <div className={styles.header}>
-          <div className={styles.headerMain}>
-            <div className={styles.eyebrow}>{copy.eyebrow}</div>
-            <Typography.Title level={2} className={styles.title}>
-              {copy.title}
-            </Typography.Title>
-            <span className={styles.subtitle}>{copy.subtitle}</span>
-          </div>
-        </div>
+        <PageHeader eyebrow={copy.eyebrow} title={copy.title} subtitle={copy.subtitle} />
 
         {pageError ? (
           <Alert

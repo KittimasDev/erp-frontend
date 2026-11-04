@@ -40,6 +40,7 @@ import {
   type PaymentJournalMethod,
 } from "@/types/payment-journal";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "REPORTS_JOURNAL_PAYMENTS";
 const PAGE_SIZE = 10;
@@ -417,26 +418,22 @@ export default function PaymentJournalPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            REPORTS · JOURNALS
-          </div>
-          <h2 className={masterStyles.pageTitle}>สมุดรายวันจ่าย</h2>
-          <span className={masterStyles.pageSubtitle}>
-            อ้างอิงใบสำคัญจ่ายและการบันทึกจ่ายเงินจริง แตกเป็นบรรทัดบัญชีเดบิต/เครดิต — ชำระหนี้ AP, จ่ายล่วงหน้า, จ่ายมัดจำ
-          </span>
-        </div>
-        <ReportExportButtons
+      <PageHeader
+        eyebrow="REPORTS · JOURNALS"
+        icon={<FileTextOutlined />}
+        title="สมุดรายวันจ่าย"
+        subtitle="อ้างอิงใบสำคัญจ่ายและการบันทึกจ่ายเงินจริง แตกเป็นบรรทัดบัญชีเดบิต/เครดิต — ชำระหนี้ AP, จ่ายล่วงหน้า, จ่ายมัดจำ"
+        actions={
+          <>
+<ReportExportButtons
           canExport={canExport}
           downloading={downloading}
           onExport={(format) => void handleExport(format)}
           csvRequiresExport
         />
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>

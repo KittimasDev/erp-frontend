@@ -34,6 +34,7 @@ import {
 } from "@/hooks/billing-notes/useBillingNotes";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { BILLING_NOTE_STATUS_COLOR, BILLING_NOTE_STATUS_LABEL, type PendingBillingAp } from "@/types/billing-notes";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "FINANCE_BILLING_NOTES";
 const BASE_PATH = "/finance/payables/billing-notes";
@@ -340,14 +341,16 @@ export default function BillingNoteFormPage({ id }: { id?: string }) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Space>
-        <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(BASE_PATH)}>
+      <PageHeader
+        title={<>{id ? `แก้ไขใบวางบิล ${detail?.billingNo ?? ""}` : "สร้างใบวางบิล"}</>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push(BASE_PATH)}>
           กลับ
         </Button>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          {id ? `แก้ไขใบวางบิล ${detail?.billingNo ?? ""}` : "สร้างใบวางบิล"}
-        </Typography.Title>
-      </Space>
+          </>
+        }
+      />
       {!allowed ? <Alert type="warning" showIcon message="คุณไม่มีสิทธิ์บันทึกใบวางบิล" /> : null}
 
       <Card title="ข้อมูลเอกสาร">

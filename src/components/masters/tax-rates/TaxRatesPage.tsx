@@ -38,6 +38,7 @@ import type {
 
 import TaxRateFormModal from "./TaxRateFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type TaxRateFilterFormValues = {
   code?: string;
@@ -343,22 +344,13 @@ export default function TaxRatesPage() {
   return (
     <MasterPageGate isLoading={taxRatesQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            อัตราภาษี
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการอัตราภาษีมูลค่าเพิ่มและประเภทภาษีที่ใช้ในเอกสาร
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="อัตราภาษี"
+        subtitle="จัดการอัตราภาษีมูลค่าเพิ่มและประเภทภาษีที่ใช้ในเอกสาร"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -367,7 +359,9 @@ export default function TaxRatesPage() {
         >
           เพิ่มอัตราภาษี
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

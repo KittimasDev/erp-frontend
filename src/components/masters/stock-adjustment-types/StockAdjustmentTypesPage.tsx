@@ -37,6 +37,7 @@ import type {
 
 import StockAdjustmentTypeFormModal from "./StockAdjustmentTypeFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type FilterFormValues = {
   code?: string;
@@ -336,22 +337,13 @@ export default function StockAdjustmentTypesPage() {
   return (
     <MasterPageGate isLoading={listQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            ประเภทใบปรับปรุงสต๊อก
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการประเภทที่ใช้เป็นป้ายกำกับบนใบปรับปรุงสต๊อก — ทิศสต๊อกยังดูจากเครื่องหมายของจำนวน
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="ประเภทใบปรับปรุงสต๊อก"
+        subtitle="จัดการประเภทที่ใช้เป็นป้ายกำกับบนใบปรับปรุงสต๊อก — ทิศสต๊อกยังดูจากเครื่องหมายของจำนวน"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -360,7 +352,9 @@ export default function StockAdjustmentTypesPage() {
         >
           เพิ่มประเภท
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

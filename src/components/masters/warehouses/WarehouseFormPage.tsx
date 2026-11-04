@@ -12,6 +12,7 @@ import { useUpdateWarehouseMutation } from "@/hooks/warehouses/useUpdateWarehous
 import { useWarehouseQuery } from "@/hooks/warehouses/useWarehouseQuery";
 import type { CreateWarehouseRequest } from "@/types/warehouses";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type WarehouseFormValues = {
   code: string;
@@ -111,31 +112,22 @@ export default function WarehouseFormPage({
       isLoading={!isCreateMode && warehouseQuery.isLoading}
     >
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <Button
+        <PageHeader
+          eyebrow={isCreateMode ? "CREATE WAREHOUSE" : "EDIT WAREHOUSE"}
+          title={isCreateMode ? "เพิ่มคลังสินค้า" : "แก้ไขคลังสินค้า"}
+          subtitle={isCreateMode ? "กรอกข้อมูลคลังใหม่ รหัสคลังต้องไม่ซ้ำ" : "แก้ไขรายละเอียดคลังและสถานะการใช้งาน"}
+          actions={
+            <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={goBack}
             className={styles.editButton}
           >
             กลับ
           </Button>
-
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>
-              {isCreateMode ? "CREATE WAREHOUSE" : "EDIT WAREHOUSE"}
-            </div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              {isCreateMode ? "เพิ่มคลังสินค้า" : "แก้ไขคลังสินค้า"}
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              {isCreateMode
-                ? "กรอกข้อมูลคลังใหม่ รหัสคลังต้องไม่ซ้ำ"
-                : "แก้ไขรายละเอียดคลังและสถานะการใช้งาน"}
-            </Typography.Text>
-          </div>
-
-          <div />
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.tableCard}>
           <Form

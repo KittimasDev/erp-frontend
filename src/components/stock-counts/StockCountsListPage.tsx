@@ -22,6 +22,7 @@ import { useStockCountsQuery } from "@/hooks/stock-counts/useStockCountsQuery";
 import type { StockCount } from "@/types/stock-counts";
 import { STOCK_COUNT_STATUS_LABEL } from "@/types/stock-counts";
 import styles from "./StockCountsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -206,20 +207,14 @@ export default function StockCountsListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <FileSearchOutlined />
-            </span>
-            Warehouse · Stock Count
-          </div>
-          <h1 className={styles.pageTitle}>นับสต๊อก</h1>
-          <p className={styles.pageSubtitle}>
-            เปิดใบนับ (DRAFT) กรอกยอดนับจริง แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อปรับปรุงสต๊อกจริง
-          </p>
-        </div>
-        {canAdd ? (
+      <PageHeader
+        eyebrow="Warehouse · Stock Count"
+        icon={<FileSearchOutlined />}
+        title="นับสต๊อก"
+        subtitle="เปิดใบนับ (DRAFT) กรอกยอดนับจริง แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อปรับปรุงสต๊อกจริง"
+        actions={
+          <>
+{canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}
@@ -230,7 +225,9 @@ export default function StockCountsListPage() {
             </Button>
           </div>
         ) : null}
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <button

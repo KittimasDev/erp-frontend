@@ -54,6 +54,7 @@ import {
 
 import AdjustDebtModal from "./AdjustDebtModal";
 import { AP_DOCUMENT_CONFIG, formatThaiDate, money, termText } from "./apDocumentConfig";
+import PageHeader from "@/components/common/PageHeader";
 
 const config = AP_DOCUMENT_CONFIG.invoice;
 const BILLING_CREATE_PATH = "/finance/payables/billing-notes/create";
@@ -294,20 +295,18 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card
-        title={
-          <Space wrap>
-            <span>
-              ใบตั้งหนี้ {d.docNo}
-            </span>
-            <Tag color={AP_DOCUMENT_STATUS_COLOR[status]}>{AP_DOCUMENT_STATUS_LABEL[status] ?? status}</Tag>
-            {status === "APPROVED" ? (
+      <PageHeader
+        title={<>ใบตั้งหนี้ {d.docNo}</>}
+        meta={
+          <>
+<Tag color={AP_DOCUMENT_STATUS_COLOR[status]}>{AP_DOCUMENT_STATUS_LABEL[status] ?? status}</Tag>
+{status === "APPROVED" ? (
               <Tag color={AP_PAYMENT_STATUS_COLOR[d.paymentStatus]}>{AP_PAYMENT_STATUS_LABEL[d.paymentStatus] ?? d.paymentStatus}</Tag>
             ) : null}
-          </Space>
+          </>
         }
-        extra={
-          <Space wrap>
+        actions={
+          <>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(config.basePath)}>
               กลับรายการ
             </Button>
@@ -346,9 +345,12 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
             <Dropdown menu={{ items: moreItems }} trigger={["click"]} placement="bottomRight">
               <Button icon={<MoreOutlined />}>เพิ่มเติม</Button>
             </Dropdown>
-          </Space>
+          
+          </>
         }
-      >
+      />
+
+      <Card>
         {status === "REJECTED" && d.rejectReason ? (
           <Alert type="error" showIcon title="ไม่อนุมัติ — แก้ไขแล้วส่งอนุมัติใหม่ได้" description={d.rejectReason} />
         ) : null}

@@ -42,6 +42,7 @@ import {
   type EligiblePayable,
 } from "@/types/advance-payment-requests";
 import { ADVANCE_BASE_PATH, ADVANCE_SCREEN } from "./AdvanceRequestsListPage";
+import PageHeader from "@/components/common/PageHeader";
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
@@ -235,14 +236,14 @@ export default function AdvanceRequestFormPage({ id }: Props) {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card>
-        <Space>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(ADVANCE_BASE_PATH)}>กลับ</Button>
-          <Typography.Title level={3} style={{ margin: 0 }}>
-            {request ? `แก้ไขรายการขอจ่าย ${request.requestNo}` : "สร้างรายการขอจ่ายล่วงหน้า / มัดจำ"}
-          </Typography.Title>
-        </Space>
-      </Card>
+      <PageHeader
+        title={<>{request ? `แก้ไขรายการขอจ่าย ${request.requestNo}` : "สร้างรายการขอจ่ายล่วงหน้า / มัดจำ"}</>}
+        back={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push(ADVANCE_BASE_PATH)}>กลับ</Button>
+          </>
+        }
+      />
 
       <Card title="รายการจ่ายเงินต้นทาง">
         {!isEdit ? (

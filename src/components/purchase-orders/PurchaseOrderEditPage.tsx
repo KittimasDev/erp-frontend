@@ -44,6 +44,7 @@ import PoChargesEditor, {
   type ChargeFormRow,
 } from "./PoChargesEditor";
 import styles from "./PurchaseOrderFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   id: string;
@@ -278,21 +279,21 @@ export default function PurchaseOrderEditPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <EditOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Purchase Order</p>
-          <h1 className={styles.pageTitle}>แก้ไขใบสั่งซื้อ</h1>
-          <p className={styles.pageSubtitle}>{data.poNo}</p>
-        </div>
-        <div className={styles.backLink}>
+      <PageHeader
+        eyebrow="Purchase Order"
+        icon={<EditOutlined />}
+        title="แก้ไขใบสั่งซื้อ"
+        subtitle={data.poNo}
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link href={`/purchase-orders/${data.id}`}>
             <Button icon={<ArrowLeftOutlined />}>กลับ</Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <div className={styles.layout}>

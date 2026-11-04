@@ -20,6 +20,7 @@ import {
   type AdvanceRequest,
   type EligiblePayable,
 } from "@/types/advance-payment-requests";
+import PageHeader from "@/components/common/PageHeader";
 
 export const ADVANCE_BASE_PATH = "/finance/payables/advance-requests";
 export const ADVANCE_SCREEN = "FINANCE_ADVANCE_REQUESTS";
@@ -163,25 +164,21 @@ export default function AdvanceRequestsListPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            FINANCE · PAYABLES
-          </div>
-          <h2 className={masterStyles.pageTitle}>รายการขอจ่ายล่วงหน้า / มัดจำ</h2>
-          <span className={masterStyles.pageSubtitle}>
-            ขอจ่ายตามเงื่อนไขชำระล่วงหน้า/มัดจำของรายการจ่ายเงิน (PO) พร้อมตรวจภาษีหัก ณ ที่จ่ายก่อนยืนยันเพื่อสร้างใบสำคัญจ่าย
-          </span>
-        </div>
-        {canAdd ? (
+      <PageHeader
+        eyebrow="FINANCE · PAYABLES"
+        icon={<FileTextOutlined />}
+        title="รายการขอจ่ายล่วงหน้า / มัดจำ"
+        subtitle="ขอจ่ายตามเงื่อนไขชำระล่วงหน้า/มัดจำของรายการจ่ายเงิน (PO) พร้อมตรวจภาษีหัก ณ ที่จ่ายก่อนยืนยันเพื่อสร้างใบสำคัญจ่าย"
+        actions={
+          <>
+{canAdd ? (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => router.push(`${ADVANCE_BASE_PATH}/create`)}>
             สร้างรายการขอจ่าย
           </Button>
         ) : null}
-      </div>
+          </>
+        }
+      />
 
       <div className={`${styles.statRow} ${styles.statRow2}`}>
         <div className={styles.statChip}>

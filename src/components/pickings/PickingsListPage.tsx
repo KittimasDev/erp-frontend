@@ -26,6 +26,7 @@ import {
   type PickingStatus,
 } from "@/types/pickings";
 import styles from "./PickingsListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -141,19 +142,14 @@ export default function PickingsListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <ShoppingOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Sales · Picking</p>
-          <h1 className={styles.pageTitle}>ใบจ่ายสินค้า</h1>
-          <p className={styles.pageSubtitle}>
-            หยิบสินค้าจากคลังตามใบสั่งขายที่ตรวจสต๊อกแล้ว — ตัดสต๊อกตอนยืนยันเท่านั้น
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          {canAdd ? (
+      <PageHeader
+        eyebrow="Sales · Picking"
+        icon={<ShoppingOutlined />}
+        title="ใบจ่ายสินค้า"
+        subtitle="หยิบสินค้าจากคลังตามใบสั่งขายที่ตรวจสต๊อกแล้ว — ตัดสต๊อกตอนยืนยันเท่านั้น"
+        actions={
+          <>
+{canAdd ? (
             <Link href="/pickings/create-from-sales-order">
               <Badge count={readyCount} overflowCount={99} offset={[-4, 4]}>
                 <Button
@@ -166,8 +162,9 @@ export default function PickingsListPage() {
               </Badge>
             </Link>
           ) : null}
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>

@@ -26,6 +26,7 @@ import {
 import { useRolesQuery } from "@/hooks/users/useRolesQuery";
 import type { Role } from "@/types/users";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type RolesPageProps = {
   embedded?: boolean;
@@ -128,20 +129,14 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
     <MasterPageGate isLoading={!embedded && rolesQuery.isLoading}>
       <section className={masterStyles.page}>
         {!embedded ? (
-          <div className={masterStyles.pageHeader}>
-            <div className={masterStyles.headerAccent}>
-              <SafetyCertificateOutlined />
-            </div>
-            <div className={masterStyles.headerContent}>
-              <div className={masterStyles.eyebrow}>SECURITY · ROLES</div>
-              <Typography.Title level={2} className={masterStyles.pageTitle}>
-                บทบาทผู้ใช้งาน
-              </Typography.Title>
-              <Typography.Text className={masterStyles.pageSubtitle}>
-                สร้างบทบาท (Role) เพื่อกำหนดสิทธิ์ — ไม่ใช่แผนกองค์กร
-              </Typography.Text>
-            </div>
-            <Button
+          <PageHeader
+            eyebrow="SECURITY · ROLES"
+            icon={<SafetyCertificateOutlined />}
+            title="บทบาทผู้ใช้งาน"
+            subtitle="สร้างบทบาท (Role) เพื่อกำหนดสิทธิ์ — ไม่ใช่แผนกองค์กร"
+            actions={
+              <>
+<Button
               type="primary"
               size="large"
               className={masterStyles.createButton}
@@ -150,7 +145,9 @@ export default function RolesPage({ embedded = false }: RolesPageProps) {
             >
               เพิ่มบทบาท
             </Button>
-          </div>
+              </>
+            }
+          />
         ) : null}
 
         <div className={masterStyles.summaryRow}>

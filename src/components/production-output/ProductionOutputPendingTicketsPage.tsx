@@ -19,6 +19,7 @@ import { useProductionOutputReadyOrdersQuery } from "@/hooks/production-output/u
 import type { ProductionOutputReadyOrder } from "@/types/production-output-stock-request";
 import { hasRequestableProductionOutput } from "@/types/production-output-stock-request";
 import styles from "./ProductionOutputPendingTicketsPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   return value ? dayjs(value).format("DD/MM/YYYY") : "—";
@@ -284,6 +285,10 @@ export default function ProductionOutputPendingTicketsPage() {
   return (
     <MasterPageGate isLoading={readyQuery.isLoading}>
       <section className={styles.page}>
+        <PageHeader
+          title="ใบสั่งผลิตรอรับเข้าคลัง"
+          subtitle="ใบสั่งผลิตที่เริ่มผลิตแล้วและยังรับผลผลิตเข้าคลังไม่ครบ"
+        />
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardWarn}`}>
             <span>ยังไม่ได้ขอรับเข้าคลัง</span>

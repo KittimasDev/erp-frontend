@@ -19,6 +19,7 @@ import { useLowStockItemsQuery } from "@/hooks/inventory/useInventoryQueries";
 import type { StockIssue } from "@/types/stock-issues";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
 import styles from "./MaterialIssuesListPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -183,20 +184,14 @@ export default function MaterialIssuesListPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.hero}>
-        <div className={styles.heroMain}>
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeIcon} aria-hidden>
-              <SwapOutlined />
-            </span>
-            Warehouse · Material Issue
-          </div>
-          <h1 className={styles.pageTitle}>เบิกของออกจากคลัง</h1>
-          <p className={styles.pageSubtitle}>
-            สร้างใบเบิก (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัดสต๊อกจริง
-          </p>
-        </div>
-        {canAdd ? (
+      <PageHeader
+        eyebrow="Warehouse · Material Issue"
+        icon={<SwapOutlined />}
+        title="เบิกของออกจากคลัง"
+        subtitle="สร้างใบเบิก (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัดสต๊อกจริง"
+        actions={
+          <>
+{canAdd ? (
           <div className={styles.heroActions}>
             <Button
               className={styles.primaryBtn}
@@ -207,7 +202,9 @@ export default function MaterialIssuesListPage() {
             </Button>
           </div>
         ) : null}
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <button

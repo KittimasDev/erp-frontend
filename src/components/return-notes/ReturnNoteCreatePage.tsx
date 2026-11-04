@@ -21,6 +21,7 @@ import {
 } from "@/types/delivery-orders";
 import type { ReturnSourceLine } from "@/types/return-notes";
 import styles from "./ReturnNoteDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const EPS = 5e-4;
 
@@ -212,25 +213,19 @@ export default function ReturnNoteCreatePage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <RollbackOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Return Note</p>
-          <h1 className={styles.pageTitle}>สร้างใบคืนสินค้า</h1>
-          <p className={styles.pageSubtitle}>
-            {prefilled
-              ? "ดึงข้อมูลจากใบส่งสินค้าที่ถูกตีกลับ — ตรวจจำนวนแล้วบันทึก"
-              : "เลือกใบสั่งขาย → ใบจ่ายสินค้า แล้วระบุจำนวนที่คืน"}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/return-notes")}>
+      <PageHeader
+        eyebrow="Return Note"
+        icon={<RollbackOutlined />}
+        title="สร้างใบคืนสินค้า"
+        subtitle={prefilled ? "ดึงข้อมูลจากใบส่งสินค้าที่ถูกตีกลับ — ตรวจจำนวนแล้วบันทึก" : "เลือกใบสั่งขาย → ใบจ่ายสินค้า แล้วระบุจำนวนที่คืน"}
+        actions={
+          <>
+<Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/return-notes")}>
             กลับ
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

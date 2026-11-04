@@ -66,6 +66,7 @@ import type {
 
 import CompanyBankAccountFormModal from "./CompanyBankAccountFormModal";
 import styles from "./company-profile.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 /** ต้องตรงกับ MAX_LOGO_BYTES ฝั่ง backend (company-profile.controller.ts) */
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
@@ -387,25 +388,12 @@ export default function CompanyProfilePage() {
   return (
     <MasterPageGate isLoading={profileQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.hero}>
-          <span className={styles.heroIcon}>
-            <ShopOutlined />
-          </span>
-
-          <div className={styles.heroContent}>
-            <div className={styles.eyebrow}>MASTER DATA</div>
-
-            <Typography.Title level={2} className={styles.heroTitle}>
-              ข้อมูลบริษัท
-            </Typography.Title>
-
-            <Typography.Text className={styles.heroSubtitle}>
-              ข้อมูลชุดนี้ขึ้นหัวเอกสารทุกใบในระบบ — ใบสั่งซื้อ ใบชั่ง
-              ใบรับสินค้า ใบสำคัญจ่าย และใบรับซื้อยาง แก้ที่นี่ที่เดียว
-              เปลี่ยนพร้อมกันทุกใบ
-            </Typography.Text>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="MASTER DATA"
+          icon={<ShopOutlined />}
+          title="ข้อมูลบริษัท"
+          subtitle="ข้อมูลชุดนี้ขึ้นหัวเอกสารทุกใบในระบบ — ใบสั่งซื้อ ใบชั่ง ใบรับสินค้า ใบสำคัญจ่าย และใบรับซื้อยาง แก้ที่นี่ที่เดียว เปลี่ยนพร้อมกันทุกใบ"
+        />
 
         <div className={styles.previewCard}>
           <div className={styles.previewHead}>

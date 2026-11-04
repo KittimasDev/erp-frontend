@@ -18,6 +18,7 @@ import {
   type CycleSummaryShift,
 } from "@/types/production-cycle";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const n = (v?: number, d = 1) => (v === undefined || v === null ? "—" : v.toLocaleString("th-TH", { maximumFractionDigits: d }));
 const fmtDate = (v: string) => dayjs(v).format("DD/MM/YYYY");
@@ -104,23 +105,24 @@ export default function CycleSummaryPage({ id }: { id: string }) {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}><FieldTimeOutlined /></div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>PRODUCTION · CYCLE SUMMARY</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              สรุปรอบ {s?.cycle.cycleNo ?? ""}{" "}
-              {s ? <Tag color={CYCLE_PHASE_COLOR[s.cycle.phase]}>{CYCLE_PHASE_LABEL[s.cycle.phase] ?? s.cycle.phase}</Tag> : null}
-            </Typography.Title>
-            {s ? (
+        <PageHeader
+          eyebrow="PRODUCTION · CYCLE SUMMARY"
+          icon={<FieldTimeOutlined />}
+          title={<>สรุปรอบ {s?.cycle.cycleNo ?? ""}{" "}
+              {s ? <Tag color={CYCLE_PHASE_COLOR[s.cycle.phase]}>{CYCLE_PHASE_LABEL[s.cycle.phase] ?? s.cycle.phase}</Tag> : null}</>}
+          actions={
+            <>
+<Link href="/production/cycles"><Button icon={<ArrowLeftOutlined />}>กลับ</Button></Link>
+            </>
+          }
+        >
+{s ? (
               <Typography.Text className={styles.pageSubtitle}>
                 ผลิต {fmtDate(s.cycle.startDate)} – {fmtDate(s.cycle.endDate)} ({s.cycle.runDays} วัน)
                 {s.cycle.shutdownDays > 0 ? ` · Shutdown ${fmtDate(s.cycle.shutdownStartDate)} – ${fmtDate(s.cycle.shutdownEndDate)} (${s.cycle.shutdownDays} วัน)` : ""}
               </Typography.Text>
             ) : null}
-          </div>
-          <Link href="/production/cycles"><Button icon={<ArrowLeftOutlined />}>กลับ</Button></Link>
-        </div>
+        </PageHeader>
 
         {!s ? (
           <div className={styles.tableCard}><p>ไม่พบรอบผลิต</p></div>

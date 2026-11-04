@@ -31,6 +31,7 @@ import type {
   ProductionWorkInProgressRow,
 } from "@/types/production-dashboard";
 import styles from "./ProductionDashboardPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 /** ชุดสีเดียวกับ ProcurementDashboardPage ซึ่งเป็น dashboard ที่ทำเสร็จจริงหน้าเดียวในโปรเจกต */
 const GREEN = "#739816";
@@ -202,16 +203,11 @@ export default function ProductionDashboardPage() {
   return (
     <MasterPageGate isLoading={summaryQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>ผลิต</div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>Production Dashboard</div>
-            <h2 className={styles.pageTitle}>แดชบอร์ดการผลิต</h2>
-            <span className={styles.pageSubtitle}>
-              ผลผลิตจริง · Yield · เวลาหยุดเดินเครื่อง · งานอยู่ขั้นไหน
-            </span>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Production Dashboard"
+          title="แดชบอร์ดการผลิต"
+          subtitle="ผลผลิตจริง · Yield · เวลาหยุดเดินเครื่อง · งานอยู่ขั้นไหน"
+        />
 
         <div className={styles.toolbar}>
           <div className={styles.filterField}>

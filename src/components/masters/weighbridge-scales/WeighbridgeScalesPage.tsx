@@ -37,6 +37,7 @@ import type {
 
 import WeighbridgeScaleFormModal from "./WeighbridgeScaleFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type ScaleFilterFormValues = {
   code?: string;
@@ -393,22 +394,13 @@ export default function WeighbridgeScalesPage() {
   return (
     <MasterPageGate isLoading={scalesQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            เครื่องชั่ง
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการเครื่องชั่งน้ำหนักและการตั้งค่าการเชื่อมต่อ
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="เครื่องชั่ง"
+        subtitle="จัดการเครื่องชั่งน้ำหนักและการตั้งค่าการเชื่อมต่อ"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -417,7 +409,9 @@ export default function WeighbridgeScalesPage() {
         >
           เพิ่มเครื่องชั่ง
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

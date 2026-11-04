@@ -31,6 +31,7 @@ import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateStockCountBody } from "@/types/stock-counts";
 import { STOCK_COUNT_TYPE_LABEL } from "@/types/stock-counts";
 import styles from "./StockCountFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   itemId?: string;
@@ -191,25 +192,21 @@ export default function StockCountFormPage({ mode, id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileSearchOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Stock Count</p>
-          <h1 className={styles.pageTitle}>
-            {mode === "create" ? "สร้างใบนับสต๊อก" : "แก้ไขใบนับสต๊อก"}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            เลือกคลัง/ตำแหน่งที่จะนับ แล้วกรอกยอดที่นับได้จริงต่อ Lot
-          </p>
-        </div>
-        <div className={styles.backLink}>
+      <PageHeader
+        eyebrow="Stock Count"
+        icon={<FileSearchOutlined />}
+        title={mode === "create" ? "สร้างใบนับสต๊อก" : "แก้ไขใบนับสต๊อก"}
+        subtitle="เลือกคลัง/ตำแหน่งที่จะนับ แล้วกรอกยอดที่นับได้จริงต่อ Lot"
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link href={scopePath("/inventory/stock-counts")}>
             <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <Form
         form={form}

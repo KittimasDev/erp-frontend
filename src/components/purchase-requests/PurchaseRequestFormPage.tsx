@@ -35,6 +35,7 @@ import DocumentHtmlEditor from "@/components/common/DocumentHtmlEditor";
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { CreatePurchaseRequestBody } from "@/types/purchase-requests";
 import styles from "./PurchaseRequestFormPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type LineValues = {
   itemId?: string;
@@ -205,26 +206,21 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <FileAddOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Purchase Request</p>
-          <h1 className={styles.pageTitle}>
-            {mode === "create" ? "สร้างใบขอซื้อ" : "แก้ไขใบขอซื้อ"}
-          </h1>
-          <p className={styles.pageSubtitle}>
-            กรอกข้อมูลหัวเอกสารและรายการสินค้า บันทึกเป็น DRAFT
-            แล้วส่งอนุมัติได้จากหน้ารายละเอียด
-          </p>
-        </div>
-        <div className={styles.backLink}>
+      <PageHeader
+        eyebrow="Purchase Request"
+        icon={<FileAddOutlined />}
+        title={mode === "create" ? "สร้างใบขอซื้อ" : "แก้ไขใบขอซื้อ"}
+        subtitle="กรอกข้อมูลหัวเอกสารและรายการสินค้า บันทึกเป็น DRAFT แล้วส่งอนุมัติได้จากหน้ารายละเอียด"
+        actions={
+          <>
+<div className={styles.backLink}>
           <Link href="/purchase-requests">
             <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
           </Link>
         </div>
-      </header>
+          </>
+        }
+      />
 
       <Form
         form={form}

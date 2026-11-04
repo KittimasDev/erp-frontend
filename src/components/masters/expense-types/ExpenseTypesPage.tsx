@@ -13,6 +13,7 @@ import {
 } from "@/hooks/expense-types/useExpenseTypes";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { ExpenseType } from "@/types/expense-types";
+import PageHeader from "@/components/common/PageHeader";
 
 const SCREEN_CODE = "MASTERS_EXPENSE_TYPES";
 
@@ -140,16 +141,18 @@ export default function ExpenseTypesPage() {
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
-      <Card
+      <PageHeader
         title="ประเภทค่าใช้จ่ายเพิ่มเติม"
-        extra={
+        actions={
           perms.canAdd ? (
             <Button type="primary" icon={<PlusOutlined />} onClick={() => openForm("new")}>
               เพิ่มประเภท
             </Button>
           ) : null
         }
-      >
+      />
+
+      <Card>
         <Typography.Paragraph type="secondary">
           ใช้เลือกที่ค่าใช้จ่ายเพิ่มเติมของใบสั่งซื้อ — สมุดรายวันซื้อลงบัญชีค่าใช้จ่ายตาม GL ของประเภทที่เลือกเท่านั้น
           (ไม่ใช้บัญชีซื้อสินค้า) · ถ้า GL ยังไม่ผูกหรือถูกปิดใช้งาน ระบบจะไม่ยอมส่งออกสมุดรายวันไป Express

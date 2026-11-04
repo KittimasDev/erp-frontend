@@ -37,6 +37,7 @@ import {
 } from "@/types/creditor-balances";
 import { PAYMENT_TERM_TYPE_LABEL, type PaymentTermType } from "@/types/payment-terms";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import PageHeader from "@/components/common/PageHeader";
 
 const PAGE_SIZE = 20;
 const PO_DETAIL_PATH = "/finance/payables/creditors";
@@ -318,26 +319,22 @@ export default function CreditorBalancesPage() {
 
   return (
     <section className={styles.page}>
-      <div className={masterStyles.pageHeader} style={{ gridTemplateColumns: "1fr auto" }}>
-        <div className={masterStyles.headerContent}>
-          <div className={styles.badge}>
-            <span className={styles.badgeIcon} aria-hidden>
-              <FileTextOutlined />
-            </span>
-            FINANCE · PAYABLES
-          </div>
-          <h2 className={masterStyles.pageTitle}>รายการเจ้าหนี้</h2>
-          <span className={masterStyles.pageSubtitle}>
-            สรุปยอดค้างจ่ายและเครดิตผู้ขาย ตาม Supplier (ดูอย่างเดียว)
-          </span>
-        </div>
-        <ReportExportButtons
+      <PageHeader
+        eyebrow="FINANCE · PAYABLES"
+        icon={<FileTextOutlined />}
+        title="รายการเจ้าหนี้"
+        subtitle="สรุปยอดค้างจ่ายและเครดิตผู้ขาย ตาม Supplier (ดูอย่างเดียว)"
+        actions={
+          <>
+<ReportExportButtons
           canExport={canExport}
           downloading={downloading}
           onExport={(f) => void handleExport(f)}
           csvRequiresExport
         />
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>

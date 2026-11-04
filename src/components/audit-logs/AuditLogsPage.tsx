@@ -33,6 +33,7 @@ import type { AuditLog, AuditLogQueryParams } from "@/types/audit-logs";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import { canAccessScreen } from "@/lib/auth/permissions-access";
 import styles from "./AuditLogsPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 const { RangePicker } = DatePicker;
 
@@ -196,22 +197,12 @@ export default function AuditLogsPage() {
   return (
     <MasterPageGate isLoading={auditLogsQuery.isLoading}>
       <section className={masterStyles.page}>
-        <div className={masterStyles.pageHeader}>
-          <div className={masterStyles.headerAccent}>
-            <HistoryOutlined />
-          </div>
-          <div className={masterStyles.headerContent}>
-            <div className={masterStyles.eyebrow}>SECURITY</div>
-            <Typography.Title level={2} className={masterStyles.pageTitle}>
-              Audit Log
-            </Typography.Title>
-            <Typography.Text className={masterStyles.pageSubtitle}>
-              ประวัติการทำรายการสำคัญในระบบ — บันทึกอัตโนมัติทุกการสร้าง /
-              แก้ไข / ลบข้อมูล
-            </Typography.Text>
-          </div>
-          <div />
-        </div>
+        <PageHeader
+          eyebrow="SECURITY"
+          icon={<HistoryOutlined />}
+          title="Audit Log"
+          subtitle="ประวัติการทำรายการสำคัญในระบบ — บันทึกอัตโนมัติทุกการสร้าง / แก้ไข / ลบข้อมูล"
+        />
 
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>

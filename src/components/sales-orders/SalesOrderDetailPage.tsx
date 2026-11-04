@@ -133,6 +133,7 @@ import {
 } from "@/types/production-request";
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./SalesOrderDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = { id: string };
 
@@ -1464,28 +1465,20 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <ShoppingCartOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>ขาย · ใบสั่งขาย</p>
-          <h1 className={styles.pageTitle}>{data.soNo}</h1>
-          <p className={styles.revisionStamp}>
-            {salesOrderRevisionStamp(data.revisionNo, data.revisedAt)}
-          </p>
-          <p className={styles.pageSubtitle}>
-            {data.customer
+      <PageHeader
+        eyebrow="ขาย · ใบสั่งขาย"
+        icon={<ShoppingCartOutlined />}
+        title={data.soNo}
+        subtitle={<>{data.customer
               ? `${data.customer.customerCode} — ${data.customer.nameTh}`
               : "—"}{" "}
             · {formatDate(data.soDate)} · {formatMoney(data.totalAmount)} บาท
             {!isPreConfirm
               ? ` · ${salesOrderDeliveryStatusLabel(data.status, data.deliveryStatus)}`
-              : ""}
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+              : ""}</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/sales-orders")}
           >
@@ -1529,8 +1522,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
           ) : (
             nextStepButton
           )}
-        </div>
-      </header>
+          </>
+        }
+      >
+<p className={styles.revisionStamp}>
+            {salesOrderRevisionStamp(data.revisionNo, data.revisedAt)}
+          </p>
+      </PageHeader>
 
       <SalesOrderTimeline
         salesOrderId={id}

@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Alert, App, DatePicker, Spin } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 
+import PageHeader from "@/components/common/PageHeader";
 import ReportExportButtons, { type ReportExportFormat } from "@/components/reports/ReportExportButtons";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import type { DashboardRange } from "@/types/dashboards";
@@ -98,30 +99,30 @@ export function DashboardShell({
 }) {
   return (
     <section className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.headCopy}>
-          <div className={styles.eyebrow}>{eyebrow}</div>
-          <h2 className={styles.title}>{title}</h2>
-          <span className={styles.subtitle}>{subtitle}</span>
-        </div>
-        {range && onRangeChange ? (
-          <div className={styles.headTools}>
-            <div className={styles.field}>
-              <span>ช่วงวันที่ (กว้างสุด 90 วัน)</span>
-              <DatePicker.RangePicker
-                value={range}
-                allowClear={false}
-                format="DD/MM/YYYY"
-                onChange={(v) => {
-                  if (v?.[0] && v[1]) onRangeChange([v[0], v[1]]);
-                }}
-              />
-            </div>
-            {loading ? <Spin size="small" /> : null}
-            {extra ? <div>{extra}</div> : null}
-          </div>
-        ) : null}
-      </div>
+      <PageHeader
+        eyebrow={eyebrow}
+        title={title}
+        subtitle={subtitle}
+        controls={
+          range && onRangeChange ? (
+            <>
+              <div className={styles.field}>
+                <span>ช่วงวันที่ (กว้างสุด 90 วัน)</span>
+                <DatePicker.RangePicker
+                  value={range}
+                  allowClear={false}
+                  format="DD/MM/YYYY"
+                  onChange={(v) => {
+                    if (v?.[0] && v[1]) onRangeChange([v[0], v[1]]);
+                  }}
+                />
+              </div>
+              {loading ? <Spin size="small" /> : null}
+            </>
+          ) : undefined
+        }
+        actions={range && onRangeChange && extra ? extra : undefined}
+      />
       {error ? (
         <Alert
           type="error"

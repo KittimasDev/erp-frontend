@@ -17,6 +17,7 @@ import {
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
 import { useMenuBadgeCounts } from "@/hooks/badges/useMenuBadgeCounts";
 import styles from "./WarehouseHubPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 export type WarehouseHubCard = {
   key: string;
@@ -120,14 +121,12 @@ export default function WarehouseHubPage({
   return (
     <MasterPageGate isLoading={isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>{icon ?? <DatabaseOutlined />}</div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>{eyebrow}</p>
-            <h1 className={styles.pageTitle}>{title}</h1>
-            <p className={styles.pageSubtitle}>{subtitle}</p>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow={eyebrow}
+          icon={icon ?? <DatabaseOutlined />}
+          title={title}
+          subtitle={subtitle}
+        />
 
         {headerExtra}
 

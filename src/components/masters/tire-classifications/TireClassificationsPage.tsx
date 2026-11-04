@@ -37,6 +37,7 @@ import type {
 
 import TireClassificationFormModal from "./TireClassificationFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type TireClassificationFilterFormValues = {
   code?: string;
@@ -333,22 +334,13 @@ export default function TireClassificationsPage() {
   return (
     <MasterPageGate isLoading={classificationsQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div />
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>MASTER DATA</div>
-
-          <Typography.Title level={2} className={styles.pageTitle}>
-            ประเภท/กลุ่มยาง
-          </Typography.Title>
-
-          <Typography.Text className={styles.pageSubtitle}>
-            จัดการประเภทยาง เช่น ยางนั่ง กระบะ บรรทุก — ราคาตั้งที่กฎราคารับซื้อยาง
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="ประเภท/กลุ่มยาง"
+        subtitle="จัดการประเภทยาง เช่น ยางนั่ง กระบะ บรรทุก — ราคาตั้งที่กฎราคารับซื้อยาง"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -357,7 +349,9 @@ export default function TireClassificationsPage() {
         >
           เพิ่มประเภท/กลุ่มยาง
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryTotal}`}>

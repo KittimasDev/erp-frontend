@@ -33,6 +33,7 @@ import {
   ProductionOutputRequestStatus,
 } from "@/types/production-output-stock-request";
 import styles from "./ProductionOutputApprovalDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = {
   requestId: string;
@@ -213,22 +214,19 @@ export default function ProductionOutputApprovalDetailPage({
   return (
     <MasterPageGate isLoading={detailQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.header}>
-          <div className={styles.headerMain}>
-            <div className={styles.eyebrow}>WAREHOUSE · APPROVAL</div>
-            <div className={styles.titleRow}>
-              <Typography.Title level={2} className={styles.title}>
-                รายละเอียดคำขอรับผลผลิต
-              </Typography.Title>
+        <PageHeader
+          eyebrow="WAREHOUSE · APPROVAL"
+          title={
+            <>
+              รายละเอียดคำขอรับผลผลิต
               {request?.requestNo ? (
                 <span className={styles.requestNo}>{request.requestNo}</span>
               ) : null}
-            </div>
-            <span className={styles.subtitle}>
-              ตรวจรายการ เอกสารอ้างอิง และอนุมัติเพื่อ POST สต๊อก
-            </span>
-          </div>
-          <div className={styles.headerActions}>
+            </>
+          }
+          subtitle="ตรวจรายการ เอกสารอ้างอิง และอนุมัติเพื่อ POST สต๊อก"
+          actions={
+            <>
             <Button
               icon={<ArrowLeftOutlined />}
               className={styles.backButton}
@@ -245,8 +243,9 @@ export default function ProductionOutputApprovalDetailPage({
                 พิมพ์ PDF
               </Button>
             ) : null}
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {request ? (
           <>

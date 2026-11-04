@@ -15,6 +15,7 @@ import BreakdownModal from "./BreakdownModal";
 import { fmtDate, fmtMoney } from "./maintenance-format";
 import WorkOrderDetailDrawer from "./WorkOrderDetailDrawer";
 import { CreateWorkOrderModal } from "./WorkOrderModals";
+import PageHeader from "@/components/common/PageHeader";
 
 const STATUS_COLOR: Record<string, string> = { DRAFT: "default", OPEN: "blue", IN_PROGRESS: "orange", COMPLETED: "green", CANCELLED: "default" };
 const PRIORITY_COLOR: Record<string, string> = { LOW: "default", NORMAL: "blue", HIGH: "orange", CRITICAL: "red" };
@@ -81,20 +82,14 @@ export default function WorkOrdersPage() {
   return (
     <MasterPageGate isLoading={query.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <FileTextOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <div className={styles.eyebrow}>MAINTENANCE · WORK ORDER</div>
-            <Typography.Title level={2} className={styles.pageTitle}>
-              ใบสั่งงานซ่อมบำรุง
-            </Typography.Title>
-            <Typography.Text className={styles.pageSubtitle}>
-              PM / CM · แจ้งเสีย · มอบหมายช่าง · เริ่มและปิดงาน · วิเคราะห์สาเหตุ · เบิก/คืนอะไหล่และต้นทุน
-            </Typography.Text>
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
+        <PageHeader
+          eyebrow="MAINTENANCE · WORK ORDER"
+          icon={<FileTextOutlined />}
+          title="ใบสั่งงานซ่อมบำรุง"
+          subtitle="PM / CM · แจ้งเสีย · มอบหมายช่าง · เริ่มและปิดงาน · วิเคราะห์สาเหตุ · เบิก/คืนอะไหล่และต้นทุน"
+          actions={
+            <>
+<div style={{ display: "flex", gap: 8 }}>
             <Button size="large" danger icon={<WarningOutlined />} onClick={() => setBreakdown(true)}>
               แจ้งเสีย
             </Button>
@@ -104,7 +99,9 @@ export default function WorkOrdersPage() {
               </Button>
             ) : null}
           </div>
-        </div>
+            </>
+          }
+        />
 
         <div className={styles.tableCard}>
           <div

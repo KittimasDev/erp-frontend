@@ -26,6 +26,7 @@ import type { CreateUnitRequest, Unit } from "@/types/units";
 
 import UnitFormModal from "./UnitFormModal";
 import styles from "@/components/masters/shared/master-page.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 export default function UnitsPage() {
   const router = useRouter();
@@ -227,32 +228,13 @@ export default function UnitsPage() {
   return (
     <MasterPageGate isLoading={unitsQuery.isLoading}>
       <section className={styles.page}>
-      <div className={styles.pageHeader}>
-        <div>
-          {/* <span>U</span> */}
-        </div>
-
-        <div className={styles.headerContent}>
-          <div className={styles.eyebrow}>
-            MASTER DATA
-          </div>
-
-          <Typography.Title
-            level={2}
-            className={styles.pageTitle}
-          >
-            หน่วยนับ
-          </Typography.Title>
-
-          <Typography.Text
-            className={styles.pageSubtitle}
-          >
-            จัดการข้อมูลหน่วยนับสำหรับระบบจัดซื้อ
-            และคลังสินค้า
-          </Typography.Text>
-        </div>
-
-        <Button
+      <PageHeader
+        eyebrow="MASTER DATA"
+        title="หน่วยนับ"
+        subtitle="จัดการข้อมูลหน่วยนับสำหรับระบบจัดซื้อ และคลังสินค้า"
+        actions={
+          <>
+<Button
           type="primary"
           size="large"
           className={styles.createButton}
@@ -264,7 +246,9 @@ export default function UnitsPage() {
 
           เพิ่มหน่วยนับ
         </Button>
-      </div>
+          </>
+        }
+      />
 
       <div className={styles.summaryRow}>
         <div

@@ -41,6 +41,7 @@ import {
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchasePaymentDetailPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type Props = {
   id: string;
@@ -278,20 +279,15 @@ function PurchasePaymentDetailView({
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div className={styles.headerAccent} aria-hidden>
-          <DollarOutlined />
-        </div>
-        <div className={styles.headerContent}>
-          <p className={styles.eyebrow}>Purchase Payments</p>
-          <h1 className={styles.pageTitle}>{data.voucherNo}</h1>
-          <p className={styles.pageSubtitle}>
-            {data.creditor?.nameTh ?? "—"} · {formatDate(data.voucherDate)} ·{" "}
-            {formatMoney(data.totalAmount)} บาท
-          </p>
-        </div>
-        <div className={styles.headerActions}>
-          <Button
+      <PageHeader
+        eyebrow="Purchase Payments"
+        icon={<DollarOutlined />}
+        title={data.voucherNo}
+        subtitle={<>{data.creditor?.nameTh ?? "—"} · {formatDate(data.voucherDate)} ·{" "}
+            {formatMoney(data.totalAmount)} บาท</>}
+        actions={
+          <>
+<Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(listHref)}
           >
@@ -305,8 +301,9 @@ function PurchasePaymentDetailView({
           >
             พิมพ์ PDF
           </Button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <div className={styles.layout}>
         <section className={styles.mainCard}>

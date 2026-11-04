@@ -32,6 +32,7 @@ import {
   type UpdateAiOcrSettingsRequest,
 } from "@/types/ai-ocr-settings";
 import styles from "./AiOcrSettingsPage.module.css";
+import PageHeader from "@/components/common/PageHeader";
 
 type FormValues = {
   isEnabled: boolean;
@@ -103,18 +104,12 @@ export default function AiOcrSettingsPage() {
   return (
     <MasterPageGate isLoading={settingsQuery.isLoading}>
       <section className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div className={styles.headerAccent}>
-            <RobotOutlined />
-          </div>
-          <div className={styles.headerContent}>
-            <p className={styles.eyebrow}>SETTINGS · AI OCR</p>
-            <h1 className={styles.pageTitle}>ตั้งค่า AI อ่านเอกสาร</h1>
-            <p className={styles.pageSubtitle}>
-              ให้ AI ช่วยอ่านค่าจากรูปใบชั่ง — อ่านไม่ได้เมื่อไหร่ระบบถอยไปใช้ตัวอ่านในเครื่องให้เอง
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="SETTINGS · AI OCR"
+          icon={<RobotOutlined />}
+          title="ตั้งค่า AI อ่านเอกสาร"
+          subtitle="ให้ AI ช่วยอ่านค่าจากรูปใบชั่ง — อ่านไม่ได้เมื่อไหร่ระบบถอยไปใช้ตัวอ่านในเครื่องให้เอง"
+        />
 
         <Alert
           type="info"
