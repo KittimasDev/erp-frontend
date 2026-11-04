@@ -486,6 +486,18 @@ export default function GoodsReceiptCreateFromPoPage({
     );
   }
 
+  /** แจ้งสาเหตุทั้งแบบ toast (เห็นทันทีแม้ฟอร์มยาว) และข้อความใต้ช่องรายการ */
+  const failItems = (text: string) => {
+    form.setFields([{ name: "items", errors: [text] }]);
+    message.error(text);
+  };
+
+  /** Validation ของฟิลด์ที่ต้องกรอก (เช่น ไม่เลือกรอบส่งของ) ไม่ผ่าน → แจ้งสาเหตุ + เลื่อนไปช่องแรกที่ผิด */
+  const onFinishFailed = (info: { errorFields: Array<{ errors: string[] }> }) => {
+    const first = info.errorFields[0]?.errors[0];
+    message.error(first ? `บันทึกใบรับของไม่ได้: ${first}` : "บันทึกใบรับของไม่ได้: กรอกข้อมูลที่จำเป็นให้ครบ");
+  };
+
   const onFinish = async (values: FormValues) => {
     const flat: Array<{
       purchaseOrderItemId: string;
@@ -507,41 +519,30 @@ export default function GoodsReceiptCreateFromPoPage({
       const destinations = (item.destinations ?? []).filter(
         (d) => (d.qty?.quantity ?? 0) > 0,
       );
-      if (!destinations.length) continue;
+      if (!destinations.length) {
+        // ติ๊กรับแล้วแต่ไม่ระบุจำนวน — เดิมถูกข้ามเงียบ ๆ ทำให้ดูเหมือนบันทึกไม่ทำงาน
+        failItems(`${label}: ติ๊กรับแล้วแต่ยังไม่ระบุจำนวนรับ (กรอกจำนวนมากกว่า 0 หรือเอาเครื่องหมายถูกออก)`);
+        return;
+      }
 
       let sumBase = 0;
       for (const dest of destinations) {
         if (!dest.warehouseId || !dest.locationId) {
-          form.setFields([
-            {
-              name: "items",
-              errors: [`${label}: ระบุคลังและตำแหน่งให้ครบทุกปลายทาง`],
-            },
-          ]);
+          failItems(`${label}: ระบุคลังและตำแหน่งให้ครบทุกปลายทาง`);
           return;
         }
 
         if (meta?.requiresLotControl && !dest.lotNo?.trim()) {
-          form.setFields([
-            {
-              name: "items",
-              errors: [`${label}: กรุณาระบุเลข Lot`],
-            },
-          ]);
+          failItems(`${label}: กรุณาระบุเลข Lot`);
           return;
         }
 
         // ด่านที่สองต่อจาก validator — กันเอกสารเก่าที่หน่วยไม่มีกฎแปลงหลุดไปถึง backend
         const base = destBaseQty(conversionIndex, meta, dest);
         if (base === null) {
-          form.setFields([
-            {
-              name: "items",
-              errors: [
-                `${label}: หน่วยที่เลือกยังไม่มีกฎแปลงเป็น ${baseUnitLabel} กรุณาแก้หน่วยก่อนบันทึก`,
-              ],
-            },
-          ]);
+          failItems(
+            `${label}: หน่วยที่เลือกยังไม่มีกฎแปลงเป็น ${baseUnitLabel} กรุณาแก้หน่วยก่อนบันทึก`,
+          );
           return;
         }
 
@@ -561,41 +562,38 @@ export default function GoodsReceiptCreateFromPoPage({
 
       sumBase = roundQty(sumBase);
       if (sumBase > remainingBase + 1e-9) {
-        message.error(
+        failItems(
           `${label}: รวมจำนวนที่รับ (${formatQtyUnit(sumBase, baseUnitLabel)}) เกินยอดคงเหลือของ PO (${formatQtyUnit(remainingBase, baseUnitLabel)})`,
         );
-        form.setFields([
-          {
-            name: "items",
-            errors: [
-              `${label}: รวมจำนวนปลายทาง ${formatQtyUnit(sumBase, baseUnitLabel)} เกินยอดคงเหลือของ PO (${formatQtyUnit(remainingBase, baseUnitLabel)})`,
-            ],
-          },
-        ]);
         return;
       }
     }
 
     if (!flat.length) {
-      form.setFields([
-        {
-          name: "items",
-          errors: ["เลือกอย่างน้อย 1 รายการและระบุจำนวนรับ"],
-        },
-      ]);
+      failItems("เลือกอย่างน้อย 1 รายการและระบุจำนวนรับ");
       return;
     }
 
-    const response = await createMutation.mutateAsync({
-      purchaseOrderId,
-      body: {
-        grDate: values.grDate.format("YYYY-MM-DD"),
-        remark: values.remark?.trim() || undefined,
-        purchaseOrderDeliveryScheduleId: values.purchaseOrderDeliveryScheduleId,
-        items: flat.map(({ label: _label, ...item }) => item),
-      },
-    });
-    router.push(`/goods-receipts/${response.data.id}`);
+    try {
+      const response = await createMutation.mutateAsync({
+        purchaseOrderId,
+        body: {
+          grDate: values.grDate.format("YYYY-MM-DD"),
+          remark: values.remark?.trim() || undefined,
+          purchaseOrderDeliveryScheduleId: values.purchaseOrderDeliveryScheduleId,
+          items: flat.map(({ label: _label, ...item }) => item),
+        },
+      });
+      // ไม่ถือว่าสำเร็จถ้า API ไม่คืนเลขเอกสาร — อยู่หน้าเดิมให้แก้ต่อ
+      const createdId = response?.data?.id;
+      if (!createdId) {
+        message.error("บันทึกใบรับของไม่สำเร็จ: ระบบไม่คืนเลขเอกสาร กรุณาตรวจรายการแล้วลองใหม่");
+        return;
+      }
+      router.push(`/goods-receipts/${createdId}`);
+    } catch {
+      // สาเหตุแสดงโดย onError ของ mutation แล้ว (message.error) — อยู่หน้าเดิมเพื่อให้แก้และบันทึกใหม่
+    }
   };
 
   const selectedPreview = watchedItems.flatMap((item) => {
@@ -686,7 +684,13 @@ export default function GoodsReceiptCreateFromPoPage({
         showCloseOnReceiving
       />
 
-      <Form form={form} layout="vertical" onFinish={onFinish}>
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={onFinish}
+        onFinishFailed={onFinishFailed}
+        scrollToFirstError
+      >
         <div className={styles.layout}>
           <section className={styles.formCard}>
             <div className={styles.formBody}>
@@ -710,7 +714,7 @@ export default function GoodsReceiptCreateFromPoPage({
                     className={styles.field}
                     label="วันที่รับ"
                     name="grDate"
-                    rules={[{ required: true }]}
+                    rules={[{ required: true, message: "เลือกวันที่รับ" }]}
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>

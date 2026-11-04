@@ -510,6 +510,12 @@ export type CreatedAp = {
   paidAmount: number;
   remainingAmount: number;
   dueDate?: string;
+  /** วันที่ใบแจ้งหนี้ Supplier — ฐานคำนวณ due date */
+  supplierDocDate?: string;
+  /** due date ที่ควรเป็น = วันที่ใบแจ้งหนี้ Supplier + เครดิตวัน (เฉพาะเงื่อนไขเครดิต) */
+  expectedDueDate?: string;
+  /** true = due date ที่เก็บไว้ไม่ตรงกับที่ควรเป็น (ตรวจเอกสารเดิม ระบบไม่แก้ให้) */
+  dueDateMismatch?: boolean;
   status: ApDocumentStatus | string;
   paymentStatus: "UNPAID" | "PARTIAL" | "PAID" | string;
   createdAt: string;
@@ -518,6 +524,8 @@ export type CreatedAp = {
 export type CreatedApList = { items: CreatedAp[]; total: number; page: number; limit: number };
 
 export type CreatedApQuery = {
+  /** "true" = เฉพาะ AP ที่ due date ไม่ตรงฐานวันที่ใบแจ้งหนี้ Supplier + เครดิตวัน */
+  dueDateMismatch?: "true";
   search?: string;
   docDateFrom?: string;
   docDateTo?: string;

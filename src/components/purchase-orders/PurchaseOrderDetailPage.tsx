@@ -156,7 +156,10 @@ function formatCreatorContact(user?: {
 
 function formatDate(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY");
+  // วันที่ทั้งหน้าใช้ปี พ.ศ. เหมือนหน้า AP / รายการจ่ายเงิน (แสดงผลเท่านั้น ไม่แก้ค่าที่เก็บ) เช่น 2026-12-15 → 15/12/2569
+  const day = dayjs(value);
+  if (!day.isValid()) return "—";
+  return `${day.format("DD/MM")}/${day.year() + 543}`;
 }
 
 /** หัวรอบใน PDF ใช้ปี พ.ศ. เช่น 09/10/2569 */
@@ -169,7 +172,9 @@ function formatBuddhistDate(value?: string) {
 
 function formatDateTime(value?: string) {
   if (!value) return "—";
-  return dayjs(value).format("DD/MM/YYYY HH:mm");
+  const day = dayjs(value);
+  if (!day.isValid()) return "—";
+  return `${day.format("DD/MM")}/${day.year() + 543} ${day.format("HH:mm")}`;
 }
 
 function formatMoney(value?: string | number) {

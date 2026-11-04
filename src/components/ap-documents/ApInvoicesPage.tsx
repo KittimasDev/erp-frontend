@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Typography } from "antd";
+import { App, Button, DatePicker, Input, Select, Space, Table, Tag, Tooltip, Typography } from "antd";
 import { FileTextOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
@@ -295,7 +295,23 @@ export default function ApInvoicesPage() {
     { title: "ยอดตั้งหนี้รวม VAT", dataIndex: "totalAmount", align: "right", width: 150, render: (v: number) => money.format(v) },
     { title: "ยอดหักมัดจำ", dataIndex: "depositDeductAmount", align: "right", width: 120, render: (v: number) => money.format(v) },
     { title: "ยอดคงเหลือ", dataIndex: "remainingAmount", align: "right", width: 130, render: (v: number) => money.format(v) },
-    { title: "วันครบกำหนด", dataIndex: "dueDate", width: 120, render: (v?: string) => formatThaiDate(v) },
+    {
+      title: "วันครบกำหนด",
+      dataIndex: "dueDate",
+      width: 150,
+      render: (v: string | undefined, r: CreatedAp) => (
+        <>
+          {formatThaiDate(v)}
+          {r.dueDateMismatch ? (
+            <Tooltip
+              title={`ฐานวันที่อาจผิด: ควรเป็น ${formatThaiDate(r.expectedDueDate)} (วันที่ใบแจ้งหนี้ Supplier + เครดิตวัน) — ตรวจและแก้เองถ้าจำเป็น ระบบไม่ปรับให้อัตโนมัติ`}
+            >
+              <Tag color="orange" style={{ marginLeft: 6 }}>ตรวจฐานวัน</Tag>
+            </Tooltip>
+          ) : null}
+        </>
+      ),
+    },
     {
       title: "สถานะเอกสาร",
       dataIndex: "status",

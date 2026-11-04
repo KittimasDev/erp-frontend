@@ -88,7 +88,7 @@ type FormValues = {
 export default function ApInvoiceFormPage({ id }: { id?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const perms = useScreenActionPermissions(config.screenCode);
@@ -195,11 +195,16 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
 
   /* เติมค่าครั้งเดียว — แก้ร่างเดิม หรือสร้างใหม่จาก GRN (มีร่างอยู่แล้ว → เปิดร่างเดิมแทน) */
   const seeded = useRef(false);
+  const prevSupplierKey = useRef<string | null>(null);
+  const supplierTracked = useRef(false);
   useEffect(() => {
     if (seeded.current) return;
     if (id) {
       if (!existing || (existing.goodsReceiptId && !grn)) return;
       seeded.current = true;
+      // ฐานตั้งต้นของการเทียบ "เปลี่ยนวันที่ใบแจ้งหนี้" — กันถามยืนยันตอนเพิ่งโหลดใบเดิม
+      supplierTracked.current = true;
+      prevSupplierKey.current = existing.supplierDocDate ? existing.supplierDocDate.slice(0, 10) : null;
       const byItem = new Map((grn?.items ?? []).map((i) => [i.goodsReceiptItemId, i]));
       form.setFieldsValue({
         docDate: dayjs(existing.docDate),
@@ -274,33 +279,46 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
   const activeTerm = (grn ?? poInfo)?.paymentTerm ?? existing?.paymentTerm;
   const creditDaysForDue = Number(activeTerm?.creditDays ?? 0);
   const isCreditTerm = activeTerm?.termType === "CREDIT";
+  // จำนวนวันที่บวกจากวันที่ใบแจ้งหนี้ — เงินสด (ชำระเมื่อรับสินค้า / เครดิต 0 วัน) = 0 · เครดิต = X วัน · อื่น ๆ ไม่คำนวณ
+  const dueOffsetDays: number | null =
+    activeTerm?.termType === "ON_RECEIPT"
+      ? 0
+      : isCreditTerm
+        ? Math.max(creditDaysForDue, 0)
+        : null;
+  const isCashTerm = dueOffsetDays === 0;
 
-  // ฐานหลัก = วันที่ใบแจ้งหนี้ Supplier · อัปเดต due เมื่อเปลี่ยนวันที่ (create หรือ due ยังว่าง/ยังตรงสูตรเดิม)
-  const lastSuggestedDue = useRef<string | null>(null);
+  // ฐานหลัก = วันที่ใบแจ้งหนี้ Supplier · เปลี่ยนวันที่ → คำนวณ due ใหม่ (ทั้งสร้างและแก้ไข)
+  // due ที่ผู้ใช้กำหนดเอง (ไม่ตรงสูตรของวันที่เดิม) ห้ามเขียนทับเงียบ ๆ — ถามยืนยันก่อน
   useEffect(() => {
-    if (!isCreditTerm || creditDaysForDue <= 0) return;
-    if (!supplierDocDateWatch) return;
-    const next = creditDueFrom(supplierDocDateWatch, creditDaysForDue);
-    if (!next) return;
+    if (!seeded.current) return;
+    const key = supplierDocDateWatch ? supplierDocDateWatch.format("YYYY-MM-DD") : null;
+    if (!supplierTracked.current) {
+      supplierTracked.current = true;
+      prevSupplierKey.current = key;
+      if (id) return; // แก้ใบเดิม: ค่าที่โหลดมาคือฐานตั้งต้น ยังไม่ใช่การเปลี่ยนวันที่
+    }
+    if (key === prevSupplierKey.current) return;
+    const prevKey = prevSupplierKey.current;
+    prevSupplierKey.current = key;
+    if (dueOffsetDays === null || !supplierDocDateWatch) return;
+    const next = supplierDocDateWatch.add(dueOffsetDays, "day");
     const nextKey = next.format("YYYY-MM-DD");
     const currentKey = dueDateWatch ? dueDateWatch.format("YYYY-MM-DD") : null;
-    const shouldApply =
-      !id ||
-      !currentKey ||
-      currentKey === lastSuggestedDue.current ||
-      (grn?.suggestedDueDate && currentKey === grn.suggestedDueDate);
-    if (!shouldApply) return;
-    lastSuggestedDue.current = nextKey;
-    if (currentKey !== nextKey) form.setFieldValue("dueDate", next);
-  }, [
-    creditDaysForDue,
-    dueDateWatch,
-    form,
-    grn?.suggestedDueDate,
-    id,
-    isCreditTerm,
-    supplierDocDateWatch,
-  ]);
+    if (currentKey === nextKey) return;
+    const prevExpected = prevKey ? dayjs(prevKey).add(dueOffsetDays, "day").format("YYYY-MM-DD") : null;
+    if (!currentKey || currentKey === prevExpected) {
+      form.setFieldValue("dueDate", next);
+      return;
+    }
+    modal.confirm({
+      title: "คำนวณวันครบกำหนดใหม่?",
+      content: `วันครบกำหนดปัจจุบัน (${dayjs(currentKey).format("DD/MM/YYYY")}) เป็นค่าที่กำหนดเอง · คำนวณใหม่จากวันที่ใบแจ้งหนี้${isCashTerm ? " (เงินสด)" : ` + เครดิต ${dueOffsetDays} วัน`} ได้ ${next.format("DD/MM/YYYY")}`,
+      okText: "ใช้ค่าที่คำนวณใหม่",
+      cancelText: "คงค่าเดิม",
+      onOk: () => form.setFieldValue("dueDate", next),
+    });
+  }, [dueDateWatch, dueOffsetDays, form, id, isCashTerm, modal, supplierDocDateWatch]);
 
   const [saving, setSaving] = useState(false);
 
@@ -482,7 +500,7 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
             <Form.Item
               name="supplierDocDate"
               label="วันที่ใบแจ้งหนี้"
-              extra={isCreditTerm ? "ใช้เป็นฐานนับวันเครดิตสำหรับวันครบกำหนดชำระ" : undefined}
+              extra={dueOffsetDays !== null ? "ใช้เป็นฐานคำนวณวันครบกำหนดชำระ (เงินสด = วันเดียวกัน · เครดิต = บวกวันเครดิต)" : undefined}
             >
               <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
             </Form.Item>
@@ -735,9 +753,11 @@ export default function ApInvoiceFormPage({ id }: { id?: string }) {
               label="วันครบกำหนดชำระ"
               extra={
                 term
-                  ? isCreditTerm
-                    ? `เงื่อนไข: ${termText(term)} · นับจากวันที่ใบแจ้งหนี้ Supplier (+ ${creditDaysForDue} วัน)`
-                    : `เงื่อนไข: ${termText(term)}`
+                  ? isCashTerm
+                    ? `เงื่อนไข: ${termText(term)} · เงินสด ครบกำหนดตามวันที่ใบแจ้งหนี้ Supplier`
+                    : isCreditTerm
+                      ? `เงื่อนไข: ${termText(term)} · นับจากวันที่ใบแจ้งหนี้ Supplier (+ ${creditDaysForDue} วัน)`
+                      : `เงื่อนไข: ${termText(term)}`
                   : undefined
               }
             >
