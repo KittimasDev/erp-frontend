@@ -2,6 +2,7 @@
 .muted {
   color: var(--erp-muted, #8a9199);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 /* กลุ่มบรรทัดในโมดัลตั้งสูตร — แยกวัตถุดิบ / ผลผลิต / ของเสีย ให้เห็นชัด */

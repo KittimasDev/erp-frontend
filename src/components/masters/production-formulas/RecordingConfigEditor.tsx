@@ -178,7 +178,7 @@ export default function RecordingConfigEditor({
       title: "รหัส / ชื่อ",
       width: 220,
       render: (_v, row) => (
-        <Space direction="vertical" size={4} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={4} style={{ width: "100%" }}>
           <Input
             size="small"
             placeholder="รหัส"
@@ -377,7 +377,7 @@ export default function RecordingConfigEditor({
       title: "แหล่งข้อมูล",
       width: 200,
       render: (_v, row) => (
-        <Space direction="vertical" size={4} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={4} style={{ width: "100%" }}>
           <Select
             size="small"
             style={{ width: "100%" }}
@@ -518,7 +518,7 @@ export default function RecordingConfigEditor({
       </Button>
 
       <Card size="small" title="การลิงก์วัตถุดิบ (BOM) กับช่องบันทึก Input">
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
+        <Space orientation="vertical" size={8} style={{ width: "100%" }}>
           <Typography.Text type="secondary">
             วัตถุดิบทุกตัวในสูตรต้องมีช่อง Input ที่ลิงก์ไว้ (เพื่อให้ตัดสต๊อกครบ) หรือยกเว้นพร้อมเหตุผล ·
             ถ้ายังไม่ครบ บันทึกเป็นฉบับร่าง (ปิดสถานะใช้งาน) ได้ แต่เปิดใช้งานไม่ได้

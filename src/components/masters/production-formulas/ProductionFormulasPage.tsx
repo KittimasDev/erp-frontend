@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import dayjs from "dayjs";
 import {
   Button,
   Col,
@@ -130,7 +131,12 @@ export default function ProductionFormulasPage() {
         }
       : undefined,
   );
-  const formulas = useMemo(() => listQuery.data?.data ?? [], [listQuery.data]);
+  const formulas = useMemo(() => {
+    const rows = listQuery.data?.data ?? [];
+    return [...rows].sort(
+      (a, b) => dayjs(b.createdAt).valueOf() - dayjs(a.createdAt).valueOf(),
+    );
+  }, [listQuery.data]);
 
   const createFormula = useCreateProductionFormulaMutation();
   const updateFormula = useUpdateProductionFormulaMutation();
@@ -155,12 +161,17 @@ export default function ProductionFormulasPage() {
       render: (_v, row) => (
         <div>
           <div>{row.nameTh}</div>
-          <span className={masterStyles.codeBadge}>{row.formulaCode}</span>
-          {row.versionNo > 1 ? (
-            <Tooltip title="เลขรุ่นบวกขึ้นทุกครั้งที่แก้บรรทัดในสูตร — ใบสั่งผลิตเก็บเลขรุ่นที่ใช้ไว้">
-              <Tag style={{ marginLeft: 6 }}>รุ่น {row.versionNo}</Tag>
-            </Tooltip>
-          ) : null}
+          <div>
+            <span className={masterStyles.codeBadge}>{row.formulaCode}</span>
+            {row.versionNo > 1 ? (
+              <Tooltip title="เลขรุ่นบวกขึ้นทุกครั้งที่แก้บรรทัดในสูตร — ใบสั่งผลิตเก็บเลขรุ่นที่ใช้ไว้">
+                <Tag style={{ marginLeft: 6 }}>รุ่น {row.versionNo}</Tag>
+              </Tooltip>
+            ) : null}
+          </div>
+          <div className={styles.muted}>
+            สร้าง {dayjs(row.createdAt).format("DD/MM/YYYY HH:mm")}
+          </div>
         </div>
       ),
     },
@@ -388,8 +399,8 @@ export default function ProductionFormulasPage() {
               <h3>รายการสูตรการผลิต</h3>
               <p>
                 {hasFilters
-                  ? "ผลลัพธ์ตามเงื่อนไขการค้นหา"
-                  : "สูตรทั้งหมดที่หน้าสร้างใบสั่งผลิตเลือกใช้ได้"}
+                  ? "ผลลัพธ์ตามเงื่อนไขการค้นหา เรียงจากวันที่สร้างล่าสุด"
+                  : "เรียงจากสูตรที่สร้างล่าสุด"}
               </p>
             </div>
             <div className={masterStyles.tableCount}>{formulas.length} สูตร</div>
@@ -454,6 +465,7 @@ export default function ProductionFormulasPage() {
                 isActive: values.isActive,
                 sortOrder: values.sortOrder,
                 remark: values.remark,
+                recordingConfig: values.recordingConfig,
                 lines: values.lines ?? [],
               },
               { onSuccess: closeForm },

@@ -27,7 +27,6 @@ import {
   type RecordingFieldValues,
 } from "@/utils/recordingCalc";
 import { createClientId } from "@/utils/createClientId";
-import masterStyles from "@/components/masters/shared/master-page.module.css";
 
 type DraftLine = {
   key: string;
@@ -181,7 +180,6 @@ export default function ConfirmShiftStockModal({
       title="ยืนยันบันทึกกะ — เลือกคลัง/Lot เพื่อตัดสต๊อก"
       okText="ยืนยันและตัดสต๊อก"
       cancelText="ยกเลิก"
-      okButtonProps={{ className: masterStyles.createButton }}
       confirmLoading={confirm.isPending}
       onCancel={onClose}
       onOk={submit}
