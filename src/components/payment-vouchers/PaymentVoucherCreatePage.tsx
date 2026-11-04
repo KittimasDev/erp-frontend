@@ -179,7 +179,7 @@ export default function PaymentVoucherCreatePage({ queueItemId }: { queueItemId:
           <Descriptions.Item label="ยอดเอกสารต้นทาง">{fmtMoney(ctx.sourceDocumentAmount)}</Descriptions.Item>
           <Descriptions.Item label="ยอดที่ออก PV ไปแล้ว">{fmtMoney(ctx.issuedPvAmount)}</Descriptions.Item>
           <Descriptions.Item label="ยอดคงเหลือที่ออก PV ได้">{fmtMoney(ctx.remainingIssuable)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดที่ยืนยันส่งเข้าคิว" span={3}>
+          <Descriptions.Item label="ยอดที่ยืนยันส่งเข้าคิว" span="filled">
             {fmtMoney(queueAmount)}
           </Descriptions.Item>
         </Descriptions>

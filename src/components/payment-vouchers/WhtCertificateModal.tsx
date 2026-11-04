@@ -96,11 +96,11 @@ export default function WhtCertificateModal({
       <Descriptions bordered size="small" column={{ xs: 1, md: 2 }} style={{ marginBottom: 16 }}>
         <Descriptions.Item label="เลขที่รายการจ่าย">{detail.paymentNo ?? "—"}</Descriptions.Item>
         <Descriptions.Item label="เลขที่ PV">{v.voucherNo}</Descriptions.Item>
-        <Descriptions.Item label="ผู้ถูกหักภาษี (ผู้ขาย)" span={2}>
+        <Descriptions.Item label="ผู้ถูกหักภาษี (ผู้ขาย)" span="filled">
           {detail.voucherDetail.supplier.nameTh}
           {detail.voucherDetail.supplier.taxId ? ` · เลขผู้เสียภาษี ${detail.voucherDetail.supplier.taxId}` : " · ยังไม่มีเลขผู้เสียภาษีในข้อมูลผู้ขาย"}
         </Descriptions.Item>
-        <Descriptions.Item label="ผู้จ่าย / ผู้หักภาษี" span={2}>
+        <Descriptions.Item label="ผู้จ่าย / ผู้หักภาษี" span="filled">
           ข้อมูลบริษัทในระบบ (บันทึกเป็นข้อมูลถาวรในเอกสาร ณ วันที่ออก)
         </Descriptions.Item>
         <Descriptions.Item label="วันที่จ่ายเงิน">{detail.paymentDate}</Descriptions.Item>

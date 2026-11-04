@@ -114,7 +114,7 @@ function methodRows(d: PaymentRecordDetail) {
     );
   }
   return (
-    <Descriptions.Item label="วิธีชำระและรายละเอียด" span={2}>{d.otherMethodDetail ?? "—"}</Descriptions.Item>
+    <Descriptions.Item label="วิธีชำระและรายละเอียด" span="filled">{d.otherMethodDetail ?? "—"}</Descriptions.Item>
   );
 }
 
@@ -251,7 +251,7 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
           <Descriptions.Item label="ยอดโอนสุทธิ (ตาม PV)">
             <Typography.Text strong>{fmtMoney(pv.netAmount)}</Typography.Text>
           </Descriptions.Item>
-          <Descriptions.Item label="ยอดจ่ายจริง" span={3}>
+          <Descriptions.Item label="ยอดจ่ายจริง" span="filled">
             <Typography.Text strong>{fmtMoney(d.amount)}</Typography.Text>
           </Descriptions.Item>
         </Descriptions>
@@ -262,7 +262,7 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
           <Descriptions.Item label="วันที่จ่ายจริง">{formatThaiDate(d.paymentDate)}</Descriptions.Item>
           <Descriptions.Item label="วิธีชำระ">{paymentMethodLabel(d.paymentMethod)}</Descriptions.Item>
           {methodRows(d)}
-          <Descriptions.Item label="หมายเหตุ" span={2}>{d.remark || "—"}</Descriptions.Item>
+          <Descriptions.Item label="หมายเหตุ" span="filled">{d.remark || "—"}</Descriptions.Item>
         </Descriptions>
       </Card>
 
@@ -282,7 +282,7 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
               <Descriptions.Item label="เลขที่">{cert.certNo}</Descriptions.Item>
               <Descriptions.Item label="แบบยื่น">{WHT_TAX_FORM_LABEL[cert.taxForm] ?? cert.taxForm}</Descriptions.Item>
               {(cert.lines?.length ?? 0) > 1 ? (
-                <Descriptions.Item label="รายการภาษีที่หัก" span={2}>
+                <Descriptions.Item label="รายการภาษีที่หัก" span="filled">
                   <WhtLinesTable lines={cert.lines ?? []} total={cert.whtAmount} />
                 </Descriptions.Item>
               ) : (
@@ -293,7 +293,7 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
                   <Descriptions.Item label="ภาษีที่หัก">{fmtMoney(cert.whtAmount)}</Descriptions.Item>
                 </>
               )}
-              <Descriptions.Item label="ออกโดย / วันที่ออก" span={2}>
+              <Descriptions.Item label="ออกโดย / วันที่ออก" span="filled">
                 {cert.issuedByName ?? "—"} · {dt(cert.issuedAt)}{" "}
                 <Button size="small" type="link" onClick={() => void viewCert(cert)}>
                   ดู / ดาวน์โหลด / พิมพ์

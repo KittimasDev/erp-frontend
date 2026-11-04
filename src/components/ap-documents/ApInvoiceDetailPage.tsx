@@ -24,7 +24,7 @@ import {
 } from "antd";
 import type { MenuProps } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined, MoreOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, FilePdfOutlined, MoreOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 
@@ -309,6 +309,9 @@ export default function ApInvoiceDetailPage({ id }: { id: string }) {
           <>
             <Button icon={<ArrowLeftOutlined />} onClick={() => router.push(config.basePath)}>
               กลับรายการ
+            </Button>
+            <Button icon={<FilePdfOutlined />} onClick={() => void handlePrint()}>
+              พิมพ์ PDF
             </Button>
             {editable ? (
               <>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Alert, App, Button, Card, DatePicker, Descriptions, Input, InputNumber, Modal, Popconfirm, Space, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, FilePdfOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -144,6 +144,7 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
   const query = useBillingNoteDetailQuery(id);
   const confirmMutation = useConfirmBillingNoteMutation();
   const [modal, setModal] = useState<"issue" | "cancel" | null>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const n = query.data;
 
   if (query.error) {
@@ -155,6 +156,18 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
     );
   }
   if (!n) return <Card loading />;
+
+  const handlePrintPdf = async () => {
+    setPdfLoading(true);
+    try {
+      const { generateBillingNotePdf } = await import("@/utils/generateBillingNotePdf");
+      await generateBillingNotePdf(n);
+    } catch (e) {
+      message.error(errText(e, "สร้างไฟล์ PDF ไม่สำเร็จ"));
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   const itemColumns: ColumnsType<BillingNoteDetailItem> = [
       {
@@ -244,6 +257,9 @@ export default function BillingNoteDetailPage({ id }: { id: string }) {
         }
         actions={
           <>
+          <Button icon={<FilePdfOutlined />} loading={pdfLoading} onClick={() => void handlePrintPdf()}>
+            พิมพ์ PDF
+          </Button>
           {isDraft && perms.canEdit ? (
             <>
               <Button onClick={() => router.push(`${BASE_PATH}/${n.id}/edit`)}>แก้ไข</Button>

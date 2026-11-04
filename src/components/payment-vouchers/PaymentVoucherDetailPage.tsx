@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Alert, Button, Card, Descriptions, Form, Input, Modal, Space, Spin, Table, Tag, Typography } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, FilePdfOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
@@ -60,6 +60,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
   const [form] = Form.useForm<EditValues>();
   const [reasonFor, setReasonFor] = useState<"reject" | "cancel" | null>(null);
   const [reason, setReason] = useState("");
+  const [pdfLoading, setPdfLoading] = useState(false);
   const d = query.data?.data;
   const v = d?.voucher;
   const editable = Boolean(v && EDITABLE.includes(v.status) && perms.canEdit);
@@ -80,6 +81,15 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
 
   const status = v.status;
   const run = (a: "submit" | "review" | "approve") => action.mutate({ id, action: a });
+  const handlePrintPdf = async () => {
+    setPdfLoading(true);
+    try {
+      const { generatePaymentVoucherPdf } = await import("@/utils/generatePaymentVoucherPdf");
+      await generatePaymentVoucherPdf(d);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   const saveEdit = async (thenSubmit: boolean) => {
     const vals = await form.validateFields();
@@ -132,6 +142,9 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
         }
         actions={
           <>
+            <Button icon={<FilePdfOutlined />} loading={pdfLoading} onClick={() => void handlePrintPdf()}>
+              พิมพ์ PDF
+            </Button>
             {editable && perms.canEdit ? (
               <>
                 <Button loading={update.isPending} onClick={() => void saveEdit(false)}>
@@ -194,7 +207,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
           <Descriptions.Item label="สถานะ PV">
             <Tag color={VOUCHER_STATUS_COLOR[status]}>{VOUCHER_STATUS_LABEL[status] ?? status}</Tag>
           </Descriptions.Item>
-          <Descriptions.Item label="สถานะ Express" span={2}>
+          <Descriptions.Item label="สถานะ Express" span="filled">
             <Tag color={EXPRESS_STATUS_COLOR[d.expressStatus]}>{EXPRESS_STATUS_LABEL[d.expressStatus] ?? d.expressStatus}</Tag>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               แสดงข้อมูลอย่างเดียว ไม่เป็นเงื่อนไขการอนุมัติหรือจ่ายเงิน
@@ -211,7 +224,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
           <Descriptions.Item label="ยอดเอกสารต้นทาง">{fmtMoney(d.sourceDocumentAmount)}</Descriptions.Item>
           <Descriptions.Item label="ยอดที่ออก PV ไปแล้ว">{fmtMoney(d.issuedPvAmount)}</Descriptions.Item>
           <Descriptions.Item label="ยอดคงเหลือที่ออก PV ได้">{fmtMoney(d.remainingIssuable)}</Descriptions.Item>
-          <Descriptions.Item label="จำนวนเงินที่ต้องการจ่าย" span={3}>
+          <Descriptions.Item label="จำนวนเงินที่ต้องการจ่าย" span="filled">
             <Typography.Text strong>{fmtMoney(v.totalAmount)}</Typography.Text>
           </Descriptions.Item>
         </Descriptions>
@@ -232,10 +245,10 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
             <Descriptions.Item label="วันที่ต้องการจ่าย">
               {d.desiredPayDate ? dayjs(d.desiredPayDate).format("DD/MM/YYYY") : "—"}
             </Descriptions.Item>
-            <Descriptions.Item label="ธนาคาร / บัญชีที่ใช้จ่าย" span={2}>
+            <Descriptions.Item label="ธนาคาร / บัญชีที่ใช้จ่าย" span="filled">
               {bankLabel(d.bankAccount)}
             </Descriptions.Item>
-            <Descriptions.Item label="หมายเหตุ" span={2}>
+            <Descriptions.Item label="หมายเหตุ" span="filled">
               {v.remark || "—"}
             </Descriptions.Item>
           </Descriptions>

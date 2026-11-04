@@ -39,7 +39,7 @@ export function ReferenceCard({
               })}
         </Descriptions.Item>
         {isBilling ? (
-          <Descriptions.Item label="เลขที่ AP" span={2}>
+          <Descriptions.Item label="เลขที่ AP" span="filled">
             {info.apDocuments.length === 0 ? "—" : info.apDocuments.map((a) => a.docNo).join(", ")}
           </Descriptions.Item>
         ) : null}
@@ -148,7 +148,7 @@ export function TaxCard({
           {!hasWht ? "ไม่มี" : multi ? "หลายอัตรา (ดูรายการด้านล่าง)" : `${Number(whtRate)}%`}
         </Descriptions.Item>
         <Descriptions.Item label="ยอด WHT">{fmtMoney(whtAmount)}</Descriptions.Item>
-        <Descriptions.Item label="ยอดสุทธิจ่าย" span={2}>
+        <Descriptions.Item label="ยอดสุทธิจ่าย" span="filled">
           <Typography.Text strong>{fmtMoney(net)}</Typography.Text>
         </Descriptions.Item>
       </Descriptions>
