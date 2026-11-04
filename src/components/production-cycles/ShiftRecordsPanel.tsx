@@ -1109,13 +1109,17 @@ export default function ShiftRecordsPanel({
 
   const accumulated = useMemo(() => {
     if (!hasAnyDynamic) return [];
+    // ใบตัดสต๊อกตอนยืนยัน: นับเฉพาะกะที่ยืนยันแล้ว — ยกเลิกยืนยันแล้วค่ากลับเป็นร่าง ต้องไม่ถูกรวม
+    const counted = cutOnConfirm
+      ? rows.filter((r) => r.status === "CONFIRMED")
+      : rows;
     return accumulateAcrossShiftConfigs(
-      rows.map((r) => ({
+      counted.map((r) => ({
         config: configForRow(r, recordingConfigSnapshot),
         values: r.values,
       })),
     );
-  }, [hasAnyDynamic, recordingConfigSnapshot, rows]);
+  }, [cutOnConfirm, hasAnyDynamic, recordingConfigSnapshot, rows]);
 
   const columns: ColumnsType<ShiftRecord> = useMemo(() => {
     const base: ColumnsType<ShiftRecord> = [
@@ -1361,7 +1365,9 @@ export default function ShiftRecordsPanel({
             ? { x: Math.max(800, 300 + columnFields.length * 120) }
             : undefined
         }
-        locale={{ emptyText: emptyNode }}
+        locale={{
+          emptyText: query.isPending || query.isFetching ? <div style={{ padding: "48px 16px" }} /> : emptyNode,
+        }}
         summary={() => {
           if (rows.length === 0) return null;
           if (legacyTotals) {
@@ -1465,7 +1471,9 @@ export default function ShiftRecordsPanel({
 
       {accumulated.length > 0 ? (
         <div style={{ marginTop: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <Typography.Text type="secondary">ยอดสะสมจากกะ:</Typography.Text>
+          <Typography.Text type="secondary">
+            ยอดสะสมจากกะ{cutOnConfirm ? " (เฉพาะกะที่ยืนยันแล้ว)" : ""}:
+          </Typography.Text>
           {accumulated.map((row) => (
             <Tag key={row.key} color={roleColor(row.resultRole)}>
               {row.label || row.code}: {n(row.total, 3)}
