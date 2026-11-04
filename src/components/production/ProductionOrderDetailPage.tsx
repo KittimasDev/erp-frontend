@@ -761,13 +761,14 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   <span className={styles.infoLabel}>เครื่องจักรหลัก</span>
                   <span className={styles.infoValue}>
                     {(() => {
-                      // เครื่องแรกใน snapshot ของ MO = เครื่องหลัก (ลำดับตามสูตร · รวมเครื่องที่ผู้ใช้สลับแล้ว)
+                      // แสดงเครื่องทั้งหมดใน snapshot ของ MO (ลำดับตามสูตร · รวมเครื่องที่ผู้ใช้สลับแล้ว)
                       const machines = order.machineSnapshot?.machines ?? [];
-                      const main = machines[0];
-                      if (!main) return "-";
-                      const extra =
-                        machines.length > 1 ? ` (+${machines.length - 1} เครื่อง)` : "";
-                      return `${main.code} - ${main.name}${extra}`;
+                      if (machines.length === 0) return "-";
+                      return machines.map((m) => (
+                        <div key={m.equipmentId}>
+                          {m.code} - {m.name}
+                        </div>
+                      ));
                     })()}
                   </span>
                 </div>
