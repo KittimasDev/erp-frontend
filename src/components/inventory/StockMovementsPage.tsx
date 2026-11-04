@@ -32,6 +32,11 @@ import {
   resolveStockMovementTypeLabel,
   STOCK_MOVEMENT_TYPE_LABEL,
 } from "@/types/inventory";
+import {
+  describeReferenceDoc,
+  describeStockMovement,
+  isSalesOutMovement,
+} from "@/utils/stock-movement-display";
 import { getInventoryPageScope, inventoryScopeApiFilter } from "./inventory-page-copy";
 import styles from "./StockMovementsPage.module.css";
 
@@ -71,24 +76,6 @@ function formatMoney(value?: string | number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-}
-
-function movementTagColor(label: string): string | undefined {
-  switch (label) {
-    case STOCK_MOVEMENT_TYPE_LABEL.RECEIVE:
-    case STOCK_MOVEMENT_TYPE_LABEL.ADJUST_IN:
-    case STOCK_MOVEMENT_TYPE_LABEL.TRANSFER_IN:
-    case STOCK_MOVEMENT_TYPE_LABEL.SALES_RETURN_IN:
-      return "success";
-    case STOCK_MOVEMENT_TYPE_LABEL.ISSUE:
-    case STOCK_MOVEMENT_TYPE_LABEL.ADJUST_OUT:
-    case STOCK_MOVEMENT_TYPE_LABEL.TRANSFER_OUT:
-      return "error";
-    case STOCK_MOVEMENT_TYPE_LABEL.SALES_OUT:
-      return "blue";
-    default:
-      return undefined;
-  }
 }
 
 function pageCopy(
@@ -160,10 +147,7 @@ export default function StockMovementsPage() {
       outQty += Number(row.quantityOut) || 0;
       revenue += Number(row.revenueAmount) || 0;
       expense += Number(row.expenseAmount) || 0;
-      if (
-        resolveStockMovementTypeLabel(row) ===
-        STOCK_MOVEMENT_TYPE_LABEL.SALES_OUT
-      ) {
+      if (isSalesOutMovement(row)) {
         salesCount += 1;
       }
     }
@@ -203,7 +187,48 @@ export default function StockMovementsPage() {
       width: 120,
       render: (_v: string, row) => {
         const label = resolveStockMovementTypeLabel(row);
-        return <Tag color={movementTagColor(label)}>{label}</Tag>;
+        return (
+          <Tag color={describeStockMovement(row).tagColor}>{label}</Tag>
+        );
+      },
+    },
+    {
+      title: "รายการ",
+      key: "movementName",
+      width: 240,
+      render: (_v, row) => {
+        const d = describeStockMovement(row);
+        const remark = row.remark?.trim();
+        return (
+          <div className={styles.itemCell}>
+            <span className={styles.itemCode}>
+              {d.name}{" "}
+              <Tag
+                color={d.tagColor}
+                variant="outlined"
+                style={{ marginInlineEnd: 0, fontSize: 11 }}
+              >
+                {d.directionLabel}
+              </Tag>
+            </span>
+            {remark ? (
+              <Tooltip title={remark} placement="topLeft">
+                <span
+                  className={styles.itemName}
+                  style={{
+                    display: "block",
+                    maxWidth: 216,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {remark}
+                </span>
+              </Tooltip>
+            ) : null}
+          </div>
+        );
       },
     },
     {
@@ -308,16 +333,19 @@ export default function StockMovementsPage() {
     {
       title: "เอกสารอ้างอิง",
       key: "ref",
-      width: 180,
+      width: 200,
       render: (_, row) => {
-        if (!row.referenceDocType && !row.referenceDocNo) return "—";
+        const ref = describeReferenceDoc(row);
+        if (!ref) return "—";
         return (
-          <div className={styles.refChip}>
-            {row.referenceDocType ? (
-              <span className={styles.refType}>{row.referenceDocType}</span>
-            ) : null}
-            <span className={styles.refNo}>{row.referenceDocNo ?? "—"}</span>
-          </div>
+          <Tooltip title={row.referenceDocType || undefined}>
+            <div className={styles.refChip}>
+              {ref.typeLabel ? (
+                <span className={styles.refType}>{ref.typeLabel}</span>
+              ) : null}
+              <span className={styles.refNo}>{ref.docNo ?? "—"}</span>
+            </div>
+          </Tooltip>
         );
       },
     },
@@ -496,7 +524,7 @@ export default function StockMovementsPage() {
             showSizeChanger: false,
             onChange: (next) => setPage(next),
           }}
-          scroll={{ x: 1732 }}
+          scroll={{ x: 1992 }}
           locale={{ emptyText: "ยังไม่มีการเคลื่อนไหวตามเงื่อนไข" }}
         />
       </section>

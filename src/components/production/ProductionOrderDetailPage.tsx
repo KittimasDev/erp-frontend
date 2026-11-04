@@ -286,6 +286,27 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
     [order?.planLines],
   );
 
+  /** กระทบยอดผลผลิตต่อ (สินค้า, หน่วย) จาก backend — ไม่คำนวณซ้ำฝั่งหน้าจอ */
+  const reconcile = summary?.outputReconcile ?? [];
+  const reconcileApplicable = summary?.outputReconcileApplicable ?? false;
+  const reconcileFor = (itemId: string, unitId: string) =>
+    reconcile.find((r) => r.itemId === itemId && r.unitId === unitId);
+  /** รวมยอดรายหน่วย (หน่วยต่างกันไม่บวกข้าม) เช่น "1,200 KG · 3 TON" */
+  const sumReconcile = (
+    pick: (r: (typeof reconcile)[number]) => string,
+  ): string => {
+    const byUnit = new Map<string, number>();
+    for (const r of reconcile) {
+      const key = r.unitCode ?? "";
+      byUnit.set(key, (byUnit.get(key) ?? 0) + Number(pick(r)));
+    }
+    if (byUnit.size === 0) return "0";
+    return [...byUnit.entries()]
+      .map(([unit, qty]) => `${fmt(String(qty))} ${unit}`.trim())
+      .join(" · ");
+  };
+  const anomalyLines = reconcile.filter((r) => r.isAnomaly);
+
   const receiveLines = useMemo(() => {
     const byItemId = new Map<string, (typeof outputPlanLines)[number]>();
     for (const line of outputPlanLines) {
@@ -809,7 +830,36 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   </span>
                 </div>
                 <div className={styles.summaryCard}>
-                  <span className={styles.summaryLabel}>ผลิตจริง</span>
+                  <span className={styles.summaryLabel}>
+                    ผลิตจากกะที่ยืนยันแล้ว
+                  </span>
+                  <span className={styles.summaryValue}>
+                    {reconcileApplicable
+                      ? sumReconcile((r) => r.confirmedShiftQty)
+                      : "—"}
+                  </span>
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>รอรับเข้าคลัง</span>
+                  <span className={styles.summaryValue}>
+                    {reconcileApplicable
+                      ? sumReconcile((r) => r.pendingQty)
+                      : "—"}
+                  </span>
+                  {anomalyLines.length > 0 ? (
+                    <Typography.Text type="danger" style={{ fontSize: 12 }}>
+                      ผิดปกติ: รับเข้าคลังมากกว่ากะที่ยืนยัน{" "}
+                      {anomalyLines
+                        .map(
+                          (r) =>
+                            `${r.itemCode ?? r.itemId} +${fmt(r.excessQty)} ${r.unitCode ?? ""}`.trim(),
+                        )
+                        .join(", ")}
+                    </Typography.Text>
+                  ) : null}
+                </div>
+                <div className={styles.summaryCard}>
+                  <span className={styles.summaryLabel}>รับเข้าคลังแล้ว</span>
                   <span
                     className={`${styles.summaryValue} ${styles.summaryValueAccent}`}
                   >
@@ -894,12 +944,39 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                       `${fmt(v)} ${row.unitCode ?? ""}`,
                   },
                   {
-                    title: "จริง",
+                    title: "ผลิตจากกะที่ยืนยันแล้ว",
+                    key: "confirmedShiftQty",
+                    align: "right",
+                    render: (_, row) => {
+                      if (!reconcileApplicable) return "—";
+                      const r = reconcileFor(row.itemId, row.unitId);
+                      return `${fmt(r?.confirmedShiftQty ?? "0")} ${row.unitCode ?? ""}`;
+                    },
+                  },
+                  {
+                    title: "รับเข้าคลังแล้ว",
                     dataIndex: "actualQty",
                     key: "actualQty",
                     align: "right",
                     render: (_, row) =>
                       `${fmt(row.actualQty ?? "0")} ${row.unitCode ?? ""}`,
+                  },
+                  {
+                    title: "รอรับเข้าคลัง",
+                    key: "pendingQty",
+                    align: "right",
+                    render: (_, row) => {
+                      if (!reconcileApplicable) return "—";
+                      const r = reconcileFor(row.itemId, row.unitId);
+                      if (r?.isAnomaly) {
+                        return (
+                          <Tag color="error">
+                            ผิดปกติ: เกิน {fmt(r.excessQty)} {row.unitCode ?? ""}
+                          </Tag>
+                        );
+                      }
+                      return `${fmt(r?.pendingQty ?? "0")} ${row.unitCode ?? ""}`;
+                    },
                   },
                   {
                     title: "Yield (แผน)",

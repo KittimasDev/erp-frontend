@@ -247,8 +247,26 @@ export type ProductionOrderYieldCompareLine = {
   actualYieldPercent: number;
 };
 
+/** กระทบยอดผลผลิตต่อ (สินค้า, หน่วยนับ) — ผลิตจากกะที่ยืนยัน / รับเข้าคลังแล้ว / รอรับเข้าคลัง */
+export type ProductionOrderOutputReconcileLine = {
+  itemId: string;
+  itemCode?: string;
+  itemNameTh?: string;
+  unitId: string;
+  unitCode?: string;
+  confirmedShiftQty: string;
+  approvedQty: string;
+  pendingQty: string;
+  /** รับเข้าคลังเกินยอดกะที่ยืนยัน (>0 = ผิดปกติ) */
+  excessQty: string;
+  isAnomaly: boolean;
+};
+
 export type ProductionOrderSummary = {
   productionOrderId: string;
+  /** false = ใบตัดวัตถุดิบตอนเริ่มผลิต ไม่มีขั้นยืนยันกะ */
+  outputReconcileApplicable?: boolean;
+  outputReconcile?: ProductionOrderOutputReconcileLine[];
   totalPlannedInputQty: string;
   totalInputQty: string;
   totalPlannedOutputQty: string;
