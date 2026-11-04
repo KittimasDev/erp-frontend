@@ -51,14 +51,84 @@
   font-weight: 500 !important;
 }
 
+.pageHeader {
+  padding: 4px 2px 0;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pageTitle {
+  margin: 0;
+  color: var(--erp-text, #2f343a);
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.pageSubtitle {
+  margin: 6px 0 0;
+  color: var(--erp-muted, #8a9199);
+  font-size: 13px;
+}
+
+.actionBanner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid #f6dc9a;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fffaf0, #fff6e0);
+}
+
+.actionIcon {
+  flex: none;
+  color: #d48806;
+  font-size: 22px;
+}
+
+.actionText {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.actionText strong {
+  color: #7a4d00;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.actionText span {
+  color: #8a6d2f;
+  font-size: 13px;
+}
+
+.actionButton {
+  flex: none;
+  height: 38px !important;
+  border-radius: 10px !important;
+}
+
 .summaryGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
 }
 
 .summaryCard {
-  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 128px;
   padding: 16px 18px;
   border: 1px solid var(--erp-border, rgba(0, 0, 0, 0.06));
   border-radius: 14px;
@@ -66,24 +136,145 @@
   box-shadow: 0 8px 22px rgba(47, 52, 58, 0.05);
 }
 
-.summaryCard span {
-  display: block;
+.kpiHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kpiIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.kpiIconGreen {
+  background: rgba(115, 152, 22, 0.14);
+  color: #627f13;
+}
+
+.kpiIconBlue {
+  background: rgba(22, 119, 255, 0.12);
+  color: #1668dc;
+}
+
+.kpiIconAmber {
+  background: rgba(249, 187, 12, 0.2);
+  color: #ad6800;
+}
+
+.kpiIconGray {
+  background: rgba(119, 119, 124, 0.14);
+  color: #5b5b60;
+}
+
+.kpiLabel {
   color: var(--erp-muted, #8a9199);
   font-size: 13px;
   font-weight: 500;
+  line-height: 1.2;
 }
 
 .summaryCard strong {
   display: block;
-  margin-top: 8px;
+  margin-top: 4px;
   color: var(--erp-text, #2f343a);
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1.15;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.summaryCard strong em {
+  margin-left: 6px;
+  color: var(--erp-muted, #8a9199);
+  font-size: 13px;
+  font-style: normal;
   font-weight: 500;
+}
+
+.summaryCard small {
+  margin-top: auto;
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
 }
 
 .summaryCardAccent strong {
   color: var(--erp-green-dark, #6f9720);
+}
+
+.summaryCardWarn {
+  border-color: #f6dc9a;
+  background: #fffdf5;
+}
+
+.summaryCardWarn strong {
+  color: #ad6800;
+}
+
+.insightRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.insightItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px dashed var(--erp-border, rgba(0, 0, 0, 0.12));
+  border-radius: 12px;
+  background: #fafbfc;
+  color: var(--erp-green-dark, #6f9720);
+  font-size: 18px;
+}
+
+.insightItem div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.insightItem span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
+}
+
+.insightItem strong {
+  color: var(--erp-text, #2f343a);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.chartBodyRel {
+  position: relative;
+}
+
+.donutCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -62%);
+  display: grid;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.donutCenter strong {
+  color: var(--erp-text, #2f343a);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.donutCenter span {
+  color: var(--erp-muted, #8a9199);
+  font-size: 12px;
 }
 
 .chartsGrid {
@@ -215,10 +406,17 @@
   font-size: 14px;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
   .summaryGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+@media (max-width: 1100px) {
+  .insightRow {
+    grid-template-columns: 1fr;
+  }
+
 
   .chartsGrid {
     grid-template-columns: 1fr;

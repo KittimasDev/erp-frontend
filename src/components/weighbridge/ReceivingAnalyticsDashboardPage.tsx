@@ -2,7 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { Button, DatePicker, Select } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import {
+  ArrowLeftOutlined,
+  CalendarOutlined,
+  CarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  FileSearchOutlined,
+  FireOutlined,
+  InboxOutlined,
+  TagsOutlined,
+  WalletOutlined,
+  WarningOutlined,
+} from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 import { useRouter } from "next/navigation";
 import {
@@ -179,9 +191,73 @@ export default function ReceivingAnalyticsDashboardPage() {
     [data?.byClassification],
   );
 
+  const waitingCount = summary?.waitingPayment ?? 0;
+  const unreceiptedCount = summary?.unreceipted ?? 0;
+  const needsAction = waitingCount > 0 || unreceiptedCount > 0;
+
+  /** ตัวเลขสรุปที่คำนวณจากข้อมูลเดิมของ API — ไม่มีการเรียก API เพิ่ม */
+  const insights = useMemo(() => {
+    const tickets = summary?.tickets ?? 0;
+    const net = Number(summary?.totalNetWeightKg) || 0;
+    const amount = Number(summary?.totalAmount) || 0;
+    const paid = summary?.paid ?? 0;
+    const receipted = paid + (summary?.waitingPayment ?? 0);
+    const days = Math.max(1, dailyChartData.length);
+
+    const peakDay = dailyChartData.reduce<
+      (typeof dailyChartData)[number] | null
+    >((best, p) => (p.tickets > (best?.tickets ?? 0) ? p : best), null);
+    const peakHour = hourlyChartData.reduce<
+      (typeof hourlyChartData)[number] | null
+    >((best, p) => (p.tickets > (best?.tickets ?? 0) ? p : best), null);
+
+    const totalClassWeight = classificationChartData.reduce(
+      (a, c) => a + c.netWeight,
+      0,
+    );
+    const top = [...classificationChartData].sort(
+      (a, b) => b.netWeight - a.netWeight,
+    )[0];
+
+    return {
+      avgTicketsPerDay: tickets / days,
+      avgWeightPerTicket: tickets > 0 ? net / tickets : 0,
+      avgPricePerKg: net > 0 ? amount / net : 0,
+      receipted,
+      paidPct: receipted > 0 ? Math.round((paid / receipted) * 100) : 0,
+      peakDay,
+      peakHour,
+      topClass:
+        top && top.netWeight > 0
+          ? {
+              label: top.label,
+              sharePct:
+                totalClassWeight > 0
+                  ? Math.round((top.netWeight / totalClassWeight) * 100)
+                  : 0,
+            }
+          : null,
+    };
+  }, [summary, dailyChartData, hourlyChartData, classificationChartData]);
+
   return (
     <MasterPageGate isLoading={analyticsQuery.isLoading}>
       <section className={styles.page}>
+        <header className={styles.pageHeader}>
+          <div>
+            <p className={styles.eyebrow}>Raw Tire · Receiving</p>
+            <h1 className={styles.pageTitle}>ภาพรวมรับซื้อยาง</h1>
+            <p className={styles.pageSubtitle}>
+              {dayjs(from).format("D MMM YYYY")} –{" "}
+              {dayjs(to).format("D MMM YYYY")}
+              {selectedClassificationLabel
+                ? ` · ${selectedClassificationLabel}`
+                : ""}
+              {analyticsQuery.isFetching ? " · กำลังอัปเดต…" : ""}
+            </p>
+          </div>
+        </header>
+
         <div className={styles.toolbar}>
           <div className={styles.toolbarFilters}>
             <label className={styles.filterField}>
@@ -273,32 +349,143 @@ export default function ReceivingAnalyticsDashboardPage() {
           </div>
         </div>
 
+        {needsAction ? (
+          <div className={styles.actionBanner} role="status">
+            <WarningOutlined className={styles.actionIcon} />
+            <div className={styles.actionText}>
+              <strong>มีรายการที่ต้องดำเนินการ</strong>
+              <span>
+                {waitingCount > 0 ? `รอจ่ายเงิน ${waitingCount} ใบ` : null}
+                {waitingCount > 0 && unreceiptedCount > 0 ? " · " : null}
+                {unreceiptedCount > 0
+                  ? `ยังไม่เปิดใบรับซื้อ ${unreceiptedCount} ใบ`
+                  : null}
+                {" "}ในช่วงที่เลือก
+              </span>
+            </div>
+            <Button
+              type="primary"
+              className={styles.actionButton}
+              onClick={() => router.push("/receiving")}
+            >
+              ไปที่รายการรับซื้อ
+            </Button>
+          </div>
+        ) : null}
+
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>รถเข้า</span>
+            <div className={styles.kpiHead}>
+              <span className={`${styles.kpiIcon} ${styles.kpiIconGreen}`}>
+                <CarOutlined />
+              </span>
+              <span className={styles.kpiLabel}>รถเข้า</span>
+            </div>
             <strong>{summary?.tickets ?? 0}</strong>
+            <small>เฉลี่ย {formatWeight(insights.avgTicketsPerDay)} คัน/วัน</small>
           </div>
           <div className={styles.summaryCard}>
-            <span>น้ำหนักสุทธิ</span>
+            <div className={styles.kpiHead}>
+              <span className={`${styles.kpiIcon} ${styles.kpiIconGreen}`}>
+                <InboxOutlined />
+              </span>
+              <span className={styles.kpiLabel}>น้ำหนักสุทธิ</span>
+            </div>
             <strong>
-              {formatWeight(summary?.totalNetWeightKg ?? "0")} กก.
+              {formatWeight(summary?.totalNetWeightKg ?? "0")}
+              <em>กก.</em>
             </strong>
+            <small>เฉลี่ย {formatWeight(insights.avgWeightPerTicket)} กก./คัน</small>
           </div>
           <div className={styles.summaryCard}>
-            <span>ยอดเงิน</span>
-            <strong>{formatMoney(summary?.totalAmount ?? "0")} บาท</strong>
+            <div className={styles.kpiHead}>
+              <span className={`${styles.kpiIcon} ${styles.kpiIconBlue}`}>
+                <WalletOutlined />
+              </span>
+              <span className={styles.kpiLabel}>ยอดเงิน</span>
+            </div>
+            <strong>
+              {formatMoney(summary?.totalAmount ?? "0")}
+              <em>บาท</em>
+            </strong>
+            <small>เฉลี่ย {formatMoney(insights.avgPricePerKg)} บาท/กก.</small>
           </div>
           <div className={styles.summaryCard}>
-            <span>จ่ายแล้ว</span>
+            <div className={styles.kpiHead}>
+              <span className={`${styles.kpiIcon} ${styles.kpiIconGreen}`}>
+                <CheckCircleOutlined />
+              </span>
+              <span className={styles.kpiLabel}>จ่ายแล้ว</span>
+            </div>
             <strong>{summary?.paid ?? 0}</strong>
+            <small>
+              {insights.receipted > 0
+                ? `${insights.paidPct}% ของใบรับซื้อทั้งหมด`
+                : "ยังไม่มีใบรับซื้อ"}
+            </small>
+          </div>
+          <div
+            className={`${styles.summaryCard} ${
+              waitingCount > 0 ? styles.summaryCardWarn : ""
+            }`}
+          >
+            <div className={styles.kpiHead}>
+              <span className={`${styles.kpiIcon} ${styles.kpiIconAmber}`}>
+                <ClockCircleOutlined />
+              </span>
+              <span className={styles.kpiLabel}>รอจ่าย</span>
+            </div>
+            <strong>{waitingCount}</strong>
+            <small>ใบรับซื้อที่ยังไม่จ่ายเงิน</small>
           </div>
           <div className={styles.summaryCard}>
-            <span>รอจ่าย</span>
-            <strong>{summary?.waitingPayment ?? 0}</strong>
+            <div className={styles.kpiHead}>
+              <span className={`${styles.kpiIcon} ${styles.kpiIconGray}`}>
+                <FileSearchOutlined />
+              </span>
+              <span className={styles.kpiLabel}>ยังไม่เปิดใบรับซื้อ</span>
+            </div>
+            <strong>{unreceiptedCount}</strong>
+            <small>รวมบัตร T2900 ที่ยังไม่เปิดตั๋ว {summary?.t2900Only ?? 0} ใบ</small>
           </div>
-          <div className={styles.summaryCard}>
-            <span>ยังไม่เปิดใบรับซื้อ</span>
-            <strong>{summary?.unreceipted ?? 0}</strong>
+        </div>
+
+        <div className={styles.insightRow}>
+          <div className={styles.insightItem}>
+            <CalendarOutlined />
+            <div>
+              <span>วันที่รถเข้ามากที่สุด</span>
+              <strong>
+                {insights.peakDay
+                  ? `${dayjs(insights.peakDay.date).format("D MMM")} · ${insights.peakDay.tickets} คัน`
+                  : "—"}
+              </strong>
+            </div>
+          </div>
+          <div className={styles.insightItem}>
+            <FireOutlined />
+            <div>
+              <span>
+                ชั่วโมงเร่งด่วน (
+                {dayjs(data?.hourlyDate ?? date).format("D MMM")})
+              </span>
+              <strong>
+                {insights.peakHour
+                  ? `${formatHourLabel(insights.peakHour.hour)} · ${insights.peakHour.tickets} คัน`
+                  : "—"}
+              </strong>
+            </div>
+          </div>
+          <div className={styles.insightItem}>
+            <TagsOutlined />
+            <div>
+              <span>ประเภทยางที่รับมากที่สุด</span>
+              <strong>
+                {insights.topClass
+                  ? `${insights.topClass.label} · ${insights.topClass.sharePct}%`
+                  : "—"}
+              </strong>
+            </div>
           </div>
         </div>
 
@@ -645,7 +832,13 @@ export default function ReceivingAnalyticsDashboardPage() {
                 จ่ายแล้ว · รอจ่าย · ยังไม่เปิดใบรับซื้อ (รวมบัตร T2900 ที่ยังไม่เปิดตั๋ว {summary?.t2900Only ?? 0} ใบ)
               </p>
             </div>
-            <div className={styles.chartBody}>
+            <div className={`${styles.chartBody} ${styles.chartBodyRel}`}>
+              {paymentChartData.length > 0 ? (
+                <div className={styles.donutCenter}>
+                  <strong>{insights.paidPct}%</strong>
+                  <span>จ่ายแล้ว</span>
+                </div>
+              ) : null}
               {paymentChartData.length === 0 ? (
                 <div className={styles.emptyState}>
                   ไม่มีตั๋วในช่วงที่เลือก
