@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Tooltip } from "antd";
+import MenuSearchPalette from "./MenuSearchPalette";
 import {
+  ArrowRightOutlined,
+  CalendarOutlined,
+  SearchOutlined,
   ExperimentOutlined,
   FundOutlined,
   InboxOutlined,
@@ -97,6 +101,7 @@ export default function HomePortalPage() {
   const [mounted, setMounted] = useState(false);
   const [todayLabel, setTodayLabel] = useState("");
   const [permsTick, setPermsTick] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     setUser(getStoredUser());
@@ -104,6 +109,25 @@ export default function HomePortalPage() {
     setTodayLabel(formatThaiDate(new Date()));
     // หน้าแรก = ออกจากโหมดโมดูล เมนูด้านข้างจะว่างจนกดกล่องใหม่
     clearActivePortalModule();
+  }, []);
+
+  // ทางลัด: Ctrl/Cmd + K หรือ "/" (ตอนไม่ได้พิมพ์อยู่ในช่องอื่น) เปิดช่องค้นหาเมนู
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isCombo = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k";
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable);
+      if (isCombo || (e.key === "/" && !typing)) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   useEffect(() => {
@@ -143,13 +167,34 @@ export default function HomePortalPage() {
       <header className={styles.hero}>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>SMT ENERGY · PORTAL</p>
-          <h1 className={styles.heroTitle}>สวัสดี, {displayName}</h1>
+          <h1 className={styles.heroTitle}>
+            สวัสดี, <span className={styles.heroName}>{displayName}</span>
+          </h1>
           <p className={styles.heroLead}>
             เลือกโมดูลเพื่อเริ่มงาน — แสดงเฉพาะระบบที่คุณมีสิทธิ์
             แล้วเมนูด้านข้างจะเหลือเฉพาะโมดูลที่เลือก
           </p>
+          <button
+            type="button"
+            className={styles.searchTrigger}
+            onClick={() => setSearchOpen(true)}
+            aria-label="ค้นหาเมนู"
+            aria-keyshortcuts="Control+K Meta+K /"
+          >
+            <SearchOutlined className={styles.searchIcon} />
+            <span className={styles.searchPlaceholder}>
+              ค้นหาเมนู เช่น ตั๋วชั่ง · ใบสั่งผลิต · ยอดคงเหลือ
+            </span>
+            <span className={styles.searchKeys} aria-hidden>
+              <kbd>Ctrl</kbd>
+              <kbd>K</kbd>
+            </span>
+          </button>
           {todayLabel ? (
-            <p className={styles.heroDate}>{todayLabel}</p>
+            <p className={styles.heroDate}>
+              <CalendarOutlined aria-hidden />
+              {todayLabel}
+            </p>
           ) : (
             <p className={styles.heroDate}>&nbsp;</p>
           )}
@@ -174,7 +219,7 @@ export default function HomePortalPage() {
         </div>
       ) : (
         <div className={styles.grid}>
-          {modules.map((mod) => {
+          {modules.map((mod, index) => {
             const breakdown = badgeBreakdownForScreenCodes(
               badgeCounts,
               mod.screenCodes,
@@ -199,6 +244,7 @@ export default function HomePortalPage() {
                 <button
                   type="button"
                   className={`${styles.tile} ${TONE_CLASS[mod.tone]}`}
+                  style={{ ["--i" as string]: index }}
                   onClick={() => openModule(mod)}
                   aria-label={
                     showPendingBadge
@@ -206,10 +252,15 @@ export default function HomePortalPage() {
                       : `${mod.label} — ${mod.description}`
                   }
                 >
-                  <span className={styles.tileIcon}>{moduleIcon(mod.key)}</span>
-                  <span className={styles.tileCode}>{mod.code}</span>
+                  <span className={styles.tileTop}>
+                    <span className={styles.tileIcon}>{moduleIcon(mod.key)}</span>
+                    <span className={styles.tileCode}>{mod.code}</span>
+                  </span>
                   <span className={styles.tileLabel}>{mod.label}</span>
                   <span className={styles.tileDesc}>{mod.description}</span>
+                  <span className={styles.tileGo} aria-hidden>
+                    <ArrowRightOutlined />
+                  </span>
                 </button>
               </Badge>
             );
@@ -239,6 +290,10 @@ export default function HomePortalPage() {
           })}
         </div>
       )}
+      <MenuSearchPalette
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+      />
     </section>
   );
 }

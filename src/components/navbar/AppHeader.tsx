@@ -2607,6 +2607,62 @@ function renderMenuButton(
   );
 }
 
+/** แถวผลลัพธ์ของช่องค้นหาเมนู (หน้าแรก) — ใช้ทะเบียนเมนูเดียวกับแถบเมนู จึงตรงกับสิทธิ์ที่เห็นเสมอ */
+export type SearchableMenuEntry = {
+  key: string;
+  label: string;
+  href: string;
+  group: string;
+  /** เมนูแม่ (ถ้าเป็นเมนูย่อย) */
+  parent?: string;
+  icon: ReactNode;
+};
+
+const SEARCH_MENU_GROUPS: Array<{ label: string; items: MenuItem[] }> = [
+  { label: "แดชบอร์ด", items: dashboardMenus },
+  { label: "รับซื้อยาง", items: rawTireMenus },
+  { label: "คลังวัตถุดิบ", items: rawMaterialWarehouseMenus },
+  { label: "การผลิต", items: productionMenus },
+  { label: "คลังสินค้าสำเร็จรูป", items: finishedGoodsWarehouseMenus },
+  { label: "จัดซื้อ", items: purchaseMenus },
+  { label: "งานขาย", items: salesMenus },
+  { label: "ห้องปฏิบัติการ", items: laboratoryMenus },
+  { label: "ถังน้ำมัน", items: oilTankFarmMenus },
+  { label: "ซ่อมบำรุง", items: maintenanceMenus },
+  { label: "ทรัพยากรบุคคล", items: hrmMenus },
+  { label: "การเงิน", items: financeMenus },
+  { label: "รายงาน", items: reportMenus },
+  { label: "ตั้งค่า", items: settingMenus },
+  { label: "ข้อมูลหลัก", items: masterMenus },
+];
+
+/**
+ * เมนูทั้งหมดที่ผู้ใช้เปิดได้ตามสิทธิ์ปัจจุบัน (กรองด้วย filterMenus ตัวเดียวกับแถบเมนู)
+ * แบนเมนูย่อยออกเป็นแถวเดียว · ตัด href ซ้ำ
+ */
+export function getSearchableMenuEntries(): SearchableMenuEntry[] {
+  const out: SearchableMenuEntry[] = [];
+  const seen = new Set<string>();
+  const push = (item: MenuItem, group: string, parent?: string) => {
+    if (item.href && !seen.has(item.href)) {
+      seen.add(item.href);
+      out.push({
+        key: item.key,
+        label: item.label,
+        href: item.href,
+        group,
+        parent,
+        icon: item.icon,
+      });
+    }
+    for (const child of item.children ?? []) push(child, group, item.label);
+  };
+  for (const g of SEARCH_MENU_GROUPS) {
+    for (const item of filterMenus(g.items)) push(item, g.label);
+  }
+  return out;
+}
+
 type AppHeaderProps = {
   collapsed: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
