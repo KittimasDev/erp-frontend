@@ -66,7 +66,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
   const editable = Boolean(v && EDITABLE.includes(v.status) && perms.canEdit);
 
   useEffect(() => {
-    if (!d || !v) return;
+    if (!d || !v || !editable) return;
     form.setFieldsValue({
       voucherDate: dayjs(v.voucherDate),
       paymentMethod: v.paymentMethod,
@@ -74,7 +74,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
       companyBankAccountId: d.bankAccount?.id,
       remark: v.remark,
     });
-  }, [d, v, form]);
+  }, [d, v, form, editable]);
 
   if (query.isLoading) return <Spin />;
   if (!d || !v) return <Alert type="error" showIcon title="ไม่พบใบสำคัญจ่าย" />;

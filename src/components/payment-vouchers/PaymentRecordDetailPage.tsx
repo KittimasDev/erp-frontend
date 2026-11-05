@@ -243,8 +243,8 @@ export default function PaymentRecordDetailPage({ id }: { id: string }) {
           <Descriptions.Item label="อัตรา WHT">
             {Number(pv.whtAmount) <= 0
               ? "—"
-              : (info.whtLines?.length ?? 0) > 1
-                ? "หลายอัตรา (ดูในหนังสือรับรอง)"
+              : new Set((info.whtLines ?? []).map((l) => Number(l.rate))).size > 1
+                ? "หลายอัตรา"
                 : `${Number(info.whtRate)}%`}
           </Descriptions.Item>
           <Descriptions.Item label="ภาษีหัก ณ ที่จ่าย">{fmtMoney(pv.whtAmount)}</Descriptions.Item>

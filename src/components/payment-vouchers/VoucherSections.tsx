@@ -138,14 +138,14 @@ export function TaxCard({
   whtLines?: WhtLine[];
 }) {
   const hasWht = Number(whtAmount) > 0;
-  const multi = hasWht && (whtLines?.length ?? 0) > 1;
+  const multi = hasWht && new Set((whtLines ?? []).map((l) => Number(l.rate))).size > 1;
   return (
     <Card title="ข้อมูลภาษี (VAT / หัก ณ ที่จ่าย)" size="small">
       <Descriptions bordered size="small" column={{ xs: 1, md: 2, xl: 3 }}>
         <Descriptions.Item label="VAT">{fmtMoney(vat)}</Descriptions.Item>
         <Descriptions.Item label="ฐานภาษีหัก ณ ที่จ่าย">{hasWht ? fmtMoney(whtBase) : "—"}</Descriptions.Item>
         <Descriptions.Item label="อัตรา WHT">
-          {!hasWht ? "ไม่มี" : multi ? "หลายอัตรา (ดูรายการด้านล่าง)" : `${Number(whtRate)}%`}
+          {!hasWht ? "ไม่มี" : multi ? "หลายอัตรา" : `${Number(whtRate)}%`}
         </Descriptions.Item>
         <Descriptions.Item label="ยอด WHT">{fmtMoney(whtAmount)}</Descriptions.Item>
         <Descriptions.Item label="ยอดสุทธิจ่าย" span="filled">

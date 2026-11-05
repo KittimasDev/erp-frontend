@@ -201,31 +201,11 @@ export default function StockMovementsPage() {
         const d = describeStockMovement(row);
         const remark = row.remark?.trim();
         return (
-          <div className={styles.itemCell}>
-            <span className={styles.itemCode}>
-              {d.name}{" "}
-              <Tag
-                color={d.tagColor}
-                variant="outlined"
-                style={{ marginInlineEnd: 0, fontSize: 11 }}
-              >
-                {d.directionLabel}
-              </Tag>
-            </span>
+          <div className={styles.movementCell}>
+            <span className={styles.movementStatus}>{d.name}</span>
             {remark ? (
               <Tooltip title={remark} placement="topLeft">
-                <span
-                  className={styles.itemName}
-                  style={{
-                    display: "block",
-                    maxWidth: 216,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {remark}
-                </span>
+                <span className={styles.movementDetail}>{remark}</span>
               </Tooltip>
             ) : null}
           </div>

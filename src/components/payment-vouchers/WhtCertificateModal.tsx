@@ -106,8 +106,8 @@ export default function WhtCertificateModal({
         <Descriptions.Item label="วันที่จ่ายเงิน">{detail.paymentDate}</Descriptions.Item>
         <Descriptions.Item label="ฐานภาษี">{fmtMoney(base)}</Descriptions.Item>
         <Descriptions.Item label="อัตราภาษี">
-          {(detail.voucherDetail.whtLines?.length ?? 0) > 1
-            ? "หลายอัตรา (ดูรายการด้านล่าง)"
+          {new Set((detail.voucherDetail.whtLines ?? []).map((l) => Number(l.rate))).size > 1
+            ? "หลายอัตรา"
             : `${Number(detail.voucherDetail.whtRate)}%`}
         </Descriptions.Item>
         <Descriptions.Item label="ภาษีที่หัก ณ ที่จ่าย">

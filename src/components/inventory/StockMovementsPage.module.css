@@ -275,6 +275,38 @@
   min-width: 0;
 }
 
+.movementCell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.movementStatus {
+  display: inline-block;
+  max-width: 100%;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(115, 152, 22, 0.12);
+  color: var(--pr-green-dark);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.movementDetail {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--pr-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 .itemCode {
   display: inline-flex;
   align-items: center;
