@@ -45,6 +45,8 @@ export const updatePaymentVoucher = (token: string, id: string, body: UpdateVouc
   apiFetch<Res<PaymentVoucherDetail>>(`${BASE}/${id}`, { method: "PATCH", token, body });
 export const submitPaymentVoucher = (token: string, id: string) =>
   apiFetch<Res<PaymentVoucherDetail>>(`${BASE}/${id}/submit`, { method: "POST", token });
+export const recalculatePaymentVoucherWht = (token: string, id: string) =>
+  apiFetch<Res<PaymentVoucherDetail>>(`${BASE}/${id}/recalculate-wht`, { method: "POST", token });
 export const reviewPaymentVoucher = (token: string, id: string, note?: string) =>
   apiFetch<Res<PaymentVoucherDetail>>(`${BASE}/${id}/review`, { method: "POST", token, body: { note } });
 export const approvePaymentVoucher = (token: string, id: string) =>

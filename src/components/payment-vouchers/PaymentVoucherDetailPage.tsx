@@ -10,6 +10,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import {
   usePaymentVoucherDetailQuery,
+  useRecalculateWhtMutation,
   useUpdateVoucherMutation,
   useVoucherActionMutation,
 } from "@/hooks/payment-vouchers/usePaymentVouchers";
@@ -57,6 +58,7 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
   const query = usePaymentVoucherDetailQuery(id);
   const update = useUpdateVoucherMutation();
   const action = useVoucherActionMutation();
+  const recalcWht = useRecalculateWhtMutation();
   const [form] = Form.useForm<EditValues>();
   const [reasonFor, setReasonFor] = useState<"reject" | "cancel" | null>(null);
   const [reason, setReason] = useState("");
@@ -145,6 +147,22 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
             <Button icon={<FilePdfOutlined />} loading={pdfLoading} onClick={() => void handlePrintPdf()}>
               พิมพ์ PDF
             </Button>
+            {editable && perms.canEdit && d.whtCheck && d.whtCheck.status !== "NOT_APPLICABLE" ? (
+              <Button
+                loading={recalcWht.isPending}
+                onClick={() =>
+                  Modal.confirm({
+                    title: "คำนวณ WHT ใหม่จากใบตั้งหนี้?",
+                    content: `WHT ปัจจุบัน ${fmtMoney(d.whtCheck!.currentWht)} บาท → ที่คำนวณได้ ${fmtMoney(d.whtCheck!.expectedWht)} บาท · ระบบจะปรับยอด WHT ยอดโอนสุทธิ และรายการแยกให้สอดคล้องกัน`,
+                    okText: "คำนวณใหม่",
+                    cancelText: "ยกเลิก",
+                    onOk: () => recalcWht.mutateAsync(id),
+                  })
+                }
+              >
+                คำนวณ WHT ใหม่
+              </Button>
+            ) : null}
             {editable && perms.canEdit ? (
               <>
                 <Button loading={update.isPending} onClick={() => void saveEdit(false)}>
@@ -187,6 +205,31 @@ export default function PaymentVoucherDetailPage({ id }: { id: string }) {
 
       {status === "REJECTED" && d.rejectReason ? (
         <Alert type="error" showIcon title="ไม่อนุมัติ — แก้ไขแล้วส่งอนุมัติใหม่ได้" description={d.rejectReason} />
+      ) : null}
+      {d.whtCheck?.status === "MISMATCH" ? (
+        <Alert
+          type="warning"
+          showIcon
+          title={
+            editable
+              ? "WHT ของ PV ไม่ตรงกับที่คำนวณจากใบตั้งหนี้ — กด \"คำนวณ WHT ใหม่\" ก่อนส่งอนุมัติ"
+              : "แผน WHT จากใบตั้งหนี้เปลี่ยนไปจากที่บันทึกใน PV — โปรดตรวจสอบ"
+          }
+          description={
+            <>
+              <div>
+                WHT ปัจจุบัน {fmtMoney(d.whtCheck.currentWht)} บาท · ที่คำนวณได้ {fmtMoney(d.whtCheck.expectedWht)} บาท
+              </div>
+              {d.whtCheck.items
+                .filter((i) => i.mismatch)
+                .map((i) => (
+                  <div key={i.apDocumentId}>
+                    {i.apDocumentNo ?? i.apDocumentId}: {fmtMoney(i.currentWht)} → {fmtMoney(i.expectedWht)}
+                  </div>
+                ))}
+            </>
+          }
+        />
       ) : null}
       {status === "CANCELLED" ? (
         <Alert type="warning" showIcon title="ยกเลิกใบสำคัญจ่ายแล้ว" description={d.cancelReason} />

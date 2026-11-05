@@ -183,6 +183,22 @@ export type PaymentVoucherDetail = VoucherSourceInfo & {
   /** รายการ WHT แยกอัตรา — ว่าง/ไม่มี = PV เก่าหรือไม่มี WHT */
   whtLines?: WhtLine[];
   expressStatus: string;
+  /** ผลเทียบ WHT ของ PV กับที่คำนวณจาก AP (ไม่มีเมื่อ PV จ่ายแล้ว/ยกเลิก) */
+  whtCheck?: {
+    status: "OK" | "MISMATCH" | "NOT_APPLICABLE";
+    note?: string;
+    currentWht: string;
+    expectedWht: string;
+    items: Array<{
+      apDocumentId: string;
+      apDocumentNo: string | null;
+      amount: string;
+      currentWht: string;
+      expectedWht: string;
+      expectedBase: string;
+      mismatch: boolean;
+    }>;
+  };
   createdByAction?: VoucherPersonAction;
   submittedByAction?: VoucherPersonAction;
   reviewedByAction?: VoucherPersonAction;

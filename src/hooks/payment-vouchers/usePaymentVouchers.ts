@@ -151,6 +151,19 @@ export function useVoucherActionMutation() {
   });
 }
 
+/** คำนวณ WHT ของ PV ใหม่จากใบตั้งหนี้ (ร่าง/ไม่อนุมัติ) */
+export function useRecalculateWhtMutation() {
+  const { message, refresh, fail } = useHelpers();
+  return useMutation({
+    mutationFn: (id: string) => api.recalculatePaymentVoucherWht(getAccessToken(), id),
+    onSuccess: () => {
+      refresh();
+      message.success("คำนวณ WHT ใหม่แล้ว — ตรวจยอด WHT และยอดโอนสุทธิก่อนส่งอนุมัติ");
+    },
+    onError: (e) => fail(e, "คำนวณ WHT ใหม่ไม่สำเร็จ"),
+  });
+}
+
 /** ยืนยันการจ่ายเงิน (multipart พร้อมหลักฐาน) */
 export function useRecordPaymentMutation() {
   const { message, refresh, fail } = useHelpers();
