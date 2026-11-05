@@ -1499,10 +1499,12 @@ export default function ProductionOutputStockRequestCreatePage({
                       <strong>วัตถุดิบเข้าจริง</strong>{" "}
                       {formatQty(selectedProductionOrder.totalInputQty)}
                     </p>
-                    <p className={styles.previewMeta}>
-                      <strong>ผลผลิตตามแผน</strong>{" "}
-                      {formatQty(selectedProductionOrder.totalPlannedOutputQty)}
-                    </p>
+                    {(selectedProductionOrder.outputItems ?? []).length > 1 ? null : (
+                      <p className={styles.previewMeta}>
+                        <strong>ผลผลิตตามแผน</strong>{" "}
+                        {formatQty(selectedProductionOrder.totalPlannedOutputQty)}
+                      </p>
+                    )}
                     {(selectedProductionOrder.outputItems ?? []).length > 0 ? (
                       <ul className={styles.previewSubList}>
                         {(selectedProductionOrder.outputItems ?? []).map(
@@ -1522,16 +1524,22 @@ export default function ProductionOutputStockRequestCreatePage({
                         )}
                       </ul>
                     ) : null}
-                    <p className={styles.previewMeta}>
-                      <strong>ผลผลิตเข้าคลังแล้ว</strong>{" "}
-                      {formatQty(selectedProductionOrder.totalOutputQty)}
-                      {" · "}Yield{" "}
-                      {selectedProductionOrder.yieldPercent.toLocaleString(
-                        "th-TH",
-                        { maximumFractionDigits: 2 },
-                      )}
-                      %
-                    </p>
+                    {(selectedProductionOrder.outputItems ?? []).length > 1 ? (
+                      <p className={styles.previewMeta}>
+                        <strong>ผลผลิตเข้าคลังแล้ว</strong> แยกตามสินค้าด้านบน — ไม่คิด Yield รวม
+                      </p>
+                    ) : (
+                      <p className={styles.previewMeta}>
+                        <strong>ผลผลิตเข้าคลังแล้ว</strong>{" "}
+                        {formatQty(selectedProductionOrder.totalOutputQty)}
+                        {" · "}Yield{" "}
+                        {selectedProductionOrder.yieldPercent.toLocaleString(
+                          "th-TH",
+                          { maximumFractionDigits: 2 },
+                        )}
+                        %
+                      </p>
+                    )}
                     <p className={styles.previewMeta}>
                       <strong>คำขอที่เคยส่ง</strong>{" "}
                       {previousRequests.length} รายการ

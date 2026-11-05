@@ -217,7 +217,14 @@ export default function ProductionOrderDataTab({
         <Alert type="error" showIcon title="โหลดข้อมูลไม่สำเร็จ" description={errorMessage} />
       ) : null}
 
-      {trend && !trend.quantitiesComparable ? (
+      {trend && trend.items.length > 1 ? (
+        <Alert
+          type="info"
+          showIcon
+          title="ไม่คำนวณ Yield รวม — มีหลายสินค้า"
+          description="กราฟด้านล่างแยกจำนวนตามสินค้า ไม่ได้บวกข้ามรายการเป็นยอดเดียว"
+        />
+      ) : trend && !trend.quantitiesComparable ? (
         <Alert
           type="warning"
           showIcon
@@ -239,6 +246,7 @@ export default function ProductionOrderDataTab({
         />
       ) : null}
 
+      {(trend?.items.length ?? 0) > 1 ? null : (
       <div className={styles.chartCard}>
         <div className={styles.chartHeader}>
           <h3>ผลผลิตและ Yield ตามเวลา</h3>
@@ -308,6 +316,7 @@ export default function ProductionOrderDataTab({
           )}
         </div>
       </div>
+      )}
 
       <div className={styles.chartCard}>
         <div className={styles.chartHeader}>

@@ -292,10 +292,22 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
   const reconcileApplicable = summary?.outputReconcileApplicable ?? false;
   const reconcileFor = (itemId: string, unitId: string) =>
     reconcile.find((r) => r.itemId === itemId && r.unitId === unitId);
-  /** รวมยอดรายหน่วย (หน่วยต่างกันไม่บวกข้าม) เช่น "1,200 KG · 3 TON" */
+  /**
+   * สินค้าเดียว: รวมได้เฉพาะหน่วยเดียวกัน (คนละหน่วยคั่นด้วย ·)
+   * หลายสินค้า: ไม่บวกข้ามรายการ แม้หน่วยเดียวกัน
+   */
   const sumReconcile = (
     pick: (r: (typeof reconcile)[number]) => string,
   ): string => {
+    const itemIds = new Set(reconcile.map((r) => r.itemId));
+    if (itemIds.size > 1) {
+      return reconcile
+        .map((r) => {
+          const name = r.itemNameTh || r.itemCode || r.itemId;
+          return `${name} ${fmt(pick(r))} ${r.unitCode ?? ""}`.trim();
+        })
+        .join(" · ");
+    }
     const byUnit = new Map<string, number>();
     for (const r of reconcile) {
       const key = r.unitCode ?? "";
@@ -307,23 +319,35 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
       .join(" · ");
   };
   const anomalyLines = reconcile.filter((r) => r.isAnomaly);
+  const outputTotals =
+    summary?.yieldCompareByItem ??
+    outputPlanLines.map((line) => ({
+      itemId: line.itemId,
+      itemCode: line.itemCode,
+      itemNameTh: line.itemNameTh,
+      unitCode: line.unitCode,
+      plannedQty: line.plannedQty,
+      actualQty: line.actualQty ?? "0",
+    }));
+  const multiOutput = outputTotals.length > 1;
 
   const receiveLines = useMemo(() => {
-    const byItemId = new Map<string, (typeof outputPlanLines)[number]>();
+    const byItemUnit = new Map<string, (typeof outputPlanLines)[number]>();
     for (const line of outputPlanLines) {
-      const existing = byItemId.get(line.itemId);
+      const key = `${line.itemId}|${line.unitId ?? ""}`;
+      const existing = byItemUnit.get(key);
       if (existing) {
-        byItemId.set(line.itemId, {
+        byItemUnit.set(key, {
           ...existing,
           plannedQty: String(
             Number(existing.plannedQty) + Number(line.plannedQty),
           ),
         });
       } else {
-        byItemId.set(line.itemId, { ...line });
+        byItemUnit.set(key, { ...line });
       }
     }
-    return [...byItemId.values()];
+    return [...byItemUnit.values()];
   }, [outputPlanLines]);
 
   const wastePlanLines = useMemo(
@@ -813,6 +837,23 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 <h3>สรุปผลการผลิต</h3>
               </div>
               <div className={styles.summaryGrid}>
+                {multiOutput ? (
+                  <div className={`${styles.summaryCard} ${styles.summaryCardWide}`}>
+                    <span className={styles.summaryLabel}>ผลผลิตแยกตามสินค้า</span>
+                    <ul className={styles.outputByItem}>
+                      {outputTotals.map((line) => (
+                        <li key={`${line.itemId}-${line.unitCode ?? ""}`}>
+                          <span>{line.itemNameTh || line.itemCode || line.itemId}</span>
+                          <span>
+                            แผน {fmt(line.plannedQty)} {line.unitCode ?? ""}
+                            {" · "}
+                            เข้าคลัง {fmt(line.actualQty)} {line.unitCode ?? ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
                 <div className={styles.summaryCard}>
                   <span className={styles.summaryLabel}>รวมแผน</span>
                   <span className={styles.summaryValue}>
@@ -825,11 +866,12 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     </Typography.Text>
                   </span>
                 </div>
+                )}
                 <div className={styles.summaryCard}>
                   <span className={styles.summaryLabel}>
                     ผลิตจากกะที่ยืนยันแล้ว
                   </span>
-                  <span className={styles.summaryValue}>
+                  <span className={multiOutput ? styles.summaryDetail : styles.summaryValue}>
                     {reconcileApplicable
                       ? sumReconcile((r) => r.confirmedShiftQty)
                       : "—"}
@@ -837,7 +879,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 </div>
                 <div className={styles.summaryCard}>
                   <span className={styles.summaryLabel}>รอรับเข้าคลัง</span>
-                  <span className={styles.summaryValue}>
+                  <span className={multiOutput ? styles.summaryDetail : styles.summaryValue}>
                     {reconcileApplicable
                       ? sumReconcile((r) => r.pendingQty)
                       : "—"}
@@ -854,6 +896,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     </Typography.Text>
                   ) : null}
                 </div>
+                {multiOutput ? null : (
+                <>
                 <div className={styles.summaryCard}>
                   <span className={styles.summaryLabel}>รับเข้าคลังแล้ว</span>
                   <span
@@ -900,6 +944,8 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                     {summary ? `${summary.plannedYieldPercent}%` : "-"}
                   </span>
                 </div>
+                </>
+                )}
               </div>
             </div>
 

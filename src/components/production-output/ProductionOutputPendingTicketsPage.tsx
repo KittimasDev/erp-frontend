@@ -70,10 +70,14 @@ export default function ProductionOutputPendingTicketsPage() {
   const partlyRequested = rows.length - notRequested.length;
 
   /**
-   * yield รวมของทั้งคิว = ผลผลิตที่รับเข้าคลังจริง ÷ วัตถุดิบที่ตัดเข้าผลิตจริง
-   * คิดจากผลรวมทั้งชุด ไม่ใช่เฉลี่ยของ % รายใบ — ใบใหญ่กับใบเล็กจะได้ถ่วงน้ำหนักถูก
+   * yield รวมของทั้งคิวคิดเฉพาะใบที่ผลผลิตเป็นสินค้าเดียว
+   * ใบหลายสินค้าไม่เอาไปบวก เพราะคนละรายการแม้หน่วยเดียวกัน
    */
-  const totals = rows.reduce(
+  const singleProductRows = rows.filter(
+    (row) => (row.outputItems?.length ?? 0) <= 1,
+  );
+  const queueHasMixedProducts = singleProductRows.length !== rows.length;
+  const totals = singleProductRows.reduce(
     (acc, row) => ({
       input: acc.input + Number(row.totalInputQty ?? 0),
       output: acc.output + Number(row.totalOutputQty ?? 0),
@@ -143,16 +147,32 @@ export default function ProductionOutputPendingTicketsPage() {
         key: "qty",
         width: 170,
         align: "right",
-        render: (_v, row) => (
-          <div className={styles.yieldCell}>
-            <span className={styles.yieldValue}>
-              {formatQty(row.totalOutputQty)} / {formatQty(row.totalInputQty)}
-            </span>
-            <span className={styles.metaMuted}>
-              แผนได้ {formatQty(row.totalPlannedOutputQty)}
-            </span>
-          </div>
-        ),
+        render: (_v, row) => {
+          const items = row.outputItems ?? [];
+          if (items.length > 1) {
+            return (
+              <div className={styles.yieldCell}>
+                {items.map((item) => (
+                  <span key={item.itemId} className={styles.metaMuted}>
+                    {item.itemNameTh || item.itemCode || "สินค้า"}{" "}
+                    {formatQty(item.plannedQty)}
+                    {item.unitCode ? ` ${item.unitCode}` : ""}
+                  </span>
+                ))}
+              </div>
+            );
+          }
+          return (
+            <div className={styles.yieldCell}>
+              <span className={styles.yieldValue}>
+                {formatQty(row.totalOutputQty)} / {formatQty(row.totalInputQty)}
+              </span>
+              <span className={styles.metaMuted}>
+                แผนได้ {formatQty(row.totalPlannedOutputQty)}
+              </span>
+            </div>
+          );
+        },
       },
       {
         title: "Yield จริง / แผน",
@@ -161,6 +181,9 @@ export default function ProductionOutputPendingTicketsPage() {
         align: "right",
         sorter: (a, b) => a.yieldPercent - b.yieldPercent,
         render: (_v, row) => {
+          if ((row.outputItems?.length ?? 0) > 1) {
+            return <span className={styles.yieldNone}>แยกตามสินค้า</span>;
+          }
           // ยังไม่มีคำขออนุมัติ = ยังไม่มีผลผลิตเข้าคลัง จึงยังคิด yield ไม่ได้
           if (Number(row.totalInputQty) <= 0 || row.totalOutputQty === "0.000") {
             return (
@@ -313,13 +336,18 @@ export default function ProductionOutputPendingTicketsPage() {
           </div>
           <div className={styles.summaryCard}>
             <span>Yield รวมของคิวนี้</span>
-            <strong>
-              {overallYield.toFixed(1)}
-              <span className={styles.summaryUnit}>%</span>
-            </strong>
+            {queueHasMixedProducts ? (
+              <strong>แยกตามสินค้า</strong>
+            ) : (
+              <strong>
+                {overallYield.toFixed(1)}
+                <span className={styles.summaryUnit}>%</span>
+              </strong>
+            )}
             <span className={styles.metaMuted}>
-              เข้าคลัง {formatQty(totals.output.toFixed(3))} จากวัตถุดิบ{" "}
-              {formatQty(totals.input.toFixed(3))}
+              {queueHasMixedProducts
+                ? "มีใบที่ผลผลิตหลายสินค้า จึงไม่บวกเป็นยอดเดียว"
+                : `เข้าคลัง ${formatQty(totals.output.toFixed(3))} จากวัตถุดิบ ${formatQty(totals.input.toFixed(3))}`}
             </span>
           </div>
         </div>

@@ -60,7 +60,8 @@ export default function ProductionOrderYieldCard({
     [summary.yieldCompareByItem],
   );
 
-  const hasOutput = Number(summary.totalOutputQty) > 0;
+  const multiOutput = summary.yieldCompareByItem.length > 1;
+  const hasOutput = !multiOutput && Number(summary.totalOutputQty) > 0;
   const gaugeColor =
     summary.yieldPercent >= summary.plannedYieldPercent ? GREEN : AMBER;
 
@@ -75,7 +76,15 @@ export default function ProductionOrderYieldCard({
         การบวกข้ามหน่วยทำให้เคยเห็น yield 333% มาแล้ว — ต้องบอกตรง ๆ ว่าเทียบไม่ได้
         ไม่ใช่แปลงหน่วยให้แบบมั่ว ๆ เพราะมันเป็นคนละมิติ ไม่ใช่แค่คนละหน่วย
       */}
-      {summary.quantitiesComparable ? null : (
+      {multiOutput ? (
+        <Alert
+          type="info"
+          showIcon
+          className={styles.unitWarning}
+          title="ไม่คำนวณ Yield รวม — มีหลายสินค้า"
+          description="ยอดผลผลิตแยกตามสินค้าด้านล่าง ไม่ได้บวกข้ามรายการแม้หน่วยจะเหมือนกัน"
+        />
+      ) : summary.quantitiesComparable ? null : (
         <Alert
           type="warning"
           showIcon
@@ -106,6 +115,7 @@ export default function ProductionOrderYieldCard({
       ) : null}
 
       <div className={styles.yieldTop}>
+        {multiOutput ? null : (
         <div className={styles.gauge}>
           <Tooltip
             title={
@@ -134,21 +144,28 @@ export default function ProductionOrderYieldCard({
             Yield จริง · แผน {summary.plannedYieldPercent}%
           </div>
         </div>
+        )}
 
         <div className={styles.yieldGrid}>
           <Metric label="วัตถุดิบ (แผน)" value={fmt(summary.totalPlannedInputQty)} />
           <Metric label="วัตถุดิบ (ตัดจริง)" value={fmt(summary.totalInputQty)} />
-          <Metric label="ผลผลิต (แผน)" value={fmt(summary.totalPlannedOutputQty)} />
-          <Metric
-            label="ผลผลิต (เข้าคลังแล้ว)"
-            value={fmt(summary.totalOutputQty)}
-          />
+          {multiOutput ? null : (
+            <Metric label="ผลผลิต (แผน)" value={fmt(summary.totalPlannedOutputQty)} />
+          )}
+          {multiOutput ? null : (
+            <Metric
+              label="ผลผลิต (เข้าคลังแล้ว)"
+              value={fmt(summary.totalOutputQty)}
+            />
+          )}
           <Metric label="ของเสีย (แผน)" value={fmt(summary.totalPlannedWasteQty)} />
           <Metric
             label="ของเสีย (จริง · ไม่เข้าคลัง)"
             value={fmt(summary.totalActualWasteQty)}
           />
-          <Metric label="Mass balance" value={fmt(summary.massBalanceDiff)} />
+          {multiOutput ? null : (
+            <Metric label="Mass balance" value={fmt(summary.massBalanceDiff)} />
+          )}
           <Metric
             label="Downtime รวม"
             value={`${summary.totalDowntimeHours} ชม.`}

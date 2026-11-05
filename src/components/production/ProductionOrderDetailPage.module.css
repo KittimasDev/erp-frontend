@@ -126,6 +126,41 @@
   color: #739816;
 }
 
+.summaryCardWide {
+  grid-column: 1 / -1;
+}
+
+.summaryDetail {
+  color: var(--unit-gray-dark);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.outputByItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.outputByItem li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  color: var(--unit-gray-dark);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.outputByItem li span:last-child {
+  color: var(--unit-muted);
+  font-weight: 500;
+}
+
 .workSubTabs {
   margin-top: 4px;
 }
