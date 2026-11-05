@@ -309,7 +309,7 @@ export default function AttendanceDevicesPage() {
           title={`API key ของเครื่อง ${issued?.code ?? ""}`}
           onCancel={() => setIssued(null)}
           footer={<Button type="primary" onClick={() => setIssued(null)}>เก็บ key แล้ว ปิด</Button>}
-          maskClosable={false}
+          mask={{ closable: false }}
         >
           <Alert
             type="warning"

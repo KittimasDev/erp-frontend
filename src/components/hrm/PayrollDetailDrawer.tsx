@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Alert, App, Button, Descriptions, Drawer, Input, Modal, Popconfirm, Space, Table, Tag } from "antd";
+import { useMemo, useState } from "react";
+import { Alert, App, Button, Descriptions, Drawer, Input, InputNumber, Modal, Popconfirm, Select, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DownloadOutlined, EditOutlined, PrinterOutlined, ReloadOutlined } from "@ant-design/icons";
+import { ClearOutlined, DownloadOutlined, EditOutlined, PrinterOutlined, ReloadOutlined, SearchOutlined } from "@ant-design/icons";
 
 import {
   useCancelPayrollMutation,
@@ -19,6 +19,14 @@ import { releasePdfWindow, reservePdfWindow } from "@/utils/pdf-common";
 import { toPayrollSheet } from "@/utils/payrollSheet";
 
 import PayrollAdjustmentsModal from "./PayrollAdjustmentsModal";
+import {
+  EMPTY_SLIP_FILTER,
+  SLIP_STATUS_OPTIONS,
+  filterSlips,
+  isSlipFilterActive,
+  type Range,
+  type SlipFilter,
+} from "./payrollSlipFilter";
 import { formatBeRange } from "./shutdownPlanFormat";
 
 const money = (v: number) =>
@@ -38,8 +46,17 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   const [adjusting, setAdjusting] = useState<PayrollSlip | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [filter, setFilter] = useState<SlipFilter>(EMPTY_SLIP_FILTER);
 
   const run = query.data?.data;
+  const filteredSlips = useMemo(() => filterSlips(run?.slips ?? [], filter), [run?.slips, filter]);
+  const departmentOptions = useMemo(
+    () =>
+      [...new Set((run?.slips ?? []).map((s) => s.departmentName).filter((d): d is string => Boolean(d)))]
+        .sort((a, b) => a.localeCompare(b, "th"))
+        .map((d) => ({ value: d, label: d })),
+    [run?.slips],
+  );
   const isDraft = run?.status === "DRAFT";
   const canExport = !isMatrixPermissionMode() || hasPermission("HRM_PAYROLL.EXPORT");
   const canApprove = !isMatrixPermissionMode() || hasPermission("HRM_PAYROLL.APPROVE");
@@ -66,6 +83,34 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   // สลิปที่ไม่มีรายได้เลย (ไม่มีฐานค่าจ้าง) ไม่พิมพ์ในชุดทั้งงวด
   const negativeSlips = run?.slips.filter((s) => s.netPay < 0) ?? [];
   const printableSlips = run?.slips.filter((s) => s.grossIncome > 0) ?? [];
+
+  const rangeInputs = (label: string, key: "basePay" | "otAmount" | "netPay") => {
+    const set = (patch: Partial<Range>) => setFilter((f) => ({ ...f, [key]: { ...f[key], ...patch } }));
+    return (
+      <Space size={4} align="center">
+        <span style={{ color: "#8a94a6", fontSize: 12 }}>{label}</span>
+        <InputNumber
+          size="small"
+          min={key === "netPay" ? undefined : 0}
+          placeholder="ต่ำสุด"
+          style={{ width: 96 }}
+          value={filter[key].min ?? null}
+          onChange={(v) => set({ min: v })}
+          aria-label={`${label} ต่ำสุด`}
+        />
+        <span>–</span>
+        <InputNumber
+          size="small"
+          min={key === "netPay" ? undefined : 0}
+          placeholder="สูงสุด"
+          style={{ width: 96 }}
+          value={filter[key].max ?? null}
+          onChange={(v) => set({ max: v })}
+          aria-label={`${label} สูงสุด`}
+        />
+      </Space>
+    );
+  };
 
   const columns: ColumnsType<PayrollSlip> = [
     {
@@ -174,7 +219,10 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   return (
     <Drawer
       open={Boolean(runId)}
-      onClose={onClose}
+      onClose={() => {
+        setFilter(EMPTY_SLIP_FILTER);
+        onClose();
+      }}
       size="large"
       styles={{ wrapper: { width: "min(1200px, 96vw)" } }}
       title={run ? `${run.name} · ${formatBeRange(run.periodStart, run.periodEnd)}` : "งวดเงินเดือน"}
@@ -274,12 +322,66 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
               style={{ marginBottom: 12 }}
             />
           ) : null}
+          <Space wrap size={[12, 8]} style={{ marginBottom: 12 }}>
+            <Input
+              allowClear
+              size="small"
+              prefix={<SearchOutlined />}
+              placeholder="ค้นหา ชื่อ / รหัส / ตำแหน่ง / แผนก"
+              style={{ width: 260 }}
+              value={filter.keyword}
+              onChange={(e) => setFilter((f) => ({ ...f, keyword: e.target.value }))}
+            />
+            <Select
+              size="small"
+              style={{ width: 120 }}
+              value={filter.payType}
+              onChange={(payType) => setFilter((f) => ({ ...f, payType }))}
+              options={[
+                { value: "ALL", label: "ทุกประเภท" },
+                { value: "MONTHLY", label: "รายเดือน" },
+                { value: "DAILY", label: "รายวัน" },
+              ]}
+            />
+            <Select
+              size="small"
+              style={{ width: 190 }}
+              value={filter.status}
+              onChange={(status) => setFilter((f) => ({ ...f, status }))}
+              options={SLIP_STATUS_OPTIONS}
+            />
+            <Select
+              size="small"
+              allowClear
+              showSearch
+              placeholder="ทุกแผนก"
+              style={{ width: 170 }}
+              value={filter.department || undefined}
+              onChange={(department) => setFilter((f) => ({ ...f, department: department ?? "" }))}
+              options={departmentOptions}
+            />
+            {rangeInputs("เงินเดือน/ค่าแรง", "basePay")}
+            {rangeInputs("ค่า OT (บาท)", "otAmount")}
+            {rangeInputs("สุทธิ", "netPay")}
+            <Button
+              size="small"
+              icon={<ClearOutlined />}
+              disabled={!isSlipFilterActive(filter)}
+              onClick={() => setFilter(EMPTY_SLIP_FILTER)}
+            >
+              ล้างตัวกรอง
+            </Button>
+          </Space>
           <Table
             rowKey="id"
             size="small"
             columns={columns}
-            dataSource={run.slips}
-            pagination={{ pageSize: 50, showTotal: (t) => `ทั้งหมด ${t} คน` }}
+            dataSource={filteredSlips}
+            pagination={{
+              pageSize: 50,
+              showTotal: (t) =>
+                isSlipFilterActive(filter) ? `พบ ${t} จาก ${run.slips.length} คน` : `ทั้งหมด ${t} คน`,
+            }}
             scroll={{ x: 1440 }}
           />
           <PayrollAdjustmentsModal

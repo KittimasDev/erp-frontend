@@ -224,7 +224,7 @@ export default function ShutdownPlanDetailDrawer({ planId, open, onClose }: Prop
     <Drawer
       open={open}
       onClose={onClose}
-      width={760}
+      size={760}
       title={plan ? `${plan.name} · ${formatBeRange(plan.dateFrom, plan.dateTo)} (${plan.dayCount} วัน)` : "แผน Shutdown"}
       destroyOnHidden
       extra={

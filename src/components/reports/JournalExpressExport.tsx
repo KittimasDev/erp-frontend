@@ -105,7 +105,7 @@ export function ExpressExportDialog({
       onCancel={sending ? undefined : close}
       okButtonProps={{ disabled: !preview || blockedByNoSelection, loading: sending }}
       cancelButtonProps={{ disabled: sending }}
-      maskClosable={!sending}
+      mask={{ closable: !sending }}
       destroyOnHidden
     >
       <Space orientation="vertical" size={12} style={{ width: "100%" }}>

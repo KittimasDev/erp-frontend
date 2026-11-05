@@ -36,7 +36,7 @@ const fmtTime = (v?: string) => (v ? dayjs(v).format("DD/MM/YYYY HH:mm:ss") : "�
 /** key แสดงครั้งเดียว — ปิดแล้วดูย้อนหลังไม่ได้ (ระบบเก็บเฉพาะ hash) */
 function ApiKeyModal({ device, onClose }: { device: MachineDeviceWithKey; onClose: () => void }) {
   return (
-    <Modal open title={`API key ของ ${device.deviceCode}`} onCancel={onClose} onOk={onClose} okText="คัดลอกแล้ว ปิด" cancelButtonProps={{ style: { display: "none" } }} closable={false} maskClosable={false}>
+    <Modal open title={`API key ของ ${device.deviceCode}`} onCancel={onClose} onOk={onClose} okText="คัดลอกแล้ว ปิด" cancelButtonProps={{ style: { display: "none" } }} closable={false} mask={{ closable: false }}>
       <Alert type="warning" showIcon style={{ marginBottom: 12 }} title="เก็บ key นี้ไว้ตอนนี้ — แสดงครั้งเดียว" description="ระบบเก็บเฉพาะค่า hash ปิดหน้านี้แล้วดูย้อนหลังไม่ได้ ถ้าหายต้องสร้าง key ใหม่ (key เดิมจะใช้ไม่ได้ทันที)" />
       <Typography.Paragraph copyable code style={{ wordBreak: "break-all" }}>{device.apiKey}</Typography.Paragraph>
       <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 0 }}>
