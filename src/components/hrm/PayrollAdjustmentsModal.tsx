@@ -82,10 +82,14 @@ export default function PayrollAdjustmentsModal({ runId, slip, onClose }: Props)
                   </Form.Item>
                   <Form.Item
                     name={[field.name, "amount"]}
-                    rules={[{ required: true, message: "ใส่จำนวนเงิน" }]}
+                    rules={[
+                      { required: true, message: "ใส่จำนวนเงิน" },
+                      { type: "number", min: 0.01, message: "ใส่จำนวนบวก (ถ้าเป็นรายการหัก ให้เลือกประเภท “รายการหัก”)" },
+                      { type: "number", max: 9999999, message: "จำนวนเงินมากเกินไป" },
+                    ]}
                     style={{ width: 130 }}
                   >
-                    <InputNumber min={0.01} max={9999999} precision={2} style={{ width: "100%" }} placeholder="บาท" />
+                    <InputNumber precision={2} style={{ width: "100%" }} placeholder="บาท" />
                   </Form.Item>
                   <Button
                     type="text"

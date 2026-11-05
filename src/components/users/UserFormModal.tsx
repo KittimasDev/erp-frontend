@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidThaiNationalId } from "@/utils/thaiNationalId";
 import { useEffect } from "react";
 import { DatePicker, Form, Input, InputNumber, Modal, Select, Switch } from "antd";
 import dayjs from "dayjs";
@@ -376,12 +377,14 @@ export default function UserFormModal({
         <Form.Item
           label={isDaily ? "ค่าแรงรายวัน (บาท)" : "เงินเดือน (บาท)"}
           name="basePay"
+          rules={[
+            { type: "number", min: 0, message: "ต้องไม่ติดลบ" },
+            { type: "number", max: 99999999, message: "จำนวนเงินมากเกินไป" },
+          ]}
           extra="ใช้คำนวณเงิน OT และเงินเดือน · คำขอ OT ที่อนุมัติไปแล้วไม่ถูกคำนวณใหม่"
         >
           <InputNumber
             style={{ width: "100%" }}
-            min={0}
-            max={99999999}
             precision={2}
             placeholder={isDaily ? "กรอกค่าแรงรายวัน" : "กรอกเงินเดือน"}
           />
@@ -425,10 +428,18 @@ export default function UserFormModal({
         <Form.Item
           label="เลขประจำตัวประชาชน (13 หลัก)"
           name="nationalId"
-          rules={[{ pattern: /^\d{13}$/, message: "ต้องเป็นตัวเลข 13 หลัก" }]}
+          rules={[
+            { pattern: /^\d{13}$/, message: "ต้องเป็นตัวเลข 13 หลักพอดี" },
+            {
+              validator: (_rule, value?: string) =>
+                !value || !/^\d{13}$/.test(value) || isValidThaiNationalId(value)
+                  ? Promise.resolve()
+                  : Promise.reject(new Error("เลขประจำตัวประชาชนไม่ถูกต้อง (ตรวจหลักสุดท้ายไม่ผ่าน)")),
+            },
+          ]}
           extra="ใช้ออกหนังสือรับรองหัก ณ ที่จ่าย (50 ทวิ)"
         >
-          <Input maxLength={13} inputMode="numeric" placeholder="เช่น 1234567890123" />
+          <Input inputMode="numeric" placeholder="เช่น 1234567890123" />
         </Form.Item>
 
         <Form.Item label="ที่อยู่ (สำหรับ 50 ทวิ)" name="address">

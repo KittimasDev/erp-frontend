@@ -590,9 +590,52 @@ async function renderPdfFromHtml(pageId: string, pageHtml: string) {
   return pdf;
 }
 
+/**
+ * จองแท็บสำหรับเปิด PDF — ต้องเรียก "ทันทีในตัวจัดการคลิก" ก่อน await ใดๆ
+ * เพราะการสร้าง PDF หลายหน้าใช้เวลานาน พอเสร็จแล้วค่อย window.open เบราว์เซอร์จะมองว่าไม่ใช่การกดของผู้ใช้แล้วบล็อก popup
+ * ถ้าไม่ได้จอง / จองไม่สำเร็จ ฟังก์ชันเปิด PDF จะ window.open เองเหมือนเดิม และถ้าถูกบล็อกจะดาวน์โหลดไฟล์แทน
+ */
+let reservedPdfWindow: Window | null = null;
+
+export function reservePdfWindow() {
+  try {
+    reservedPdfWindow = window.open("", "_blank");
+    reservedPdfWindow?.document.write(
+      "<p style='font-family:sans-serif;padding:24px'>กำลังสร้าง PDF…</p>",
+    );
+  } catch {
+    reservedPdfWindow = null;
+  }
+}
+
+/** ปิดแท็บที่จองไว้ (เรียกเมื่อสร้าง PDF ไม่สำเร็จ) */
+export function releasePdfWindow() {
+  try {
+    reservedPdfWindow?.close();
+  } catch {
+    /* ignore */
+  }
+  reservedPdfWindow = null;
+}
+
+function deliverPdf(pdf: jsPDF, filename = "document.pdf") {
+  const url = pdf.output("bloburl") as unknown as string;
+  const reserved = reservedPdfWindow;
+  reservedPdfWindow = null;
+  if (reserved && !reserved.closed) {
+    reserved.location.href = url;
+    return;
+  }
+  const opened = window.open(url, "_blank");
+  if (!opened) {
+    // popup ถูกบล็อก → ดาวน์โหลดไฟล์แทน จะได้ไม่เงียบหาย
+    pdf.save(filename);
+  }
+}
+
 export async function openPdfFromHtml(pageId: string, pageHtml: string) {
   const pdf = await renderPdfFromHtml(pageId, pageHtml);
-  window.open(pdf.output("bloburl"), "_blank");
+  deliverPdf(pdf);
 }
 
 /** บันทึกเป็นไฟล์ .pdf ลงเครื่องโดยตรง (ไม่เปิดแท็บใหม่) */
@@ -694,7 +737,7 @@ export async function openMultiPagePdfFromHtml(
       );
     }
 
-    window.open(pdf.output("bloburl"), "_blank");
+    deliverPdf(pdf);
   } finally {
     document.body.removeChild(wrapper);
   }

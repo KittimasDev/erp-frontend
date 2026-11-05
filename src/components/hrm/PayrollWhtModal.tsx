@@ -8,7 +8,7 @@ import { PrinterOutlined } from "@ant-design/icons";
 import { useWithholdingCertificatesQuery } from "@/hooks/payroll/usePayroll";
 import { getCompanyInfoSnapshot } from "@/lib/company/company-info";
 import type { WithholdingCertificate } from "@/types/payroll";
-import { ensureCompanyInfo } from "@/utils/pdf-common";
+import { ensureCompanyInfo, releasePdfWindow, reservePdfWindow } from "@/utils/pdf-common";
 import {
   openWhtCertificatesPdf,
   type WhtCertificatePdfData,
@@ -63,12 +63,14 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
   const items = query.data?.data.items ?? [];
 
   const print = async (list: Array<{ c: WithholdingCertificate; index: number }>) => {
+    reservePdfWindow();
     try {
       await ensureCompanyInfo();
       const company = getCompanyInfoSnapshot();
       const payer = { name: company.nameTh, taxId: company.taxId, address: company.addressText };
       await openWhtCertificatesPdf(list.map(({ c, index }) => toPdfData(year, index, c, payer)));
     } catch (error) {
+      releasePdfWindow();
       message.error(error instanceof Error ? error.message : "สร้าง PDF ไม่สำเร็จ");
     }
   };
@@ -141,7 +143,7 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title="รวมเฉพาะงวดที่ปิดงวดแล้ว โดยถือวันสิ้นสุดงวดเป็นวันที่จ่าย — เลขประจำตัวประชาชนและที่อยู่ตั้งได้ที่ฟอร์มผู้ใช้งาน /users"
+        title="รวมเฉพาะงวดที่ปิดงวดแล้ว โดยถือวันสิ้นสุดงวดเป็นวันที่จ่าย (ถ้าปิดงวดก่อนสิ้นสุดงวด ใช้วันปิดงวดแทน) — เลขประจำตัวประชาชนและที่อยู่ตั้งได้ที่ฟอร์มผู้ใช้งาน /users"
       />
       <Table
         rowKey="userId"

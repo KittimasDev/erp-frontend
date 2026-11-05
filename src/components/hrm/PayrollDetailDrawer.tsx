@@ -15,6 +15,7 @@ import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-ac
 import { PAYROLL_STATUS_LABEL, type PayrollSlip } from "@/types/payroll";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { openPayslipPdf } from "@/utils/generatePayslipPdf";
+import { releasePdfWindow, reservePdfWindow } from "@/utils/pdf-common";
 import { toPayrollSheet } from "@/utils/payrollSheet";
 
 import PayrollAdjustmentsModal from "./PayrollAdjustmentsModal";
@@ -54,13 +55,16 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
 
   const printSlips = async (slips: PayrollSlip[]) => {
     if (!run) return;
+    reservePdfWindow();
     try {
       await openPayslipPdf(run, slips);
     } catch (error) {
+      releasePdfWindow();
       message.error(error instanceof Error ? error.message : "สร้างสลิป PDF ไม่สำเร็จ");
     }
   };
   // สลิปที่ไม่มีรายได้เลย (ไม่มีฐานค่าจ้าง) ไม่พิมพ์ในชุดทั้งงวด
+  const negativeSlips = run?.slips.filter((s) => s.netPay < 0) ?? [];
   const printableSlips = run?.slips.filter((s) => s.grossIncome > 0) ?? [];
 
   const columns: ColumnsType<PayrollSlip> = [
@@ -216,7 +220,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                 cancelText="ยกเลิก"
                 onConfirm={() => finalize.mutate(run.id)}
               >
-                <Button type="primary" loading={finalize.isPending}>
+                <Button type="primary" loading={finalize.isPending} disabled={negativeSlips.length > 0}>
                   ปิดงวด
                 </Button>
               </Popconfirm>
@@ -250,6 +254,17 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           </Descriptions>
           {run.status === "CANCELLED" && run.cancelReason ? (
             <Alert type="info" showIcon title={`เหตุผลที่ยกเลิก: ${run.cancelReason}`} style={{ marginBottom: 12 }} />
+          ) : null}
+          {isDraft && negativeSlips.length > 0 ? (
+            <Alert
+              type="error"
+              showIcon
+              title={`ปิดงวดไม่ได้ — ${negativeSlips.length} สลิปมียอดสุทธิติดลบ: ${negativeSlips
+                .slice(0, 5)
+                .map((s) => s.displayName)
+                .join(", ")}${negativeSlips.length > 5 ? " ..." : ""} (แก้รายการหัก/รายการปรับก่อน)`}
+              style={{ marginBottom: 12 }}
+            />
           ) : null}
           {run.totals.warningCount > 0 ? (
             <Alert
