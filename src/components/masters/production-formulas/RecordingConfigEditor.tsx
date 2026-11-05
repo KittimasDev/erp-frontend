@@ -253,6 +253,37 @@ export default function RecordingConfigEditor({
       ),
     },
     {
+      title: "ใช้คำนวณ",
+      width: 160,
+      render: (_v, row) => (
+        <Select
+          size="small"
+          allowClear
+          style={{ width: "100%" }}
+          placeholder="ไม่ใช้"
+          options={[
+            { value: "INPUT_TIRE", label: "ยางป้อน" },
+            { value: "OPERATING_HOURS", label: "ชั่วโมงเดินเครื่อง" },
+          ]}
+          value={row.dashboardMetric}
+          onChange={(metric) => {
+            const dashboardMetric = metric ?? undefined;
+            setFields(
+              fields.map((f) => {
+                if (f.id === row.id) {
+                  return { ...f, dashboardMetric };
+                }
+                if (dashboardMetric && f.dashboardMetric === dashboardMetric) {
+                  return { ...f, dashboardMetric: undefined };
+                }
+                return f;
+              }),
+            );
+          }}
+        />
+      ),
+    },
+    {
       title: "ลิงก์ BOM",
       width: 200,
       render: (_v, row) => {
@@ -506,7 +537,7 @@ export default function RecordingConfigEditor({
         dataSource={fields}
         columns={columns}
         locale={{ emptyText: "ยังไม่มีรายการ — กดเพิ่มรายการด้านล่าง" }}
-        scroll={{ x: 1600 }}
+        scroll={{ x: 1760 }}
       />
 
       <Button

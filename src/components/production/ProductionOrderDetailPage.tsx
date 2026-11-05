@@ -558,7 +558,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
       return {
         itemId: line.itemId,
         unitId: line.unitId,
-        quantity: Number(qty).toFixed(3),
+        quantity: String(Number(Number(qty).toFixed(3))),
       };
     });
     if (items.some((item) => !(Number(item.quantity) > 0))) {

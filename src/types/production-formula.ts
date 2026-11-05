@@ -123,6 +123,8 @@ export type RecordingFieldDef = {
   compareToCapacity?: boolean;
   /** INPUT ที่ลิงก์ BOM: ไม่ระบุ/true = ตัด Stock ตอน Confirm กะ · false = บันทึกข้อมูลอย่างเดียว (ตัดได้ 1 ฟิลด์ต่อวัตถุดิบ) */
   stockDeduct?: boolean;
+  /** ใช้ฟิลด์นี้คำนวณ Input Tire หรือชั่วโมงเดินเครื่อง — ชนิดละ 1 ฟิลด์ ไม่ผูกกับรหัสฟิลด์ */
+  dashboardMetric?: "INPUT_TIRE" | "OPERATING_HOURS";
 };
 
 export type ProductionRecordingConfig = {
