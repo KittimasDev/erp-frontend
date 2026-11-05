@@ -28,6 +28,8 @@ import {
 } from "@/hooks/production-dashboard/useProductionDashboardQueries";
 import type {
   ProductionDashboardBucket,
+  ProductionDashboardKpi,
+  ProductionDashboardOutputLine,
   ProductionWorkInProgressRow,
 } from "@/types/production-dashboard";
 import styles from "./ProductionDashboardPage.module.css";
@@ -41,6 +43,15 @@ const RED = "#CF1322";
 const MUTED = "#77777C";
 
 const { RangePicker } = DatePicker;
+const OUTPUT_BAR_COLORS = [GREEN, "#2F6FDE", AMBER, "#595959", "#95DE64", "#13C2C2"];
+
+function yieldLabel(kpi?: ProductionDashboardKpi) {
+  if (!kpi || kpi.completedOrders === 0) return "—";
+  if (kpi.averageYieldPercent === null || kpi.averageYieldPercent === undefined) {
+    return "ไม่สามารถเปรียบเทียบได้";
+  }
+  return `${fmt(kpi.averageYieldPercent)}%`;
+}
 
 function fmt(value?: number | null, digits = 2) {
   if (value === null || value === undefined) return "—";
@@ -82,17 +93,56 @@ export default function ProductionDashboardPage() {
   const downtime = downtimeQuery.data?.data;
   const stageProgress = stageQuery.data?.data;
 
+  const outputLines = summary?.outputLines ?? [];
+  const outputUnits = useMemo(
+    () => [
+      ...new Set(
+        outputLines
+          .map((line) => line.unitCode || line.unitId)
+          .filter((unit): unit is string => Boolean(unit)),
+      ),
+    ],
+    [outputLines],
+  );
+  const singleOutputUnit = outputUnits.length === 1;
+  const outputSeries = useMemo(() => {
+    if (!singleOutputUnit) return [] as ProductionDashboardOutputLine[];
+    const seen = new Map<string, ProductionDashboardOutputLine>();
+    for (const line of outputLines) {
+      if (!seen.has(line.itemId)) seen.set(line.itemId, line);
+    }
+    return [...seen.values()];
+  }, [outputLines, singleOutputUnit]);
+
   const trendData = useMemo(
     () =>
-      (summary?.trend ?? []).map((point) => ({
-        ...point,
-        label:
-          bucket === "MONTH"
-            ? dayjs(point.bucket).format("MM/YYYY")
-            : dayjs(point.bucket).format("DD/MM"),
-      })),
-    [summary?.trend, bucket],
+      (summary?.trend ?? []).map((point) => {
+        const row: Record<string, string | number | null> = {
+          label:
+            bucket === "MONTH"
+              ? dayjs(point.bucket).format("MM/YYYY")
+              : dayjs(point.bucket).format("DD/MM"),
+          yieldPercent: point.yieldPercent,
+          plannedYieldPercent: point.plannedYieldPercent,
+        };
+        if (singleOutputUnit) {
+          for (const series of outputSeries) row[series.itemId] = 0;
+          for (const line of point.outputLines ?? []) {
+            row[line.itemId] = Number(line.quantity) || 0;
+          }
+        }
+        return row;
+      }),
+    [summary?.trend, bucket, singleOutputUnit, outputSeries],
   );
+
+  const chartNote = !outputLines.length
+    ? "ยังไม่มีผลผลิตที่รับเข้าคลังในช่วงนี้"
+    : outputUnits.length > 1
+      ? "ไม่สามารถเปรียบเทียบได้ — ผลผลิตคนละหน่วย ไม่รวมเป็นยอดเดียว"
+      : outputSeries.length > 1
+        ? `แยกตามสินค้า หน่วย ${outputUnits[0]} · ไม่คิด Yield รวมข้ามสินค้า`
+        : `แท่ง = ผลผลิต (${outputUnits[0] ?? ""}) · เส้น = Yield`;
 
   const downtimeData = useMemo(
     () =>
@@ -252,13 +302,16 @@ export default function ProductionDashboardPage() {
               {fmt(kpi?.pausedOrders, 0)}
             </strong>
           </div>
-          <div className={styles.summaryCardAccent}>
+          <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
             <span>Yield เฉลี่ย</span>
-            <strong>
-              {kpi?.averageYieldPercent === null ||
-              kpi?.averageYieldPercent === undefined
-                ? "เทียบไม่ได้"
-                : `${fmt(kpi.averageYieldPercent)}%`}
+            <strong
+              className={
+                kpi && kpi.completedOrders > 0 && kpi.averageYieldPercent == null
+                  ? styles.summaryPhrase
+                  : undefined
+              }
+            >
+              {yieldLabel(kpi)}
             </strong>
           </div>
           <div className={styles.summaryCard}>
@@ -279,8 +332,8 @@ export default function ProductionDashboardPage() {
             description={
               <>
                 <p style={{ margin: 0 }}>
-                  ใบที่วัตถุดิบกับผลผลิตคนละหน่วย (เช่น น้ำมันเป็นลิตร ผงคาร์บอนเป็นกิโลกรัม)
-                  หารข้ามหน่วยแล้วได้ตัวเลขที่ไม่มีความหมาย จึงตัดออกแทนที่จะเฉลี่ยของที่ผิด
+                  ใบที่มีผลผลิตหลายสินค้า หรือวัตถุดิบกับผลผลิตคนละหน่วย
+                  ไม่ถูกบวกเป็นยอดเดียว และไม่ถูกเอาไปเฉลี่ย Yield
                 </p>
                 {/* ต่างจากผสมหน่วยตรงที่อันนี้แก้ได้ และต้องแก้ */}
                 {kpi.yieldImpossibleOrders > 0 ? (
@@ -300,8 +353,20 @@ export default function ProductionDashboardPage() {
         <div className={styles.chartCard}>
           <div className={styles.chartHeader}>
             <h3>ผลผลิตและ Yield ตามช่วงเวลา</h3>
-            <p>แท่ง = ผลผลิตที่รับเข้าคลังจริง · เส้น = Yield</p>
+            <p>{chartNote}</p>
           </div>
+          {outputLines.length > 0 ? (
+            <ul className={styles.reasonList}>
+              {outputLines.map((line) => (
+                <li key={`${line.itemId}-${line.unitId}`}>
+                  <span>{line.itemNameTh || line.itemCode || "สินค้า"}</span>
+                  <strong>
+                    {fmt(line.quantity)} {line.unitCode ?? ""}
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           <div className={styles.chartBody}>
             {trendData.length === 0 ? (
               <div className={styles.emptyState}>
@@ -312,11 +377,13 @@ export default function ProductionDashboardPage() {
                 <ComposedChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fill: MUTED, fontSize: 12 }} />
-                  <YAxis
-                    yAxisId="qty"
-                    tick={{ fill: MUTED, fontSize: 12 }}
-                    width={70}
-                  />
+                  {singleOutputUnit ? (
+                    <YAxis
+                      yAxisId="qty"
+                      tick={{ fill: MUTED, fontSize: 12 }}
+                      width={70}
+                    />
+                  ) : null}
                   <YAxis
                     yAxisId="pct"
                     orientation="right"
@@ -326,18 +393,25 @@ export default function ProductionDashboardPage() {
                   />
                   <Tooltip
                     formatter={(value, name) => [
-                      value === null ? "เทียบไม่ได้" : fmt(Number(value)),
+                      value === null || value === undefined
+                        ? "ไม่สามารถเปรียบเทียบได้"
+                        : fmt(Number(value)),
                       name,
                     ]}
                   />
                   <Legend />
-                  <Bar
-                    yAxisId="qty"
-                    dataKey="actualOutputQty"
-                    name="ผลผลิตจริง"
-                    fill={GREEN}
-                    radius={[4, 4, 0, 0]}
-                  />
+                  {singleOutputUnit
+                    ? outputSeries.map((series, index) => (
+                        <Bar
+                          key={series.itemId}
+                          yAxisId="qty"
+                          dataKey={series.itemId}
+                          name={`${series.itemNameTh || series.itemCode || "ผลผลิต"} (${outputUnits[0]})`}
+                          fill={OUTPUT_BAR_COLORS[index % OUTPUT_BAR_COLORS.length]}
+                          radius={[4, 4, 0, 0]}
+                        />
+                      ))
+                    : null}
                   <Line
                     yAxisId="pct"
                     type="monotone"

@@ -22,13 +22,25 @@ export type ProductionDashboardKpi = {
   openDowntimeCount: number;
 };
 
+export type ProductionDashboardOutputLine = {
+  itemId: string;
+  itemCode?: string | null;
+  itemNameTh?: string | null;
+  unitId: string;
+  unitCode?: string | null;
+  quantity: number;
+};
+
 export type ProductionDashboardTrendPoint = {
   bucket: string;
   completedOrders: number;
-  actualOutputQty: number;
-  plannedOutputQty: number;
+  /** มีค่าเมื่อช่วงนั้นเหลือสินค้าเดียวและหน่วยเดียว */
+  actualOutputQty: number | null;
+  outputUnitCode?: string | null;
+  plannedOutputQty: number | null;
   yieldPercent: number | null;
   plannedYieldPercent: number | null;
+  outputLines?: ProductionDashboardOutputLine[];
 };
 
 export type ProductionDashboardSummary = {
@@ -36,6 +48,8 @@ export type ProductionDashboardSummary = {
   to: string;
   bucket: string;
   kpi: ProductionDashboardKpi;
+  /** ผลผลิตทั้งช่วง แยกตามสินค้าและหน่วย */
+  outputLines?: ProductionDashboardOutputLine[];
   trend: ProductionDashboardTrendPoint[];
 };
 

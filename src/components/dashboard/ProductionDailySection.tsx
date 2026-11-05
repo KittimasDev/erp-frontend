@@ -189,7 +189,7 @@ export default function ProductionDailySection({ params }: { params: DashboardRa
           ))}
           {d.nonKgOutputs.length > 0 ? (
             <div style={{ marginTop: 8, fontSize: 12, color: "#8a9199" }}>
-              ไม่นับใน Mass Balance (คนละหน่วย): {d.nonKgOutputs.map((o) => `${o.itemName} ${fmt(o.quantity, 0)} ${o.unit}`).join(", ")}
+              ไม่สามารถเปรียบเทียบได้ — ไม่รวมเข้ากับกิโลกรัม: {d.nonKgOutputs.map((o) => `${o.itemName} ${fmt(o.quantity, 0)} ${o.unit}`).join(", ")}
             </div>
           ) : null}
           <div style={{ marginTop: 8, fontSize: 12, color: "#8a9199" }}>
