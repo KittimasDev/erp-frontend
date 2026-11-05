@@ -8,7 +8,7 @@ import { numberToThaiBahtText } from "@/utils/numberToThaiBahtText";
 
 export type WhtCertificatePdfData = {
   certNo: string;
-  taxForm: "PND3" | "PND53" | string;
+  taxForm: "PND1" | "PND3" | "PND53" | string;
   incomeType: string;
   /** วันที่จ่ายเงิน (YYYY-MM-DD) */
   paymentDate: string;
@@ -16,7 +16,9 @@ export type WhtCertificatePdfData = {
   rate: number;
   whtAmount: number;
   /** รายการแยกประเภทเงินได้/อัตราจริง — ไม่ส่งมา = บรรทัดเดียวจากค่าหัวเอกสาร */
-  lines?: Array<{ incomeType: string; baseAmount: number; rate: number; whtAmount: number }>;
+  lines?: Array<{ incomeType: string; baseAmount: number; rate: number | null; whtAmount: number }>;
+  /** รายการเงินสะสมใต้ตาราง เช่น ประกันสังคม/กองทุนสำรองเลี้ยงชีพ (ใช้กับ 50 ทวิ เงินเดือน) */
+  fundLines?: Array<{ label: string; amount: number }>;
   issuedAt: string;
   issuedByName?: string;
   payer: { name: string; taxId?: string; address?: string };
@@ -51,7 +53,7 @@ function party(title: string, p: WhtCertificatePdfData["payer"]) {
     </div>`;
 }
 
-function pageHtml(d: WhtCertificatePdfData) {
+function pageHtml(d: WhtCertificatePdfData, index = 0) {
   const form3 = d.taxForm === "PND3";
   const rows = d.lines?.length
     ? d.lines
@@ -85,7 +87,7 @@ function pageHtml(d: WhtCertificatePdfData) {
       .wht-sign .line { border-bottom: 1px solid #555; height: 34px; margin-bottom: 4px; }
       .wht-ref { margin-top: 28px; font-size: 10px; color: #888; }
     </style>
-    <div class="wht-page" id="${PAGE_ID}-0">
+    <div class="wht-page" id="${PAGE_ID}-${index}">
       <div class="wht-top">
         <img class="wht-logo" src="${companyLogoUrl()}" alt="" crossorigin="anonymous" />
         <div class="wht-title">
@@ -102,7 +104,7 @@ function pageHtml(d: WhtCertificatePdfData) {
       ${party("ผู้ถูกหักภาษี ณ ที่จ่าย (ผู้รับเงิน)", d.payee)}
 
       <div class="wht-form">
-        แบบยื่น : ${form3 ? "☑" : "☐"} ภ.ง.ด.3 (บุคคลธรรมดา) &nbsp;&nbsp; ${form3 ? "☐" : "☑"} ภ.ง.ด.53 (นิติบุคคล)
+        แบบยื่น : ${d.taxForm === "PND1" ? "☑" : "☐"} ภ.ง.ด.1 (เงินเดือน) &nbsp;&nbsp; ${form3 ? "☑" : "☐"} ภ.ง.ด.3 (บุคคลธรรมดา) &nbsp;&nbsp; ${d.taxForm === "PND1" || form3 ? "☐" : "☑"} ภ.ง.ด.53 (นิติบุคคล)
       </div>
 
       <table class="wht-table">
@@ -123,7 +125,7 @@ function pageHtml(d: WhtCertificatePdfData) {
             <td>${escapeHtml(dash(l.incomeType))}</td>
             <td>${escapeHtml(thaiDate(d.paymentDate))}</td>
             <td class="r">${money(l.baseAmount)}</td>
-            <td class="r">${l.rate}%</td>
+            <td class="r">${l.rate == null ? "ตามขั้นบันได" : `${l.rate}%`}</td>
             <td class="r">${money(l.whtAmount)}</td>
           </tr>`,
             )
@@ -137,6 +139,13 @@ function pageHtml(d: WhtCertificatePdfData) {
         </tbody>
       </table>
       <div class="wht-baht">รวมภาษีที่หักนำส่ง ( ${escapeHtml(numberToThaiBahtText(d.whtAmount))} )</div>
+      ${
+        d.fundLines?.length
+          ? `<div class="wht-baht">${d.fundLines
+              .map((f) => `${escapeHtml(f.label)} ${money(f.amount)} บาท`)
+              .join(" &nbsp;·&nbsp; ")}</div>`
+          : ""
+      }
 
       <div class="wht-foot">
         <div class="wht-sign">
@@ -158,4 +167,17 @@ export async function openWhtCertificatePdf(data: WhtCertificatePdfData) {
     wrapperWidth: `${PAGE_WIDTH}px`,
     includeBaseStyles: false,
   });
+}
+
+/** หลายใบในไฟล์เดียว — หนึ่งหน้าต่อใบ (ใช้พิมพ์ 50 ทวิ เงินเดือนทั้งบริษัท) */
+export async function openWhtCertificatesPdf(list: WhtCertificatePdfData[]) {
+  if (list.length === 0) {
+    throw new Error("ไม่มีหนังสือรับรองให้พิมพ์");
+  }
+  await ensureCompanyInfo();
+  await openMultiPagePdfFromHtml(
+    PAGE_ID,
+    list.map((d, i) => pageHtml(d, i)),
+    { wrapperWidth: `${PAGE_WIDTH}px`, includeBaseStyles: false },
+  );
 }

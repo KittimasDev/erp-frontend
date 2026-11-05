@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Alert, App, Button, Descriptions, Drawer, Input, Modal, Popconfirm, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DownloadOutlined, EditOutlined, ReloadOutlined } from "@ant-design/icons";
+import { DownloadOutlined, EditOutlined, PrinterOutlined, ReloadOutlined } from "@ant-design/icons";
 
 import {
   useCancelPayrollMutation,
@@ -14,6 +14,7 @@ import {
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { PAYROLL_STATUS_LABEL, type PayrollSlip } from "@/types/payroll";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
+import { openPayslipPdf } from "@/utils/generatePayslipPdf";
 import { toPayrollSheet } from "@/utils/payrollSheet";
 
 import PayrollAdjustmentsModal from "./PayrollAdjustmentsModal";
@@ -50,6 +51,17 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
       message.error("ส่งออกไม่สำเร็จ");
     }
   };
+
+  const printSlips = async (slips: PayrollSlip[]) => {
+    if (!run) return;
+    try {
+      await openPayslipPdf(run, slips);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : "สร้างสลิป PDF ไม่สำเร็จ");
+    }
+  };
+  // สลิปที่ไม่มีรายได้เลย (ไม่มีฐานค่าจ้าง) ไม่พิมพ์ในชุดทั้งงวด
+  const printableSlips = run?.slips.filter((s) => s.grossIncome > 0) ?? [];
 
   const columns: ColumnsType<PayrollSlip> = [
     {
@@ -115,6 +127,17 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
     },
     { title: "ประกันสังคม", key: "ss", width: 110, align: "right", render: (_v, s) => money(s.socialSecurity) },
     {
+      title: "กองทุน",
+      key: "pf",
+      width: 120,
+      align: "right",
+      render: (_v, s) =>
+        s.providentFundEmployer > 0
+          ? `${money(s.providentFund)} (+นจ. ${money(s.providentFundEmployer)})`
+          : money(s.providentFund),
+    },
+    { title: "ภาษีหัก ณ ที่จ่าย", key: "tax", width: 130, align: "right", render: (_v, s) => money(s.withholdingTax) },
+    {
       title: "สุทธิ",
       key: "net",
       width: 120,
@@ -125,14 +148,22 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
     {
       title: "",
       key: "actions",
-      width: 100,
+      width: 170,
       fixed: "right",
-      render: (_v, s) =>
-        isDraft ? (
-          <Button size="small" icon={<EditOutlined />} onClick={() => setAdjusting(s)}>
-            ปรับ{s.adjustments.length ? ` (${s.adjustments.length})` : ""}
-          </Button>
-        ) : null,
+      render: (_v, s) => (
+        <Space size={4}>
+          {isDraft ? (
+            <Button size="small" icon={<EditOutlined />} onClick={() => setAdjusting(s)}>
+              ปรับ{s.adjustments.length ? ` (${s.adjustments.length})` : ""}
+            </Button>
+          ) : null}
+          {canExport ? (
+            <Button size="small" icon={<PrinterOutlined />} onClick={() => void printSlips([s])}>
+              สลิป
+            </Button>
+          ) : null}
+        </Space>
+      ),
     },
   ];
 
@@ -154,6 +185,13 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                 </Button>
                 <Button icon={<DownloadOutlined />} onClick={() => void exportAs("csv")}>
                   CSV
+                </Button>
+                <Button
+                  icon={<PrinterOutlined />}
+                  disabled={printableSlips.length === 0}
+                  onClick={() => void printSlips(printableSlips)}
+                >
+                  สลิปทั้งงวด (PDF)
                 </Button>
               </>
             ) : null}
@@ -202,6 +240,10 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
             <Descriptions.Item label="รายได้รวม">{money(run.totals.grossIncome)}</Descriptions.Item>
             <Descriptions.Item label="ค่า OT">{money(run.totals.otAmount)}</Descriptions.Item>
             <Descriptions.Item label="ประกันสังคม">{money(run.totals.socialSecurity)}</Descriptions.Item>
+            <Descriptions.Item label="กองทุน (พนักงาน / นายจ้างสมทบ)">
+              {money(run.totals.providentFund)} / {money(run.totals.providentFundEmployer)}
+            </Descriptions.Item>
+            <Descriptions.Item label="ภาษีหัก ณ ที่จ่าย">{money(run.totals.withholdingTax)}</Descriptions.Item>
             <Descriptions.Item label="ยอดสุทธิรวม">
               <strong>{money(run.totals.netPay)}</strong>
             </Descriptions.Item>

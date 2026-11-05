@@ -33,6 +33,11 @@ export type PayrollSlip = {
   adjustmentDeductions: number;
   socialSecurityBase: number;
   socialSecurity: number;
+  providentFund: number;
+  /** นายจ้างสมทบ (ไม่หักจากสุทธิ) */
+  providentFundEmployer: number;
+  withholdingTax: number;
+  taxableIncomeAnnual: number;
   grossIncome: number;
   totalDeductions: number;
   netPay: number;
@@ -45,6 +50,9 @@ export type PayrollTotals = {
   grossIncome: number;
   totalDeductions: number;
   socialSecurity: number;
+  providentFund: number;
+  providentFundEmployer: number;
+  withholdingTax: number;
   otAmount: number;
   netPay: number;
   warningCount: number;
@@ -79,6 +87,8 @@ export type PayrollAdjustmentInput = {
   amount: number;
 };
 
+export type TaxBracket = { upTo: number | null; ratePercent: number };
+
 export type PayrollSettings = {
   daysPerMonth: number;
   socialSecurityRatePercent: number;
@@ -86,6 +96,14 @@ export type PayrollSettings = {
   socialSecurityMinBase: number;
   unpaidLeaveTypes: string[];
   payHolidaysForDaily: boolean;
+  taxEnabled: boolean;
+  taxExpenseRatePercent: number;
+  taxExpenseCap: number;
+  taxPersonalAllowance: number;
+  taxBrackets: TaxBracket[];
+  providentFundEmployerPercent: number;
+  providentFundMaxPercent: number;
+  providentFundOptions: number[];
 };
 
 export type PayrollRunListApiResponse = {
@@ -119,3 +137,37 @@ export const LEAVE_TYPE_OPTIONS = [
   { value: "MATERNITY", label: "ลาคลอด" },
   { value: "OTHER", label: "อื่น ๆ" },
 ];
+
+export type WithholdingPayment = {
+  paymentDate: string;
+  runName: string;
+  income: number;
+  withholdingTax: number;
+  socialSecurity: number;
+  providentFund: number;
+};
+
+export type WithholdingCertificate = {
+  userId: string;
+  employeeCode?: string | null;
+  displayName: string;
+  position?: string | null;
+  nationalId?: string | null;
+  address?: string | null;
+  totalIncome: number;
+  totalWithholdingTax: number;
+  totalSocialSecurity: number;
+  totalProvidentFund: number;
+  payments: WithholdingPayment[];
+};
+
+export type WithholdingCertificates = {
+  year: number;
+  items: WithholdingCertificate[];
+};
+
+export type WithholdingCertificatesApiResponse = {
+  success?: boolean;
+  message: string;
+  data: WithholdingCertificates;
+};

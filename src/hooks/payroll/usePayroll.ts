@@ -11,6 +11,7 @@ import {
   getPayrollRun,
   getPayrollRuns,
   getPayrollSettings,
+  getWithholdingCertificates,
   recalculatePayrollRun,
   setPayrollAdjustments,
   updatePayrollSettings,
@@ -116,5 +117,13 @@ export function useUpdatePayrollSettingsMutation() {
     onError: (error: Error) => {
       message.error(error instanceof ApiError ? error.message : "บันทึกตั้งค่าไม่สำเร็จ");
     },
+  });
+}
+
+export function useWithholdingCertificatesQuery(year: number, enabled = true) {
+  return useQuery({
+    queryKey: [...payrollQueryKey, "withholding", year],
+    queryFn: () => getWithholdingCertificates(getAccessToken(), year),
+    enabled,
   });
 }

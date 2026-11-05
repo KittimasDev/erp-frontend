@@ -6,6 +6,7 @@ import type {
   PayrollRunListApiResponse,
   PayrollSettings,
   PayrollSettingsApiResponse,
+  WithholdingCertificatesApiResponse,
 } from "@/types/payroll";
 
 const BASE = "/api/hrm/payroll-runs";
@@ -72,4 +73,11 @@ export function updatePayrollSettings(token: string, body: PayrollSettings) {
     token,
     body,
   });
+}
+
+export function getWithholdingCertificates(token: string, year: number) {
+  return apiFetch<WithholdingCertificatesApiResponse>(
+    `${BASE}/withholding-certificates?year=${year}`,
+    { method: "GET", token },
+  );
 }

@@ -659,6 +659,7 @@ export async function openMultiPagePdfFromHtml(
       orientation,
       unit: "mm",
       format: "a4",
+      compress: true,
     });
     const pageWidthMm = orientation === "landscape" ? 297 : 210;
     const pageHeightMm = orientation === "landscape" ? 210 : 297;

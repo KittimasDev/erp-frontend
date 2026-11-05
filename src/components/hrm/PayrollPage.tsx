@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Alert, Button, DatePicker, Form, Input, Modal, Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { DollarOutlined, PlusOutlined, SettingOutlined } from "@ant-design/icons";
+import { DollarOutlined, FileTextOutlined, PlusOutlined, SettingOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
@@ -13,6 +13,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 
 import PayrollDetailDrawer from "./PayrollDetailDrawer";
 import PayrollSettingsModal from "./PayrollSettingsModal";
+import PayrollWhtModal from "./PayrollWhtModal";
 import { formatBeRange } from "./shutdownPlanFormat";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -28,6 +29,7 @@ export default function PayrollPage() {
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [whtOpen, setWhtOpen] = useState(false);
   const [detailId, setDetailId] = useState<string>();
   const [form] = Form.useForm<CreateValues>();
 
@@ -101,10 +103,13 @@ export default function PayrollPage() {
           eyebrow="HRM · PAYROLL"
           icon={<DollarOutlined />}
           title="เงินเดือน"
-          subtitle="คำนวณเงินเดือน/ค่าแรง + OT หักขาด/ลาไม่รับเงิน/ประกันสังคม เป็นงวด แล้วส่งออก Excel/CSV"
+          subtitle="คำนวณเงินเดือน/ค่าแรง + OT หักขาด/ลาไม่รับเงิน/ประกันสังคม/กองทุน/ภาษีหัก ณ ที่จ่าย เป็นงวด แล้วส่งออก Excel/CSV"
           actions={
             <>
 <div style={{ display: "flex", gap: 8 }}>
+            <Button size="large" icon={<FileTextOutlined />} onClick={() => setWhtOpen(true)}>
+              50 ทวิ
+            </Button>
             <Button size="large" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
               ตั้งค่า
             </Button>
@@ -120,7 +125,7 @@ export default function PayrollPage() {
           type="info"
           showIcon
           title="ข้อมูลอ่อนไหว — เห็นได้เฉพาะผู้ที่ได้รับสิทธิ์หน้านี้"
-          description="ระบบคำนวณให้อัตโนมัติ: เงินเดือน/ค่าแรงรายวัน, OT ที่อนุมัติแล้ว, หักขาดงาน/ลาไม่รับเงิน, ประกันสังคม (ไม่คิดภาษี) · เบี้ยขยัน ค่ากะ ค่ากะกลางคืน โบนัส ใส่เป็น “รายการปรับ” รายคนในแต่ละงวด"
+          description="ระบบคำนวณให้อัตโนมัติ: เงินเดือน/ค่าแรงรายวัน, OT ที่อนุมัติแล้ว, หักขาดงาน/ลาไม่รับเงิน, ประกันสังคม, กองทุน (เลือก % รายคน), ภาษีหัก ณ ที่จ่าย (ประมาณการทั้งปี) · เบี้ยขยัน ค่ากะ ค่ากะกลางคืน โบนัส ใส่เป็น “รายการปรับ” รายคนในแต่ละงวด"
           style={{ marginBottom: 12 }}
         />
 
@@ -174,6 +179,7 @@ export default function PayrollPage() {
           </Form>
         </Modal>
         <PayrollSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+        <PayrollWhtModal open={whtOpen} onClose={() => setWhtOpen(false)} />
         <PayrollDetailDrawer runId={detailId} onClose={() => setDetailId(undefined)} />
       </section>
     </MasterPageGate>

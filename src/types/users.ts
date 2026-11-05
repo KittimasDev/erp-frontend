@@ -44,6 +44,15 @@ export type AppUser = {
   basePay?: number | null;
   /** หักประกันสังคมในงวดเงินเดือนหรือไม่ */
   socialSecurityEnabled?: boolean;
+  /** % กองทุนสำรองเลี้ยงชีพที่หักจากเงินเดือน (0 = ไม่เข้า) */
+  providentFundRatePercent?: number;
+  /** หักภาษี ณ ที่จ่ายในงวดเงินเดือนหรือไม่ */
+  taxEnabled?: boolean;
+  /** ลดหย่อนภาษีเพิ่มเติมต่อปี */
+  taxExtraAllowance?: number;
+  /** เลขประจำตัวประชาชน 13 หลัก — ใช้ออก 50 ทวิ */
+  nationalId?: string | null;
+  address?: string | null;
   canLogin: boolean;
   isActive: boolean;
   isLocked: boolean;
@@ -88,6 +97,15 @@ export type CreateUserRequest = {
   employmentRemark?: string;
   basePay?: number | null;
   socialSecurityEnabled?: boolean;
+  /** % กองทุนสำรองเลี้ยงชีพที่หักจากเงินเดือน (0 = ไม่เข้า) */
+  providentFundRatePercent?: number;
+  /** หักภาษี ณ ที่จ่ายในงวดเงินเดือนหรือไม่ */
+  taxEnabled?: boolean;
+  /** ลดหย่อนภาษีเพิ่มเติมต่อปี */
+  taxExtraAllowance?: number;
+  /** เลขประจำตัวประชาชน 13 หลัก — ใช้ออก 50 ทวิ */
+  nationalId?: string | null;
+  address?: string | null;
   canLogin?: boolean;
   password?: string;
   roleIds?: string[];
@@ -116,6 +134,15 @@ export type UpdateUserRequest = {
   /** null = เคลียร์ฐานค่าจ้าง · ไม่ส่ง = ไม่แก้ */
   basePay?: number | null;
   socialSecurityEnabled?: boolean;
+  /** % กองทุนสำรองเลี้ยงชีพที่หักจากเงินเดือน (0 = ไม่เข้า) */
+  providentFundRatePercent?: number;
+  /** หักภาษี ณ ที่จ่ายในงวดเงินเดือนหรือไม่ */
+  taxEnabled?: boolean;
+  /** ลดหย่อนภาษีเพิ่มเติมต่อปี */
+  taxExtraAllowance?: number;
+  /** เลขประจำตัวประชาชน 13 หลัก — ใช้ออก 50 ทวิ */
+  nationalId?: string | null;
+  address?: string | null;
   canLogin?: boolean;
   isActive?: boolean;
   roleIds?: string[];

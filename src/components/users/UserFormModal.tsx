@@ -5,6 +5,7 @@ import { DatePicker, Form, Input, InputNumber, Modal, Select, Switch } from "ant
 import dayjs from "dayjs";
 
 import { useDepartmentsQuery } from "@/hooks/departments/useDepartmentsQuery";
+import { usePayrollSettingsQuery } from "@/hooks/payroll/usePayroll";
 import { useOtSettingsQuery } from "@/hooks/overtime/useOtSettings";
 import { usePositionsQuery } from "@/hooks/positions/usePositionsQuery";
 import { useSectionsQuery } from "@/hooks/sections/useSectionsQuery";
@@ -44,6 +45,11 @@ type UserFormValues = {
   employmentRemark?: string;
   basePay?: number | null;
   socialSecurityEnabled: boolean;
+  providentFundRatePercent: number;
+  taxEnabled: boolean;
+  taxExtraAllowance: number;
+  nationalId?: string;
+  address?: string;
   canLogin: boolean;
   email?: string;
   phone?: string;
@@ -84,6 +90,11 @@ export default function UserFormModal({
   const supervisorsQuery = useUsersQuery({ isActive: true });
   const supervisorUsers = supervisorsQuery.data?.data?.items ?? [];
   const otSettingsQuery = useOtSettingsQuery(open);
+  // ตัวเลือก % กองทุนมาจากตั้งค่าเงินเดือน — ผู้ใช้ที่ไม่มีสิทธิ์เห็นหน้าเงินเดือนจะได้ชุดเริ่มต้น
+  const payrollSettingsQuery = usePayrollSettingsQuery(open);
+  const fundOptions = (
+    payrollSettingsQuery.data?.data?.providentFundOptions ?? [0, 3, 5, 7, 10, 15]
+  ).map((n) => ({ value: n, label: n === 0 ? "ไม่เข้ากองทุน" : `${n}%` }));
   const employmentType = Form.useWatch("employmentType", form);
   const basePay = Form.useWatch("basePay", form);
   const isDaily = employmentType === "DAILY";
@@ -117,6 +128,11 @@ export default function UserFormModal({
         employmentRemark: initialUser.employmentRemark,
         basePay: initialUser.basePay ?? null,
         socialSecurityEnabled: initialUser.socialSecurityEnabled !== false,
+        providentFundRatePercent: initialUser.providentFundRatePercent ?? 0,
+        taxEnabled: initialUser.taxEnabled !== false,
+        taxExtraAllowance: initialUser.taxExtraAllowance ?? 0,
+        nationalId: initialUser.nationalId ?? undefined,
+        address: initialUser.address ?? undefined,
         canLogin: initialUser.canLogin,
         email: initialUser.email,
         phone: initialUser.phone,
@@ -141,6 +157,9 @@ export default function UserFormModal({
       employmentRemark: undefined,
       basePay: null,
       socialSecurityEnabled: true,
+      providentFundRatePercent: 0,
+      taxEnabled: true,
+      taxExtraAllowance: 0,
       canLogin: true,
       email: undefined,
       phone: undefined,
@@ -171,6 +190,11 @@ export default function UserFormModal({
         employmentRemark: values.employmentRemark?.trim() || undefined,
         basePay: values.basePay ?? undefined,
         socialSecurityEnabled: values.socialSecurityEnabled,
+        providentFundRatePercent: values.providentFundRatePercent ?? 0,
+        taxEnabled: values.taxEnabled,
+        taxExtraAllowance: values.taxExtraAllowance ?? 0,
+        nationalId: values.nationalId?.trim() ?? "",
+        address: values.address?.trim() ?? "",
         canLogin: values.canLogin,
         email: values.email?.trim() || undefined,
         phone: values.phone?.trim() || undefined,
@@ -200,6 +224,11 @@ export default function UserFormModal({
       // เคลียร์ช่อง = null · ถ้าไม่เคยตั้งมาก่อนแล้วปล่อยว่างให้ไม่ส่ง
       basePay: values.basePay ?? (initialUser?.basePay != null ? null : undefined),
       socialSecurityEnabled: values.socialSecurityEnabled,
+        providentFundRatePercent: values.providentFundRatePercent ?? 0,
+        taxEnabled: values.taxEnabled,
+        taxExtraAllowance: values.taxExtraAllowance ?? 0,
+        nationalId: values.nationalId?.trim() ?? "",
+        address: values.address?.trim() ?? "",
       canLogin: values.canLogin,
       email: values.email?.trim() || undefined,
       phone: values.phone?.trim() || undefined,
@@ -375,6 +404,43 @@ export default function UserFormModal({
           valuePropName="checked"
         >
           <Switch checkedChildren="มี" unCheckedChildren="ไม่มี" />
+        </Form.Item>
+
+        <Form.Item
+          label="กองทุน (หัก % ของเงินเดือน)"
+          name="providentFundRatePercent"
+          extra="กองทุนสำรองเลี้ยงชีพ — หักจากเงินเดือนพนักงาน นายจ้างสมทบตามตั้งค่าในหน้าเงินเดือน และนำไปลดหย่อนภาษีได้"
+        >
+          <Select options={fundOptions} />
+        </Form.Item>
+
+        <Form.Item
+          label="หักภาษี ณ ที่จ่าย"
+          name="taxEnabled"
+          valuePropName="checked"
+        >
+          <Switch checkedChildren="หัก" unCheckedChildren="ไม่หัก" />
+        </Form.Item>
+
+        <Form.Item
+          label="เลขประจำตัวประชาชน (13 หลัก)"
+          name="nationalId"
+          rules={[{ pattern: /^\d{13}$/, message: "ต้องเป็นตัวเลข 13 หลัก" }]}
+          extra="ใช้ออกหนังสือรับรองหัก ณ ที่จ่าย (50 ทวิ)"
+        >
+          <Input maxLength={13} inputMode="numeric" placeholder="เช่น 1234567890123" />
+        </Form.Item>
+
+        <Form.Item label="ที่อยู่ (สำหรับ 50 ทวิ)" name="address">
+          <Input.TextArea rows={2} maxLength={500} />
+        </Form.Item>
+
+        <Form.Item
+          label="ลดหย่อนภาษีเพิ่มเติม/ปี (บาท)"
+          name="taxExtraAllowance"
+          extra="เช่น คู่สมรส บุตร เบี้ยประกันชีวิต — รวมกันเป็นยอดต่อปี (ลดหย่อนส่วนตัว 60,000 ระบบใส่ให้แล้ว)"
+        >
+          <InputNumber style={{ width: "100%" }} min={0} max={99999999} precision={2} />
         </Form.Item>
 
         <Form.Item label="หมายเหตุ HR" name="employmentRemark">
