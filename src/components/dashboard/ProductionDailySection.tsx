@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Alert, Progress, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -21,7 +22,9 @@ import type {
   DashboardRange,
   MassBalanceStatus,
   ProductionCycleBalance,
+  ProductionDaily,
   ProductionDailyDay,
+  ProductionOutputKind,
 } from "@/types/dashboards";
 
 import {
@@ -106,10 +109,55 @@ export function CycleSummary({ cycle }: { cycle: ProductionCycleBalance }) {
       />
       {b.status === "EXCEEDS_INPUT" ? <MassBalanceNote status={b.status} /> : null}
       {cycle.outputKinds.map((k) => (
-        <ListRow key={k.kind} label={`· ${k.label}`} value={`${fmtKg(k.quantityKg)}${k.yieldPercentOfInput != null ? ` (${fmtPercent(k.yieldPercentOfInput)})` : ""}`} />
+        <ListRow key={k.kind} label={`· ${k.label}`} value={`${fmtKindQuantities(k)}${k.yieldPercentOfInput != null ? ` (${fmtPercent(k.yieldPercentOfInput)})` : ""}`} />
       ))}
     </div>
   );
+}
+
+type OtherOutput = NonNullable<ProductionDaily["otherOutputs"]>[number];
+
+/** แถว "อื่น ๆ" กดขยายดูรายการสินค้า — แสดงหน้าละ 10 รายการ ถ้ามากกว่านั้นกดหน้าถัดไป */
+function OtherOutputsRow({ label, value, items }: { label: string; value: string; items: OtherOutput[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setOpen((v) => !v);
+          }
+        }}
+        style={{ cursor: "pointer" }}
+      >
+        <ListRow label={`${open ? "▾" : "▸"} ${label} (${items.length} รายการ)`} value={value} />
+      </div>
+      {open ? (
+        <Table<OtherOutput>
+          size="small"
+          rowKey={(r) => `${r.itemCode}|${r.itemName}|${r.unit}`}
+          dataSource={items}
+          pagination={{ pageSize: 10, size: "small", showSizeChanger: false, hideOnSinglePage: true }}
+          columns={[
+            { title: "สินค้า", key: "item", render: (_: unknown, r) => `${r.itemCode ? `${r.itemCode} — ` : ""}${r.itemName}` },
+            { title: "ปริมาณ", key: "qty", align: "right", render: (_: unknown, r) => `${fmt(r.quantity, r.quantity % 1 === 0 ? 0 : 2)} ${r.unit}` },
+          ]}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** ผลผลิตของชนิดตามหน่วยจริง เช่น "20 LITER · 10 KG" (ไม่บวกข้ามหน่วย) — API เก่าไม่มี quantities ใช้ kg เดิม */
+function fmtKindQuantities(k: ProductionOutputKind): string {
+  const qs = k.quantities;
+  if (!qs || qs.length === 0) return fmtKg(k.quantityKg);
+  return qs.map((q) => `${fmt(q.quantity, q.quantity % 1 === 0 ? 0 : 2)} ${q.unit}`).join(" · ");
 }
 
 /**
@@ -180,20 +228,15 @@ export default function ProductionDailySection({ params }: { params: DashboardRa
           {d.cycle ? <CycleSummary cycle={d.cycle} /> : <Empty text="ไม่มีรอบผลิตที่เปิดอยู่" />}
         </Panel>
         <Panel title="ผลผลิตช่วงที่เลือก แยก 4 ชนิด">
-          {d.outputKinds.map((k) => (
-            <ListRow
-              key={k.kind}
-              label={k.label}
-              value={`${fmtKg(k.quantityKg)}${k.yieldPercentOfInput != null ? ` (${fmtPercent(k.yieldPercentOfInput)} ของยางป้อน)` : ""}`}
-            />
-          ))}
-          {d.nonKgOutputs.length > 0 ? (
-            <div style={{ marginTop: 8, fontSize: 12, color: "#8a9199" }}>
-              ไม่สามารถเปรียบเทียบได้ — ไม่รวมเข้ากับกิโลกรัม: {d.nonKgOutputs.map((o) => `${o.itemName} ${fmt(o.quantity, 0)} ${o.unit}`).join(", ")}
-            </div>
-          ) : null}
+          {d.outputKinds.map((k) => {
+            const value = `${fmtKindQuantities(k)} (${k.yieldPercentOfInput != null ? `${fmtPercent(k.yieldPercentOfInput)} ของยางป้อน${(k.quantities ?? []).some((q) => q.unit.toUpperCase() !== "KG" && q.quantity > 0) ? " เฉพาะส่วน kg" : ""}` : "—"})`;
+            if (k.kind === "OTHER" && (d.otherOutputs?.length ?? 0) > 0) {
+              return <OtherOutputsRow key={k.kind} label={k.label} value={value} items={d.otherOutputs ?? []} />;
+            }
+            return <ListRow key={k.kind} label={k.label} value={value} />;
+          })}
           <div style={{ marginTop: 8, fontSize: 12, color: "#8a9199" }}>
-            ชนิดผลผลิตจัดจากรหัส/ชื่อสินค้า (Oil / rCB / Steel / Syngas) — สินค้าที่ไม่เข้าเกณฑ์อยู่ใน “อื่น ๆ”
+            แสดงตามหน่วยนับจริงของแต่ละรายการรับเข้า (ผลผลิตที่อนุมัติรับเข้าคลังแล้ว) — ต่างหน่วยไม่นำมารวมกัน · % ของยางป้อนคิดเฉพาะส่วน kg ส่วนหน่วยอื่นแสดง — · ชนิดจัดจากรหัส/ชื่อสินค้า (Oil / rCB / Steel / Syngas) สินค้าที่ไม่เข้าเกณฑ์อยู่ใน “อื่น ๆ”
           </div>
         </Panel>
       </Grid2>

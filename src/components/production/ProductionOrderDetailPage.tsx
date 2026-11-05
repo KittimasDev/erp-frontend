@@ -871,19 +871,41 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                   <span className={styles.summaryLabel}>
                     ผลิตจากกะที่ยืนยันแล้ว
                   </span>
-                  <span className={multiOutput ? styles.summaryDetail : styles.summaryValue}>
-                    {reconcileApplicable
-                      ? sumReconcile((r) => r.confirmedShiftQty)
-                      : "—"}
-                  </span>
+                  {multiOutput && reconcileApplicable ? (
+                    <ul className={styles.outputByItem}>
+                      {reconcile.map((r) => (
+                        <li key={`${r.itemId}-${r.unitId}`}>
+                          <span>{r.itemNameTh || r.itemCode || r.itemId}</span>
+                          <span>{`${fmt(r.confirmedShiftQty)} ${r.unitCode ?? ""}`.trim()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className={multiOutput ? styles.summaryDetail : styles.summaryValue}>
+                      {reconcileApplicable
+                        ? sumReconcile((r) => r.confirmedShiftQty)
+                        : "—"}
+                    </span>
+                  )}
                 </div>
                 <div className={styles.summaryCard}>
                   <span className={styles.summaryLabel}>รอรับเข้าคลัง</span>
-                  <span className={multiOutput ? styles.summaryDetail : styles.summaryValue}>
-                    {reconcileApplicable
-                      ? sumReconcile((r) => r.pendingQty)
-                      : "—"}
-                  </span>
+                  {multiOutput && reconcileApplicable ? (
+                    <ul className={styles.outputByItem}>
+                      {reconcile.map((r) => (
+                        <li key={`${r.itemId}-${r.unitId}`}>
+                          <span>{r.itemNameTh || r.itemCode || r.itemId}</span>
+                          <span>{`${fmt(r.pendingQty)} ${r.unitCode ?? ""}`.trim()}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span className={multiOutput ? styles.summaryDetail : styles.summaryValue}>
+                      {reconcileApplicable
+                        ? sumReconcile((r) => r.pendingQty)
+                        : "—"}
+                    </span>
+                  )}
                   {anomalyLines.length > 0 ? (
                     <Typography.Text type="danger" style={{ fontSize: 12 }}>
                       ผิดปกติ: รับเข้าคลังมากกว่ากะที่ยืนยัน{" "}

@@ -150,7 +150,7 @@ export default function ExecutiveDashboardPage() {
                 <ListRow
                   key={k.kind}
                   label={k.label}
-                  value={`${fmtKg(k.quantityKg)}${k.yieldPercentOfInput != null ? ` (${fmtPercent(k.yieldPercentOfInput)} ของยางป้อน)` : ""}`}
+                  value={`${k.quantities?.length ? k.quantities.map((q) => `${q.quantity.toLocaleString("th-TH", { maximumFractionDigits: 2 })} ${q.unit}`).join(" · ") : fmtKg(k.quantityKg)}${k.yieldPercentOfInput != null ? ` (${fmtPercent(k.yieldPercentOfInput)} ของยางป้อน)` : ""}`}
                 />
               ))}
             </Panel>

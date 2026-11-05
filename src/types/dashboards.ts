@@ -12,6 +12,9 @@ export type ProductionOutputKind = {
   kind: "OIL" | "RCB" | "STEEL" | "SYNGAS" | "OTHER";
   label: string;
   quantityKg: number;
+  /** ผลผลิตแยกตามหน่วยนับจริงทุกหน่วย (ไม่บวกข้ามหน่วย) — API เก่าอาจไม่มี */
+  quantities?: Array<{ unit: string; quantity: number }>;
+  /** % ของยางป้อน คิดเฉพาะส่วน KG — null/ไม่มี = เทียบไม่ได้ */
   yieldPercentOfInput?: number | null;
 };
 
@@ -63,6 +66,8 @@ export type ProductionDaily = {
   };
   outputKinds: ProductionOutputKind[];
   nonKgOutputs: Array<{ itemName: string; unit: string; quantity: number }>;
+  /** สินค้าในกลุ่ม "อื่น ๆ" แยกสินค้า+หน่วย — API เก่าอาจไม่มี */
+  otherOutputs?: Array<{ itemCode: string; itemName: string; unit: string; quantity: number }>;
   cycle?: ProductionCycleBalance | null;
 };
 

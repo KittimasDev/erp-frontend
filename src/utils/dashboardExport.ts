@@ -30,6 +30,8 @@ const PDF_COLUMNS = [
 const n = (v?: number | null, digits = 2) =>
   v === null || v === undefined ? "—" : v.toLocaleString("th-TH", { maximumFractionDigits: digits });
 const kg = (v?: number | null) => n(v, 0);
+const kindQty = (k: { quantityKg: number; quantities?: Array<{ unit: string; quantity: number }> }) =>
+  k.quantities?.length ? k.quantities.map((q) => `${n(q.quantity, q.quantity % 1 === 0 ? 0 : 2)} ${q.unit}`).join(" · ") : `${kg(k.quantityKg)} KG`;
 const pct = (v?: number | null) => (v === null || v === undefined ? "—" : `${n(v, 1)}%`);
 const baht = (v?: number | null) => n(v, 2);
 
@@ -108,9 +110,9 @@ function addProductionDaily(t: SectionTable, d: ProductionDaily) {
   t.row("Efficiency เฉลี่ย", pct(d.totals.averageEfficiencyPercent), "ชั่วโมงเดินเครื่อง ÷ 24");
   t.row("ชั่วโมงเดินเครื่อง", n(d.totals.operatingHours, 1));
 
-  t.section("ผลผลิตแยกชนิด (kg)");
-  t.header("ชนิด", "ปริมาณ (kg)", "% ของยางป้อน");
-  for (const k of d.outputKinds) t.row(k.label, kg(k.quantityKg), pct(k.yieldPercentOfInput));
+  t.section("ผลผลิตแยกชนิด (ตามหน่วยจริง ไม่บวกข้ามหน่วย)");
+  t.header("ชนิด", "ปริมาณ", "% ของยางป้อน (เฉพาะ kg)");
+  for (const k of d.outputKinds) t.row(k.label, kindQty(k), pct(k.yieldPercentOfInput));
   for (const o of d.nonKgOutputs) t.row(`${o.itemName} (ไม่นับใน Mass Balance)`, n(o.quantity, 0), o.unit);
 
   if (d.cycle) {
