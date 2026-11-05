@@ -259,6 +259,14 @@ export default function StockMovementsPage() {
       },
     },
     {
+      title: "หน่วยนับ",
+      dataIndex: "unitCode",
+      key: "unitCode",
+      width: 90,
+      render: (value?: string) =>
+        value ? value : <span className={styles.qtyMuted}>—</span>,
+    },
+    {
       title: "มูลค่า (บาท)",
       key: "money",
       align: "right",
@@ -505,7 +513,7 @@ export default function StockMovementsPage() {
             showSizeChanger: false,
             onChange: (next) => setPage(next),
           }}
-          scroll={{ x: 1992 }}
+          scroll={{ x: 2082 }}
           locale={{ emptyText: "ยังไม่มีการเคลื่อนไหวตามเงื่อนไข" }}
         />
       </section>

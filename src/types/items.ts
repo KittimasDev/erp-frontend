@@ -14,6 +14,8 @@ export type Item = {
   unitId: string;
   unit?: ItemRelationSummary;
   itemType?: string;
+  /** OIL, RCB, STEEL, SYNGAS, OTHER — ว่าง = Dashboard เดาจากชื่อสินค้า */
+  outputKind?: string | null;
   warehouseGroup?: string;
   isPurchaseItem: boolean;
   isStockItem: boolean;
@@ -81,6 +83,8 @@ export type CreateItemRequest = {
   itemCategoryId: string;
   unitId: string;
   itemType?: string;
+  /** null = ล้างค่า ให้ Dashboard กลับไปเดาจากชื่อ */
+  outputKind?: string | null;
   warehouseGroup: string;
   isPurchaseItem?: boolean;
   isStockItem?: boolean;

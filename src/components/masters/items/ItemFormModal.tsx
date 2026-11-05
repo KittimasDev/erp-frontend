@@ -23,6 +23,14 @@ import {
 } from "@/components/masters/items/item-type-options";
 import styles from "@/components/masters/shared/master-page.module.css";
 
+const OUTPUT_KIND_OPTIONS = [
+  { value: "OIL", label: "น้ำมัน (Oil)" },
+  { value: "RCB", label: "rCB" },
+  { value: "STEEL", label: "ลวดเหล็ก (Steel)" },
+  { value: "SYNGAS", label: "Syngas" },
+  { value: "OTHER", label: "อื่น ๆ" },
+];
+
 type ItemFormValues = {
   code: string;
   name: string;
@@ -30,6 +38,7 @@ type ItemFormValues = {
   itemCategoryId: string;
   unitId: string;
   itemType?: string;
+  outputKind?: string | null;
   warehouseGroup?: string;
   minimumStockQty?: number | null;
   sellingPrice?: number | null;
@@ -145,6 +154,7 @@ export default function ItemFormModal({
         itemCategoryId: initialItem.itemCategoryId,
         unitId: initialItem.unitId,
         itemType: initialItemType(initialItem),
+        outputKind: initialItem.outputKind ?? undefined,
         warehouseGroup: initialItem.warehouseGroup,
         minimumStockQty: Number(initialItem.minimumStockQty || 0),
         sellingPrice:
@@ -174,6 +184,7 @@ export default function ItemFormModal({
       itemCategoryId: undefined,
       unitId: undefined,
       itemType: undefined,
+      outputKind: undefined,
       warehouseGroup: undefined,
       minimumStockQty: 0,
       sellingPrice: undefined,
@@ -202,6 +213,8 @@ export default function ItemFormModal({
       itemCategoryId: values.itemCategoryId,
       unitId: values.unitId,
       itemType: values.itemType,
+      outputKind:
+        values.itemType === "FINISHED_GOODS" ? values.outputKind || null : null,
       warehouseGroup: values.warehouseGroup as string,
       minimumStockQty: values.minimumStockQty ?? 0,
       // ส่งเฉพาะตอนขายได้ ปิดแล้วไม่ต้องยัดราคาไปให้ backend
@@ -373,6 +386,23 @@ export default function ItemFormModal({
               />
             </Form.Item>
           </Col>
+
+          {watched?.itemType === "FINISHED_GOODS" ? (
+            <Col xs={24} sm={12}>
+              <Form.Item
+                label="ประเภทผลผลิต"
+                name="outputKind"
+                extra="ใช้จัดกลุ่ม Dashboard — เว้นว่างแล้วยังจัดจากชื่อสินค้าแบบเดิม"
+              >
+                <Select
+                  size="large"
+                  allowClear
+                  placeholder="ยังไม่กำหนด"
+                  options={OUTPUT_KIND_OPTIONS}
+                />
+              </Form.Item>
+            </Col>
+          ) : null}
 
           <Col xs={24} sm={12}>
             <Form.Item
