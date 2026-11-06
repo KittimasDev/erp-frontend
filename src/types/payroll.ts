@@ -166,6 +166,25 @@ export type WithholdingCertificates = {
   items: WithholdingCertificate[];
 };
 
+export type SalaryCertificateEmployee = {
+  userId: string;
+  employeeCode?: string | null;
+  displayName: string;
+  position?: string | null;
+  departmentName?: string | null;
+  hireDate?: string | null;
+  nationalId?: string | null;
+  payType: "MONTHLY" | "DAILY";
+  /** รายเดือน = เงินเดือน · รายวัน = ค่าแรงต่อวัน */
+  basePay: number;
+};
+
+export type SalaryCertificateEmployeesApiResponse = {
+  success?: boolean;
+  message: string;
+  data: { items: SalaryCertificateEmployee[] };
+};
+
 export type WithholdingCertificatesApiResponse = {
   success?: boolean;
   message: string;

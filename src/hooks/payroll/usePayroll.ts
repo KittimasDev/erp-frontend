@@ -11,6 +11,7 @@ import {
   getPayrollRun,
   getPayrollRuns,
   getPayrollSettings,
+  getSalaryCertificateEmployees,
   getWithholdingCertificates,
   recalculatePayrollRun,
   setPayrollAdjustments,
@@ -117,6 +118,14 @@ export function useUpdatePayrollSettingsMutation() {
     onError: (error: Error) => {
       message.error(error instanceof ApiError ? error.message : "บันทึกตั้งค่าไม่สำเร็จ");
     },
+  });
+}
+
+export function useSalaryCertificateEmployeesQuery(enabled = true) {
+  return useQuery({
+    queryKey: [...payrollQueryKey, "salary-certificates"],
+    queryFn: () => getSalaryCertificateEmployees(getAccessToken()),
+    enabled,
   });
 }
 

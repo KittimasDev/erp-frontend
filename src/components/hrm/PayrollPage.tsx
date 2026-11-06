@@ -14,6 +14,7 @@ import styles from "@/components/masters/shared/master-page.module.css";
 import PayrollDetailDrawer from "./PayrollDetailDrawer";
 import PayrollSettingsModal from "./PayrollSettingsModal";
 import PayrollWhtModal from "./PayrollWhtModal";
+import PayrollSalaryCertificateModal from "./PayrollSalaryCertificateModal";
 import { formatBeRange } from "./shutdownPlanFormat";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -30,6 +31,7 @@ export default function PayrollPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [whtOpen, setWhtOpen] = useState(false);
+  const [salaryCertOpen, setSalaryCertOpen] = useState(false);
   const [detailId, setDetailId] = useState<string>();
   const [form] = Form.useForm<CreateValues>();
 
@@ -110,6 +112,9 @@ export default function PayrollPage() {
             <Button size="large" icon={<FileTextOutlined />} onClick={() => setWhtOpen(true)}>
               50 ทวิ
             </Button>
+            <Button size="large" icon={<FileTextOutlined />} onClick={() => setSalaryCertOpen(true)}>
+              หนังสือรับรองเงินเดือน
+            </Button>
             <Button size="large" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
               ตั้งค่า
             </Button>
@@ -180,6 +185,7 @@ export default function PayrollPage() {
         </Modal>
         <PayrollSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
         <PayrollWhtModal open={whtOpen} onClose={() => setWhtOpen(false)} />
+        <PayrollSalaryCertificateModal open={salaryCertOpen} onClose={() => setSalaryCertOpen(false)} />
         <PayrollDetailDrawer runId={detailId} onClose={() => setDetailId(undefined)} />
       </section>
     </MasterPageGate>

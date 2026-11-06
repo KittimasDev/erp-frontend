@@ -6,6 +6,7 @@ import type {
   PayrollRunListApiResponse,
   PayrollSettings,
   PayrollSettingsApiResponse,
+  SalaryCertificateEmployeesApiResponse,
   WithholdingCertificatesApiResponse,
 } from "@/types/payroll";
 
@@ -73,6 +74,13 @@ export function updatePayrollSettings(token: string, body: PayrollSettings) {
     token,
     body,
   });
+}
+
+export function getSalaryCertificateEmployees(token: string) {
+  return apiFetch<SalaryCertificateEmployeesApiResponse>(
+    `${BASE}/salary-certificates`,
+    { method: "GET", token },
+  );
 }
 
 export function getWithholdingCertificates(token: string, year: number) {
