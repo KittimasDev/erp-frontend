@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
+import { vatAmountLabelT } from "@/types/purchase-orders";
 import {
   useEffect,
   useMemo,
@@ -49,7 +51,7 @@ import {
   VatMode,
   resolveDocumentVatPercent,
   VAT_MODE_OPTIONS,
-  vatAmountLabel,
+
   WITHHOLDING_TAX_TYPE_OPTIONS,
   WithholdingTaxType,
 } from "@/lib/money/vat-totals";
@@ -168,6 +170,7 @@ export default function PurchaseOrderCreateFromPrPage({
   purchaseRequestIds,
   preselectedPrItemIds,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   /** กลับหน้ารายการใบสั่งซื้อพร้อมหน้า/ตัวกรองเดิม (ไม่ reset ไปหน้า 1) */
   const goBackToList = (event: React.MouseEvent) => {
@@ -254,7 +257,7 @@ export default function PurchaseOrderCreateFromPrPage({
       for (const item of open) {
         const itemLabel =
           [item.itemCode, item.itemNameTh].filter(Boolean).join(" — ") ||
-          "ไม่ระบุชื่อสินค้า";
+          t("ไม่ระบุชื่อสินค้า");
         map.set(item.id, {
           itemLabel,
           quantity: Number(item.quantity),
@@ -265,7 +268,7 @@ export default function PurchaseOrderCreateFromPrPage({
       }
     }
     return map;
-  }, [openItemsByPr]);
+  }, [openItemsByPr, t]);
 
   /* prop เป็น array ตัวใหม่ทุก render — แปลงเป็นคีย์สตริงก่อนใส่ dep ไม่งั้น effect วน */
   const preselectKey = preselectedPrItemIds?.join(",") ?? "";
@@ -439,11 +442,11 @@ export default function PurchaseOrderCreateFromPrPage({
     accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
     beforeUpload: (file) => {
       if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
-        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        message.error(t("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP"));
         return Upload.LIST_IGNORE;
       }
       if (file.size > MAX_ATTACHMENT_BYTES) {
-        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        message.error(t("ขนาดไฟล์ต้องไม่เกิน 20MB"));
         return Upload.LIST_IGNORE;
       }
       setPendingFiles((prev) => {
@@ -467,7 +470,7 @@ export default function PurchaseOrderCreateFromPrPage({
   if (prQueries.some((query) => query.isLoading)) {
     return (
       <div className={styles.page}>
-        <Spin /> กำลังโหลดใบขอซื้อ...
+        <Spin /> {t("กำลังโหลดใบขอซื้อ...")}
       </div>
     );
   }
@@ -475,14 +478,15 @@ export default function PurchaseOrderCreateFromPrPage({
   if (prQueries.some((query) => query.isError)) {
     return (
       <div className={styles.page}>
-        โหลดใบขอซื้อไม่สำเร็จ — ตรวจสิทธิ์ใบสั่งซื้อ (ADD/VIEW) ใน Permission
-        Matrix
+        {t(
+          "โหลดใบขอซื้อไม่สำเร็จ — ตรวจสิทธิ์ใบสั่งซื้อ (ADD/VIEW) ใน Permission Matrix",
+        )}
         <div style={{ marginTop: 12 }}>
           <Link
             href="/purchase-orders"
             onClick={goBackToList}
           >
-            กลับรายการใบสั่งซื้อ
+            {t("กลับรายการใบสั่งซื้อ")}
           </Link>
         </div>
       </div>
@@ -492,13 +496,14 @@ export default function PurchaseOrderCreateFromPrPage({
   if (!pr || prs.length !== purchaseRequestIds.length) {
     return (
       <div className={styles.page}>
-        ไม่พบใบขอซื้อ{prs.length ? "บางใบ" : ""}
+        {t("ไม่พบใบขอซื้อ")}
+        {prs.length ? t("บางใบ") : ""}
         <div style={{ marginTop: 12 }}>
           <Link
             href="/purchase-orders"
             onClick={goBackToList}
           >
-            กลับรายการใบสั่งซื้อ
+            {t("กลับรายการใบสั่งซื้อ")}
           </Link>
         </div>
       </div>
@@ -509,14 +514,14 @@ export default function PurchaseOrderCreateFromPrPage({
   if (notApprovedPrs.length) {
     return (
       <div className={styles.page}>
-        สร้างใบสั่งซื้อได้เฉพาะ PR สถานะ APPROVED — ใบที่ยังไม่ผ่าน:{" "}
+        {t("สร้างใบสั่งซื้อได้เฉพาะ PR สถานะ APPROVED — ใบที่ยังไม่ผ่าน:")}{" "}
         {notApprovedPrs.map((row) => `${row.prNo} (${row.status})`).join(", ")}
         <div style={{ marginTop: 12 }}>
           <Link
             href="/purchase-orders"
             onClick={goBackToList}
           >
-            กลับรายการใบสั่งซื้อ
+            {t("กลับรายการใบสั่งซื้อ")}
           </Link>
         </div>
       </div>
@@ -535,10 +540,10 @@ export default function PurchaseOrderCreateFromPrPage({
 
     return (
       <div className={styles.page}>
-        ทุกรายการของใบขอซื้อที่เลือกถูกสั่งซื้อไปหมดแล้ว
+        {t("ทุกรายการของใบขอซื้อที่เลือกถูกสั่งซื้อไปหมดแล้ว")}
         {allPos.length ? (
           <div style={{ marginTop: 8 }}>
-            ใบสั่งซื้อที่เกี่ยวข้อง:{" "}
+            {t("ใบสั่งซื้อที่เกี่ยวข้อง:")}{" "}
             {allPos.map((po, index) => (
               <span key={po.id}>
                 {index > 0 ? ", " : null}
@@ -552,7 +557,7 @@ export default function PurchaseOrderCreateFromPrPage({
             href="/purchase-orders"
             onClick={goBackToList}
           >
-            กลับรายการใบสั่งซื้อ
+            {t("กลับรายการใบสั่งซื้อ")}
           </Link>
         </div>
       </div>
@@ -574,17 +579,17 @@ export default function PurchaseOrderCreateFromPrPage({
       form.setFields([
         {
           name: "items",
-          errors: ["เลือกอย่างน้อย 1 รายการที่จะสั่งซื้อ"],
+          errors: [t("เลือกอย่างน้อย 1 รายการที่จะสั่งซื้อ")],
         },
       ]);
-      message.error("เลือกอย่างน้อย 1 รายการที่จะสั่งซื้อ");
+      message.error(t("เลือกอย่างน้อย 1 รายการที่จะสั่งซื้อ"));
       return;
     }
 
     const selectedLines = values.items.filter((item) => item.selected);
     const rounds = values.deliverySchedules ?? [];
     if (!rounds.length || rounds.some((round) => !round.deliveryDate)) {
-      message.error("ต้องมีอย่างน้อย 1 รอบจัดส่งและระบุวันที่กำหนดส่ง");
+      message.error(t("ต้องมีอย่างน้อย 1 รอบจัดส่งและระบุวันที่กำหนดส่ง"));
       return;
     }
     for (const line of selectedLines) {
@@ -593,7 +598,11 @@ export default function PurchaseOrderCreateFromPrPage({
       const scheduled = sumScheduledQty(rounds, line.purchaseRequestItemId);
       if (Math.abs(scheduled - ordered) > 0.0005) {
         message.error(
-          `จำนวนรอบของ ${meta?.itemLabel ?? "สินค้า"} ต้องเท่ากับจำนวนที่สั่ง (${scheduled.toFixed(3)}/${ordered.toFixed(3)})`,
+          t("จำนวนรอบของ {item} ต้องเท่ากับจำนวนที่สั่ง ({scheduled}/{ordered})", {
+            item: meta?.itemLabel ?? t("สินค้า"),
+            scheduled: scheduled.toFixed(3),
+            ordered: ordered.toFixed(3),
+          }),
         );
         return;
       }
@@ -679,10 +688,15 @@ export default function PurchaseOrderCreateFromPrPage({
           }
           if (failed > 0) {
             message.warning(
-              `สร้าง PO สำเร็จ แต่แนบไฟล์ไม่สำเร็จ ${failed} ไฟล์ — แนบใหม่ได้ที่หน้ารายละเอียด`,
+              t(
+                "สร้าง PO สำเร็จ แต่แนบไฟล์ไม่สำเร็จ {n} ไฟล์ — แนบใหม่ได้ที่หน้ารายละเอียด",
+                { n: failed },
+              ),
             );
           } else {
-            message.success(`แนบใบเสนอราคา ${pendingFiles.length} ไฟล์แล้ว`);
+            message.success(
+              t("แนบใบเสนอราคา {n} ไฟล์แล้ว", { n: pendingFiles.length }),
+            );
           }
         } finally {
           setIsUploadingAttachments(false);
@@ -705,10 +719,11 @@ export default function PurchaseOrderCreateFromPrPage({
         eyebrow="Purchase Order"
         icon={<FileAddOutlined />}
         title={<>{isSinglePr
-              ? "สร้างใบสั่งซื้อจาก PR"
-              : `รวมใบขอซื้อ ${prs.length} ใบเป็นใบสั่งซื้อเดียว`}</>}
-        subtitle={<>อ้างอิง {prs.map((row) => row.prNo).join(", ")} ·
-            คัดลอกรายการสินค้าจากใบขอซื้อ</>}
+              ? t("สร้างใบสั่งซื้อจาก PR")
+              : t("รวมใบขอซื้อ {n} ใบเป็นใบสั่งซื้อเดียว", { n: prs.length })}</>}
+        subtitle={<>{t("อ้างอิง {refs} · คัดลอกรายการสินค้าจากใบขอซื้อ", {
+            refs: prs.map((row) => row.prNo).join(", "),
+          })}</>}
         actions={
           <>
 <div className={styles.backLink}>
@@ -719,7 +734,7 @@ export default function PurchaseOrderCreateFromPrPage({
             onClick={isSinglePr ? undefined : goBackToList}
           >
             <Button icon={<ArrowLeftOutlined />}>
-              {isSinglePr ? "กลับ PR" : "กลับรายการใบสั่งซื้อ"}
+              {isSinglePr ? t("กลับ PR") : t("กลับรายการใบสั่งซื้อ")}
             </Button>
           </Link>
         </div>
@@ -742,27 +757,27 @@ export default function PurchaseOrderCreateFromPrPage({
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+                  <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
                 </div>
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่ใบสั่งซื้อ"
+                    label={t("วันที่ใบสั่งซื้อ")}
                     name="poDate"
-                    rules={[{ required: true, message: "เลือกวันที่" }]}
+                    rules={[{ required: true, message: t("เลือกวันที่") }]}
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ผู้ขาย / เจ้าหนี้"
+                    label={t("ผู้ขาย / เจ้าหนี้")}
                     name="creditorId"
-                    rules={[{ required: true, message: "เลือกผู้ขาย" }]}
+                    rules={[{ required: true, message: t("เลือกผู้ขาย") }]}
                   >
                     <Select
                       showSearch
                       optionFilterProp="label"
-                      placeholder="เลือกผู้ขาย"
+                      placeholder={t("เลือกผู้ขาย")}
                       options={vendors.map((v) => ({
                         value: v.id,
                         label: `${v.creditorCode} — ${v.nameTh}`,
@@ -771,14 +786,14 @@ export default function PurchaseOrderCreateFromPrPage({
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="เงื่อนไขชำระเงิน"
+                    label={t("เงื่อนไขชำระเงิน")}
                     name="paymentTermId"
                   >
                     <Select
                       allowClear
                       showSearch
                       optionFilterProp="label"
-                      placeholder="เลือกเงื่อนไข"
+                      placeholder={t("เลือกเงื่อนไข")}
                       options={paymentTerms.map((t) => ({
                         value: t.id,
                         label: `${t.code} — ${t.name}`,
@@ -791,22 +806,22 @@ export default function PurchaseOrderCreateFromPrPage({
                   */}
                   <Form.Item
                     className={styles.field}
-                    label="รูปแบบ VAT"
+                    label={t("รูปแบบ VAT")}
                     name="vatMode"
                   >
-                    <Select options={VAT_MODE_OPTIONS} />
+                    <Select options={VAT_MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ภาษีหัก ณ ที่จ่าย"
+                    label={t("ภาษีหัก ณ ที่จ่าย")}
                     name="withholdingTaxType"
                   >
-                    <Select options={WITHHOLDING_TAX_TYPE_OPTIONS} />
+                    <Select options={WITHHOLDING_TAX_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
                   </Form.Item>
                   {watchedWhtType === WithholdingTaxType.CUSTOM ? (
                     <Form.Item
                       className={styles.field}
-                      label="อัตราหัก ณ ที่จ่าย (%)"
+                      label={t("อัตราหัก ณ ที่จ่าย (%)")}
                       name="withholdingTaxPercent"
                     >
                       <InputNumber
@@ -818,38 +833,41 @@ export default function PurchaseOrderCreateFromPrPage({
                   ) : null}
                   <Form.Item
                     className={styles.field}
-                    label="วิธีการชำระเงิน"
+                    label={t("วิธีการชำระเงิน")}
                     name="paymentMethod"
                   >
                     <Select
                       allowClear
-                      placeholder="ถ้ามี"
-                      options={PAYMENT_METHOD_OPTIONS}
+                      placeholder={t("ถ้ามี")}
+                      options={PAYMENT_METHOD_OPTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label),
+                      }))}
                     />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่ส่งมอบ"
+                    label={t("วันที่ส่งมอบ")}
                     name="expectedDeliveryDate"
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ส่วนลดท้ายบิล"
+                    label={t("ส่วนลดท้ายบิล")}
                     name="discountAmount"
                   >
                     <InputNumber min={0} style={{ width: "100%" }} />
                   </Form.Item>
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     name="remark"
                     style={{ marginBottom: 0 }}
                   >
                     <DocumentHtmlEditor
-                      ariaLabel="หมายเหตุ"
-                      placeholder="รายละเอียดเพิ่มเติมบนใบสั่งซื้อ"
+                      ariaLabel={t("หมายเหตุ")}
+                      placeholder={t("รายละเอียดเพิ่มเติมบนใบสั่งซื้อ")}
                     />
                   </Form.Item>
                 </div>
@@ -857,29 +875,30 @@ export default function PurchaseOrderCreateFromPrPage({
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>รายการสินค้าจาก PR</h2>
+                  <h2 className={styles.sectionTitle}>{t("รายการสินค้าจาก PR")}</h2>
                   <p className={styles.sectionHint}>
-                    เลือกเฉพาะรายการที่จะสั่งจากผู้ขายรายนี้ — รายการที่เหลือยังอยู่
-                    ในคิวให้เปิดใบสั่งซื้อใบถัดไปได้
+                    {t(
+                      "เลือกเฉพาะรายการที่จะสั่งจากผู้ขายรายนี้ — รายการที่เหลือยังอยู่ ในคิวให้เปิดใบสั่งซื้อใบถัดไปได้",
+                    )}
                   </p>
                 </div>
 
                 <div className={styles.selectionBar}>
                   <span>
-                    เลือกไว้{" "}
+                    {t("เลือกไว้")}{" "}
                     <strong>
                       {selectedCount} / {watchedItems.length}
                     </strong>{" "}
-                    รายการ
+                    {t("รายการ")}
                   </span>
                   {selectedCount === 0 ? (
                     <span className={styles.selectionWarn}>
-                      ต้องเลือกอย่างน้อย 1 รายการ
+                      {t("ต้องเลือกอย่างน้อย 1 รายการ")}
                     </span>
                   ) : null}
                   {preselectWentStale ? (
                     <span className={styles.selectionWarn}>
-                      รายการที่เลือกไว้ถูกสั่งซื้อไปแล้ว — ตรวจการติ๊กอีกครั้ง
+                      {t("รายการที่เลือกไว้ถูกสั่งซื้อไปแล้ว — ตรวจการติ๊กอีกครั้ง")}
                     </span>
                   ) : null}
                 </div>
@@ -888,7 +907,10 @@ export default function PurchaseOrderCreateFromPrPage({
                   <div className={styles.orderedNote}>
                     {orderedSummary.map((row) => (
                       <div key={row.prNo}>
-                        {row.prNo}: อีก {row.count} รายการสั่งไปแล้วใน{" "}
+                        {t("{pr}: อีก {n} รายการสั่งไปแล้วใน", {
+                          pr: row.prNo,
+                          n: row.count,
+                        })}{" "}
                         {row.pos.map((po, i) => (
                           <span key={po.id}>
                             {i > 0 ? ", " : null}
@@ -912,7 +934,7 @@ export default function PurchaseOrderCreateFromPrPage({
                           "";
                         const meta = lineMetaByPrItemId.get(prItemId);
                         const itemLabel =
-                          meta?.itemLabel || `รายการที่ ${index + 1}`;
+                          meta?.itemLabel || t("รายการที่ {n}", { n: index + 1 });
                         const qty = meta?.quantity ?? line?.quantity ?? 0;
                         const unitLabel = meta?.unitLabel ?? "";
                         /*
@@ -933,7 +955,7 @@ export default function PurchaseOrderCreateFromPrPage({
                             {showGroupHead ? (
                               <div className={styles.sourcePrHead}>
                                 <span>
-                                  ใบขอซื้อ <strong>{meta?.prNo}</strong>
+                                  {t("ใบขอซื้อ {no}", { no: meta?.prNo ?? "" })}
                                 </span>
                                 {/* แยกตามเจ้าทีละกลุ่มคือท่าที่ใช้จริง ปุ่มนี้ย่นเวลาติ๊ก */}
                                 <span className={styles.sourcePrActions}>
@@ -944,7 +966,7 @@ export default function PurchaseOrderCreateFromPrPage({
                                       setGroupSelection(meta?.prId, true)
                                     }
                                   >
-                                    เลือกทั้งใบ
+                                    {t("เลือกทั้งใบ")}
                                   </Button>
                                   <Button
                                     type="link"
@@ -953,7 +975,7 @@ export default function PurchaseOrderCreateFromPrPage({
                                       setGroupSelection(meta?.prId, false)
                                     }
                                   >
-                                    ล้างทั้งใบ
+                                    {t("ล้างทั้งใบ")}
                                   </Button>
                                 </span>
                               </div>
@@ -985,18 +1007,18 @@ export default function PurchaseOrderCreateFromPrPage({
                                 <Form.Item
                                   {...restField}
                                   className={styles.field}
-                                  label="ราคาต่อหน่วย"
+                                  label={t("ราคาต่อหน่วย")}
                                   name={[name, "unitPrice"]}
                                   rules={[
                                     /* บรรทัดที่ไม่ติ๊กไม่ได้ส่งไป จึงไม่ควรบล็อกการบันทึก */
                                     {
                                       required: Boolean(line?.selected),
-                                      message: "ระบุราคา",
+                                      message: t("ระบุราคา"),
                                     },
                                     {
                                       type: "number",
                                       min: 0,
-                                      message: "ราคาต้องเป็นตัวเลข ≥ 0",
+                                      message: t("ราคาต้องเป็นตัวเลข ≥ 0"),
                                     },
                                   ]}
                                 >
@@ -1018,7 +1040,7 @@ export default function PurchaseOrderCreateFromPrPage({
                                 <Form.Item
                                   {...restField}
                                   className={styles.field}
-                                  label="ส่วนลดรายการ"
+                                  label={t("ส่วนลดรายการ")}
                                   name={[name, "discountAmount"]}
                                 >
                                   <InputNumber
@@ -1029,7 +1051,7 @@ export default function PurchaseOrderCreateFromPrPage({
                                 <Form.Item
                                   {...restField}
                                   className={styles.field}
-                                  label="รายละเอียด"
+                                  label={t("รายละเอียด")}
                                   name={[name, "description"]}
                                 >
                                   <Input />
@@ -1054,20 +1076,21 @@ export default function PurchaseOrderCreateFromPrPage({
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
                   <h2 className={styles.sectionTitle}>
-                    <PaperClipOutlined /> ใบเสนอราคา / หลักฐานราคา
+                    <PaperClipOutlined /> {t("ใบเสนอราคา / หลักฐานราคา")}
                   </h2>
                   <p className={styles.sectionHint}>
-                    แนบใบเสนอราคาจากพ่อค้าเพื่อยืนยันว่าราคาใน PO ตรงตามที่เสนอ
+                    {t("แนบใบเสนอราคาจากพ่อค้าเพื่อยืนยันว่าราคาใน PO ตรงตามที่เสนอ")}
                   </p>
                 </div>
                 <Upload {...uploadProps}>
                   <Button icon={<UploadOutlined />} disabled={saving}>
-                    เลือกไฟล์แนบ
+                    {t("เลือกไฟล์แนบ")}
                   </Button>
                 </Upload>
                 <p className={styles.sectionHint}>
-                  รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB —
-                  จะอัปโหลดเมื่อกดบันทึก
+                  {t(
+                    "รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB — จะอัปโหลดเมื่อกดบันทึก",
+                  )}
                 </p>
                 {pendingFiles.length > 0 ? (
                   <ul className={styles.pendingFileList}>
@@ -1086,7 +1109,7 @@ export default function PurchaseOrderCreateFromPrPage({
                           icon={<DeleteOutlined />}
                           disabled={saving}
                           onClick={() => removePendingFile(index)}
-                          aria-label={`ลบ ${file.name}`}
+                          aria-label={t("ลบ {name}", { name: file.name })}
                         />
                       </li>
                     ))}
@@ -1097,7 +1120,7 @@ export default function PurchaseOrderCreateFromPrPage({
 
             <div className={styles.footerBar}>
               <p className={styles.footerHint}>
-                บันทึกแล้วสถานะเป็น DRAFT — Confirm ได้จากหน้ารายละเอียด
+                {t("บันทึกแล้วสถานะเป็น DRAFT — Confirm ได้จากหน้ารายละเอียด")}
               </p>
               <div className={styles.footerActions}>
                 <Button
@@ -1105,7 +1128,7 @@ export default function PurchaseOrderCreateFromPrPage({
                   disabled={saving}
                   onClick={() => router.push(`/purchase-requests/${pr.id}`)}
                 >
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -1114,7 +1137,7 @@ export default function PurchaseOrderCreateFromPrPage({
                   loading={saving}
                   disabled={saving}
                 >
-                  บันทึกใบสั่งซื้อ
+                  {t("บันทึกใบสั่งซื้อ")}
                 </Button>
               </div>
             </div>
@@ -1122,46 +1145,46 @@ export default function PurchaseOrderCreateFromPrPage({
 
           <aside className={styles.summaryCard}>
             <div>
-              <p className={styles.summaryEyebrow}>สรุปยอด</p>
+              <p className={styles.summaryEyebrow}>{t("สรุปยอด")}</p>
               <h2 className={styles.summaryTitle}>{pr.prNo}</h2>
             </div>
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
-                <span>ยอดรวมก่อนส่วนลด</span>
+                <span>{t("ยอดรวมก่อนส่วนลด")}</span>
                 <strong>{formatMoney(preview.subtotal)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>ส่วนลดท้ายบิล</span>
+                <span>{t("ส่วนลดท้ายบิล")}</span>
                 <strong>{formatMoney(preview.discount)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>ยอดหลังหักส่วนลด</span>
+                <span>{t("ยอดหลังหักส่วนลด")}</span>
                 <strong>{formatMoney(preview.afterDiscount)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)</span>
+                <span>{t("ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)")}</span>
                 <strong>{formatMoney(chargePreview.amountBeforeVat)}</strong>
               </div>
               <div className={styles.summaryRow}>
                 <span>
                   {chargePreview.amountBeforeVat > 0
-                    ? "VAT รวม (สินค้า + ค่าใช้จ่าย)"
-                    : vatAmountLabel(preview.vatRate)}
+                    ? t("VAT รวม (สินค้า + ค่าใช้จ่าย)")
+                    : vatAmountLabelT(preview.vatRate)}
                 </span>
                 <strong>{formatMoney(preview.vat + chargePreview.vat)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>ยอดรวม PO</span>
+                <span>{t("ยอดรวม PO")}</span>
                 <strong>{formatMoney(preview.total + chargePreview.total)}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>ไฟล์แนบ</span>
+                <span>{t("ไฟล์แนบ")}</span>
                 <strong>{pendingFiles.length}</strong>
               </div>
             </div>
             <div className={styles.flowNote}>
-              <strong>หมายเหตุ</strong>
-              <p>ยอดสุดท้ายคำนวณอีกครั้งที่ backend เมื่อบันทึก</p>
+              <strong>{t("หมายเหตุ")}</strong>
+              <p>{t("ยอดสุดท้ายคำนวณอีกครั้งที่ backend เมื่อบันทึก")}</p>
             </div>
           </aside>
         </div>

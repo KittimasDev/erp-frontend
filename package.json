@@ -7,7 +7,8 @@
     "dev:erp": "concurrently -n backend,frontend -c blue,green \"npm run start:dev --prefix ../backend\" \"next dev --hostname 0.0.0.0\"",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "i18n:check": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.1.2",

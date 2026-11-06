@@ -9,12 +9,14 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreatePickingFromSalesOrderMutation } from "@/hooks/pickings/usePickingMutations";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { ApiError } from "@/lib/api/client";
+import { useT } from "@/lib/i18n/useT";
 
 export default function Page({
   params,
 }: {
   params: Promise<{ salesOrderId: string }>;
 }) {
+  const t = useT();
   const { salesOrderId } = use(params);
   const router = useRouter();
   const createMutation = useCreatePickingFromSalesOrderMutation();
@@ -48,7 +50,7 @@ export default function Page({
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : "ไม่สามารถสร้างใบจ่ายสินค้าได้",
+            : t("ไม่สามารถสร้างใบจ่ายสินค้าได้"),
         );
       }
     })();
@@ -62,11 +64,11 @@ export default function Page({
     return (
       <Result
         status="403"
-        title="ไม่มีสิทธิ์สร้างใบจ่ายสินค้า"
-        subTitle="ต้องเปิดสิทธิ์ PICKINGS · เพิ่มข้อมูล (ADD) ใน Permission Matrix สำหรับ role นี้ — ไม่ใช้สิทธิ์ตามรหัสคลังแบบเดิมแล้ว"
+        title={t("ไม่มีสิทธิ์สร้างใบจ่ายสินค้า")}
+        subTitle={t("ต้องเปิดสิทธิ์ PICKINGS · เพิ่มข้อมูล (ADD) ใน Permission Matrix สำหรับ role นี้ — ไม่ใช้สิทธิ์ตามรหัสคลังแบบเดิมแล้ว")}
         extra={
           <Link href={`/sales-orders/${salesOrderId}`}>
-            <Button type="primary">กลับใบสั่งขาย</Button>
+            <Button type="primary">{t("กลับใบสั่งขาย")}</Button>
           </Link>
         }
       />
@@ -81,11 +83,11 @@ export default function Page({
     return (
       <Result
         status="error"
-        title="สร้างใบจ่ายสินค้าไม่สำเร็จ"
+        title={t("สร้างใบจ่ายสินค้าไม่สำเร็จ")}
         subTitle={errorMessage}
         extra={
           <Link href={`/sales-orders/${salesOrderId}`}>
-            <Button type="primary">กลับใบสั่งขาย</Button>
+            <Button type="primary">{t("กลับใบสั่งขาย")}</Button>
           </Link>
         }
       />
@@ -97,8 +99,8 @@ export default function Page({
       <Spin
         description={
           started
-            ? "กำลังเปิดใบจ่ายสินค้า..."
-            : "กำลังตรวจสอบสิทธิ์ Permission Matrix..."
+            ? t("กำลังเปิดใบจ่ายสินค้า...")
+            : t("กำลังตรวจสอบสิทธิ์ Permission Matrix...")
         }
       />
     </div>

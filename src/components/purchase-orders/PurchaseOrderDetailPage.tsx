@@ -1,5 +1,8 @@
 "use client";
 
+import { vatAmountLabelT, tStatus } from "@/types/purchase-orders";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { tNow, useT, type TFunction } from "@/lib/i18n/useT";
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -66,7 +69,7 @@ import {
   resolveVatMode,
   VAT_MODE_LABEL,
   resolveDocumentVatPercent,
-  vatAmountLabel,
+
   withVatPercentLabel,
   withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
@@ -85,23 +88,26 @@ const PO_EDITABLE_STATUSES: string[] = ["DRAFT", "REVISING"];
 
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 
-const adjustmentColumns: ColumnsType<PoPaymentAdjustmentItem> = [
+function buildAdjustmentColumns(
+  t: TFunction,
+): ColumnsType<PoPaymentAdjustmentItem> {
+  return [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_: unknown, __: unknown, index: number) => index + 1,
       },
   {
-    title: "ประเภท",
+    title: t("ประเภท"),
     dataIndex: "docType",
     width: 110,
     render: (v: PoPaymentAdjustmentItem["docType"]) =>
-      v === "CREDIT_NOTE" ? "ใบลดหนี้" : "ใบเพิ่มหนี้",
+      v === "CREDIT_NOTE" ? t("ใบลดหนี้") : t("ใบเพิ่มหนี้"),
   },
   {
-    title: "เลขที่เอกสาร",
+    title: t("เลขที่เอกสาร"),
     dataIndex: "docNo",
     width: 180,
     render: (_v, row) => {
@@ -113,13 +119,13 @@ const adjustmentColumns: ColumnsType<PoPaymentAdjustmentItem> = [
     },
   },
   {
-    title: "วันที่",
+    title: t("วันที่"),
     dataIndex: "docDate",
     width: 120,
     render: (v: string) => formatDate(v),
   },
   {
-    title: "อ้างอิง AP",
+    title: t("อ้างอิง AP"),
     dataIndex: "apDocumentNo",
     width: 160,
     render: (_v, row) => (
@@ -129,13 +135,14 @@ const adjustmentColumns: ColumnsType<PoPaymentAdjustmentItem> = [
     ),
   },
   {
-    title: "ยอด (บาท)",
+    title: t("ยอด (บาท)"),
     dataIndex: "signedAmount",
     align: "right",
     width: 120,
     render: (v: number) => formatMoney(v),
   },
-];
+  ];
+}
 const ALLOWED_ATTACHMENT_TYPES = new Set([
   "application/pdf",
   "image/jpeg",
@@ -160,7 +167,7 @@ function formatDate(value?: string) {
   // วันที่ทั้งหน้าใช้ปี พ.ศ. เหมือนหน้า AP / รายการจ่ายเงิน (แสดงผลเท่านั้น ไม่แก้ค่าที่เก็บ) เช่น 2026-12-15 → 15/12/2569
   const day = dayjs(value);
   if (!day.isValid()) return "—";
-  return `${day.format("DD/MM")}/${day.year() + 543}`;
+  return `${day.format("DD/MM")}/${getStoredLanguage() === "en" ? day.year() : day.year() + 543}`;
 }
 
 /** หัวรอบใน PDF ใช้ปี พ.ศ. เช่น 09/10/2569 */
@@ -175,7 +182,8 @@ function formatDateTime(value?: string) {
   if (!value) return "—";
   const day = dayjs(value);
   if (!day.isValid()) return "—";
-  return `${day.format("DD/MM")}/${day.year() + 543} ${day.format("HH:mm")}`;
+  const year = getStoredLanguage() === "en" ? day.year() : day.year() + 543;
+  return `${day.format("DD/MM")}/${year} ${day.format("HH:mm")}`;
 }
 
 function formatMoney(value?: string | number) {
@@ -247,10 +255,11 @@ function isImageMime(mimeType?: string) {
 }
 
 function attachmentDisplayName(file: DocumentAttachment) {
-  return file.originalFileName || "ไฟล์แนบ";
+  return file.originalFileName || tNow("ไฟล์แนบ");
 }
 
 export default function PurchaseOrderDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const { modal, message } = App.useApp();
   const query = usePurchaseOrderQuery(id);
@@ -360,7 +369,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       URL.revokeObjectURL(url);
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "ดาวน์โหลดไฟล์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ดาวน์โหลดไฟล์ไม่สำเร็จ"),
       );
     }
   };
@@ -383,7 +392,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     } catch (error) {
       setPreviewOpen(false);
       message.error(
-        error instanceof ApiError ? error.message : "เปิดไฟล์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เปิดไฟล์ไม่สำเร็จ"),
       );
     } finally {
       setPreviewLoading(false);
@@ -395,11 +404,11 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
     beforeUpload: (file) => {
       if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
-        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        message.error(t("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP"));
         return Upload.LIST_IGNORE;
       }
       if (file.size > MAX_ATTACHMENT_BYTES) {
-        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        message.error(t("ขนาดไฟล์ต้องไม่เกิน 20MB"));
         return Upload.LIST_IGNORE;
       }
       if (!data) {
@@ -413,7 +422,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -421,7 +430,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบสั่งซื้อ
+        {t("ไม่พบใบสั่งซื้อ")}
         <div style={{ marginTop: 12 }}>
           <Link
             href="/purchase-orders"
@@ -430,7 +439,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               router.push(getPurchaseOrderBackHref());
             }}
           >
-            กลับรายการ
+            {t("กลับรายการ")}
           </Link>
         </div>
       </div>
@@ -511,14 +520,14 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
     }
     pdfLockRef.current = true;
     setPdfLoading(true);
-    const hideLoading = message.loading("กำลังสร้าง PDF...", 0);
+    const hideLoading = message.loading(t("กำลังสร้าง PDF..."), 0);
     try {
       await buildPurchaseOrderPdf();
     } catch (error) {
       message.error(
         error instanceof Error
-          ? `สร้าง PDF ไม่สำเร็จ: ${error.message}`
-          : "สร้าง PDF ไม่สำเร็จ",
+          ? t("สร้าง PDF ไม่สำเร็จ: {reason}", { reason: error.message })
+          : t("สร้าง PDF ไม่สำเร็จ"),
       );
     } finally {
       if (typeof hideLoading === "function") {
@@ -536,14 +545,14 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
         icon={<FileTextOutlined />}
         title={data.poNo}
         subtitle={<>{data.creditor?.nameTh ?? "—"} · {formatDate(data.poDate)} ·{" "}
-            {data.items?.length ?? 0} รายการ</>}
+            {t("{n} รายการ", { n: data.items?.length ?? 0 })}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(getPurchaseOrderBackHref())}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           <Button
             icon={<FilePdfOutlined />}
@@ -551,7 +560,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             loading={pdfLoading}
             disabled={pdfLoading}
           >
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           </>
         }
@@ -561,21 +570,21 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.poNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่</span>
+                <span className={styles.metaLabel}>{t("วันที่")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.poDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้ขาย</span>
+                <span className={styles.metaLabel}>{t("ผู้ขาย")}</span>
                 <div className={styles.metaValue}>
                   {data.creditor
                     ? `${data.creditor.creditorCode} — ${data.creditor.nameTh}`
@@ -583,7 +592,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อ้างอิง PR</span>
+                <span className={styles.metaLabel}>{t("อ้างอิง PR")}</span>
                 <div className={styles.metaValue}>
                   {sourcePurchaseRequests.length
                     ? sourcePurchaseRequests.map((pr, index) => (
@@ -598,52 +607,56 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เงื่อนไขชำระ</span>
+                <span className={styles.metaLabel}>{t("เงื่อนไขชำระ")}</span>
                 <div className={styles.metaValue}>
-                  {data.paymentTerm?.name ?? "ไม่ระบุ"}
+                  {data.paymentTerm?.name ?? t("ไม่ระบุ")}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>รูปแบบ VAT</span>
+                <span className={styles.metaLabel}>{t("รูปแบบ VAT")}</span>
                 <div className={styles.metaValue}>
                   {withVatPercentLabel(
-                    VAT_MODE_LABEL[resolveVatMode(data.vatMode)],
+                    t(VAT_MODE_LABEL[resolveVatMode(data.vatMode)]),
                     vatPercent,
                   )}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อัตรา VAT</span>
+                <span className={styles.metaLabel}>{t("อัตรา VAT")}</span>
                 <div className={styles.metaValue}>
-                  {vatPercent > 0 ? `${vatPercent}%` : "ไม่คิด VAT"}
+                  {vatPercent > 0 ? `${vatPercent}%` : t("ไม่คิด VAT")}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ภาษีหัก ณ ที่จ่าย</span>
+                <span className={styles.metaLabel}>{t("ภาษีหัก ณ ที่จ่าย")}</span>
                 <div className={styles.metaValue}>
-                  {withholdingTaxTypeLabel(
-                    data.withholdingTaxType,
-                    data.withholdingTaxPercent,
+                  {t(
+                    withholdingTaxTypeLabel(
+                      data.withholdingTaxType,
+                      data.withholdingTaxPercent,
+                    ),
                   )}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วิธีการชำระเงิน</span>
+                <span className={styles.metaLabel}>{t("วิธีการชำระเงิน")}</span>
                 <div className={styles.metaValue}>
                   {data.paymentMethod
-                    ? (SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
-                      data.paymentMethod)
+                    ? t(
+                        SUPPLIER_PAYMENT_METHOD_LABEL[data.paymentMethod] ??
+                          data.paymentMethod,
+                      )
                     : "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่ส่งมอบ</span>
+                <span className={styles.metaLabel}>{t("วันที่ส่งมอบ")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.expectedDeliveryDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่กำหนดชำระเงิน</span>
+                <span className={styles.metaLabel}>{t("วันที่กำหนดชำระเงิน")}</span>
                 <div className={styles.metaValue}>
                   {(() => {
                     const aps = (data.apInvoices ?? []).filter((ap) => ap.dueDate);
@@ -671,8 +684,15 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                         <div>
                           {formatDate(due)}
                           <div style={{ fontSize: 12, opacity: 0.65 }}>
-                            ประมาณการจาก{data.expectedDeliveryDate ? "วันส่งมอบ" : "วันที่ PO"} + {days}{" "}
-                            วัน · ยืนยันเมื่อตั้งหนี้ (นับจากวันที่ใบแจ้งหนี้ Supplier)
+                            {t(
+                              "ประมาณการจาก {base} + {days} วัน · ยืนยันเมื่อตั้งหนี้ (นับจากวันที่ใบแจ้งหนี้ Supplier)",
+                              {
+                                base: data.expectedDeliveryDate
+                                  ? t("วันส่งมอบ")
+                                  : t("วันที่ PO"),
+                                days,
+                              },
+                            )}
                           </div>
                         </div>
                       );
@@ -682,13 +702,13 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้จัดทำ</span>
+                <span className={styles.metaLabel}>{t("ผู้จัดทำ")}</span>
                 <div className={styles.metaValue}>
                   {formatCreatorContact(data.createdBy)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เบอร์โทรผู้จัดทำ</span>
+                <span className={styles.metaLabel}>{t("เบอร์โทรผู้จัดทำ")}</span>
                 <div className={styles.metaValue}>
                   {data.createdBy?.phone || "—"}
                 </div>
@@ -703,7 +723,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
             </div>
             <div className={styles.itemList}>
               {(data.items ?? []).map((item, index) => (
@@ -714,12 +734,12 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                       {item.itemNameTh ?? item.description ?? "—"}
                     </p>
                     <p className={styles.itemCode}>
-                      {item.itemCode ?? "—"} · ราคา{" "}
+                      {item.itemCode ?? "—"} · {t("ราคา")}{" "}
                       {formatMoney(item.unitPrice)}
                     </p>
                     <div className={styles.itemMeta}>
                       <span>
-                        คลังปลายทาง:{" "}
+                        {t("คลังปลายทาง:")}{" "}
                         {item.expectedWarehouseCode ||
                         item.expectedWarehouseName
                           ? `${item.expectedWarehouseCode ?? ""}${
@@ -728,12 +748,12 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                                 ? " — "
                                 : ""
                             }${item.expectedWarehouseName ?? ""}`
-                          : "ระบุตอนรับของ"}
+                          : t("ระบุตอนรับของ")}
                       </span>
                       {item.expectedLocationCode ||
                       item.expectedLocationName ? (
                         <span>
-                          ตำแหน่ง: {item.expectedLocationCode ?? ""}
+                          {t("ตำแหน่ง:")} {item.expectedLocationCode ?? ""}
                           {item.expectedLocationCode &&
                           item.expectedLocationName
                             ? " — "
@@ -758,7 +778,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           {charges.length > 0 ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>ค่าใช้จ่ายเพิ่มเติม</h2>
+                <h2 className={styles.sectionTitle}>{t("ค่าใช้จ่ายเพิ่มเติม")}</h2>
               </div>
               <div className={styles.itemList}>
                 {charges.map((c, index) => (
@@ -766,35 +786,42 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     <div className={styles.itemIndex}>{index + 1}</div>
                     <div className={styles.itemBody}>
                       <p className={styles.itemName}>
-                        {c.expenseTypeName ?? PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType}
+                        {c.expenseTypeName ??
+                          t(PO_CHARGE_TYPE_LABEL[c.chargeType] ?? c.chargeType)}
                         {" — "}
                         {c.description}
                       </p>
                       <p className={styles.itemCode}>
-                        {VAT_MODE_LABEL[resolveVatMode(c.vatMode)]}
+                        {t(VAT_MODE_LABEL[resolveVatMode(c.vatMode)])}
                         {" · "}
-                        ก่อน VAT {formatMoney(c.amountBeforeVat)}
+                        {t("ก่อน VAT")} {formatMoney(c.amountBeforeVat)}
                         {Number(c.taxRatePercent) > 0
                           ? ` · VAT ${Number(c.taxRatePercent)}% = ${formatMoney(c.vatAmount)}`
-                          : " · ไม่มี VAT"}
+                          : ` · ${t("ไม่มี VAT")}`}
                         {c.whtApplicable
-                          ? ` · หัก ณ ที่จ่าย ${Number(c.whtRate)}%${c.whtIncomeType ? ` (${c.whtIncomeType})` : ""}`
+                          ? ` · ${t("หัก ณ ที่จ่าย")} ${Number(c.whtRate)}%${c.whtIncomeType ? ` (${c.whtIncomeType})` : ""}`
                           : ""}
                       </p>
                       <div className={styles.itemMeta}>
-                        <span>ตั้งหนี้แล้ว (ก่อน VAT): {formatMoney(c.allocatedAmount)}</span>
-                        <span>คงเหลือตั้งหนี้ได้: {formatMoney(c.remainingAmount)}</span>
+                        <span>
+                          {t("ตั้งหนี้แล้ว (ก่อน VAT):")}{" "}
+                          {formatMoney(c.allocatedAmount)}
+                        </span>
+                        <span>
+                          {t("คงเหลือตั้งหนี้ได้:")}{" "}
+                          {formatMoney(c.remainingAmount)}
+                        </span>
                       </div>
                     </div>
                     <div className={styles.itemQty}>
                       <strong>{formatMoney(c.totalAmount)}</strong>
-                      <span>รวม VAT</span>
+                      <span>{t("รวม VAT")}</span>
                     </div>
                   </div>
                 ))}
               </div>
               <p className={styles.sectionHint}>
-                ค่าใช้จ่ายไม่เข้าสต๊อก/Lot — นำไปตั้งหนี้ได้ที่หน้าใบตั้งหนี้เจ้าหนี้ (แบ่งยอดได้หลายใบ)
+                {t("ค่าใช้จ่ายไม่เข้าสต๊อก/Lot — นำไปตั้งหนี้ได้ที่หน้าใบตั้งหนี้เจ้าหนี้ (แบ่งยอดได้หลายใบ)")}
               </p>
             </div>
           ) : null}
@@ -802,7 +829,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           {documentHtmlIsEmpty(data.remark) ? null : (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
               </div>
               <DocumentHtmlView html={data.remark} />
             </div>
@@ -811,10 +838,10 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           {data.paymentAdjustment ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>สรุปการชำระเงินและการปรับหนี้</h2>
+                <h2 className={styles.sectionTitle}>{t("สรุปการชำระเงินและการปรับหนี้")}</h2>
               </div>
               <p className={styles.sectionHint}>
-                ยอดสุทธิของใบสั่งซื้อด้านขวาเป็นมูลค่า PO ต้นฉบับ — ส่วนนี้แสดงยอดเจ้าหนี้หลังรวมใบเพิ่มหนี้/ลดหนี้ที่นำไปปรับ AP แล้ว
+                {t("ยอดสุทธิของใบสั่งซื้อด้านขวาเป็นมูลค่า PO ต้นฉบับ — ส่วนนี้แสดงยอดเจ้าหนี้หลังรวมใบเพิ่มหนี้/ลดหนี้ที่นำไปปรับ AP แล้ว")}
               </p>
               <Descriptions
                 bordered
@@ -822,24 +849,24 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 column={{ xs: 1, md: 2, xl: 3 }}
                 style={{ marginBottom: 12 }}
               >
-                <Descriptions.Item label="ยอด PO เดิม">
+                <Descriptions.Item label={t("ยอด PO เดิม")}>
                   {formatMoney(data.paymentAdjustment.originalAmount)}
                 </Descriptions.Item>
-                <Descriptions.Item label="ยอดใบเพิ่มหนี้ (+)">
+                <Descriptions.Item label={t("ยอดใบเพิ่มหนี้ (+)")}>
                   {formatMoney(data.paymentAdjustment.appliedDebits)}
                 </Descriptions.Item>
-                <Descriptions.Item label="ยอดใบลดหนี้ (−)">
+                <Descriptions.Item label={t("ยอดใบลดหนี้ (−)")}>
                   {formatMoney(data.paymentAdjustment.appliedCredits)}
                 </Descriptions.Item>
-                <Descriptions.Item label="ยอดที่ต้องชำระหลังปรับหนี้">
+                <Descriptions.Item label={t("ยอดที่ต้องชำระหลังปรับหนี้")}>
                   <Typography.Text strong>
                     {formatMoney(data.paymentAdjustment.payableAmount)}
                   </Typography.Text>
                 </Descriptions.Item>
-                <Descriptions.Item label="ยอดชำระแล้ว">
+                <Descriptions.Item label={t("ยอดชำระแล้ว")}>
                   {formatMoney(data.paymentAdjustment.paidAmount)}
                 </Descriptions.Item>
-                <Descriptions.Item label="ยอดคงเหลือ">
+                <Descriptions.Item label={t("ยอดคงเหลือ")}>
                   <Typography.Text strong>
                     {formatMoney(data.paymentAdjustment.remainingAmount)}
                   </Typography.Text>
@@ -849,9 +876,9 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 size="small"
                 rowKey={(row) => `${row.id}-${row.apDocumentId}-${row.appliedAt}`}
                 pagination={false}
-                locale={{ emptyText: "ยังไม่มีเอกสารปรับหนี้ที่นำไปปรับ AP ของใบสั่งซื้อนี้" }}
+                locale={{ emptyText: t("ยังไม่มีเอกสารปรับหนี้ที่นำไปปรับ AP ของใบสั่งซื้อนี้") }}
                 dataSource={data.paymentAdjustment.adjustments}
-                columns={adjustmentColumns}
+                columns={buildAdjustmentColumns(t)}
                 scroll={{ x: 720 }}
               />
             </div>
@@ -860,15 +887,15 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>
-                <PaperClipOutlined /> ใบเสนอราคา / ไฟล์แนบ
+                <PaperClipOutlined /> {t("ใบเสนอราคา / ไฟล์แนบ")}
               </h2>
             </div>
             {attachmentsQuery.isLoading ? (
               <div className={styles.textBlock}>
-                <Spin size="small" /> กำลังโหลดไฟล์แนบ...
+                <Spin size="small" /> {t("กำลังโหลดไฟล์แนบ...")}
               </div>
             ) : attachments.length === 0 ? (
-              <p className={styles.textBlock}>ยังไม่มีไฟล์แนบใบเสนอราคา</p>
+              <p className={styles.textBlock}>{t("ยังไม่มีไฟล์แนบใบเสนอราคา")}</p>
             ) : (
               <ul className={styles.attachmentList}>
                 {attachments.map((file) => (
@@ -891,7 +918,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                           icon={<EyeOutlined />}
                           onClick={() => void openAttachmentPreview(file)}
                         >
-                          ดู
+                          {t("ดู")}
                         </Button>
                       )}
                       <Button
@@ -899,7 +926,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                         icon={<DownloadOutlined />}
                         onClick={() => void downloadAttachment(file)}
                       >
-                        ดาวน์โหลด
+                        {t("ดาวน์โหลด")}
                       </Button>
                     </div>
                   </li>
@@ -913,13 +940,13 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                   loading={uploadMutation.isPending}
                   style={{ marginTop: 10 }}
                 >
-                  อัปโหลดใบเสนอราคา
+                  {t("อัปโหลดใบเสนอราคา")}
                 </Button>
               </Upload>
             ) : null}
             {canUploadAttachment ? (
               <p className={styles.sectionHint}>
-                รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB
+                {t("รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB")}
               </p>
             ) : null}
           </div>
@@ -927,58 +954,60 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.poNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {purchaseOrderStatusLabel(data)}
+            {tStatus(purchaseOrderStatusLabel(data))}
           </div>
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>ยอดรวมก่อนส่วนลด</span>
+              <span>{t("ยอดรวมก่อนส่วนลด")}</span>
               <strong>{formatMoney(totals.subtotal)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ส่วนลดท้ายบิล</span>
+              <span>{t("ส่วนลดท้ายบิล")}</span>
               <strong>{formatMoney(totals.discount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ยอดหลังหักส่วนลด</span>
+              <span>{t("ยอดหลังหักส่วนลด")}</span>
               <strong>{formatMoney(totals.afterDiscount)}</strong>
             </div>
             {chargeAmount > 0 ? (
               <div className={styles.sideRow}>
-                <span>ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)</span>
+                <span>{t("ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)")}</span>
                 <strong>{formatMoney(chargeAmount)}</strong>
               </div>
             ) : null}
             <div className={styles.sideRow}>
               <span>
                 {chargeAmount > 0
-                  ? "VAT รวม (สินค้า + ค่าใช้จ่าย)"
-                  : vatAmountLabel(vatPercent)}
+                  ? t("VAT รวม (สินค้า + ค่าใช้จ่าย)")
+                  : vatAmountLabelT(vatPercent)}
               </span>
               <strong>{formatMoney(totals.vat + chargeVat)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ยอดรวม PO</span>
+              <span>{t("ยอดรวม PO")}</span>
               <strong>{formatMoney(grandTotal)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ไฟล์แนบ</span>
+              <span>{t("ไฟล์แนบ")}</span>
               <strong>{attachments.length}</strong>
             </div>
             {data.submittedAt ? (
               <div className={styles.sideRow}>
-                <span>ส่งอนุมัติเมื่อ</span>
+                <span>{t("ส่งอนุมัติเมื่อ")}</span>
                 <strong>{formatDateTime(data.submittedAt)}</strong>
               </div>
             ) : null}
             {data.approvedBy ? (
               <div className={styles.sideRow}>
                 <span>
-                  {data.status === "REJECTED" ? "ผู้ไม่อนุมัติ" : "ผู้อนุมัติ"}
+                  {data.status === "REJECTED"
+                    ? t("ผู้ไม่อนุมัติ")
+                    : t("ผู้อนุมัติ")}
                 </span>
                 <strong>{data.approvedBy.displayName}</strong>
               </div>
@@ -987,8 +1016,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               <div className={styles.sideRow}>
                 <span>
                   {data.status === "REJECTED"
-                    ? "ไม่อนุมัติเมื่อ"
-                    : "อนุมัติเมื่อ"}
+                    ? t("ไม่อนุมัติเมื่อ")
+                    : t("อนุมัติเมื่อ")}
                 </span>
                 <strong>{formatDateTime(data.approvedAt)}</strong>
               </div>
@@ -999,8 +1028,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
             <div className={styles.flowNote}>
               <strong>
                 {data.status === "REJECTED"
-                  ? "เหตุผลที่ไม่อนุมัติ"
-                  : "หัวหน้าส่งกลับให้แก้ไข"}
+                  ? t("เหตุผลที่ไม่อนุมัติ")
+                  : t("หัวหน้าส่งกลับให้แก้ไข")}
               </strong>
               <p style={{ margin: "6px 0 0" }}>{data.rejectedReason}</p>
             </div>
@@ -1014,7 +1043,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
               loading={pdfLoading}
               disabled={pdfLoading}
             >
-              พิมพ์ PDF สั่งซื้อ
+              {t("พิมพ์ PDF สั่งซื้อ")}
             </Button>
 
             {canWrite && PO_EDITABLE_STATUSES.includes(data.status) ? (
@@ -1026,16 +1055,16 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "ส่งใบสั่งซื้อให้หัวหน้าอนุมัติ?",
+                      title: t("ส่งใบสั่งซื้อให้หัวหน้าอนุมัติ?"),
                       content:
-                        "ส่งแล้วจะแก้ไขไม่ได้จนกว่าหัวหน้าจะส่งกลับให้แก้ไข",
-                      okText: "ส่งอนุมัติ",
-                      cancelText: "ยกเลิก",
+                        t("ส่งแล้วจะแก้ไขไม่ได้จนกว่าหัวหน้าจะส่งกลับให้แก้ไข"),
+                      okText: t("ส่งอนุมัติ"),
+                      cancelText: t("ยกเลิก"),
                       onOk: () => submitMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  ส่งอนุมัติ
+                  {t("ส่งอนุมัติ")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -1044,7 +1073,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     router.push(`/purchase-orders/${data.id}/edit`)
                   }
                 >
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
               </>
             ) : null}
@@ -1058,16 +1087,16 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "อนุมัติใบสั่งซื้อนี้?",
+                      title: t("อนุมัติใบสั่งซื้อนี้?"),
                       content:
-                        "อนุมัติแล้วจะส่ง PO ให้ผู้ขายและรอส่งสินค้า — แก้ไขไม่ได้อีก",
-                      okText: "อนุมัติ",
-                      cancelText: "ยกเลิก",
+                        t("อนุมัติแล้วจะส่ง PO ให้ผู้ขายและรอส่งสินค้า — แก้ไขไม่ได้อีก"),
+                      okText: t("อนุมัติ"),
+                      cancelText: t("ยกเลิก"),
                       onOk: () => approveMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  อนุมัติใบสั่งซื้อ
+                  {t("อนุมัติใบสั่งซื้อ")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -1078,7 +1107,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     setReviewReason("");
                   }}
                 >
-                  ส่งกลับแก้ไข
+                  {t("ส่งกลับแก้ไข")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -1090,15 +1119,16 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     setReviewReason("");
                   }}
                 >
-                  ไม่อนุมัติ
+                  {t("ไม่อนุมัติ")}
                 </Button>
               </>
             ) : null}
 
             {data.status === "PENDING_APPROVAL" && !canApprove ? (
               <p className={styles.sectionHint}>
-                ส่งอนุมัติแล้ว — รอหัวหน้าจัดซื้อพิจารณาที่เมนู
-                &quot;อนุมัติใบสั่งซื้อ&quot;
+                {t(
+                  "ส่งอนุมัติแล้ว — รอหัวหน้าจัดซื้อพิจารณาที่เมนู \"อนุมัติใบสั่งซื้อ\"",
+                )}
               </p>
             ) : null}
 
@@ -1121,7 +1151,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     }
                   }}
                 >
-                  ไปใบรับของแบบร่าง
+                  {t("ไปใบรับของแบบร่าง")}
                 </Button>
               ) : (
                 <Button
@@ -1132,7 +1162,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                     router.push(`/goods-receipts/create-from-po/${data.id}`)
                   }
                 >
-                  สร้างใบรับของ
+                  {t("สร้างใบรับของ")}
                 </Button>
               )
             ) : null}
@@ -1143,7 +1173,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 icon={<DollarOutlined />}
                 onClick={() => router.push(paymentHref)}
               >
-                ดูใบสำคัญจ่าย
+                {t("ดูใบสำคัญจ่าย")}
                 {linkedPayment.voucherNo ? ` ${linkedPayment.voucherNo}` : ""}
               </Button>
             ) : null}
@@ -1158,19 +1188,19 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                 loading={busy}
                 onClick={() =>
                   modal.confirm({
-                    title: "ยืนยันยกเลิกใบสั่งซื้อ?",
+                    title: t("ยืนยันยกเลิกใบสั่งซื้อ?"),
                     onOk: () => cancelMutation.mutateAsync(data.id),
                   })
                 }
               >
-                ยกเลิกเอกสาร
+                {t("ยกเลิกเอกสาร")}
               </Button>
             ) : null}
           </div>
 
           {linkedGrs.length > 0 ? (
             <div className={styles.flowNote}>
-              <strong>ใบรับของที่อ้างอิง PO นี้</strong>
+              <strong>{t("ใบรับของที่อ้างอิง PO นี้")}</strong>
               <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
                 {linkedGrs.map((gr) => {
                   const warehouses = Array.from(
@@ -1188,13 +1218,13 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
                   return (
                     <li key={gr.id}>
                       <Link href={`/goods-receipts/${gr.id}`}>{gr.grNo}</Link> ·{" "}
-                      {GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status} ·{" "}
+                      {tStatus(GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status)} ·{" "}
                       {formatDate(gr.grDate)}
                       {warehouses.length > 0 ? (
                         <>
                           <br />
                           <span style={{ color: "#5c6570", fontSize: 12 }}>
-                            คลังที่รับเข้า: {warehouses.join(", ")}
+                            {t("คลังที่รับเข้า:")} {warehouses.join(", ")}
                           </span>
                         </>
                       ) : null}
@@ -1207,18 +1237,18 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
           {data.paymentStatus || data.paidAmount || data.paymentAdjustment ? (
             <div className={styles.flowNote}>
-              <strong>สถานะการจ่ายเงิน</strong>
+              <strong>{t("สถานะการจ่ายเงิน")}</strong>
               <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
                 <li>
                   {data.paymentStatus === "PAID"
-                    ? "จ่ายครบแล้ว"
+                    ? t("จ่ายครบแล้ว")
                     : data.paymentStatus === "PARTIAL"
-                      ? "จ่ายบางส่วน"
-                      : "ยังไม่จ่าย"}
+                      ? t("จ่ายบางส่วน")
+                      : t("ยังไม่จ่าย")}
                   {data.paymentAdjustment
-                    ? ` · จ่ายแล้ว ${formatMoney(data.paymentAdjustment.paidAmount)} / ${formatMoney(data.paymentAdjustment.payableAmount)}`
+                    ? ` · ${t("จ่ายแล้ว")} ${formatMoney(data.paymentAdjustment.paidAmount)} / ${formatMoney(data.paymentAdjustment.payableAmount)}`
                     : data.paidAmount != null
-                      ? ` · จ่ายแล้ว ${formatMoney(data.paidAmount)} / ${formatMoney(data.totalAmount)}`
+                      ? ` · ${t("จ่ายแล้ว")} ${formatMoney(data.paidAmount)} / ${formatMoney(data.totalAmount)}`
                       : null}
                 </li>
               </ul>
@@ -1227,15 +1257,17 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
           {linkedPayment && paymentHref ? (
             <div className={styles.flowNote}>
-              <strong>ใบสำคัญจ่าย</strong>
+              <strong>{t("ใบสำคัญจ่าย")}</strong>
               <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
                 <li>
                   <Link href={paymentHref}>{linkedPayment.voucherNo}</Link> ·{" "}
-                  {SUPPLIER_PAYMENT_STATUS_LABEL[linkedPayment.status] ??
-                    linkedPayment.status}{" "}
+                  {tStatus(
+                    SUPPLIER_PAYMENT_STATUS_LABEL[linkedPayment.status] ??
+                      linkedPayment.status,
+                  )}{" "}
                   · {formatDate(linkedPayment.voucherDate)} ·{" "}
                   {formatMoney(linkedPayment.totalAmount)}
-                  {linkedPayment.queueItemId ? " · จากระบบการเงิน" : null}
+                  {linkedPayment.queueItemId ? ` · ${t("จากระบบการเงิน")}` : null}
                 </li>
               </ul>
             </div>
@@ -1276,14 +1308,16 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       <Modal
         title={
           reviewAction === "reject"
-            ? "ไม่อนุมัติใบสั่งซื้อ"
-            : "ส่งกลับให้จัดซื้อแก้ไข"
+            ? t("ไม่อนุมัติใบสั่งซื้อ")
+            : t("ส่งกลับให้จัดซื้อแก้ไข")
         }
         open={Boolean(reviewAction)}
         onCancel={() => setReviewAction(null)}
         confirmLoading={rejectMutation.isPending || returnMutation.isPending}
-        okText={reviewAction === "reject" ? "ไม่อนุมัติ" : "ส่งกลับแก้ไข"}
-        cancelText="ยกเลิก"
+        okText={
+          reviewAction === "reject" ? t("ไม่อนุมัติ") : t("ส่งกลับแก้ไข")
+        }
+        cancelText={t("ยกเลิก")}
         okButtonProps={{ danger: reviewAction === "reject" }}
         onOk={async () => {
           if (!reviewAction) return;
@@ -1300,8 +1334,8 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
           rows={3}
           placeholder={
             reviewAction === "reject"
-              ? "เหตุผลที่ไม่อนุมัติ (ถ้ามี)"
-              : "สิ่งที่ต้องแก้ไข (ถ้ามี)"
+              ? t("เหตุผลที่ไม่อนุมัติ (ถ้ามี)")
+              : t("สิ่งที่ต้องแก้ไข (ถ้ามี)")
           }
           value={reviewReason}
           onChange={(e) => setReviewReason(e.target.value)}
@@ -1310,7 +1344,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
 
       <Modal
         open={previewOpen}
-        title={previewTitle || "ดูไฟล์แนบ"}
+        title={previewTitle || t("ดูไฟล์แนบ")}
         onCancel={closePreview}
         footer={null}
         width={previewIsImage ? 720 : 900}
@@ -1318,7 +1352,7 @@ export default function PurchaseOrderDetailPage({ id }: Props) {
       >
         {previewLoading || !previewUrl ? (
           <div className={styles.stateCard}>
-            <Spin /> กำลังโหลดไฟล์...
+            <Spin /> {t("กำลังโหลดไฟล์...")}
           </div>
         ) : previewIsImage ? (
           // eslint-disable-next-line @next/next/no-img-element

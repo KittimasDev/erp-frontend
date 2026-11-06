@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Tag } from "antd";
 
+import { tNow } from "@/lib/i18n/useT";
 import type { Unit } from "@/types/units";
 import { resolveUnitOptions, type ConversionIndex } from "./conversion";
 
@@ -58,7 +59,7 @@ function toOption(unit: Unit, isBase: boolean): UnitSelectOption {
         <span>{unitLabelOf(unit)}</span>
         {isBase ? (
           <Tag className={styles.optionTag} color="blue">
-            หลัก
+            {tNow("หลัก")}
           </Tag>
         ) : null}
       </span>
@@ -85,7 +86,7 @@ export function buildUnitSelectOptions(
     return {
       options: [],
       disabled: true,
-      placeholder: "เลือกสินค้าก่อน",
+      placeholder: tNow("เลือกสินค้าก่อน"),
     };
   }
 
@@ -109,9 +110,9 @@ export function buildUnitSelectOptions(
       title: orphan ? `${orphan.code} ${orphan.nameTh}` : currentUnitId,
       label: (
         <span className={styles.optionLabel}>
-          <span>{orphan ? unitLabelOf(orphan) : "หน่วยเดิม"}</span>
+          <span>{orphan ? unitLabelOf(orphan) : tNow("หน่วยเดิม")}</span>
           <Tag className={styles.optionTag} color="warning">
-            ไม่ตรงหน่วยหลัก
+            {tNow("ไม่ตรงหน่วยหลัก")}
           </Tag>
         </span>
       ),

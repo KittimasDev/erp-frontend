@@ -6,6 +6,7 @@ import { Alert, Form, Input, InputNumber, Modal, Select } from "antd";
 import { useSortDestinationsQuery } from "@/hooks/return-notes/useReturnNotesQuery";
 import { useSaveInspectionLineMutation } from "@/hooks/return-notes/useReturnNoteMutations";
 import type { ReturnNoteItem } from "@/types/return-notes";
+import { useT } from "@/lib/i18n/useT";
 
 const QTY_EPSILON = 0.0005;
 
@@ -28,6 +29,7 @@ export default function ReturnInspectionSortModal({
   item,
   onClose,
 }: Props) {
+  const t = useT();
   const [form] = Form.useForm();
   const destinations = useSortDestinationsQuery(Boolean(item));
   const save = useSaveInspectionLineMutation(noteId);
@@ -73,9 +75,9 @@ export default function ReturnInspectionSortModal({
   return (
     <Modal
       open={Boolean(item)}
-      title="คัดแยกสินค้า"
-      okText="บันทึกผลการคัดแยก"
-      cancelText="ปิด"
+      title={t("คัดแยกสินค้า")}
+      okText={t("บันทึกผลการคัดแยก")}
+      cancelText={t("ปิด")}
       confirmLoading={save.isPending}
       destroyOnHidden
       onCancel={onClose}
@@ -106,28 +108,28 @@ export default function ReturnInspectionSortModal({
           }}
         >
           <p>
-            {item.itemCode} {item.itemNameTh} · Lot {item.lotNo ?? "—"} · คืน{" "}
+            {item.itemCode} {item.itemNameTh} · Lot {item.lotNo ?? "—"} · {t("คืน")}{" "}
             {formatQty(returnQty)}
           </p>
           <p style={{ color: "#64748b" }}>
-            ดี {formatQty(Number(goodQty ?? 0))} + เสีย{" "}
+            {t("ดี")} {formatQty(Number(goodQty ?? 0))} + {t("เสีย")}{" "}
             {formatQty(Number(scrapQty ?? 0))} ={" "}
             {formatQty(roundQty(Number(goodQty ?? 0) + Number(scrapQty ?? 0)))}{" "}
-            จากคืน {formatQty(returnQty)}
+            {t("จากคืน")} {formatQty(returnQty)}
           </p>
           {destinations.isError ? (
             <Alert
               type="error"
               showIcon
               style={{ marginBottom: 16 }}
-              title="โหลดรายการคลังปลายทางไม่สำเร็จ"
+              title={t("โหลดรายการคลังปลายทางไม่สำเร็จ")}
               description={destinations.error?.message}
             />
           ) : null}
           <Form.Item
-            label="จำนวนใช้งานได้"
+            label={t("จำนวนใช้งานได้")}
             name="goodQty"
-            rules={[{ required: true, message: "ระบุจำนวนใช้งานได้" }]}
+            rules={[{ required: true, message: t("ระบุจำนวนใช้งานได้") }]}
           >
             <InputNumber
               min={0}
@@ -140,11 +142,11 @@ export default function ReturnInspectionSortModal({
             />
           </Form.Item>
           <Form.Item
-            label="จำนวนเสีย"
+            label={t("จำนวนเสีย")}
             name="scrapQty"
             dependencies={["goodQty"]}
             rules={[
-              { required: true, message: "ระบุจำนวนเสีย" },
+              { required: true, message: t("ระบุจำนวนเสีย") },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   const good = getFieldValue("goodQty");
@@ -155,7 +157,7 @@ export default function ReturnInspectionSortModal({
                   ) {
                     return Promise.reject(
                       new Error(
-                        `จำนวนใช้งานได้รวมจำนวนเสียต้องเท่ากับจำนวนคืน (${formatQty(returnQty)})`,
+                        t("จำนวนใช้งานได้รวมจำนวนเสียต้องเท่ากับจำนวนคืน ({returnQty})", { returnQty: formatQty(returnQty) }),
                       ),
                     );
                   }
@@ -177,13 +179,13 @@ export default function ReturnInspectionSortModal({
           {(goodQty ?? 0) > 0 ? (
             <>
               <Form.Item
-                label="คลังปลายทางสินค้าที่ใช้งานได้"
+                label={t("คลังปลายทางสินค้าที่ใช้งานได้")}
                 name="goodWarehouseId"
-                rules={[{ required: true, message: "เลือกคลังสำเร็จรูป" }]}
+                rules={[{ required: true, message: t("เลือกคลังสำเร็จรูป") }]}
               >
                 <Select
                   loading={destinations.isLoading}
-                  notFoundContent="ยังไม่มีคลังประเภท FINISHED_GOODS ที่เปิดใช้งาน — ตั้งค่าที่ข้อมูลหลักคลังสินค้า"
+                  notFoundContent={t("ยังไม่มีคลังประเภท FINISHED_GOODS ที่เปิดใช้งาน — ตั้งค่าที่ข้อมูลหลักคลังสินค้า")}
                   options={goodWarehouses.map((row) => ({
                     value: row.id,
                     label: `${row.warehouseCode} — ${row.warehouseName}`,
@@ -193,9 +195,9 @@ export default function ReturnInspectionSortModal({
               </Form.Item>
               {goodLocations.length > 1 ? (
                 <Form.Item
-                  label="ตำแหน่งของดี"
+                  label={t("ตำแหน่งของดี")}
                   name="goodLocationId"
-                  rules={[{ required: true, message: "เลือกตำแหน่ง" }]}
+                  rules={[{ required: true, message: t("เลือกตำแหน่ง") }]}
                 >
                   <Select
                     options={goodLocations.map((row) => ({
@@ -210,13 +212,13 @@ export default function ReturnInspectionSortModal({
           {(scrapQty ?? 0) > 0 ? (
             <>
               <Form.Item
-                label="คลังปลายทางสินค้าที่เสีย"
+                label={t("คลังปลายทางสินค้าที่เสีย")}
                 name="scrapWarehouseId"
-                rules={[{ required: true, message: "เลือกคลังของเสีย" }]}
+                rules={[{ required: true, message: t("เลือกคลังของเสีย") }]}
               >
                 <Select
                   loading={destinations.isLoading}
-                  notFoundContent="ยังไม่มีคลังประเภท REJECT ที่เปิดใช้งาน — ตั้งค่าที่ข้อมูลหลักคลังสินค้า"
+                  notFoundContent={t("ยังไม่มีคลังประเภท REJECT ที่เปิดใช้งาน — ตั้งค่าที่ข้อมูลหลักคลังสินค้า")}
                   options={scrapWarehouses.map((row) => ({
                     value: row.id,
                     label: `${row.warehouseCode} — ${row.warehouseName}`,
@@ -228,9 +230,9 @@ export default function ReturnInspectionSortModal({
               </Form.Item>
               {scrapLocations.length > 1 ? (
                 <Form.Item
-                  label="ตำแหน่งของเสีย"
+                  label={t("ตำแหน่งของเสีย")}
                   name="scrapLocationId"
-                  rules={[{ required: true, message: "เลือกตำแหน่ง" }]}
+                  rules={[{ required: true, message: t("เลือกตำแหน่ง") }]}
                 >
                   <Select
                     options={scrapLocations.map((row) => ({
@@ -242,7 +244,7 @@ export default function ReturnInspectionSortModal({
               ) : null}
             </>
           ) : null}
-          <Form.Item label="หมายเหตุ" name="remark">
+          <Form.Item label={t("หมายเหตุ")} name="remark">
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>

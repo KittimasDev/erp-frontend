@@ -4,6 +4,9 @@ import { Typography } from "antd";
 
 import { useUnitOptionContext } from "@/hooks/unit-conversions/useUnitOptionContext";
 import { toBaseQty } from "@/lib/units/conversion";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 
 /**
  * บรรทัดเล็ก ๆ ใต้ช่องจำนวน บอกว่าที่กรอกไปเท่ากับกี่หน่วยหลัก — "= 250 กก."
@@ -30,6 +33,8 @@ export function BaseQtyHint({
   baseUnitId?: string;
 }) {
   const ctx = useUnitOptionContext();
+  const t = useT();
+  const lang = useLanguage();
 
   if (!itemId || !unitId || !baseUnitId || unitId === baseUnitId) {
     return null;
@@ -47,15 +52,17 @@ export function BaseQtyHint({
     const entered = ctx.unitById.get(unitId);
     return (
       <Typography.Text type="warning" style={{ fontSize: 12 }}>
-        แปลง {entered?.nameTh ?? entered?.code ?? "หน่วยนี้"} เป็น {baseLabel}{" "}
-        ไม่ได้ — ยังไม่มีกฎแปลงหน่วยคู่นี้
+        {t("แปลง {from} เป็น {to} ไม่ได้ — ยังไม่มีกฎแปลงหน่วยคู่นี้", {
+          from: entered?.nameTh ?? entered?.code ?? t("หน่วยนี้"),
+          to: baseLabel,
+        })}
       </Typography.Text>
     );
   }
 
   return (
     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-      = {base.toLocaleString("th-TH", { maximumFractionDigits: 3 })} {baseLabel}
+      = {formatNumber(base, lang, 3)} {baseLabel}
     </Typography.Text>
   );
 }

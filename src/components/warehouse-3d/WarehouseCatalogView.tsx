@@ -17,6 +17,7 @@ import type { Warehouse } from "@/types/warehouses";
 import type { CampusRoadConfig } from "@/types/warehouse-3d";
 import { FactorySiteMap3D } from "./FactorySiteMap3D";
 import { useWarehouseLocationsQuery } from "@/hooks/warehouse-locations/useWarehouseLocationsQuery";
+import { useT } from "@/lib/i18n/useT";
 
 interface WarehouseCatalogViewProps {
   warehouses: Warehouse[];
@@ -39,6 +40,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
   onSaveSitePositions,
   isLoading = false,
 }) => {
+  const t = useT();
   // View Type: 3D Campus Site Map (default!) vs Card List
   const [viewType, setViewType] = useState<"sitemap" | "cards">("sitemap");
 
@@ -91,7 +93,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
           </span>
           <span className="text-slate-500 hidden sm:inline">|</span>
           <span className="text-xs text-slate-400 hidden sm:inline">
-            เลือกคลังสินค้า หรือดูผังที่ตั้งโรงงาน
+            {t("เลือกคลังสินค้า หรือดูผังที่ตั้งโรงงาน")}
           </span>
         </div>
 
@@ -107,7 +109,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
             }`}
           >
             <CompassOutlined />
-            <span>🗺️ ผังที่ตั้งโรงงาน 3D (Site Map)</span>
+            <span>{t("🗺️ ผังที่ตั้งโรงงาน 3D (Site Map)")}</span>
           </button>
 
           <button
@@ -120,7 +122,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
             }`}
           >
             <UnorderedListOutlined />
-            <span>📋 รายการการ์ดคลัง (Card List)</span>
+            <span>{t("📋 รายการการ์ดคลัง (Card List)")}</span>
           </button>
         </div>
       </header>
@@ -140,7 +142,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
           <div className="w-full max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80 backdrop-blur-md shadow-xl">
             <div className="w-full sm:w-80">
               <Input
-                placeholder="ค้นหารหัส หรือชื่อคลังสินค้า..."
+                placeholder={t("ค้นหารหัส หรือชื่อคลังสินค้า...")}
                 prefix={<SearchOutlined className="text-slate-400" />}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -163,7 +165,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
                         : "bg-slate-800/60 text-slate-400 border-slate-700/60 hover:text-white hover:bg-slate-700/60"
                     }`}
                   >
-                    {group === "ALL" ? "ทั้งหมด" : group}
+                    {group === "ALL" ? t("ทั้งหมด") : group}
                   </button>
                 );
               })}
@@ -177,7 +179,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
                 <Empty
                   description={
                     <span className="text-slate-400">
-                      ไม่พบคลังสินค้าที่ตรงกับคำค้นหา
+                      {t("ไม่พบคลังสินค้าที่ตรงกับคำค้นหา")}
                     </span>
                   }
                 />
@@ -229,9 +231,9 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
 
                       <div className="my-5 p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-2">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-slate-400">ตำแหน่งจัดเก็บ (Location)</span>
+                          <span className="text-slate-400">{t("ตำแหน่งจัดเก็บ (Location)")}</span>
                           <span className="font-bold text-emerald-400">
-                            {whLocations.length} ตำแหน่ง
+                            {t("{n} ตำแหน่ง", { n: whLocations.length })}
                           </span>
                         </div>
                         {whLocations.length > 0 ? (
@@ -247,17 +249,17 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
                             ))}
                             {whLocations.length > 8 && (
                               <span className="px-1.5 py-0.5 text-[10px] text-slate-400">
-                                +{whLocations.length - 8} อีก
+                                {t("+{n} อีก", { n: whLocations.length - 8 })}
                               </span>
                             )}
                           </div>
                         ) : (
                           <div className="text-[11px] text-slate-500">
-                            ยังไม่มีตำแหน่งในคลังนี้ เข้าไปเพิ่มได้ในหน้าถัดไป
+                            {t("ยังไม่มีตำแหน่งในคลังนี้ เข้าไปเพิ่มได้ในหน้าถัดไป")}
                           </div>
                         )}
                         <div className="text-[10px] text-slate-500">
-                          {hasCustom3D ? "มีผัง 3 มิติแล้ว" : "ยังไม่ได้จัดผัง 3 มิติ"}
+                          {hasCustom3D ? t("มีผัง 3 มิติแล้ว") : t("ยังไม่ได้จัดผัง 3 มิติ")}
                         </div>
                       </div>
 
@@ -265,7 +267,7 @@ export const WarehouseCatalogView: React.FC<WarehouseCatalogViewProps> = ({
                         type="button"
                         className="w-full py-2.5 px-4 rounded-xl bg-slate-800 group-hover:bg-gradient-to-r group-hover:from-orange-600 group-hover:to-amber-600 text-slate-200 group-hover:text-white font-semibold text-xs transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer shadow-md"
                       >
-                        <span>เข้าสู่พื้นที่คลัง 3D</span>
+                        <span>{t("เข้าสู่พื้นที่คลัง 3D")}</span>
                         <ArrowRightOutlined className="group-hover:translate-x-1 transition-transform" />
                       </button>
                     </div>

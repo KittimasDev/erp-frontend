@@ -1,5 +1,8 @@
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 
+import { tNow } from "@/lib/i18n/useT";
+import { tSoStatus } from "@/types/sales-orders";
+
 export type SalesTimelineStepTone = "done" | "active" | "pending" | "cancelled";
 
 export const SALES_TRACKING_STEP_LABEL: Record<string, string> = {
@@ -14,7 +17,8 @@ export const SALES_TRACKING_STEP_LABEL: Record<string, string> = {
 };
 
 export function salesTrackingStepLabel(step: string) {
-  return SALES_TRACKING_STEP_LABEL[step] ?? step;
+  const label = SALES_TRACKING_STEP_LABEL[step];
+  return label ? tSoStatus(label) : step;
 }
 
 export function resolveSalesTimelineStepTone(
@@ -56,30 +60,30 @@ export function resolveSalesTimelineStepTone(
 }
 
 export function salesTimelineStatusLabel(status?: string) {
-  if (!status) return "รอเริ่ม";
+  if (!status) return tNow("รอเริ่ม");
   const map: Record<string, string> = {
-    DONE: "เสร็จแล้ว",
-    PENDING: "รอดำเนินการ",
-    DRAFT: "แบบร่างเอกสาร",
-    AWAITING_CONFIRM: "รอยืนยันใบสั่งขาย",
-    CONFIRMED: "ยืนยันแล้ว",
-    DELIVERED: "ส่งแล้ว",
-    ACCEPTED: "ลูกค้าตอบรับ",
-    SENT: "ส่งให้ลูกค้าแล้ว",
-    CANCELLED: "ยกเลิก",
-    REJECTED: "ปฏิเสธ",
-    STOCK_CHECKED: "ตรวจสต๊อกแล้ว",
-    PICKING: "จ่ายสินค้าแล้ว",
-    PACKED: "บรรจุแล้ว",
-    COMPLETED: "เสร็จสิ้น",
-    PARTIALLY_ISSUED: "จ่ายบางส่วน",
-    "POSTED/UNPAID": "โพสต์แล้ว / รอชำระ",
-    "POSTED/PARTIALLY_PAID": "โพสต์แล้ว / ชำระบางส่วน",
-    "POSTED/PAID": "โพสต์แล้ว / ชำระครบ",
-    POSTED: "โพสต์แล้ว",
-    UNPAID: "รอชำระ",
-    PARTIALLY_PAID: "ชำระบางส่วน",
-    PAID: "ชำระครบ",
+    DONE: tNow("เสร็จแล้ว"),
+    PENDING: tSoStatus("รอดำเนินการ"),
+    DRAFT: tNow("แบบร่างเอกสาร"),
+    AWAITING_CONFIRM: tNow("รอยืนยันใบสั่งขาย"),
+    CONFIRMED: tNow("ยืนยันแล้ว"),
+    DELIVERED: tSoStatus("ส่งแล้ว"),
+    ACCEPTED: tNow("ลูกค้าตอบรับ"),
+    SENT: tNow("ส่งให้ลูกค้าแล้ว"),
+    CANCELLED: tSoStatus("ยกเลิก"),
+    REJECTED: tSoStatus("ปฏิเสธ"),
+    STOCK_CHECKED: tNow("ตรวจสต๊อกแล้ว"),
+    PICKING: tNow("จ่ายสินค้าแล้ว"),
+    PACKED: tNow("บรรจุแล้ว"),
+    COMPLETED: tNow("เสร็จสิ้น"),
+    PARTIALLY_ISSUED: tSoStatus("จ่ายบางส่วน"),
+    "POSTED/UNPAID": tNow("โพสต์แล้ว / รอชำระ"),
+    "POSTED/PARTIALLY_PAID": tNow("โพสต์แล้ว / ชำระบางส่วน"),
+    "POSTED/PAID": tNow("โพสต์แล้ว / ชำระครบ"),
+    POSTED: tNow("โพสต์แล้ว"),
+    UNPAID: tNow("รอชำระ"),
+    PARTIALLY_PAID: tNow("ชำระบางส่วน"),
+    PAID: tNow("ชำระครบ"),
   };
   return map[status.toUpperCase()] ?? status;
 }
@@ -146,9 +150,9 @@ export function timelineStepActionLabel(
   step: SalesTrackingTimelineStep,
   href?: string,
 ): string {
-  if (step.step === "Sales Order") return "หน้านี้";
-  if (!href) return "รอดำเนินการ";
+  if (step.step === "Sales Order") return tNow("หน้านี้");
+  if (!href) return tSoStatus("รอดำเนินการ");
   if (step.documentNo) return step.documentNo;
-  if (step.status === "PENDING") return "เริ่มขั้นตอนนี้";
-  return "เปิดเอกสาร";
+  if (step.status === "PENDING") return tNow("เริ่มขั้นตอนนี้");
+  return tNow("เปิดเอกสาร");
 }

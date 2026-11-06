@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { App, Button, Space, Tooltip } from "antd";
 import { CameraOutlined, PictureOutlined } from "@ant-design/icons";
 
+import { useT } from "@/lib/i18n/useT";
 import { optimizeOcrImageFile } from "@/utils/optimizeOcrImageFile";
 
 import CameraCaptureModal from "./CameraCaptureModal";
@@ -55,10 +56,11 @@ function canUseInAppCamera(): boolean {
 export default function WeighTicketOcrCaptureButton({
   disabled,
   pending,
-  label = "ถ่ายรูปใบชั่ง",
+  label,
   onScan,
 }: Props) {
   const { message } = App.useApp();
+  const t = useT();
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
@@ -83,11 +85,11 @@ export default function WeighTicketOcrCaptureButton({
       return;
     }
     if (!ACCEPTED.includes(file.type)) {
-      message.error("รองรับเฉพาะไฟล์รูป JPG, PNG หรือ WEBP");
+      message.error(t("รองรับเฉพาะไฟล์รูป JPG, PNG หรือ WEBP"));
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      message.error("ไฟล์ใหญ่เกิน 10 MB กรุณาถ่ายใหม่");
+      message.error(t("ไฟล์ใหญ่เกิน 10 MB กรุณาถ่ายใหม่"));
       return;
     }
 
@@ -158,12 +160,12 @@ export default function WeighTicketOcrCaptureButton({
           disabled={disabled || busy}
           onClick={handleCameraClick}
         >
-          {label}
+          {label ?? t("ถ่ายรูปใบชั่ง")}
         </Button>
-        <Tooltip title="เลือกรูปที่ถ่ายไว้แล้ว">
+        <Tooltip title={t("เลือกรูปที่ถ่ายไว้แล้ว")}>
           <Button
             icon={<PictureOutlined />}
-            aria-label="เลือกรูปใบชั่งจากเครื่อง"
+            aria-label={t("เลือกรูปใบชั่งจากเครื่อง")}
             disabled={disabled || busy}
             onClick={() => galleryRef.current?.click()}
           />

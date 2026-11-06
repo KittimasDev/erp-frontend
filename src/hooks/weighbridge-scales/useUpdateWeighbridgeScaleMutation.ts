@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { updateWeighbridgeScale } from "@/lib/api/weighbridge-scales";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -17,6 +19,7 @@ type UpdateWeighbridgeScalePayload = {
 export function useUpdateWeighbridgeScaleMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "weighbridge-scales", "update"],
@@ -26,13 +29,13 @@ export function useUpdateWeighbridgeScaleMutation() {
       await queryClient.invalidateQueries({
         queryKey: weighbridgeScalesQueryKey,
       });
-      message.success(response.message || "แก้ไขเครื่องชั่งสำเร็จแล้ว");
+      message.success(response.message || t("แก้ไขเครื่องชั่งสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "แก้ไขเครื่องชั่งไม่สำเร็จ",
+          : t("แก้ไขเครื่องชั่งไม่สำเร็จ"),
       );
     },
   });

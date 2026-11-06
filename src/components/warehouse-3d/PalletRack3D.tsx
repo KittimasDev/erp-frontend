@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
 import type { RackConfig, Selected3DObject } from "@/types/warehouse-3d";
+import { useT } from "@/lib/i18n/useT";
 
 interface PalletRack3DProps {
   rack: RackConfig;
@@ -23,6 +24,7 @@ export const PalletRack3D: React.FC<PalletRack3DProps> = ({
   selectedSlotKey,
   onSelect,
 }) => {
+  const t = useT();
   const {
     id,
     name,
@@ -114,7 +116,7 @@ export const PalletRack3D: React.FC<PalletRack3DProps> = ({
         type: "rack_slot",
         id: `${id}-B${bay}-L${level}`,
         code: assignedLocationCode,
-        name: `${name} (ช่อง ${bay + 1}, ชั้น ${level + 1})`,
+        name: t("{name} (ช่อง {bay}, ชั้น {level})", { name, bay: bay + 1, level: level + 1 }),
         locationId,
         locationCode: assignedLocationCode,
         bay: bay + 1,
@@ -384,7 +386,7 @@ export const PalletRack3D: React.FC<PalletRack3DProps> = ({
                         anchorX="center"
                         anchorY="middle"
                       >
-                        {`${name} • ช่อง ${bay + 1} ชั้น ${level + 1}`}
+                        {t("{name} • ช่อง {bay} ชั้น {level}", { name, bay: bay + 1, level: level + 1 })}
                       </Text>
 
                       {/* Divider */}
@@ -402,7 +404,7 @@ export const PalletRack3D: React.FC<PalletRack3DProps> = ({
                             anchorX="left"
                             anchorY="middle"
                           >
-                            {`📦 Natural Rubber Sheet / ยางแผ่นรมควัน`}
+                            {t("📦 Natural Rubber Sheet / ยางแผ่นรมควัน")}
                           </Text>
                           <Text
                             position={[-1.65, -0.12, 0.02]}
@@ -411,7 +413,7 @@ export const PalletRack3D: React.FC<PalletRack3DProps> = ({
                             anchorX="left"
                             anchorY="middle"
                           >
-                            {`⚖️ จำนวน: ${(occ.percent * 12.5).toLocaleString()} กก. (${occ.boxes} พาเลท)`}
+                            {t("⚖️ จำนวน: {qty} กก. ({boxes} พาเลท)", { qty: (occ.percent * 12.5).toLocaleString(), boxes: occ.boxes })}
                           </Text>
                           <Text
                             position={[-1.65, -0.34, 0.02]}
@@ -429,7 +431,7 @@ export const PalletRack3D: React.FC<PalletRack3DProps> = ({
                             anchorX="center"
                             anchorY="middle"
                           >
-                            {`📊 ใช้งาน: ${occ.percent}%  •  คลิกเพื่อจัดการ`}
+                            {t("📊 ใช้งาน: {pct}%  •  คลิกเพื่อจัดการ", { pct: occ.percent })}
                           </Text>
                         </>
                       ) : (
@@ -441,7 +443,7 @@ export const PalletRack3D: React.FC<PalletRack3DProps> = ({
                             anchorX="center"
                             anchorY="middle"
                           >
-                            {`⚪ ช่องว่าง (พร้อมจัดเก็บพาเลท)`}
+                            {t("⚪ ช่องว่าง (พร้อมจัดเก็บพาเลท)")}
                           </Text>
                           <Text
                             position={[0, -0.42, 0.02]}
@@ -450,7 +452,7 @@ export const PalletRack3D: React.FC<PalletRack3DProps> = ({
                             anchorX="center"
                             anchorY="middle"
                           >
-                            {`ความจุ 2 พาเลท (~2,500 กก.) • คลิกเพื่อเลือกวาง`}
+                            {t("ความจุ 2 พาเลท (~2,500 กก.) • คลิกเพื่อเลือกวาง")}
                           </Text>
                         </>
                       )}

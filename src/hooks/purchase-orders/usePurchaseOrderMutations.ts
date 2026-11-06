@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
 import { ApiError } from "@/lib/api/client";
 import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
 import {
@@ -33,6 +34,7 @@ import { purchaseRequestsQueryKey } from "@/hooks/purchase-requests/usePurchaseR
 export function useCreatePurchaseOrderFromPrMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "create-from-pr"],
@@ -48,11 +50,11 @@ export function useCreatePurchaseOrderFromPrMutation() {
         queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey }),
         queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey }),
       ]);
-      message.success(response.message || "สร้างใบสั่งซื้อสำเร็จแล้ว");
+      message.success(response.message || t("สร้างใบสั่งซื้อสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "สร้างใบสั่งซื้อไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("สร้างใบสั่งซื้อไม่สำเร็จ"),
       );
     },
   });
@@ -62,6 +64,7 @@ export function useCreatePurchaseOrderFromPrMutation() {
 export function useCreatePurchaseOrderFromPrsMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "create-from-prs"],
@@ -72,11 +75,11 @@ export function useCreatePurchaseOrderFromPrsMutation() {
         queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey }),
         queryClient.invalidateQueries({ queryKey: purchaseRequestsQueryKey }),
       ]);
-      message.success(response.message || "สร้างใบสั่งซื้อสำเร็จแล้ว");
+      message.success(response.message || t("สร้างใบสั่งซื้อสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "สร้างใบสั่งซื้อไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("สร้างใบสั่งซื้อไม่สำเร็จ"),
       );
     },
   });
@@ -85,6 +88,7 @@ export function useCreatePurchaseOrderFromPrsMutation() {
 export function useUpdatePurchaseOrderMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "update"],
@@ -95,11 +99,11 @@ export function useUpdatePurchaseOrderMutation() {
         queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey }),
         queryClient.invalidateQueries({ queryKey: poDeliverySchedulesQueryKey }),
       ]);
-      message.success(response.message || "แก้ไขใบสั่งซื้อสำเร็จแล้ว");
+      message.success(response.message || t("แก้ไขใบสั่งซื้อสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "แก้ไขใบสั่งซื้อไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("แก้ไขใบสั่งซื้อไม่สำเร็จ"),
       );
     },
   });
@@ -109,17 +113,18 @@ export function useUpdatePurchaseOrderMutation() {
 export function useSubmitPurchaseOrderMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "submit"],
     mutationFn: (id: string) => submitPurchaseOrder(getAccessToken(), id),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
-      message.success(response.message || "ส่งอนุมัติใบสั่งซื้อแล้ว");
+      message.success(response.message || t("ส่งอนุมัติใบสั่งซื้อแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ส่งอนุมัติไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ส่งอนุมัติไม่สำเร็จ"),
       );
     },
   });
@@ -129,17 +134,18 @@ export function useSubmitPurchaseOrderMutation() {
 export function useApprovePurchaseOrderMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "approve"],
     mutationFn: (id: string) => approvePurchaseOrder(getAccessToken(), id),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
-      message.success(response.message || "อนุมัติใบสั่งซื้อสำเร็จแล้ว");
+      message.success(response.message || t("อนุมัติใบสั่งซื้อสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "อนุมัติไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("อนุมัติไม่สำเร็จ"),
       );
     },
   });
@@ -148,6 +154,7 @@ export function useApprovePurchaseOrderMutation() {
 export function useRejectPurchaseOrderMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "reject"],
@@ -155,11 +162,11 @@ export function useRejectPurchaseOrderMutation() {
       rejectPurchaseOrder(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
-      message.success(response.message || "ปฏิเสธใบสั่งซื้อแล้ว");
+      message.success(response.message || t("ปฏิเสธใบสั่งซื้อแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ปฏิเสธไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ปฏิเสธไม่สำเร็จ"),
       );
     },
   });
@@ -169,6 +176,7 @@ export function useRejectPurchaseOrderMutation() {
 export function useReturnPurchaseOrderToDraftMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "return-to-draft"],
@@ -176,11 +184,11 @@ export function useReturnPurchaseOrderToDraftMutation() {
       returnPurchaseOrderToDraft(getAccessToken(), id, body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
-      message.success(response.message || "ส่งกลับให้แก้ไขแล้ว");
+      message.success(response.message || t("ส่งกลับให้แก้ไขแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ส่งกลับแก้ไขไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ส่งกลับแก้ไขไม่สำเร็จ"),
       );
     },
   });
@@ -189,17 +197,18 @@ export function useReturnPurchaseOrderToDraftMutation() {
 export function useCancelPurchaseOrderMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "cancel"],
     mutationFn: (id: string) => cancelPurchaseOrder(getAccessToken(), id),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: purchaseOrdersQueryKey });
-      message.success(response.message || "ยกเลิกใบสั่งซื้อแล้ว");
+      message.success(response.message || t("ยกเลิกใบสั่งซื้อแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยกเลิกไม่สำเร็จ"),
       );
     },
   });
@@ -208,6 +217,7 @@ export function useCancelPurchaseOrderMutation() {
 export function useUploadPurchaseOrderAttachmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...purchaseOrdersQueryKey, "upload-attachment"],
@@ -228,14 +238,14 @@ export function useUploadPurchaseOrderAttachmentMutation() {
         description,
       }),
     onSuccess: (res, vars) => {
-      message.success(res.message || "อัปโหลดใบเสนอราคาสำเร็จ");
+      message.success(res.message || t("อัปโหลดใบเสนอราคาสำเร็จ"));
       void queryClient.invalidateQueries({
         queryKey: [...purchaseOrdersQueryKey, "attachments", vars.documentId],
       });
     },
     onError: (err: Error) => {
       message.error(
-        err instanceof ApiError ? err.message : "อัปโหลดไฟล์ไม่สำเร็จ",
+        err instanceof ApiError ? err.message : t("อัปโหลดไฟล์ไม่สำเร็จ"),
       );
     },
   });

@@ -22,6 +22,7 @@ import type {
 import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
 import { returnNotesQueryKey } from "@/hooks/return-notes/useReturnNotesQuery";
 import { deliveryOrdersQueryKey } from "./useDeliveryOrdersQuery";
+import { useT } from "@/lib/i18n/useT";
 
 function useInvalidate() {
   const qc = useQueryClient();
@@ -32,6 +33,7 @@ function useInvalidate() {
 }
 
 export function useCreateDeliveryOrderFromPackingMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
@@ -45,15 +47,16 @@ export function useCreateDeliveryOrderFromPackingMutation() {
       createDeliveryOrderFromPacking(getAccessToken(), packingId, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "เปิดใบส่งแล้ว");
+      message.success(res.message || t("เปิดใบส่งแล้ว"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("สร้างไม่สำเร็จ")),
   });
 }
 
 /** รวมหลายใบบรรจุ (SO เดียวกัน) เป็นใบส่งเดียว — 409 = มีคนใช้ใบบรรจุไปแล้ว ให้โหลดรายการใหม่ */
 export function useCreateDeliveryOrderFromPackingsMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const qc = useQueryClient();
   const invalidate = useInvalidate();
@@ -62,10 +65,10 @@ export function useCreateDeliveryOrderFromPackingsMutation() {
       createDeliveryOrderFromPackings(getAccessToken(), body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "สร้างใบส่งแล้ว");
+      message.success(res.message || t("สร้างใบส่งแล้ว"));
     },
     onError: async (e: Error) => {
-      message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ");
+      message.error(e instanceof ApiError ? e.message : t("สร้างไม่สำเร็จ"));
       if (e instanceof ApiError && e.status === 409) {
         await qc.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
       }
@@ -74,6 +77,7 @@ export function useCreateDeliveryOrderFromPackingsMutation() {
 }
 
 export function useUpdateDeliveryOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
@@ -81,28 +85,30 @@ export function useUpdateDeliveryOrderMutation() {
       updateDeliveryOrder(getAccessToken(), id, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "บันทึกสำเร็จ");
+      message.success(res.message || t("บันทึกสำเร็จ"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "บันทึกไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("บันทึกไม่สำเร็จ")),
   });
 }
 
 export function useConfirmDeliveryOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (id: string) => confirmDeliveryOrder(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยืนยันสำเร็จ");
+      message.success(res.message || t("ยืนยันสำเร็จ"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "ยืนยันไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("ยืนยันไม่สำเร็จ")),
   });
 }
 
 export function useDeliverDeliveryOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const qc = useQueryClient();
   const invalidate = useInvalidate();
@@ -113,33 +119,34 @@ export function useDeliverDeliveryOrderMutation() {
       await invalidate();
       // ตีกลับ + คืนเข้าคลัง → backend สร้างใบคืนสินค้าให้ (badge รออนุมัติต้องขยับ)
       await qc.invalidateQueries({ queryKey: returnNotesQueryKey });
-      message.success(res.message || "บันทึกผลการส่งสำเร็จ");
+      message.success(res.message || t("บันทึกผลการส่งสำเร็จ"));
       if (res.data?.returnNoteNo) {
         message.success(
-          `สร้างใบคืนสินค้า ${res.data.returnNoteNo} แล้ว (รออนุมัติ)`,
+          t("สร้างใบคืนสินค้า {returnNoteNo} แล้ว (รออนุมัติ)", { returnNoteNo: res.data.returnNoteNo }),
         );
       }
       if (res.data?.redeliveryDeliveryOrderNo) {
         message.success(
-          `สร้างใบส่งสินค้าใหม่ ${res.data.redeliveryDeliveryOrderNo} แล้ว (ร่าง)`,
+          t("สร้างใบส่งสินค้าใหม่ {redeliveryDeliveryOrderNo} แล้ว (ร่าง)", { redeliveryDeliveryOrderNo: res.data.redeliveryDeliveryOrderNo }),
         );
       }
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "บันทึกผลการส่งไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("บันทึกผลการส่งไม่สำเร็จ")),
   });
 }
 
 export function useCancelDeliveryOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (id: string) => cancelDeliveryOrder(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยกเลิกสำเร็จ");
+      message.success(res.message || t("ยกเลิกสำเร็จ"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "ยกเลิกไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("ยกเลิกไม่สำเร็จ")),
   });
 }

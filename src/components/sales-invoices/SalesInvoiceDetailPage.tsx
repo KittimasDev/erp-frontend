@@ -47,17 +47,16 @@ import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { DocumentAttachment } from "@/types/document-attachments";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import type { SalesInvoice, SalesInvoiceItem } from "@/types/sales-invoices";
 import {
-  SALES_INVOICE_PAYMENT_METHOD_LABEL,
-  SALES_INVOICE_PAYMENT_STATUS_LABEL,
-  SALES_INVOICE_STATUS_LABEL,
+  salesInvoicePaymentMethodLabel,
+  salesInvoicePaymentStatusLabel,
+  salesInvoiceStatusLabel,
 } from "@/types/sales-invoices";
-import {
-  resolveVatMode,
-  VAT_MODE_LABEL,
-  vatAmountLabel,
-} from "@/lib/money/vat-totals";
+import { vatAmountLabelT } from "@/types/purchase-orders";
+import { resolveVatMode, VAT_MODE_LABEL } from "@/lib/money/vat-totals";
 import styles from "./SalesInvoiceDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -106,13 +105,14 @@ function isPreviewableAttachment(file: DocumentAttachment) {
 }
 
 export default function SalesInvoiceDetailPage({ id }: Props) {
+  const t = useT();
   const query = useSalesInvoiceQuery(id);
   const data = query.data?.data;
 
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -120,9 +120,9 @@ export default function SalesInvoiceDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบแจ้งหนี้
+        {t("ไม่พบใบแจ้งหนี้")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-invoices">กลับรายการ</Link>
+          <Link href="/sales-invoices">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -133,6 +133,8 @@ export default function SalesInvoiceDetailPage({ id }: Props) {
 
 function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
   const { modal, message } = App.useApp();
   const confirmMutation = useConfirmSalesInvoiceMutation();
   const receiveMutation = useReceiveSalesInvoicePaymentMutation();
@@ -238,7 +240,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       URL.revokeObjectURL(url);
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "ดาวน์โหลดไฟล์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ดาวน์โหลดไฟล์ไม่สำเร็จ"),
       );
     }
   };
@@ -262,7 +264,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     } catch (error) {
       setPreviewOpen(false);
       message.error(
-        error instanceof ApiError ? error.message : "เปิดไฟล์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เปิดไฟล์ไม่สำเร็จ"),
       );
     } finally {
       setPreviewLoading(false);
@@ -287,11 +289,11 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
     fileList: pendingFiles,
     beforeUpload: (file) => {
       if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
-        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        message.error(t("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP"));
         return Upload.LIST_IGNORE;
       }
       if (file.size > MAX_ATTACHMENT_BYTES) {
-        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        message.error(t("ขนาดไฟล์ต้องไม่เกิน 20MB"));
         return Upload.LIST_IGNORE;
       }
       return false;
@@ -303,12 +305,12 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
   const itemColumns: ColumnsType<SalesInvoiceItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       width: 48,
       render: (_v, _r, index) => index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       render: (_v, row) => (
         <div>
           <div>{row.itemName ?? "—"}</div>
@@ -317,33 +319,33 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       ),
     },
     {
-      title: "จำนวน",
+      title: t("จำนวน"),
       dataIndex: "quantity",
       align: "right",
       width: 100,
     },
     {
-      title: "หน่วย",
+      title: t("หน่วย"),
       dataIndex: "unitName",
       width: 80,
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "ราคา/หน่วย",
+      title: t("ราคา/หน่วย"),
       dataIndex: "unitPrice",
       align: "right",
       width: 120,
       render: (v: string) => formatMoney(v),
     },
     {
-      title: "ส่วนลด",
+      title: t("ส่วนลด"),
       dataIndex: "discountAmount",
       align: "right",
       width: 100,
       render: (v: string) => formatMoney(v),
     },
     {
-      title: "จำนวนเงิน",
+      title: t("จำนวนเงิน"),
       dataIndex: "amount",
       align: "right",
       width: 120,
@@ -358,17 +360,17 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
         icon={<FileTextOutlined />}
         title={data.invoiceNo}
         subtitle={<>{data.customer?.nameTh ?? "—"} · {formatDate(data.invoiceDate)} ·{" "}
-            {formatMoney(data.totalAmount)} บาท</>}
+            {formatMoney(data.totalAmount)} {t("บาท")}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/sales-invoices")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           <Button icon={<FilePdfOutlined />} onClick={printPdf}>
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           {canWrite && data.status === "DRAFT" ? (
             <>
@@ -376,7 +378,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                 icon={<EditOutlined />}
                 onClick={() => router.push(`/sales-invoices/${data.id}/edit`)}
               >
-                แก้ไข
+                {t("แก้ไข")}
               </Button>
               <Button
                 type="primary"
@@ -384,10 +386,10 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                 loading={busy}
                 onClick={() => {
                   modal.confirm({
-                    title: "ยืนยันใบแจ้งหนี้?",
-                    content: "สถานะจะเป็น POSTED / UNPAID",
-                    okText: "ยืนยัน",
-                    cancelText: "ยกเลิก",
+                    title: t("ยืนยันใบแจ้งหนี้?"),
+                    content: t("สถานะจะเป็น POSTED / UNPAID"),
+                    okText: t("ยืนยัน"),
+                    cancelText: t("ยกเลิก"),
                     onOk: () => confirmMutation.mutateAsync(data.id),
                   });
                 }}
@@ -405,11 +407,11 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               loading={busy}
               onClick={() => {
                 modal.confirm({
-                  title: "ยกเลิกใบแจ้งหนี้?",
-                  content: "ยกเลิกได้เฉพาะใบแจ้งหนี้ที่ยังไม่รับชำระ",
-                  okText: "ยกเลิกเอกสาร",
+                  title: t("ยกเลิกใบแจ้งหนี้?"),
+                  content: t("ยกเลิกได้เฉพาะใบแจ้งหนี้ที่ยังไม่รับชำระ"),
+                  okText: t("ยกเลิกเอกสาร"),
                   okButtonProps: { danger: true },
-                  cancelText: "ปิด",
+                  cancelText: t("ปิด"),
                   onOk: async () => {
                     await cancelMutation.mutateAsync(data.id);
                     router.push("/sales-invoices");
@@ -438,7 +440,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                 setPayOpen(true);
               }}
             >
-              รับชำระ
+              {t("รับชำระ")}
             </Button>
           ) : null}
           </>
@@ -449,41 +451,41 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลใบแจ้งหนี้</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลใบแจ้งหนี้")}</h2>
               <span
                 className={`${styles.statusPill} ${statusClass(data.status)}`}
               >
-                {SALES_INVOICE_STATUS_LABEL[data.status] ?? data.status}
+                {salesInvoiceStatusLabel(data.status, lang)}
                 {data.paymentStatus
-                  ? ` · ${SALES_INVOICE_PAYMENT_STATUS_LABEL[data.paymentStatus] ?? data.paymentStatus}`
+                  ? ` · ${salesInvoicePaymentStatusLabel(data.paymentStatus, lang)}`
                   : ""}
               </span>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.invoiceNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่</span>
+                <span className={styles.metaLabel}>{t("วันที่")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.invoiceDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ครบกำหนด</span>
+                <span className={styles.metaLabel}>{t("ครบกำหนด")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.dueDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ลูกค้า</span>
+                <span className={styles.metaLabel}>{t("ลูกค้า")}</span>
                 <div className={styles.metaValue}>
                   {data.customer?.nameTh ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ใบส่งสินค้า</span>
+                <span className={styles.metaLabel}>{t("ใบส่งสินค้า")}</span>
                 <div className={styles.metaValue}>
                   {data.deliveryOrderId ? (
                     <Link href={`/delivery-orders/${data.deliveryOrderId}`}>
@@ -495,7 +497,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ใบสั่งขาย</span>
+                <span className={styles.metaLabel}>{t("ใบสั่งขาย")}</span>
                 <div className={styles.metaValue}>
                   {data.salesOrderId ? (
                     <Link href={`/sales-orders/${data.salesOrderId}`}>
@@ -507,27 +509,27 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เงื่อนไขชำระ</span>
+                <span className={styles.metaLabel}>{t("เงื่อนไขชำระ")}</span>
                 <div className={styles.metaValue}>
                   {data.paymentTerm?.name ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>รูปแบบ VAT</span>
+                <span className={styles.metaLabel}>{t("รูปแบบ VAT")}</span>
                 <div className={styles.metaValue}>
-                  {VAT_MODE_LABEL[resolveVatMode(data.vatMode)]}
+                  {t(VAT_MODE_LABEL[resolveVatMode(data.vatMode)])}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อัตรา VAT</span>
+                <span className={styles.metaLabel}>{t("อัตรา VAT")}</span>
                 <div className={styles.metaValue}>
                   {data.taxRate
                     ? `${data.taxRate.name} (${data.taxRate.rate}%)`
-                    : "ไม่คิด VAT"}
+                    : t("ไม่คิด VAT")}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>หมายเหตุ</span>
+                <span className={styles.metaLabel}>{t("หมายเหตุ")}</span>
                 <div className={styles.metaValue}>{data.remark || "—"}</div>
               </div>
             </div>
@@ -535,7 +537,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
             </div>
             <Table
               rowKey="id"
@@ -546,19 +548,19 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
             />
             <div className={styles.metaGrid} style={{ marginTop: 16 }}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ยอดรวมก่อนส่วนลด</span>
+                <span className={styles.metaLabel}>{t("ยอดรวมก่อนส่วนลด")}</span>
                 <div className={styles.metaValue}>
                   {formatMoney(data.subtotalAmount)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ส่วนลดท้ายบิล</span>
+                <span className={styles.metaLabel}>{t("ส่วนลดท้ายบิล")}</span>
                 <div className={styles.metaValue}>
                   {formatMoney(data.discountAmount)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ยอดหลังหักส่วนลด</span>
+                <span className={styles.metaLabel}>{t("ยอดหลังหักส่วนลด")}</span>
                 <div className={styles.metaValue}>
                   {formatMoney(
                     String(
@@ -573,7 +575,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               </div>
               <div className={styles.metaItem}>
                 <span className={styles.metaLabel}>
-                  {vatAmountLabel(
+                  {vatAmountLabelT(
                     data.taxRate ? Number(data.taxRate.rate) : undefined,
                   )}
                 </span>
@@ -582,7 +584,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ยอดสุทธิ</span>
+                <span className={styles.metaLabel}>{t("ยอดสุทธิ")}</span>
                 <div className={styles.metaValue}>
                   <strong>{formatMoney(data.totalAmount)}</strong>
                 </div>
@@ -590,13 +592,13 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
               {data.paymentStatus ? (
                 <>
                   <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>ชำระแล้ว</span>
+                    <span className={styles.metaLabel}>{t("ชำระแล้ว")}</span>
                     <div className={styles.metaValue}>
                       {formatMoney(String(paidAmount))}
                     </div>
                   </div>
                   <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>คงค้าง</span>
+                    <span className={styles.metaLabel}>{t("คงค้าง")}</span>
                     <div className={styles.metaValue}>
                       <strong>{formatMoney(String(outstandingAmount))}</strong>
                     </div>
@@ -610,31 +612,30 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           paymentAttachments.length > 0 ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>การรับชำระ</h2>
+                <h2 className={styles.sectionTitle}>{t("การรับชำระ")}</h2>
               </div>
               {(data.payments ?? []).map((p) => (
                 <div key={p.id} className={styles.metaGrid}>
                   <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>วิธีรับชำระ</span>
+                    <span className={styles.metaLabel}>{t("วิธีรับชำระ")}</span>
                     <div className={styles.metaValue}>
-                      {SALES_INVOICE_PAYMENT_METHOD_LABEL[p.paymentMethod] ??
-                        p.paymentMethod}
+                      {salesInvoicePaymentMethodLabel(p.paymentMethod, lang)}
                     </div>
                   </div>
                   <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>จำนวนเงิน</span>
+                    <span className={styles.metaLabel}>{t("จำนวนเงิน")}</span>
                     <div className={styles.metaValue}>
                       {formatMoney(p.amount)}
                     </div>
                   </div>
                   <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>วันที่รับชำระ</span>
+                    <span className={styles.metaLabel}>{t("วันที่รับชำระ")}</span>
                     <div className={styles.metaValue}>
                       {formatDate(p.paidAt)}
                     </div>
                   </div>
                   <div className={styles.metaItem}>
-                    <span className={styles.metaLabel}>อ้างอิง</span>
+                    <span className={styles.metaLabel}>{t("อ้างอิง")}</span>
                     <div className={styles.metaValue}>
                       {p.transactionRef || "—"}
                     </div>
@@ -644,13 +645,13 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
 
               <div className={styles.attachmentBlock}>
                 <div className={styles.attachmentHead}>
-                  <strong>หลักฐานการชำระเงิน</strong>
+                  <strong>{t("หลักฐานการชำระเงิน")}</strong>
                 </div>
                 {attachmentsQuery.isLoading ? (
                   <Spin size="small" />
                 ) : paymentAttachments.length === 0 ? (
                   <p className={styles.attachmentEmpty}>
-                    ยังไม่มีหลักฐาน — แนบได้ตอนรับชำระเงิน
+                    {t("ยังไม่มีหลักฐาน — แนบได้ตอนรับชำระเงิน")}
                   </p>
                 ) : (
                   <ul className={styles.attachmentList}>
@@ -673,7 +674,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                               icon={<EyeOutlined />}
                               onClick={() => void openAttachmentPreview(file)}
                             >
-                              ดู
+                              {t("ดู")}
                             </Button>
                           ) : null}
                           <Button
@@ -681,7 +682,7 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
                             icon={<DownloadOutlined />}
                             onClick={() => void downloadAttachment(file)}
                           >
-                            ดาวน์โหลด
+                            {t("ดาวน์โหลด")}
                           </Button>
                         </div>
                       </li>
@@ -695,13 +696,13 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
       </div>
 
       <Modal
-        title="รับชำระเงิน"
+        title={t("รับชำระเงิน")}
         open={payOpen}
         onCancel={() => {
           setPayOpen(false);
           setPendingFiles([]);
         }}
-        okText="บันทึกรับชำระ"
+        okText={t("บันทึกรับชำระ")}
         confirmLoading={
           receiveMutation.isPending || uploadAttachmentMutation.isPending
         }
@@ -733,39 +734,39 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
         }}
       >
         <p>
-          ยอดคงค้าง: <strong>{formatMoney(String(outstandingAmount))}</strong>{" "}
-          บาท (จาก {formatMoney(data.totalAmount)} บาท)
+          {t("ยอดคงค้าง:")} <strong>{formatMoney(String(outstandingAmount))}</strong>{" "}
+          {t("บาท (จาก {total} บาท)", { total: formatMoney(data.totalAmount) })}
         </p>
         <Form form={payForm} layout="vertical">
           <Form.Item
             name="paymentMethod"
-            label="วิธีรับชำระ"
-            rules={[{ required: true, message: "เลือกวิธีรับชำระ" }]}
+            label={t("วิธีรับชำระ")}
+            rules={[{ required: true, message: t("เลือกวิธีรับชำระ") }]}
           >
             <Select
               options={[
-                { value: "CASH", label: "เงินสด" },
-                { value: "TRANSFER", label: "โอนเงิน" },
-                { value: "CHEQUE", label: "เช็ค" },
+                { value: "CASH", label: salesInvoicePaymentMethodLabel("CASH", lang) },
+                { value: "TRANSFER", label: salesInvoicePaymentMethodLabel("TRANSFER", lang) },
+                { value: "CHEQUE", label: salesInvoicePaymentMethodLabel("CHEQUE", lang) },
               ]}
             />
           </Form.Item>
           <Form.Item
             name="amount"
-            label="จำนวนเงินที่รับชำระ"
+            label={t("จำนวนเงินที่รับชำระ")}
             rules={[
-              { required: true, message: "ระบุจำนวนเงิน" },
+              { required: true, message: t("ระบุจำนวนเงิน") },
               {
                 validator: (_rule, value) =>
                   value > 0
                     ? Promise.resolve()
-                    : Promise.reject(new Error("จำนวนเงินต้องมากกว่า 0")),
+                    : Promise.reject(new Error(t("จำนวนเงินต้องมากกว่า 0"))),
               },
               {
                 validator: (_rule, value) =>
                   value <= outstandingAmount + 0.005
                     ? Promise.resolve()
-                    : Promise.reject(new Error("รับชำระเกินยอดคงค้างไม่ได้")),
+                    : Promise.reject(new Error(t("รับชำระเกินยอดคงค้างไม่ได้"))),
               },
             ]}
           >
@@ -778,30 +779,30 @@ function SalesInvoiceDetailView({ data }: { data: SalesInvoice }) {
           </Form.Item>
           <Form.Item
             name="paidAt"
-            label="วันที่รับชำระ"
-            rules={[{ required: true, message: "ระบุวันที่" }]}
+            label={t("วันที่รับชำระ")}
+            rules={[{ required: true, message: t("ระบุวันที่") }]}
           >
             <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="transactionRef" label="เลขอ้างอิง">
-            <Input placeholder="เช่น เลขโอน" />
+          <Form.Item name="transactionRef" label={t("เลขอ้างอิง")}>
+            <Input placeholder={t("เช่น เลขโอน")} />
           </Form.Item>
-          <Form.Item name="remark" label="หมายเหตุ">
+          <Form.Item name="remark" label={t("หมายเหตุ")}>
             <Input.TextArea rows={2} />
           </Form.Item>
           <Form.Item
-            label="ไฟล์ยืนยันการชำระเงิน"
-            extra="รองรับ PDF / JPG / PNG / WEBP ไม่เกิน 20MB — อัปโหลดหลังบันทึกรับชำระ"
+            label={t("ไฟล์ยืนยันการชำระเงิน")}
+            extra={t("รองรับ PDF / JPG / PNG / WEBP ไม่เกิน 20MB — อัปโหลดหลังบันทึกรับชำระ")}
           >
             <Upload {...pendingUploadProps}>
-              <Button icon={<UploadOutlined />}>เลือกไฟล์</Button>
+              <Button icon={<UploadOutlined />}>{t("เลือกไฟล์")}</Button>
             </Upload>
           </Form.Item>
         </Form>
       </Modal>
 
       <Modal
-        title={previewTitle || "ตัวอย่างไฟล์"}
+        title={previewTitle || t("ตัวอย่างไฟล์")}
         open={previewOpen}
         onCancel={() => {
           setPreviewOpen(false);

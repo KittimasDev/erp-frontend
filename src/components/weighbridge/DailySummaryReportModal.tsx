@@ -20,6 +20,8 @@ import dayjs from "dayjs";
 
 import { getT2900DailyReport, getT2900QualityReport } from "@/lib/api/t2900";
 import { getAccessToken } from "@/lib/auth/token";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import type {
   T2900DailyReport,
   T2900QualityReport,
@@ -51,6 +53,7 @@ export default function DailySummaryReportModal({
   initialDateTo,
 }: Props) {
   const { message } = App.useApp();
+  const t = useT();
 
   const [activeTab, setActiveTab] = useState<TabKey>("daily");
 
@@ -108,7 +111,7 @@ export default function DailySummaryReportModal({
       message.error(
         error instanceof Error
           ? error.message
-          : "โหลดรายงานบัตรชั่งครั้งสองไม่สำเร็จ",
+          : t("โหลดรายงานบัตรชั่งครั้งสองไม่สำเร็จ"),
       );
     } finally {
       setDailyLoading(false);
@@ -128,7 +131,7 @@ export default function DailySummaryReportModal({
       message.error(
         error instanceof Error
           ? error.message
-          : "โหลดรายงานคุณภาพสินค้าไม่สำเร็จ",
+          : t("โหลดรายงานคุณภาพสินค้าไม่สำเร็จ"),
       );
     } finally {
       setQualityLoading(false);
@@ -137,7 +140,7 @@ export default function DailySummaryReportModal({
 
   const exportDailyPdf = async () => {
     if (!dailyReport) {
-      message.warning("กรุณาค้นหารายงานก่อน Export PDF");
+      message.warning(t("กรุณาค้นหารายงานก่อน Export PDF"));
       return;
     }
     setDailyExporting(true);
@@ -148,7 +151,7 @@ export default function DailySummaryReportModal({
       await generateT2900DailyReportPdf(dailyReport);
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "Export PDF ไม่สำเร็จ",
+        error instanceof Error ? error.message : t("Export PDF ไม่สำเร็จ"),
       );
     } finally {
       setDailyExporting(false);
@@ -157,7 +160,7 @@ export default function DailySummaryReportModal({
 
   const exportQualityPdf = async () => {
     if (!qualityReport) {
-      message.warning("กรุณาค้นหารายงานก่อน Export PDF");
+      message.warning(t("กรุณาค้นหารายงานก่อน Export PDF"));
       return;
     }
     setQualityExporting(true);
@@ -168,7 +171,7 @@ export default function DailySummaryReportModal({
       await generateT2900QualityReportPdf(qualityReport);
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "Export PDF ไม่สำเร็จ",
+        error instanceof Error ? error.message : t("Export PDF ไม่สำเร็จ"),
       );
     } finally {
       setQualityExporting(false);
@@ -177,40 +180,40 @@ export default function DailySummaryReportModal({
 
   const qualityColumns: ColumnsType<T2900QualityReportRow> = [
     {
-      title: "ลำดับที่",
+      title: t("ลำดับที่"),
       dataIndex: "seq",
       key: "seq",
       width: 88,
       align: "center",
     },
     {
-      title: "ชื่อลูกค้า",
+      title: t("ชื่อลูกค้า"),
       dataIndex: "custName",
       key: "custName",
       ellipsis: true,
     },
-    { title: "ทะเบียนรถ", dataIndex: "truckNo", key: "truckNo", width: 120 },
+    { title: t("ทะเบียนรถ"), dataIndex: "truckNo", key: "truckNo", width: 120 },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       dataIndex: "prodName",
       key: "prodName",
       width: 160,
       ellipsis: true,
     },
     {
-      title: "น้ำหนัก (ตัน)",
+      title: t("น้ำหนัก (ตัน)"),
       dataIndex: "weightTons",
       key: "weightTons",
       width: 120,
       align: "right",
       render: (value: number) =>
-        value.toLocaleString("th-TH", {
+        value.toLocaleString(getStoredLanguage() === "en" ? "en-GB" : "th-TH", {
           minimumFractionDigits: 0,
           maximumFractionDigits: 3,
         }),
     },
     {
-      title: "สถานที่",
+      title: t("สถานที่"),
       dataIndex: "location",
       key: "location",
       width: 160,
@@ -221,19 +224,19 @@ export default function DailySummaryReportModal({
   const productOptions = useMemo(() => {
     const products = qualityReport?.products ?? [];
     return [
-      { value: "", label: "ทั้งหมด" },
+      { value: "", label: t("ทั้งหมด") },
       ...products.map((p) => ({
         value: p.prodId,
         label: p.prodName
           ? `${p.prodId} — ${p.prodName}`
-          : p.prodId || "(ไม่มีรหัส)",
+          : p.prodId || t("(ไม่มีรหัส)"),
       })),
     ];
-  }, [qualityReport?.products]);
+  }, [qualityReport?.products, t]);
 
   return (
     <Modal
-      title="รายงานสรุปประจำวัน"
+      title={t("รายงานสรุปประจำวัน")}
       open={open}
       onCancel={onClose}
       destroyOnHidden
@@ -248,12 +251,12 @@ export default function DailySummaryReportModal({
         items={[
           {
             key: "daily",
-            label: "รายงานบัตรชั่งครั้งสอง แยกตามสินค้า",
+            label: t("รายงานบัตรชั่งครั้งสอง แยกตามสินค้า"),
             children: (
               <div className={styles.tabBody}>
                 <div className={styles.filterRow}>
                   <div className={styles.filterField}>
-                    <span>ช่วงวันที่</span>
+                    <span>{t("ช่วงวันที่")}</span>
                     <RangePicker
                       value={dailyRange}
                       allowClear={false}
@@ -266,20 +269,20 @@ export default function DailySummaryReportModal({
                     />
                   </div>
                   <div className={styles.filterField}>
-                    <span>ชื่อลูกค้า</span>
+                    <span>{t("ชื่อลูกค้า")}</span>
                     <Input
                       allowClear
-                      placeholder="ชื่อหรือรหัสลูกค้า"
+                      placeholder={t("ชื่อหรือรหัสลูกค้า")}
                       value={custName}
                       onChange={(e) => setCustName(e.target.value)}
                       onPressEnter={() => void loadDaily()}
                     />
                   </div>
                   <div className={styles.filterField}>
-                    <span>ชื่อสินค้า</span>
+                    <span>{t("ชื่อสินค้า")}</span>
                     <Input
                       allowClear
-                      placeholder="ชื่อหรือรหัสสินค้า"
+                      placeholder={t("ชื่อหรือรหัสสินค้า")}
                       value={prodName}
                       onChange={(e) => setProdName(e.target.value)}
                       onPressEnter={() => void loadDaily()}
@@ -292,7 +295,7 @@ export default function DailySummaryReportModal({
                       loading={dailyLoading}
                       onClick={() => void loadDaily()}
                     >
-                      ค้นหา
+                      {t("ค้นหา")}
                     </Button>
                     <Button
                       icon={<FilePdfOutlined />}
@@ -306,12 +309,12 @@ export default function DailySummaryReportModal({
                 </div>
                 {dailyReport?.truncated ? (
                   <Typography.Text type="warning">
-                    รายงานตัดที่ 5,000 ใบแรก — เลือกช่วงวันที่ให้สั้นลงเพื่อดูครบ
+                    {t("รายงานตัดที่ 5,000 ใบแรก — เลือกช่วงวันที่ให้สั้นลงเพื่อดูครบ")}
                   </Typography.Text>
                 ) : null}
                 <div className={styles.previewWrap}>
                   {dailyLoading ? (
-                    <div className={styles.placeholder}>กำลังโหลดรายงาน…</div>
+                    <div className={styles.placeholder}>{t("กำลังโหลดรายงาน…")}</div>
                   ) : dailyReport ? (
                     <div className={styles.previewScale}>
                       <div
@@ -321,7 +324,7 @@ export default function DailySummaryReportModal({
                     </div>
                   ) : (
                     <div className={styles.placeholder}>
-                      เลือกตัวกรองแล้วกดค้นหาเพื่อแสดงรายงาน
+                      {t("เลือกตัวกรองแล้วกดค้นหาเพื่อแสดงรายงาน")}
                     </div>
                   )}
                 </div>
@@ -330,12 +333,12 @@ export default function DailySummaryReportModal({
           },
           {
             key: "quality",
-            label: "รายงานคุณภาพสินค้า",
+            label: t("รายงานคุณภาพสินค้า"),
             children: (
               <div className={styles.tabBody}>
                 <div className={styles.filterRow}>
                   <div className={styles.filterField}>
-                    <span>ช่วงวันที่</span>
+                    <span>{t("ช่วงวันที่")}</span>
                     <RangePicker
                       value={qualityRange}
                       allowClear={false}
@@ -348,7 +351,7 @@ export default function DailySummaryReportModal({
                     />
                   </div>
                   <div className={styles.filterField}>
-                    <span>สินค้า</span>
+                    <span>{t("สินค้า")}</span>
                     <Select
                       style={{ minWidth: 220 }}
                       value={prodId ?? ""}
@@ -356,7 +359,7 @@ export default function DailySummaryReportModal({
                       onChange={(value) =>
                         setProdId(value ? String(value) : undefined)
                       }
-                      placeholder="ทั้งหมด"
+                      placeholder={t("ทั้งหมด")}
                     />
                   </div>
                   <Space wrap>
@@ -366,7 +369,7 @@ export default function DailySummaryReportModal({
                       loading={qualityLoading}
                       onClick={() => void loadQuality()}
                     >
-                      ค้นหา
+                      {t("ค้นหา")}
                     </Button>
                     <Button
                       icon={<FilePdfOutlined />}
@@ -380,7 +383,7 @@ export default function DailySummaryReportModal({
                 </div>
                 {qualityReport?.truncated ? (
                   <Typography.Text type="warning">
-                    รายงานตัดที่ 5,000 ใบแรก — เลือกช่วงวันที่ให้สั้นลงเพื่อดูครบ
+                    {t("รายงานตัดที่ 5,000 ใบแรก — เลือกช่วงวันที่ให้สั้นลงเพื่อดูครบ")}
                   </Typography.Text>
                 ) : null}
                 <Table<T2900QualityReportRow>
@@ -392,8 +395,8 @@ export default function DailySummaryReportModal({
                   pagination={{ pageSize: 20, showSizeChanger: true }}
                   locale={{
                     emptyText: qualityReport
-                      ? "ไม่พบข้อมูลตามตัวกรอง"
-                      : "เลือกตัวกรองแล้วกดค้นหาเพื่อแสดงรายงาน",
+                      ? t("ไม่พบข้อมูลตามตัวกรอง")
+                      : t("เลือกตัวกรองแล้วกดค้นหาเพื่อแสดงรายงาน"),
                   }}
                   scroll={{ x: 800 }}
                 />

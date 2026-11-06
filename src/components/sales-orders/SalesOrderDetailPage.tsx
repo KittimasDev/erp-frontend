@@ -80,9 +80,9 @@ import {
   VatMode,
   VAT_MODE_LABEL,
   VAT_MODE_OPTIONS,
-  vatAmountLabel,
   withholdingTaxTypeLabel,
 } from "@/lib/money/vat-totals";
+import { vatAmountLabelT } from "@/types/purchase-orders";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
 import { salesOrderRevisionStamp, formatThaiBuddhistDate } from "@/lib/datetime/thai-buddhist-date";
 import { useQueryClient } from "@tanstack/react-query";
@@ -120,6 +120,7 @@ import {
   SALES_ORDER_PAYMENT_METHOD_LABEL,
   SALES_ORDER_STATUS_LABEL,
   isPreConfirmSalesOrderStatus,
+  tSoStatus,
   type SalesOrder,
   type SalesOrderPaymentMethod,
   type SalesOrderPdfSnapshotPayload,
@@ -134,6 +135,8 @@ import {
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./SalesOrderDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT, tNow } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 type Props = { id: string };
 
@@ -146,7 +149,7 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
 ]);
 
 function attachmentDisplayName(file: DocumentAttachment) {
-  return file.originalFileName || "ไฟล์แนบ";
+  return file.originalFileName || tNow("ไฟล์แนบ");
 }
 
 function isImageMime(mimeType?: string) {
@@ -193,7 +196,7 @@ function formatMoney(value?: string) {
 
 function vatLabel(order: SalesOrder, rateOverride?: number | string): string {
   const rate = Number(rateOverride ?? order.taxRate?.rate);
-  return vatAmountLabel(Number.isFinite(rate) ? rate : undefined);
+  return vatAmountLabelT(Number.isFinite(rate) ? rate : undefined);
 }
 
 const PAYMENT_METHOD_OPTIONS = (
@@ -400,17 +403,17 @@ function findStep(
 
 function reservationLineTag(line: SalesOrderReservationLine) {
   if (line.isFullyReserved) {
-    return <Tag color="success">จองครบ</Tag>;
+    return <Tag color="success">{tNow("จองครบ")}</Tag>;
   }
   // ขาดของแต่มีใบขอผลิตคุมไว้แล้ว = รอของ ไม่ใช่ต้องไปหาของเพิ่ม
   if (
     Number(line.shortageQty) > 0 &&
     Number(line.unplannedShortageQty ?? line.shortageQty) <= 0.0005
   ) {
-    return <Tag color="processing">รอผลผลิต</Tag>;
+    return <Tag color="processing">{tNow("รอผลผลิต")}</Tag>;
   }
   if (Number(line.shortageQty) > 0) {
-    return <Tag color="error">สต๊อกไม่พอ</Tag>;
+    return <Tag color="error">{tNow("สต๊อกไม่พอ")}</Tag>;
   }
   // ยังไม่จองเป็นเรื่องปกติเมื่อของไม่พอ — ของถูกจองตอนสร้างใบถ้ามีของ อย่าโชว์ «รอจอง»
   return null;
@@ -446,6 +449,8 @@ function buildProductionRequestLine(
 }
 
 export default function SalesOrderDetailPage({ id }: Props) {
+  const t = useT();
+  const language = useLanguage();
   const router = useRouter();
   const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
@@ -696,7 +701,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -704,9 +709,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบสั่งขาย
+        {t("ไม่พบใบสั่งขาย")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-orders">กลับรายการ</Link>
+          <Link href="/sales-orders">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -782,7 +787,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       URL.revokeObjectURL(url);
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "ดาวน์โหลดไฟล์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ดาวน์โหลดไฟล์ไม่สำเร็จ"),
       );
     }
   };
@@ -804,7 +809,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       setPreviewUrl(URL.createObjectURL(blob));
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "เปิดไฟล์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เปิดไฟล์ไม่สำเร็จ"),
       );
       closeAttachmentPreview();
     } finally {
@@ -815,7 +820,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const saveCustomerPo = () => {
     const value = poDraft.trim();
     if (!value) {
-      message.warning("กรุณากรอกเลข PO จากไฟล์หลักฐาน");
+      message.warning(t("กรุณากรอกเลข PO จากไฟล์หลักฐาน"));
       return;
     }
     updateCustomerPoMutation.mutate(
@@ -841,11 +846,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
     accept: ".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*",
     beforeUpload: (file) => {
       if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
-        message.error("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP");
+        message.error(t("รองรับเฉพาะ PDF และรูป JPG/PNG/WEBP"));
         return Upload.LIST_IGNORE;
       }
       if (file.size > MAX_ATTACHMENT_BYTES) {
-        message.error("ขนาดไฟล์ต้องไม่เกิน 20MB");
+        message.error(t("ขนาดไฟล์ต้องไม่เกิน 20MB"));
         return Upload.LIST_IGNORE;
       }
       void uploadAttachmentMutation
@@ -884,12 +889,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
   const tryConfirmSalesOrder = () => {
     if (uploadAttachmentMutation.isPending) {
-      message.warning("รออัปโหลดไฟล์ให้สำเร็จก่อนยืนยันใบสั่งขาย");
+      message.warning(t("รออัปโหลดไฟล์ให้สำเร็จก่อนยืนยันใบสั่งขาย"));
       return;
     }
     if (!evidenceReady) {
       message.warning(
-        "ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย",
+        t("ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย"),
       );
       return;
     }
@@ -942,18 +947,18 @@ export default function SalesOrderDetailPage({ id }: Props) {
   let flowHint: string | null = null;
   if (data.status === "STOCK_CHECKED" && pickingStep?.status === "DRAFT") {
     flowHint =
-      "มีใบจ่ายสินค้าร่างแล้ว — ต้องยืนยันตัดสต๊อกก่อนสร้างใบบรรจุ";
+      t("มีใบจ่ายสินค้าร่างแล้ว — ต้องยืนยันตัดสต๊อกก่อนสร้างใบบรรจุ");
   } else if (
     (data.status === "PICKING" || data.status === "PARTIALLY_ISSUED") &&
     !packingStep?.documentId
   ) {
     flowHint =
       pickingStep?.status !== "CONFIRMED"
-        ? "ต้องยืนยันใบจ่ายสินค้าก่อนจึงจะสร้างใบบรรจุได้"
-        : "ใบจ่ายสินค้ายืนยันแล้ว — กดสร้างใบบรรจุสินค้าเพื่อไปขั้นถัดไป";
+        ? t("ต้องยืนยันใบจ่ายสินค้าก่อนจึงจะสร้างใบบรรจุได้")
+        : t("ใบจ่ายสินค้ายืนยันแล้ว — กดสร้างใบบรรจุสินค้าเพื่อไปขั้นถัดไป");
   } else if (data.status === "PACKED" && packingStep?.status === "DRAFT") {
     flowHint =
-      "มีใบบรรจุร่างแล้ว — ต้องยืนยันใบบรรจุก่อนสร้างใบส่งสินค้า";
+      t("มีใบบรรจุร่างแล้ว — ต้องยืนยันใบบรรจุก่อนสร้างใบส่งสินค้า");
   }
 
   const printLivePdf = async () => {
@@ -977,7 +982,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       (entry) => entry.id === selectedPdfVersion,
     );
     if (!snapshot) {
-      message.warning("ไม่พบฉบับเก่าที่เลือก");
+      message.warning(t("ไม่พบฉบับเก่าที่เลือก"));
       return;
     }
     await generateSalesOrderPdf(
@@ -991,17 +996,17 @@ export default function SalesOrderDetailPage({ id }: Props) {
     pending: PendingProductionRequest,
   ) => {
     if (hasActiveProductionRequest) {
-      message.warning("ใบสั่งขายนี้มีใบขอผลิตแล้ว — ออกใบขอผลิตซ้ำไม่ได้");
+      message.warning(t("ใบสั่งขายนี้มีใบขอผลิตแล้ว — ออกใบขอผลิตซ้ำไม่ได้"));
       return;
     }
     if (pending.kind === "all" && !productionRequestItems.length) {
-      message.warning("ไม่มีรายการที่สต๊อกไม่พอให้ขอผลิต");
+      message.warning(t("ไม่มีรายการที่สต๊อกไม่พอให้ขอผลิต"));
       return;
     }
     if (pending.kind === "line") {
       const line = productionRequestLineByItemId.get(pending.salesOrderItemId);
       if (!line) {
-        message.warning("ไม่สามารถขอผลิตรายการนี้ได้");
+        message.warning(t("ไม่สามารถขอผลิตรายการนี้ได้"));
         return;
       }
     }
@@ -1020,11 +1025,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
       return;
     }
     if (!productionRequiredDate) {
-      message.warning("กรุณาเลือกวันที่ต้องการผลผลิต");
+      message.warning(t("กรุณาเลือกวันที่ต้องการผลผลิต"));
       return;
     }
     if (productionRequiredDate.isBefore(dayjs(todayInErp()), "day")) {
-      message.warning("วันที่ต้องการผลผลิตต้องไม่ย้อนหลังจากวันปัจจุบัน");
+      message.warning(t("วันที่ต้องการผลผลิตต้องไม่ย้อนหลังจากวันปัจจุบัน"));
       return;
     }
     const requiredDate = productionRequiredDate.format("YYYY-MM-DD");
@@ -1042,14 +1047,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
       }
       message.success(
         response.data?.requestNo
-          ? `ออกใบขอผลิต ${response.data.requestNo} แล้ว — รอฝ่ายผลิตเปิดใบสั่งผลิต`
-          : "ออกใบขอผลิตแล้ว — รอฝ่ายผลิตเปิดใบสั่งผลิต",
+          ? t("ออกใบขอผลิต {no} แล้ว — รอฝ่ายผลิตเปิดใบสั่งผลิต", { no: response.data.requestNo })
+          : t("ออกใบขอผลิตแล้ว — รอฝ่ายผลิตเปิดใบสั่งผลิต"),
       );
     };
 
     if (pendingProductionRequest.kind === "all") {
       if (!productionRequestItems.length) {
-        message.warning("ไม่มีรายการที่สต๊อกไม่พอให้ขอผลิต");
+        message.warning(t("ไม่มีรายการที่สต๊อกไม่พอให้ขอผลิต"));
         return;
       }
       createProductionRequestMutation.mutate(
@@ -1069,7 +1074,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       pendingProductionRequest.salesOrderItemId,
     );
     if (!line) {
-      message.warning("ไม่สามารถขอผลิตรายการนี้ได้");
+      message.warning(t("ไม่สามารถขอผลิตรายการนี้ได้"));
       return;
     }
     createProductionRequestMutation.mutate(
@@ -1077,7 +1082,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
         salesOrderId: data.id,
         requestDate: todayInErp(),
         requiredDate,
-        remark: `ขอผลิตจาก ${data.soNo} — ${pendingProductionRequest.itemCode ?? "สินค้า"} ขาด ${line.requestedQty.toLocaleString("th-TH")}`,
+        remark: `ขอผลิตจาก ${data.soNo} — ${pendingProductionRequest.itemCode ?? t("สินค้า")} ขาด ${line.requestedQty.toLocaleString("th-TH")}`,
         items: [{ ...line, sortOrder: 0 }],
       },
       { onSuccess },
@@ -1098,11 +1103,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
         loading={busy}
         onClick={() =>
           modal.confirm({
-            title: "ยืนยันยกเลิกใบสั่งขาย?",
+            title: t("ยืนยันยกเลิกใบสั่งขาย?"),
             content: isPreConfirm
-              ? "ของที่จองไว้จะถูกคืนเข้าคลัง"
-              : "ยกเลิกใบสั่งขาย และคืนสต๊อกที่จองไว้ (ถ้ายังไม่ได้จ่ายออกคลัง)",
-            okText: "ยกเลิกใบสั่งขาย",
+              ? t("ของที่จองไว้จะถูกคืนเข้าคลัง")
+              : t("ยกเลิกใบสั่งขาย และคืนสต๊อกที่จองไว้ (ถ้ายังไม่ได้จ่ายออกคลัง)"),
+            okText: tSoStatus("ยกเลิกใบสั่งขาย"),
             okButtonProps: { danger: true },
             onOk: () =>
               cancelMutation
@@ -1116,12 +1121,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
           })
         }
       >
-        ยกเลิกเอกสาร
+        {t("ยกเลิกเอกสาร")}
       </Button>
     ) : null;
 
   const waitProcessHint = (
-    <span className={styles.waitProcessHint}>รอกระบวนการ</span>
+    <span className={styles.waitProcessHint}>{t("รอกระบวนการ")}</span>
   );
   const navOrWait = (allowed: boolean, button: ReactNode): ReactNode =>
     allowed ? button : waitProcessHint;
@@ -1166,7 +1171,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             router.push(`/delivery-orders/${deliveryDoc.documentId}`)
           }
         >
-          เปิดใบส่งสินค้า (รอบ {roundInFlight.roundNo})
+          {t("เปิดใบส่งสินค้า (รอบ {no})", { no: roundInFlight.roundNo })}
         </Button>
       ) : canCreateDo && packingDoc?.documentId ? (
           <Button
@@ -1175,7 +1180,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => setDeliveryModalPackingId(packingDoc.documentId)}
           >
-            สร้างใบส่งสินค้า (รอบ {roundInFlight.roundNo})
+            {t("สร้างใบส่งสินค้า (รอบ {no})", { no: roundInFlight.roundNo })}
           </Button>
         ) : canCreateDo ? (
           waitProcessHint
@@ -1191,7 +1196,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             router.push(`/packings/create-from-picking/${pickingDoc.documentId}`)
           }
         >
-          สร้างใบบรรจุสินค้า (รอบ {roundInFlight.roundNo})
+          {t("สร้างใบบรรจุสินค้า (รอบ {no})", { no: roundInFlight.roundNo })}
         </Button>
       ) : (
         waitProcessHint
@@ -1205,7 +1210,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<ShoppingOutlined />}
           onClick={() => router.push(`/pickings/${pickingDoc.documentId}/edit`)}
         >
-          เปิดใบจ่ายสินค้า (ร่าง)
+          {t("เปิดใบจ่ายสินค้า (ร่าง)")}
         </Button>
       ) : (
         <Button
@@ -1214,7 +1219,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<ShoppingOutlined />}
           onClick={() => router.push("/pickings/create-from-sales-order")}
         >
-          ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย
+          {t("ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย")}
         </Button>
       );
     } else {
@@ -1231,7 +1236,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
               router.push(`/sales-orders/${data.id}/stock-verification`)
             }
           >
-            ดูผลตรวจสต๊อก
+            {t("ดูผลตรวจสต๊อก")}
           </Button>
         ) : null}
       </>
@@ -1250,7 +1255,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => router.push(`${picking.href}/edit`)}
           >
-            ยืนยันใบจ่ายสินค้า (ตัดสต๊อก)
+            {t("ยืนยันใบจ่ายสินค้า (ตัดสต๊อก)")}
           </Button>
         );
       } else {
@@ -1262,7 +1267,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => router.push(picking.href as string)}
           >
-            เปิดใบจ่ายสินค้า
+            {t("เปิดใบจ่ายสินค้า")}
           </Button>,
         );
       }
@@ -1277,7 +1282,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             router.push(`/pickings/create-from-sales-order/${data.id}`)
           }
         >
-          สร้างใบจ่ายสินค้า
+          {t("สร้างใบจ่ายสินค้า")}
         </Button>,
       );
     }
@@ -1298,7 +1303,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<InboxOutlined />}
             onClick={() => router.push(`${packing.href}/edit`)}
           >
-            แก้ไข/ยืนยันใบบรรจุ
+            {t("แก้ไข/ยืนยันใบบรรจุ")}
           </Button>
         );
       } else {
@@ -1310,7 +1315,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<InboxOutlined />}
             onClick={() => router.push(packing.href as string)}
           >
-            เปิดใบบรรจุสินค้า
+            {t("เปิดใบบรรจุสินค้า")}
           </Button>,
         );
       }
@@ -1325,7 +1330,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             router.push(`/packings/create-from-picking/${picking.documentId}`)
           }
         >
-          สร้างใบบรรจุสินค้า
+          {t("สร้างใบบรรจุสินค้า")}
         </Button>,
       );
     } else if (picking?.href) {
@@ -1337,7 +1342,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => router.push(`${picking.href}/edit`)}
           >
-            ยืนยันใบจ่ายสินค้าก่อนบรรจุ
+            {t("ยืนยันใบจ่ายสินค้าก่อนบรรจุ")}
           </Button>
         );
       } else {
@@ -1349,7 +1354,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ShoppingOutlined />}
             onClick={() => router.push(picking.href as string)}
           >
-            ยืนยันใบจ่ายสินค้าก่อนบรรจุ
+            {t("ยืนยันใบจ่ายสินค้าก่อนบรรจุ")}
           </Button>,
         );
       }
@@ -1362,7 +1367,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<InboxOutlined />}
           onClick={() => router.push("/packings/create-from-picking")}
         >
-          สร้างใบบรรจุสินค้า
+          {t("สร้างใบบรรจุสินค้า")}
         </Button>,
       );
     }
@@ -1378,7 +1383,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<CarOutlined />}
           onClick={() => router.push(delivery.href as string)}
         >
-          ดูใบส่งสินค้า
+          {t("ดูใบส่งสินค้า")}
         </Button>,
       );
     } else if (packing?.documentId && packing.status === "CONFIRMED") {
@@ -1393,7 +1398,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<CarOutlined />}
           onClick={() => setDeliveryModalPackingId(packing.documentId)}
         >
-          สร้างใบส่งสินค้า
+          {t("สร้างใบส่งสินค้า")}
         </Button>
       ) : null;
     } else if (packing?.href && packing.status === "DRAFT") {
@@ -1405,7 +1410,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<InboxOutlined />}
           onClick={() => router.push(`${packing.href}/edit`)}
         >
-          ยืนยันใบบรรจุก่อนส่งสินค้า
+          {t("ยืนยันใบบรรจุก่อนส่งสินค้า")}
         </Button>,
       );
     } else {
@@ -1420,7 +1425,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
           icon={<CarOutlined />}
           onClick={() => router.push("/delivery-orders/create-from-packing")}
         >
-          สร้างใบส่งสินค้า
+          {t("สร้างใบส่งสินค้า")}
         </Button>
       ) : null;
     }
@@ -1431,9 +1436,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
   const pendingProductionRequestLabel =
     pendingProductionRequest?.kind === "line"
       ? pendingProductionRequest.itemCode
-        ? `รายการ ${pendingProductionRequest.itemCode}`
-        : "รายการที่เลือก"
-      : "ทุกรายการที่สต๊อกไม่พอ";
+        ? t("รายการ {code}", { code: pendingProductionRequest.itemCode })
+        : t("รายการที่เลือก")
+      : t("ทุกรายการที่สต๊อกไม่พอ");
 
   let preConfirmHeaderButton: ReactNode = null;
   if (showConfirmCta) {
@@ -1447,7 +1452,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
         disabled={confirmBlocked}
         onClick={tryConfirmSalesOrder}
       >
-        ยืนยันใบสั่งขาย
+        {tSoStatus("ยืนยันใบสั่งขาย")}
       </Button>
     );
   }
@@ -1459,20 +1464,20 @@ export default function SalesOrderDetailPage({ id }: Props) {
       icon={<FilePdfOutlined />}
       onClick={() => void printLivePdf()}
     >
-      {isPreConfirm ? "ตัวอย่างเอกสาร" : "พิมพ์เอกสาร"}
+      {isPreConfirm ? t("ตัวอย่างเอกสาร") : t("พิมพ์เอกสาร")}
     </Button>
   );
 
   return (
     <div className={styles.page}>
       <PageHeader
-        eyebrow="ขาย · ใบสั่งขาย"
+        eyebrow={t("ขาย · ใบสั่งขาย")}
         icon={<ShoppingCartOutlined />}
         title={data.soNo}
         subtitle={<>{data.customer
               ? `${data.customer.customerCode} — ${data.customer.nameTh}`
               : "—"}{" "}
-            · {formatDate(data.soDate)} · {formatMoney(data.totalAmount)} บาท
+            · {formatDate(data.soDate)} · {formatMoney(data.totalAmount)} {t("บาท")}
             {!isPreConfirm
               ? ` · ${salesOrderDeliveryStatusLabel(data.status, data.deliveryStatus)}`
               : ""}</>}
@@ -1482,14 +1487,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/sales-orders")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           {pdfSnapshots.length > 0 ? (
             <Space wrap>
               <Select
-                aria-label="ประวัติ PDF"
+                aria-label={t("ประวัติ PDF")}
                 allowClear
-                placeholder="ประวัติ PDF"
+                placeholder={t("ประวัติ PDF")}
                 value={
                   selectedPdfVersion === "current"
                     ? undefined
@@ -1501,7 +1506,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 style={{ minWidth: 220 }}
                 options={pdfSnapshots.map((snapshot) => ({
                   value: snapshot.id,
-                  label: `ประวัติครั้งที่ ${snapshot.versionNo} — ${dayjs(snapshot.createdAt).format("DD/MM/YYYY HH:mm")}`,
+                  label: t("ประวัติครั้งที่ {no} — {date}", { no: snapshot.versionNo, date: dayjs(snapshot.createdAt).format("DD/MM/YYYY HH:mm") }),
                 }))}
               />
               {selectedPdfVersion !== "current" ? (
@@ -1509,7 +1514,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   htmlType="button"
                   onClick={() => void printSnapshotPdf()}
                 >
-                  พิมพ์ประวัติ
+                  {t("พิมพ์ประวัติ")}
                 </Button>
               ) : null}
             </Space>
@@ -1526,7 +1531,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
         }
       >
 <p className={styles.revisionStamp}>
-            {salesOrderRevisionStamp(data.revisionNo, data.revisedAt)}
+            {salesOrderRevisionStamp(data.revisionNo, data.revisedAt, language)}
           </p>
       </PageHeader>
 
@@ -1562,7 +1567,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
         <div
           className={`${styles.reserveActionBanner} ${styles.reserveActionBannerReady}`}
         >
-          จองสต๊อกแล้ว — ยกเลิกการจองรายการเพื่อคืนของ หรือยกเลิกทั้งใบ
+          {t("จองสต๊อกแล้ว — ยกเลิกการจองรายการเพื่อคืนของ หรือยกเลิกทั้งใบ")}
         </div>
       ) : null}
 
@@ -1570,48 +1575,48 @@ export default function SalesOrderDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลลูกค้า</h2>
+              <h2 className={styles.sectionTitle}>{tSoStatus("ข้อมูลลูกค้า")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ลูกค้า</span>
+                <span className={styles.metaLabel}>{t("ลูกค้า")}</span>
                 <div className={styles.metaValue}>
                   {data.customer?.nameTh ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>รหัสลูกค้า</span>
+                <span className={styles.metaLabel}>{t("รหัสลูกค้า")}</span>
                 <div className={styles.metaValue}>
                   {data.customer?.customerCode ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่ผู้เสียภาษี</span>
+                <span className={styles.metaLabel}>{t("เลขที่ผู้เสียภาษี")}</span>
                 <div className={styles.metaValue}>
                   {data.customer?.taxId ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ที่อยู่</span>
+                <span className={styles.metaLabel}>{t("ที่อยู่")}</span>
                 <div className={styles.metaValue}>
                   {data.customerAddress ?? data.customer?.address ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เบอร์โทร</span>
+                <span className={styles.metaLabel}>{t("เบอร์โทร")}</span>
                 <div className={styles.metaValue}>
                   {data.customer?.contactPhone ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้ติดต่อ</span>
+                <span className={styles.metaLabel}>{t("ผู้ติดต่อ")}</span>
                 <div className={styles.metaValue}>
                   {canEditHeader ? (
                     <Input
-                      aria-label="ผู้ติดต่อ"
+                      aria-label={t("ผู้ติดต่อ")}
                       value={headerDraft.contactName}
                       maxLength={255}
-                      placeholder="ดึงจาก master ลูกค้า แก้ได้บนใบนี้"
+                      placeholder={t("ดึงจาก master ลูกค้า แก้ได้บนใบนี้")}
                       onChange={(e) =>
                         patchHeaderDraft((prev) => ({
                           ...prev,
@@ -1629,7 +1634,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
               {canEditHeader ? (
                 <Button
                   size="small"
@@ -1638,13 +1643,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   disabled={busy}
                   onClick={saveHeader}
                 >
-                  บันทึก
+                  {t("บันทึก")}
                 </Button>
               ) : null}
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>สถานะจัดส่ง</span>
+                <span className={styles.metaLabel}>{t("สถานะจัดส่ง")}</span>
                 <div className={styles.metaValue}>
                   {salesOrderDeliveryStatusLabel(
                     data.status,
@@ -1653,19 +1658,19 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่ PO</span>
+                <span className={styles.metaLabel}>{t("เลขที่ PO")}</span>
                 <div className={styles.metaValue}>
                   {canUploadEvidence ? (
                     <div className={styles.poField}>
                       <strong>
-                        {data.customerPoNo?.trim() || "ยังไม่มีเลข PO"}
+                        {data.customerPoNo?.trim() || t("ยังไม่มีเลข PO")}
                       </strong>
                       <Button
                         type="link"
                         size="small"
                         onClick={() => openCustomerPoModal(data.customerPoNo)}
                       >
-                        {data.customerPoNo?.trim() ? "แก้ไข" : "ระบุเลข"}
+                        {data.customerPoNo?.trim() ? t("แก้ไข") : t("ระบุเลข")}
                       </Button>
                     </div>
                   ) : (
@@ -1674,11 +1679,11 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่เอกสาร PO</span>
+                <span className={styles.metaLabel}>{t("วันที่เอกสาร PO")}</span>
                 <div className={styles.metaValue}>
                   {canEditHeader ? (
                     <DatePicker
-                      aria-label="วันที่เอกสาร PO"
+                      aria-label={t("วันที่เอกสาร PO")}
                       format="DD/MM/YYYY"
                       style={{ width: "100%" }}
                       value={
@@ -1701,7 +1706,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อ้างอิง QT</span>
+                <span className={styles.metaLabel}>{t("อ้างอิง QT")}</span>
                 <div className={styles.metaValue}>
                   {data.salesQuotationId ? (
                     <Link href={`/quotations/${data.salesQuotationId}`}>
@@ -1713,15 +1718,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วิธีการชำระเงิน</span>
+                <span className={styles.metaLabel}>{t("วิธีการชำระเงิน")}</span>
                 <div className={styles.metaValue}>
                   {canEditHeader ? (
                     <Select
-                      aria-label="วิธีการชำระเงิน"
+                      aria-label={t("วิธีการชำระเงิน")}
                       allowClear
-                      placeholder="เลือกวิธีชำระ"
+                      placeholder={t("เลือกวิธีชำระ")}
                       style={{ width: "100%" }}
-                      options={PAYMENT_METHOD_OPTIONS}
+                      options={PAYMENT_METHOD_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
                       value={headerDraft.paymentMethod}
                       onChange={(value) =>
                         patchHeaderDraft((prev) => ({
@@ -1732,24 +1737,28 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     />
                   ) : (
                     (headerDraft.paymentMethod
-                      ? SALES_ORDER_PAYMENT_METHOD_LABEL[
-                          headerDraft.paymentMethod
-                        ]
+                      ? t(
+                          SALES_ORDER_PAYMENT_METHOD_LABEL[
+                            headerDraft.paymentMethod
+                          ],
+                        )
                       : null) ??
                     (data.paymentMethod
-                      ? (SALES_ORDER_PAYMENT_METHOD_LABEL[
-                          data.paymentMethod as SalesOrderPaymentMethod
-                        ] ?? data.paymentMethod)
+                      ? t(
+                          SALES_ORDER_PAYMENT_METHOD_LABEL[
+                            data.paymentMethod as SalesOrderPaymentMethod
+                          ] ?? data.paymentMethod,
+                        )
                       : "—")
                   )}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ครบกำหนดชำระ</span>
+                <span className={styles.metaLabel}>{t("ครบกำหนดชำระ")}</span>
                 <div className={styles.metaValue}>
                   {canEditHeader ? (
                     <DatePicker
-                      aria-label="ครบกำหนดชำระ"
+                      aria-label={t("ครบกำหนดชำระ")}
                       format="DD/MM/YYYY"
                       style={{ width: "100%" }}
                       value={
@@ -1773,18 +1782,18 @@ export default function SalesOrderDetailPage({ id }: Props) {
               </div>
               {data.paymentTerm?.name ? (
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>เงื่อนไขชำระ</span>
+                  <span className={styles.metaLabel}>{t("เงื่อนไขชำระ")}</span>
                   <div className={styles.metaValue}>{data.paymentTerm.name}</div>
                 </div>
               ) : null}
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>รูปแบบ VAT</span>
+                <span className={styles.metaLabel}>{t("รูปแบบ VAT")}</span>
                 <div className={styles.metaValue}>
                   {canEditHeader ? (
                     <Select
-                      aria-label="รูปแบบ VAT"
+                      aria-label={t("รูปแบบ VAT")}
                       style={{ width: "100%" }}
-                      options={VAT_MODE_OPTIONS}
+                      options={VAT_MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
                       value={resolveVatMode(headerDraft.vatMode)}
                       onChange={(value) =>
                         patchHeaderDraft((prev) => ({
@@ -1794,17 +1803,21 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       }
                     />
                   ) : (
-                    (VAT_MODE_LABEL[resolveVatMode(data.vatMode)] ??
-                      "ไม่รวม VAT")
+                    t(
+                      VAT_MODE_LABEL[resolveVatMode(data.vatMode)] ??
+                        "ไม่รวม VAT",
+                    )
                   )}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ภาษีหัก ณ ที่จ่าย</span>
+                <span className={styles.metaLabel}>{t("ภาษีหัก ณ ที่จ่าย")}</span>
                 <div className={styles.metaValue}>
-                  {withholdingTaxTypeLabel(
-                    data.withholdingTaxType,
-                    data.withholdingTaxPercent,
+                  {t(
+                    withholdingTaxTypeLabel(
+                      data.withholdingTaxType,
+                      data.withholdingTaxPercent,
+                    ),
                   )}
                 </div>
               </div>
@@ -1815,11 +1828,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
             <div className={styles.sectionHead}>
               <div>
                 <h2 className={styles.sectionTitle}>
-                  <PaperClipOutlined /> หลักฐานยืนยันคำสั่งซื้อ
+                  <PaperClipOutlined /> {t("หลักฐานยืนยันคำสั่งซื้อ")}
                 </h2>
                 <p className={styles.sectionHint}>
-                  ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย
-                  — เลข PO กรอกได้ตามเดิมแต่ไม่แทนไฟล์แนบ
+                  {t("ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย — เลข PO กรอกได้ตามเดิมแต่ไม่แทนไฟล์แนบ")}
                 </p>
               </div>
               {canUploadEvidence ? (
@@ -1830,7 +1842,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     loading={uploadAttachmentMutation.isPending}
                     disabled={busy}
                   >
-                    อัปโหลดหลักฐาน
+                    {t("อัปโหลดหลักฐาน")}
                   </Button>
                 </Upload>
               ) : null}
@@ -1838,7 +1850,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
             <div className={styles.evidenceGrid}>
               <div className={styles.evidenceCard}>
-                <span className={styles.evidenceCardLabel}>ใบเสนอราคา</span>
+                <span className={styles.evidenceCardLabel}>{tSoStatus("ใบเสนอราคา")}</span>
                 {data.salesQuotationId ? (
                   <Link
                     href={`/quotations/${data.salesQuotationId}`}
@@ -1851,37 +1863,37 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       <strong>
                         {data.salesQuotationNo ?? data.salesQuotationId}
                       </strong>
-                      <span>เปิดดูใบเสนอราคาต้นทาง</span>
+                      <span>{t("เปิดดูใบเสนอราคาต้นทาง")}</span>
                     </span>
                   </Link>
                 ) : (
                   <div className={styles.evidenceEmpty}>
-                    ไม่มีใบเสนอราคาอ้างอิง
+                    {t("ไม่มีใบเสนอราคาอ้างอิง")}
                   </div>
                 )}
               </div>
 
               <div className={styles.evidenceCard}>
                 <div className={styles.evidenceCardTop}>
-                  <span className={styles.evidenceCardLabel}>เลข PO ลูกค้า</span>
+                  <span className={styles.evidenceCardLabel}>{t("เลข PO ลูกค้า")}</span>
                   {canUploadEvidence ? (
                     <Button
                       type="link"
                       size="small"
                       onClick={() => openCustomerPoModal(data.customerPoNo)}
                     >
-                      {data.customerPoNo?.trim() ? "แก้ไข" : "ระบุเลข"}
+                      {data.customerPoNo?.trim() ? t("แก้ไข") : t("ระบุเลข")}
                     </Button>
                   ) : null}
                 </div>
                 {data.customerPoNo?.trim() ? (
                   <div className={styles.poBadge}>
-                    <span className={styles.poBadgeEyebrow}>เลขที่ PO</span>
+                    <span className={styles.poBadgeEyebrow}>{t("เลขที่ PO")}</span>
                     <strong>{data.customerPoNo.trim()}</strong>
                   </div>
                 ) : (
                   <div className={styles.evidenceEmptyWarn}>
-                    ยังไม่มีเลข PO — ระบุได้ตามต้องการ แต่ต้องอัปโหลดไฟล์หลักฐานก่อนยืนยันใบสั่งขาย
+                    {t("ยังไม่มีเลข PO — ระบุได้ตามต้องการ แต่ต้องอัปโหลดไฟล์หลักฐานก่อนยืนยันใบสั่งขาย")}
                   </div>
                 )}
               </div>
@@ -1889,26 +1901,25 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
             <div className={styles.evidenceFilesBlock}>
               <div className={styles.evidenceFilesTitle}>
-                <span>ไฟล์ที่แนบแล้ว</span>
+                <span>{t("ไฟล์ที่แนบแล้ว")}</span>
                 <span className={styles.evidenceFilesCount}>
                   {attachmentsQuery.isLoading
                     ? "…"
-                    : `${attachments.length} ไฟล์`}
+                    : t("{n} ไฟล์", { n: attachments.length })}
                 </span>
               </div>
 
               {attachmentsQuery.isLoading ? (
                 <div className={styles.evidenceLoading}>
-                  <Spin size="small" /> กำลังโหลดไฟล์แนบ...
+                  <Spin size="small" /> {t("กำลังโหลดไฟล์แนบ...")}
                 </div>
               ) : attachments.length === 0 ? (
                 <div className={styles.evidenceDropHint}>
                   <UploadOutlined />
                   <div>
-                    <strong>ยังไม่มีไฟล์หลักฐาน</strong>
+                    <strong>{t("ยังไม่มีไฟล์หลักฐาน")}</strong>
                     <span>
-                      ต้องอัปโหลดอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย —
-                      รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB
+                      {t("ต้องอัปโหลดอย่างน้อย 1 ไฟล์ก่อนยืนยันใบสั่งขาย — รองรับ PDF และรูป JPG/PNG/WEBP ขนาดไม่เกิน 20MB")}
                     </span>
                   </div>
                 </div>
@@ -1933,7 +1944,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           </span>
                         ) : (
                           <span className={styles.attachmentDesc}>
-                            หลักฐานยืนยันคำสั่งซื้อ
+                            {t("หลักฐานยืนยันคำสั่งซื้อ")}
                           </span>
                         )}
                       </div>
@@ -1945,7 +1956,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             icon={<EyeOutlined />}
                             onClick={() => void openAttachmentPreview(file)}
                           >
-                            ดู
+                            {t("ดู")}
                           </Button>
                         )}
                         <Button
@@ -1953,7 +1964,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           icon={<DownloadOutlined />}
                           onClick={() => void downloadAttachment(file)}
                         >
-                          ดาวน์โหลด
+                          {t("ดาวน์โหลด")}
                         </Button>
                         {canDeleteEvidence ? (
                           <Button
@@ -1968,9 +1979,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             disabled={busy}
                             onClick={() =>
                               modal.confirm({
-                                title: "ยืนยันลบไฟล์แนบ?",
+                                title: t("ยืนยันลบไฟล์แนบ?"),
                                 content: attachmentDisplayName(file),
-                                okText: "ลบ",
+                                okText: t("ลบ"),
                                 okButtonProps: { danger: true },
                                 onOk: () =>
                                   deleteAttachmentMutation.mutateAsync({
@@ -1980,7 +1991,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                               })
                             }
                           >
-                            ลบ
+                            {t("ลบ")}
                           </Button>
                         ) : null}
                       </div>
@@ -1994,18 +2005,18 @@ export default function SalesOrderDetailPage({ id }: Props) {
           <div className={styles.section}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>
-                {isPreConfirm ? "การจองสต๊อก" : "ผลตรวจสอบสต๊อก"}
+                {isPreConfirm ? t("การจองสต๊อก") : t("ผลตรวจสอบสต๊อก")}
               </h2>
               <span className={styles.sectionHint}>
                 {isPreConfirm
                   ? hasUnplannedShortage
                     ? hasActiveProductionRequest
-                      ? "สต๊อกไม่พอ — มีใบขอผลิตแล้ว ติดตามของเข้าคลังได้จากเอกสารนั้น · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ"
-                      : "สต๊อกไม่พอ — เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ ขอแค่จัดรอบจัดส่งให้ครบ"
+                      ? t("สต๊อกไม่พอ — มีใบขอผลิตแล้ว ติดตามของเข้าคลังได้จากเอกสารนั้น · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ")
+                      : t("สต๊อกไม่พอ — เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ ขอแค่จัดรอบจัดส่งให้ครบ")
                     : allLinesReserved
-                      ? "จองสต๊อกแล้ว — ยกเลิกการจองรายการเพื่อคืนของ หรือยกเลิกทั้งใบ"
-                      : "ของพอจะถูกจองตอนสร้างใบ ถ้าปล่อยจองแล้วให้จองใหม่ก่อนเดินต่อ"
-                  : "เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย"}
+                      ? t("จองสต๊อกแล้ว — ยกเลิกการจองรายการเพื่อคืนของ หรือยกเลิกทั้งใบ")
+                      : t("ของพอจะถูกจองตอนสร้างใบ ถ้าปล่อยจองแล้วให้จองใหม่ก่อนเดินต่อ")
+                  : t("เทียบยอด quantity_available รวมทุกคลังกับจำนวนที่สั่งขาย")}
               </span>
             </div>
             {isPreConfirm ? (
@@ -2016,26 +2027,25 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
                   {hasUnplannedShortage ? (
                     <p className={styles.stockReadyNote}>
-                      สต๊อกไม่พอ ณ ตอนนี้ —{" "}
+                      {t("สต๊อกไม่พอ ณ ตอนนี้ —")}{" "}
                       {hasActiveProductionRequest
-                        ? "มีใบขอผลิตอยู่แล้ว เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด"
-                        : "เปิดใบขอผลิตไว้ได้"}{" "}
-                      · <strong>ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ</strong>{" "}
-                      ด่านเช็คของอยู่ตอนคลังเปิดใบจ่ายของแต่ละรอบ
+                        ? t("มีใบขอผลิตอยู่แล้ว เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด")
+                        : t("เปิดใบขอผลิตไว้ได้")}{" "}
+                      · <strong>{t("ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ")}</strong>{" "}
+                      {t("ด่านเช็คของอยู่ตอนคลังเปิดใบจ่ายของแต่ละรอบ")}
                     </p>
                   ) : null}
                 </>
               ) : (
-                <p className={styles.textBlock}>ไม่สามารถโหลดสถานะการจองได้</p>
+                <p className={styles.textBlock}>{t("ไม่สามารถโหลดสถานะการจองได้")}</p>
               )
             ) : (
               <>
                 {data.status === "CONFIRMED" &&
                 stockVerification?.isAllAvailable ? (
                   <p className={styles.stockReadyNote}>
-                    สต๊อกพอทุกรายการ ณ ตอนนี้ — หน้านี้เป็นรายงานอ่านอย่างเดียว ·
-                    ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด
-                    (ใช้ของที่จองไว้ตอนสร้างใบ ไม่จองซ้ำ)
+                    {t("สต๊อกพอทุกรายการ ณ ตอนนี้ — หน้านี้เป็นรายงานอ่านอย่างเดียว · ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด")}{" "}
+                    {t("(ใช้ของที่จองไว้ตอนสร้างใบ ไม่จองซ้ำ)")}
                   </p>
                 ) : null}
                 {stockVerificationQuery.isLoading ? (
@@ -2061,29 +2071,30 @@ export default function SalesOrderDetailPage({ id }: Props) {
                               : (line.itemName ?? "—")}
                           </p>
                           <p className={styles.itemCode}>
-                            ต้องการ{" "}
-                            {Number(line.orderedQty).toLocaleString("th-TH")}
+                            {t("ต้องการ {qty}", {
+                              qty: Number(line.orderedQty).toLocaleString("th-TH"),
+                            })}
                             {issued > 0.0005
-                              ? ` · จ่ายแล้ว ${issued.toLocaleString("th-TH")}`
+                              ? ` · ${t("จ่ายแล้ว {qty}", { qty: issued.toLocaleString("th-TH") })}`
                               : ""}
                             {" · "}
-                            จองแล้ว{" "}
-                            {Number(line.reservedQty ?? 0).toLocaleString(
-                              "th-TH",
-                            )}
+                            {t("จองแล้ว {qty}", {
+                              qty: Number(line.reservedQty ?? 0).toLocaleString("th-TH"),
+                            })}
                             {" · "}
-                            พร้อมใช้ว่าง{" "}
-                            {Number(line.availableQty).toLocaleString("th-TH")}
+                            {t("พร้อมใช้ว่าง {qty}", {
+                              qty: Number(line.availableQty).toLocaleString("th-TH"),
+                            })}
                             {pending > 0.0005
-                              ? ` · รอผลิต ${pending.toLocaleString("th-TH")}`
+                              ? ` · ${t("รอผลิต {qty}", { qty: pending.toLocaleString("th-TH") })}`
                               : ""}
                             {unplanned > 0.0005
-                              ? ` · ขาดอีก ${unplanned.toLocaleString("th-TH")}`
+                              ? ` · ${t("ขาดอีก {qty}", { qty: unplanned.toLocaleString("th-TH") })}`
                               : ""}
                           </p>
                         </div>
                         <div className={styles.itemQty}>
-                          <Tag color={tag.color}>{tag.label}</Tag>
+                          <Tag color={tag.color}>{tSoStatus(tag.label)}</Tag>
                         </div>
                       </div>
                       );
@@ -2091,7 +2102,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   </div>
                 ) : (
                   <p className={styles.textBlock}>
-                    ไม่สามารถตรวจสอบยอดคงเหลือได้
+                    {t("ไม่สามารถตรวจสอบยอดคงเหลือได้")}
                   </p>
                 )}
               </>
@@ -2102,14 +2113,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
             <div className={`${styles.section} ${styles.productionSpotlight}`}>
               <div className={styles.sectionHead}>
                 <div>
-                  <h2 className={styles.sectionTitle}>รายการที่ต้องขอผลิตเพิ่ม</h2>
+                  <h2 className={styles.sectionTitle}>{t("รายการที่ต้องขอผลิตเพิ่ม")}</h2>
                   <p className={styles.sectionHint}>
-                    สต๊อกไม่พอ — ออกใบขอผลิตได้ทีละรายการหรือรวมทั้งใบ ·
-                    ไม่บล็อกการยืนยันใบสั่งขาย
+                    {t("สต๊อกไม่พอ — ออกใบขอผลิตได้ทีละรายการหรือรวมทั้งใบ · ไม่บล็อกการยืนยันใบสั่งขาย")}
                   </p>
                 </div>
                 <Tag color="error">
-                  ขาด {productionRequestItems.length} รายการ
+                  {t("ขาด {n} รายการ", { n: productionRequestItems.length })}
                 </Tag>
               </div>
               <div className={styles.productionSpotlightList}>
@@ -2130,13 +2140,14 @@ export default function SalesOrderDetailPage({ id }: Props) {
                             : (item.itemNameTh ?? "—")}
                         </p>
                         <p className={styles.itemCode}>
-                          ขาด{" "}
-                          {Number(
-                            reservationLine.unplannedShortageQty ??
-                              reservationLine.shortageQty,
-                          ).toLocaleString("th-TH")}{" "}
-                          {item.unitCode ?? ""} · ขอผลิต {productionRequestLine.requestedQty.toLocaleString("th-TH")}{" "}
-                          {item.unitCode ?? ""}
+                          {t("ขาด {qty} {unit} · ขอผลิต {req} {unit}", {
+                            qty: Number(
+                              reservationLine.unplannedShortageQty ??
+                                reservationLine.shortageQty,
+                            ).toLocaleString("th-TH"),
+                            req: productionRequestLine.requestedQty.toLocaleString("th-TH"),
+                            unit: item.unitCode ?? "",
+                          })}
                         </p>
                       </div>
                       <Button
@@ -2152,7 +2163,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           })
                         }
                       >
-                        ออกใบขอผลิต
+                        {t("ออกใบขอผลิต")}
                       </Button>
                     </div>
                   );
@@ -2165,9 +2176,9 @@ export default function SalesOrderDetailPage({ id }: Props) {
             <div className={styles.section}>
               <div className={styles.sectionHead}>
                 <div>
-                  <h2 className={styles.sectionTitle}>ใบขอผลิตที่อ้างอิง</h2>
+                  <h2 className={styles.sectionTitle}>{t("ใบขอผลิตที่อ้างอิง")}</h2>
                   <p className={styles.sectionHint}>
-                    เทียบของในคลังกับจำนวนที่สั่งตอนนี้ ไม่ใช้แค่สถานะใบขอผลิต
+                    {t("เทียบของในคลังกับจำนวนที่สั่งตอนนี้ ไม่ใช้แค่สถานะใบขอผลิต")}
                   </p>
                 </div>
                 <div className={styles.productionRequestHeadActions}>
@@ -2175,12 +2186,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     <Spin size="small" />
                   ) : reservationStatus ? (
                     hasUnplannedShortage ? (
-                      <Tag color="error">ยังไม่พอจริง</Tag>
+                      <Tag color="error">{t("ยังไม่พอจริง")}</Tag>
                     ) : (
-                      <Tag color="success">พอจริงแล้ว</Tag>
+                      <Tag color="success">{t("พอจริงแล้ว")}</Tag>
                     )
                   ) : null}
-                  <Tag>{linkedProductionRequests.length} ใบ</Tag>
+                  <Tag>{t("{n} ใบ", { n: linkedProductionRequests.length })}</Tag>
                 </div>
               </div>
 
@@ -2205,14 +2216,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
                               : (line.itemName ?? "—")}
                           </p>
                           <p className={styles.itemCode}>
-                            สั่ง {formatQty(line.orderedQty)} · ในคลังพร้อมใช้{" "}
-                            {formatQty(line.availableQty)} · จองแล้ว{" "}
-                            {formatQty(line.reservedQty)}
+                            {t("สั่ง {ordered} · ในคลังพร้อมใช้ {available} · จองแล้ว {reserved}", {
+                              ordered: formatQty(line.orderedQty),
+                              available: formatQty(line.availableQty),
+                              reserved: formatQty(line.reservedQty),
+                            })}
                             {pendingProduction > 0.0005
-                              ? ` · รอผลิต ${formatQty(line.pendingProductionQty)}`
+                              ? ` · ${t("รอผลิต {qty}", { qty: formatQty(line.pendingProductionQty) })}`
                               : ""}
                             {stillShort
-                              ? ` · ขาดอีก ${formatQty(line.unplannedShortageQty ?? line.shortageQty)}`
+                              ? ` · ${t("ขาดอีก {qty}", { qty: formatQty(line.unplannedShortageQty ?? line.shortageQty) })}`
                               : ""}
                           </p>
                         </div>
@@ -2226,10 +2239,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           }
                         >
                           {stillShort
-                            ? "ยังไม่พอจริง"
+                            ? t("ยังไม่พอจริง")
                             : pendingProduction > 0.0005
-                              ? "รอผลผลิต"
-                              : "พอจริง"}
+                              ? t("รอผลผลิต")
+                              : t("พอจริง")}
                         </Tag>
                       </div>
                     );
@@ -2247,19 +2260,19 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     disabled={busy}
                     onClick={() =>
                       modal.confirm({
-                        title: "ยืนยันจองสต๊อกทุกรายการที่ยังไม่จอง?",
+                        title: t("ยืนยันจองสต๊อกทุกรายการที่ยังไม่จอง?"),
                         content:
-                          "จองของพร้อมใช้ให้ทุกรายการที่ยังจองไม่ครบ — ของไม่พอจะข้ามรายการนั้น",
-                        okText: "จองทุกรายการที่ยังไม่จอง",
+                          t("จองของพร้อมใช้ให้ทุกรายการที่ยังจองไม่ครบ — ของไม่พอจะข้ามรายการนั้น"),
+                        okText: t("จองทุกรายการที่ยังไม่จอง"),
                         onOk: () =>
                           reserveAllEligibleMutation.mutateAsync(data.id),
                       })
                     }
                   >
-                    จองทุกรายการที่ยังไม่จอง
+                    {t("จองทุกรายการที่ยังไม่จอง")}
                   </Button>
                   <span className={styles.sectionHint}>
-                    ของในคลังพอแล้ว — จองกลับได้หลังยกเลิกการจอง แล้วจัดรอบครบเพื่อยืนยันใบ
+                    {t("ของในคลังพอแล้ว — จองกลับได้หลังยกเลิกการจอง แล้วจัดรอบครบเพื่อยืนยันใบ")}
                   </span>
                 </div>
               ) : null}
@@ -2273,15 +2286,15 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     disabled={confirmBlocked}
                     onClick={tryConfirmSalesOrder}
                   >
-                    ยืนยันใบสั่งขาย
+                    {tSoStatus("ยืนยันใบสั่งขาย")}
                   </Button>
                   <span className={styles.sectionHint}>
-                    จัดรอบครบแล้ว — กดยืนยันได้
+                    {t("จัดรอบครบแล้ว — กดยืนยันได้")}
                     {allLinesReserved
-                      ? " ของถูกจองไว้แล้ว ยืนยันใบไม่จองซ้ำ"
+                      ? t(" ของถูกจองไว้แล้ว ยืนยันใบไม่จองซ้ำ")
                       : ""}
                     {!evidenceReady
-                      ? " · ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยัน"
+                      ? t(" · ต้องอัปโหลดไฟล์หลักฐานอย่างน้อย 1 ไฟล์ก่อนยืนยัน")
                       : ""}
                   </span>
                 </div>
@@ -2311,17 +2324,17 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       }
                       message.info(
                         openPr
-                          ? `ใบขอผลิต ${openPr.requestNo} กำลังดำเนินการ — รอของเข้าคลัง`
-                          : "ยังไม่มีรายการที่ต้องขอผลิตเพิ่ม",
+                          ? t("ใบขอผลิต {no} กำลังดำเนินการ — รอของเข้าคลัง", { no: openPr.requestNo })
+                          : t("ยังไม่มีรายการที่ต้องขอผลิตเพิ่ม"),
                       );
                     }}
                   >
-                    ใบขอผลิต (จากใบสั่งขาย)
+                    {tSoStatus("ใบขอผลิต (จากใบสั่งขาย)")}
                   </Button>
                   <span className={styles.sectionHint}>
                     {hasStockShortage
-                      ? "สต๊อกยังไม่พอ — กดเพื่อออกใบขอผลิตต่อ"
-                      : "ของยังไม่เข้าคลังครบ — เปิดใบขอผลิตเพื่อรัน flow ต่อ"}
+                      ? t("สต๊อกยังไม่พอ — กดเพื่อออกใบขอผลิตต่อ")
+                      : t("ของยังไม่เข้าคลังครบ — เปิดใบขอผลิตเพื่อรัน flow ต่อ")}
                   </span>
                 </div>
               ) : null}
@@ -2337,8 +2350,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           <ProfileOutlined />
                         </span>
                         <Tag color="blue">
-                          {PRODUCTION_REQUEST_STATUS_LABEL[pr.status] ??
-                            pr.status}
+                          {tSoStatus(
+                            PRODUCTION_REQUEST_STATUS_LABEL[pr.status] ??
+                              pr.status,
+                          )}
                         </Tag>
                       </div>
                       <div className={styles.itemBody}>
@@ -2355,7 +2370,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           </span>
                         )}
                         <p className={styles.itemCode}>
-                          ต้องการภายใน {formatDate(pr.requiredDate)}
+                          {t("ต้องการภายใน {date}", { date: formatDate(pr.requiredDate) })}
                         </p>
                         <Progress
                           percent={pr.producedPercent}
@@ -2364,16 +2379,20 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           format={(value) => `${value ?? 0}%`}
                         />
                         <p className={styles.itemCode}>
-                          รับเข้าคลังแล้ว {formatQty(pr.totalProducedQty)} /{" "}
-                          {formatQty(pr.totalRequestedQty)}
+                          {t("รับเข้าคลังแล้ว {produced} / {requested}", {
+                            produced: formatQty(pr.totalProducedQty),
+                            requested: formatQty(pr.totalRequestedQty),
+                          })}
                         </p>
                         {(pr.items ?? []).map((item) => (
                           <p key={item.id} className={styles.itemCode}>
-                            {item.itemCode ?? "สินค้า"} · ขอ{" "}
-                            {formatQty(item.requestedQty)} · ได้แล้ว{" "}
-                            {formatQty(item.producedQty)}
+                            {t("{code} · ขอ {requested} · ได้แล้ว {produced}", {
+                              code: item.itemCode ?? t("สินค้า"),
+                              requested: formatQty(item.requestedQty),
+                              produced: formatQty(item.producedQty),
+                            })}
                             {Number(item.outstandingQty) > 0.0005
-                              ? ` · ค้าง ${formatQty(item.outstandingQty)}`
+                              ? ` · ${t("ค้าง {qty}", { qty: formatQty(item.outstandingQty) })}`
                               : ""}
                           </p>
                         ))}
@@ -2383,7 +2402,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           <Link
                             href={`/production/production-requests/${pr.id}`}
                           >
-                            เปิดเอกสาร
+                            {t("เปิดเอกสาร")}
                           </Link>
                         </div>
                       ) : null}
@@ -2396,7 +2415,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
               {/* แก้ได้เฉพาะก่อนยืนยัน — เงื่อนไขเดียวกับปุ่มจอง/ยกเลิกจองในส่วนนี้ */}
               {isPreConfirm && canWrite ? (
                 <Button
@@ -2404,25 +2423,25 @@ export default function SalesOrderDetailPage({ id }: Props) {
                   icon={<EditOutlined />}
                   onClick={() => setItemsEditOpen(true)}
                 >
-                  แก้ไขรายการ
+                  {t("แก้ไขรายการ")}
                 </Button>
               ) : null}
             </div>
             {isPreConfirm && canWrite && allLinesReserved ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                ของถูกจองแล้ว — ยกเลิกการจองรายการเพื่อคืนสต๊อก หรือจองใหม่ได้ก่อนยืนยัน
+                {t("ของถูกจองแล้ว — ยกเลิกการจองรายการเพื่อคืนสต๊อก หรือจองใหม่ได้ก่อนยืนยัน")}
               </p>
             ) : null}
             {showReserveCta ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
-                ของพร้อมใช้ — กดจองสต๊อกต่อรายการ หรือจองทุกรายการที่ยังไม่จอง
+                {t("ของพร้อมใช้ — กดจองสต๊อกต่อรายการ หรือจองทุกรายการที่ยังไม่จอง")}
               </p>
             ) : null}
             {isPreConfirm && hasUnplannedShortage ? (
               <p className={styles.sectionHint} style={{ marginBottom: 12 }}>
                 {hasActiveProductionRequest
-                  ? "รายการที่สต๊อกไม่พอมีใบขอผลิตแล้ว — เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด"
-                  : "รายการที่สต๊อกไม่พอ เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ"}
+                  ? t("รายการที่สต๊อกไม่พอมีใบขอผลิตแล้ว — เปิดเพิ่มได้ถ้าต้องแบ่งผลิตหลายงวด")
+                  : t("รายการที่สต๊อกไม่พอ เปิดใบขอผลิตไว้ได้ · ยืนยันใบสั่งขายได้เลยไม่ต้องรอของ")}
               </p>
             ) : null}
             <div className={styles.itemList}>
@@ -2441,28 +2460,28 @@ export default function SalesOrderDetailPage({ id }: Props) {
                           : (item.itemNameTh ?? "—")}
                       </p>
                       <p className={styles.itemCode}>
-                        {Number(item.quantity).toLocaleString("th-TH")}{" "}
-                        {item.unitCode ?? ""} · ราคา{" "}
-                        {formatMoney(item.unitPrice)}
+                        {t("{qty} {unit} · ราคา {price}", {
+                          qty: Number(item.quantity).toLocaleString("th-TH"),
+                          unit: item.unitCode ?? "",
+                          price: formatMoney(item.unitPrice),
+                        })}
                         {Number(item.discountAmount) > 0
-                          ? ` · ส่วนลด ${formatMoney(item.discountAmount)}`
+                          ? ` · ${t("ส่วนลด {amount}", { amount: formatMoney(item.discountAmount) })}`
                           : ""}
                       </p>
                       {isPreConfirm && reservationLine ? (
                         <p className={styles.itemCode}>
-                          ต้องการ{" "}
-                          {Number(reservationLine.orderedQty).toLocaleString(
-                            "th-TH",
-                          )}{" "}
+                          {t("ต้องการ {qty}", {
+                            qty: Number(reservationLine.orderedQty).toLocaleString("th-TH"),
+                          })}
                           {Number(reservationLine.reservedQty) > 0.0005
-                            ? ` · จองแล้ว ${Number(reservationLine.reservedQty).toLocaleString("th-TH")}`
+                            ? ` · ${t("จองแล้ว {qty}", { qty: Number(reservationLine.reservedQty).toLocaleString("th-TH") })}`
                             : ""}{" "}
-                          · พร้อมใช้{" "}
-                          {Number(reservationLine.availableQty).toLocaleString(
-                            "th-TH",
-                          )}
+                          · {t("พร้อมใช้ {qty}", {
+                            qty: Number(reservationLine.availableQty).toLocaleString("th-TH"),
+                          })}
                           {Number(reservationLine.shortageQty) > 0
-                            ? ` · ขาด ${Number(reservationLine.shortageQty).toLocaleString("th-TH")}`
+                            ? ` · ${t("ขาด {qty}", { qty: Number(reservationLine.shortageQty).toLocaleString("th-TH") })}`
                             : ""}
                         </p>
                       ) : null}
@@ -2472,22 +2491,22 @@ export default function SalesOrderDetailPage({ id }: Props) {
                         Number(item.deliveredQuantity) > 0.0005) ? (
                         <div className={styles.itemMeta}>
                           <span>
-                            จอง{" "}
+                            {t("จอง")}{" "}
                             {Number(item.reservedQuantity).toLocaleString("th-TH")}
                           </span>
                           <span>
-                            จ่ายแล้ว{" "}
+                            {tSoStatus("จ่ายแล้ว")}{" "}
                             {Number(item.issuedQuantity).toLocaleString("th-TH")}
                           </span>
                           <span>
-                            ส่งแล้ว{" "}
+                            {tSoStatus("ส่งแล้ว")}{" "}
                             {Number(item.deliveredQuantity).toLocaleString(
                               "th-TH",
                             )}
                           </span>
                           {Number(item.closedQuantity ?? 0) > 0.0005 ? (
                             <span style={{ color: "#cf1322" }}>
-                              ปิดการส่ง{" "}
+                              {t("ปิดการส่ง")}{" "}
                               {Number(item.closedQuantity).toLocaleString(
                                 "th-TH",
                               )}
@@ -2523,10 +2542,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                 disabled={busy}
                                 onClick={() =>
                                   modal.confirm({
-                                    title: "ยืนยันจองสต๊อก?",
+                                    title: t("ยืนยันจองสต๊อก?"),
                                     content:
-                                      "กันของในคลังให้รายการนี้ตามจำนวนที่สั่ง",
-                                    okText: "จองสต๊อก",
+                                      t("กันของในคลังให้รายการนี้ตามจำนวนที่สั่ง"),
+                                    okText: t("จองสต๊อก"),
                                     onOk: () =>
                                       reserveLineMutation.mutateAsync({
                                         id: data.id,
@@ -2535,7 +2554,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                   })
                                 }
                               >
-                                จองสต๊อก
+                                {t("จองสต๊อก")}
                               </Button>
                             ) : null}
                             {isPreConfirm &&
@@ -2552,10 +2571,10 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                 disabled={busy}
                                 onClick={() =>
                                   modal.confirm({
-                                    title: "ยืนยันยกเลิกการจองสต๊อก?",
+                                    title: t("ยืนยันยกเลิกการจองสต๊อก?"),
                                     content:
-                                      "คืนสต๊อกที่จองของรายการนี้เข้าคลัง",
-                                    okText: "ยกเลิกการจอง",
+                                      t("คืนสต๊อกที่จองของรายการนี้เข้าคลัง"),
+                                    okText: t("ยกเลิกการจอง"),
                                     okButtonProps: { danger: true },
                                     onOk: () =>
                                       releaseReservationMutation.mutateAsync({
@@ -2565,7 +2584,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                   })
                                 }
                               >
-                                ยกเลิกการจอง
+                                {t("ยกเลิกการจอง")}
                               </Button>
                             ) : null}
                             {hasUnplannedShortage &&
@@ -2587,19 +2606,19 @@ export default function SalesOrderDetailPage({ id }: Props) {
                                   })
                                 }
                               >
-                                ออกใบขอผลิต
+                                {t("ออกใบขอผลิต")}
                               </Button>
                             ) : null}
                             <div className={styles.itemTotalRow}>
-                              <span>ราคารวม</span>
+                              <span>{t("ราคารวม")}</span>
                               <strong>{formatMoney(String(gross))}</strong>
                             </div>
                             <div className={styles.itemTotalRow}>
-                              <span>ส่วนลด</span>
+                              <span>{t("ส่วนลด")}</span>
                               <strong>{formatMoney(String(discount))}</strong>
                             </div>
                             <div className={styles.itemTotalRow}>
-                              <span>ราคาหลังหักส่วนลด</span>
+                              <span>{t("ราคาหลังหักส่วนลด")}</span>
                               <strong>{formatMoney(String(net))}</strong>
                             </div>
                           </div>
@@ -2619,34 +2638,35 @@ export default function SalesOrderDetailPage({ id }: Props) {
               if (commercialRounds.length === 0) {
                 return (
                   <p className={styles.sectionHint} style={{ marginTop: 16 }}>
-                    ยังไม่มีรอบจัดส่ง — ตารางแยกรอบจะขึ้นเมื่อจัดรอบแล้ว
+                    {t("ยังไม่มีรอบจัดส่ง — ตารางแยกรอบจะขึ้นเมื่อจัดรอบแล้ว")}
                   </p>
                 );
               }
               return (
                 <div className={styles.roundTables}>
-                  <h3 className={styles.roundTablesTitle}>รายการแยกตามรอบ</h3>
+                  <h3 className={styles.roundTablesTitle}>{t("รายการแยกตามรอบ")}</h3>
                   {commercialRounds.map((schedule) => (
                     <div key={schedule.id} className={styles.roundTableBlock}>
                       <h4 className={styles.roundTableHeading}>
-                        รอบที่ {schedule.roundNo} —{" "}
+                        {t("รอบที่ {no} —", { no: schedule.roundNo })}{" "}
                         {formatThaiBuddhistDate(
                           schedule.deliveryDate,
                           formatDate(schedule.deliveryDate),
+                          language,
                         )}
                       </h4>
                       <div className={styles.roundTableWrap}>
                         <table className={styles.roundTable}>
                           <thead>
                             <tr>
-                              <th>ลำดับ</th>
-                              <th>รหัสสินค้า</th>
-                              <th>รายการสินค้า</th>
-                              <th>หน่วย</th>
-                              <th>จำนวน</th>
-                              <th>ราคาต่อหน่วย</th>
-                              <th>ส่วนลด</th>
-                              <th>จำนวนเงิน</th>
+                              <th>{t("ลำดับ")}</th>
+                              <th>{t("รหัสสินค้า")}</th>
+                              <th>{t("รายการสินค้า")}</th>
+                              <th>{t("หน่วย")}</th>
+                              <th>{t("จำนวน")}</th>
+                              <th>{t("ราคาต่อหน่วย")}</th>
+                              <th>{t("ส่วนลด")}</th>
+                              <th>{t("จำนวนเงิน")}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -2687,12 +2707,12 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>หมายเหตุเอกสาร</h2>
+              <h2 className={styles.sectionTitle}>{t("หมายเหตุเอกสาร")}</h2>
             </div>
             {canEditHeader ? (
               <DocumentHtmlEditor
-                ariaLabel="หมายเหตุเอกสาร"
-                placeholder="รายละเอียดเพิ่มเติมบนใบสั่งขาย"
+                ariaLabel={t("หมายเหตุเอกสาร")}
+                placeholder={t("รายละเอียดเพิ่มเติมบนใบสั่งขาย")}
                 value={headerDraft.remark}
                 onChange={(html) =>
                   patchHeaderDraft((prev) => ({
@@ -2708,9 +2728,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             {/*
-              canWrite ไม่ใช่สิทธิ์แก้รายการ — รายการล็อกตามใบเสนอราคา
-              ปุ่มเลื่อน/ยกเลิกรอบยังต้องโชว์หลังยืนยัน · การคุมสถานะอยู่ในแผงเอง
-              ทีละปุ่มตามสถานะรอบ และ backend คุมซ้ำอีกชั้น
+              canWrite ไม่ใช่สิทธิ์แก้รายการ — รายการล็อกตามใบเสนอราคา ปุ่มเลื่อน/ยกเลิกรอบยังต้องโชว์หลังยืนยัน · การคุมสถานะอยู่ในแผงเอง ทีละปุ่มตามสถานะรอบ และ backend คุมซ้ำอีกชั้น
               (SCHEDULABLE_SO_STATUSES มี CONFIRMED)
             */}
             <DeliverySchedulesSection
@@ -2748,23 +2766,25 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.soNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {SALES_ORDER_STATUS_LABEL[data.status as SalesOrderStatus] ??
-              data.status}
+            {tSoStatus(
+              SALES_ORDER_STATUS_LABEL[data.status as SalesOrderStatus] ??
+                data.status,
+            )}
           </div>
           <div className={styles.progressSide}>
             <div className={styles.progressSideTop}>
               <span className={styles.progressSideCount}>
-                ขั้น {progress.inProgress}/{progress.total}
+                {t("ขั้น {current}/{total}", { current: progress.inProgress, total: progress.total })}
               </span>
               <strong>{progress.currentStepLabel}</strong>
             </div>
             <p className={styles.progressSideNext}>
               {tracking?.nextAction && tracking.nextAction !== "—"
-                ? `ถัดไป: ${tracking.nextAction}`
+                ? t("ถัดไป: {action}", { action: tSoStatus(tracking.nextAction) })
                 : progress.label}
             </p>
           </div>
@@ -2774,35 +2794,35 @@ export default function SalesOrderDetailPage({ id }: Props) {
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>ผู้สร้าง</span>
+              <span>{t("ผู้สร้าง")}</span>
               <strong>{data.createdBy?.displayName ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>สร้างเมื่อ</span>
+              <span>{t("สร้างเมื่อ")}</span>
               <strong>{formatDateTime(data.createdAt)}</strong>
             </div>
             {data.confirmedBy || data.confirmedAt ? (
               <>
                 <div className={styles.sideRow}>
-                  <span>ผู้ยืนยัน</span>
+                  <span>{t("ผู้ยืนยัน")}</span>
                   <strong>{data.confirmedBy?.displayName ?? "—"}</strong>
                 </div>
                 <div className={styles.sideRow}>
-                  <span>ยืนยันเมื่อ</span>
+                  <span>{t("ยืนยันเมื่อ")}</span>
                   <strong>{formatDateTime(data.confirmedAt)}</strong>
                 </div>
               </>
             ) : null}
             <div className={styles.sideRow}>
-              <span>ยอดรวมก่อนส่วนลด</span>
+              <span>{t("ยอดรวมก่อนส่วนลด")}</span>
               <strong>{formatMoney(data.subtotalAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ส่วนลดท้ายบิล</span>
+              <span>{t("ส่วนลดท้ายบิล")}</span>
               <strong>{formatMoney(data.discountAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ยอดหลังหักส่วนลด</span>
+              <span>{t("ยอดหลังหักส่วนลด")}</span>
               <strong>
                 {formatMoney(
                   String(
@@ -2820,13 +2840,13 @@ export default function SalesOrderDetailPage({ id }: Props) {
             {Number(data.withholdingTaxPercent) > 0 ? (
               <div className={styles.sideRow}>
                 <span>
-                  ภาษีหัก ณ ที่จ่าย {data.withholdingTaxPercent}%
+                  {t("ภาษีหัก ณ ที่จ่าย")} {data.withholdingTaxPercent}%
                 </span>
                 <strong>{formatMoney(data.withholdingTaxAmount)}</strong>
               </div>
             ) : null}
             <div className={styles.sideRow}>
-              <span>ยอดสุทธิ</span>
+              <span>{t("ยอดสุทธิ")}</span>
               <strong>{formatMoney(data.totalAmount)}</strong>
             </div>
           </div>
@@ -2845,16 +2865,16 @@ export default function SalesOrderDetailPage({ id }: Props) {
                       openProductionRequestModal({ kind: "all" })
                     }
                   >
-                    ออกใบขอผลิตทุกรายการที่ขาด
+                    {t("ออกใบขอผลิตทุกรายการที่ขาด")}
                   </Button>
                 ) : null}
                 {hasUnplannedShortage && !hasStockShortage ? (
                   <p className={styles.sectionHint}>
-                    สต๊อกยังไม่พอ — จองหรือยืนยันใบสั่งขายยังทำไม่ได้
+                    {t("สต๊อกยังไม่พอ — จองหรือยืนยันใบสั่งขายยังทำไม่ได้")}
                     {hasActiveProductionRequest ||
                     linkedProductionRequests.length
-                      ? " เปิดใบขอผลิตที่มีอยู่เพื่อติดตามของเข้าคลัง"
-                      : " ต้องออกใบขอผลิตเท่านั้น"}
+                      ? t(" เปิดใบขอผลิตที่มีอยู่เพื่อติดตามของเข้าคลัง")
+                      : t(" ต้องออกใบขอผลิตเท่านั้น")}
                   </p>
                 ) : null}
                 {showConfirmCta ? (
@@ -2867,7 +2887,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
                     disabled={confirmBlocked}
                     onClick={tryConfirmSalesOrder}
                   >
-                    ยืนยันใบสั่งขาย
+                    {tSoStatus("ยืนยันใบสั่งขาย")}
                   </Button>
                 ) : null}
                 {pdfPreviewBlock}
@@ -2888,7 +2908,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
             !(isPreConfirm && (canConfirm || canWrite)) &&
             !cancelButton ? (
               <p className={styles.sectionHint}>
-                บัญชีนี้มีสิทธิ์ดูอย่างเดียว — ติดต่อผู้ดูแลระบบหากต้องดำเนินการ
+                {t("บัญชีนี้มีสิทธิ์ดูอย่างเดียว — ติดต่อผู้ดูแลระบบหากต้องดำเนินการ")}
               </p>
             ) : null}
           </div>
@@ -2896,27 +2916,27 @@ export default function SalesOrderDetailPage({ id }: Props) {
       </div>
 
       <Modal
-        title="เลือกวันที่ต้องการผลผลิต"
+        title={t("เลือกวันที่ต้องการผลผลิต")}
         open={Boolean(pendingProductionRequest)}
         onCancel={() => setPendingProductionRequest(null)}
         onOk={submitProductionRequest}
-        okText="ออกใบขอผลิต"
+        okText={t("ออกใบขอผลิต")}
         confirmLoading={createProductionRequestMutation.isPending}
         okButtonProps={{ disabled: !productionRequiredDate }}
         destroyOnHidden
       >
         <p className={styles.sectionHint}>
-          ใบสั่งขาย {data.soNo} · {pendingProductionRequestLabel}
+          {t("ใบสั่งขาย {soNo} · {label}", { soNo: data.soNo, label: pendingProductionRequestLabel })}
           {data.requestedDeliveryDate
-            ? ` · วันส่งตาม SO ${formatDate(data.requestedDeliveryDate)}`
+            ? ` · ${t("วันส่งตาม SO {date}", { date: formatDate(data.requestedDeliveryDate) })}`
             : ""}
         </p>
         <label className={styles.sectionHint} htmlFor="production-required-date">
-          วันที่ต้องการผลผลิต
+          {t("วันที่ต้องการผลผลิต")}
         </label>
         <DatePicker
           id="production-required-date"
-          aria-label="วันที่ต้องการผลผลิต"
+          aria-label={t("วันที่ต้องการผลผลิต")}
           format="DD/MM/YYYY"
           style={{ width: "100%", marginTop: 8 }}
           value={productionRequiredDate}
@@ -2928,19 +2948,19 @@ export default function SalesOrderDetailPage({ id }: Props) {
       </Modal>
 
       <Modal
-        title="ระบุเลข PO ลูกค้า"
+        title={t("ระบุเลข PO ลูกค้า")}
         open={poModalOpen}
         onCancel={() => setPoModalOpen(false)}
         onOk={saveCustomerPo}
-        okText="บันทึกเลข PO"
+        okText={t("บันทึกเลข PO")}
         confirmLoading={updateCustomerPoMutation.isPending}
         destroyOnHidden
       >
         <p className={styles.sectionHint}>
-          คัดลอกเลข PO จากไฟล์หลักฐานที่ยืนยัน แล้วบันทึกไว้บนใบสั่งขายนี้
+          {t("คัดลอกเลข PO จากไฟล์หลักฐานที่ยืนยัน แล้วบันทึกไว้บนใบสั่งขายนี้")}
         </p>
         <Input
-          placeholder="เช่น PO-CUST-2026-001"
+          placeholder={t("เช่น PO-CUST-2026-001")}
           value={poDraft}
           maxLength={100}
           onChange={(e) => setPoDraft(e.target.value)}
@@ -2950,7 +2970,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       </Modal>
 
       <Modal
-        title={previewTitle || "ดูไฟล์แนบ"}
+        title={previewTitle || t("ดูไฟล์แนบ")}
         open={previewOpen}
         onCancel={closeAttachmentPreview}
         footer={null}
@@ -2959,7 +2979,7 @@ export default function SalesOrderDetailPage({ id }: Props) {
       >
         {previewLoading ? (
           <div className={styles.stateCard}>
-            <Spin /> กำลังเปิดไฟล์...
+            <Spin /> {t("กำลังเปิดไฟล์...")}
           </div>
         ) : previewUrl ? (
           previewIsImage ? (

@@ -27,6 +27,8 @@ import {
 } from "@/types/delivery-orders";
 import styles from "./DeliveryOrdersListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -34,6 +36,7 @@ function formatDate(value?: string) {
 }
 
 export default function DeliveryOrdersListPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
@@ -59,34 +62,34 @@ export default function DeliveryOrdersListPage() {
   const columns: ColumnsType<DeliveryOrder> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_, __, index) => (page - 1) * 10 + index + 1,
       },
       {
-        title: "เลขที่",
+        title: t("เลขที่"),
         dataIndex: "deliveryOrderNo",
         render: (v: string) => <span className={styles.prNo}>{v}</span>,
       },
       { title: "SO", dataIndex: "salesOrderNo", render: (v?: string) => v ?? "—" },
-      { title: "ลูกค้า", dataIndex: "customerName", render: (v?: string) => v ?? "—" },
+      { title: t("ลูกค้า"), dataIndex: "customerName", render: (v?: string) => v ?? "—" },
       {
-        title: "วันที่ส่ง",
+        title: t("วันที่ส่ง"),
         dataIndex: "deliveryDate",
         width: 110,
         render: formatDate,
       },
-      { title: "ขนส่ง", dataIndex: "carrierName", render: (v?: string) => v ?? "—" },
-      { title: "ทะเบียน", dataIndex: "vehiclePlate", render: (v?: string) => v ?? "—" },
+      { title: t("ขนส่ง"), dataIndex: "carrierName", render: (v?: string) => v ?? "—" },
+      { title: t("ทะเบียน"), dataIndex: "vehiclePlate", render: (v?: string) => v ?? "—" },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 120,
         render: (v: string) => (
           <Tag color={v === "DELIVERED" ? "success" : v === "CANCELLED" ? "default" : "processing"}>
-            {DELIVERY_ORDER_STATUS_LABEL[v as DeliveryOrderStatus] ?? v}
+            {statusT(t, DELIVERY_ORDER_STATUS_LABEL[v as DeliveryOrderStatus] ?? v)}
           </Tag>
         ),
       },
@@ -104,7 +107,7 @@ export default function DeliveryOrdersListPage() {
         ),
       },
     ],
-    [canEdit, router],
+    [canEdit, router, t],
   );
 
   return (
@@ -112,8 +115,8 @@ export default function DeliveryOrdersListPage() {
       <PageHeader
         eyebrow="Sales · Delivery"
         icon={<CarOutlined />}
-        title="ใบส่งสินค้า"
-        subtitle="จัดส่งหลังบรรจุแล้ว — ไม่ตัดสต๊อกซ้ำ"
+        title={t("ใบส่งสินค้า")}
+        subtitle={t("จัดส่งหลังบรรจุแล้ว — ไม่ตัดสต๊อกซ้ำ")}
         actions={
           <>
 {canAdd ? (
@@ -124,7 +127,7 @@ export default function DeliveryOrdersListPage() {
                   type="primary"
                   icon={<PlusOutlined />}
                 >
-                  สร้างจาก Packing
+                  {t("สร้างจาก Packing")}
                 </Button>
               </Badge>
             </Link>
@@ -136,11 +139,11 @@ export default function DeliveryOrdersListPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input allowClear value={keyword} onChange={(e) => setKeyword(e.target.value)} />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
@@ -148,12 +151,12 @@ export default function DeliveryOrdersListPage() {
               onChange={setStatus}
               options={Object.entries(DELIVERY_ORDER_STATUS_LABEL).map(([value, label]) => ({
                 value,
-                label,
+                label: statusT(t, label),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ลูกค้า</label>
+            <label>{t("ลูกค้า")}</label>
             <Select
               allowClear
               showSearch
@@ -177,7 +180,7 @@ export default function DeliveryOrdersListPage() {
               setApplied({});
             }}
           >
-            เคลียร์
+            {t("เคลียร์")}
           </Button>
           <Button
             type="primary"
@@ -191,7 +194,7 @@ export default function DeliveryOrdersListPage() {
               })
             }
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -204,7 +207,7 @@ export default function DeliveryOrdersListPage() {
           dataSource={rows}
           pagination={{ current: page, pageSize: 10, onChange: setPage, showSizeChanger: false }}
           onRow={(row) => ({ onClick: () => router.push(`/delivery-orders/${row.id}`) })}
-          locale={{ emptyText: "ยังไม่มีใบส่งสินค้า" }}
+          locale={{ emptyText: t("ยังไม่มีใบส่งสินค้า") }}
         />
       </section>
     </div>

@@ -1,5 +1,7 @@
 import type { ColumnsType } from "antd/es/table";
 
+import type { TFunction } from "@/lib/i18n/useT";
+
 import type { ReadyPacking, ReadyPackingItem } from "@/types/delivery-orders";
 import styles from "./DeliveryOrdersListPage.module.css";
 
@@ -43,21 +45,23 @@ export function buildPackingPreviewLines(
 export const packingPreviewRowKey = (line: PackingPreviewLine) =>
   `${line.packingId}:${line.id}`;
 
-export const packingPreviewColumns: ColumnsType<PackingPreviewLine> = [
+export const getPackingPreviewColumns = (
+  t: TFunction,
+): ColumnsType<PackingPreviewLine> => [
   {
-    title: "ใบบรรจุ",
+    title: t("ใบบรรจุ"),
     dataIndex: "packingNo",
     width: 150,
     render: (v: string) => <span className={styles.prNo}>{v}</span>,
   },
   {
-    title: "รอบ",
+    title: t("รอบ"),
     dataIndex: "roundNo",
     width: 80,
-    render: (v?: number) => (v ? `รอบที่ ${v}` : "—"),
+    render: (v?: number) => (v ? t("รอบที่ {v}", { v }) : "—"),
   },
   {
-    title: "สินค้า",
+    title: t("สินค้า"),
     key: "item",
     render: (_: unknown, line) => (
       <div style={{ lineHeight: 1.4 }}>
@@ -69,14 +73,14 @@ export const packingPreviewColumns: ColumnsType<PackingPreviewLine> = [
     ),
   },
   {
-    title: "จำนวน",
+    title: t("จำนวน"),
     dataIndex: "packedQty",
     width: 110,
     align: "right",
     render: (v: string) => fmtQty(v),
   },
   {
-    title: "หน่วย",
+    title: t("หน่วย"),
     dataIndex: "unitCode",
     width: 90,
     render: (v?: string) => v ?? "—",

@@ -11,6 +11,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+
 import {
   readWarehouseGroup,
   withWarehouseGroup,
@@ -22,6 +24,7 @@ import {
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockCountQuery } from "@/hooks/stock-counts/useStockCountsQuery";
 import { STOCK_COUNT_STATUS_LABEL, STOCK_COUNT_TYPE_LABEL } from "@/types/stock-counts";
+import { tStockLabel } from "@/types/stock-adjustments";
 import styles from "./StockCountDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -49,6 +52,7 @@ function varianceClass(variance: number) {
 }
 
 export default function StockCountDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const warehouseGroup = readWarehouseGroup(useSearchParams());
   const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
@@ -67,7 +71,7 @@ export default function StockCountDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -75,9 +79,9 @@ export default function StockCountDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบนับสต๊อก
+        {t("ไม่พบใบนับสต๊อก")}
         <div style={{ marginTop: 12 }}>
-          <Link href={scopePath("/inventory/stock-counts")}>กลับรายการ</Link>
+          <Link href={scopePath("/inventory/stock-counts")}>{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -91,14 +95,14 @@ export default function StockCountDetailPage({ id }: Props) {
         eyebrow="Stock Count"
         icon={<FileSearchOutlined />}
         title={data.countNo}
-        subtitle={<>{formatDate(data.countDate)} · {data.items?.length ?? 0} รายการ</>}
+        subtitle={<>{formatDate(data.countDate)} · {data.items?.length ?? 0} {t("รายการ")}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(scopePath("/inventory/stock-counts"))}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           </>
         }
@@ -108,25 +112,27 @@ export default function StockCountDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.countNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่นับ</span>
+                <span className={styles.metaLabel}>{t("วันที่นับ")}</span>
                 <div className={styles.metaValue}>{formatDate(data.countDate)}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ประเภทการนับ</span>
+                <span className={styles.metaLabel}>{t("ประเภทการนับ")}</span>
                 <div className={styles.metaValue}>
-                  {STOCK_COUNT_TYPE_LABEL[data.countType] ?? data.countType}
+                  {STOCK_COUNT_TYPE_LABEL[data.countType]
+                    ? tStockLabel(STOCK_COUNT_TYPE_LABEL[data.countType])
+                    : data.countType}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>คลัง/ตำแหน่ง</span>
+                <span className={styles.metaLabel}>{t("คลัง/ตำแหน่ง")}</span>
                 <div className={styles.metaValue}>
                   {data.warehouse
                     ? `${data.warehouse.warehouseCode} / ${data.location?.locationCode ?? "—"}`
@@ -134,23 +140,23 @@ export default function StockCountDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้เปิดนับ</span>
+                <span className={styles.metaLabel}>{t("ผู้เปิดนับ")}</span>
                 <div className={styles.metaValue}>
                   {data.startedBy?.displayName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้อนุมัติ</span>
+                <span className={styles.metaLabel}>{t("ผู้อนุมัติ")}</span>
                 <div className={styles.metaValue}>
                   {data.completedBy?.displayName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ปรับปรุงสต๊อกเมื่อ</span>
+                <span className={styles.metaLabel}>{t("ปรับปรุงสต๊อกเมื่อ")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
                     ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
-                    : "ยังไม่อนุมัติ"}
+                    : t("ยังไม่อนุมัติ")}
                 </div>
               </div>
             </div>
@@ -158,7 +164,7 @@ export default function StockCountDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการนับสต๊อก</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการนับสต๊อก")}</h2>
             </div>
             <div className={styles.itemList}>
               {(data.items ?? []).map((item, index) => {
@@ -174,11 +180,11 @@ export default function StockCountDetailPage({ id }: Props) {
                       </p>
                       <div className={styles.qtyLine}>
                         <span className={styles.qtyTag}>
-                          ระบบ (ตอนเปิดนับ) {item.systemQuantity}
+                          {t("ระบบ (ตอนเปิดนับ)")} {item.systemQuantity}
                         </span>
                         <span>·</span>
                         <span>
-                          ส่วนต่าง:{" "}
+                          {t("ส่วนต่าง:")}{" "}
                           <strong className={varianceClass(variance)}>
                             {variance > 0
                               ? `+${variance.toFixed(3)}`
@@ -202,7 +208,7 @@ export default function StockCountDetailPage({ id }: Props) {
           {data.remark ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
               </div>
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
@@ -211,7 +217,7 @@ export default function StockCountDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.countNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
@@ -220,15 +226,14 @@ export default function StockCountDetailPage({ id }: Props) {
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>รายการ</span>
+              <span>{t("รายการ")}</span>
               <strong>{data.items?.length ?? 0}</strong>
             </div>
           </div>
 
           {data.status === "DRAFT" ? (
             <p className={styles.sideNote}>
-              ส่วนต่างที่แสดงคำนวณจากยอดระบบตอนเปิดใบนับเท่านั้น — ตอนอนุมัติ
-              ระบบจะคำนวณส่วนต่างใหม่จากยอดปัจจุบันจริงอีกครั้ง
+              {t("ส่วนต่างที่แสดงคำนวณจากยอดระบบตอนเปิดใบนับเท่านั้น — ตอนอนุมัติ ระบบจะคำนวณส่วนต่างใหม่จากยอดปัจจุบันจริงอีกครั้ง")}
             </p>
           ) : null}
 
@@ -241,14 +246,15 @@ export default function StockCountDetailPage({ id }: Props) {
                 loading={busy}
                 onClick={() =>
                   modal.confirm({
-                    title: "อนุมัติใบนับสต๊อกและปรับปรุงสต๊อก?",
-                    content:
+                    title: t("อนุมัติใบนับสต๊อกและปรับปรุงสต๊อก?"),
+                    content: t(
                       "ยืนยันแล้วระบบจะคำนวณส่วนต่างจากยอดปัจจุบันจริง แล้วปรับปรุงสต๊อกตามนั้น และแก้เอกสารไม่ได้",
+                    ),
                     onOk: () => approveMutation.mutateAsync(data.id),
                   })
                 }
               >
-                อนุมัติและปรับปรุงสต๊อก
+                {t("อนุมัติและปรับปรุงสต๊อก")}
               </Button>
             ) : null}
             {canRequest && data.status === "DRAFT" ? (
@@ -260,7 +266,7 @@ export default function StockCountDetailPage({ id }: Props) {
                     router.push(scopePath(`/inventory/stock-counts/${data.id}/edit`))
                   }
                 >
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -268,12 +274,12 @@ export default function StockCountDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันยกเลิกใบนับสต๊อก?",
+                      title: t("ยืนยันยกเลิกใบนับสต๊อก?"),
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  ยกเลิกเอกสาร
+                  {t("ยกเลิกเอกสาร")}
                 </Button>
               </>
             ) : null}

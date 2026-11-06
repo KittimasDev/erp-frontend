@@ -15,6 +15,7 @@ import { getAccessToken } from "@/lib/auth/token";
 import type { SaveClassificationRequest } from "@/types/raw-tire-classification";
 import { ticketClassificationQueryKey } from "./useTicketClassificationQuery";
 import { weighbridgeDashboardQueryKey } from "@/hooks/weighbridge-tickets/useWeighbridgeDashboardQuery";
+import { useT } from "@/lib/i18n/useT";
 
 function invalidateClassification(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -31,6 +32,7 @@ function invalidateClassification(
 }
 
 export function useSaveClassificationMutation(ticketId: string, receiptId?: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -53,17 +55,18 @@ export function useSaveClassificationMutation(ticketId: string, receiptId?: stri
     },
     onSuccess: async (response) => {
       await invalidateClassification(queryClient, ticketId);
-      message.success(response.message || "บันทึกร่างสำเร็จแล้ว");
+      message.success(response.message || t("บันทึกร่างสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "บันทึกร่างไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("บันทึกร่างไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useCalculateReceiptMutation(ticketId: string, receiptId?: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -73,17 +76,18 @@ export function useCalculateReceiptMutation(ticketId: string, receiptId?: string
       calculateRawTirePurchaseReceipt(getAccessToken(), receiptId!),
     onSuccess: async (response) => {
       await invalidateClassification(queryClient, ticketId);
-      message.success(response.message || "คำนวณใหม่สำเร็จแล้ว");
+      message.success(response.message || t("คำนวณใหม่สำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "คำนวณใหม่ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("คำนวณใหม่ไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useSubmitReceiptMutation(ticketId: string, receiptId?: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -93,17 +97,18 @@ export function useSubmitReceiptMutation(ticketId: string, receiptId?: string) {
       submitRawTirePurchaseReceipt(getAccessToken(), receiptId!),
     onSuccess: async (response) => {
       await invalidateClassification(queryClient, ticketId);
-      message.success(response.message || "ส่งอนุมัติสำเร็จแล้ว");
+      message.success(response.message || t("ส่งอนุมัติสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ส่งอนุมัติไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ส่งอนุมัติไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useCancelReceiptMutation(ticketId: string, receiptId?: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -115,11 +120,11 @@ export function useCancelReceiptMutation(ticketId: string, receiptId?: string) {
       }),
     onSuccess: async (response) => {
       await invalidateClassification(queryClient, ticketId);
-      message.success(response.message || "ยกเลิกใบรับซื้อสำเร็จแล้ว");
+      message.success(response.message || t("ยกเลิกใบรับซื้อสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยกเลิกใบรับซื้อไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยกเลิกใบรับซื้อไม่สำเร็จ"),
       );
     },
   });

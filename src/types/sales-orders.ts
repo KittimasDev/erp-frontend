@@ -1,3 +1,41 @@
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import { translate } from "@/lib/i18n/translate";
+
+const STATUS_EN_OVERRIDE: Record<string, string> = {
+  /* คำที่ในบริบทใบสั่งขายความหมายต่างจากพจนานุกรมกลาง (เช่น "ยกเลิก" = Cancelled ไม่ใช่ปุ่ม Cancel, "ใบจ่ายสินค้า" เอกพจน์) */
+  "ยกเลิก": "Cancelled",
+  "ยืนยัน": "Confirmed",
+  "จ่ายแล้ว": "Issued",
+  "ยกเลิกใบสั่งขาย": "Cancel sales order",
+  "ยืนยันใบสั่งขาย": "Confirm sales order",
+  "เลื่อนกำหนดส่ง": "Reschedule delivery",
+  "ข้อมูลลูกค้า": "Customer details",
+  "ใบเสนอราคา": "Quotation",
+  "ใบจ่ายสินค้า": "Picking list",
+  "ใบส่งสินค้า": "Delivery order",
+  "ใบขอผลิต (จากใบสั่งขาย)": "Production request (from sales order)",
+  "จ่ายบางส่วน": "Partially issued",
+  "รอยืนยัน": "Awaiting confirmation",
+  "ปฏิเสธ": "Rejected",
+  "รอดำเนินการ": "Pending",
+  "ส่งแล้ว": "Delivered",
+  /* ชื่อขั้นตอนบนแถบความคืบหน้า (SALES_ORDER_FLOW_STEPS.shortLabel) */
+  "จ่าย": "Issue",
+  "ส่ง": "Deliver",
+  /* ข้อความขั้นตอน/สิ่งที่ต้องทำถัดไปที่ backend ส่งมา (sales-tracking.service) */
+  "ร่างใบสั่งขาย": "Draft sales order",
+  "จองสต๊อกให้ครบแล้วยืนยันใบสั่งขาย": "Reserve all stock, then confirm the sales order",
+};
+
+/** แปลป้ายสถานะ/ขั้นตอนของใบสั่งขายตามภาษา — เรียกตอนเรนเดอร์ในคอมโพเนนต์ที่ใช้ useT()/useLanguage() อยู่แล้ว */
+export function tSoStatus(label: string, lang?: Language): string {
+  const current = lang ?? getStoredLanguage();
+  if (current === "en" && STATUS_EN_OVERRIDE[label]) {
+    return STATUS_EN_OVERRIDE[label];
+  }
+  return translate(current, label);
+}
+
 export type SalesOrderStatus =
   | "DRAFT"
   | "AWAITING_CONFIRM"

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { useT } from "@/lib/i18n/useT";
 import {
   resolveListFlowBadge,
   type ListFlowSource,
@@ -21,6 +22,7 @@ const TONE_CLASS = {
 } as const;
 
 export default function ProcurementFlowBadge({ source }: Props) {
+  const t = useT();
   const { label, tone, href } = resolveListFlowBadge(source);
   const className = `${styles.badge} ${TONE_CLASS[tone]}${
     href ? ` ${styles.badgeLink}` : ""
@@ -31,7 +33,7 @@ export default function ProcurementFlowBadge({ source }: Props) {
       <Link
         href={href}
         className={className}
-        title="ไปสร้างใบสั่งซื้อ"
+        title={t("ไปสร้างใบสั่งซื้อ")}
         onClick={(e) => e.stopPropagation()}
       >
         <span className={styles.badgeDot} aria-hidden />

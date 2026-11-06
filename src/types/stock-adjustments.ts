@@ -1,3 +1,21 @@
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import { translate } from "@/lib/i18n/translate";
+
+const STOCK_STATUS_EN_OVERRIDE: Record<string, string> = {
+  /* ในบริบทสถานะ "ยกเลิก" = Cancelled (ไม่ใช่ปุ่ม Cancel), "ไม่อนุมัติ" = Rejected (ไม่ใช่ปุ่ม Reject) */
+  ยกเลิก: "Cancelled",
+  ไม่อนุมัติ: "Rejected",
+};
+
+/** แปลป้ายสถานะ/ประเภทเอกสารคลัง ตามภาษา — เรียกตอนเรนเดอร์ในคอมโพเนนต์ที่ใช้ useT()/useLanguage() อยู่แล้ว */
+export function tStockLabel(label: string, lang?: Language): string {
+  const current = lang ?? getStoredLanguage();
+  if (current === "en" && STOCK_STATUS_EN_OVERRIDE[label]) {
+    return STOCK_STATUS_EN_OVERRIDE[label];
+  }
+  return translate(current, label);
+}
+
 export type StockAdjustmentStatus =
   | "DRAFT"
   | "PENDING_APPROVAL"
@@ -30,7 +48,8 @@ export function stockAdjustmentTypeDisplayName(row: {
   if (fromApi) {
     return fromApi;
   }
-  return STOCK_ADJUSTMENT_TYPE_LABEL[row.adjustmentType] ?? row.adjustmentType;
+  const label = STOCK_ADJUSTMENT_TYPE_LABEL[row.adjustmentType];
+  return label ? tStockLabel(label) : row.adjustmentType;
 }
 
 export type StockAdjustmentItem = {

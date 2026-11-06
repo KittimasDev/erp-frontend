@@ -6,6 +6,8 @@ import { ScanOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { tNow, useT } from "@/lib/i18n/useT";
 
 import styles from "./ocr-capture.module.css";
 
@@ -18,24 +20,27 @@ import styles from "./ocr-capture.module.css";
 export const CONFIDENCE_GOOD = 0.85;
 export const CONFIDENCE_LOW = 0.6;
 
+/** รูปแบบตัวเลขตามภาษาปัจจุบัน — เรียกตอน render เท่านั้น (ผู้เรียกใช้ useT/useLanguage อยู่แล้ว) */
+const numberLocale = () => (getStoredLanguage() === "en" ? "en-GB" : "th-TH");
+
 export function formatWeight(value: number | null | undefined) {
   if (value === null || value === undefined) {
     return "—";
   }
-  return `${value.toLocaleString("th-TH", {
+  return `${value.toLocaleString(numberLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
-  })} กก.`;
+  })} ${tNow("กก.")}`;
 }
 
 export function formatMoney(value: number | null | undefined) {
   if (value === null || value === undefined) {
     return "—";
   }
-  return `${value.toLocaleString("th-TH", {
+  return `${value.toLocaleString(numberLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
-  })} บาท`;
+  })} ${tNow("บาท")}`;
 }
 
 export function formatDateTime(iso: string | null | undefined) {
@@ -46,7 +51,7 @@ export function formatDateTime(iso: string | null | undefined) {
   if (Number.isNaN(date.getTime())) {
     return iso;
   }
-  return new Intl.DateTimeFormat("th-TH", {
+  return new Intl.DateTimeFormat(numberLocale(), {
     timeZone: ERP_TIMEZONE,
     dateStyle: "short",
     timeStyle: "short",
@@ -101,6 +106,7 @@ export function ConfidenceTag({
   confidence: number;
   hideWhenGood?: boolean;
 }) {
+  const t = useT();
   const percent = Math.round(confidence * 100);
   if (confidence >= CONFIDENCE_GOOD) {
     return hideWhenGood ? null : <Tag color="green">{percent}%</Tag>;
@@ -109,7 +115,7 @@ export function ConfidenceTag({
     return <Tag color="orange">{percent}%</Tag>;
   }
   return (
-    <Tooltip title="ความเชื่อมั่นต่ำ ระบบไม่ติ๊กให้ ตรวจกับใบจริงก่อนใช้">
+    <Tooltip title={t("ความเชื่อมั่นต่ำ ระบบไม่ติ๊กให้ ตรวจกับใบจริงก่อนใช้")}>
       <Tag color="red">{percent}%</Tag>
     </Tooltip>
   );
@@ -125,13 +131,14 @@ export function OcrModalHeader({
   title: string;
   subtitle?: string;
 }) {
+  const t = useT();
   return (
     <div className={styles.modalHeader}>
       <span className={styles.modalIcon}>
         <ScanOutlined />
       </span>
       <div className={styles.modalHeadText}>
-        <div className={styles.modalEyebrow}>อ่านจากรูปใบชั่ง</div>
+        <div className={styles.modalEyebrow}>{t("อ่านจากรูปใบชั่ง")}</div>
         <h2 className={styles.modalTitle}>{title}</h2>
         {subtitle ? (
           <span className={styles.modalSubtitle}>{subtitle}</span>
@@ -231,11 +238,11 @@ export function OcrNotice({
  */
 export function engineLabel(engine: string): string {
   if (!engine) {
-    return "ไม่ทราบ";
+    return tNow("ไม่ทราบ");
   }
   return engine.toLowerCase().startsWith("gemini")
     ? `AI (${engine})`
-    : "Tesseract (ในเครื่อง)";
+    : tNow("Tesseract (ในเครื่อง)");
 }
 
 /** คอลัมน์ซ้ายของ popup — รูปที่ถ่ายมา กับสรุปว่าอ่านได้ดีแค่ไหน */
@@ -246,16 +253,17 @@ export function OcrPreviewPane({
   previewUrl: string | null;
   rows: Array<{ label: string; value: string }>;
 }) {
+  const t = useT();
   return (
     <aside className={styles.ocrPreview}>
       {previewUrl ? (
         // รูปมาจาก blob ในเครื่อง ไม่ต้องโหลดกลับจาก server
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={previewUrl} alt="รูปใบชั่งที่ถ่ายมา" />
+        <img src={previewUrl} alt={t("รูปใบชั่งที่ถ่ายมา")} />
       ) : (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="ไม่มีรูปตัวอย่าง"
+          description={t("ไม่มีรูปตัวอย่าง")}
         />
       )}
       <div>

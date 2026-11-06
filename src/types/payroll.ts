@@ -190,3 +190,11 @@ export type WithholdingCertificatesApiResponse = {
   message: string;
   data: WithholdingCertificates;
 };
+
+/** ป้ายสถานะงวดตามภาษา — ไทยใช้ PAYROLL_STATUS_LABEL เดิม (คีย์ "ยกเลิก" ชนกับปุ่ม Cancel จึงไม่ผ่าน dictionary) */
+export function payrollStatusLabel(status: PayrollRunStatus, lang: "th" | "en"): string {
+  if (lang === "en") {
+    return { DRAFT: "Draft", FINALIZED: "Finalized", CANCELLED: "Cancelled" }[status];
+  }
+  return PAYROLL_STATUS_LABEL[status];
+}

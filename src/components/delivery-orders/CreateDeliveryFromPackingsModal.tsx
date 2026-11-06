@@ -14,9 +14,10 @@ import styles from "./DeliveryOrdersListPage.module.css";
 import {
   buildPackingPreviewLines,
   byRoundThenNo,
-  packingPreviewColumns,
+  getPackingPreviewColumns,
   packingPreviewRowKey,
 } from "./packingPreview";
+import { useT } from "@/lib/i18n/useT";
 
 type Props = {
   open: boolean;
@@ -32,6 +33,7 @@ export default function CreateDeliveryFromPackingsModal({
   anchorPackingId,
   salesOrderId,
 }: Props) {
+  const t = useT();
   return (
     <Modal
       open={open}
@@ -39,7 +41,7 @@ export default function CreateDeliveryFromPackingsModal({
       destroyOnHidden
       width={900}
       footer={null}
-      title="สร้างใบส่งสินค้า — เลือกใบบรรจุของ SO เดียวกัน"
+      title={t("สร้างใบส่งสินค้า — เลือกใบบรรจุของ SO เดียวกัน")}
     >
       {open && anchorPackingId && salesOrderId ? (
         <ModalBody
@@ -61,6 +63,7 @@ function ModalBody({
   salesOrderId: string;
   onClose: () => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const query = useReadyPackingsForDeliveryQuery();
   const createMutation = useCreateDeliveryOrderFromPackingsMutation();
@@ -95,9 +98,9 @@ function ModalBody({
 
   const loading = query.isLoading || query.isFetching;
   const confirmBlockedReason = loading
-    ? "กำลังโหลดรายการใบบรรจุ"
+    ? t("กำลังโหลดรายการใบบรรจุ")
     : !anchorReady
-      ? "ใบบรรจุนี้ถูกใช้สร้างใบส่งแล้ว หรือรอบยังไม่พร้อม — สร้างใบส่งจากใบนี้ไม่ได้"
+      ? t("ใบบรรจุนี้ถูกใช้สร้างใบส่งแล้ว หรือรอบยังไม่พร้อม — สร้างใบส่งจากใบนี้ไม่ได้")
       : undefined;
 
   const onConfirm = async () => {
@@ -115,36 +118,36 @@ function ModalBody({
 
   const columns: ColumnsType<ReadyPacking> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ใบบรรจุ",
+      title: t("เลขที่ใบบรรจุ"),
       dataIndex: "packingNo",
       render: (v: string, row) => (
         <span className={styles.prNo}>
           {v}
-          {row.id === anchorPackingId ? " (ใบนี้)" : ""}
+          {row.id === anchorPackingId ? t(" (ใบนี้)") : ""}
         </span>
       ),
     },
     {
-      title: "รอบ",
+      title: t("รอบ"),
       dataIndex: "roundNo",
       width: 90,
-      render: (v?: number) => (v ? `รอบที่ ${v}` : "—"),
+      render: (v?: number) => (v ? t("รอบที่ {v}", { v }) : "—"),
     },
     {
-      title: "รายการ",
+      title: t("รายการ"),
       dataIndex: "itemCount",
       width: 80,
       align: "right",
     },
     {
-      title: "วันที่",
+      title: t("วันที่"),
       dataIndex: "packingDate",
       width: 110,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
@@ -157,8 +160,8 @@ function ModalBody({
         <Alert
           type="warning"
           showIcon
-          title="ใบบรรจุนี้ถูกใช้สร้างใบส่งแล้ว หรือรอบยังไม่พร้อม"
-          description="เปิดใบส่งสินค้าเดิมจากหน้าใบสั่งขาย หรือยกเลิกใบส่งเดิมก่อนถ้าต้องการสร้างใหม่"
+          title={t("ใบบรรจุนี้ถูกใช้สร้างใบส่งแล้ว หรือรอบยังไม่พร้อม")}
+          description={t("เปิดใบส่งสินค้าเดิมจากหน้าใบสั่งขาย หรือยกเลิกใบส่งเดิมก่อนถ้าต้องการสร้างใหม่")}
         />
       ) : null}
 
@@ -181,33 +184,33 @@ function ModalBody({
           }),
           renderCell: (_checked, row, _index, node) =>
             row.id === anchorPackingId ? (
-              <Tooltip title="ใบบรรจุที่เปิดอยู่ — รวมอยู่ในใบส่งเสมอ">
+              <Tooltip title={t("ใบบรรจุที่เปิดอยู่ — รวมอยู่ในใบส่งเสมอ")}>
                 <span>{node}</span>
               </Tooltip>
             ) : (
               node
             ),
         }}
-        locale={{ emptyText: "ไม่มีใบบรรจุของ SO นี้ที่พร้อมส่ง" }}
+        locale={{ emptyText: t("ไม่มีใบบรรจุของ SO นี้ที่พร้อมส่ง") }}
       />
       {!loading && anchorReady && othersCount === 0 ? (
         <div style={{ color: "#64748b", fontSize: 13 }}>
-          ไม่มีใบบรรจุอื่นของ SO นี้ที่พร้อมส่ง — ใบส่งจะมีเฉพาะใบบรรจุนี้
+          {t("ไม่มีใบบรรจุอื่นของ SO นี้ที่พร้อมส่ง — ใบส่งจะมีเฉพาะใบบรรจุนี้")}
         </div>
       ) : null}
 
-      <strong>รายการสินค้าในใบส่ง</strong>
+      <strong>{t("รายการสินค้าในใบส่ง")}</strong>
       <Table
         rowKey={packingPreviewRowKey}
         size="small"
-        columns={packingPreviewColumns}
+        columns={getPackingPreviewColumns(t)}
         dataSource={previewLines}
         pagination={false}
         locale={{ emptyText: "—" }}
       />
 
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-        <Button onClick={onClose}>ยกเลิก</Button>
+        <Button onClick={onClose}>{t("ยกเลิก")}</Button>
         <Tooltip title={confirmBlockedReason}>
           <span>
             <Button
@@ -218,7 +221,7 @@ function ModalBody({
               loading={createMutation.isPending}
               onClick={onConfirm}
             >
-              ยืนยันสร้างใบส่งสินค้า ({selected.length} ใบบรรจุ)
+              {t("ยืนยันสร้างใบส่งสินค้า ({n} ใบบรรจุ)", { n: selected.length })}
             </Button>
           </span>
         </Tooltip>

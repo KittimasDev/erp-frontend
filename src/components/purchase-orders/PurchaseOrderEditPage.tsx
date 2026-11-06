@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -85,6 +86,7 @@ const PAYMENT_METHOD_OPTIONS = Object.entries(SUPPLIER_PAYMENT_METHOD_LABEL).map
 type Props = { id: string };
 
 export default function PurchaseOrderEditPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
@@ -113,11 +115,11 @@ export default function PurchaseOrderEditPage({ id }: Props) {
         .filter((item) => item?.purchaseRequestItemId)
         .map((item) => ({
           purchaseRequestItemId: item.purchaseRequestItemId!,
-          label: item.itemLabel || "สินค้า",
+          label: item.itemLabel || t("สินค้า"),
           quantity: Number(item.quantity) || 0,
           unitLabel: item.unitLabel || "",
         })),
-    [watchedItems],
+    [watchedItems, t],
   );
 
   useEffect(() => {
@@ -174,7 +176,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
   if (detailQuery.isLoading || schedulesQuery.isLoading) {
     return (
       <div className={styles.page}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -182,7 +184,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.page}>
-        ไม่พบใบสั่งซื้อ
+        {t("ไม่พบใบสั่งซื้อ")}
         <div style={{ marginTop: 12 }}>
           <Link
             href="/purchase-orders"
@@ -191,7 +193,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
               router.push(getPurchaseOrderBackHref());
             }}
           >
-            กลับ
+            {t("กลับ")}
           </Link>
         </div>
       </div>
@@ -201,9 +203,9 @@ export default function PurchaseOrderEditPage({ id }: Props) {
   if (schedulesQuery.isError || !schedules) {
     return (
       <div className={styles.page}>
-        โหลดรอบจัดส่งไม่สำเร็จ
+        {t("โหลดรอบจัดส่งไม่สำเร็จ")}
         <div style={{ marginTop: 12 }}>
-          <Link href={`/purchase-orders/${id}`}>กลับ</Link>
+          <Link href={`/purchase-orders/${id}`}>{t("กลับ")}</Link>
         </div>
       </div>
     );
@@ -212,7 +214,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
   const onFinish = async (values: FormValues) => {
     const rounds = values.deliverySchedules ?? [];
     if (!rounds.length || rounds.some((round) => !round.deliveryDate)) {
-      message.error("ต้องมีอย่างน้อย 1 รอบจัดส่งและระบุวันที่กำหนดส่ง");
+      message.error(t("ต้องมีอย่างน้อย 1 รอบจัดส่งและระบุวันที่กำหนดส่ง"));
       return;
     }
     for (const line of values.items) {
@@ -221,7 +223,11 @@ export default function PurchaseOrderEditPage({ id }: Props) {
       const scheduled = sumScheduledQty(rounds, line.purchaseRequestItemId);
       if (Math.abs(scheduled - ordered) > 0.0005) {
         message.error(
-          `จำนวนรอบของ ${line.itemLabel || "สินค้า"} ต้องเท่ากับจำนวนที่สั่ง (${scheduled.toFixed(3)}/${ordered.toFixed(3)})`,
+          t("จำนวนรอบของ {item} ต้องเท่ากับจำนวนที่สั่ง ({scheduled}/{ordered})", {
+            item: line.itemLabel || t("สินค้า"),
+            scheduled: scheduled.toFixed(3),
+            ordered: ordered.toFixed(3),
+          }),
         );
         return;
       }
@@ -282,13 +288,13 @@ export default function PurchaseOrderEditPage({ id }: Props) {
       <PageHeader
         eyebrow="Purchase Order"
         icon={<EditOutlined />}
-        title="แก้ไขใบสั่งซื้อ"
+        title={t("แก้ไขใบสั่งซื้อ")}
         subtitle={data.poNo}
         actions={
           <>
 <div className={styles.backLink}>
           <Link href={`/purchase-orders/${data.id}`}>
-            <Button icon={<ArrowLeftOutlined />}>กลับ</Button>
+            <Button icon={<ArrowLeftOutlined />}>{t("กลับ")}</Button>
           </Link>
         </div>
           </>
@@ -303,7 +309,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่"
+                    label={t("วันที่")}
                     name="poDate"
                     rules={[{ required: true }]}
                   >
@@ -311,7 +317,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ผู้ขาย"
+                    label={t("ผู้ขาย")}
                     name="creditorId"
                     rules={[{ required: true }]}
                   >
@@ -326,7 +332,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="เงื่อนไขชำระ"
+                    label={t("เงื่อนไขชำระ")}
                     name="paymentTermId"
                   >
                     <Select
@@ -345,22 +351,22 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                   */}
                   <Form.Item
                     className={styles.field}
-                    label="รูปแบบ VAT"
+                    label={t("รูปแบบ VAT")}
                     name="vatMode"
                   >
-                    <Select options={VAT_MODE_OPTIONS} />
+                    <Select options={VAT_MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ภาษีหัก ณ ที่จ่าย"
+                    label={t("ภาษีหัก ณ ที่จ่าย")}
                     name="withholdingTaxType"
                   >
-                    <Select options={WITHHOLDING_TAX_TYPE_OPTIONS} />
+                    <Select options={WITHHOLDING_TAX_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} />
                   </Form.Item>
                   {watchedWhtType === WithholdingTaxType.CUSTOM ? (
                     <Form.Item
                       className={styles.field}
-                      label="อัตราหัก ณ ที่จ่าย (%)"
+                      label={t("อัตราหัก ณ ที่จ่าย (%)")}
                       name="withholdingTaxPercent"
                     >
                       <InputNumber min={0} max={100} style={{ width: "100%" }} />
@@ -368,38 +374,41 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                   ) : null}
                   <Form.Item
                     className={styles.field}
-                    label="วิธีการชำระเงิน"
+                    label={t("วิธีการชำระเงิน")}
                     name="paymentMethod"
                   >
                     <Select
                       allowClear
-                      placeholder="ถ้ามี"
-                      options={PAYMENT_METHOD_OPTIONS}
+                      placeholder={t("ถ้ามี")}
+                      options={PAYMENT_METHOD_OPTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label),
+                      }))}
                     />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่ส่งมอบ"
+                    label={t("วันที่ส่งมอบ")}
                     name="expectedDeliveryDate"
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="ส่วนลดท้ายบิล"
+                    label={t("ส่วนลดท้ายบิล")}
                     name="discountAmount"
                   >
                     <InputNumber min={0} style={{ width: "100%" }} />
                   </Form.Item>
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     name="remark"
                     style={{ marginBottom: 0 }}
                   >
                     <DocumentHtmlEditor
-                      ariaLabel="หมายเหตุ"
-                      placeholder="รายละเอียดเพิ่มเติมบนใบสั่งซื้อ"
+                      ariaLabel={t("หมายเหตุ")}
+                      placeholder={t("รายละเอียดเพิ่มเติมบนใบสั่งซื้อ")}
                     />
                   </Form.Item>
                 </div>
@@ -414,7 +423,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                           <div className={styles.lineCardHeader}>
                             <strong>
                               {watchedItems[index]?.itemLabel ||
-                                `รายการที่ ${index + 1}`}
+                                t("รายการที่ {n}", { n: index + 1 })}
                             </strong>
                           </div>
                           <Form.Item {...restField} name={[name, "id"]} hidden>
@@ -445,7 +454,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="จำนวน"
+                              label={t("จำนวน")}
                               name={[name, "quantity"]}
                               rules={[{ required: true }]}
                             >
@@ -454,7 +463,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="ราคา/หน่วย"
+                              label={t("ราคา/หน่วย")}
                               name={[name, "unitPrice"]}
                               rules={[{ required: true }]}
                             >
@@ -463,7 +472,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="ส่วนลด"
+                              label={t("ส่วนลด")}
                               name={[name, "discountAmount"]}
                             >
                               <InputNumber min={0} style={{ width: "100%" }} />
@@ -487,7 +496,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
               <div />
               <div className={styles.footerActions}>
                 <Button onClick={() => router.push(`/purchase-orders/${id}`)}>
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -495,20 +504,20 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                   htmlType="submit"
                   loading={updateMutation.isPending}
                 >
-                  บันทึก
+                  {t("บันทึก")}
                 </Button>
               </div>
             </div>
           </section>
           <aside className={styles.summaryCard}>
-            <p className={styles.summaryEyebrow}>แก้ไข DRAFT</p>
+            <p className={styles.summaryEyebrow}>{t("แก้ไข DRAFT")}</p>
             <h2 className={styles.summaryTitle}>{data.poNo}</h2>
             <p className={styles.summaryLead}>
-              บันทึกแล้วระบบจะคำนวณยอดใหม่ให้อัตโนมัติ
+              {t("บันทึกแล้วระบบจะคำนวณยอดใหม่ให้อัตโนมัติ")}
             </p>
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
-                <span>ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)</span>
+                <span>{t("ค่าใช้จ่ายเพิ่มเติม (ก่อน VAT)")}</span>
                 <strong>
                   {chargePreview.amountBeforeVat.toLocaleString("th-TH", {
                     minimumFractionDigits: 2,
@@ -517,7 +526,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                 </strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>VAT ค่าใช้จ่าย</span>
+                <span>{t("VAT ค่าใช้จ่าย")}</span>
                 <strong>
                   {chargePreview.vat.toLocaleString("th-TH", {
                     minimumFractionDigits: 2,
@@ -526,7 +535,7 @@ export default function PurchaseOrderEditPage({ id }: Props) {
                 </strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>รวมค่าใช้จ่าย</span>
+                <span>{t("รวมค่าใช้จ่าย")}</span>
                 <strong>
                   {chargePreview.total.toLocaleString("th-TH", {
                     minimumFractionDigits: 2,

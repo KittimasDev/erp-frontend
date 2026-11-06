@@ -52,8 +52,10 @@ import {
 } from "@/types/delivery-schedules";
 import {
   isPreConfirmSalesOrderStatus,
+  tSoStatus,
   type SalesOrderItem,
 } from "@/types/sales-orders";
+import { useT } from "@/lib/i18n/useT";
 
 const EPS = 0.0005;
 
@@ -66,7 +68,7 @@ function statusTag(status: string) {
   const key = status as DeliveryScheduleStatus;
   return (
     <Tag color={DELIVERY_SCHEDULE_STATUS_COLOR[key] ?? "default"}>
-      {DELIVERY_SCHEDULE_STATUS_LABEL[key] ?? status}
+      {tSoStatus(DELIVERY_SCHEDULE_STATUS_LABEL[key] ?? status)}
     </Tag>
   );
 }
@@ -109,6 +111,7 @@ export default function DeliverySchedulesSection({
 }) {
   const canAddSchedule = canEdit && deliveryStatus !== "DELIVERED";
   const { message } = App.useApp();
+  const t = useT();
   const schedulesQuery = useDeliverySchedulesQuery(salesOrderId);
   const createMutation = useCreateDeliveryScheduleMutation(salesOrderId);
   const updateMutation = useUpdateDeliveryScheduleMutation(salesOrderId);
@@ -221,7 +224,7 @@ export default function DeliverySchedulesSection({
   const staleMessage =
     staleWarning ??
     (versionDrifted
-      ? "มีคนอื่นแก้ข้อมูลนี้ระหว่างที่คุณเปิดกล่องค้างไว้ — โหลดค่าล่าสุดก่อนบันทึก"
+      ? t("มีคนอื่นแก้ข้อมูลนี้ระหว่างที่คุณเปิดกล่องค้างไว้ — โหลดค่าล่าสุดก่อนบันทึก")
       : null);
 
   /** โหลดค่าล่าสุดแล้วเปิดกล่องเดิมซ้ำ — reseed ทุกฟิลด์และเลขรุ่นในทางเดียว */
@@ -256,11 +259,11 @@ export default function DeliverySchedulesSection({
       type="warning"
       showIcon
       style={{ marginBottom: 12 }}
-      title="ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น"
+      title={t("ข้อมูลถูกแก้ไขโดยผู้ใช้อื่น")}
       description={staleMessage}
       action={
         <Button size="small" onClick={() => void reloadOpenModal()}>
-          โหลดค่าล่าสุด
+          {t("โหลดค่าล่าสุด")}
         </Button>
       }
     />
@@ -307,7 +310,7 @@ export default function DeliverySchedulesSection({
 
   async function submit() {
     if (!deliveryDate) {
-      message.error("ต้องระบุวันที่จัดส่งของรอบนี้");
+      message.error(t("ต้องระบุวันที่จัดส่งของรอบนี้"));
       return;
     }
     const items: UpsertDeliveryScheduleItemBody[] = draftLines
@@ -317,7 +320,7 @@ export default function DeliverySchedulesSection({
         quantity: line.quantity,
       }));
     if (!items.length) {
-      message.error("ต้องมีสินค้าอย่างน้อย 1 รายการที่จำนวนมากกว่า 0");
+      message.error(t("ต้องมีสินค้าอย่างน้อย 1 รายการที่จำนวนมากกว่า 0"));
       return;
     }
 
@@ -329,8 +332,11 @@ export default function DeliverySchedulesSection({
       const already = scheduledByItem.get(line.salesOrderItemId) ?? 0;
       if (already + line.quantity - toNum(item.quantity) > EPS) {
         message.error(
-          `${item.itemCode ?? item.itemNameTh ?? "สินค้า"} จัดรอบรวมกันเกินจำนวนที่ตกลงขาย ` +
-            `(ตกลงขาย ${toNum(item.quantity).toFixed(3)} · จัดไปแล้ว ${already.toFixed(3)})`,
+          t("{item} จัดรอบรวมกันเกินจำนวนที่ตกลงขาย (ตกลงขาย {qty} · จัดไปแล้ว {already})", {
+            item: item.itemCode ?? item.itemNameTh ?? t("สินค้า"),
+            qty: toNum(item.quantity).toFixed(3),
+            already: already.toFixed(3),
+          }),
         );
         return;
       }
@@ -349,13 +355,13 @@ export default function DeliverySchedulesSection({
           body,
           expectedVersion: openedVersion,
         });
-        message.success("แก้ไขรอบจัดส่งแล้ว");
+        message.success(t("แก้ไขรอบจัดส่งแล้ว"));
       } else {
         await createMutation.mutateAsync({
           body,
           expectedVersion: openedVersion,
         });
-        message.success("เพิ่มรอบจัดส่งแล้ว");
+        message.success(t("เพิ่มรอบจัดส่งแล้ว"));
       }
       setModalOpen(false);
     } catch (error) {
@@ -365,7 +371,7 @@ export default function DeliverySchedulesSection({
         return;
       }
       message.error(
-        error instanceof ApiError ? error.message : "บันทึกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("บันทึกไม่สำเร็จ"),
       );
     }
   }
@@ -382,16 +388,16 @@ export default function DeliverySchedulesSection({
   async function submitReschedule() {
     if (!rescheduleTarget) return;
     if (!newDeliveryDate) {
-      message.error("ต้องระบุวันจัดส่งใหม่");
+      message.error(t("ต้องระบุวันจัดส่งใหม่"));
       return;
     }
     const nextDate = newDeliveryDate.format("YYYY-MM-DD");
     if (nextDate === rescheduleTarget.deliveryDate) {
-      message.error("วันใหม่ตรงกับวันเดิม — ไม่มีอะไรต้องเลื่อน");
+      message.error(t("วันใหม่ตรงกับวันเดิม — ไม่มีอะไรต้องเลื่อน"));
       return;
     }
     if (!rescheduleReason.trim()) {
-      message.error("ต้องระบุเหตุผลการเลื่อนกำหนดส่ง");
+      message.error(t("ต้องระบุเหตุผลการเลื่อนกำหนดส่ง"));
       return;
     }
 
@@ -415,7 +421,7 @@ export default function DeliverySchedulesSection({
         return;
       }
       message.error(
-        error instanceof ApiError ? error.message : "เลื่อนกำหนดส่งไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เลื่อนกำหนดส่งไม่สำเร็จ"),
       );
     }
   }
@@ -432,7 +438,7 @@ export default function DeliverySchedulesSection({
   async function submitCancel() {
     if (!cancelTarget) return;
     if (!cancelReason.trim()) {
-      message.error("ต้องระบุเหตุผลการยกเลิกรอบ");
+      message.error(t("ต้องระบุเหตุผลการยกเลิกรอบ"));
       return;
     }
 
@@ -445,7 +451,7 @@ export default function DeliverySchedulesSection({
         },
         expectedVersion: openedVersion,
       });
-      message.success(`ยกเลิกรอบ ${cancelTarget.roundNo} แล้ว`);
+      message.success(t("ยกเลิกรอบ {no} แล้ว", { no: cancelTarget.roundNo }));
       setCancelTarget(null);
     } catch (error) {
       if (isStaleDocumentConflict(error)) {
@@ -453,7 +459,7 @@ export default function DeliverySchedulesSection({
         return;
       }
       const detail =
-        error instanceof ApiError ? error.message : "ยกเลิกไม่สำเร็จ";
+        error instanceof ApiError ? error.message : t("ยกเลิกไม่สำเร็จ");
       /*
        * backend ทักว่ามีใบแจ้งหนี้ → เปิดช่องยืนยันในโมดัลเดิม ไม่ปิดโมดัลทิ้ง
        * ให้คนอ่านเลขใบแจ้งหนี้จริงจาก backend แล้วตัดสินใจ ไม่ใช่เดาไว้ล่วงหน้า
@@ -483,7 +489,7 @@ export default function DeliverySchedulesSection({
   return (
     <>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 16 }}>รอบจัดส่ง</h2>
+        <h2 style={{ margin: 0, fontSize: 16 }}>{t("รอบจัดส่ง")}</h2>
         {canAddSchedule ? (
           <Button
             size="small"
@@ -492,7 +498,7 @@ export default function DeliverySchedulesSection({
             disabled={busy}
             onClick={openCreate}
           >
-            เพิ่มรอบ
+            {t("เพิ่มรอบ")}
           </Button>
         ) : null}
       </div>
@@ -502,17 +508,17 @@ export default function DeliverySchedulesSection({
           type="warning"
           showIcon
           style={{ marginTop: 12 }}
-          title="ยังจัดรอบไม่ครบ — ยืนยันใบสั่งขายไม่ได้"
+          title={t("ยังจัดรอบไม่ครบ — ยืนยันใบสั่งขายไม่ได้")}
           description={
             <div>
-              ต้องจัดรอบให้ครบทุกรายการก่อน (Σ จำนวนทุกรอบ = จำนวนที่ตกลงขาย)
+              {t("ต้องจัดรอบให้ครบทุกรายการก่อน (Σ จำนวนทุกรอบ = จำนวนที่ตกลงขาย)")}
               <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
                 {unscheduled
                   .filter((row) => row.remaining > EPS)
                   .map((row) => (
                     <li key={row.item.id}>
-                      {row.item.itemCode ?? row.item.itemNameTh ?? "สินค้า"} —
-                      ยังไม่จัดรอบอีก {row.remaining.toFixed(3)}{" "}
+                      {row.item.itemCode ?? row.item.itemNameTh ?? t("สินค้า")} —{" "}
+                      {t("ยังไม่จัดรอบอีก")} {row.remaining.toFixed(3)}{" "}
                       {row.item.unitCode ?? ""}
                     </li>
                   ))}
@@ -525,16 +531,16 @@ export default function DeliverySchedulesSection({
           type="success"
           showIcon
           style={{ marginTop: 12 }}
-          title="จัดรอบครบทุกรายการแล้ว"
-          description="ยืนยันใบสั่งขายได้ แม้สต๊อกยังไม่พอ — ของจะถูกตรวจตอนคลังเปิดใบจ่ายของแต่ละรอบ"
+          title={t("จัดรอบครบทุกรายการแล้ว")}
+          description={t("ยืนยันใบสั่งขายได้ แม้สต๊อกยังไม่พอ — ของจะถูกตรวจตอนคลังเปิดใบจ่ายของแต่ละรอบ")}
         />
       )}
 
       <div style={{ marginTop: 16, display: "grid", gap: 16 }}>
         {schedulesQuery.isLoading ? (
-          <div>กำลังโหลดรอบจัดส่ง…</div>
+          <div>{t("กำลังโหลดรอบจัดส่ง…")}</div>
         ) : schedules.length === 0 ? (
-          <Empty description="ยังไม่มีรอบจัดส่ง" />
+          <Empty description={t("ยังไม่มีรอบจัดส่ง")} />
         ) : (
           schedules.map((schedule) => {
             const deliveryReturn = schedule.deliveryReturn;
@@ -564,9 +570,9 @@ export default function DeliverySchedulesSection({
                     flexWrap: "wrap",
                   }}
                 >
-                  <strong>รอบ {schedule.roundNo}</strong>
+                  <strong>{t("รอบ {no}", { no: schedule.roundNo })}</strong>
                   <span>
-                    ส่งวันที่{" "}
+                    {t("ส่งวันที่")}{" "}
                     {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
                   </span>
                   {statusTag(schedule.status)}
@@ -574,7 +580,7 @@ export default function DeliverySchedulesSection({
                     <Link
                       href={`/delivery-orders/${schedule.sourceDeliveryOrderId}`}
                     >
-                      <Tag color="volcano">ส่งชดเชยของที่ตีกลับ</Tag>
+                      <Tag color="volcano">{t("ส่งชดเชยของที่ตีกลับ")}</Tag>
                     </Link>
                   ) : null}
                   {deliveryReturn ? (
@@ -582,9 +588,9 @@ export default function DeliverySchedulesSection({
                       <Tooltip
                         title={
                           <span>
-                            ใบส่งสินค้า {deliveryReturn.deliveryOrderNo}
+                            {tSoStatus("ใบส่งสินค้า")} {deliveryReturn.deliveryOrderNo}
                             {deliveryReturn.returnReason
-                              ? ` · เหตุผล: ${deliveryReturn.returnReason}`
+                              ? ` · ${t("เหตุผล:")} ${deliveryReturn.returnReason}`
                               : ""}
                           </span>
                         }
@@ -593,47 +599,49 @@ export default function DeliverySchedulesSection({
                           href={`/delivery-orders/${deliveryReturn.deliveryOrderId}`}
                         >
                           <Tag color="red">
-                            {DELIVERY_SCHEDULE_RETURN_LABEL[
-                              deliveryReturn.result as DeliveryScheduleReturnResult
-                            ] ?? "ถูกตีกลับ"}
+                            {tSoStatus(
+                              DELIVERY_SCHEDULE_RETURN_LABEL[
+                                deliveryReturn.result as DeliveryScheduleReturnResult
+                              ] ?? "ถูกตีกลับ",
+                            )}
                           </Tag>
                         </Link>
                       </Tooltip>
                       {deliveryReturn.redeliveryRoundNo ? (
                         <span style={{ color: "#cf1322" }}>
-                          ส่งใหม่ในรอบ {deliveryReturn.redeliveryRoundNo}
+                          {t("ส่งใหม่ในรอบ {no}", { no: deliveryReturn.redeliveryRoundNo })}
                         </span>
                       ) : (
                         <span style={{ color: "#cf1322" }}>
                           {deliveryReturn.returnToStock === false
-                            ? "ไม่ส่งใหม่ (ปิดการส่ง)"
-                            : "ไม่ส่งใหม่ (ลดจำนวนสั่ง)"}
+                            ? t("ไม่ส่งใหม่ (ปิดการส่ง)")
+                            : t("ไม่ส่งใหม่ (ลดจำนวนสั่ง)")}
                         </span>
                       )}
                     </>
                   ) : hasReturn ? (
-                    <Tag color="red">ถูกตีกลับ</Tag>
+                    <Tag color="red">{t("ถูกตีกลับ")}</Tag>
                   ) : null}
                   {(schedule.rescheduledCount ?? 0) > 0 ? (
                     <Tooltip
                       title={
                         <span>
-                          เดิม{" "}
+                          {t("เดิม")}{" "}
                           {schedule.originalDeliveryDate
                             ? dayjs(schedule.originalDeliveryDate).format(
                                 "DD/MM/YYYY",
                               )
                             : "—"}{" "}
-                          → ปัจจุบัน{" "}
+                          → {t("ปัจจุบัน")}{" "}
                           {dayjs(schedule.deliveryDate).format("DD/MM/YYYY")}
                           {schedule.lastRescheduleReason
-                            ? ` · เหตุผลล่าสุด: ${schedule.lastRescheduleReason}`
+                            ? ` · ${t("เหตุผลล่าสุด:")} ${schedule.lastRescheduleReason}`
                             : ""}
                         </span>
                       }
                     >
                       <Tag color="warning" icon={<HistoryOutlined />}>
-                        เลื่อนกำหนดส่งแล้ว {schedule.rescheduledCount} ครั้ง
+                        {t("เลื่อนกำหนดส่งแล้ว {n} ครั้ง", { n: schedule.rescheduledCount ?? 0 })}
                       </Tag>
                     </Tooltip>
                   ) : null}
@@ -650,7 +658,7 @@ export default function DeliverySchedulesSection({
                           disabled={busy}
                           onClick={() => openReschedule(schedule)}
                         >
-                          เลื่อนกำหนดส่ง
+                          {tSoStatus("เลื่อนกำหนดส่ง")}
                         </Button>
                       ) : null}
                       {isDeliveryScheduleEditable(schedule.status) ? (
@@ -662,7 +670,7 @@ export default function DeliverySchedulesSection({
                               disabled={busy}
                               onClick={() => openEdit(schedule)}
                             >
-                              แก้ไข
+                              {t("แก้ไข")}
                             </Button>
                           ) : null}
                           <Button
@@ -672,7 +680,7 @@ export default function DeliverySchedulesSection({
                             disabled={busy}
                             onClick={() => openCancel(schedule)}
                           >
-                            ยกเลิกรอบ
+                            {t("ยกเลิกรอบ")}
                           </Button>
                         </>
                       ) : null}
@@ -687,7 +695,7 @@ export default function DeliverySchedulesSection({
                 ) : null}
                 {schedule.cancelledReason ? (
                   <p style={{ margin: "8px 0 0", color: "#cf1322" }}>
-                    เหตุผลที่ยกเลิก: {schedule.cancelledReason}
+                    {t("เหตุผลที่ยกเลิก:")} {schedule.cancelledReason}
                   </p>
                 ) : null}
 
@@ -699,7 +707,7 @@ export default function DeliverySchedulesSection({
                   dataSource={schedule.items ?? []}
                   columns={[
                     {
-                      title: "สินค้า",
+                      title: t("สินค้า"),
                       key: "item",
                       render: (_v, line) =>
                         line.itemCode
@@ -707,7 +715,7 @@ export default function DeliverySchedulesSection({
                           : (line.itemNameTh ?? "—"),
                     },
                     {
-                      title: "สั่ง",
+                      title: t("สั่ง"),
                       key: "quantity",
                       align: "right",
                       width: 100,
@@ -716,31 +724,31 @@ export default function DeliverySchedulesSection({
                         `${line.originalQuantity ?? line.quantity} ${line.unitCode ?? ""}`,
                     },
                     {
-                      title: "จองแล้ว",
+                      title: t("จองแล้ว"),
                       dataIndex: "reservedQuantity",
                       align: "right",
                       width: 100,
                     },
                     {
-                      title: "จ่ายแล้ว",
+                      title: tSoStatus("จ่ายแล้ว"),
                       dataIndex: "issuedQuantity",
                       align: "right",
                       width: 100,
                     },
                     {
-                      title: "บรรจุแล้ว",
+                      title: t("บรรจุแล้ว"),
                       dataIndex: "packedQuantity",
                       align: "right",
                       width: 100,
                     },
                     {
-                      title: "ส่งแล้ว",
+                      title: tSoStatus("ส่งแล้ว"),
                       dataIndex: "deliveredQuantity",
                       align: "right",
                       width: 100,
                     },
                     {
-                      title: "ตีกลับ",
+                      title: t("ตีกลับ"),
                       dataIndex: "returnedQuantity",
                       align: "right",
                       width: 100,
@@ -753,7 +761,7 @@ export default function DeliverySchedulesSection({
                         ),
                     },
                     {
-                      title: "คงเหลือ",
+                      title: t("คงเหลือ"),
                       dataIndex: "remainingQuantity",
                       align: "right",
                       width: 120,
@@ -765,9 +773,9 @@ export default function DeliverySchedulesSection({
                             —{" "}
                             <span style={{ color: "#cf1322", fontSize: 12 }}>
                               {toNum(line.closedQuantity) > EPS
-                                ? "ปิดการส่ง"
+                                ? t("ปิดการส่ง")
                                 : deliveryReturn?.redeliveryRoundNo
-                                  ? `ย้ายไปรอบ ${deliveryReturn.redeliveryRoundNo}`
+                                  ? t("ย้ายไปรอบ {no}", { no: deliveryReturn.redeliveryRoundNo })
                                   : ""}
                             </span>
                           </span>
@@ -784,18 +792,18 @@ export default function DeliverySchedulesSection({
 
       <Modal
         open={modalOpen}
-        title={editing ? `แก้ไขรอบ ${editing.roundNo}` : "เพิ่มรอบจัดส่ง"}
+        title={editing ? t("แก้ไขรอบ {no}", { no: editing.roundNo }) : t("เพิ่มรอบจัดส่ง")}
         onCancel={() => setModalOpen(false)}
         onOk={() => void submit()}
-        okText="บันทึก"
-        cancelText="ปิด"
+        okText={t("บันทึก")}
+        cancelText={t("ปิด")}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
         width={720}
         destroyOnHidden
       >
         {staleAlert}
         <Form layout="vertical">
-          <Form.Item label="วันที่จัดส่ง" required>
+          <Form.Item label={t("วันที่จัดส่ง")} required>
             <DatePicker
               value={deliveryDate}
               onChange={setDeliveryDate}
@@ -803,7 +811,7 @@ export default function DeliverySchedulesSection({
               style={{ width: "100%" }}
             />
           </Form.Item>
-          <Form.Item label="หมายเหตุ">
+          <Form.Item label={t("หมายเหตุ")}>
             <Input.TextArea
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
@@ -820,7 +828,7 @@ export default function DeliverySchedulesSection({
           dataSource={draftLines}
           columns={[
             {
-              title: "สินค้า",
+              title: t("สินค้า"),
               key: "item",
               render: (_v, line) => {
                 const item = salesOrderItems.find(
@@ -832,7 +840,7 @@ export default function DeliverySchedulesSection({
               },
             },
             {
-              title: "ตกลงขาย",
+              title: t("ตกลงขาย"),
               key: "agreed",
               align: "right",
               width: 110,
@@ -844,7 +852,7 @@ export default function DeliverySchedulesSection({
               },
             },
             {
-              title: "จัดรอบอื่นแล้ว",
+              title: t("จัดรอบอื่นแล้ว"),
               key: "already",
               align: "right",
               width: 120,
@@ -852,7 +860,7 @@ export default function DeliverySchedulesSection({
                 (scheduledByItem.get(line.salesOrderItemId) ?? 0).toFixed(3),
             },
             {
-              title: "รอบนี้",
+              title: t("รอบนี้"),
               key: "quantity",
               align: "right",
               width: 140,
@@ -878,19 +886,18 @@ export default function DeliverySchedulesSection({
           ]}
         />
         <p style={{ marginTop: 8, color: "#6b7280" }}>
-          ใส่ 0 ในรายการที่ไม่ต้องส่งในรอบนี้ · สินค้าเดียวกันอยู่ได้หลายรอบ
-          แต่รวมกันต้องไม่เกินจำนวนที่ตกลงขาย
+          {t("ใส่ 0 ในรายการที่ไม่ต้องส่งในรอบนี้ · สินค้าเดียวกันอยู่ได้หลายรอบ แต่รวมกันต้องไม่เกินจำนวนที่ตกลงขาย")}
         </p>
       </Modal>
 
       {/* ── เลื่อนกำหนดส่ง ─────────────────────────────────────────────────── */}
       <Modal
         open={Boolean(rescheduleTarget)}
-        title={`เลื่อนกำหนดส่ง — รอบ ${rescheduleTarget?.roundNo ?? ""}`}
+        title={t("เลื่อนกำหนดส่ง — รอบ {no}", { no: rescheduleTarget?.roundNo ?? "" })}
         onCancel={() => setRescheduleTarget(null)}
         onOk={() => void submitReschedule()}
-        okText="เลื่อนกำหนดส่ง"
-        cancelText="ปิด"
+        okText={tSoStatus("เลื่อนกำหนดส่ง")}
+        cancelText={t("ปิด")}
         confirmLoading={rescheduleMutation.isPending}
         width={560}
         destroyOnHidden
@@ -900,16 +907,16 @@ export default function DeliverySchedulesSection({
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          title="เปลี่ยนแค่วันส่ง — จำนวนและยอดเงินไม่เปลี่ยน"
+          title={t("เปลี่ยนแค่วันส่ง — จำนวนและยอดเงินไม่เปลี่ยน")}
           description={
             rescheduleTarget?.status !== "PLANNED"
-              ? "รอบนี้คลังเริ่มทำงานไปแล้ว ระบบจะแจ้งเตือนคลังให้ทราบ · วันบนเอกสารที่ยืนยันแล้วจะไม่ถูกแก้"
-              : "ถ้ามีใบจ่าย/ใบบรรจุ/ใบส่งที่ยังเป็นร่างของรอบนี้ วันบนใบนั้นจะขยับตามให้"
+              ? t("รอบนี้คลังเริ่มทำงานไปแล้ว ระบบจะแจ้งเตือนคลังให้ทราบ · วันบนเอกสารที่ยืนยันแล้วจะไม่ถูกแก้")
+              : t("ถ้ามีใบจ่าย/ใบบรรจุ/ใบส่งที่ยังเป็นร่างของรอบนี้ วันบนใบนั้นจะขยับตามให้")
           }
         />
 
         <Form layout="vertical">
-          <Form.Item label="วันส่งเดิม">
+          <Form.Item label={t("วันส่งเดิม")}>
             <Input
               disabled
               value={
@@ -919,7 +926,7 @@ export default function DeliverySchedulesSection({
               }
             />
           </Form.Item>
-          <Form.Item label="วันส่งใหม่" required>
+          <Form.Item label={t("วันส่งใหม่")} required>
             <DatePicker
               value={newDeliveryDate}
               onChange={setNewDeliveryDate}
@@ -928,16 +935,16 @@ export default function DeliverySchedulesSection({
             />
           </Form.Item>
           <Form.Item
-            label="เหตุผลการเลื่อน"
+            label={t("เหตุผลการเลื่อน")}
             required
-            extra="บันทึกไว้ในประวัติของใบสั่งขาย — เป็นหลักฐานเวลาต้องอธิบายย้อนหลัง"
+            extra={t("บันทึกไว้ในประวัติของใบสั่งขาย — เป็นหลักฐานเวลาต้องอธิบายย้อนหลัง")}
           >
             <Input.TextArea
               value={rescheduleReason}
               onChange={(e) => setRescheduleReason(e.target.value)}
               rows={3}
               maxLength={2000}
-              placeholder="เช่น ลูกค้าขอเลื่อนรับของ ไซต์ยังไม่พร้อม"
+              placeholder={t("เช่น ลูกค้าขอเลื่อนรับของ ไซต์ยังไม่พร้อม")}
             />
           </Form.Item>
           <Form.Item>
@@ -945,7 +952,7 @@ export default function DeliverySchedulesSection({
               checked={cascadeDates}
               onChange={(e) => setCascadeDates(e.target.checked)}
             >
-              ขยับวันบนเอกสารของรอบนี้ที่ยังเป็นร่างให้ตามด้วย
+              {t("ขยับวันบนเอกสารของรอบนี้ที่ยังเป็นร่างให้ตามด้วย")}
             </Checkbox>
           </Form.Item>
         </Form>
@@ -954,20 +961,19 @@ export default function DeliverySchedulesSection({
       {/* ── ยกเลิกรอบ ──────────────────────────────────────────────────────── */}
       <Modal
         open={Boolean(cancelTarget)}
-        title={`ยกเลิกรอบ ${cancelTarget?.roundNo ?? ""}`}
+        title={t("ยกเลิกรอบ {no}", { no: cancelTarget?.roundNo ?? "" })}
         onCancel={() => setCancelTarget(null)}
         onOk={() => void submitCancel()}
-        okText="ยกเลิกรอบนี้"
+        okText={t("ยกเลิกรอบนี้")}
         okButtonProps={{ danger: true }}
-        cancelText="ปิด"
+        cancelText={t("ปิด")}
         confirmLoading={cancelMutation.isPending}
         width={620}
         destroyOnHidden
       >
         {staleAlert}
         {/*
-          สรุปผลกระทบก่อนกด — รอบก่อนคนกดยกเลิกแล้วตกใจว่ายอดเงินเปลี่ยน
-          เพราะไม่มีใครบอกล่วงหน้า
+          สรุปผลกระทบก่อนกด — รอบก่อนคนกดยกเลิกแล้วตกใจว่ายอดเงินเปลี่ยน เพราะไม่มีใครบอกล่วงหน้า
         */}
         <Alert
           type="warning"
@@ -975,23 +981,22 @@ export default function DeliverySchedulesSection({
           style={{ marginBottom: 16 }}
           title={
             cancelClosesOrder
-              ? "นี่เป็นรอบสุดท้ายที่ยังเดินอยู่ — ยกเลิกแล้วใบสั่งขายจะถูกยกเลิกทั้งใบ"
-              : "ยกเลิกรอบนี้แล้วจะเกิดอะไรขึ้น"
+              ? t("นี่เป็นรอบสุดท้ายที่ยังเดินอยู่ — ยกเลิกแล้วใบสั่งขายจะถูกยกเลิกทั้งใบ")
+              : t("ยกเลิกรอบนี้แล้วจะเกิดอะไรขึ้น")
           }
           description={
             <ul style={{ margin: 0, paddingLeft: 18 }}>
               <li>
-                ของที่จองไว้ให้รอบนี้คืนเป็นสต๊อกกลาง ให้ใบอื่นใช้ได้ทันที
+                {t("ของที่จองไว้ให้รอบนี้คืนเป็นสต๊อกกลาง ให้ใบอื่นใช้ได้ทันที")}
               </li>
               <li>
-                ใบขอผลิตของรอบนี้ที่ <strong>ยังไม่เริ่มผลิต</strong>{" "}
-                จะถูกยกเลิกอัตโนมัติ · ใบที่เริ่มผลิตแล้วไม่ถูกยกเลิก
-                แต่จะแจ้งเตือนฝ่ายผลิต
+                {t("ใบขอผลิตของรอบนี้ที่")} <strong>{t("ยังไม่เริ่มผลิต")}</strong>{" "}
+                {t("จะถูกยกเลิกอัตโนมัติ · ใบที่เริ่มผลิตแล้วไม่ถูกยกเลิก แต่จะแจ้งเตือนฝ่ายผลิต")}
               </li>
               {cancelReducesQuantity ? (
                 <li>
-                  <strong>จำนวนที่ตกลงขายและยอดเงินของใบสั่งขายจะลดลง</strong>{" "}
-                  ตามจำนวนของรอบนี้
+                  <strong>{t("จำนวนที่ตกลงขายและยอดเงินของใบสั่งขายจะลดลง")}</strong>{" "}
+                  {t("ตามจำนวนของรอบนี้")}
                   <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
                     {(cancelTarget?.items ?? []).map((line) => {
                       const soItem = salesOrderItems.find(
@@ -1001,7 +1006,7 @@ export default function DeliverySchedulesSection({
                       const after = Math.max(before - toNum(line.quantity), 0);
                       return (
                         <li key={line.id}>
-                          {line.itemCode ?? line.itemNameTh ?? "สินค้า"}:{" "}
+                          {line.itemCode ?? line.itemNameTh ?? t("สินค้า")}:{" "}
                           {before.toFixed(3)} → {after.toFixed(3)}{" "}
                           {line.unitCode ?? ""}
                         </li>
@@ -1011,8 +1016,8 @@ export default function DeliverySchedulesSection({
                 </li>
               ) : (
                 <li>
-                  ใบสั่งขายยังไม่ยืนยัน — จำนวนที่ตกลงขายไม่เปลี่ยน
-                  (รอบนี้แค่ถูกเอาออก ต้องจัดรอบใหม่ให้ครบก่อนยืนยัน)
+                  {t("ใบสั่งขายยังไม่ยืนยัน — จำนวนที่ตกลงขายไม่เปลี่ยน")}{" "}
+                  {t("(รอบนี้แค่ถูกเอาออก ต้องจัดรอบใหม่ให้ครบก่อนยืนยัน)")}
                 </li>
               )}
             </ul>
@@ -1024,7 +1029,7 @@ export default function DeliverySchedulesSection({
             type="error"
             showIcon
             style={{ marginBottom: 16 }}
-            title="ใบสั่งขายนี้มีใบแจ้งหนี้ออกไปแล้ว"
+            title={t("ใบสั่งขายนี้มีใบแจ้งหนี้ออกไปแล้ว")}
             description={
               <div>
                 {invoiceWarning}
@@ -1033,7 +1038,7 @@ export default function DeliverySchedulesSection({
                     checked={acknowledgeInvoice}
                     onChange={(e) => setAcknowledgeInvoice(e.target.checked)}
                   >
-                    ตรวจใบแจ้งหนี้แล้ว ยืนยันว่าไม่ครอบรอบนี้ — ยกเลิกรอบต่อได้
+                    {t("ตรวจใบแจ้งหนี้แล้ว ยืนยันว่าไม่ครอบรอบนี้ — ยกเลิกรอบต่อได้")}
                   </Checkbox>
                 </div>
               </div>
@@ -1043,16 +1048,16 @@ export default function DeliverySchedulesSection({
 
         <Form layout="vertical">
           <Form.Item
-            label="เหตุผลการยกเลิก"
+            label={t("เหตุผลการยกเลิก")}
             required
-            extra="บันทึกไว้ในประวัติของใบสั่งขาย พร้อมจำนวนและยอดเงินก่อน/หลัง"
+            extra={t("บันทึกไว้ในประวัติของใบสั่งขาย พร้อมจำนวนและยอดเงินก่อน/หลัง")}
           >
             <Input.TextArea
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               rows={3}
               maxLength={2000}
-              placeholder="เช่น ลูกค้ายกเลิกออเดอร์ส่วนนี้"
+              placeholder={t("เช่น ลูกค้ายกเลิกออเดอร์ส่วนนี้")}
             />
           </Form.Item>
         </Form>

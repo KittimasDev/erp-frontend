@@ -1,3 +1,5 @@
+import { tNow } from "@/lib/i18n/useT";
+
 export type QuotationStatus =
   | "DRAFT"
   | "SENT"
@@ -154,3 +156,27 @@ export type QuotationItemAvailabilityListApiResponse = {
   message: string;
   data: QuotationItemAvailabilityRow[];
 };
+
+/** ป้ายสถานะตามภาษา — ไทยใช้ QUOTATION_STATUS_LABEL เดิม ("ยกเลิก" ชนกับปุ่ม Cancel) */
+export function quotationStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = {
+      DRAFT: "Draft",
+      SENT: "Awaiting customer response",
+      ACCEPTED: "Accepted by customer",
+      REJECTED: "Rejected by customer",
+      CANCELLED: "Cancelled",
+    };
+    return en[status] ?? status;
+  }
+  return QUOTATION_STATUS_LABEL[status as QuotationStatus] ?? status;
+}
+
+/** ข้อความจาก utils/quotation-flow (ไทย) แปลตามภาษา — "ยกเลิก" ที่นี่คือสถานะ Cancelled ไม่ใช่ปุ่ม */
+export function quotationFlowText(thai: string, lang: "th" | "en"): string {
+  if (lang !== "en") return thai;
+  if (thai === "ยกเลิก") return "Cancelled";
+  const m = thai.match(/^เปิด SO แล้ว \((.+)\)$/);
+  if (m) return `SO opened (${m[1]})`;
+  return tNow(thai);
+}

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Modal, Progress, Spin, Typography } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import styles from "./ocr-capture.module.css";
 
 /**
@@ -37,6 +39,7 @@ export default function OcrScanProgressOverlay({
   percent,
   previewUrl,
 }: Props) {
+  const t = useT();
   // component นี้ถูก mount ใหม่ทุกครั้งที่เริ่มสแกนรอบใหม่ (ฝั่งเรียก render แบบมีเงื่อนไข)
   // นาฬิกาจึงเริ่มที่ 0 เองโดยไม่ต้องรีเซ็ต และไม่ต้องอ่านเวลาปัจจุบันตอน render
   const [elapsed, setElapsed] = useState(0);
@@ -65,14 +68,14 @@ export default function OcrScanProgressOverlay({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={previewUrl}
-            alt="รูปใบชั่งที่เพิ่งเลือก"
+            alt={t("รูปใบชั่งที่เพิ่งเลือก")}
             className={styles.scanThumb}
           />
         ) : null}
 
         <Spin size="large" />
 
-        <p className={styles.scanStage}>{STAGE_LABEL[stage]}</p>
+        <p className={styles.scanStage}>{t(STAGE_LABEL[stage])}</p>
 
         <Progress
           percent={stage === "PREPARING" ? Math.round(percent ?? 0) : 100}
@@ -82,12 +85,12 @@ export default function OcrScanProgressOverlay({
         />
 
         <Typography.Text type="secondary" className={styles.scanElapsed}>
-          ผ่านไป {elapsed} วินาที · ปกติใช้เวลา 5-15 วินาที
+          {t("ผ่านไป {elapsed} วินาที · ปกติใช้เวลา 5-15 วินาที", { elapsed })}
         </Typography.Text>
 
         {elapsed >= SLOW_AFTER_SECONDS ? (
           <p className={styles.scanSlow}>
-            ใช้เวลานานกว่าปกติ ระบบยังทำงานอยู่ กรุณารอสักครู่
+            {t("ใช้เวลานานกว่าปกติ ระบบยังทำงานอยู่ กรุณารอสักครู่")}
           </p>
         ) : null}
       </div>

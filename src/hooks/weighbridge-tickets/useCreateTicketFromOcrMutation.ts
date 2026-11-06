@@ -11,6 +11,7 @@ import { trucksQueryKey } from "@/hooks/trucks/useTrucksQuery";
 import type { CreateTicketFromOcrRequest } from "@/types/weighbridge-ocr";
 import type { WeighbridgeTicketDetail } from "@/types/weighbridge-tickets";
 import { weighbridgeDashboardQueryKey } from "./useWeighbridgeDashboardQuery";
+import { useT } from "@/lib/i18n/useT";
 
 /**
  * เปิดตั๋วจากรูปใบชั่ง
@@ -19,6 +20,7 @@ import { weighbridgeDashboardQueryKey } from "./useWeighbridgeDashboardQuery";
  * เมื่อหาทะเบียนบนใบในระบบไม่เจอ — ไม่ล้างแล้วรายการใน Select จะไม่เห็นของที่เพิ่งสร้าง
  */
 export function useCreateTicketFromOcrMutation() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -44,7 +46,7 @@ export function useCreateTicketFromOcrMutation() {
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "เปิดตั๋วจากรูปไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เปิดตั๋วจากรูปไม่สำเร็จ"),
       );
     },
   });

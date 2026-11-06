@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
 import { useDuePurchaseOrdersQuery } from "@/hooks/goods-receipts/useGoodsReceiptsQuery";
 import type {
   DuePurchaseOrderGroup,
@@ -27,22 +28,25 @@ const RECEIVE_STATUS_LABEL: Record<string, string> = {
 };
 
 function DuePill({ days }: { days: number }) {
+  const t = useT();
   if (days < 0) {
     return (
       <span className={`${styles.duePill} ${styles.dueOverdue}`}>
-        เลยกำหนด {Math.abs(days)} วัน
+        {t("เลยกำหนด {n} วัน", { n: Math.abs(days) })}
       </span>
     );
   }
   if (days === 0) {
     return (
       <span className={`${styles.duePill} ${styles.dueToday}`}>
-        ถึงกำหนดวันนี้
+        {t("ถึงกำหนดวันนี้")}
       </span>
     );
   }
   return (
-    <span className={`${styles.duePill} ${styles.dueSoon}`}>อีก {days} วัน</span>
+    <span className={`${styles.duePill} ${styles.dueSoon}`}>
+      {t("อีก {n} วัน", { n: days })}
+    </span>
   );
 }
 
@@ -58,6 +62,7 @@ type Props = {
 };
 
 export default function DuePurchaseOrdersSection({ canAdd }: Props) {
+  const t = useT();
   const router = useRouter();
   const query = useDuePurchaseOrdersQuery();
   const [group, setGroup] = useState<DuePurchaseOrderGroup | undefined>();
@@ -78,14 +83,14 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
   const columns: ColumnsType<DuePurchaseOrderRound> = useMemo(
     () => [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
       {
-        title: "เลขที่ PO",
+        title: t("เลขที่ PO"),
         key: "poNo",
         render: (_v, row) => (
           <div className={styles.poCell}>
@@ -96,13 +101,15 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
               {row.poNo}
             </Link>
             {row.roundNo > 1 ? (
-              <span className={styles.roundTag}>รอบ {row.roundNo}</span>
+              <span className={styles.roundTag}>
+                {t("รอบ {n}", { n: row.roundNo })}
+              </span>
             ) : null}
           </div>
         ),
       },
       {
-        title: "ผู้ขาย",
+        title: t("ผู้ขาย"),
         key: "creditor",
         render: (_v, row) => (
           <div className={styles.stackCell}>
@@ -116,7 +123,7 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
         ),
       },
       {
-        title: "กำหนดส่ง",
+        title: t("กำหนดส่ง"),
         key: "deliveryDate",
         width: 190,
         render: (_v, row) => (
@@ -129,7 +136,7 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
         ),
       },
       {
-        title: "สถานะรับ",
+        title: t("สถานะรับ"),
         key: "receiveStatus",
         width: 120,
         render: (_v, row) => (
@@ -140,12 +147,12 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
                 : styles.receiveNone
             }`}
           >
-            {RECEIVE_STATUS_LABEL[row.receiveStatus] ?? row.receiveStatus}
+            {t(RECEIVE_STATUS_LABEL[row.receiveStatus] ?? row.receiveStatus)}
           </span>
         ),
       },
       {
-        title: "รายการ",
+        title: t("รายการ"),
         dataIndex: "itemCount",
         key: "itemCount",
         width: 80,
@@ -158,7 +165,7 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
         align: "right",
         render: (_v, row) =>
           row.draftGoodsReceiptId ? (
-            <Tooltip title="รอบนี้มีใบรับของร่างอยู่แล้ว — เปิดไปยืนยันต่อ">
+            <Tooltip title={t("รอบนี้มีใบรับของร่างอยู่แล้ว — เปิดไปยืนยันต่อ")}>
               <Button
                 size="small"
                 icon={<FileTextOutlined />}
@@ -167,11 +174,11 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
                   router.push(`/goods-receipts/${row.draftGoodsReceiptId}`)
                 }
               >
-                เปิดใบร่าง {row.draftGoodsReceiptNo}
+                {t("เปิดใบร่าง {no}", { no: row.draftGoodsReceiptNo ?? "" })}
               </Button>
             </Tooltip>
           ) : (
-            <Tooltip title={canAdd ? undefined : "ไม่มีสิทธิ์สร้างใบรับของ"}>
+            <Tooltip title={canAdd ? undefined : t("ไม่มีสิทธิ์สร้างใบรับของ")}>
               <span>
                 <Button
                   type="primary"
@@ -181,14 +188,14 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
                   disabled={!canAdd}
                   onClick={() => router.push(createHref(row))}
                 >
-                  สร้างใบรับของ
+                  {t("สร้างใบรับของ")}
                 </Button>
               </span>
             </Tooltip>
           ),
       },
     ],
-    [canAdd, router],
+    [canAdd, router, t],
   );
 
   if (!query.isLoading && allRows.length === 0) {
@@ -202,15 +209,17 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
           <span className={styles.titleIcon} aria-hidden>
             <ClockCircleOutlined />
           </span>
-          PO ใกล้ถึงกำหนดรับสินค้า <strong>{allRows.length}</strong> รายการ
+          {t("PO ใกล้ถึงกำหนดรับสินค้า")} <strong>{allRows.length}</strong>{" "}
+          {t("รายการ")}
         </div>
-        <div className={styles.chips} role="group" aria-label="กรองตามกำหนดส่ง">
+        <div className={styles.chips} role="group" aria-label={t("กรองตามกำหนดส่ง")}>
           <button
             type="button"
             className={`${styles.chip} ${!group ? styles.chipActive : ""}`}
             onClick={() => selectGroup(undefined)}
           >
-            ทั้งหมด <span className={styles.chipCount}>{allRows.length}</span>
+            {t("ทั้งหมด")}{" "}
+            <span className={styles.chipCount}>{allRows.length}</span>
           </button>
           <button
             type="button"
@@ -219,7 +228,7 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
             }`}
             onClick={() => selectGroup("OVERDUE")}
           >
-            ค้างรับ / เลยกำหนดส่ง{" "}
+            {t("ค้างรับ / เลยกำหนดส่ง")}{" "}
             <span className={styles.chipCount}>{overdueCount}</span>
           </button>
           <button
@@ -229,7 +238,7 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
             }`}
             onClick={() => selectGroup("DUE_SOON")}
           >
-            ใกล้ถึงกำหนดส่ง{" "}
+            {t("ใกล้ถึงกำหนดส่ง")}{" "}
             <span className={styles.chipCount}>{dueSoonCount}</span>
           </button>
         </div>
@@ -257,7 +266,7 @@ export default function DuePurchaseOrdersSection({ canAdd }: Props) {
               }
             : false
         }
-        locale={{ emptyText: "ไม่มี PO ในกลุ่มนี้" }}
+        locale={{ emptyText: t("ไม่มี PO ในกลุ่มนี้") }}
       />
     </section>
   );

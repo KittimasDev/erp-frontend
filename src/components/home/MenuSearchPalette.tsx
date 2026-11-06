@@ -22,6 +22,7 @@ import {
   getSearchableMenuEntries,
   type SearchableMenuEntry,
 } from "@/components/navbar/AppHeader";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./MenuSearchPalette.module.css";
 
 const RECENT_KEY = "erp:menu-search:recent";
@@ -98,6 +99,7 @@ type Props = { open: boolean; onClose: () => void };
 /** ช่องค้นหาเมนูแบบ command palette — ค้นจากเมนูที่ผู้ใช้มีสิทธิ์เท่านั้น */
 export default function MenuSearchPalette({ open, onClose }: Props) {
   const router = useRouter();
+  const tr = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -221,7 +223,7 @@ export default function MenuSearchPalette({ open, onClose }: Props) {
         className={styles.panel}
         role="dialog"
         aria-modal="true"
-        aria-label="ค้นหาเมนู"
+        aria-label={tr("ค้นหาเมนู")}
         onKeyDown={onKeyDown}
       >
         <div className={styles.inputWrap}>
@@ -231,8 +233,8 @@ export default function MenuSearchPalette({ open, onClose }: Props) {
             className={styles.input}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="ค้นหาเมนู เช่น ตั๋วชั่ง, ใบสั่งผลิต, ยอดคงเหลือ…"
-            aria-label="ค้นหาเมนู"
+            placeholder={tr("ค้นหาเมนู เช่น ตั๋วชั่ง, ใบสั่งผลิต, ยอดคงเหลือ…")}
+            aria-label={tr("ค้นหาเมนู")}
             autoComplete="off"
             spellCheck={false}
           />
@@ -244,30 +246,30 @@ export default function MenuSearchPalette({ open, onClose }: Props) {
             results.length > 0 ? (
               <>
                 <div className={styles.sectionTitle}>
-                  <ClockCircleOutlined /> เปิดล่าสุด
+                  <ClockCircleOutlined /> {tr("เปิดล่าสุด")}
                 </div>
                 {results.map(renderRow)}
               </>
             ) : (
               <div className={styles.hint}>
                 <SearchOutlined className={styles.hintIcon} />
-                <p>พิมพ์ชื่อเมนู หรือชื่อกลุ่มงาน เพื่อไปยังหน้านั้นทันที</p>
+                <p>{tr("พิมพ์ชื่อเมนู หรือชื่อกลุ่มงาน เพื่อไปยังหน้านั้นทันที")}</p>
                 <span>
-                  ค้นเจอเฉพาะเมนูที่คุณมีสิทธิ์ใช้งาน
-                  {entries.length > 0 ? ` · ทั้งหมด ${entries.length} เมนู` : ""}
+                  {tr("ค้นเจอเฉพาะเมนูที่คุณมีสิทธิ์ใช้งาน")}
+                  {entries.length > 0 ? ` · ${tr("ทั้งหมด {n} เมนู", { n: entries.length })}` : ""}
                 </span>
               </div>
             )
           ) : results.length === 0 ? (
             <div className={styles.hint}>
               <SearchOutlined className={styles.hintIcon} />
-              <p>ไม่พบเมนูที่ตรงกับ “{query.trim()}”</p>
-              <span>ลองใช้คำสั้นลง หรือค้นด้วยชื่อกลุ่มงาน เช่น คลัง · ผลิต · ขาย</span>
+              <p>{tr("ไม่พบเมนูที่ตรงกับ")} “{query.trim()}”</p>
+              <span>{tr("ลองใช้คำสั้นลง หรือค้นด้วยชื่อกลุ่มงาน เช่น คลัง · ผลิต · ขาย")}</span>
             </div>
           ) : (
             <>
               <div className={styles.sectionTitle}>
-                ผลการค้นหา · {results.length} เมนู
+                {tr("ผลการค้นหา · {n} เมนู", { n: results.length })}
               </div>
               {results.map(renderRow)}
             </>
@@ -277,13 +279,13 @@ export default function MenuSearchPalette({ open, onClose }: Props) {
         <div className={styles.footer}>
           <span>
             <kbd className={styles.kbd}>↑</kbd>
-            <kbd className={styles.kbd}>↓</kbd> เลือก
+            <kbd className={styles.kbd}>↓</kbd> {tr("เลือก")}
           </span>
           <span>
-            <kbd className={styles.kbd}>Enter</kbd> เปิดหน้า
+            <kbd className={styles.kbd}>Enter</kbd> {tr("เปิดหน้า")}
           </span>
           <span>
-            <kbd className={styles.kbd}>Esc</kbd> ปิด
+            <kbd className={styles.kbd}>Esc</kbd> {tr("ปิด")}
           </span>
         </div>
       </div>

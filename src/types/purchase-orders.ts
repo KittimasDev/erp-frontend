@@ -1,3 +1,7 @@
+import { getStoredLanguage, type Language } from "@/lib/i18n/language";
+import { tNow } from "@/lib/i18n/useT";
+import { translate } from "@/lib/i18n/translate";
+
 export type PurchaseOrderStatus =
   | "DRAFT"
   | "PENDING_APPROVAL"
@@ -10,6 +14,21 @@ export type PurchaseOrderStatus =
   | "RECEIVE_CANCELLED"
   | "CANCELLED"
   | string;
+
+const STATUS_LABEL_EN_OVERRIDE: Record<string, string> = {
+  /* ในบริบทสถานะ "ยกเลิก" = Cancelled (ไม่ใช่ปุ่ม Cancel) และ "แก้ไข" = Revising (ไม่ใช่ปุ่ม Edit) */
+  ยกเลิก: "Cancelled",
+  แก้ไข: "Revising",
+};
+
+/** แปลป้ายสถานะเอกสาร (PO/GR/flow) ตามภาษา — เรียกตอนเรนเดอร์ในคอมโพเนนต์ที่ใช้ useT()/useLanguage() อยู่แล้ว */
+export function tStatus(label: string, lang?: Language): string {
+  const current = lang ?? getStoredLanguage();
+  if (current === "en" && STATUS_LABEL_EN_OVERRIDE[label]) {
+    return STATUS_LABEL_EN_OVERRIDE[label];
+  }
+  return translate(current, label);
+}
 
 export const PURCHASE_ORDER_STATUS_LABEL: Record<string, string> = {
   DRAFT: "แบบร่างเอกสาร",
@@ -354,4 +373,12 @@ export function listPurchaseRequests(
     return po.purchaseRequests;
   }
   return po.purchaseRequest ? [po.purchaseRequest] : [];
+}
+
+/** ป้าย "ภาษีมูลค่าเพิ่ม n%" แบบแปลภาษาตามหน้าจอ (ตัวเดิมใน lib/money ใช้กับ PDF ซึ่งเป็นไทยเสมอ) */
+export function vatAmountLabelT(rate?: number | null): string {
+  const base = tNow("ภาษีมูลค่าเพิ่ม");
+  return typeof rate === "number" && Number.isFinite(rate) && rate > 0
+    ? `${base} ${rate}%`
+    : base;
 }

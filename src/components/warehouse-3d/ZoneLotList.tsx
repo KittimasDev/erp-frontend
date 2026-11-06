@@ -3,6 +3,8 @@
 import React from "react";
 import ItemImage from "@/components/masters/items/ItemImage";
 import type { ZoneLot } from "@/types/warehouse-3d";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 interface ZoneLotListProps {
   lots: ZoneLot[];
@@ -11,18 +13,20 @@ interface ZoneLotListProps {
   imageSize?: number;
 }
 
-const fmtDate = (iso?: string) => {
+const fmtDate = (iso: string | undefined, lang: "th" | "en") => {
   if (!iso) return "";
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "2-digit" });
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(lang === "en" ? "en-GB" : "th-TH", { day: "2-digit", month: "short", year: "2-digit" });
 };
 
 /** รายการสินค้า/Lot ใน Location พร้อมรูปสินค้าจาก master — ใช้ทั้งการ์ด hover และแผงรายละเอียด */
 export const ZoneLotList: React.FC<ZoneLotListProps> = ({ lots, limit, imageSize = 44 }) => {
+  const t = useT();
+  const lang = useLanguage();
   const shown = limit ? lots.slice(0, limit) : lots;
 
   if (lots.length === 0) {
-    return <div className="text-[11px] text-slate-500 py-2 text-center">ตำแหน่งนี้ยังไม่มีสินค้า</div>;
+    return <div className="text-[11px] text-slate-500 py-2 text-center">{t("ตำแหน่งนี้ยังไม่มีสินค้า")}</div>;
   }
 
   return (
@@ -46,8 +50,8 @@ export const ZoneLotList: React.FC<ZoneLotListProps> = ({ lots, limit, imageSize
             </div>
             <div className="text-[10px] text-slate-400 truncate">
               {[
-                lot.receivedDate ? `รับเข้า ${fmtDate(lot.receivedDate)}` : "",
-                lot.expiryDate ? `หมดอายุ ${fmtDate(lot.expiryDate)}` : "",
+                lot.receivedDate ? t("รับเข้า {date}", { date: fmtDate(lot.receivedDate, lang) }) : "",
+                lot.expiryDate ? t("หมดอายุ {date}", { date: fmtDate(lot.expiryDate, lang) }) : "",
                 lot.qcStatus ? `QC: ${lot.qcStatus}` : "",
               ]
                 .filter(Boolean)
@@ -61,7 +65,7 @@ export const ZoneLotList: React.FC<ZoneLotListProps> = ({ lots, limit, imageSize
         </div>
       ))}
       {limit && lots.length > limit && (
-        <div className="text-[10px] text-slate-400 text-center">และอีก {lots.length - limit} lot (คลิกโซนเพื่อดูทั้งหมด)</div>
+        <div className="text-[10px] text-slate-400 text-center">{t("และอีก {n} lot (คลิกโซนเพื่อดูทั้งหมด)", { n: lots.length - limit })}</div>
       )}
     </div>
   );

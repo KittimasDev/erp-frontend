@@ -5,6 +5,7 @@ import { Alert, App, Button, Input, Modal, Tag, Typography } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import DocumentAttachmentsPanel from "@/components/common/DocumentAttachmentsPanel";
+import { useT } from "@/lib/i18n/useT";
 import { ApiError } from "@/lib/api/client";
 import { apiFetch } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -33,6 +34,7 @@ const BASE = "/api/inventory/lots";
 
 /** ตัดสิน QC ของ Lot + เลขอ้างอิง/ไฟล์ COA — Lot ผลผลิต FG ต้องผ่านขั้นนี้ก่อนส่งมอบลูกค้า (M10.1/M10.4/M10.7) */
 export default function LotQcModal({ lot, onClose }: Props) {
+  const t = useT();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [reference, setReference] = useState(lot.coaReference ?? "");
@@ -54,8 +56,8 @@ export default function LotQcModal({ lot, onClose }: Props) {
         token: getAccessToken(),
         body: { coaReference: reference.trim() },
       }),
-    onSuccess: () => done("บันทึกเลขอ้างอิง COA แล้ว"),
-    onError: (e) => fail(e, "บันทึกเลขอ้างอิง COA ไม่สำเร็จ"),
+    onSuccess: () => done(t("บันทึกเลขอ้างอิง COA แล้ว")),
+    onError: (e) => fail(e, t("บันทึกเลขอ้างอิง COA ไม่สำเร็จ")),
   });
   const approve = useMutation({
     mutationFn: () =>
@@ -65,10 +67,10 @@ export default function LotQcModal({ lot, onClose }: Props) {
         body: { coaReference: reference.trim() || undefined },
       }),
     onSuccess: () => {
-      done("อนุมัติ QC ของ Lot แล้ว");
+      done(t("อนุมัติ QC ของ Lot แล้ว"));
       onClose();
     },
-    onError: (e) => fail(e, "อนุมัติ QC ไม่สำเร็จ"),
+    onError: (e) => fail(e, t("อนุมัติ QC ไม่สำเร็จ")),
   });
   const hold = useMutation({
     mutationFn: () =>
@@ -78,10 +80,10 @@ export default function LotQcModal({ lot, onClose }: Props) {
         body: { reason: reason.trim() },
       }),
     onSuccess: () => {
-      done("พัก Lot ไว้แล้ว (ยอดถูกกันออกจากยอดพร้อมใช้)");
+      done(t("พัก Lot ไว้แล้ว (ยอดถูกกันออกจากยอดพร้อมใช้)"));
       onClose();
     },
-    onError: (e) => fail(e, "พัก Lot ไม่สำเร็จ"),
+    onError: (e) => fail(e, t("พัก Lot ไม่สำเร็จ")),
   });
   const reject = useMutation({
     mutationFn: () =>
@@ -91,10 +93,10 @@ export default function LotQcModal({ lot, onClose }: Props) {
         body: { reason: reason.trim() },
       }),
     onSuccess: () => {
-      done("ปฏิเสธ QC ของ Lot แล้ว");
+      done(t("ปฏิเสธ QC ของ Lot แล้ว"));
       onClose();
     },
-    onError: (e) => fail(e, "ปฏิเสธ QC ไม่สำเร็จ"),
+    onError: (e) => fail(e, t("ปฏิเสธ QC ไม่สำเร็จ")),
   });
 
   return (
@@ -110,15 +112,15 @@ export default function LotQcModal({ lot, onClose }: Props) {
               danger
               loading={reject.isPending}
               disabled={!reason.trim()}
-              title={!reason.trim() ? "ใส่เหตุผลก่อนปฏิเสธ" : undefined}
+              title={!reason.trim() ? t("ใส่เหตุผลก่อนปฏิเสธ") : undefined}
               onClick={() => reject.mutate()}
             >
-              QC ไม่ผ่าน
+              {t("QC ไม่ผ่าน")}
             </Button>
             <div style={{ display: "flex", gap: 8 }}>
-              <Button onClick={onClose}>ปิด</Button>
+              <Button onClick={onClose}>{t("ปิด")}</Button>
               <Button type="primary" loading={approve.isPending} onClick={() => approve.mutate()}>
-                อนุมัติ QC
+                {t("อนุมัติ QC")}
               </Button>
             </div>
           </div>
@@ -128,63 +130,63 @@ export default function LotQcModal({ lot, onClose }: Props) {
               danger
               loading={hold.isPending}
               disabled={!reason.trim()}
-              title={!reason.trim() ? "ใส่เหตุผลก่อนพัก Lot" : undefined}
+              title={!reason.trim() ? t("ใส่เหตุผลก่อนพัก Lot") : undefined}
               onClick={() => hold.mutate()}
             >
-              พักไว้ (Hold)
+              {t("พักไว้ (Hold)")}
             </Button>
-            <Button onClick={onClose}>ปิด</Button>
+            <Button onClick={onClose}>{t("ปิด")}</Button>
           </div>
         ) : (
-          <Button onClick={onClose}>ปิด</Button>
+          <Button onClick={onClose}>{t("ปิด")}</Button>
         )
       }
     >
       <p style={{ marginTop: 0 }}>
-        {lot.itemCode} — {lot.itemNameTh} · <Tag>{QC_LABEL[lot.qcStatus ?? ""] ?? lot.qcStatus ?? "—"}</Tag>
+        {lot.itemCode} — {lot.itemNameTh} · <Tag>{QC_LABEL[lot.qcStatus ?? ""] ? t(QC_LABEL[lot.qcStatus ?? ""]) : lot.qcStatus ?? "—"}</Tag>
       </p>
 
-      <Typography.Text strong>เลขอ้างอิง COA</Typography.Text>
+      <Typography.Text strong>{t("เลขอ้างอิง COA")}</Typography.Text>
       <div style={{ display: "flex", gap: 8, margin: "4px 0 12px" }}>
         <Input
           value={reference}
           onChange={(e) => setReference(e.target.value)}
           maxLength={100}
-          placeholder="เช่น COA-2026-0123"
+          placeholder={t("เช่น COA-2026-0123")}
         />
         <Button
           loading={saveRef.isPending}
           disabled={!reference.trim() || reference.trim() === (lot.coaReference ?? "")}
           onClick={() => saveRef.mutate()}
         >
-          บันทึกเลข
+          {t("บันทึกเลข")}
         </Button>
       </div>
 
-      <Typography.Text strong>ไฟล์ COA</Typography.Text>
+      <Typography.Text strong>{t("ไฟล์ COA")}</Typography.Text>
       <DocumentAttachmentsPanel
         documentType={DOCUMENT_TYPE_LOT_COA}
         documentId={lot.lotId}
-        emptyText="ยังไม่ได้แนบไฟล์ COA"
-        uploadLabel="แนบไฟล์ COA"
+        emptyText={t("ยังไม่ได้แนบไฟล์ COA")}
+        uploadLabel={t("แนบไฟล์ COA")}
       />
 
       {holdable ? (
         <div style={{ marginTop: 12 }}>
-          <Typography.Text strong>เหตุผลที่พัก Lot</Typography.Text>
+          <Typography.Text strong>{t("เหตุผลที่พัก Lot")}</Typography.Text>
           <Input.TextArea rows={2} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} />
         </div>
       ) : null}
 
       {decidable ? (
         <div style={{ marginTop: 12 }}>
-          <Typography.Text strong>เหตุผล (กรณี QC ไม่ผ่าน)</Typography.Text>
+          <Typography.Text strong>{t("เหตุผล (กรณี QC ไม่ผ่าน)")}</Typography.Text>
           <Input.TextArea rows={2} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} />
           <Alert
             type="info"
             showIcon
             style={{ marginTop: 8 }}
-            title="Lot ที่ยังไม่ผ่าน QC ยืนยันหยิบ/จ่ายสินค้าให้ลูกค้าไม่ได้ · สินค้าที่ตั้ง “ต้องมี COA” ต้องมีเลขอ้างอิงหรือไฟล์ COA ด้วย"
+            title={t("Lot ที่ยังไม่ผ่าน QC ยืนยันหยิบ/จ่ายสินค้าให้ลูกค้าไม่ได้ · สินค้าที่ตั้ง “ต้องมี COA” ต้องมีเลขอ้างอิงหรือไฟล์ COA ด้วย")}
           />
         </div>
       ) : null}

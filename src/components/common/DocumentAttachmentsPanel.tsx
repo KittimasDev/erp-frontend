@@ -12,6 +12,7 @@ import {
   uploadDocumentAttachment,
 } from "@/lib/api/document-attachments";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import type { DocumentAttachment } from "@/types/document-attachments";
 
 type Props = {
@@ -32,11 +33,12 @@ export default function DocumentAttachmentsPanel({
   documentType,
   documentId,
   canEdit = true,
-  emptyText = "ยังไม่มีไฟล์แนบ",
-  uploadLabel = "แนบไฟล์",
+  emptyText,
+  uploadLabel,
   onChanged,
 }: Props) {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   const key = keyOf(documentType, documentId);
 
@@ -56,18 +58,18 @@ export default function DocumentAttachmentsPanel({
     mutationFn: (file: File) =>
       uploadDocumentAttachment(getAccessToken(), { file, documentType, documentId }),
     onSuccess: () => {
-      message.success("แนบไฟล์แล้ว");
+      message.success(t("แนบไฟล์แล้ว"));
       changed();
     },
-    onError: (e) => message.error(errorMessage(e, "แนบไฟล์ไม่สำเร็จ")),
+    onError: (e) => message.error(errorMessage(e, t("แนบไฟล์ไม่สำเร็จ"))),
   });
   const remove = useMutation({
     mutationFn: (id: string) => deleteDocumentAttachment(getAccessToken(), id),
     onSuccess: () => {
-      message.success("ลบไฟล์แล้ว");
+      message.success(t("ลบไฟล์แล้ว"));
       changed();
     },
-    onError: (e) => message.error(errorMessage(e, "ลบไฟล์ไม่สำเร็จ")),
+    onError: (e) => message.error(errorMessage(e, t("ลบไฟล์ไม่สำเร็จ"))),
   });
 
   const download = async (file: DocumentAttachment) => {
@@ -82,36 +84,36 @@ export default function DocumentAttachmentsPanel({
       link.remove();
       URL.revokeObjectURL(url);
     } catch (e) {
-      message.error(errorMessage(e, "ดาวน์โหลดไฟล์ไม่สำเร็จ"));
+      message.error(errorMessage(e, t("ดาวน์โหลดไฟล์ไม่สำเร็จ")));
     }
   };
 
   return (
     <div>
       {files.length === 0 ? (
-        <p style={{ color: "#8a94a6", margin: "4px 0 8px" }}>{emptyText}</p>
+        <p style={{ color: "#8a94a6", margin: "4px 0 8px" }}>{emptyText ?? t("ยังไม่มีไฟล์แนบ")}</p>
       ) : (
         <ul style={{ listStyle: "none", padding: 0, margin: "0 0 8px" }}>
           {files.map((file) => (
             <li key={file.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "2px 0" }}>
               <PaperClipOutlined />
               <span style={{ flex: 1, overflowWrap: "anywhere" }}>
-                {file.originalFileName || "ไฟล์"}
+                {file.originalFileName || t("ไฟล์")}
                 {file.uploadedByName ? (
                   <span style={{ color: "#8a94a6", fontSize: 12 }}> · {file.uploadedByName}</span>
                 ) : null}
               </span>
               <Button size="small" icon={<DownloadOutlined />} onClick={() => void download(file)}>
-                ดาวน์โหลด
+                {t("ดาวน์โหลด")}
               </Button>
               {canEdit ? (
                 <Popconfirm
-                  title="ลบไฟล์นี้?"
-                  okText="ลบ"
-                  cancelText="ยกเลิก"
+                  title={t("ลบไฟล์นี้?")}
+                  okText={t("ลบ")}
+                  cancelText={t("ยกเลิก")}
                   onConfirm={() => remove.mutate(file.id)}
                 >
-                  <Button size="small" danger icon={<DeleteOutlined />} aria-label="ลบไฟล์" />
+                  <Button size="small" danger icon={<DeleteOutlined />} aria-label={t("ลบไฟล์")} />
                 </Popconfirm>
               ) : null}
             </li>
@@ -127,7 +129,7 @@ export default function DocumentAttachmentsPanel({
           }}
         >
           <Button icon={<UploadOutlined />} loading={upload.isPending}>
-            {uploadLabel}
+            {uploadLabel ?? t("แนบไฟล์")}
           </Button>
         </Upload>
       ) : null}

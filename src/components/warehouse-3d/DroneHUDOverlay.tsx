@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useT } from "@/lib/i18n/useT";
 import {
   AimOutlined,
   CompassOutlined,
@@ -17,6 +18,7 @@ export const DroneHUDOverlay: React.FC<DroneHUDOverlayProps> = ({
   active,
   onExit,
 }) => {
+  const t = useT();
   if (!active) return null;
 
   return (
@@ -37,7 +39,7 @@ export const DroneHUDOverlay: React.FC<DroneHUDOverlayProps> = ({
           className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600/90 hover:bg-red-500 text-white font-medium text-xs shadow-lg backdrop-blur-md transition cursor-pointer"
         >
           <LogoutOutlined className="text-sm" />
-          <span>ออกจากโหมดสำรวจ (ESC)</span>
+          <span>{t("ออกจากโหมดสำรวจ (ESC)")}</span>
         </button>
       </div>
 
@@ -53,20 +55,20 @@ export const DroneHUDOverlay: React.FC<DroneHUDOverlayProps> = ({
       {/* Bottom Flight Controls Guide */}
       <div className="flex items-end justify-between">
         <div className="px-4 py-3 rounded-xl bg-slate-950/80 border border-slate-700/60 backdrop-blur-md text-slate-300 font-mono text-xs space-y-1 shadow-2xl">
-          <div className="text-orange-400 font-bold mb-1">🎮 แป้นควบคุมการบิน:</div>
+          <div className="text-orange-400 font-bold mb-1">{t("🎮 แป้นควบคุมการบิน:")}</div>
           <div className="flex items-center gap-2">
             <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-600">W / A / S / D</span>
-            <span>เดินหน้า / เลี้ยวซ้าย / ถอยหลัง / ขวา</span>
+            <span>{t("เดินหน้า / เลี้ยวซ้าย / ถอยหลัง / ขวา")}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-600">Space / E</span>
-            <span>บินขึ้น</span>
+            <span>{t("บินขึ้น")}</span>
             <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-600 ml-2">Shift / Q</span>
-            <span>บินลง</span>
+            <span>{t("บินลง")}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-600">Mouse Drag</span>
-            <span>หันมุมกล้อง 360°</span>
+            <span>{t("หันมุมกล้อง 360°")}</span>
           </div>
         </div>
 

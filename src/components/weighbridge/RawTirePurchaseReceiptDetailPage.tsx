@@ -37,6 +37,9 @@ import {
   STOCK_POSTING_STATUS_LABELS,
 } from "@/types/raw-tire-purchase-receipt";
 import styles from "./WeighbridgeDashboardPage.module.css";
+import { useT } from "@/lib/i18n/useT";
+
+import { appLocale, tLabel } from "./receiving-i18n";
 
 function formatWeight(value?: string | number) {
   if (value === undefined || value === null || value === "") {
@@ -46,7 +49,7 @@ function formatWeight(value?: string | number) {
   if (Number.isNaN(n)) {
     return String(value);
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     minimumFractionDigits: 3,
     maximumFractionDigits: 3,
   });
@@ -60,7 +63,7 @@ function formatMoney(value?: string | number) {
   if (Number.isNaN(n)) {
     return String(value);
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -74,7 +77,7 @@ function formatPrice(value?: string | number) {
   if (Number.isNaN(n)) {
     return String(value);
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     minimumFractionDigits: 4,
     maximumFractionDigits: 4,
   });
@@ -84,7 +87,7 @@ function formatDate(value?: string) {
   if (!value) {
     return "-";
   }
-  return new Date(value).toLocaleDateString("th-TH");
+  return new Date(value).toLocaleDateString(appLocale());
 }
 
 function statusColor(status: string) {
@@ -104,6 +107,7 @@ type Props = {
 export default function RawTirePurchaseReceiptDetailPage({
   receiptId,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -146,26 +150,26 @@ export default function RawTirePurchaseReceiptDetailPage({
 
   const itemColumns: ColumnsType<ReceiptItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "sortOrder",
       width: 70,
       render: (_value, _record, index) => index + 1,
     },
     {
-      title: "รหัสประเภทสินค้า",
+      title: t("รหัสประเภทสินค้า"),
       dataIndex: "classificationCode",
       key: "classificationCode",
       width: 140,
       render: (value?: string) => value || "-",
     },
     {
-      title: "ประเภทสินค้า",
+      title: t("ประเภทสินค้า"),
       dataIndex: "classificationName",
       key: "classificationName",
       render: (value?: string) => value || "-",
     },
     {
-      title: "น้ำหนัก (กก.)",
+      title: t("น้ำหนัก (กก.)"),
       dataIndex: "weightKg",
       key: "weightKg",
       width: 130,
@@ -173,7 +177,7 @@ export default function RawTirePurchaseReceiptDetailPage({
       render: (value: string) => formatWeight(value),
     },
     {
-      title: "ราคา/กก.",
+      title: t("ราคา/กก."),
       dataIndex: "pricePerKg",
       key: "pricePerKg",
       width: 120,
@@ -181,7 +185,7 @@ export default function RawTirePurchaseReceiptDetailPage({
       render: (value: string) => formatPrice(value),
     },
     {
-      title: "ยอดเงิน",
+      title: t("ยอดเงิน"),
       dataIndex: "amount",
       key: "amount",
       width: 130,
@@ -189,7 +193,7 @@ export default function RawTirePurchaseReceiptDetailPage({
       render: (value: string) => formatMoney(value),
     },
     {
-      title: "หมายเหตุ",
+      title: t("หมายเหตุ"),
       dataIndex: "description",
       key: "description",
       render: (value?: string) => value || "-",
@@ -198,18 +202,18 @@ export default function RawTirePurchaseReceiptDetailPage({
 
   const deductionColumns: ColumnsType<ReceiptDeduction> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 70,
       render: (_value, _record, index) => index + 1,
     },
     {
-      title: "รายการหัก",
+      title: t("รายการหัก"),
       key: "name",
-      render: (_, row) => formatDeductionDisplayName(row),
+      render: (_, row) => tLabel(formatDeductionDisplayName(row)),
     },
     {
-      title: "น้ำหนักหัก (กก.)",
+      title: t("น้ำหนักหัก (กก.)"),
       dataIndex: "deductionWeightKg",
       key: "deductionWeightKg",
       width: 140,
@@ -217,7 +221,7 @@ export default function RawTirePurchaseReceiptDetailPage({
       render: (value: string) => formatWeight(value),
     },
     {
-      title: "ราคา/กก.",
+      title: t("ราคา/กก."),
       dataIndex: "deductionPricePerKg",
       key: "deductionPricePerKg",
       width: 120,
@@ -225,7 +229,7 @@ export default function RawTirePurchaseReceiptDetailPage({
       render: (value?: string) => (value ? formatPrice(value) : "-"),
     },
     {
-      title: "จำนวนเงินหัก",
+      title: t("จำนวนเงินหัก"),
       dataIndex: "deductionAmount",
       key: "deductionAmount",
       width: 130,
@@ -260,7 +264,7 @@ export default function RawTirePurchaseReceiptDetailPage({
               }
             }}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           <div className={styles.detailTitleTags}>
             <Button
@@ -268,7 +272,7 @@ export default function RawTirePurchaseReceiptDetailPage({
               loading={receiptQuery.isFetching}
               onClick={() => receiptQuery.refetch()}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
             <Button
               icon={<PrinterOutlined />}
@@ -276,7 +280,7 @@ export default function RawTirePurchaseReceiptDetailPage({
               loading={isPrinting}
               onClick={() => void handlePrint()}
             >
-              พิมพ์ใบรับซื้อ
+              {t("พิมพ์ใบรับซื้อ")}
             </Button>
           </div>
         </div>
@@ -287,7 +291,7 @@ export default function RawTirePurchaseReceiptDetailPage({
               <Typography.Text type="danger">
                 {receiptQuery.error instanceof Error
                   ? receiptQuery.error.message
-                  : "โหลดใบรับซื้อไม่สำเร็จ"}
+                  : t("โหลดใบรับซื้อไม่สำเร็จ")}
               </Typography.Text>
             </div>
           </div>
@@ -297,14 +301,13 @@ export default function RawTirePurchaseReceiptDetailPage({
               <div className={styles.cardHeader}>
                 <div className={styles.detailTitleRow}>
                   <div>
-                    <h3>ใบรับซื้อยาง</h3>
+                    <h3>{t("ใบรับซื้อยาง")}</h3>
                     <p>
-                      เลขที่ {receipt.receiptNo} · วันที่{" "}
-                      {formatDate(receipt.receiptDate)} ·{" "}
+                      {t("เลขที่ {no} · วันที่ {date}", { no: receipt.receiptNo, date: formatDate(receipt.receiptDate) })} ·{" "}
                       {receipt.seller.sellerName}
                       {receipt.truck?.licensePlate ||
                       receipt.ticket?.truckLicensePlate
-                        ? ` · ทะเบียน ${receipt.truck?.licensePlate || receipt.ticket?.truckLicensePlate}`
+                        ? ` · ${t("ทะเบียนรถ")} ${receipt.truck?.licensePlate || receipt.ticket?.truckLicensePlate}`
                         : ""}
                     </p>
                   </div>
@@ -313,11 +316,11 @@ export default function RawTirePurchaseReceiptDetailPage({
                       color={statusColor(receipt.status)}
                       className={styles.flowTag}
                     >
-                      {RECEIPT_STATUS_LABELS[receipt.status] ?? receipt.status}
+                      {tLabel(RECEIPT_STATUS_LABELS[receipt.status] ?? receipt.status)}
                     </Tag>
                     <Tag className={styles.flowTag}>
-                      {PAYMENT_STATUS_LABELS[receipt.paymentStatus] ??
-                        receipt.paymentStatus}
+                      {tLabel(PAYMENT_STATUS_LABELS[receipt.paymentStatus] ??
+                        receipt.paymentStatus)}
                     </Tag>
                     <Tag
                       className={styles.flowTag}
@@ -327,14 +330,14 @@ export default function RawTirePurchaseReceiptDetailPage({
                           : "default"
                       }
                     >
-                      {STOCK_POSTING_STATUS_LABELS[
+                      {tLabel(STOCK_POSTING_STATUS_LABELS[
                         receipt.stockPostingStatus
-                      ] ?? receipt.stockPostingStatus}
+                      ] ?? receipt.stockPostingStatus)}
                     </Tag>
                     {receipt.currentStep ? (
                       <Tag color="blue" className={styles.flowTag}>
-                        {RAW_TIRE_FLOW_STEP_LABELS[receipt.currentStep] ??
-                          receipt.currentStep}
+                        {tLabel(RAW_TIRE_FLOW_STEP_LABELS[receipt.currentStep] ??
+                          receipt.currentStep)}
                       </Tag>
                     ) : null}
                   </div>
@@ -343,11 +346,11 @@ export default function RawTirePurchaseReceiptDetailPage({
               {receipt.nextAction ? (
                 <div className={styles.cardBody}>
                   <div className={styles.receiptRemarkBox}>
-                    <span>สถานะขั้นตอน</span>
+                    <span>{t("สถานะขั้นตอน")}</span>
                     <strong>
                       {receipt.currentStep === "COMPLETED" ||
                       receipt.stockPostingStatus === "POSTED"
-                        ? "เข้าคลังแล้ว"
+                        ? t("เข้าคลังแล้ว")
                         : receipt.nextAction}
                     </strong>
                   </div>
@@ -366,7 +369,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                           router.push(receipt.nextActionHref as string)
                         }
                       >
-                        ไปดำเนินการต่อ
+                        {t("ไปดำเนินการต่อ")}
                       </Button>
                     </div>
                   ) : null}
@@ -375,7 +378,7 @@ export default function RawTirePurchaseReceiptDetailPage({
               {receipt.remark ? (
                 <div className={styles.cardBody}>
                   <div className={styles.receiptRemarkBox}>
-                    <span>หมายเหตุ</span>
+                    <span>{t("หมายเหตุ")}</span>
                     <strong>{receipt.remark}</strong>
                   </div>
                 </div>
@@ -385,10 +388,9 @@ export default function RawTirePurchaseReceiptDetailPage({
             <div className={styles.card}>
               <div className={styles.listHeader}>
                 <div>
-                  <h3>รายการประเภทสินค้า</h3>
+                  <h3>{t("รายการประเภทสินค้า")}</h3>
                   <p>
-                    ต้องมีประเภทสินค้า + กฎราคาครบ แล้วคัดแยกจากตั๋ว
-                    จึงจะมีรายการที่นี่
+                    {t("ต้องมีประเภทสินค้า + กฎราคาครบ แล้วคัดแยกจากตั๋ว จึงจะมีรายการที่นี่")}
                   </p>
                 </div>
                 <div className={styles.listHeaderActions}>
@@ -401,7 +403,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                           router.push("/masters/tire-classifications")
                         }
                       >
-                        ประเภทสินค้า
+                        {t("ประเภทสินค้า")}
                       </Button>
                       <Button
                         size="small"
@@ -409,7 +411,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                           router.push("/masters/raw-tire-price-rules")
                         }
                       >
-                        กฎราคา
+                        {t("กฎราคา")}
                       </Button>
                     </div>
                   </div>
@@ -418,8 +420,7 @@ export default function RawTirePurchaseReceiptDetailPage({
               {receipt.items.length === 0 && receipt.canEditClassification ? (
                 <div className={styles.cardBody}>
                   <Typography.Text type="secondary">
-                    ยังไม่มีรายการคัดแยก — สร้างประเภท/กฎราคาที่ master
-                    แล้วกลับไปแก้ไขคัดแยกจากตั๋ว
+                    {t("ยังไม่มีรายการคัดแยก — สร้างประเภท/กฎราคาที่ master แล้วกลับไปแก้ไขคัดแยกจากตั๋ว")}
                   </Typography.Text>
                   {receipt.weighbridgeTicketId ? (
                     <div className={styles.classificationActions}>
@@ -432,7 +433,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                           )
                         }
                       >
-                        ไปคัดแยกประเภทสินค้า
+                        {t("ไปคัดแยกประเภทสินค้า")}
                       </Button>
                     </div>
                   ) : null}
@@ -445,15 +446,15 @@ export default function RawTirePurchaseReceiptDetailPage({
                 pagination={false}
                 size="middle"
                 scroll={{ x: 900 }}
-                locale={{ emptyText: "ไม่มีรายการประเภทสินค้า" }}
+                locale={{ emptyText: t("ไม่มีรายการประเภทสินค้า") }}
               />
             </div>
 
             <div className={styles.card}>
               <div className={styles.listHeader}>
                 <div>
-                  <h3>รายการหักสิ่งปนเปื้อน</h3>
-                  <p>เหตุผลการหักจาก description ของรายการหัก</p>
+                  <h3>{t("รายการหักสิ่งปนเปื้อน")}</h3>
+                  <p>{t("เหตุผลการหักจาก description ของรายการหัก")}</p>
                 </div>
               </div>
               <Table
@@ -462,43 +463,43 @@ export default function RawTirePurchaseReceiptDetailPage({
                 dataSource={receipt.deductions}
                 pagination={false}
                 size="middle"
-                locale={{ emptyText: "ไม่มีรายการหัก" }}
+                locale={{ emptyText: t("ไม่มีรายการหัก") }}
                 scroll={{ x: 760 }}
               />
             </div>
 
             <div className={styles.card}>
               <div className={styles.cardHeader}>
-                <h3>สรุปยอดรวม</h3>
-                <p>น้ำหนักและจำนวนเงินที่คำนวณจากรายการ</p>
+                <h3>{t("สรุปยอดรวม")}</h3>
+                <p>{t("น้ำหนักและจำนวนเงินที่คำนวณจากรายการ")}</p>
               </div>
               <div className={styles.cardBody}>
                 <div className={styles.receiptSummaryLayout}>
                   <div className={styles.receiptSummaryWeights}>
                     <SummaryItem
-                      label="น้ำหนักสุทธิจากตั๋ว (กก.)"
+                      label={t("น้ำหนักสุทธิจากตั๋ว (กก.)")}
                       value={formatWeight(receipt.summary.netWeightKg)}
                     />
                     <SummaryItem
-                      label="น้ำหนักหัก (กก.)"
+                      label={t("น้ำหนักหัก (กก.)")}
                       value={formatWeight(receipt.summary.deductionWeightKg)}
                     />
                     <SummaryItem
-                      label="น้ำหนักที่จ่ายเงินจริง (กก.)"
+                      label={t("น้ำหนักที่จ่ายเงินจริง (กก.)")}
                       value={formatWeight(receipt.summary.payableWeightKg)}
                     />
                   </div>
                   <div className={styles.receiptSummaryMoney}>
                     <SummaryItem
-                      label="ยอดก่อนหัก (บาท)"
+                      label={t("ยอดก่อนหัก (บาท)")}
                       value={formatMoney(receipt.summary.subtotalAmount)}
                     />
                     <SummaryItem
-                      label="ยอดหัก (บาท)"
+                      label={t("ยอดหัก (บาท)")}
                       value={formatMoney(receipt.summary.deductionAmount)}
                     />
                     <SummaryItem
-                      label="ยอดสุทธิ (บาท)"
+                      label={t("ยอดสุทธิ (บาท)")}
                       value={formatMoney(receipt.summary.totalAmount)}
                       highlight
                     />
@@ -518,20 +519,20 @@ export default function RawTirePurchaseReceiptDetailPage({
                           }
                         }}
                       >
-                        กลับไปแก้ไขคัดแยก
+                        {t("กลับไปแก้ไขคัดแยก")}
                       </Button>
                       <Button
                         disabled={isBusy}
                         loading={recalculateMutation.isPending}
                         onClick={() => void recalculateMutation.mutateAsync()}
                       >
-                        คำนวณยอดใหม่
+                        {t("คำนวณยอดใหม่")}
                       </Button>
                       <Popconfirm
-                        title="ยืนยันยอดใบรับซื้อ"
-                        description="ระบบจะคำนวณยอดจากรายการในฐานข้อมูล แล้วล็อกยอดใบรับซื้อ (ยังไม่ใช่การจ่ายเงิน)"
-                        okText="ยืนยันยอด"
-                        cancelText="ยกเลิก"
+                        title={t("ยืนยันยอดใบรับซื้อ")}
+                        description={t("ระบบจะคำนวณยอดจากรายการในฐานข้อมูล แล้วล็อกยอดใบรับซื้อ (ยังไม่ใช่การจ่ายเงิน)")}
+                        okText={t("ยืนยันยอด")}
+                        cancelText={t("ยกเลิก")}
                         disabled={!receipt.canConfirm || isBusy}
                         onConfirm={async () => {
                           await confirmMutation.mutateAsync();
@@ -544,7 +545,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                           disabled={!receipt.canConfirm || isBusy}
                           loading={confirmMutation.isPending}
                         >
-                          ยืนยันยอดใบรับซื้อ
+                          {t("ยืนยันยอดใบรับซื้อ")}
                         </Button>
                       </Popconfirm>
                       <Button
@@ -552,7 +553,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                         disabled={!receipt.canCancel || isBusy}
                         onClick={() => setCancelOpen(true)}
                       >
-                        ยกเลิกใบรับซื้อ
+                        {t("ยกเลิกใบรับซื้อ")}
                       </Button>
                     </>
                   ) : null}
@@ -569,7 +570,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                             )
                           }
                         >
-                          แก้ไขคัดแยก
+                          {t("แก้ไขคัดแยก")}
                         </Button>
                       ) : null}
                       <Button
@@ -578,7 +579,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                         loading={isPrinting}
                         onClick={() => void handlePrint()}
                       >
-                        พิมพ์ใบรับซื้อ
+                        {t("พิมพ์ใบรับซื้อ")}
                       </Button>
                       {receipt.paymentStatus !== "PAID" ? (
                         <Button
@@ -590,13 +591,13 @@ export default function RawTirePurchaseReceiptDetailPage({
                             )
                           }
                         >
-                          ไปหน้าจ่ายเงิน
+                          {t("ไปหน้าจ่ายเงิน")}
                         </Button>
                       ) : null}
                       {receipt.paymentStatus === "PAID" &&
                       receipt.stockPostingStatus === "POSTED" ? (
                         <>
-                          <Tag color="success">เข้าคลังแล้ว</Tag>
+                          <Tag color="success">{t("เข้าคลังแล้ว")}</Tag>
                           <Button
                             type="primary"
                             className={styles.submitButton}
@@ -606,7 +607,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                               )
                             }
                           >
-                            ดูใบรับเข้าคลัง
+                            {t("ดูใบรับเข้าคลัง")}
                           </Button>
                         </>
                       ) : null}
@@ -623,7 +624,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                             )
                           }
                         >
-                          {receipt.nextAction || "ส่งคำขอรับเข้าคลัง"}
+                          {receipt.nextAction || t("ส่งคำขอรับเข้าคลัง")}
                         </Button>
                       ) : null}
                       {receipt.paymentStatus !== "PAID" &&
@@ -637,7 +638,7 @@ export default function RawTirePurchaseReceiptDetailPage({
                             )
                           }
                         >
-                          ส่งคำขอรับเข้าคลัง
+                          {t("ส่งคำขอรับเข้าคลัง")}
                         </Button>
                       ) : null}
                     </>
@@ -645,7 +646,7 @@ export default function RawTirePurchaseReceiptDetailPage({
 
                   {receipt.status === "CANCELLED" ? (
                     <Typography.Text type="secondary">
-                      ใบรับซื้อถูกยกเลิกแล้ว ดูได้อย่างเดียว
+                      {t("ใบรับซื้อถูกยกเลิกแล้ว ดูได้อย่างเดียว")}
                     </Typography.Text>
                   ) : null}
                 </div>
@@ -656,10 +657,10 @@ export default function RawTirePurchaseReceiptDetailPage({
       </section>
 
       <Modal
-        title="ยกเลิกใบรับซื้อ"
+        title={t("ยกเลิกใบรับซื้อ")}
         open={cancelOpen}
-        okText="ยืนยันยกเลิก"
-        cancelText="ปิด"
+        okText={t("ยืนยันยกเลิก")}
+        cancelText={t("ปิด")}
         okButtonProps={{
           danger: true,
           disabled: !cancelReason.trim(),
@@ -672,12 +673,12 @@ export default function RawTirePurchaseReceiptDetailPage({
         onOk={() => void handleCancel()}
       >
         <Typography.Paragraph>
-          กรุณาระบุเหตุผลการยกเลิก (จะบันทึกลงหมายเหตุใบรับซื้อ)
+          {t("กรุณาระบุเหตุผลการยกเลิก (จะบันทึกลงหมายเหตุใบรับซื้อ)")}
         </Typography.Paragraph>
         <Input.TextArea
           rows={3}
           value={cancelReason}
-          placeholder="เช่น น้ำหนักผิดพลาด ต้องชั่งใหม่"
+          placeholder={t("เช่น น้ำหนักผิดพลาด ต้องชั่งใหม่")}
           onChange={(event) => setCancelReason(event.target.value)}
         />
       </Modal>

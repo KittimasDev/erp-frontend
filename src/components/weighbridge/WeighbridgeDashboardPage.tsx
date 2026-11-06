@@ -33,6 +33,8 @@ import dayjs from "dayjs";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { getStoredLanguage, useLanguage } from "@/lib/i18n/language";
+import { tNow, useT } from "@/lib/i18n/useT";
 import { useCreateWeighbridgeTicketMutation } from "@/hooks/weighbridge-tickets/useCreateWeighbridgeTicketMutation";
 import { useWeighbridgeDashboardQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeDashboardQuery";
 import { useCreateSellerMutation } from "@/hooks/sellers/useCreateSellerMutation";
@@ -84,6 +86,7 @@ function OpenTicketFromImageAction({
   pending: boolean;
   onScan: (file: File, previewUrl: string) => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const availability = useAiOcrAvailabilityQuery();
   const canOpenSettings =
@@ -92,7 +95,7 @@ function OpenTicketFromImageAction({
   if (availability.isSuccess && availability.data.data.configured) {
     return (
       <WeighTicketOcrCaptureButton
-        label="เปิดตั๋วจากรูปใบชั่ง"
+        label={t("เปิดตั๋วจากรูปใบชั่ง")}
         pending={pending}
         onScan={onScan}
       />
@@ -102,7 +105,7 @@ function OpenTicketFromImageAction({
   if (availability.isPending) {
     return (
       <Button disabled loading>
-        เปิดตั๋วจากรูปใบชั่ง
+        {t("เปิดตั๋วจากรูปใบชั่ง")}
       </Button>
     );
   }
@@ -110,14 +113,14 @@ function OpenTicketFromImageAction({
   if (canOpenSettings) {
     return (
       <Button onClick={() => router.push("/settings/ai-ocr")}>
-        ไปตั้งค่า AI อ่านเอกสาร
+        {t("ไปตั้งค่า AI อ่านเอกสาร")}
       </Button>
     );
   }
 
   return (
     <Typography.Text type="secondary">
-      ยังไม่ได้ตั้งค่า AI อ่านเอกสาร ให้แจ้งผู้ดูแลระบบ
+      {t("ยังไม่ได้ตั้งค่า AI อ่านเอกสาร ให้แจ้งผู้ดูแลระบบ")}
     </Typography.Text>
   );
 }
@@ -232,6 +235,21 @@ const FLOW_LABELS: Record<string, string> = {
   CANCELLED: "ยกเลิก",
   OTHER: "อื่นๆ",
 };
+
+/**
+ * ป้ายสถานะตามภาษาปัจจุบัน — "ยกเลิก" ในที่นี้คือสถานะ (Cancelled) ไม่ใช่ปุ่ม Cancel
+ * เรียกตอน render เท่านั้น (ผู้เรียกใช้ useT/useLanguage อยู่แล้ว)
+ */
+function flowLabel(flow: string): string | undefined {
+  const label = FLOW_LABELS[flow];
+  if (label === undefined) {
+    return undefined;
+  }
+  if (flow === "CANCELLED") {
+    return getStoredLanguage() === "en" ? "Cancelled" : label;
+  }
+  return tNow(label);
+}
 
 /*
   ป้ายในคอลัมน์ "ดำเนินการ" ของแถวที่ไม่มีปุ่มให้กดแล้ว — บอก "ไปไหนต่อ" ไม่ใช่ "สถานะอะไร"
@@ -429,7 +447,9 @@ function matchesSearch(ticket: WeighbridgeTicketListItem, query: string) {
     ticket.scaleName,
     ticket.referenceDocNo,
     ticket.origin ? TICKET_ORIGIN_LABEL[ticket.origin] : undefined,
+    ticket.origin ? tNow(TICKET_ORIGIN_LABEL[ticket.origin]) : undefined,
     FLOW_LABELS[ticket.flowState ?? ""] ?? ticket.flowState,
+    flowLabel(ticket.flowState ?? ""),
   ]
     .filter(Boolean)
     .join(" ")
@@ -451,12 +471,15 @@ function filterSelectOption(
   return label.includes(keyword);
 }
 
+/** locale ตัวเลขตามภาษาปัจจุบัน — เรียกตอน render เท่านั้น */
+const numberLocale = () => (getStoredLanguage() === "en" ? "en-GB" : "th-TH");
+
 function formatMoney(value: string) {
   const n = Number(value);
   if (Number.isNaN(n)) {
     return value;
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(numberLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -467,7 +490,7 @@ function formatWeight(value: string) {
   if (Number.isNaN(n)) {
     return value;
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(numberLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   });
@@ -488,6 +511,7 @@ function SideSheet({
   onClose,
   children,
 }: SideSheetProps) {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -526,7 +550,7 @@ function SideSheet({
       <button
         type="button"
         className={styles.sideSheetMask}
-        aria-label="ปิดแผง"
+        aria-label={t("ปิดแผง")}
         onClick={() => onCloseRef.current()}
       />
       <aside
@@ -539,7 +563,7 @@ function SideSheet({
         <button
           type="button"
           className={styles.sideSheetClose}
-          aria-label="ปิด"
+          aria-label={t("ปิด")}
           onClick={() => onCloseRef.current()}
         >
           <CloseOutlined />
@@ -552,6 +576,8 @@ function SideSheet({
 }
 
 export default function WeighbridgeDashboardPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -776,6 +802,7 @@ export default function WeighbridgeDashboardPage() {
         (ticket) =>
           matchesStage(ticket, stage) && matchesSearch(ticket, searchQuery),
       ),
+    // t เปลี่ยนตามภาษา — ป้ายสถานะที่ใช้ค้นหาต้องคำนวณใหม่
     [tickets, stage, searchQuery],
   );
 
@@ -867,27 +894,27 @@ export default function WeighbridgeDashboardPage() {
   const summaryCards = [
     {
       key: "all" as ReceivingStage,
-      label: showAll ? "รถเข้าทั้งหมด" : "รถเข้าวันนี้",
+      label: showAll ? t("รถเข้าทั้งหมด") : t("รถเข้าวันนี้"),
       value: tickets.length,
     },
     {
       key: "pending-confirm" as ReceivingStage,
-      label: "รอยืนยัน",
+      label: t("รอยืนยัน"),
       value: stageCounts["pending-confirm"],
     },
     {
       key: "payment" as ReceivingStage,
-      label: "รอจ่ายเงิน",
+      label: t("รอจ่ายเงิน"),
       value: stageCounts.payment,
     },
     {
       key: "warehouse" as ReceivingStage,
-      label: "รอเข้าคลัง",
+      label: t("รอเข้าคลัง"),
       value: stageCounts.warehouse,
     },
     {
       key: "done" as ReceivingStage,
-      label: "สำเร็จ",
+      label: t("สำเร็จ"),
       value: stageCounts.done,
     },
   ];
@@ -998,13 +1025,14 @@ export default function WeighbridgeDashboardPage() {
     });
   };
 
-  const activeStageLabel =
-    STAGE_OPTIONS.find((item) => item.key === stage)?.label ?? "ทั้งหมด";
+  const activeStageLabel = t(
+    STAGE_OPTIONS.find((item) => item.key === stage)?.label ?? "ทั้งหมด",
+  );
   const dateRangeValue: [Dayjs, Dayjs] | null =
     fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null;
   const dateLabel = (() => {
-    if (showAll) return "ทั้งหมด";
-    if (!fromParam && !toParam) return "วันนี้";
+    if (showAll) return t("ทั้งหมด");
+    if (!fromParam && !toParam) return t("วันนี้");
     if (fromParam && toParam && fromParam === toParam) {
       return dayjs(fromParam).format("DD/MM/YYYY");
     }
@@ -1016,33 +1044,33 @@ export default function WeighbridgeDashboardPage() {
 
   const columns: ColumnsType<WeighbridgeTicketListItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "rowNo",
       width: 72,
       align: "center",
       render: (_value, _record, index) => index + 1,
     },
     {
-      title: "เลขตั๋ว",
+      title: t("เลขตั๋ว"),
       dataIndex: "ticketNo",
       key: "ticketNo",
       width: 150,
     },
     {
-      title: "ที่มา",
+      title: t("ที่มา"),
       key: "origin",
       width: 120,
       render: (_value, record) => {
         const origin = record.origin ?? "MANUAL";
         return (
           <Tag color={TICKET_ORIGIN_COLOR[origin]}>
-            {TICKET_ORIGIN_LABEL[origin]}
+            {t(TICKET_ORIGIN_LABEL[origin])}
           </Tag>
         );
       },
     },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "seller",
       width: 180,
       render: (_value, record) =>
@@ -1051,21 +1079,21 @@ export default function WeighbridgeDashboardPage() {
           : "-",
     },
     {
-      title: "ทะเบียน",
+      title: t("ทะเบียน"),
       dataIndex: "truckLicensePlate",
       key: "truckLicensePlate",
       width: 120,
       render: (value?: string) => value || "-",
     },
     {
-      title: "คนขับ",
+      title: t("คนขับ"),
       dataIndex: "driverName",
       key: "driverName",
       width: 140,
       render: (value?: string) => value || "-",
     },
     {
-      title: "เครื่องชั่ง",
+      title: t("เครื่องชั่ง"),
       key: "scale",
       width: 160,
       render: (_value, record) =>
@@ -1074,18 +1102,18 @@ export default function WeighbridgeDashboardPage() {
           : "-",
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "flowState",
       key: "flowState",
       width: 130,
       render: (value?: string) => (
         <Tag className={styles.flowTag}>
-          {FLOW_LABELS[value ?? "OTHER"] ?? value ?? "-"}
+          {flowLabel(value ?? "OTHER") ?? value ?? "-"}
         </Tag>
       ),
     },
     {
-      title: "น้ำหนักสุทธิ",
+      title: t("น้ำหนักสุทธิ"),
       dataIndex: "netWeightKg",
       key: "netWeightKg",
       width: 120,
@@ -1093,15 +1121,17 @@ export default function WeighbridgeDashboardPage() {
       render: (value: string) => formatWeight(value),
     },
     {
-      title: "เวลาสร้าง",
+      title: t("เวลาสร้าง"),
       dataIndex: "createdAt",
       key: "createdAt",
       width: 160,
       render: (value: string) =>
-        value ? new Date(value).toLocaleString("th-TH") : "-",
+        value
+          ? new Date(value).toLocaleString(lang === "en" ? "en-GB" : "th-TH")
+          : "-",
     },
     {
-      title: "ดำเนินการ",
+      title: t("ดำเนินการ"),
       key: "weighActions",
       width: 190,
       fixed: "right",
@@ -1114,7 +1144,7 @@ export default function WeighbridgeDashboardPage() {
               type={ready ? "primary" : "default"}
               onClick={() => router.push(ticketDetailHref(record))}
             >
-              {ready ? "ดูและยืนยัน" : "ดูรายละเอียด"}
+              {ready ? t("ดูและยืนยัน") : t("ดูรายละเอียด")}
             </Button>
           );
         }
@@ -1151,10 +1181,10 @@ export default function WeighbridgeDashboardPage() {
 
         const primaryLabel =
           primaryStage === "classify"
-            ? "คัดแยกและชั่ง"
+            ? t("คัดแยกและชั่ง")
             : primaryStage === "pay"
-              ? "ออกใบจ่ายเงิน"
-              : "เข้าคลัง";
+              ? t("ออกใบจ่ายเงิน")
+              : t("เข้าคลัง");
 
         const primaryAction =
           primaryStage === "classify"
@@ -1185,7 +1215,7 @@ export default function WeighbridgeDashboardPage() {
           return (
             <Link href={record.nextActionHref} className={styles.deadEndLink}>
               <Tag color={badge.color} className={styles.flowTag}>
-                {badge.label}
+                {t(badge.label)}
               </Tag>
             </Link>
           );
@@ -1194,7 +1224,7 @@ export default function WeighbridgeDashboardPage() {
         return (
           <RowActionsMenu
             className={styles.tableActions}
-            ariaLabel={`เมนูดำเนินการ ${record.ticketNo}`}
+            ariaLabel={t("เมนูดำเนินการ {no}", { no: record.ticketNo })}
             primary={
               primaryStage ? (
                 <Button size="small" type="primary" onClick={primaryAction}>
@@ -1207,20 +1237,20 @@ export default function WeighbridgeDashboardPage() {
             actions={[
               primaryStage !== "classify" && {
                 key: "classify",
-                label: "คัดแยกและชั่ง",
+                label: t("คัดแยกและชั่ง"),
                 disabled: !canClassifyWeigh,
-                disabledReason: "ยืนยัน/จ่ายเงิน/เข้าคลังแล้ว — แก้น้ำหนักไม่ได้",
+                disabledReason: t("ยืนยัน/จ่ายเงิน/เข้าคลังแล้ว — แก้น้ำหนักไม่ได้"),
                 onClick: goClassify,
               },
               primaryStage !== "pay" && {
                 key: "pay",
-                label: isPaid ? "จ่ายแล้ว" : "ออกใบจ่ายเงิน",
+                label: isPaid ? t("จ่ายแล้ว") : t("ออกใบจ่ายเงิน"),
                 disabled: !canPay,
                 onClick: goPay,
               },
               primaryStage !== "stockIn" && {
                 key: "stockIn",
-                label: stockPosted ? "เข้าคลังแล้ว" : "เข้าคลัง",
+                label: stockPosted ? t("เข้าคลังแล้ว") : t("เข้าคลัง"),
                 disabled: !canStockIn,
                 onClick: goStockIn,
               },
@@ -1281,8 +1311,8 @@ export default function WeighbridgeDashboardPage() {
         <PageHeader
           eyebrow="Receiving"
           icon={<CarOutlined />}
-          title="รับซื้อยาง"
-          subtitle={`${dateLabel}${searchQuery ? ` · ค้นหา “${searchQuery}”` : ""} · ตั๋วที่เปิดเองและบัตรจากเครื่องชั่งอยู่ในตารางเดียวกัน กดแถวเพื่อดูรายละเอียด`}
+          title={t("รับซื้อยาง")}
+          subtitle={`${dateLabel}${searchQuery ? ` · ${t("ค้นหา")} “${searchQuery}”` : ""} · ${t("ตั๋วที่เปิดเองและบัตรจากเครื่องชั่งอยู่ในตารางเดียวกัน กดแถวเพื่อดูรายละเอียด")}`}
           controls={
                     <div className={styles.scopeSwitch}>
             <span
@@ -1293,7 +1323,7 @@ export default function WeighbridgeDashboardPage() {
                 .filter(Boolean)
                 .join(" ")}
             >
-              วันนี้
+              {t("วันนี้")}
             </span>
             <Switch
               checked={showAll}
@@ -1304,7 +1334,7 @@ export default function WeighbridgeDashboardPage() {
                 }
                 updateParams({ all: false, from: null, to: null });
               }}
-              aria-label="สลับแสดงทั้งหมดหรือแค่วันนี้"
+              aria-label={t("สลับแสดงทั้งหมดหรือแค่วันนี้")}
             />
             <span
               className={[
@@ -1314,7 +1344,7 @@ export default function WeighbridgeDashboardPage() {
                 .filter(Boolean)
                 .join(" ")}
             >
-              ทั้งหมด
+              {t("ทั้งหมด")}
             </span>
           </div>
           }
@@ -1324,7 +1354,7 @@ export default function WeighbridgeDashboardPage() {
               icon={<FilePdfOutlined />}
               onClick={() => setDailySummaryOpen(true)}
             >
-              รายงานสรุปประจำวัน
+              {t("รายงานสรุปประจำวัน")}
             </Button>
             <Button
               className={styles.dashboardButton}
@@ -1345,7 +1375,7 @@ export default function WeighbridgeDashboardPage() {
               className={styles.openTicketButton}
               onClick={openTicketDrawer}
             >
-              เปิดตั๋วชั่ง
+              {t("เปิดตั๋วชั่ง")}
             </Button>
             </>
           }
@@ -1354,17 +1384,17 @@ export default function WeighbridgeDashboardPage() {
           <>
         <div className={styles.statsStrip}>
           <div className={styles.statHighlight}>
-            <span>น้ำหนักรวม</span>
+            <span>{t("น้ำหนักรวม")}</span>
             <strong>
               {formatWeight(summary?.totalNetWeightKgToday ?? "0")}
-              <small> กก.</small>
+              <small> {t("กก.")}</small>
             </strong>
           </div>
           <div className={[styles.statHighlight, styles.statHighlightAccent].join(" ")}>
-            <span>ยอดเงินรวม</span>
+            <span>{t("ยอดเงินรวม")}</span>
             <strong>
               {formatMoney(summary?.totalAmountToday ?? "0")}
-              <small> บาท</small>
+              <small> {t("บาท")}</small>
             </strong>
           </div>
         </div>
@@ -1400,9 +1430,12 @@ export default function WeighbridgeDashboardPage() {
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
-              <h3>รายการรับซื้อยาง</h3>
+              <h3>{t("รายการรับซื้อยาง")}</h3>
               <p>
-                ดูรายการ{activeStageLabel} · {filteredTickets.length} รายการ
+                {t("ดูรายการ{stage} · {n} รายการ", {
+                  stage: activeStageLabel,
+                  n: filteredTickets.length,
+                })}
               </p>
             </div>
           </div>
@@ -1410,23 +1443,23 @@ export default function WeighbridgeDashboardPage() {
           <div className={styles.filterBar}>
             <div className={styles.filterTop}>
               <div className={styles.filterField}>
-                <span>ค้นหา</span>
+                <span>{t("ค้นหา")}</span>
                 <Input
                   allowClear
                   value={searchDraft}
                   prefix={<SearchOutlined />}
-                  placeholder="เลขตั๋ว ผู้ขาย ทะเบียนรถ คนขับ ใบรับซื้อ"
+                  placeholder={t("เลขตั๋ว ผู้ขาย ทะเบียนรถ คนขับ ใบรับซื้อ")}
                   className={styles.filterSearch}
                   onChange={(event) => setSearchDraft(event.target.value)}
                 />
               </div>
               <div className={styles.filterField}>
-                <span>ช่วงวันทำงาน</span>
+                <span>{t("ช่วงวันทำงาน")}</span>
                 <RangePicker
                   allowClear
                   value={dateRangeValue}
                   format="DD/MM/YYYY"
-                  placeholder={["เริ่มต้น", "สิ้นสุด"]}
+                  placeholder={[t("เริ่มต้น"), t("สิ้นสุด")]}
                   className={styles.filterDateRange}
                   onChange={(values) => {
                     if (!values || !values[0] || !values[1]) {
@@ -1442,17 +1475,20 @@ export default function WeighbridgeDashboardPage() {
                 />
               </div>
               <div className={styles.filterField}>
-                <span>ที่มา</span>
+                <span>{t("ที่มา")}</span>
                 <Select
                   value={source}
-                  options={SOURCE_OPTIONS}
+                  options={SOURCE_OPTIONS.map((o) => ({
+                    ...o,
+                    label: t(o.label),
+                  }))}
                   className={styles.productSelect}
                   onChange={(value) => updateParams({ source: value })}
                 />
               </div>
             </div>
             <div className={styles.stageStrip}>
-              <span className={styles.stageStripLabel}>ขั้นตอน</span>
+              <span className={styles.stageStripLabel}>{t("ขั้นตอน")}</span>
               <div className={styles.stageChips}>
                 {STAGE_OPTIONS.map((option) => {
                   const active = stage === option.key;
@@ -1469,9 +1505,9 @@ export default function WeighbridgeDashboardPage() {
                       onClick={() => {
                         updateParams({ stage: option.key });
                       }}
-                      title={option.description}
+                      title={t(option.description)}
                     >
-                      <span>{option.label}</span>
+                      <span>{t(option.label)}</span>
                       <em>{stageCounts[option.key]}</em>
                     </button>
                   );
@@ -1483,18 +1519,18 @@ export default function WeighbridgeDashboardPage() {
           <div className={styles.cardBody}>
             {t2900Query.isError ? (
               <Typography.Text type="warning" style={{ display: "block", marginBottom: 8 }}>
-                โหลดบัตรจากเครื่องชั่งไม่สำเร็จ — แสดงเฉพาะตั๋วในระบบ
+                {t("โหลดบัตรจากเครื่องชั่งไม่สำเร็จ — แสดงเฉพาะตั๋วในระบบ")}
               </Typography.Text>
             ) : t2900Truncated ? (
               <Typography.Text type="warning" style={{ display: "block", marginBottom: 8 }}>
-                บัตรจากเครื่องชั่งในช่วงนี้มีมากกว่าที่แสดง (สูงสุด 200 ใบ) — เลือกช่วงวันที่ให้แคบลง
+                {t("บัตรจากเครื่องชั่งในช่วงนี้มีมากกว่าที่แสดง (สูงสุด 200 ใบ) — เลือกช่วงวันที่ให้แคบลง")}
               </Typography.Text>
             ) : null}
             {dashboardQuery.isError ? (
               <Typography.Text type="danger">
                 {dashboardQuery.error instanceof Error
                   ? dashboardQuery.error.message
-                  : "โหลดข้อมูลไม่สำเร็จ"}
+                  : t("โหลดข้อมูลไม่สำเร็จ")}
               </Typography.Text>
             ) : (
               <Table
@@ -1508,8 +1544,8 @@ export default function WeighbridgeDashboardPage() {
                 locale={{
                   emptyText:
                     searchQuery || stage !== "all" || source !== "all"
-                      ? "ไม่พบรายการตามเงื่อนไขที่เลือก"
-                      : "ยังไม่มีตั๋วชั่งวันนี้",
+                      ? t("ไม่พบรายการตามเงื่อนไขที่เลือก")
+                      : t("ยังไม่มีตั๋วชั่งวันนี้"),
                 }}
                 onRow={(record) => {
                   if (stage === "warehouse") {
@@ -1549,8 +1585,8 @@ export default function WeighbridgeDashboardPage() {
         <div className={styles.drawerPanel}>
           <div className={styles.drawerHero}>
             <span className={styles.drawerEyebrow}>OPEN TICKET</span>
-            <h2>เปิดตั๋วชั่ง</h2>
-            <p>เลือกผู้ขาย รถบรรทุก และเครื่องชั่งเพื่อเริ่มรับซื้อยาง</p>
+            <h2>{t("เปิดตั๋วชั่ง")}</h2>
+            <p>{t("เลือกผู้ขาย รถบรรทุก และเครื่องชั่งเพื่อเริ่มรับซื้อยาง")}</p>
           </div>
 
           <Form
@@ -1560,12 +1596,12 @@ export default function WeighbridgeDashboardPage() {
             requiredMark="optional"
             className={styles.drawerForm}
           >
-            <Form.Item label="ผู้ขาย" required>
+            <Form.Item label={t("ผู้ขาย")} required>
               <div className={styles.sellerFieldRow}>
                 <Form.Item
                   name="sellerId"
                   noStyle
-                  rules={[{ required: true, message: "กรุณาเลือกผู้ขาย" }]}
+                  rules={[{ required: true, message: t("กรุณาเลือกผู้ขาย") }]}
                 >
                   <Select
                     showSearch
@@ -1573,10 +1609,10 @@ export default function WeighbridgeDashboardPage() {
                     size="large"
                     optionFilterProp="label"
                     filterOption={filterSelectOption}
-                    placeholder="พิมพ์ค้นหาหรือเลือกผู้ขาย"
+                    placeholder={t("พิมพ์ค้นหาหรือเลือกผู้ขาย")}
                     loading={sellersQuery.isLoading}
                     options={sellerOptions}
-                    notFoundContent="ไม่พบผู้ขาย"
+                    notFoundContent={t("ไม่พบผู้ขาย")}
                     onChange={handleSellerChange}
                     className={styles.sellerSelect}
                     styles={{ popup: SELECT_POPUP_STYLE }}
@@ -1589,17 +1625,17 @@ export default function WeighbridgeDashboardPage() {
                   onClick={() => setSellerDrawerOpen(true)}
                   className={styles.addSellerButton}
                 >
-                  เพิ่ม
+                  {t("เพิ่ม")}
                 </Button>
               </div>
             </Form.Item>
 
-            <Form.Item label="รถบรรทุก" required>
+            <Form.Item label={t("รถบรรทุก")} required>
               <div className={styles.sellerFieldRow}>
                 <Form.Item
                   name="truckId"
                   noStyle
-                  rules={[{ required: true, message: "กรุณาเลือกรถบรรทุก" }]}
+                  rules={[{ required: true, message: t("กรุณาเลือกรถบรรทุก") }]}
                 >
                   <Select
                     showSearch
@@ -1609,13 +1645,13 @@ export default function WeighbridgeDashboardPage() {
                     filterOption={filterSelectOption}
                     placeholder={
                       sellerId
-                        ? "พิมพ์ค้นหาหรือเลือกรถบรรทุก"
-                        : "เลือกผู้ขายก่อน"
+                        ? t("พิมพ์ค้นหาหรือเลือกรถบรรทุก")
+                        : t("เลือกผู้ขายก่อน")
                     }
                     disabled={!sellerId}
                     loading={trucksQuery.isLoading}
                     options={truckOptions}
-                    notFoundContent="ไม่พบรถบรรทุก"
+                    notFoundContent={t("ไม่พบรถบรรทุก")}
                     onChange={(value) => setTruckId(value)}
                     className={styles.sellerSelect}
                     styles={{ popup: SELECT_POPUP_STYLE }}
@@ -1629,15 +1665,15 @@ export default function WeighbridgeDashboardPage() {
                   onClick={() => setTruckDrawerOpen(true)}
                   className={styles.addSellerButton}
                 >
-                  เพิ่ม
+                  {t("เพิ่ม")}
                 </Button>
               </div>
             </Form.Item>
 
             <Form.Item
-              label="เครื่องชั่ง"
+              label={t("เครื่องชั่ง")}
               name="scaleId"
-              rules={[{ required: true, message: "กรุณาเลือกเครื่องชั่ง" }]}
+              rules={[{ required: true, message: t("กรุณาเลือกเครื่องชั่ง") }]}
             >
               <Select
                 showSearch
@@ -1645,18 +1681,18 @@ export default function WeighbridgeDashboardPage() {
                 size="large"
                 optionFilterProp="label"
                 filterOption={filterSelectOption}
-                placeholder="พิมพ์ค้นหาหรือเลือกเครื่องชั่ง"
+                placeholder={t("พิมพ์ค้นหาหรือเลือกเครื่องชั่ง")}
                 loading={scalesQuery.isLoading}
                 options={scaleOptions}
-                notFoundContent="ไม่พบเครื่องชั่ง"
+                notFoundContent={t("ไม่พบเครื่องชั่ง")}
                 styles={{ popup: SELECT_POPUP_STYLE }}
               />
             </Form.Item>
 
-            <Form.Item label="หมายเหตุ" name="remark">
+            <Form.Item label={t("หมายเหตุ")} name="remark">
               <Input.TextArea
                 rows={3}
-                placeholder="ระบุหมายเหตุถ้ามี"
+                placeholder={t("ระบุหมายเหตุถ้ามี")}
                 maxLength={2000}
               />
             </Form.Item>
@@ -1665,7 +1701,7 @@ export default function WeighbridgeDashboardPage() {
 
             <div className={styles.drawerFooter}>
               <Button size="large" onClick={closeTicketDrawer}>
-                ยกเลิก
+                {t("ยกเลิก")}
               </Button>
               <Button
                 type="primary"
@@ -1674,7 +1710,7 @@ export default function WeighbridgeDashboardPage() {
                 className={styles.submitButton}
                 loading={createTicketMutation.isPending}
               >
-                เปิดตั๋วชั่ง
+                {t("เปิดตั๋วชั่ง")}
               </Button>
             </div>
           </Form>
@@ -1690,8 +1726,8 @@ export default function WeighbridgeDashboardPage() {
         <div className={styles.drawerPanel}>
           <div className={`${styles.drawerHero} ${styles.sellerHero}`}>
             <span className={styles.drawerEyebrow}>NEW SELLER</span>
-            <h2>เพิ่มผู้ขาย</h2>
-            <p>กรอกข้อมูลผู้ขาย แล้วระบบจะเลือกให้อัตโนมัติ</p>
+            <h2>{t("เพิ่มผู้ขาย")}</h2>
+            <p>{t("กรอกข้อมูลผู้ขาย แล้วระบบจะเลือกให้อัตโนมัติ")}</p>
           </div>
 
           <Form
@@ -1703,24 +1739,24 @@ export default function WeighbridgeDashboardPage() {
             <Row gutter={12}>
               <Col span={12}>
                 <Form.Item
-                  label="รหัสผู้ขาย"
+                  label={t("รหัสผู้ขาย")}
                   name="code"
                   rules={[
-                    { required: true, message: "กรุณากรอกรหัสผู้ขาย" },
-                    { max: 100, message: "รหัสต้องไม่เกิน 100 ตัวอักษร" },
+                    { required: true, message: t("กรุณากรอกรหัสผู้ขาย") },
+                    { max: 100, message: t("รหัสต้องไม่เกิน 100 ตัวอักษร") },
                   ]}
                 >
-                  <Input size="large" placeholder="เช่น SEL002" />
+                  <Input size="large" placeholder={t("เช่น SEL002")} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item label="ประเภทผู้ขาย" name="sellerTypeId">
+                <Form.Item label={t("ประเภทผู้ขาย")} name="sellerTypeId">
                   <Select
                     allowClear
                     size="large"
                     showSearch
                     optionFilterProp="label"
-                    placeholder="เลือกประเภท"
+                    placeholder={t("เลือกประเภท")}
                     loading={sellerTypesQuery.isLoading}
                     options={sellerTypeOptions}
                     styles={{ popup: SELECT_POPUP_STYLE }}
@@ -1729,76 +1765,79 @@ export default function WeighbridgeDashboardPage() {
               </Col>
               <Col span={24}>
                 <Form.Item
-                  label="ชื่อผู้ขาย"
+                  label={t("ชื่อผู้ขาย")}
                   name="name"
                   rules={[
-                    { required: true, message: "กรุณากรอกชื่อผู้ขาย" },
-                    { max: 255, message: "ชื่อต้องไม่เกิน 255 ตัวอักษร" },
+                    { required: true, message: t("กรุณากรอกชื่อผู้ขาย") },
+                    { max: 255, message: t("ชื่อต้องไม่เกิน 255 ตัวอักษร") },
                   ]}
                 >
-                  <Input size="large" placeholder="เช่น หจก. รับซื้อยาง ABC" />
+                  <Input size="large" placeholder={t("เช่น หจก. รับซื้อยาง ABC")} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item label="เลขผู้เสียภาษี" name="taxId">
-                  <Input size="large" placeholder="เลขประจำตัวผู้เสียภาษี" />
+                <Form.Item label={t("เลขผู้เสียภาษี")} name="taxId">
+                  <Input size="large" placeholder={t("เลขประจำตัวผู้เสียภาษี")} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item label="ชื่อผู้ติดต่อ" name="contactName">
-                  <Input size="large" placeholder="เช่น คุณสมชาย" />
+                <Form.Item label={t("ชื่อผู้ติดต่อ")} name="contactName">
+                  <Input size="large" placeholder={t("เช่น คุณสมชาย")} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item label="เบอร์โทร" name="phone">
+                <Form.Item label={t("เบอร์โทร")} name="phone">
                   <Input size="large" placeholder="0812345678" />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
-                  label="อีเมล"
+                  label={t("อีเมล")}
                   name="email"
-                  rules={[{ type: "email", message: "รูปแบบอีเมลไม่ถูกต้อง" }]}
+                  rules={[{ type: "email", message: t("รูปแบบอีเมลไม่ถูกต้อง") }]}
                 >
                   <Input size="large" placeholder="seller@example.com" />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item label="วิธีชำระเงิน" name="paymentMethod">
+                <Form.Item label={t("วิธีชำระเงิน")} name="paymentMethod">
                   <Select
                     allowClear
                     size="large"
-                    placeholder="เลือกวิธีชำระเงิน"
-                    options={PAYMENT_METHOD_OPTIONS}
+                    placeholder={t("เลือกวิธีชำระเงิน")}
+                    options={PAYMENT_METHOD_OPTIONS.map((o) => ({
+                      ...o,
+                      label: t(o.label),
+                    }))}
                     styles={{ popup: SELECT_POPUP_STYLE }}
                   />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item label="ที่อยู่" name="address">
-                  <Input.TextArea rows={2} placeholder="ที่อยู่ผู้ขาย" />
+                <Form.Item label={t("ที่อยู่")} name="address">
+                  <Input.TextArea rows={2} placeholder={t("ที่อยู่ผู้ขาย")} />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item label="หมายเหตุ" name="remark">
-                  <Input.TextArea rows={2} placeholder="หมายเหตุเพิ่มเติม" />
+                <Form.Item label={t("หมายเหตุ")} name="remark">
+                  <Input.TextArea rows={2} placeholder={t("หมายเหตุเพิ่มเติม")} />
                 </Form.Item>
               </Col>
             </Row>
 
             <div className={styles.statusRow}>
               <div>
-                <strong>สถานะใช้งาน</strong>
-                <span>เปิดเพื่อให้เลือกในเอกสารได้</span>
+                <strong>{t("สถานะใช้งาน")}</strong>
+                <span>{t("เปิดเพื่อให้เลือกในเอกสารได้")}</span>
               </div>
               <Form.Item name="isActive" valuePropName="checked" noStyle>
-                <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+                <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
               </Form.Item>
             </div>
 
             <div className={styles.drawerFooter}>
               <Button size="large" onClick={() => setSellerDrawerOpen(false)}>
-                ยกเลิก
+                {t("ยกเลิก")}
               </Button>
               <Button
                 type="primary"
@@ -1807,7 +1846,7 @@ export default function WeighbridgeDashboardPage() {
                 loading={createSellerMutation.isPending}
                 onClick={handleCreateSeller}
               >
-                บันทึกผู้ขาย
+                {t("บันทึกผู้ขาย")}
               </Button>
             </div>
           </Form>
@@ -1823,12 +1862,13 @@ export default function WeighbridgeDashboardPage() {
         <div className={styles.drawerPanel}>
           <div className={`${styles.drawerHero} ${styles.sellerHero}`}>
             <span className={styles.drawerEyebrow}>NEW TRUCK</span>
-            <h2>เพิ่มรถบรรทุก</h2>
+            <h2>{t("เพิ่มรถบรรทุก")}</h2>
             <p>
-              กรอกข้อมูลรถของ{" "}
-              {sellerOptions.find((s) => s.value === sellerId)?.label ??
-                "ผู้ขายที่เลือก"}{" "}
-              แล้วระบบจะเลือกให้อัตโนมัติ
+              {t("กรอกข้อมูลรถของ {seller} แล้วระบบจะเลือกให้อัตโนมัติ", {
+                seller:
+                  sellerOptions.find((s) => s.value === sellerId)?.label ??
+                  t("ผู้ขายที่เลือก"),
+              })}
             </p>
           </div>
 
@@ -1841,57 +1881,60 @@ export default function WeighbridgeDashboardPage() {
             <Row gutter={12}>
               <Col span={12}>
                 <Form.Item
-                  label="รหัสรถ"
+                  label={t("รหัสรถ")}
                   name="code"
                   rules={[
-                    { required: true, message: "กรุณากรอกรหัสรถ" },
-                    { max: 100, message: "รหัสต้องไม่เกิน 100 ตัวอักษร" },
+                    { required: true, message: t("กรุณากรอกรหัสรถ") },
+                    { max: 100, message: t("รหัสต้องไม่เกิน 100 ตัวอักษร") },
                   ]}
                 >
-                  <Input size="large" placeholder="เช่น TRK-001" />
+                  <Input size="large" placeholder={t("เช่น TRK-001")} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
-                  label="ทะเบียนรถ"
+                  label={t("ทะเบียนรถ")}
                   name="licensePlate"
                   rules={[
-                    { required: true, message: "กรุณากรอกทะเบียนรถ" },
-                    { max: 100, message: "ทะเบียนต้องไม่เกิน 100 ตัวอักษร" },
+                    { required: true, message: t("กรุณากรอกทะเบียนรถ") },
+                    { max: 100, message: t("ทะเบียนต้องไม่เกิน 100 ตัวอักษร") },
                   ]}
                 >
-                  <Input size="large" placeholder="เช่น กข-1234" />
+                  <Input size="large" placeholder={t("เช่น กข-1234")} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
-                  label="จังหวัด"
+                  label={t("จังหวัด")}
                   name="province"
-                  rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+                  rules={[{ max: 100, message: t("ต้องไม่เกิน 100 ตัวอักษร") }]}
                 >
-                  <Input size="large" placeholder="เช่น สมุทรปราการ" />
+                  <Input size="large" placeholder={t("เช่น สมุทรปราการ")} />
                 </Form.Item>
               </Col>
               <Col span={12}>
-                <Form.Item label="ประเภทรถ" name="truckType">
+                <Form.Item label={t("ประเภทรถ")} name="truckType">
                   <Select
                     allowClear
                     size="large"
-                    placeholder="เลือกประเภท"
-                    options={TRUCK_TYPE_OPTIONS}
+                    placeholder={t("เลือกประเภท")}
+                    options={TRUCK_TYPE_OPTIONS.map((o) => ({
+                      ...o,
+                      label: t(o.label),
+                    }))}
                     styles={{ popup: SELECT_POPUP_STYLE }}
                   />
                 </Form.Item>
               </Col>
               <Col span={24}>
                 <Form.Item
-                  label="น้ำหนักรถเปล่า (กก.)"
+                  label={t("น้ำหนักรถเปล่า (กก.)")}
                   name="tareWeightKg"
                   rules={[
                     {
                       type: "number",
                       min: 0,
-                      message: "น้ำหนักต้องไม่ติดลบ",
+                      message: t("น้ำหนักต้องไม่ติดลบ"),
                     },
                   ]}
                 >
@@ -1900,43 +1943,43 @@ export default function WeighbridgeDashboardPage() {
                     min={0}
                     step={0.001}
                     style={{ width: "100%" }}
-                    placeholder="เช่น 8500.5"
+                    placeholder={t("เช่น 8500.5")}
                   />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
-                  label="ชื่อคนขับ"
+                  label={t("ชื่อคนขับ")}
                   name="driverName"
-                  rules={[{ max: 255, message: "ต้องไม่เกิน 255 ตัวอักษร" }]}
+                  rules={[{ max: 255, message: t("ต้องไม่เกิน 255 ตัวอักษร") }]}
                 >
-                  <Input size="large" placeholder="เช่น สมชาย ใจดี" />
+                  <Input size="large" placeholder={t("เช่น สมชาย ใจดี")} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item
-                  label="เบอร์โทรคนขับ"
+                  label={t("เบอร์โทรคนขับ")}
                   name="driverPhone"
-                  rules={[{ max: 100, message: "ต้องไม่เกิน 100 ตัวอักษร" }]}
+                  rules={[{ max: 100, message: t("ต้องไม่เกิน 100 ตัวอักษร") }]}
                 >
-                  <Input size="large" placeholder="เช่น 0812345678" />
+                  <Input size="large" placeholder={t("เช่น 0812345678")} />
                 </Form.Item>
               </Col>
             </Row>
 
             <div className={styles.statusRow}>
               <div>
-                <strong>สถานะใช้งาน</strong>
-                <span>เปิดเพื่อให้เลือกในเอกสารได้</span>
+                <strong>{t("สถานะใช้งาน")}</strong>
+                <span>{t("เปิดเพื่อให้เลือกในเอกสารได้")}</span>
               </div>
               <Form.Item name="isActive" valuePropName="checked" noStyle>
-                <Switch checkedChildren="เปิด" unCheckedChildren="ปิด" />
+                <Switch checkedChildren={t("เปิด")} unCheckedChildren={t("ปิด")} />
               </Form.Item>
             </div>
 
             <div className={styles.drawerFooter}>
               <Button size="large" onClick={() => setTruckDrawerOpen(false)}>
-                ยกเลิก
+                {t("ยกเลิก")}
               </Button>
               <Button
                 type="primary"
@@ -1945,7 +1988,7 @@ export default function WeighbridgeDashboardPage() {
                 loading={createTruckMutation.isPending}
                 onClick={handleCreateTruck}
               >
-                บันทึกรถ
+                {t("บันทึกรถ")}
               </Button>
             </div>
           </Form>
@@ -1967,32 +2010,33 @@ export default function WeighbridgeDashboardPage() {
 }
 
 function TruckPreview({ truck }: { truck: Truck }) {
+  const t = useT();
   return (
     <div className={styles.previewBox}>
-      <h4>ข้อมูลรถที่เลือก</h4>
+      <h4>{t("ข้อมูลรถที่เลือก")}</h4>
       <div className={styles.previewGrid}>
         <div className={styles.previewItem}>
-          <span>ทะเบียน</span>
+          <span>{t("ทะเบียน")}</span>
           <strong>{truck.licensePlate || "-"}</strong>
         </div>
         <div className={styles.previewItem}>
-          <span>จังหวัด</span>
+          <span>{t("จังหวัด")}</span>
           <strong>{truck.province || "-"}</strong>
         </div>
         <div className={styles.previewItem}>
-          <span>คนขับ</span>
+          <span>{t("คนขับ")}</span>
           <strong>{truck.driverName || "-"}</strong>
         </div>
         <div className={styles.previewItem}>
-          <span>เบอร์โทร</span>
+          <span>{t("เบอร์โทร")}</span>
           <strong>{truck.driverPhone || "-"}</strong>
         </div>
         <div className={styles.previewItem}>
-          <span>ประเภทรถ</span>
+          <span>{t("ประเภทรถ")}</span>
           <strong>{truck.truckType || "-"}</strong>
         </div>
         <div className={styles.previewItem}>
-          <span>น้ำหนักรถเปล่า (กก.)</span>
+          <span>{t("น้ำหนักรถเปล่า (กก.)")}</span>
           <strong>
             {truck.tareWeightKg !== undefined && truck.tareWeightKg !== null
               ? String(truck.tareWeightKg)

@@ -18,6 +18,7 @@ import { getAccessToken } from "@/lib/auth/token";
 import type { CreateDispatchOrderItemInput } from "@/types/dispatch-orders";
 import styles from "./DispatchOrderDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 type Props = { salesOrderId: string };
 
@@ -32,6 +33,7 @@ type RowState = {
 };
 
 export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const soQuery = useSalesOrderQuery(salesOrderId);
@@ -94,7 +96,7 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
   if (soQuery.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -102,9 +104,9 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
   if (!so) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบสั่งขายที่ต้องการ
+        {t("ไม่พบใบสั่งขายที่ต้องการ")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-orders">กลับรายการ</Link>
+          <Link href="/sales-orders">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -112,17 +114,17 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
 
   const handleSubmit = async () => {
     if (!warehouseId) {
-      message.error("กรุณาเลือกคลังสินค้า");
+      message.error(t("กรุณาเลือกคลังสินค้า"));
       return;
     }
     const selectedRows = activeRows.filter((row) => row.quantity > 1e-9);
     if (selectedRows.length === 0) {
-      message.error("ไม่มีรายการที่จะจัด");
+      message.error(t("ไม่มีรายการที่จะจัด"));
       return;
     }
     const missingLocation = selectedRows.find((row) => !row.locationId);
     if (missingLocation) {
-      message.error(`กรุณาเลือกตำแหน่งจัดเก็บของ ${missingLocation.label}`);
+      message.error(t("กรุณาเลือกตำแหน่งจัดเก็บของ {label}", { label: missingLocation.label }));
       return;
     }
 
@@ -143,7 +145,7 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
           );
           if (resolvedQuantity < row.quantity - 1e-9) {
             throw new Error(
-              `สต๊อกของ ${row.label} ที่ตำแหน่งนี้ไม่พอสำหรับจำนวนที่เลือก (มี ${resolvedQuantity.toLocaleString("th-TH")} ต้องการ ${row.quantity.toLocaleString("th-TH")})`,
+              t("สต๊อกของ {label} ที่ตำแหน่งนี้ไม่พอสำหรับจำนวนที่เลือก (มี {have} ต้องการ {need})", { label: row.label, have: resolvedQuantity.toLocaleString("th-TH"), need: row.quantity.toLocaleString("th-TH") }),
             );
           }
           return suggestion.data.map(
@@ -176,7 +178,7 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
       message.error(
         error instanceof Error
           ? error.message
-          : "ตรวจสอบสต๊อกไม่สำเร็จ — สินค้าบางรายการอาจมีไม่พอ",
+          : t("ตรวจสอบสต๊อกไม่สำเร็จ — สินค้าบางรายการอาจมีไม่พอ"),
       );
     } finally {
       setSubmitting(false);
@@ -188,15 +190,15 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
       <PageHeader
         eyebrow="Sales · Dispatch Order"
         icon={<CarOutlined />}
-        title="สร้างใบจ่ายสินค้า (Picking)"
-        subtitle={<>จากใบสั่งขาย {so.soNo} — เลือก Lot ให้อัตโนมัติแบบ FIFO</>}
+        title={t("สร้างใบจ่ายสินค้า (Picking)")}
+        subtitle={t("จากใบสั่งขาย {soNo} — เลือก Lot ให้อัตโนมัติแบบ FIFO", { soNo: so.soNo })}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(`/sales-orders/${salesOrderId}`)}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           </>
         }
@@ -206,11 +208,11 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลการจัดส่ง</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลการจัดส่ง")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่จัด</span>
+                <span className={styles.metaLabel}>{t("วันที่จัด")}</span>
                 <DatePicker
                   value={dispatchDate}
                   onChange={(value) => value && setDispatchDate(value)}
@@ -219,13 +221,13 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
                 />
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>คลังสินค้า</span>
+                <span className={styles.metaLabel}>{t("คลังสินค้า")}</span>
                 <Select
-                  placeholder="เลือกคลัง"
+                  placeholder={t("เลือกคลัง")}
                   value={warehouseId}
                   onChange={setWarehouseId}
                   loading={warehousesQuery.isLoading}
-                  notFoundContent="ไม่มีคลังที่มีสต๊อกของสินค้าในใบสั่งขายนี้"
+                  notFoundContent={t("ไม่มีคลังที่มีสต๊อกของสินค้าในใบสั่งขายนี้")}
                   options={warehouses.map((w) => ({
                     value: w.warehouseId,
                     label: `${w.warehouseCode ?? "—"} — ${w.warehouseName ?? ""}`,
@@ -233,7 +235,7 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
                 />
                 {!warehousesQuery.isLoading && warehouses.length === 0 ? (
                   <p className={styles.itemCode} style={{ marginTop: 4 }}>
-                    ไม่มีคลังที่มีสต๊อกของสินค้าในใบสั่งขายนี้เลย
+                    {t("ไม่มีคลังที่มีสต๊อกของสินค้าในใบสั่งขายนี้เลย")}
                   </p>
                 ) : null}
               </div>
@@ -242,15 +244,15 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการที่จะจัด</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการที่จะจัด")}</h2>
               <span className={styles.sectionHint}>
-                Lot จะถูกเลือกอัตโนมัติแบบ FIFO ตามคลัง/ตำแหน่งที่เลือก
+                {t("Lot จะถูกเลือกอัตโนมัติแบบ FIFO ตามคลัง/ตำแหน่งที่เลือก")}
               </span>
             </div>
             <div className={styles.itemList}>
               {activeRows.length === 0 ? (
                 <p className={styles.textBlock}>
-                  ไม่มีรายการคงเหลือให้จัด (จัดครบทุกรายการแล้ว)
+                  {t("ไม่มีรายการคงเหลือให้จัด (จัดครบทุกรายการแล้ว)")}
                 </p>
               ) : (
                 activeRows.map((row) => (
@@ -269,20 +271,20 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+              <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
             </div>
             <Input.TextArea
               rows={3}
               value={remark}
               onChange={(e) => setRemark(e.target.value)}
-              placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
+              placeholder={t("หมายเหตุเพิ่มเติม (ถ้ามี)")}
             />
           </div>
         </section>
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>ใบสั่งขายอ้างอิง</p>
+            <p className={styles.sideEyebrow}>{t("ใบสั่งขายอ้างอิง")}</p>
             <h2 className={styles.sideTitle}>{so.soNo}</h2>
           </div>
           <Button
@@ -291,7 +293,7 @@ export default function DispatchOrderCreatePage({ salesOrderId }: Props) {
             loading={submitting || createMutation.isPending}
             onClick={handleSubmit}
           >
-            สร้างใบจ่ายสินค้าและจองสต๊อก
+            {t("สร้างใบจ่ายสินค้าและจองสต๊อก")}
           </Button>
         </aside>
       </div>
@@ -308,6 +310,7 @@ function DispatchItemRow({
   warehouseId?: string;
   onChange: (patch: Partial<RowState>) => void;
 }) {
+  const t = useT();
   const locationsQuery = useAvailableLocationsQuery({
     itemId: row.itemId,
     warehouseId,
@@ -350,7 +353,7 @@ function DispatchItemRow({
           <Select
             style={{ minWidth: 240 }}
             placeholder={
-              warehouseId ? "เลือกตำแหน่งจัดเก็บ" : "เลือกคลังสินค้าก่อน"
+              warehouseId ? t("เลือกตำแหน่งจัดเก็บ") : t("เลือกคลังสินค้าก่อน")
             }
             value={row.locationId}
             onChange={(value) => {
@@ -364,11 +367,11 @@ function DispatchItemRow({
             loading={locationsQuery.isLoading}
             disabled={!warehouseId}
             notFoundContent={
-              warehouseId ? "ไม่มีสต๊อกของสินค้านี้ในคลังนี้" : undefined
+              warehouseId ? t("ไม่มีสต๊อกของสินค้านี้ในคลังนี้") : undefined
             }
             options={locations.map((loc) => ({
               value: loc.locationId,
-              label: `${loc.locationCode ?? "—"} — ${loc.locationName ?? ""} (คงเหลือ ${Number(
+              label: `${loc.locationCode ?? "—"} — ${loc.locationName ?? ""} (${t("คงเหลือ")} ${Number(
                 loc.quantityAvailable,
               ).toLocaleString("th-TH")})`,
             }))}
@@ -390,7 +393,7 @@ function DispatchItemRow({
         </div>
         {row.locationId ? (
           <p className={styles.itemCode}>
-            สต๊อกพร้อมใช้ที่ตำแหน่งนี้ {availableQty.toLocaleString("th-TH")}{" "}
+            {t("สต๊อกพร้อมใช้ที่ตำแหน่งนี้")} {availableQty.toLocaleString("th-TH")}{" "}
             {row.unitCode}
           </p>
         ) : null}

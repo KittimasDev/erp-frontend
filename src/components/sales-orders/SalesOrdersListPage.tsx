@@ -27,10 +27,13 @@ import type { SalesOrder } from "@/types/sales-orders";
 import {
   isPreConfirmSalesOrderStatus,
   SALES_ORDER_STATUS_LABEL,
+  tSoStatus,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 import styles from "./SalesOrdersListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 /**
  * กลุ่มสรุปด้านบน — จัดตาม "ใครถืองานอยู่" ไม่ใช่ไล่ตามชื่อสถานะ
@@ -125,6 +128,7 @@ function SalesOrderProgressCell({
   status: string;
   deliveryStatus?: string;
 }) {
+  useT();
   const progress = resolveSalesOrderProgress(status, deliveryStatus);
   return (
     <div
@@ -132,7 +136,7 @@ function SalesOrderProgressCell({
     >
       <div className={styles.progressMeta}>
         <Tag color={statusColor(status)} className={styles.progressStatusTag}>
-          {SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status}
+          {tSoStatus(SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status)}
         </Tag>
         <span className={styles.progressCount}>
           {progress.tone === "stopped" && progress.current === 0
@@ -170,7 +174,7 @@ function SalesOrderProgressCell({
               ]
                 .filter(Boolean)
                 .join(" ")}
-              title={step.label}
+              title={tSoStatus(step.label)}
             />
           );
         })}
@@ -180,6 +184,8 @@ function SalesOrderProgressCell({
 }
 
 export default function SalesOrdersListPage() {
+  const t = useT();
+  const language = useLanguage();
   const router = useRouter();
   const salesOrderActions = useScreenActionPermissions("SALES_ORDERS");
   const canViewAll = salesOrderActions.canViewAll;
@@ -273,14 +279,14 @@ export default function SalesOrdersListPage() {
           เลขลำดับในหน้า — ไม่ใช่ข้อมูลของเอกสาร แต่คนใช้อ้างอิงกันด้วยปากว่า
           "แถวที่ 3" ตอนคุยงาน จึงต้องมี · นับต่อเนื่องข้ามหน้าตามเลขหน้าปัจจุบัน
         */
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,
       },
       {
-        title: "เลขที่",
+        title: t("เลขที่"),
         dataIndex: "soNo",
         width: 170,
         onHeaderCell: () => ({ style: { whiteSpace: "nowrap" } }),
@@ -288,19 +294,19 @@ export default function SalesOrdersListPage() {
           <div className={styles.soNoCell}>
             <span className={styles.prNo}>{row.soNo}</span>
             <span className={styles.revisionStamp}>
-              {salesOrderRevisionStamp(row.revisionNo, row.revisedAt)}
+              {salesOrderRevisionStamp(row.revisionNo, row.revisedAt, language)}
             </span>
           </div>
         ),
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "soDate",
         width: 100,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         key: "customer",
         ellipsis: true,
         render: (_v, row) =>
@@ -309,7 +315,7 @@ export default function SalesOrdersListPage() {
             : "—",
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "items",
         width: 230,
         className: styles.itemColumn,
@@ -318,7 +324,7 @@ export default function SalesOrdersListPage() {
         ),
       },
       {
-        title: "ผู้สร้าง",
+        title: t("ผู้สร้าง"),
         key: "createdBy",
         width: 120,
         ellipsis: true,
@@ -328,14 +334,14 @@ export default function SalesOrdersListPage() {
           "—",
       },
       {
-        title: "ยอดสุทธิ",
+        title: t("ยอดสุทธิ"),
         dataIndex: "totalAmount",
         align: "right",
         width: 120,
         render: (value: string) => formatMoney(value),
       },
       {
-        title: "ขั้นตอน",
+        title: t("ขั้นตอน"),
         key: "progress",
         width: 230,
         render: (_v, row) => (
@@ -355,26 +361,26 @@ export default function SalesOrdersListPage() {
           เมนูแก้ไขจึงพาไปหน้าเดียวกัน แต่โผล่เฉพาะใบที่ยังแก้ได้ (ก่อนยืนยัน)
           จะได้ไม่หลอกให้กดเข้าไปแล้วพบว่าแก้ไม่ได้
         */
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "actions",
         width: 80,
         align: "center",
         fixed: "right",
         render: (_v, row) => (
           <RowActionsMenu
-            ariaLabel={`เมนูจัดการ ${row.soNo}`}
+            ariaLabel={t("เมนูจัดการ {soNo}", { soNo: row.soNo })}
             actions={[
               {
                 key: "view",
                 icon: <EyeOutlined />,
-                label: "ดูรายละเอียด",
+                label: t("ดูรายละเอียด"),
                 onClick: () => router.push(`/sales-orders/${row.id}`),
               },
               isPreConfirmSalesOrderStatus(row.status) &&
                 salesOrderActions.canEdit && {
                   key: "edit",
                   icon: <EditOutlined />,
-                  label: "แก้ไข",
+                  label: t("แก้ไข"),
                   onClick: () => router.push(`/sales-orders/${row.id}`),
                 },
             ]}
@@ -382,18 +388,18 @@ export default function SalesOrdersListPage() {
         ),
       },
     ],
-    [page, router, salesOrderActions.canEdit],
+    [page, router, salesOrderActions.canEdit, t, language],
   );
 
   return (
     <div className={styles.page}>
       <PageHeader
-        eyebrow="ขาย · ใบสั่งขาย"
+        eyebrow={t("ขาย · ใบสั่งขาย")}
         icon={<ShoppingCartOutlined />}
-        title="ใบสั่งขาย"
-        subtitle={<>ติดตาม {SALES_ORDER_FLOW_STEPS.length} ขั้นตอน:{" "}
-            {SALES_ORDER_FLOW_STEPS.map((step) => step.label).join(" → ")}
-            {!canViewAll ? " · แสดงเฉพาะเอกสารที่คุณสร้าง" : ""}</>}
+        title={t("ใบสั่งขาย")}
+        subtitle={<>{t("ติดตาม {n} ขั้นตอน:", { n: SALES_ORDER_FLOW_STEPS.length })}{" "}
+            {SALES_ORDER_FLOW_STEPS.map((step) => tSoStatus(step.label)).join(" → ")}
+            {!canViewAll ? t(" · แสดงเฉพาะเอกสารที่คุณสร้าง") : ""}</>}
       >
 {/* สร้างจาก SALES_ORDER_FLOW_STEPS ไม่ hardcode — เดิมเขียน 6 ขั้น
               ค้างไว้ ไม่ตรงกับแถบความคืบหน้าที่เหลือ 5 ขั้นหลังถอดขั้นตรวจสต๊อก */}
@@ -420,11 +426,11 @@ export default function SalesOrdersListPage() {
                 .join(" ")}
               aria-pressed={active}
             >
-              <span className={styles.summaryLabel}>{item.label}</span>
+              <span className={styles.summaryLabel}>{tSoStatus(item.label)}</span>
               <strong className={styles.summaryValue}>
                 {bucketCounts.get(item.key) ?? 0}
               </strong>
-              <span className={styles.summaryHint}>{item.hint}</span>
+              <span className={styles.summaryHint}>{t(item.hint)}</span>
             </button>
           );
         })}
@@ -433,7 +439,7 @@ export default function SalesOrdersListPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่</label>
+            <label>{t("เลขที่")}</label>
             <Input
               allowClear
               placeholder="SO-..."
@@ -443,15 +449,15 @@ export default function SalesOrdersListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สินค้า</label>
+            <label>{t("สินค้า")}</label>
             <Select
               allowClear
               showSearch
               mode="multiple"
               maxTagCount="responsive"
               optionFilterProp="label"
-              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
-              aria-label="สินค้าในใบสั่งขาย"
+              placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+              aria-label={t("สินค้าในใบสั่งขาย")}
               value={itemIds}
               onChange={(value) => setItemIds(value)}
               style={{ width: "100%" }}
@@ -460,12 +466,12 @@ export default function SalesOrdersListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ลูกค้า</label>
+            <label>{t("ลูกค้า")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={customerId}
               onChange={setCustomerId}
               style={{ width: "100%" }}
@@ -477,38 +483,38 @@ export default function SalesOrdersListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               style={{ width: "100%" }}
               options={Object.entries(SALES_ORDER_STATUS_LABEL).map(
-                ([value, label]) => ({ value, label }),
+                ([value, label]) => ({ value, label: tSoStatus(label) }),
               )}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่</label>
+            <label>{t("วันที่")}</label>
             <DatePicker
               value={date}
               onChange={setDate}
               format="DD/MM/YYYY"
               style={{ width: "100%" }}
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.primaryBtn}
             icon={<SearchOutlined />}
             onClick={applyFilters}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -516,7 +522,7 @@ export default function SalesOrdersListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{visibleRows.length}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{visibleRows.length}</strong> {t("รายการ")}
             {bucket ? (
               <>
                 {" "}
@@ -528,7 +534,7 @@ export default function SalesOrdersListPage() {
                     setPage(1);
                   }}
                 >
-                  ล้างตัวกรองการ์ด
+                  {t("ล้างตัวกรองการ์ด")}
                 </button>
               </>
             ) : null}
@@ -551,7 +557,7 @@ export default function SalesOrdersListPage() {
           onRow={(row) => ({
             onClick: () => router.push(`/sales-orders/${row.id}`),
           })}
-          locale={{ emptyText: "ยังไม่มีใบสั่งขาย" }}
+          locale={{ emptyText: t("ยังไม่มีใบสั่งขาย") }}
         />
       </section>
     </div>

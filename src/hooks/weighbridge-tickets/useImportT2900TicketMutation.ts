@@ -9,8 +9,10 @@ import { getAccessToken } from "@/lib/auth/token";
 import type { ImportFromT2900Request } from "@/types/t2900";
 import { weighbridgeDashboardQueryKey } from "./useWeighbridgeDashboardQuery";
 import { t2900OutboundTicketsQueryKey } from "./useT2900OutboundTicketsQuery";
+import { useT } from "@/lib/i18n/useT";
 
 export function useImportT2900TicketMutation() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -28,14 +30,14 @@ export function useImportT2900TicketMutation() {
         }),
       ]);
       message.success(
-        response.message || "เปิดตั๋วชั่งจาก T2900 สำเร็จแล้ว",
+        response.message || t("เปิดตั๋วชั่งจาก T2900 สำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "เปิดตั๋วชั่งจาก T2900 ไม่สำเร็จ",
+          : t("เปิดตั๋วชั่งจาก T2900 ไม่สำเร็จ"),
       );
     },
   });

@@ -15,12 +15,14 @@ import { buildRawTireWarehouseReceiptSlipData } from "@/utils/buildRawTireWareho
 
 import RawTireWarehouseReceiptSlipView from "./RawTireWarehouseReceiptSlipView";
 import styles from "./RawTireWarehouseReceiptSlipPage.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 type Props = { receiptId: string };
 
 export default function RawTireWarehouseReceiptSlipPage({
   receiptId,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   const [isPrinting, setIsPrinting] = useState(false);
 
@@ -89,7 +91,7 @@ export default function RawTireWarehouseReceiptSlipPage({
             router.push(`/receiving/receipts/${receiptId}`);
           }}
         >
-          กลับ
+          {t("กลับ")}
         </Button>
         <div className={styles.toolbarActions}>
           <Button
@@ -99,31 +101,31 @@ export default function RawTireWarehouseReceiptSlipPage({
             loading={isPrinting}
             onClick={() => void handlePrint()}
           >
-            พิมพ์ใบรับสินค้า
+            {t("พิมพ์ใบรับสินค้า")}
           </Button>
         </div>
       </div>
 
       {loading ? (
         <div className={styles.stateCard}>
-          <Spin /> กำลังโหลดเอกสาร...
+          <Spin />{t("กำลังโหลดเอกสาร...")}
         </div>
       ) : receiptQuery.isError || stockQuery.isError ? (
         <div className={styles.emptyCard}>
           <Typography.Text type="danger">
-            โหลดข้อมูลไม่สำเร็จ
+            {t("โหลดข้อมูลไม่สำเร็จ")}
           </Typography.Text>
-          <Link href={`/receiving/receipts/${receiptId}`}>กลับใบรับซื้อ</Link>
+          <Link href={`/receiving/receipts/${receiptId}`}>{t("กลับใบรับซื้อ")}</Link>
         </div>
       ) : !canView || !slipData ? (
         <div className={styles.emptyCard}>
           <Alert
             type="warning"
             showIcon
-            title="ยังไม่มีใบรับสินค้าเข้าคลัง"
-            description="เอกสารนี้จะแสดงหลังอนุมัติรับยางดิบเข้าคลังแล้ว"
+            title={t("ยังไม่มีใบรับสินค้าเข้าคลัง")}
+            description={t("เอกสารนี้จะแสดงหลังอนุมัติรับยางดิบเข้าคลังแล้ว")}
           />
-          <Link href={`/receiving/receipts/${receiptId}`}>กลับใบรับซื้อ</Link>
+          <Link href={`/receiving/receipts/${receiptId}`}>{t("กลับใบรับซื้อ")}</Link>
         </div>
       ) : (
         <RawTireWarehouseReceiptSlipView data={slipData} />

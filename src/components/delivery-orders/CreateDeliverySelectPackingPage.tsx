@@ -18,12 +18,14 @@ import styles from "./DeliveryOrdersListPage.module.css";
 import {
   buildPackingPreviewLines,
   byRoundThenNo,
-  packingPreviewColumns,
+  getPackingPreviewColumns,
   packingPreviewRowKey,
 } from "./packingPreview";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 export default function CreateDeliverySelectPackingPage() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectId = searchParams.get("packingId") ?? undefined;
@@ -64,11 +66,11 @@ export default function CreateDeliverySelectPackingPage() {
     Boolean(selectedSoId) && row.salesOrderId !== selectedSoId;
 
   const createBlockedReason = query.isLoading
-    ? "กำลังโหลดรายการใบบรรจุ"
+    ? t("กำลังโหลดรายการใบบรรจุ")
     : !rows.length
-      ? "ยังไม่มีใบบรรจุที่พร้อมสร้างใบส่ง — ใบบรรจุต้องยืนยันแล้ว และยังไม่ถูกใช้ในใบส่งอื่น"
+      ? t("ยังไม่มีใบบรรจุที่พร้อมสร้างใบส่ง — ใบบรรจุต้องยืนยันแล้ว และยังไม่ถูกใช้ในใบส่งอื่น")
       : !selected.length
-        ? "ติ๊กเลือกใบบรรจุในตารางด้านบนอย่างน้อย 1 ใบ"
+        ? t("ติ๊กเลือกใบบรรจุในตารางด้านบนอย่างน้อย 1 ใบ")
         : undefined;
 
   if (!canCreate) {
@@ -89,14 +91,14 @@ export default function CreateDeliverySelectPackingPage() {
 
   const columns: ColumnsType<ReadyPacking> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ Packing",
+      title: t("เลขที่ Packing"),
       dataIndex: "packingNo",
       render: (v: string) => <span className={styles.prNo}>{v}</span>,
     },
@@ -106,24 +108,24 @@ export default function CreateDeliverySelectPackingPage() {
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "รอบส่ง",
+      title: t("รอบส่ง"),
       dataIndex: "roundNo",
       width: 90,
-      render: (v?: number) => (v ? `รอบที่ ${v}` : "—"),
+      render: (v?: number) => (v ? t("รอบที่ {v}", { v }) : "—"),
     },
     {
-      title: "ลูกค้า",
+      title: t("ลูกค้า"),
       dataIndex: "customerName",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "รายการ",
+      title: t("รายการ"),
       dataIndex: "itemCount",
       width: 80,
       align: "right",
     },
     {
-      title: "วันที่",
+      title: t("วันที่"),
       dataIndex: "packingDate",
       width: 110,
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
@@ -134,12 +136,12 @@ export default function CreateDeliverySelectPackingPage() {
     <div className={styles.page}>
       <PageHeader
         eyebrow="Delivery · Create"
-        title="เลือกใบบรรจุที่พร้อมส่ง"
-        subtitle="เลือกได้หลายใบบรรจุจากใบสั่งขายเดียวกัน (ต่างรอบได้) ระบบดึงสินค้าและจำนวนจากใบบรรจุให้อัตโนมัติ"
+        title={t("เลือกใบบรรจุที่พร้อมส่ง")}
+        subtitle={t("เลือกได้หลายใบบรรจุจากใบสั่งขายเดียวกัน (ต่างรอบได้) ระบบดึงสินค้าและจำนวนจากใบบรรจุให้อัตโนมัติ")}
         back={
           <>
 <Link href="/delivery-orders" className={styles.backLink}>
-            <ArrowLeftOutlined /> กลับรายการ
+            <ArrowLeftOutlined /> {t("กลับรายการ")}
           </Link>
           </>
         }
@@ -150,8 +152,8 @@ export default function CreateDeliverySelectPackingPage() {
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          title="ใบบรรจุที่ส่งมาไม่อยู่ในรายการพร้อมส่ง"
-          description="อาจถูกใช้สร้างใบส่งสินค้าไปแล้ว หรือรอบส่งยังไม่พร้อม — เลือกใบบรรจุอื่นจากรายการด้านล่าง"
+          title={t("ใบบรรจุที่ส่งมาไม่อยู่ในรายการพร้อมส่ง")}
+          description={t("อาจถูกใช้สร้างใบส่งสินค้าไปแล้ว หรือรอบส่งยังไม่พร้อม — เลือกใบบรรจุอื่นจากรายการด้านล่าง")}
         />
       ) : null}
 
@@ -172,7 +174,7 @@ export default function CreateDeliverySelectPackingPage() {
             renderCell: (_checked, row, _index, node) =>
               isOtherSo(row) ? (
                 <Tooltip
-                  title={`ใบบรรจุนี้เป็นของ ${row.salesOrderNo ?? "SO อื่น"} — รวมในใบส่งเดียวกันได้เฉพาะใบบรรจุของ ${selected[0]?.salesOrderNo ?? "SO ที่เลือกไว้"} · เอาติ๊กออกทั้งหมดก่อนถ้าจะเปลี่ยน SO`}
+                  title={t("ใบบรรจุนี้เป็นของ {so} — รวมในใบส่งเดียวกันได้เฉพาะใบบรรจุของ {selectedSo} · เอาติ๊กออกทั้งหมดก่อนถ้าจะเปลี่ยน SO", { so: row.salesOrderNo ?? t("SO อื่น"), selectedSo: selected[0]?.salesOrderNo ?? t("SO ที่เลือกไว้") })}
                 >
                   <span>{node}</span>
                 </Tooltip>
@@ -182,7 +184,7 @@ export default function CreateDeliverySelectPackingPage() {
           }}
           locale={{
             emptyText:
-              "ไม่มีใบบรรจุที่พร้อมสร้างใบส่ง — ใบบรรจุต้องยืนยันแล้ว และยังไม่ถูกใช้ในใบส่งอื่น (ยกเลิกใบส่งแล้วใบบรรจุจะกลับมาเลือกได้)",
+              t("ไม่มีใบบรรจุที่พร้อมสร้างใบส่ง — ใบบรรจุต้องยืนยันแล้ว และยังไม่ถูกใช้ในใบส่งอื่น (ยกเลิกใบส่งแล้วใบบรรจุจะกลับมาเลือกได้)"),
           }}
         />
       </section>
@@ -190,12 +192,12 @@ export default function CreateDeliverySelectPackingPage() {
       <section className={styles.tableCard} style={{ marginTop: 16 }}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            <strong>รายการสินค้าในใบส่ง</strong>
+            <strong>{t("รายการสินค้าในใบส่ง")}</strong>
             {selected.length ? (
               <>
                 <Tag color="blue">{selected[0].salesOrderNo ?? "—"}</Tag>
                 <span>{selected[0].customerName ?? ""}</span>
-                <Tag>{selected.length} ใบบรรจุ</Tag>
+                <Tag>{selected.length} {t("ใบบรรจุ")}</Tag>
               </>
             ) : null}
           </div>
@@ -209,18 +211,18 @@ export default function CreateDeliverySelectPackingPage() {
                 loading={createMutation.isPending}
                 onClick={onCreate}
               >
-                สร้างใบส่งสินค้า ({selected.length} ใบบรรจุ)
+                {t("สร้างใบส่งสินค้า ({n} ใบบรรจุ)", { n: selected.length })}
               </Button>
             </span>
           </Tooltip>
         </div>
         <Table
           rowKey={packingPreviewRowKey}
-          columns={packingPreviewColumns}
+          columns={getPackingPreviewColumns(t)}
           dataSource={previewLines}
           pagination={false}
           size="small"
-          locale={{ emptyText: "เลือกใบบรรจุด้านบนเพื่อดูรายการสินค้า" }}
+          locale={{ emptyText: t("เลือกใบบรรจุด้านบนเพื่อดูรายการสินค้า") }}
         />
       </section>
     </div>

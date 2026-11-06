@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api/client";
 import { scanWeighTicketOcr } from "@/lib/api/weighbridge-ocr";
 import { getAccessToken } from "@/lib/auth/token";
 import type { WeighTicketOcrResult } from "@/types/weighbridge-ocr";
+import { useT } from "@/lib/i18n/useT";
 
 /**
  * อ่านใบชั่งจากรูป
@@ -16,6 +17,7 @@ import type { WeighTicketOcrResult } from "@/types/weighbridge-ocr";
  * ฝั่ง server ก็ไม่ได้แก้อะไรในตั๋วอยู่แล้ว (มีแต่เพิ่มไฟล์แนบ)
  */
 export function useScanWeighTicketOcrMutation(ticketId: string) {
+  const t = useT();
   const { message } = App.useApp();
 
   return useMutation<WeighTicketOcrResult, Error, File>({
@@ -31,7 +33,7 @@ export function useScanWeighTicketOcrMutation(ticketId: string) {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "อ่านรูปใบชั่งไม่สำเร็จ กรุณาลองใหม่",
+          : t("อ่านรูปใบชั่งไม่สำเร็จ กรุณาลองใหม่"),
       );
     },
   });

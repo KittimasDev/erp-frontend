@@ -20,6 +20,7 @@ import { logout as logoutApi } from "@/lib/api/auth";
 import { clearActivePortalModule } from "@/lib/auth/portal-module";
 import { clearAccessToken, getAccessToken, hasAccessToken } from "@/lib/auth/token";
 import { setLanguage, useLanguage, type Language } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import {
   isFgInventoryScope,
   isRmInventoryScope,
@@ -493,6 +494,7 @@ export default function AppTopHeader() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const language = useLanguage();
   const t = USER_MENU_TEXT[language];
+  const tr = useT();
   const toastedIdsRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
 
@@ -560,7 +562,7 @@ export default function AppTopHeader() {
   const panel = (
     <div className={styles.notifPanel}>
       <div className={styles.notifHeader}>
-        <Typography.Text strong>การแจ้งเตือน</Typography.Text>
+        <Typography.Text strong>{tr("การแจ้งเตือน")}</Typography.Text>
         {unreadCount > 0 ? (
           <Button
             type="link"
@@ -568,14 +570,14 @@ export default function AppTopHeader() {
             loading={markAllMutation.isPending}
             onClick={() => markAllMutation.mutate()}
           >
-            อ่านทั้งหมด
+            {tr("อ่านทั้งหมด")}
           </Button>
         ) : null}
       </div>
       {notifications.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="ยังไม่มีการแจ้งเตือน"
+          description={tr("ยังไม่มีการแจ้งเตือน")}
         />
       ) : (
         <ul className={styles.notifList}>
@@ -678,7 +680,7 @@ export default function AppTopHeader() {
   return (
     <header className={styles.topHeader}>
       <div className={styles.topHeaderInner}>
-        <h1 className={styles.pageTitle}>{title}</h1>
+        <h1 className={styles.pageTitle}>{tr(title)}</h1>
 
         <div className={styles.topActions}>
           <div className={styles.dateChip}>
@@ -700,7 +702,7 @@ export default function AppTopHeader() {
               <button
                 type="button"
                 className={styles.bellButton}
-                aria-label="การแจ้งเตือน"
+                aria-label={tr("การแจ้งเตือน")}
               >
                 <IconBell />
                 {unreadCount > 0 ? (
@@ -714,9 +716,9 @@ export default function AppTopHeader() {
             <button
               type="button"
               className={styles.bellButton}
-              aria-label="การแจ้งเตือน"
+              aria-label={tr("การแจ้งเตือน")}
               disabled
-              title="เข้าสู่ระบบเพื่อดูการแจ้งเตือน"
+              title={tr("เข้าสู่ระบบเพื่อดูการแจ้งเตือน")}
             >
               <IconBell />
             </button>

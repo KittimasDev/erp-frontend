@@ -49,6 +49,8 @@ import type { PickingItem } from "@/types/pickings";
 import { PICKING_STATUS_LABEL } from "@/types/pickings";
 import styles from "./PickingFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string; mode: "view" | "edit" };
 
@@ -69,17 +71,21 @@ function formatQty(value?: string | number) {
   return num.toLocaleString("th-TH", { maximumFractionDigits: 3 });
 }
 
-const FIFO_TOOLTIP = (
+function FifoTooltip() {
+  const t = useT();
+  return (
   <div style={{ maxWidth: 280 }}>
     <strong>FIFO = First In, First Out</strong>
     <div style={{ marginTop: 6, lineHeight: 1.5 }}>
-      ระบบแนะนำ Lot ที่รับเข้าคลังเก่าสุดก่อน เพื่อใช้ของเก่าก่อนของใหม่
-      ลดความเสี่ยงสินค้าหมดอายุหรือค้างสต๊อกนาน
+      {t("ระบบแนะนำ Lot ที่รับเข้าคลังเก่าสุดก่อน เพื่อใช้ของเก่าก่อนของใหม่")}
+      {t("ลดความเสี่ยงสินค้าหมดอายุหรือค้างสต๊อกนาน")}
     </div>
   </div>
-);
+  );
+}
 
 export default function PickingFormPage({ id, mode }: Props) {
+  const t = useT();
   const router = useRouter();
   const { modal } = App.useApp();
   const query = usePickingQuery(id);
@@ -209,9 +215,11 @@ export default function PickingFormPage({ id, mode }: Props) {
     return <AccessDenied screenCodes={["PICKINGS"]} />;
   }
 
-  const statusLabel =
+  const statusLabel = statusT(
+    t,
     PICKING_STATUS_LABEL[data.status as keyof typeof PICKING_STATUS_LABEL] ??
-    data.status;
+      data.status,
+  );
 
   const reservationReady =
     data.status === "DRAFT" &&
@@ -270,7 +278,7 @@ export default function PickingFormPage({ id, mode }: Props) {
     if (editable) {
       return (
         <span className={styles.lotHint}>
-          สินค้าควบคุม Lot — เลือก Lot หรือกด &quot;แนะนำ FIFO&quot;
+          {t("สินค้าควบคุม Lot — เลือก Lot หรือกด \"แนะนำ FIFO\"")}
         </span>
       );
     }
@@ -280,14 +288,14 @@ export default function PickingFormPage({ id, mode }: Props) {
 
   const columns: ColumnsType<PickingItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_v, item) => (
         <div>
@@ -298,26 +306,26 @@ export default function PickingFormPage({ id, mode }: Props) {
       ),
     },
     {
-      title: "สั่ง",
+      title: t("สั่ง"),
       dataIndex: "orderedQty",
       width: 88,
       align: "right",
     },
     {
-      title: "หยิบ",
+      title: t("หยิบ"),
       key: "picked",
       width: 110,
       align: "right",
       render: (_v, item) => formatQty(item.pickedQty),
     },
     {
-      title: "คลัง",
+      title: t("คลัง"),
       key: "wh",
       width: 140,
       render: (_v, item) => item.warehouseCode ?? "—",
     },
     {
-      title: "ตำแหน่ง",
+      title: t("ตำแหน่ง"),
       key: "loc",
       width: 130,
       render: (_v, item) => item.locationCode ?? "—",
@@ -325,9 +333,9 @@ export default function PickingFormPage({ id, mode }: Props) {
     {
       title: (
         <span className={styles.colHelp}>
-          Lot{editable ? " (แนะนำอัตโนมัติ)" : ""}
+          Lot{editable ? t(" (แนะนำอัตโนมัติ)") : ""}
           {editable ? (
-            <Tooltip title={FIFO_TOOLTIP} placement="top">
+            <Tooltip title={<FifoTooltip />} placement="top">
               <QuestionCircleOutlined className={styles.helpIcon} />
             </Tooltip>
           ) : null}
@@ -354,11 +362,11 @@ export default function PickingFormPage({ id, mode }: Props) {
             />
             {row.availableHint ? (
               <div className={styles.lotMeta}>
-                คงเหลือใน Lot {formatQty(row.availableHint)}
+                {t("คงเหลือใน Lot")} {formatQty(row.availableHint)}
               </div>
             ) : null}
             <div className={styles.lotActions}>
-              <Tooltip title={FIFO_TOOLTIP} placement="topLeft">
+              <Tooltip title={<FifoTooltip />} placement="topLeft">
                 <Button
                   size="small"
                   className={styles.fifoBtn}
@@ -367,7 +375,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                   disabled={!row.warehouseId || !row.locationId}
                   onClick={() => void suggestLot(item, row)}
                 >
-                  แนะนำ FIFO
+                  {t("แนะนำ FIFO")}
                 </Button>
               </Tooltip>
             </div>
@@ -387,7 +395,7 @@ export default function PickingFormPage({ id, mode }: Props) {
           <>
 <div className={styles.backRow}>
             <Link href="/pickings" className={styles.backLink}>
-              <ArrowLeftOutlined /> กลับรายการใบจ่าย
+              <ArrowLeftOutlined /> {t("กลับรายการใบจ่าย")}
             </Link>
             <Link
               href={
@@ -397,7 +405,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               }
               className={styles.backLink}
             >
-              <ShoppingCartOutlined /> กลับใบสั่งขาย
+              <ShoppingCartOutlined /> {t("กลับใบสั่งขาย")}
             </Link>
           </div>
           </>
@@ -419,7 +427,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               </span>
             )}
             <span className={styles.metaChip}>
-              ลูกค้า{" "}
+              {t("ลูกค้า")}{" "}
               <span className={styles.metaChipMuted}>
                 {data.customerName ?? "—"}
               </span>
@@ -451,7 +459,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               )
             }
           >
-            ไปใบสั่งขาย
+            {t("ไปใบสั่งขาย")}
           </Button>
           <Button
             className={styles.secondaryBtn}
@@ -478,7 +486,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               });
             }}
           >
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           {editable ? (
             <>
@@ -488,7 +496,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                 loading={updateMutation.isPending}
                 onClick={() => void handleSave()}
               >
-                บันทึก DRAFT
+                {t("บันทึก DRAFT")}
               </Button>
               {canConfirm ? (
                 <Button
@@ -498,10 +506,10 @@ export default function PickingFormPage({ id, mode }: Props) {
                   loading={confirmMutation.isPending}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันตัดสต๊อกตามใบจ่ายนี้?",
+                      title: t("ยืนยันตัดสต๊อกตามใบจ่ายนี้?"),
                       content: reservationReady
-                        ? "ของจองครบแล้ว — ระบบจะตัดจากของที่จองไว้สำหรับใบจ่ายนี้และสร้าง stock movement ไม่ได้ตัด available ซ้ำจากคลังว่าง"
-                        : "ยืนยันตัดสต๊อกจริงจากของที่จองไว้สำหรับใบจ่ายนี้ และสร้าง stock movement",
+                        ? t("ของจองครบแล้ว — ระบบจะตัดจากของที่จองไว้สำหรับใบจ่ายนี้และสร้าง stock movement ไม่ได้ตัด available ซ้ำจากคลังว่าง")
+                        : t("ยืนยันตัดสต๊อกจริงจากของที่จองไว้สำหรับใบจ่ายนี้ และสร้าง stock movement"),
                       onOk: async () => {
                         if (!(await handleSave())) return;
                         await confirmMutation.mutateAsync(id);
@@ -510,7 +518,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                     })
                   }
                 >
-                  ยืนยันตัดสต๊อก
+                  {t("ยืนยันตัดสต๊อก")}
                 </Button>
               ) : null}
               <Button
@@ -520,7 +528,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                 loading={cancelMutation.isPending}
                 onClick={() =>
                   modal.confirm({
-                    title: "ยกเลิกใบจ่าย?",
+                    title: t("ยกเลิกใบจ่าย?"),
                     onOk: async () => {
                       await cancelMutation.mutateAsync(id);
                       router.push("/pickings");
@@ -528,7 +536,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                   })
                 }
               >
-                ยกเลิก
+                {t("ยกเลิก")}
               </Button>
             </>
           ) : null}
@@ -539,7 +547,7 @@ export default function PickingFormPage({ id, mode }: Props) {
               icon={<CheckOutlined />}
               onClick={() => router.push(`/pickings/${id}/edit`)}
             >
-              แก้ไขและยืนยันตัดสต๊อก
+              {t("แก้ไขและยืนยันตัดสต๊อก")}
             </Button>
           ) : null}
           {!editable && data.status === "CONFIRMED" ? (
@@ -550,7 +558,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                 icon={<InboxOutlined />}
                 onClick={() => router.push(packingHref)}
               >
-                เปิดใบบรรจุสินค้า
+                {t("เปิดใบบรรจุสินค้า")}
               </Button>
             ) : canCreatePackingFromThis ? (
               <Button
@@ -561,7 +569,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                   router.push(`/packings/create-from-picking/${id}`)
                 }
               >
-                สร้างใบบรรจุสินค้า
+                {t("สร้างใบบรรจุสินค้า")}
               </Button>
             ) : null
           ) : null}
@@ -570,7 +578,7 @@ export default function PickingFormPage({ id, mode }: Props) {
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/pickings")}
           >
-            กลับรายการ
+            {t("กลับรายการ")}
           </Button>
           </>
         }
@@ -580,13 +588,13 @@ export default function PickingFormPage({ id, mode }: Props) {
         <Alert
           type="info"
           showIcon
-          title="ใบจ่ายอยู่สถานะแบบร่างเอกสาร"
+          title={t("ใบจ่ายอยู่สถานะแบบร่างเอกสาร")}
           description={
             canWrite
               ? reservationReady
-                ? "ของจองครบแล้ว — กด «แก้ไขและยืนยันตัดสต๊อก» แล้วกดยืนยันได้ทันที ไม่ต้องเลือกคลัง/Lot ใหม่"
-                : "กด «แก้ไขและยืนยันตัดสต๊อก» — ของถูกจองไว้แล้ว ระบบจะจัดคลัง/Lot ตามที่จองให้อัตโนมัติ"
-              : "รอเจ้าหน้าที่คลังยืนยันตัดสต๊อกจริงจากของที่จองไว้"
+                ? t("ของจองครบแล้ว — กด «แก้ไขและยืนยันตัดสต๊อก» แล้วกดยืนยันได้ทันที ไม่ต้องเลือกคลัง/Lot ใหม่")
+                : t("กด «แก้ไขและยืนยันตัดสต๊อก» — ของถูกจองไว้แล้ว ระบบจะจัดคลัง/Lot ตามที่จองให้อัตโนมัติ")
+              : t("รอเจ้าหน้าที่คลังยืนยันตัดสต๊อกจริงจากของที่จองไว้")
           }
         />
       ) : null}
@@ -595,8 +603,8 @@ export default function PickingFormPage({ id, mode }: Props) {
         <Alert
           type="success"
           showIcon
-          title="ของจองครบแล้ว — กดยืนยันตัดสต๊อกได้ทันที"
-          description="แถวด้านล่างมาจากของที่จองไว้สำหรับใบสั่งขายนี้ ไม่ต้องกดแนะนำ FIFO อีกครั้ง"
+          title={t("ของจองครบแล้ว — กดยืนยันตัดสต๊อกได้ทันที")}
+          description={t("แถวด้านล่างมาจากของที่จองไว้สำหรับใบสั่งขายนี้ ไม่ต้องกดแนะนำ FIFO อีกครั้ง")}
         />
       ) : null}
 
@@ -604,44 +612,44 @@ export default function PickingFormPage({ id, mode }: Props) {
         <Alert
           type="success"
           showIcon
-          title="ยืนยันแล้ว — สต๊อกถูกตัดและมี stock movement ประเภท SALES_OUT (ขายออก)"
+          title={t("ยืนยันแล้ว — สต๊อกถูกตัดและมี stock movement ประเภท SALES_OUT (ขายออก)")}
           description={
             packingHref
-              ? "ขั้นถัดไป: เปิดใบบรรจุสินค้าเพื่อดำเนินการต่อ"
+              ? t("ขั้นถัดไป: เปิดใบบรรจุสินค้าเพื่อดำเนินการต่อ")
               : canCreatePackingFromThis
-                ? "ขั้นถัดไป: สร้างใบบรรจุสินค้าจากใบจ่ายนี้"
+                ? t("ขั้นถัดไป: สร้างใบบรรจุสินค้าจากใบจ่ายนี้")
                 : packingRoundDone
-                  ? "รอบจัดส่งนี้บรรจุหรือส่งของไปแล้ว — ไม่สร้างใบบรรจุซ้ำจากใบจ่ายนี้"
-                  : "ขั้นถัดไปของรอบนี้ดำเนินการไปแล้ว หรือรอเอกสารบรรจุจากรอบนี้"
+                  ? t("รอบจัดส่งนี้บรรจุหรือส่งของไปแล้ว — ไม่สร้างใบบรรจุซ้ำจากใบจ่ายนี้")
+                  : t("ขั้นถัดไปของรอบนี้ดำเนินการไปแล้ว หรือรอเอกสารบรรจุจากรอบนี้")
           }
         />
       ) : null}
 
       {editable && !reservationReady ? (
-        <aside className={styles.tipCard} aria-label="คำอธิบาย FIFO Lot">
+        <aside className={styles.tipCard} aria-label={t("คำอธิบาย FIFO Lot")}>
           <div className={styles.tipIcon}>
             <InfoCircleOutlined />
           </div>
           <div className={styles.tipBody}>
-            <h2 className={styles.tipTitle}>FIFO Lot คืออะไร?</h2>
+            <h2 className={styles.tipTitle}>{t("FIFO Lot คืออะไร?")}</h2>
             <p className={styles.tipText}>
               <strong>FIFO (First In, First Out)</strong> =
-              ใช้ Lot ที่รับเข้าคลังก่อนเป็นลำดับแรก ระบบจะแนะนำ Lot
-              เก่าสุดที่มียอดพร้อมใช้ในตำแหน่งที่เลือก
-              เพื่อให้จ่ายของเก่าก่อนของใหม่
+              {t("ใช้ Lot ที่รับเข้าคลังก่อนเป็นลำดับแรก ระบบจะแนะนำ Lot")}
+              {t("เก่าสุดที่มียอดพร้อมใช้ในตำแหน่งที่เลือก")}
+              {t("เพื่อให้จ่ายของเก่าก่อนของใหม่")}
             </p>
             <div className={styles.tipSteps}>
               <span className={styles.tipStep}>
                 <span className={styles.tipStepNum}>1</span>
-                ตรวจคลัง / ตำแหน่งที่จองไว้
+                {t("ตรวจคลัง / ตำแหน่งที่จองไว้")}
               </span>
               <span className={styles.tipStep}>
                 <span className={styles.tipStepNum}>2</span>
-                เลือก Lot หรือกด “แนะนำ FIFO”
+                {t("เลือก Lot หรือกด “แนะนำ FIFO”")}
               </span>
               <span className={styles.tipStep}>
                 <span className={styles.tipStepNum}>3</span>
-                ตรวจ Lot แล้วยืนยันตัดสต๊อก
+                {t("ตรวจ Lot แล้วยืนยันตัดสต๊อก")}
               </span>
             </div>
           </div>
@@ -649,10 +657,10 @@ export default function PickingFormPage({ id, mode }: Props) {
       ) : null}
 
       <section className={styles.formCard}>
-        <h2 className={styles.sectionTitle}>ข้อมูลใบจ่าย</h2>
+        <h2 className={styles.sectionTitle}>{t("ข้อมูลใบจ่าย")}</h2>
         <div className={styles.formGrid}>
           <label className={styles.field}>
-            <span>วันที่จ่าย</span>
+            <span>{t("วันที่จ่าย")}</span>
             <DatePicker
               value={pickingDate}
               disabled={!editable}
@@ -661,12 +669,12 @@ export default function PickingFormPage({ id, mode }: Props) {
             />
           </label>
           <label className={styles.field}>
-            <span>หมายเหตุ</span>
+            <span>{t("หมายเหตุ")}</span>
             <Input.TextArea
               rows={2}
               value={remark}
               disabled={!editable}
-              placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
+              placeholder={t("ระบุหมายเหตุเพิ่มเติม (ถ้ามี)")}
               onChange={(e) => setRemark(e.target.value)}
             />
           </label>
@@ -676,11 +684,11 @@ export default function PickingFormPage({ id, mode }: Props) {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            <p className={styles.toolbarTitle}>รายการสินค้าที่จะหยิบ</p>
+            <p className={styles.toolbarTitle}>{t("รายการสินค้าที่จะหยิบ")}</p>
             <p className={styles.toolbarHint}>
               {reservationReady
-                ? "คลัง / ตำแหน่ง / Lot ถูกจัดตามของที่จองไว้แล้ว — กดยืนยันตัดสต๊อกได้ทันที"
-                : "คลัง/ตำแหน่ง/จำนวนยึดตามของที่จองไว้ — เปลี่ยนได้เฉพาะ Lot ในตำแหน่งเดียวกัน"}
+                ? t("คลัง / ตำแหน่ง / Lot ถูกจัดตามของที่จองไว้แล้ว — กดยืนยันตัดสต๊อกได้ทันที")
+                : t("คลัง/ตำแหน่ง/จำนวนยึดตามของที่จองไว้ — เปลี่ยนได้เฉพาะ Lot ในตำแหน่งเดียวกัน")}
             </p>
           </div>
         </div>
@@ -699,17 +707,17 @@ export default function PickingFormPage({ id, mode }: Props) {
         <section className={styles.actionFooter}>
           <div className={styles.actionFooterText}>
             {data.status === "CONFIRMED"
-              ? "ดำเนินการต่อ — สร้างหรือเปิดใบบรรจุสินค้า"
+              ? t("ดำเนินการต่อ — สร้างหรือเปิดใบบรรจุสินค้า")
               : data.status === "DRAFT" && canWrite
-                ? "แก้ไขใบจ่ายแล้วยืนยันตัดสต๊อกจริงเพื่อไปขั้นบรรจุ"
-                : "กลับไปรายการหรือใบสั่งขาย"}
+                ? t("แก้ไขใบจ่ายแล้วยืนยันตัดสต๊อกจริงเพื่อไปขั้นบรรจุ")
+                : t("กลับไปรายการหรือใบสั่งขาย")}
           </div>
           <div className={styles.actionFooterButtons}>
             <Button
               icon={<ArrowLeftOutlined />}
               onClick={() => router.push("/pickings")}
             >
-              กลับรายการใบจ่าย
+              {t("กลับรายการใบจ่าย")}
             </Button>
             {data.salesOrderId ? (
               <Button
@@ -718,7 +726,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                   router.push(`/sales-orders/${data.salesOrderId}`)
                 }
               >
-                กลับใบสั่งขาย
+                {t("กลับใบสั่งขาย")}
               </Button>
             ) : null}
             {data.status === "DRAFT" && canWrite ? (
@@ -728,7 +736,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                 icon={<CheckOutlined />}
                 onClick={() => router.push(`/pickings/${id}/edit`)}
               >
-                แก้ไขและยืนยันตัดสต๊อก
+                {t("แก้ไขและยืนยันตัดสต๊อก")}
               </Button>
             ) : null}
             {data.status === "CONFIRMED" ? (
@@ -739,7 +747,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                   icon={<InboxOutlined />}
                   onClick={() => router.push(packingHref)}
                 >
-                  เปิดใบบรรจุสินค้า
+                  {t("เปิดใบบรรจุสินค้า")}
                 </Button>
               ) : canCreatePackingFromThis ? (
                 <Button
@@ -750,7 +758,7 @@ export default function PickingFormPage({ id, mode }: Props) {
                     router.push(`/packings/create-from-picking/${id}`)
                   }
                 >
-                  สร้างใบบรรจุสินค้า
+                  {t("สร้างใบบรรจุสินค้า")}
                 </Button>
               ) : null
             ) : null}
@@ -777,6 +785,7 @@ function LotSelect({
   valueLabel?: string;
   onChange: (lotId: string, lotNo: string, onHand: string) => void;
 }) {
+  const t = useT();
   const lotsQuery = useInventoryLotsQuery(
     { itemId, warehouseId, locationId, hasStock: true },
     { enabled: Boolean(warehouseId && locationId) },
@@ -784,7 +793,7 @@ function LotSelect({
   const lots = lotsQuery.data?.data ?? [];
   const options = lots.map((lot) => ({
     value: lot.lotId,
-    label: `${lot.lotNo} (คงเหลือ ${formatQty(lot.quantityOnHand)})`,
+    label: t("{lotNo} (คงเหลือ {quantityOnHand})", { lotNo: lot.lotNo, quantityOnHand: formatQty(lot.quantityOnHand) }),
   }));
   if (value && !options.some((o) => o.value === value)) {
     options.unshift({ value, label: valueLabel ?? value });
@@ -796,7 +805,7 @@ function LotSelect({
       style={{ width: "100%" }}
       loading={lotsQuery.isFetching}
       disabled={!warehouseId || !locationId}
-      placeholder="เลือก Lot"
+      placeholder={t("เลือก Lot")}
       value={value}
       options={options}
       onChange={(lotId: string) => {

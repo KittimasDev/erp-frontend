@@ -13,6 +13,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { tNow, useT } from "@/lib/i18n/useT";
 import {
   useStockBalanceSummaryQuery,
   useStockBalancesByItemQuery,
@@ -55,20 +56,22 @@ function pageCopy(
   const scope = getInventoryPageScope(searchParams, itemCategoryCode);
   if (scope) {
     return {
-      ...scope,
+      eyebrow: tNow(scope.eyebrow),
+      title: tNow(scope.title),
       subtitle:
-        "ดูยอดรวมต่อสินค้า หรือรายละเอียดแยกคลัง/ตำแหน่ง — กดสินค้าเพื่อดูรายละเอียด",
+        tNow("ดูยอดรวมต่อสินค้า หรือรายละเอียดแยกคลัง/ตำแหน่ง — กดสินค้าเพื่อดูรายละเอียด"),
     };
   }
   return {
     eyebrow: "INVENTORY · STOCK BALANCES",
-    title: "ภาพรวมคลังสินค้า",
+    title: tNow("ภาพรวมคลังสินค้า"),
     subtitle:
-      "ดูยอดรวมต่อสินค้า หรือรายละเอียดแยกคลัง/ตำแหน่ง — ดูอย่างเดียว ไม่แก้สต๊อกจากหน้านี้",
+      tNow("ดูยอดรวมต่อสินค้า หรือรายละเอียดแยกคลัง/ตำแหน่ง — ดูอย่างเดียว ไม่แก้สต๊อกจากหน้านี้"),
   };
 }
 
 export default function StockBalancesPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const router = useRouter();
   const pathname = usePathname();
@@ -146,9 +149,9 @@ export default function StockBalancesPage() {
   const filterHint = [
     filters.warehouseId
       ? warehouseOptions.find((o) => o.value === filters.warehouseId)?.label
-      : "ทุกคลัง",
-    filters.hasStock === false ? "รวมยอดศูนย์" : "เฉพาะมียอด",
-    filters.q ? `ค้นหา “${filters.q}”` : null,
+      : t("ทุกคลัง"),
+    filters.hasStock === false ? t("รวมยอดศูนย์") : t("เฉพาะมียอด"),
+    filters.q ? t("ค้นหา “{q}”", { q: filters.q }) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -180,14 +183,14 @@ export default function StockBalancesPage() {
 
   const byItemColumns: ColumnsType<StockBalanceByItemRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 15 + index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_, row) => (
         <div className={styles.itemCell}>
@@ -200,7 +203,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "คงเหลือรวม",
+      title: t("คงเหลือรวม"),
       dataIndex: "totalQuantityOnHand",
       key: "totalQuantityOnHand",
       align: "right",
@@ -213,7 +216,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "พร้อมใช้",
+      title: t("พร้อมใช้"),
       dataIndex: "totalQuantityAvailable",
       key: "totalQuantityAvailable",
       align: "right",
@@ -225,7 +228,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "จอง",
+      title: t("จอง"),
       dataIndex: "totalQuantityReserved",
       key: "totalQuantityReserved",
       align: "right",
@@ -235,7 +238,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "คลัง / ตำแหน่ง",
+      title: t("คลัง / ตำแหน่ง"),
       key: "places",
       align: "center",
       width: 120,
@@ -246,7 +249,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "ขั้นต่ำ",
+      title: t("ขั้นต่ำ"),
       dataIndex: "minimumStockQty",
       key: "minimumStockQty",
       align: "right",
@@ -259,14 +262,14 @@ export default function StockBalancesPage() {
 
   const detailColumns: ColumnsType<StockBalanceRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 15 + index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_, row) => (
         <div className={styles.itemCell}>
@@ -279,7 +282,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "คลัง / ตำแหน่ง",
+      title: t("คลัง / ตำแหน่ง"),
       key: "place",
       width: 200,
       render: (_, row) => (
@@ -293,7 +296,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "คงเหลือ",
+      title: t("คงเหลือ"),
       dataIndex: "quantityOnHand",
       key: "quantityOnHand",
       align: "right",
@@ -303,7 +306,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "พร้อมใช้",
+      title: t("พร้อมใช้"),
       dataIndex: "quantityAvailable",
       key: "quantityAvailable",
       align: "right",
@@ -315,7 +318,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "รอตรวจ (Hold)",
+      title: t("รอตรวจ (Hold)"),
       dataIndex: "quantityOnHold",
       key: "quantityOnHold",
       align: "right",
@@ -325,7 +328,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "ถูกบล็อก",
+      title: t("ถูกบล็อก"),
       dataIndex: "quantityBlocked",
       key: "quantityBlocked",
       align: "right",
@@ -335,7 +338,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "จอง",
+      title: t("จอง"),
       dataIndex: "quantityReserved",
       key: "quantityReserved",
       align: "right",
@@ -345,7 +348,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "หน่วย",
+      title: t("หน่วย"),
       dataIndex: "unitCode",
       key: "unitCode",
       width: 80,
@@ -354,7 +357,7 @@ export default function StockBalancesPage() {
       ),
     },
     {
-      title: "ต้นทุนเฉลี่ย",
+      title: t("ต้นทุนเฉลี่ย"),
       dataIndex: "averageCost",
       key: "averageCost",
       align: "right",
@@ -383,14 +386,14 @@ export default function StockBalancesPage() {
   const filterBar = (
     <div className={styles.filterBar}>
       <div className={styles.filterField}>
-        <span className={styles.filterLabel}>คลัง</span>
+        <span className={styles.filterLabel}>{t("คลัง")}</span>
         <Select
           allowClear
           showSearch
-          aria-label="คลังสินค้า"
+          aria-label={t("คลังสินค้า")}
           className={styles.filterControl}
           optionFilterProp="label"
-          placeholder="ทุกคลัง"
+          placeholder={t("ทุกคลัง")}
           options={warehouseOptions}
           value={draft.warehouseId}
           onChange={(value) =>
@@ -403,11 +406,11 @@ export default function StockBalancesPage() {
         />
       </div>
       <div className={styles.filterField}>
-        <span className={styles.filterLabel}>ตำแหน่ง</span>
+        <span className={styles.filterLabel}>{t("ตำแหน่ง")}</span>
         <Select
           allowClear
           showSearch
-          aria-label="ตำแหน่งในคลัง"
+          aria-label={t("ตำแหน่งในคลัง")}
           className={styles.filterControl}
           options={locationOptions}
           disabled={!draft.warehouseId}
@@ -418,13 +421,13 @@ export default function StockBalancesPage() {
         />
       </div>
       <div className={styles.filterField}>
-        <span className={styles.filterLabel}>ค้นหาสินค้า</span>
+        <span className={styles.filterLabel}>{t("ค้นหาสินค้า")}</span>
         <Input
           allowClear
-          aria-label="ค้นหาสินค้า"
+          aria-label={t("ค้นหาสินค้า")}
           className={styles.filterControl}
           prefix={<SearchOutlined />}
-          placeholder="รหัส / ชื่อสินค้า"
+          placeholder={t("รหัส / ชื่อสินค้า")}
           value={draft.q}
           onChange={(e) => setDraft((prev) => ({ ...prev, q: e.target.value }))}
           onPressEnter={handleSearch}
@@ -432,10 +435,10 @@ export default function StockBalancesPage() {
       </div>
       <div className={styles.stockToggle}>
         <Switch
-          aria-label="แสดงเฉพาะรายการที่มียอดคงเหลือ"
+          aria-label={t("แสดงเฉพาะรายการที่มียอดคงเหลือ")}
           checked={draft.hasStock}
-          checkedChildren="มียอด"
-          unCheckedChildren="ทั้งหมด"
+          checkedChildren={t("มียอด")}
+          unCheckedChildren={t("ทั้งหมด")}
           onChange={(checked) =>
             setDraft((prev) => ({ ...prev, hasStock: checked }))
           }
@@ -448,14 +451,14 @@ export default function StockBalancesPage() {
           className={styles.searchButton}
           onClick={handleSearch}
         >
-          ค้นหา
+          {t("ค้นหา")}
         </Button>
         <Button
           icon={<ClearOutlined />}
           className={styles.clearButton}
           onClick={handleClear}
         >
-          ล้าง
+          {t("ล้าง")}
         </Button>
       </div>
     </div>
@@ -473,24 +476,24 @@ export default function StockBalancesPage() {
             title={
               pageError instanceof Error
                 ? pageError.message
-                : "โหลดข้อมูลไม่สำเร็จ"
+                : t("โหลดข้อมูลไม่สำเร็จ")
             }
-            description="ถ้าเพิ่งแก้ Permission Matrix ให้ตรวจที่ /users ว่าบัญชีนี้ผูก role ที่ติ๊กไว้ — เมนูจะรีเฟรชหลัง Save โดยไม่ต้อง logout"
+            description={t("ถ้าเพิ่งแก้ Permission Matrix ให้ตรวจที่ /users ว่าบัญชีนี้ผูก role ที่ติ๊กไว้ — เมนูจะรีเฟรชหลัง Save โดยไม่ต้อง logout")}
             style={{ marginBottom: 16 }}
           />
         ) : null}
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>รายการคงเหลือ</span>
+            <span>{t("รายการคงเหลือ")}</span>
             <strong>{summary?.balanceRows ?? 0}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>สินค้า</span>
+            <span>{t("สินค้า")}</span>
             <strong>{summary?.distinctItems ?? 0}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>คลัง / ตำแหน่ง</span>
+            <span>{t("คลัง / ตำแหน่ง")}</span>
             <strong className={styles.summaryCompact}>
               {summary?.distinctWarehouses ?? 0}
               <span className={styles.summaryUnit}>/</span>
@@ -498,7 +501,7 @@ export default function StockBalancesPage() {
             </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>คงเหลือรวม</span>
+            <span>{t("คงเหลือรวม")}</span>
             <strong className={styles.summaryCompact}>
               {formatQty(summary?.totalQuantityOnHand)}
             </strong>
@@ -507,15 +510,15 @@ export default function StockBalancesPage() {
 
         <div className={styles.metricRow}>
           <div className={styles.metricItem}>
-            <span>พร้อมใช้รวม</span>
+            <span>{t("พร้อมใช้รวม")}</span>
             <strong>{formatQty(summary?.totalQuantityAvailable)}</strong>
           </div>
           <div className={styles.metricItem}>
-            <span>จองรวม</span>
+            <span>{t("จองรวม")}</span>
             <strong>{formatQty(summary?.totalQuantityReserved)}</strong>
           </div>
           <div className={styles.metricItem}>
-            <span>พัก / บล็อก</span>
+            <span>{t("พัก / บล็อก")}</span>
             <strong>
               {formatQty(summary?.totalQuantityOnHold)}
               <span className={styles.summaryUnit}>/</span>
@@ -527,7 +530,7 @@ export default function StockBalancesPage() {
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
-              <h3>ยอดคงเหลือ</h3>
+              <h3>{t("ยอดคงเหลือ")}</h3>
               <p>{filterHint}</p>
             </div>
           </div>
@@ -544,7 +547,7 @@ export default function StockBalancesPage() {
                 label: (
                   <span className={styles.tabLabel}>
                     <AppstoreOutlined />
-                    รวมต่อสินค้า
+                    {t("รวมต่อสินค้า")}
                   </span>
                 ),
                 children: (
@@ -566,16 +569,16 @@ export default function StockBalancesPage() {
                       onRow={(row) => ({
                         onClick: () => openItemDrawer(row),
                       })}
-                      pagination={{ current: page, pageSize: 15, onChange: setPage, showTotal: (total) => `ทั้งหมด ${total} สินค้า`,
+                      pagination={{ current: page, pageSize: 15, onChange: setPage, showTotal: (total) => t("ทั้งหมด {n} สินค้า", { n: total }),
                         hideOnSinglePage: true,
                       }}
                       scroll={{ x: 1150 }}
                       locale={{
                         emptyText: (
                           <div className={styles.emptyState}>
-                            <strong>ยังไม่มียอดคงเหลือ</strong>
+                            <strong>{t("ยังไม่มียอดคงเหลือ")}</strong>
                             <span>
-                              ลองเปลี่ยนคลัง ตำแหน่ง หรือปิดตัวกรอง “เฉพาะมียอด”
+                              {t("ลองเปลี่ยนคลัง ตำแหน่ง หรือปิดตัวกรอง “เฉพาะมียอด”")}
                             </span>
                           </div>
                         ),
@@ -589,7 +592,7 @@ export default function StockBalancesPage() {
                 label: (
                   <span className={styles.tabLabel}>
                     <UnorderedListOutlined />
-                    รายละเอียดคลัง
+                    {t("รายละเอียดคลัง")}
                   </span>
                 ),
                 children: (
@@ -618,16 +621,16 @@ export default function StockBalancesPage() {
                           }
                         },
                       })}
-                      pagination={{ current: page, pageSize: 15, onChange: setPage, showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+                      pagination={{ current: page, pageSize: 15, onChange: setPage, showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
                         hideOnSinglePage: true,
                       }}
                       scroll={{ x: 980 }}
                       locale={{
                         emptyText: (
                           <div className={styles.emptyState}>
-                            <strong>ยังไม่มียอดคงเหลือ</strong>
+                            <strong>{t("ยังไม่มียอดคงเหลือ")}</strong>
                             <span>
-                              ลองเปลี่ยนคลัง ตำแหน่ง หรือปิดตัวกรอง “เฉพาะมียอด”
+                              {t("ลองเปลี่ยนคลัง ตำแหน่ง หรือปิดตัวกรอง “เฉพาะมียอด”")}
                             </span>
                           </div>
                         ),

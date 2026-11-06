@@ -28,6 +28,8 @@ import {
 } from "@/lib/auth/portal-module";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { PRODUCTION_OUTPUT_ENABLED } from "@/config/feature-flags";
+import { useLanguage } from "@/lib/i18n/language";
+import { tNow } from "@/lib/i18n/useT";
 import { isFgInventoryScope } from "@/components/inventory/inventory-page-copy";
 import {
   badgeLabelForMenuKeys,
@@ -2581,12 +2583,12 @@ function renderMenuButton(
     <button
       key={item.key}
       type="button"
-      title={collapsed ? item.label : undefined}
+      title={collapsed ? tNow(item.label) : undefined}
       className={`${styles.menuItem} ${active ? styles.menuItemActive : ""}`}
       onClick={() => handleGo(item.href)}
     >
       <span className={styles.menuItemIcon}>{item.icon}</span>
-      <span className={styles.menuItemText}>{item.label}</span>
+      <span className={styles.menuItemText}>{tNow(item.label)}</span>
       {count > 0 ? (
         <span
           className={styles.menuBadge}
@@ -2640,14 +2642,15 @@ export function getSearchableMenuEntries(): SearchableMenuEntry[] {
       seen.add(item.href);
       out.push({
         key: item.key,
-        label: item.label,
+        label: tNow(item.label),
         href: item.href,
-        group,
-        parent,
+        group: tNow(group),
+        parent: parent ? tNow(parent) : parent,
         icon: item.icon,
       });
     }
     for (const child of item.children ?? []) push(child, group, item.label);
+    // (label/group/parent ข้างบนแปลตามภาษาปัจจุบันแล้ว — ผลลัพธ์คำนวณใหม่ทุกครั้งที่เปิดช่องค้นหา)
   };
   for (const g of SEARCH_MENU_GROUPS) {
     for (const item of filterMenus(g.items)) push(item, g.label);
@@ -2664,6 +2667,8 @@ export default function AppHeader({
   collapsed,
   onCollapsedChange,
 }: AppHeaderProps) {
+  // สมัครรับการเปลี่ยนภาษา — ตัวช่วยเรนเดอร์ด้านล่างใช้ tNow() จึงต้องเรนเดอร์ซ้ำเมื่อสลับภาษา
+  useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -2845,7 +2850,7 @@ export default function AppHeader({
         onClick={() => handleGo(item.href)}
       >
         <span className={styles.subMenuIcon}>{item.icon}</span>
-        <span className={styles.menuItemText}>{item.label}</span>
+        <span className={styles.menuItemText}>{tNow(item.label)}</span>
         {childCount > 0 ? (
           <span
             className={styles.menuBadge}
@@ -2893,7 +2898,7 @@ export default function AppHeader({
       <div key={item.key} className={styles.branchRow}>
         <button
           type="button"
-          title={collapsed ? item.label : undefined}
+          title={collapsed ? tNow(item.label) : undefined}
           className={rowClass}
           aria-expanded={open}
           onClick={toggle}
@@ -2901,7 +2906,7 @@ export default function AppHeader({
           <span className={depth === 0 ? styles.menuItemIcon : styles.subMenuIcon}>
             {item.icon}
           </span>
-          <span className={styles.menuItemText}>{item.label}</span>
+          <span className={styles.menuItemText}>{tNow(item.label)}</span>
           {count > 0 ? (
             <span
               className={styles.menuBadge}
@@ -2917,7 +2922,7 @@ export default function AppHeader({
             type="button"
             className={styles.chevronButton}
             aria-expanded={open}
-            aria-label={open ? "พับเมนูย่อย" : "กางเมนูย่อย"}
+            aria-label={tNow(open ? "พับเมนูย่อย" : "กางเมนูย่อย")}
             onClick={toggle}
           >
             <IconChevron open={open} />
@@ -2986,7 +2991,7 @@ export default function AppHeader({
             setPinnedOpen(true);
           }
         }}
-        aria-label={collapsed ? "ขยายเมนู" : "ย่อเมนู"}
+        aria-label={tNow(collapsed ? "ขยายเมนู" : "ย่อเมนู")}
         title={
           collapsed
             ? "ชี้เมนูเพื่อขยาย · กดลูกศรเพื่อปักหมุดเปิดค้าง"
@@ -3009,8 +3014,8 @@ export default function AppHeader({
             type="button"
             className={styles.logoBlock}
             onClick={handleBackToPortal}
-            title="กลับหน้าแรก / เลือกโมดูล"
-            aria-label="กลับหน้าแรก"
+            title={tNow("กลับหน้าแรก / เลือกโมดูล")}
+            aria-label={tNow("กลับหน้าแรก")}
           >
             <img
               src="/smt-energy-logo.png"
@@ -3024,20 +3029,20 @@ export default function AppHeader({
           {activePortalModule ? (
             <div className={styles.portalContext}>
               <span className={styles.portalContextLabel}>
-                {PORTAL_MODULE_LABEL[activePortalModule]}
+                {tNow(PORTAL_MODULE_LABEL[activePortalModule])}
               </span>
               <button
                 type="button"
                 className={styles.portalBackButton}
                 onClick={handleBackToPortal}
-                title="กลับหน้าแรกเพื่อเลือกโมดูลอื่น"
+                title={tNow("กลับหน้าแรกเพื่อเลือกโมดูลอื่น")}
               >
-                เปลี่ยนโมดูล
+                {tNow("เปลี่ยนโมดูล")}
               </button>
             </div>
           ) : pathname === "/" ? (
             <div className={styles.portalHint}>
-              เลือกโมดูลจากหน้าแรกเพื่อเปิดเมนู
+              {tNow("เลือกโมดูลจากหน้าแรกเพื่อเปิดเมนู")}
             </div>
           ) : (
             <div className={styles.portalHint}>
@@ -3053,7 +3058,7 @@ export default function AppHeader({
 
           {showMenuGroup("dashboard") && visibleDashboardMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>แดชบอร์ด</div>
+              <div className={styles.groupTitle}>{tNow("แดชบอร์ด")}</div>
 
               <div className={styles.groupItems}>
                 {visibleDashboardMenus.map((item) =>
@@ -3072,7 +3077,7 @@ export default function AppHeader({
 
           {showMenuGroup("raw-tire") && visibleRawTireMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>รับซื้อยาง</div>
+              <div className={styles.groupTitle}>{tNow("รับซื้อยาง")}</div>
 
               <div className={styles.groupItems}>
                 {visibleRawTireMenus.map((item) =>
@@ -3092,7 +3097,7 @@ export default function AppHeader({
           {showMenuGroup("rm-warehouse") &&
           visibleRawMaterialWarehouseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>คลังวัตถุดิบ</div>
+              <div className={styles.groupTitle}>{tNow("คลังวัตถุดิบ")}</div>
 
               <div className={styles.groupItems}>
                 {visibleRawMaterialWarehouseMenus.map((item) =>
@@ -3104,7 +3109,7 @@ export default function AppHeader({
 
           {showMenuGroup("production") && visibleProductionMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>การผลิต</div>
+              <div className={styles.groupTitle}>{tNow("การผลิต")}</div>
 
               <div className={styles.groupItems}>
                 {visibleProductionMenus.map((item) =>
@@ -3124,7 +3129,7 @@ export default function AppHeader({
           {showMenuGroup("fg-warehouse") &&
           visibleFinishedGoodsWarehouseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>คลังสินค้าสำเร็จรูป</div>
+              <div className={styles.groupTitle}>{tNow("คลังสินค้าสำเร็จรูป")}</div>
 
               <div className={styles.groupItems}>
                 {visibleFinishedGoodsWarehouseMenus.map((item) =>
@@ -3136,7 +3141,7 @@ export default function AppHeader({
 
           {showMenuGroup("sales") && visibleSalesMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>ขายและจัดส่ง</div>
+              <div className={styles.groupTitle}>{tNow("ขายและจัดส่ง")}</div>
 
               <div className={styles.groupItems}>
                 {visibleSalesMenus.map((item) =>
@@ -3155,7 +3160,7 @@ export default function AppHeader({
 
           {showMenuGroup("purchase") && visiblePurchaseMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>จัดซื้อทั่วไป</div>
+              <div className={styles.groupTitle}>{tNow("จัดซื้อทั่วไป")}</div>
 
               <div className={styles.groupItems}>
                 {visiblePurchaseMenus.map((item) =>
@@ -3174,7 +3179,7 @@ export default function AppHeader({
 
           {showMenuGroup("laboratory") && visibleLaboratoryMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>ห้องปฏิบัติการ</div>
+              <div className={styles.groupTitle}>{tNow("ห้องปฏิบัติการ")}</div>
 
               <div className={styles.groupItems}>
                 {visibleLaboratoryMenus.map((item) =>
@@ -3194,7 +3199,7 @@ export default function AppHeader({
           {showMenuGroup("oil-tank-farm") &&
           visibleOilTankFarmMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>ถังน้ำมัน</div>
+              <div className={styles.groupTitle}>{tNow("ถังน้ำมัน")}</div>
 
               <div className={styles.groupItems}>
                 {visibleOilTankFarmMenus.map((item) =>
@@ -3214,7 +3219,7 @@ export default function AppHeader({
           {showMenuGroup("maintenance") &&
           visibleMaintenanceMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>ซ่อมบำรุง</div>
+              <div className={styles.groupTitle}>{tNow("ซ่อมบำรุง")}</div>
 
               <div className={styles.groupItems}>
                 {visibleMaintenanceMenus.map((item) =>
@@ -3233,7 +3238,7 @@ export default function AppHeader({
 
           {showMenuGroup("hrm") && visibleHrmMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>บุคคล</div>
+              <div className={styles.groupTitle}>{tNow("บุคคล")}</div>
 
               <div className={styles.groupItems}>
                 {visibleHrmMenus.map((item) =>
@@ -3252,7 +3257,7 @@ export default function AppHeader({
 
           {showMenuGroup("finance") && visibleFinanceMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>การเงิน</div>
+              <div className={styles.groupTitle}>{tNow("การเงิน")}</div>
 
               <div className={styles.groupItems}>
                 {visibleFinanceMenus.map((item) =>
@@ -3264,7 +3269,7 @@ export default function AppHeader({
 
           {showMenuGroup("reports") && visibleReportMenus.length > 0 ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>รายงาน</div>
+              <div className={styles.groupTitle}>{tNow("รายงาน")}</div>
 
               <div className={styles.groupItems}>
                 {visibleReportMenus.map((item) => renderMenuEntry(item))}
@@ -3275,7 +3280,7 @@ export default function AppHeader({
           {(showMenuGroup("settings") || showMenuGroup("master")) &&
           (visibleSettingMenus.length > 0 || visibleMasterMenus.length > 0) ? (
             <div className={styles.groupBlock}>
-              <div className={styles.groupTitle}>ตั้งค่าระบบ</div>
+              <div className={styles.groupTitle}>{tNow("ตั้งค่าระบบ")}</div>
 
               <div className={styles.groupItems}>
                 {showMenuGroup("settings")
@@ -3331,7 +3336,7 @@ export default function AppHeader({
                               <span className={styles.subMenuIcon}>
                                 {item.icon}
                               </span>
-                              <span>{item.label}</span>
+                              <span>{tNow(item.label)}</span>
                             </button>
                           );
                         })}

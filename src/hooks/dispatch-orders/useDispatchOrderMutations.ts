@@ -19,6 +19,7 @@ import type {
 
 import { dispatchOrdersQueryKey } from "./useDispatchOrdersQuery";
 import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate-sales-order-flow";
+import { useT } from "@/lib/i18n/useT";
 
 function useInvalidateDispatchOrders() {
   const queryClient = useQueryClient();
@@ -27,6 +28,7 @@ function useInvalidateDispatchOrders() {
 }
 
 export function useCreateDispatchOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidateDispatchOrders();
   const queryClient = useQueryClient();
@@ -38,17 +40,18 @@ export function useCreateDispatchOrderMutation() {
     onSuccess: async (res) => {
       await invalidate();
       await invalidateSalesOrderFlowQueries(queryClient);
-      message.success(res.message || "สร้างใบจ่ายสินค้าสำเร็จ");
+      message.success(res.message || t("สร้างใบจ่ายสินค้าสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "สร้างใบจ่ายสินค้าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("สร้างใบจ่ายสินค้าไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useConfirmPickingDispatchOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidateDispatchOrders();
   const queryClient = useQueryClient();
@@ -59,17 +62,18 @@ export function useConfirmPickingDispatchOrderMutation() {
     onSuccess: async (res) => {
       await invalidate();
       await invalidateSalesOrderFlowQueries(queryClient);
-      message.success(res.message || "ยืนยันการหยิบสินค้าสำเร็จ");
+      message.success(res.message || t("ยืนยันการหยิบสินค้าสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยืนยันการหยิบสินค้าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยืนยันการหยิบสินค้าไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function usePackDispatchOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidateDispatchOrders();
   const queryClient = useQueryClient();
@@ -80,17 +84,18 @@ export function usePackDispatchOrderMutation() {
     onSuccess: async (res) => {
       await invalidate();
       await invalidateSalesOrderFlowQueries(queryClient);
-      message.success(res.message || "ยืนยันแพ็คสินค้าสำเร็จ");
+      message.success(res.message || t("ยืนยันแพ็คสินค้าสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "แพ็คสินค้าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("แพ็คสินค้าไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useCancelDispatchOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidateDispatchOrders();
   const queryClient = useQueryClient();
@@ -101,17 +106,18 @@ export function useCancelDispatchOrderMutation() {
     onSuccess: async (res) => {
       await invalidate();
       await invalidateSalesOrderFlowQueries(queryClient);
-      message.success(res.message || "ยกเลิกใบจ่ายสินค้าสำเร็จ");
+      message.success(res.message || t("ยกเลิกใบจ่ายสินค้าสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยกเลิกใบจ่ายสินค้าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยกเลิกใบจ่ายสินค้าไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useDispatchDispatchOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidateDispatchOrders();
   const queryClient = useQueryClient();
@@ -128,11 +134,11 @@ export function useDispatchDispatchOrderMutation() {
     onSuccess: async (res) => {
       await invalidate();
       await invalidateSalesOrderFlowQueries(queryClient);
-      message.success(res.message || "ยืนยันจ่ายสินค้าออกสำเร็จ");
+      message.success(res.message || t("ยืนยันจ่ายสินค้าออกสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "จ่ายสินค้าออกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("จ่ายสินค้าออกไม่สำเร็จ"),
       );
     },
   });

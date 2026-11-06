@@ -1,5 +1,7 @@
 "use client";
 
+import { tStatus } from "@/types/purchase-orders";
+import { useT } from "@/lib/i18n/useT";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -131,6 +133,7 @@ function formatMoney(value?: string) {
 }
 
 export default function PurchaseOrdersListPage() {
+  const t = useT();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -472,7 +475,7 @@ export default function PurchaseOrdersListPage() {
                   {...lineCheckState(pageOpenItemIds, selectedLineById)}
                   disabled={!pageOpenItemIds.length}
                   onChange={(event) => setPageLines(event.target.checked)}
-                  aria-label="เลือกทุกรายการในหน้านี้"
+                  aria-label={t("เลือกทุกรายการในหน้านี้")}
                 />
               ),
               render: (_v: unknown, row: PurchaseRequest) => {
@@ -487,7 +490,7 @@ export default function PurchaseOrdersListPage() {
                       {...lineCheckState(openIds, selectedLineById)}
                       disabled={!openIds.length}
                       onChange={(event) => setPrLines(row, event.target.checked)}
-                      aria-label={`เลือกทุกรายการของ ${row.prNo}`}
+                      aria-label={t("เลือกทุกรายการของ {no}", { no: row.prNo })}
                     />
                   </span>
                 );
@@ -496,14 +499,14 @@ export default function PurchaseOrdersListPage() {
           ]
         : []),
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 72,
         align: "center",
         render: (_v, _r, index) => (pendingPage - 1) * pendingLimit + index + 1,
       },
       {
-        title: "เลขที่ใบขอซื้อ",
+        title: t("เลขที่ใบขอซื้อ"),
         dataIndex: "prNo",
         key: "prNo",
         render: (value: string) => (
@@ -514,26 +517,26 @@ export default function PurchaseOrdersListPage() {
         ),
       },
       {
-        title: "วันที่ขอซื้อ",
+        title: t("วันที่ขอซื้อ"),
         dataIndex: "prDate",
         key: "prDate",
         width: 120,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ประเภท",
+        title: t("ประเภท"),
         key: "type",
         ellipsis: true,
         render: (_v, row) => row.purchaseRequestType?.nameTh ?? "—",
       },
       {
-        title: "ผู้ขอ",
+        title: t("ผู้ขอ"),
         key: "requestedBy",
         width: 140,
         render: (_v, row) => row.requestedBy?.displayName ?? "—",
       },
       {
-        title: "รายการ",
+        title: t("รายการ"),
         key: "itemCount",
         width: 120,
         align: "center",
@@ -548,17 +551,21 @@ export default function PurchaseOrdersListPage() {
           return (
             <span className={styles.itemCountCell}>
               <span>
-                {open === total ? `${total} รายการ` : `เหลือ ${open} / ${total}`}
+                {open === total
+                  ? t("{n} รายการ", { n: total })
+                  : t("เหลือ {open} / {total}", { open, total })}
               </span>
               {picked ? (
-                <span className={styles.itemCountPicked}>เลือก {picked}</span>
+                <span className={styles.itemCountPicked}>
+                  {t("เลือก {n}", { n: picked })}
+                </span>
               ) : null}
             </span>
           );
         },
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "items",
         width: 240,
         className: styles.itemColumn,
@@ -567,25 +574,25 @@ export default function PurchaseOrdersListPage() {
         ),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         key: "status",
         width: 140,
         render: (_v, row) =>
           countOpenItems(row) === (row.items?.length ?? 0) ? (
-            <Tag color="success">อนุมัติแล้ว</Tag>
+            <Tag color="success">{t("อนุมัติแล้ว")}</Tag>
           ) : (
-            <Tag color="processing">สั่งซื้อบางส่วนแล้ว</Tag>
+            <Tag color="processing">{t("สั่งซื้อบางส่วนแล้ว")}</Tag>
           ),
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "action",
         width: canCreatePo ? 190 : 72,
         align: "center",
         fixed: "right",
         render: (_v, row) => (
           <RowActionsMenu
-            ariaLabel={`เมนูจัดการ ${row.prNo}`}
+            ariaLabel={t("เมนูจัดการ {no}", { no: row.prNo })}
             primary={
               canCreatePo ? (
                 <Button
@@ -595,7 +602,7 @@ export default function PurchaseOrdersListPage() {
                   icon={<ShoppingCartOutlined />}
                   onClick={() => goCreateForPr(row)}
                 >
-                  สร้างใบสั่งซื้อ
+                  {t("สร้างใบสั่งซื้อ")}
                 </Button>
               ) : null
             }
@@ -603,7 +610,7 @@ export default function PurchaseOrdersListPage() {
               {
                 key: "view",
                 icon: <EyeOutlined />,
-                label: "ดูใบขอซื้อ",
+                label: t("ดูใบขอซื้อ"),
                 onClick: () => router.push(`/purchase-requests/${row.id}`),
               },
             ]}
@@ -625,20 +632,21 @@ export default function PurchaseOrdersListPage() {
       setPageLines,
       setPrLines,
       goCreateForPr,
+      t,
     ],
   );
 
   const columns: ColumnsType<PurchaseOrder> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 72,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบสั่งซื้อ",
+        title: t("เลขที่ใบสั่งซื้อ"),
         dataIndex: "poNo",
         key: "poNo",
         render: (value: string, row) => (
@@ -653,20 +661,20 @@ export default function PurchaseOrdersListPage() {
         ),
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "poDate",
         key: "poDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ผู้ขาย",
+        title: t("ผู้ขาย"),
         key: "creditor",
         ellipsis: true,
         render: (_v, row) => row.creditor?.nameTh ?? "—",
       },
       {
-        title: "อ้างอิง PR",
+        title: t("อ้างอิง PR"),
         key: "pr",
         width: 150,
         render: (_v, row) => {
@@ -675,7 +683,7 @@ export default function PurchaseOrdersListPage() {
         },
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "items",
         width: 240,
         className: styles.itemColumn,
@@ -684,7 +692,7 @@ export default function PurchaseOrdersListPage() {
         ),
       },
       {
-        title: "ยอดรวม",
+        title: t("ยอดรวม"),
         dataIndex: "totalAmount",
         key: "totalAmount",
         align: "right",
@@ -692,47 +700,49 @@ export default function PurchaseOrdersListPage() {
         render: (value: string) => formatMoney(value),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 120,
         render: (value: string, row) => (
-          <Tag color={statusColor(value)}>{purchaseOrderStatusLabel(row)}</Tag>
+          <Tag color={statusColor(value)}>{tStatus(purchaseOrderStatusLabel(row))}</Tag>
         ),
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "action",
         width: 100,
         align: "center",
         render: (_v, row) => (
           <RowActionsMenu
-            ariaLabel={`เมนูจัดการ ${row.poNo}`}
+            ariaLabel={t("เมนูจัดการ {no}", { no: row.poNo })}
             actions={[
               {
                 key: "view",
                 icon: <EyeOutlined />,
-                label: "ดูรายละเอียด",
+                label: t("ดูรายละเอียด"),
                 onClick: () => router.push(`/purchase-orders/${row.id}`),
               },
               canEditPo &&
                 PO_EDITABLE_STATUSES.includes(row.status) && {
                   key: "edit",
                   icon: <EditOutlined />,
-                  label: "แก้ไข",
+                  label: t("แก้ไข"),
                   onClick: () => router.push(`/purchase-orders/${row.id}/edit`),
                 },
               canEditPo &&
                 PO_EDITABLE_STATUSES.includes(row.status) && {
                   key: "submit",
                   icon: <SendOutlined />,
-                  label: "ส่งอนุมัติ",
+                  label: t("ส่งอนุมัติ"),
                   onClick: () => submitMutation.mutate(row.id),
                   confirm: {
-                    title: `ส่งใบสั่งซื้อ ${row.poNo} ให้หัวหน้าอนุมัติ?`,
+                    title: t("ส่งใบสั่งซื้อ {no} ให้หัวหน้าอนุมัติ?", {
+                      no: row.poNo,
+                    }),
                     content:
-                      "ส่งแล้วจะแก้ไขไม่ได้จนกว่าหัวหน้าจะส่งกลับให้แก้ไข",
-                    okText: "ส่งอนุมัติ",
+                      t("ส่งแล้วจะแก้ไขไม่ได้จนกว่าหัวหน้าจะส่งกลับให้แก้ไข"),
+                    okText: t("ส่งอนุมัติ"),
                   },
                 },
             ]}
@@ -740,7 +750,7 @@ export default function PurchaseOrdersListPage() {
         ),
       },
     ],
-    [canEditPo, limit, page, router, submitMutation],
+    [canEditPo, limit, page, router, submitMutation, t],
   );
 
   return (
@@ -748,12 +758,12 @@ export default function PurchaseOrdersListPage() {
       <PageHeader
         eyebrow="Purchase Order"
         icon={<FileTextOutlined />}
-        title="รายการใบสั่งซื้อ"
-        subtitle="หลังอนุมัติใบขอซื้อ รายการจะขึ้นด้านบนเพื่อสร้างใบสั่งซื้อ"
+        title={t("รายการใบสั่งซื้อ")}
+        subtitle={t("หลังอนุมัติใบขอซื้อ รายการจะขึ้นด้านบนเพื่อสร้างใบสั่งซื้อ")}
         actions={
           <>
 <Link href="/purchase-requests">
-            <Button className={styles.secondaryBtn}>ไปที่ใบขอซื้อ</Button>
+            <Button className={styles.secondaryBtn}>{t("ไปที่ใบขอซื้อ")}</Button>
           </Link>
           </>
         }
@@ -763,7 +773,8 @@ export default function PurchaseOrdersListPage() {
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
             <ShoppingCartOutlined className={styles.pendingIcon} />
-            ใบขอซื้อรอสร้างใบสั่งซื้อ <strong>{pendingTotal}</strong> รายการ
+            {t("ใบขอซื้อรอสร้างใบสั่งซื้อ")} <strong>{pendingTotal}</strong>{" "}
+            {t("รายการ")}
           </div>
           <Select
             allowClear
@@ -772,8 +783,8 @@ export default function PurchaseOrdersListPage() {
             maxTagCount="responsive"
             optionFilterProp="label"
             className={styles.toolbarItemSelect}
-            placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
-            aria-label="สินค้าในคิวใบขอซื้อ"
+            placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+            aria-label={t("สินค้าในคิวใบขอซื้อ")}
             value={pendingItemIds}
             onChange={(value) => setPendingItemIds(value)}
             options={itemOptions}
@@ -781,18 +792,20 @@ export default function PurchaseOrdersListPage() {
           {selectedLines.length ? (
             <div className={styles.selectionActions}>
               <span className={styles.selectionCount}>
-                เลือกไว้ <strong>{selectedLines.length}</strong> รายการ · จาก{" "}
-                <strong>{selectedPrIds.length}</strong> ใบ
+                {t("เลือกไว้ {n} รายการ · จาก {m} ใบ", {
+                  n: selectedLines.length,
+                  m: selectedPrIds.length,
+                })}
               </span>
               {hasPartialPr ? (
                 <span className={styles.selectionHint}>
-                  (บางใบเลือกไม่ครบ — ที่เหลือยังอยู่ในคิว)
+                  {t("(บางใบเลือกไม่ครบ — ที่เหลือยังอยู่ในคิว)")}
                 </span>
               ) : null}
               <Button size="small" onClick={() => setSelectedLineById({})}>
-                ล้างที่เลือก
+                {t("ล้างที่เลือก")}
               </Button>
-              <Tooltip title="สร้างใบสั่งซื้อจากรายการที่ติ๊กไว้">
+              <Tooltip title={t("สร้างใบสั่งซื้อจากรายการที่ติ๊กไว้")}>
                 <Button
                   type="primary"
                   size="small"
@@ -800,7 +813,9 @@ export default function PurchaseOrdersListPage() {
                   disabled={!selectedLines.length}
                   onClick={handleCreateFromSelected}
                 >
-                  สร้างใบสั่งซื้อจากที่เลือก ({selectedLines.length} รายการ)
+                  {t("สร้างใบสั่งซื้อจากที่เลือก ({n} รายการ)", {
+                    n: selectedLines.length,
+                  })}
                 </Button>
               </Tooltip>
             </div>
@@ -830,14 +845,14 @@ export default function PurchaseOrdersListPage() {
             ),
           }}
           locale={{
-            emptyText: "ยังไม่มีใบขอซื้อที่อนุมัติแล้วรอสร้างใบสั่งซื้อ",
+            emptyText: t("ยังไม่มีใบขอซื้อที่อนุมัติแล้วรอสร้างใบสั่งซื้อ"),
           }}
           onRow={(row) =>
             canCreatePo
               ? {
                   onDoubleClick: () => goCreateForPr(row),
                   style: { cursor: "pointer" },
-                  title: "ดับเบิลคลิกเพื่อสร้างใบสั่งซื้อจากใบนี้",
+                  title: t("ดับเบิลคลิกเพื่อสร้างใบสั่งซื้อจากใบนี้"),
                 }
               : {}
           }
@@ -846,10 +861,12 @@ export default function PurchaseOrdersListPage() {
         {pendingTotal > pendingLimit ? (
           <div className={styles.tableFooter}>
             <div className={styles.footerText}>
-              แสดง{" "}
-              {pendingTotal === 0 ? 0 : (pendingPage - 1) * pendingLimit + 1}–
-              {Math.min(pendingPage * pendingLimit, pendingTotal)} จาก{" "}
-              {pendingTotal}
+              {t("แสดง {from}–{to} จาก {total}", {
+                from:
+                  pendingTotal === 0 ? 0 : (pendingPage - 1) * pendingLimit + 1,
+                to: Math.min(pendingPage * pendingLimit, pendingTotal),
+                total: pendingTotal,
+              })}
             </div>
             <Pagination
               size="small"
@@ -866,16 +883,16 @@ export default function PurchaseOrdersListPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ใบสั่งซื้อ</label>
+            <label>{t("เลขที่ใบสั่งซื้อ")}</label>
             <Input
               allowClear
-              placeholder="เช่น PO-20260718-001"
+              placeholder={t("เช่น PO-20260718-001")}
               value={poNo}
               onChange={(e) => setPoNo(e.target.value)}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่</label>
+            <label>{t("วันที่")}</label>
             <DatePicker
               style={{ width: "100%" }}
               value={poDate}
@@ -884,7 +901,7 @@ export default function PurchaseOrdersListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สินค้า</label>
+            <label>{t("สินค้า")}</label>
             <Select
               allowClear
               showSearch
@@ -892,32 +909,32 @@ export default function PurchaseOrdersListPage() {
               maxTagCount="responsive"
               optionFilterProp="label"
               style={{ width: "100%" }}
-              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
-              aria-label="สินค้าในใบสั่งซื้อ"
+              placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+              aria-label={t("สินค้าในใบสั่งซื้อ")}
               value={itemIds}
               onChange={(value) => setItemIds(value)}
               options={itemOptions}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "แบบร่างเอกสาร" },
-                { value: "REVISING", label: "แก้ไข" },
-                { value: "PENDING_APPROVAL", label: "รออนุมัติ" },
-                { value: "CONFIRMED", label: "อนุมัติแล้ว · รอส่งสินค้า" },
-                { value: "PARTIALLY_RECEIVED", label: "รับของบางส่วน" },
-                { value: "COMPLETED", label: "รับครบแล้ว" },
-                { value: "CLOSED_PARTIAL", label: "ปิดรับบางส่วน" },
-                { value: "RECEIVE_CANCELLED", label: "ยกเลิกการรับ" },
-                { value: "REJECTED", label: "ไม่อนุมัติ" },
-                { value: "CANCELLED", label: "ยกเลิก" },
+                { value: "DRAFT", label: t("แบบร่างเอกสาร") },
+                { value: "REVISING", label: tStatus("แก้ไข") },
+                { value: "PENDING_APPROVAL", label: t("รออนุมัติ") },
+                { value: "CONFIRMED", label: t("อนุมัติแล้ว · รอส่งสินค้า") },
+                { value: "PARTIALLY_RECEIVED", label: t("รับของบางส่วน") },
+                { value: "COMPLETED", label: t("รับครบแล้ว") },
+                { value: "CLOSED_PARTIAL", label: t("ปิดรับบางส่วน") },
+                { value: "RECEIVE_CANCELLED", label: t("ยกเลิกการรับ") },
+                { value: "REJECTED", label: t("ไม่อนุมัติ") },
+                { value: "CANCELLED", label: tStatus("ยกเลิก") },
               ]}
             />
           </div>
@@ -938,7 +955,7 @@ export default function PurchaseOrdersListPage() {
               });
             }}
           >
-            เคลียร์
+            {t("เคลียร์")}
           </Button>
           <Button
             type="primary"
@@ -954,7 +971,7 @@ export default function PurchaseOrdersListPage() {
               });
             }}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -962,10 +979,10 @@ export default function PurchaseOrdersListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            ใบสั่งซื้อทั้งหมด <strong>{total}</strong> รายการ
+            {t("ใบสั่งซื้อทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -982,7 +999,7 @@ export default function PurchaseOrdersListPage() {
                 })
               }
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -993,13 +1010,16 @@ export default function PurchaseOrdersListPage() {
           loading={query.isLoading}
           pagination={false}
           className={styles.table}
-          locale={{ emptyText: "ยังไม่มีใบสั่งซื้อ" }}
+          locale={{ emptyText: t("ยังไม่มีใบสั่งซื้อ") }}
         />
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง {from}–{to} จาก {total}", {
+              from: total === 0 ? 0 : (page - 1) * limit + 1,
+              to: Math.min(page * limit, total),
+              total,
+            })}
           </div>
           <Pagination
             size="small"

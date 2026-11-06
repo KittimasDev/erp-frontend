@@ -29,6 +29,8 @@ import {
 } from "@/types/dispatch-orders";
 import styles from "./DispatchOrderDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string };
 
@@ -57,6 +59,7 @@ function statusClass(status: string) {
 }
 
 export default function DispatchOrderDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const { modal } = App.useApp();
   const query = useDispatchOrderQuery(id);
@@ -75,7 +78,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -83,9 +86,9 @@ export default function DispatchOrderDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบจ่ายสินค้า
+        {t("ไม่พบใบจ่ายสินค้า")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/dispatch-orders">กลับรายการ</Link>
+          <Link href="/dispatch-orders">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -103,15 +106,15 @@ export default function DispatchOrderDetailPage({ id }: Props) {
         eyebrow="Sales · Dispatch Order"
         icon={<CarOutlined />}
         title={data.dispatchNo}
-        subtitle={<>{data.salesOrderNo ? `ใบสั่งขาย ${data.salesOrderNo}` : "—"} ·{" "}
-            {formatDate(data.dispatchDate)} · คลัง {data.warehouseCode ?? "—"}</>}
+        subtitle={<>{data.salesOrderNo ? t("ใบสั่งขาย {salesOrderNo}", { salesOrderNo: data.salesOrderNo }) : "—"} ·{" "}
+            {formatDate(data.dispatchDate)} · {t("คลัง")} {data.warehouseCode ?? "—"}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/dispatch-orders")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           </>
         }
@@ -121,11 +124,11 @@ export default function DispatchOrderDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลใบจ่ายสินค้า</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลใบจ่ายสินค้า")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ใบสั่งขายอ้างอิง</span>
+                <span className={styles.metaLabel}>{t("ใบสั่งขายอ้างอิง")}</span>
                 <div className={styles.metaValue}>
                   {data.salesOrderNo ? (
                     <Link href={`/sales-orders/${data.salesOrderId}`}>
@@ -137,29 +140,29 @@ export default function DispatchOrderDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่ใบส่งของ</span>
+                <span className={styles.metaLabel}>{t("เลขที่ใบส่งของ")}</span>
                 <div className={styles.metaValue}>{data.deliveryNo ?? "—"}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้รับสินค้า</span>
+                <span className={styles.metaLabel}>{t("ผู้รับสินค้า")}</span>
                 <div className={styles.metaValue}>
                   {data.recipientName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่ยืนยันหยิบสินค้า</span>
+                <span className={styles.metaLabel}>{t("วันที่ยืนยันหยิบสินค้า")}</span>
                 <div className={styles.metaValue}>
                   {formatDateTime(data.pickedAt)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่แพ็คเสร็จ</span>
+                <span className={styles.metaLabel}>{t("วันที่แพ็คเสร็จ")}</span>
                 <div className={styles.metaValue}>
                   {formatDateTime(data.packedAt)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่จ่ายออก</span>
+                <span className={styles.metaLabel}>{t("วันที่จ่ายออก")}</span>
                 <div className={styles.metaValue}>
                   {formatDateTime(data.dispatchedAt)}
                 </div>
@@ -169,7 +172,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
             </div>
             <div className={styles.itemList}>
               {data.items.map((item, index) => (
@@ -183,7 +186,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
                     </p>
                     <p className={styles.itemCode}>
                       {Number(item.quantity).toLocaleString("th-TH")}{" "}
-                      {item.unitCode ?? ""} · Lot {item.lotNo ?? "—"} · ตำแหน่ง{" "}
+                      {item.unitCode ?? ""} · Lot {item.lotNo ?? "—"} · {t("ตำแหน่ง")}{" "}
                       {item.locationCode ?? "—"}
                     </p>
                   </div>
@@ -195,7 +198,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
           {data.remark ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
               </div>
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
@@ -208,12 +211,12 @@ export default function DispatchOrderDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.dispatchNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {DISPATCH_ORDER_STATUS_LABEL[data.status as DispatchOrderStatus] ??
-              data.status}
+            {statusT(t, DISPATCH_ORDER_STATUS_LABEL[data.status as DispatchOrderStatus] ??
+              data.status)}
           </div>
 
           <div className={styles.actionStack}>
@@ -227,7 +230,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
                     loading={busy}
                     onClick={() => confirmPickingMutation.mutate(data.id)}
                   >
-                    ยืนยันหยิบสินค้า (ตัดสต๊อก)
+                    {t("ยืนยันหยิบสินค้า (ตัดสต๊อก)")}
                   </Button>
                 ) : null}
                 {canWrite ? (
@@ -237,12 +240,12 @@ export default function DispatchOrderDetailPage({ id }: Props) {
                     loading={busy}
                     onClick={() =>
                       modal.confirm({
-                        title: "ยืนยันยกเลิกใบจ่ายสินค้า?",
+                        title: t("ยืนยันยกเลิกใบจ่ายสินค้า?"),
                         onOk: () => cancelMutation.mutateAsync(data.id),
                       })
                     }
                   >
-                    ยกเลิกเอกสาร
+                    {t("ยกเลิกเอกสาร")}
                   </Button>
                 ) : null}
               </>
@@ -256,7 +259,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
                 loading={busy}
                 onClick={() => packMutation.mutate(data.id)}
               >
-                ยืนยันแพ็คสินค้า
+                {t("ยืนยันแพ็คสินค้า")}
               </Button>
             ) : null}
 
@@ -268,7 +271,7 @@ export default function DispatchOrderDetailPage({ id }: Props) {
                 loading={busy}
                 onClick={() => setDispatchModalOpen(true)}
               >
-                ยืนยันจ่ายสินค้าออก
+                {t("ยืนยันจ่ายสินค้าออก")}
               </Button>
             ) : null}
           </div>
@@ -276,13 +279,13 @@ export default function DispatchOrderDetailPage({ id }: Props) {
       </div>
 
       <Modal
-        title="ยืนยันจ่ายสินค้าออก"
+        title={t("ยืนยันจ่ายสินค้าออก")}
         open={dispatchModalOpen}
         confirmLoading={dispatchMutation.isPending}
         onCancel={() => setDispatchModalOpen(false)}
         onOk={() => form.submit()}
-        okText="ยืนยัน"
-        cancelText="ยกเลิก"
+        okText={t("ยืนยัน")}
+        cancelText={t("ยกเลิก")}
       >
         <Form
           form={form}
@@ -299,14 +302,14 @@ export default function DispatchOrderDetailPage({ id }: Props) {
             );
           }}
         >
-          <Form.Item name="recipientName" label="ชื่อผู้รับสินค้า (ถ้ามี)">
-            <Input placeholder="คุณสมชาย ใจดี" />
+          <Form.Item name="recipientName" label={t("ชื่อผู้รับสินค้า (ถ้ามี)")}>
+            <Input placeholder={t("คุณสมชาย ใจดี")} />
           </Form.Item>
           <Form.Item
             name="recipientSignature"
-            label="ลายเซ็นผู้รับสินค้า (ถ้ามี)"
+            label={t("ลายเซ็นผู้รับสินค้า (ถ้ามี)")}
           >
-            <Input.TextArea rows={3} placeholder="พิมพ์ชื่อยืนยันหรือหมายเหตุ" />
+            <Input.TextArea rows={3} placeholder={t("พิมพ์ชื่อยืนยันหรือหมายเหตุ")} />
           </Form.Item>
         </Form>
       </Modal>

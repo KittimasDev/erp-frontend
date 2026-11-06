@@ -11,6 +11,7 @@ import {
   Typography,
 } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
 import { DEDUCTION_TYPE_LABELS } from "@/types/raw-tire-purchase-receipt";
 import type { TireClassification } from "@/types/tire-classifications";
 import type {
@@ -76,6 +77,7 @@ export default function WeighTicketOcrReviewModal({
   onApply,
   onClose,
 }: Props) {
+  const t = useT();
   const [useGross, setUseGross] = useState(
     result.gross.value !== null && result.gross.confidence >= CONFIDENCE_LOW,
   );
@@ -153,28 +155,28 @@ export default function WeighTicketOcrReviewModal({
   };
 
   const readOnlyRows: Array<{ label: string; value: string }> = [
-    { label: "เลขที่ใบชั่ง", value: result.ticketNo.value ?? "—" },
-    { label: "ทะเบียนรถ", value: result.licensePlate.value ?? "—" },
-    { label: "คนขับ", value: result.driverName.value ?? "—" },
-    { label: "ชั่งเข้า", value: formatDateTime(result.weighInAt.value) },
-    { label: "ชั่งออก", value: formatDateTime(result.weighOutAt.value) },
-    { label: "สินค้าบนใบ", value: result.productName.value ?? "—" },
-    { label: "ราคาต่อ กก.", value: formatMoney(result.pricePerKg.value) },
-    { label: "รวมเป็นเงิน", value: formatMoney(result.totalAmount.value) },
+    { label: t("เลขที่ใบชั่ง"), value: result.ticketNo.value ?? "—" },
+    { label: t("ทะเบียนรถ"), value: result.licensePlate.value ?? "—" },
+    { label: t("คนขับ"), value: result.driverName.value ?? "—" },
+    { label: t("ชั่งเข้า"), value: formatDateTime(result.weighInAt.value) },
+    { label: t("ชั่งออก"), value: formatDateTime(result.weighOutAt.value) },
+    { label: t("สินค้าบนใบ"), value: result.productName.value ?? "—" },
+    { label: t("ราคาต่อ กก."), value: formatMoney(result.pricePerKg.value) },
+    { label: t("รวมเป็นเงิน"), value: formatMoney(result.totalAmount.value) },
   ];
 
   const previewRows = [
-    { label: "อ่านด้วย", value: engineLabel(result.engine) },
-    { label: "ความเชื่อมั่น", value: `${Math.round(result.meanConfidence)}%` },
+    { label: t("อ่านด้วย"), value: engineLabel(result.engine) },
+    { label: t("ความเชื่อมั่น"), value: `${Math.round(result.meanConfidence)}%` },
     {
-      label: "ใช้เวลาอ่าน",
-      value: `${(result.durationMs / 1000).toFixed(1)} วินาที`,
+      label: t("ใช้เวลาอ่าน"),
+      value: t("{n} วินาที", { n: (result.durationMs / 1000).toFixed(1) }),
     },
   ];
 
   const modeOptions = [
-    { label: "แทนที่รายการเดิม", value: "REPLACE" },
-    { label: "เพิ่มต่อท้าย", value: "APPEND" },
+    { label: t("แทนที่รายการเดิม"), value: "REPLACE" },
+    { label: t("เพิ่มต่อท้าย"), value: "APPEND" },
   ];
 
   return (
@@ -184,15 +186,15 @@ export default function WeighTicketOcrReviewModal({
       width={880}
       className={styles.ocrModal}
       title={null}
-      okText={`เติมค่าที่เลือก (${selectedCount})`}
-      cancelText="ยกเลิก"
+      okText={t("เติมค่าที่เลือก ({n})", { n: selectedCount })}
+      cancelText={t("ยกเลิก")}
       okButtonProps={{ disabled: selectedCount === 0 }}
       onOk={handleApply}
       onCancel={onClose}
     >
       <OcrModalHeader
-        title="ตรวจค่าที่อ่านได้จากรูปใบชั่ง"
-        subtitle="ติ๊กเฉพาะค่าที่จะเอาไปเติมลงฟอร์ม"
+        title={t("ตรวจค่าที่อ่านได้จากรูปใบชั่ง")}
+        subtitle={t("ติ๊กเฉพาะค่าที่จะเอาไปเติมลงฟอร์ม")}
       />
 
       <div className={styles.ocrLayout}>
@@ -201,7 +203,7 @@ export default function WeighTicketOcrReviewModal({
         <div className={styles.ocrPanel}>
           <OcrNotice messages={result.warnings} />
 
-          <OcrSection title="น้ำหนัก">
+          <OcrSection title={t("น้ำหนัก")}>
             <div className={styles.ocrField}>
               <OcrField
                 label={
@@ -210,9 +212,9 @@ export default function WeighTicketOcrReviewModal({
                       checked={useGross}
                       disabled={result.gross.value === null}
                       onChange={(event) => setUseGross(event.target.checked)}
-                      aria-label="เลือกเติมน้ำหนักเข้า"
+                      aria-label={t("เลือกเติมน้ำหนักเข้า")}
                     />
-                    น้ำหนักเข้า
+                    {t("น้ำหนักเข้า")}
                   </>
                 }
                 confidence={result.gross.confidence}
@@ -222,10 +224,10 @@ export default function WeighTicketOcrReviewModal({
                     {formatWeight(result.gross.value)}
                   </span>
                   {result.gross.source === "DERIVED" ? (
-                    <Tag color="blue">คำนวณให้</Tag>
+                    <Tag color="blue">{t("คำนวณให้")}</Tag>
                   ) : null}
                   <span className={styles.ocrCompareOld}>
-                    ในฟอร์มตอนนี้ {formatWeight(current.grossWeightKg)}
+                    {t("ในฟอร์มตอนนี้")} {formatWeight(current.grossWeightKg)}
                   </span>
                 </div>
               </OcrField>
@@ -237,9 +239,9 @@ export default function WeighTicketOcrReviewModal({
                       checked={useTare}
                       disabled={result.tare.value === null}
                       onChange={(event) => setUseTare(event.target.checked)}
-                      aria-label="เลือกเติมน้ำหนักออก"
+                      aria-label={t("เลือกเติมน้ำหนักออก")}
                     />
-                    น้ำหนักออก
+                    {t("น้ำหนักออก")}
                   </>
                 }
                 confidence={result.tare.confidence}
@@ -249,30 +251,30 @@ export default function WeighTicketOcrReviewModal({
                     {formatWeight(result.tare.value)}
                   </span>
                   {result.tare.source === "DERIVED" ? (
-                    <Tag color="blue">คำนวณให้</Tag>
+                    <Tag color="blue">{t("คำนวณให้")}</Tag>
                   ) : null}
                   <span className={styles.ocrCompareOld}>
-                    ในฟอร์มตอนนี้ {formatWeight(current.tareWeightKg)}
+                    {t("ในฟอร์มตอนนี้")} {formatWeight(current.tareWeightKg)}
                   </span>
                 </div>
               </OcrField>
 
               {result.deductWeight.value !== null ? (
                 <OcrField
-                  label="หักบนใบ"
+                  label={t("หักบนใบ")}
                   confidence={result.deductWeight.confidence}
                 >
                   <div className={styles.ocrCompare}>
                     <span className={styles.ocrCompareNew}>
                       {formatWeight(result.deductWeight.value)}
                     </span>
-                    <Tag color="blue">อยู่ในรายการหักแล้ว</Tag>
+                    <Tag color="blue">{t("อยู่ในรายการหักแล้ว")}</Tag>
                   </div>
                 </OcrField>
               ) : null}
 
               <OcrField
-                label="สุทธิบนใบ"
+                label={t("สุทธิบนใบ")}
                 confidence={result.net.confidence}
               >
                 <div className={styles.ocrCompare}>
@@ -280,19 +282,19 @@ export default function WeighTicketOcrReviewModal({
                     {formatWeight(result.net.value)}
                   </span>
                   <span className={styles.ocrCompareOld}>
-                    ฟอร์มคำนวณจากเข้า − ออก อยู่แล้ว ค่านี้ใช้ตรวจทานเท่านั้น
+                    {t("ฟอร์มคำนวณจากเข้า − ออก อยู่แล้ว ค่านี้ใช้ตรวจทานเท่านั้น")}
                   </span>
                 </div>
               </OcrField>
             </div>
           </OcrSection>
 
-          <OcrSection title="ข้อมูลอื่นบนใบ">
+          <OcrSection title={t("ข้อมูลอื่นบนใบ")}>
             <Typography.Text
               type="secondary"
               style={{ display: "block", marginBottom: 10, fontSize: 12 }}
             >
-              แสดงให้ดูอย่างเดียว ใช้ตรวจว่าถ่ายถูกใบหรือเปล่า
+              {t("แสดงให้ดูอย่างเดียว ใช้ตรวจว่าถ่ายถูกใบหรือเปล่า")}
             </Typography.Text>
             <div className={styles.ocrField}>
               {readOnlyRows.map((row) => (
@@ -304,7 +306,7 @@ export default function WeighTicketOcrReviewModal({
           </OcrSection>
 
           <OcrSection
-            title="รายการยาง"
+            title={t("รายการยาง")}
             extra={
               result.items.length > 0 ? (
                 <Radio.Group
@@ -320,14 +322,14 @@ export default function WeighTicketOcrReviewModal({
             }
           >
             {result.items.length === 0 ? (
-              <p className={styles.ocrEmpty}>ไม่พบรายการยางบนรูป</p>
+              <p className={styles.ocrEmpty}>{t("ไม่พบรายการยางบนรูป")}</p>
             ) : (
               <>
                 <div className={styles.ocrCheckHead}>
                   <span />
-                  <span>ประเภทยาง</span>
-                  <span>น้ำหนัก (กก.)</span>
-                  <span className={styles.ocrCheckFlag}>มั่นใจ</span>
+                  <span>{t("ประเภทยาง")}</span>
+                  <span>{t("น้ำหนัก (กก.)")}</span>
+                  <span className={styles.ocrCheckFlag}>{t("มั่นใจ")}</span>
                 </div>
                 <div className={styles.ocrItemRows}>
                   {result.items.map((item, index) => (
@@ -346,13 +348,13 @@ export default function WeighTicketOcrReviewModal({
                             ),
                           )
                         }
-                        aria-label={`เลือกรายการยาง ${index + 1}`}
+                        aria-label={t("เลือกรายการยาง {n}", { n: index + 1 })}
                       />
                       <Select
                         showSearch
                         optionFilterProp="label"
                         style={{ width: "100%" }}
-                        placeholder={`อ่านได้ว่า "${item.rawName}"`}
+                        placeholder={t("อ่านได้ว่า \"{name}\"", { name: item.rawName })}
                         value={itemRows[index].tireClassificationId || undefined}
                         options={classificationOptions}
                         onChange={(value: string) =>
@@ -370,7 +372,7 @@ export default function WeighTicketOcrReviewModal({
                         min={0}
                         step={0.001}
                         value={itemRows[index].weightKg ?? undefined}
-                        aria-label={`น้ำหนักรายการยาง ${index + 1}`}
+                        aria-label={t("น้ำหนักรายการยาง {n}", { n: index + 1 })}
                         onChange={(value) =>
                           setItemRows((rows) =>
                             rows.map((row, i) =>
@@ -396,7 +398,7 @@ export default function WeighTicketOcrReviewModal({
           </OcrSection>
 
           <OcrSection
-            title="รายการหัก"
+            title={t("รายการหัก")}
             extra={
               result.deductions.length > 0 ? (
                 <Radio.Group
@@ -412,14 +414,14 @@ export default function WeighTicketOcrReviewModal({
             }
           >
             {result.deductions.length === 0 ? (
-              <p className={styles.ocrEmpty}>ไม่พบรายการหักบนรูป</p>
+              <p className={styles.ocrEmpty}>{t("ไม่พบรายการหักบนรูป")}</p>
             ) : (
               <>
                 <div className={styles.ocrCheckHead}>
                   <span />
-                  <span>ประเภท</span>
-                  <span>น้ำหนัก (กก.)</span>
-                  <span className={styles.ocrCheckFlag}>มั่นใจ</span>
+                  <span>{t("ประเภท")}</span>
+                  <span>{t("น้ำหนัก (กก.)")}</span>
+                  <span className={styles.ocrCheckFlag}>{t("มั่นใจ")}</span>
                 </div>
                 <div className={styles.ocrItemRows}>
                   {result.deductions.map((deduction, index) => (
@@ -438,11 +440,13 @@ export default function WeighTicketOcrReviewModal({
                             ),
                           )
                         }
-                        aria-label={`เลือกรายการหัก ${index + 1}`}
+                        aria-label={t("เลือกรายการหัก {n}", { n: index + 1 })}
                       />
                       <span>
-                        {DEDUCTION_TYPE_LABELS[deduction.deductionType] ??
-                          deduction.deductionType}
+                        {t(
+                          DEDUCTION_TYPE_LABELS[deduction.deductionType] ??
+                            deduction.deductionType,
+                        )}
                         {deduction.description
                           ? ` · ${deduction.description}`
                           : ""}
@@ -454,7 +458,7 @@ export default function WeighTicketOcrReviewModal({
                         value={
                           deductionRows[index].deductionWeightKg ?? undefined
                         }
-                        aria-label={`น้ำหนักหัก ${index + 1}`}
+                        aria-label={t("น้ำหนักหัก {n}", { n: index + 1 })}
                         onChange={(value) =>
                           setDeductionRows((rows) =>
                             rows.map((row, i) =>

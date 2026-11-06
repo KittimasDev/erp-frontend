@@ -21,6 +21,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+
 import {
   readWarehouseGroup,
   withWarehouseGroup,
@@ -34,6 +36,7 @@ import type {
 import {
   STOCK_ADJUSTMENT_STATUS_LABEL,
   stockAdjustmentTypeDisplayName,
+  tStockLabel,
 } from "@/types/stock-adjustments";
 import styles from "./StockAdjustmentsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -54,12 +57,15 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span className={`${styles.statusPill} ${tone}`}>
       <span className={styles.statusDot} aria-hidden />
-      {STOCK_ADJUSTMENT_STATUS_LABEL[status] ?? status}
+      {STOCK_ADJUSTMENT_STATUS_LABEL[status]
+        ? tStockLabel(STOCK_ADJUSTMENT_STATUS_LABEL[status])
+        : status}
     </span>
   );
 }
 
 export default function StockAdjustmentsListPage() {
+  const t = useT();
   const router = useRouter();
   const warehouseGroup = readWarehouseGroup(useSearchParams());
   const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
@@ -162,14 +168,14 @@ export default function StockAdjustmentsListPage() {
   const columns: ColumnsType<StockAdjustment> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 52,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่",
+        title: t("เลขที่"),
         dataIndex: "adjustmentNo",
         key: "adjustmentNo",
         render: (value: string) => (
@@ -177,14 +183,14 @@ export default function StockAdjustmentsListPage() {
         ),
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "adjustmentDate",
         key: "adjustmentDate",
         width: 120,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ประเภท",
+        title: t("ประเภท"),
         dataIndex: "adjustmentType",
         key: "adjustmentType",
         width: 120,
@@ -192,21 +198,21 @@ export default function StockAdjustmentsListPage() {
           stockAdjustmentTypeDisplayName(record),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 140,
         render: (value: string) => <StatusPill status={value} />,
       },
       {
-        title: "รายการ",
+        title: t("รายการ"),
         key: "itemCount",
         width: 90,
         align: "right",
         render: (_: unknown, row) => row.items?.length ?? 0,
       },
       {
-        title: "เหตุผล",
+        title: t("เหตุผล"),
         dataIndex: "reason",
         key: "reason",
         ellipsis: true,
@@ -221,7 +227,7 @@ export default function StockAdjustmentsListPage() {
             <button
               type="button"
               className={styles.actionBtn}
-              title="ดูรายละเอียด"
+              title={t("ดูรายละเอียด")}
               onClick={() =>
                 router.push(scopePath(`/inventory/stock-adjustments/${row.id}`))
               }
@@ -232,7 +238,7 @@ export default function StockAdjustmentsListPage() {
               <button
                 type="button"
                 className={styles.actionBtn}
-                title="แก้ไข"
+                title={t("แก้ไข")}
                 onClick={() =>
                   router.push(scopePath(`/inventory/stock-adjustments/${row.id}/edit`))
                 }
@@ -244,7 +250,7 @@ export default function StockAdjustmentsListPage() {
         ),
       },
     ],
-    [canEdit, limit, page, router],
+    [canEdit, limit, page, router, t],
   );
 
   return (
@@ -252,8 +258,8 @@ export default function StockAdjustmentsListPage() {
       <PageHeader
         eyebrow="Warehouse · Stock Adjustment"
         icon={<SwapOutlined />}
-        title="ใบปรับปรุงสต๊อก"
-        subtitle="เปิดใบร่าง ส่งอนุมัติ แล้วให้หัวหน้าคลังอนุมัติเพื่อปรับยอดสต๊อกจริง"
+        title={t("ใบปรับปรุงสต๊อก")}
+        subtitle={t("เปิดใบร่าง ส่งอนุมัติ แล้วให้หัวหน้าคลังอนุมัติเพื่อปรับยอดสต๊อกจริง")}
         actions={
           <>
 {canAdd ? (
@@ -263,7 +269,7 @@ export default function StockAdjustmentsListPage() {
               icon={<PlusOutlined />}
               onClick={() => router.push(scopePath("/inventory/stock-adjustments/create"))}
             >
-              สร้างใบปรับปรุง
+              {t("สร้างใบปรับปรุง")}
             </Button>
           </div>
         ) : null}
@@ -277,97 +283,97 @@ export default function StockAdjustmentsListPage() {
           className={`${styles.statChip} ${!applied.status ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus(undefined)}
         >
-          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statLabel}>{t("ทั้งหมด")}</span>
           <span className={styles.statValue}>{allTotal}</span>
-          <span className={styles.statHint}>เอกสารทั้งหมด</span>
+          <span className={styles.statHint}>{t("เอกสารทั้งหมด")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "DRAFT" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("DRAFT")}
         >
-          <span className={styles.statLabel}>ร่าง</span>
+          <span className={styles.statLabel}>{t("ร่าง")}</span>
           <span className={styles.statValue}>{draftTotal}</span>
-          <span className={styles.statHint}>ยังไม่ส่ง</span>
+          <span className={styles.statHint}>{t("ยังไม่ส่ง")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "PENDING_APPROVAL" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("PENDING_APPROVAL")}
         >
-          <span className={styles.statLabel}>รออนุมัติ</span>
+          <span className={styles.statLabel}>{t("รออนุมัติ")}</span>
           <span className={styles.statValue}>{pendingTotal}</span>
-          <span className={styles.statHint}>ส่งแล้ว</span>
+          <span className={styles.statHint}>{t("ส่งแล้ว")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "POSTED" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("POSTED")}
         >
-          <span className={styles.statLabel}>อนุมัติแล้ว</span>
+          <span className={styles.statLabel}>{t("อนุมัติแล้ว")}</span>
           <span className={styles.statValue}>{postedTotal}</span>
-          <span className={styles.statHint}>ปรับสต๊อกแล้ว</span>
+          <span className={styles.statHint}>{t("ปรับสต๊อกแล้ว")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "CANCELLED" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("CANCELLED")}
         >
-          <span className={styles.statLabel}>ยกเลิก</span>
+          <span className={styles.statLabel}>{tStockLabel("ยกเลิก")}</span>
           <span className={styles.statValue}>{cancelledTotal}</span>
-          <span className={styles.statHint}>ไม่ใช้งาน</span>
+          <span className={styles.statHint}>{t("ไม่ใช้งาน")}</span>
         </button>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ใบปรับปรุง</label>
+            <label>{t("เลขที่ใบปรับปรุง")}</label>
             <Input
               allowClear
-              placeholder="เช่น ADJ-20260724-001"
+              placeholder={t("เช่น ADJ-20260724-001")}
               value={adjustmentNo}
               onChange={(e) => setAdjustmentNo(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่</label>
+            <label>{t("วันที่")}</label>
             <DatePicker
               style={{ width: "100%" }}
               value={adjustmentDate}
               onChange={setAdjustmentDate}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "แบบร่างเอกสาร" },
-                { value: "PENDING_APPROVAL", label: "รออนุมัติ" },
-                { value: "POSTED", label: "อนุมัติแล้ว" },
-                { value: "CANCELLED", label: "ยกเลิก" },
-                { value: "REJECTED", label: "ไม่อนุมัติ" },
+                { value: "DRAFT", label: t("แบบร่างเอกสาร") },
+                { value: "PENDING_APPROVAL", label: t("รออนุมัติ") },
+                { value: "POSTED", label: t("อนุมัติแล้ว") },
+                { value: "CANCELLED", label: tStockLabel("ยกเลิก") },
+                { value: "REJECTED", label: tStockLabel("ไม่อนุมัติ") },
               ]}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.searchBtn}
             icon={<SearchOutlined />}
             onClick={applySearch}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -375,10 +381,10 @@ export default function StockAdjustmentsListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -393,7 +399,7 @@ export default function StockAdjustmentsListPage() {
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -412,8 +418,8 @@ export default function StockAdjustmentsListPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ยังไม่มีใบปรับปรุงสต๊อก</strong>
-                สร้างใบใหม่ผ่านปุ่ม “สร้างใบปรับปรุง”
+                <strong>{t("ยังไม่มีใบปรับปรุงสต๊อก")}</strong>
+                {t("สร้างใบใหม่ผ่านปุ่ม “สร้างใบปรับปรุง”")}
               </div>
             ),
           }}
@@ -421,8 +427,8 @@ export default function StockAdjustmentsListPage() {
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง")} {total === 0 ? 0 : (page - 1) * limit + 1}–
+            {Math.min(page * limit, total)} {t("จาก")} {total}
           </div>
           <Pagination
             size="small"

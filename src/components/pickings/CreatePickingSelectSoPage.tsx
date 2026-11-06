@@ -20,6 +20,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import type { ReadySalesOrder } from "@/types/pickings";
 import styles from "./PickingsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 /**
  * แถบ ต้องการ / มี / ขาด ของรอบที่กางออกดู
@@ -28,14 +29,15 @@ import PageHeader from "@/components/common/PageHeader";
  * (Rules of Hooks) และไม่อยากยิงทุกรอบพร้อมกันตอนเปิดหน้า
  */
 function ScheduleStockPanel({ row }: { row: ReadySalesOrder }) {
+  const t = useT();
   const query = useDeliveryScheduleStockStatusQuery(row.deliveryScheduleId);
   const data = query.data;
 
   if (query.isLoading) {
-    return <div className={styles.pageSubtitle}>กำลังตรวจสอบสต๊อก…</div>;
+    return <div className={styles.pageSubtitle}>{t("กำลังตรวจสอบสต๊อก…")}</div>;
   }
   if (!data) {
-    return <div className={styles.pageSubtitle}>ตรวจสอบสต๊อกไม่สำเร็จ</div>;
+    return <div className={styles.pageSubtitle}>{t("ตรวจสอบสต๊อกไม่สำเร็จ")}</div>;
   }
 
   const shortLines = data.lines.filter(
@@ -48,14 +50,14 @@ function ScheduleStockPanel({ row }: { row: ReadySalesOrder }) {
         <Alert
           type="success"
           showIcon
-          title="ของครบทั้งรอบ — เปิดใบจ่ายได้เลย"
+          title={t("ของครบทั้งรอบ — เปิดใบจ่ายได้เลย")}
         />
       ) : (
         <Alert
           type="warning"
           showIcon
-          title="ของไม่ครบ เปิดใบจ่ายไม่ได้"
-          description="กฎคือ 1 รอบต้องจ่ายให้ครบ ไม่จ่ายบางส่วน — ต้องเปิดใบขอผลิตสำหรับส่วนที่ขาดแล้วรอของก่อน"
+          title={t("ของไม่ครบ เปิดใบจ่ายไม่ได้")}
+          description={t("กฎคือ 1 รอบต้องจ่ายให้ครบ ไม่จ่ายบางส่วน — ต้องเปิดใบขอผลิตสำหรับส่วนที่ขาดแล้วรอของก่อน")}
         />
       )}
 
@@ -67,7 +69,7 @@ function ScheduleStockPanel({ row }: { row: ReadySalesOrder }) {
         dataSource={data.lines}
         columns={[
           {
-            title: "สินค้า",
+            title: t("สินค้า"),
             key: "item",
             render: (_v, line) =>
               line.itemCode
@@ -75,20 +77,20 @@ function ScheduleStockPanel({ row }: { row: ReadySalesOrder }) {
                 : (line.itemNameTh ?? "—"),
           },
           {
-            title: "ต้องการ",
+            title: t("ต้องการ"),
             dataIndex: "requiredQuantity",
             align: "right",
             width: 110,
             render: (v: string, line) => `${v} ${line.unitCode ?? ""}`,
           },
           {
-            title: "มี",
+            title: t("มี"),
             dataIndex: "availableQuantity",
             align: "right",
             width: 110,
           },
           {
-            title: "ขาด",
+            title: t("ขาด"),
             dataIndex: "shortageQuantity",
             align: "right",
             width: 110,
@@ -96,13 +98,13 @@ function ScheduleStockPanel({ row }: { row: ReadySalesOrder }) {
               Number(v) > 0 ? <Tag color="error">{v}</Tag> : <Tag>0.000</Tag>,
           },
           {
-            title: "ขอผลิตไปแล้ว",
+            title: t("ขอผลิตไปแล้ว"),
             dataIndex: "alreadyRequestedQuantity",
             align: "right",
             width: 130,
           },
           {
-            title: "ยังต้องขอผลิต",
+            title: t("ยังต้องขอผลิต"),
             dataIndex: "productionNeededQuantity",
             align: "right",
             width: 130,
@@ -123,7 +125,7 @@ function ScheduleStockPanel({ row }: { row: ReadySalesOrder }) {
             }
           >
             <Button icon={<ToolOutlined />}>
-              เปิดใบขอผลิตสำหรับรอบนี้
+              {t("เปิดใบขอผลิตสำหรับรอบนี้")}
             </Button>
           </Link>
         </div>
@@ -133,6 +135,7 @@ function ScheduleStockPanel({ row }: { row: ReadySalesOrder }) {
 }
 
 export default function CreatePickingSelectSoPage() {
+  const t = useT();
   const router = useRouter();
   const query = useReadySalesOrdersForPickingQuery();
   const createMutation = useCreatePickingFromScheduleMutation();
@@ -147,33 +150,33 @@ export default function CreatePickingSelectSoPage() {
 
   const columns: ColumnsType<ReadySalesOrder> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ SO",
+      title: t("เลขที่ SO"),
       dataIndex: "soNo",
       render: (v: string) => <span className={styles.prNo}>{v}</span>,
     },
     {
-      title: "รอบ",
+      title: t("รอบ"),
       key: "round",
       width: 80,
       align: "center",
-      render: (_v, row) => <Tag>รอบ {row.roundNo}</Tag>,
+      render: (_v, row) => <Tag>{t("รอบ")} {row.roundNo}</Tag>,
     },
     {
-      title: "วันที่ต้องส่ง",
+      title: t("วันที่ต้องส่ง"),
       dataIndex: "deliveryDate",
       width: 130,
       render: (v: string) => {
         const date = dayjs(v);
         const overdue = date.isBefore(dayjs(), "day");
         return (
-          <Tooltip title={overdue ? "เลยกำหนดส่งแล้ว" : undefined}>
+          <Tooltip title={overdue ? t("เลยกำหนดส่งแล้ว") : undefined}>
             <span style={overdue ? { color: "#cf1322", fontWeight: 600 } : undefined}>
               {date.format("DD/MM/YYYY")}
             </span>
@@ -182,14 +185,14 @@ export default function CreatePickingSelectSoPage() {
       },
     },
     {
-      title: "ลูกค้า",
+      title: t("ลูกค้า"),
       key: "customer",
       render: (_v, row) =>
         row.customerCode
           ? `${row.customerCode} — ${row.customerName ?? ""}`
           : (row.customerName ?? "—"),
     },
-    { title: "รายการ", dataIndex: "itemCount", width: 90, align: "center" },
+    { title: t("รายการ"), dataIndex: "itemCount", width: 90, align: "center" },
     {
       title: "",
       key: "action",
@@ -207,7 +210,7 @@ export default function CreatePickingSelectSoPage() {
             router.push(`/pickings/${res.data.id}/edit`);
           }}
         >
-          สร้างใบจ่าย
+          {t("สร้างใบจ่าย")}
         </Button>
       ),
     },
@@ -217,12 +220,12 @@ export default function CreatePickingSelectSoPage() {
     <div className={styles.page}>
       <PageHeader
         eyebrow="Picking · Create"
-        title="เลือกรอบจัดส่งที่พร้อมจ่าย"
-        subtitle="1 รอบ = 1 ใบจ่าย · ใบสั่งขายใบเดียวแบ่งส่งได้หลายรอบ จึงโผล่ได้หลายแถว — กางแถวเพื่อดูว่าของครบไหมก่อนกดสร้าง"
+        title={t("เลือกรอบจัดส่งที่พร้อมจ่าย")}
+        subtitle={t("1 รอบ = 1 ใบจ่าย · ใบสั่งขายใบเดียวแบ่งส่งได้หลายรอบ จึงโผล่ได้หลายแถว — กางแถวเพื่อดูว่าของครบไหมก่อนกดสร้าง")}
         back={
           <>
 <Link href="/pickings" className={styles.backLink ?? undefined}>
-            <ArrowLeftOutlined /> กลับรายการ
+            <ArrowLeftOutlined /> {t("กลับรายการ")}
           </Link>
           </>
         }
@@ -233,8 +236,8 @@ export default function CreatePickingSelectSoPage() {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          title="สต๊อกถูกจองตอนกดสร้างใบจ่าย ไม่ใช่ตอนยืนยันใบสั่งขาย"
-          description="ของอาจถูกใบอื่นเอาไปหลังจากที่หน้านี้โหลดมา ถ้ากดสร้างแล้วขึ้นว่าของไม่พอ ให้กางแถวดูยอดล่าสุดอีกครั้ง"
+          title={t("สต๊อกถูกจองตอนกดสร้างใบจ่าย ไม่ใช่ตอนยืนยันใบสั่งขาย")}
+          description={t("ของอาจถูกใบอื่นเอาไปหลังจากที่หน้านี้โหลดมา ถ้ากดสร้างแล้วขึ้นว่าของไม่พอ ให้กางแถวดูยอดล่าสุดอีกครั้ง")}
         />
         <Table
           rowKey="deliveryScheduleId"
@@ -242,7 +245,7 @@ export default function CreatePickingSelectSoPage() {
           dataSource={rows}
           loading={query.isLoading}
           pagination={false}
-          locale={{ emptyText: "ไม่มีรอบจัดส่งที่พร้อมสร้างใบจ่าย" }}
+          locale={{ emptyText: t("ไม่มีรอบจัดส่งที่พร้อมสร้างใบจ่าย") }}
           expandable={{
             expandedRowKeys: expandedKeys as string[],
             onExpandedRowsChange: (keys) =>

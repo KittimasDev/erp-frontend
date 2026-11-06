@@ -30,7 +30,9 @@ import {
   SALES_ORDER_FLOW_STEPS,
   type SalesOrderProgress,
 } from "@/lib/sales/sales-order-progress";
+import { tNow, useT } from "@/lib/i18n/useT";
 import { isDeliveryScheduleDone } from "@/types/delivery-schedules";
+import { tSoStatus } from "@/types/sales-orders";
 import type {
   SalesTrackingRoundTimeline,
   SalesTrackingTimelineStep,
@@ -101,14 +103,14 @@ function flowStepCaption(
   if (step.step === "Delivery Rounds") {
     if (!roundCount) return undefined;
     if (allRoundsDone || !remainingRound) {
-      return `ครบ ${roundCount} รอบ`;
+      return tNow("ครบ {n} รอบ", { n: roundCount });
     }
-    return `รอบ ${remainingRound.roundNo} จาก ${roundCount}`;
+    return tNow("รอบ {no} จาก {total}", { no: remainingRound.roundNo, total: roundCount });
   }
   if (step.step === "Picking" || step.step === "Packing" || step.step === "Delivery") {
     const round = remainingRound ?? lastRound;
     if (!round) return undefined;
-    return `รอบ ${round.roundNo}`;
+    return tNow("รอบ {no}", { no: round.roundNo });
   }
   return undefined;
 }
@@ -149,8 +151,9 @@ function FlowStepCard({
   waitForPermission?: boolean;
   caption?: string;
 }) {
+  const t = useT();
   const actionLabel = waitForPermission
-    ? "รอกระบวนการ"
+    ? t("รอกระบวนการ")
     : timelineStepActionLabel(step, href);
   const content = (
     <>
@@ -161,9 +164,9 @@ function FlowStepCard({
           className={styles.flowStepTag}
         >
           {isFocus
-            ? "กำลังทำ"
+            ? t("กำลังทำ")
             : isHere
-              ? "หน้านี้"
+              ? t("หน้านี้")
               : salesTimelineStatusLabel(step.status)}
         </Tag>
       </div>
@@ -217,6 +220,7 @@ export default function SalesOrderTimeline({
   rounds = [],
   canNavigateHref,
 }: Props) {
+  const t = useT();
   const flowComplete =
     salesOrderDeliveryStatus === "DELIVERED" || progress?.tone === "done";
   const remainingRound = nextOpenRound(rounds);
@@ -232,7 +236,7 @@ export default function SalesOrderTimeline({
   });
   const hasNext = Boolean(nextAction && nextAction !== "—");
   const nowLabel =
-    currentStep ||
+    (currentStep ? tSoStatus(currentStep) : "") ||
     progress?.currentStepLabel ||
     progress?.label ||
     "—";
@@ -242,7 +246,7 @@ export default function SalesOrderTimeline({
       <div className={styles.statusBanner}>
         <div className={styles.statusBannerMain}>
           <div className={styles.statusEyebrowRow}>
-            <p className={styles.statusEyebrow}>สถานะตอนนี้</p>
+            <p className={styles.statusEyebrow}>{t("สถานะตอนนี้")}</p>
             {refreshing ? (
               <Spin size="small" className={styles.refreshSpin} />
             ) : null}
@@ -252,11 +256,11 @@ export default function SalesOrderTimeline({
             <p className={styles.statusNext}>
               <ArrowRightOutlined />
               <span>
-                ต้องทำถัดไป: <strong>{nextAction}</strong>
+                {t("ต้องทำถัดไป:")} <strong>{tSoStatus(nextAction ?? "")}</strong>
               </span>
             </p>
           ) : progress?.tone === "done" ? (
-            <p className={styles.statusNextDone}>ครบทุกขั้นตอนแล้ว</p>
+            <p className={styles.statusNextDone}>{t("ครบทุกขั้นตอนแล้ว")}</p>
           ) : null}
         </div>
         {progress ? (
@@ -272,7 +276,7 @@ export default function SalesOrderTimeline({
               </span>
             </div>
             <div className={styles.statusFractionLabel}>
-              ขั้นที่กำลังทำ
+              {t("ขั้นที่กำลังทำ")}
               <br />
               <strong>{progress.currentStepLabel}</strong>
             </div>
@@ -284,7 +288,7 @@ export default function SalesOrderTimeline({
         <div
           className={`${styles.stepTracker} ${styles[`progress_${progress.tone}`]}`}
           role="list"
-          aria-label="ความคืบหน้าใบสั่งขาย"
+          aria-label={t("ความคืบหน้าใบสั่งขาย")}
         >
           {SALES_ORDER_FLOW_STEPS.map((step, index) => {
             const stepNo = index + 1;
@@ -317,9 +321,9 @@ export default function SalesOrderTimeline({
                     <span>{stepNo}</span>
                   )}
                 </div>
-                <div className={styles.stepNodeLabel}>{step.shortLabel}</div>
+                <div className={styles.stepNodeLabel}>{tSoStatus(step.shortLabel)}</div>
                 {current ? (
-                  <div className={styles.stepNodeBadge}>อยู่ตรงนี้</div>
+                  <div className={styles.stepNodeBadge}>{t("อยู่ตรงนี้")}</div>
                 ) : null}
                 {index < SALES_ORDER_FLOW_STEPS.length - 1 ? (
                   <span
@@ -340,19 +344,19 @@ export default function SalesOrderTimeline({
 
       <div className={styles.body}>
         <div className={styles.bodyHead}>
-          <p className={styles.eyebrow}>เอกสารใน Flow</p>
+          <p className={styles.eyebrow}>{t("เอกสารใน Flow")}</p>
           <p className={styles.subtitle}>
-            กดการ์ดเพื่อเปิดเอกสาร — การ์ดสีส้มคือขั้นที่ต้องทำตอนนี้
+            {t("กดการ์ดเพื่อเปิดเอกสาร — การ์ดสีส้มคือขั้นที่ต้องทำตอนนี้")}
           </p>
         </div>
 
         {loading ? (
           <div className={styles.loading}>
-            <Spin size="small" /> กำลังโหลดขั้นตอน...
+            <Spin size="small" /> {t("กำลังโหลดขั้นตอน...")}
           </div>
         ) : timeline.length === 0 ? (
           <p className={styles.subtitle} style={{ margin: 0 }}>
-            ยังไม่มีข้อมูลขั้นตอน — ยืนยันใบสั่งขายแล้วเริ่มตรวจสต๊อก
+            {t("ยังไม่มีข้อมูลขั้นตอน — ยืนยันใบสั่งขายแล้วเริ่มตรวจสต๊อก")}
           </p>
         ) : (
           <div className={styles.flowStrip} role="list">

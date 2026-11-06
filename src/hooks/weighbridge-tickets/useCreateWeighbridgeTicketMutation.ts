@@ -8,8 +8,10 @@ import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
 import type { CreateWeighbridgeTicketRequest } from "@/types/weighbridge-tickets";
 import { weighbridgeDashboardQueryKey } from "./useWeighbridgeDashboardQuery";
+import { useT } from "@/lib/i18n/useT";
 
 export function useCreateWeighbridgeTicketMutation() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -21,13 +23,13 @@ export function useCreateWeighbridgeTicketMutation() {
       await queryClient.invalidateQueries({
         queryKey: weighbridgeDashboardQueryKey,
       });
-      message.success(response.message || "เปิดตั๋วชั่งสำเร็จแล้ว");
+      message.success(response.message || t("เปิดตั๋วชั่งสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "เปิดตั๋วชั่งไม่สำเร็จ",
+          : t("เปิดตั๋วชั่งไม่สำเร็จ"),
       );
     },
   });

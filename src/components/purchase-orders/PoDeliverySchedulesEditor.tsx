@@ -6,6 +6,7 @@ import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import type { FormInstance } from "antd/es/form";
 
+import { useT } from "@/lib/i18n/useT";
 import styles from "./PurchaseOrderFormPage.module.css";
 
 const EPS = 0.0005;
@@ -91,6 +92,7 @@ export default function PoDeliverySchedulesEditor({
   form,
   sourceLines,
 }: Props) {
+  const t = useT();
   const rounds: ScheduleRound[] = Form.useWatch("deliverySchedules", form) ?? [];
   const sourceKey = sourceLines
     .map((line) => `${line.purchaseRequestItemId}:${line.quantity}`)
@@ -114,10 +116,11 @@ export default function PoDeliverySchedulesEditor({
   return (
     <div className={styles.sectionBlock}>
       <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>รอบจัดส่ง</h2>
+        <h2 className={styles.sectionTitle}>{t("รอบจัดส่ง")}</h2>
         <p className={styles.sectionHint}>
-          ต้องมีอย่างน้อย 1 รอบ และจำนวนรวมทุกรอบต้องเท่ากับจำนวนที่สั่ง
-          — สินค้าหนึ่งรายการแบ่งหลายรอบได้ ค่ารอบแรกใส่ให้เท่ากับจำนวนที่สั่งแล้ว
+          {t(
+            "ต้องมีอย่างน้อย 1 รอบ และจำนวนรวมทุกรอบต้องเท่ากับจำนวนที่สั่ง — สินค้าหนึ่งรายการแบ่งหลายรอบได้ ค่ารอบแรกใส่ให้เท่ากับจำนวนที่สั่งแล้ว",
+          )}
         </p>
       </div>
 
@@ -134,7 +137,7 @@ export default function PoDeliverySchedulesEditor({
                     marginBottom: 12,
                   }}
                 >
-                  <strong>รอบที่ {index + 1}</strong>
+                  <strong>{t("รอบที่ {n}", { n: index + 1 })}</strong>
                   {fields.length > 1 ? (
                     <Button
                       type="link"
@@ -142,15 +145,15 @@ export default function PoDeliverySchedulesEditor({
                       icon={<DeleteOutlined />}
                       onClick={() => remove(name)}
                     >
-                      ลบรอบ
+                      {t("ลบรอบ")}
                     </Button>
                   ) : null}
                 </div>
                 <Form.Item
                   {...restField}
                   name={[name, "deliveryDate"]}
-                  label="วันที่กำหนดส่ง"
-                  rules={[{ required: true, message: "ระบุวันที่กำหนดส่ง" }]}
+                  label={t("วันที่กำหนดส่ง")}
+                  rules={[{ required: true, message: t("ระบุวันที่กำหนดส่ง") }]}
                 >
                   <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                 </Form.Item>
@@ -180,10 +183,17 @@ export default function PoDeliverySchedulesEditor({
                         <div>
                           <div>{source.label}</div>
                           <div className={styles.sectionHint}>
-                            สั่ง {source.quantity} {source.unitLabel} ·
-                            จัดแล้ว {scheduled.toFixed(3)} · เหลือจัด{" "}
-                            {Math.max(0, source.quantity - scheduled).toFixed(
-                              3,
+                            {t(
+                              "สั่ง {qty} {unit} · จัดแล้ว {scheduled} · เหลือจัด {remaining}",
+                              {
+                                qty: source.quantity,
+                                unit: source.unitLabel,
+                                scheduled: scheduled.toFixed(3),
+                                remaining: Math.max(
+                                  0,
+                                  source.quantity - scheduled,
+                                ).toFixed(3),
+                              },
                             )}
                           </div>
                         </div>
@@ -197,7 +207,7 @@ export default function PoDeliverySchedulesEditor({
                                   validator: async (_, value) => {
                                     const qty = Number(value || 0);
                                     if (qty < 0) {
-                                      throw new Error("จำนวนต้องไม่ติดลบ");
+                                      throw new Error(t("จำนวนต้องไม่ติดลบ"));
                                     }
                                     const others = sumScheduledQty(
                                       rounds.map((round, roundIndex) =>
@@ -218,7 +228,7 @@ export default function PoDeliverySchedulesEditor({
                                     );
                                     if (others + qty - source.quantity > EPS) {
                                       throw new Error(
-                                        "จำนวนเกินที่ยังไม่ได้จัดลงรอบ",
+                                        t("จำนวนเกินที่ยังไม่ได้จัดลงรอบ"),
                                       );
                                     }
                                   },
@@ -258,7 +268,7 @@ export default function PoDeliverySchedulesEditor({
                 })
               }
             >
-              เพิ่มรอบจัดส่ง
+              {t("เพิ่มรอบจัดส่ง")}
             </Button>
           </div>
         )}

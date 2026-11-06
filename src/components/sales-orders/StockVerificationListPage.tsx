@@ -14,6 +14,7 @@ import dayjs from "dayjs";
 import { usePendingStockVerificationQuery } from "@/hooks/sales-orders/useSalesOrdersQuery";
 import type { StockVerificationPendingOrder } from "@/types/sales-orders";
 import styles from "./StockVerificationListPage.module.css";
+import { useT } from "@/lib/i18n/useT";
 import PageHeader from "@/components/common/PageHeader";
 
 function formatDate(value?: string) {
@@ -22,6 +23,7 @@ function formatDate(value?: string) {
 }
 
 export default function StockVerificationListPage() {
+  const t = useT();
   const router = useRouter();
   const query = usePendingStockVerificationQuery();
   const rows = query.data?.data ?? [];
@@ -29,18 +31,18 @@ export default function StockVerificationListPage() {
   const columns: ColumnsType<StockVerificationPendingOrder> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         width: 56,
         align: "center",
         render: (_v, _r, index) => index + 1,
       },
       {
-        title: "เลขที่ SO",
+        title: t("เลขที่ SO"),
         dataIndex: "soNo",
         render: (value: string) => <span className={styles.prNo}>{value}</span>,
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         key: "customer",
         render: (_v, row) =>
           row.customerCode
@@ -48,25 +50,25 @@ export default function StockVerificationListPage() {
             : (row.customerName ?? "—"),
       },
       {
-        title: "วันที่ SO",
+        title: t("วันที่ SO"),
         dataIndex: "soDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "วันที่ต้องการส่ง",
+        title: t("วันที่ต้องการส่ง"),
         dataIndex: "requestedDeliveryDate",
         width: 130,
         render: (value?: string) => formatDate(value),
       },
       {
-        title: "รายการสินค้า",
+        title: t("รายการสินค้า"),
         dataIndex: "itemCount",
         width: 110,
         align: "center",
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 120,
         render: (value: string) => <Tag color="processing">{value}</Tag>,
@@ -93,13 +95,13 @@ export default function StockVerificationListPage() {
                 router.push(`/sales-orders/${row.id}/stock-verification`)
               }
             >
-              ตรวจสอบสต๊อก
+              {t("ตรวจสอบสต๊อก")}
             </Button>
           </Space>
         ),
       },
     ],
-    [router],
+    [router, t],
   );
 
   return (
@@ -107,14 +109,14 @@ export default function StockVerificationListPage() {
       <PageHeader
         eyebrow="Sales · Stock Verification"
         icon={<SearchOutlined />}
-        title="ตรวจสอบสต๊อกขาย"
-        subtitle="ใบสั่งขายที่ยืนยันแล้วและรอตรวจยอดพร้อมขาย — ยังไม่ตัดสต๊อก"
+        title={t("ตรวจสอบสต๊อกขาย")}
+        subtitle={t("ใบสั่งขายที่ยืนยันแล้วและรอตรวจยอดพร้อมขาย — ยังไม่ตัดสต๊อก")}
       />
 
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            รอตรวจสอบ <strong>{rows.length}</strong> รายการ
+            {t("รอตรวจสอบ")} <strong>{rows.length}</strong> {t("รายการ")}
           </div>
         </div>
         <Table
@@ -128,7 +130,7 @@ export default function StockVerificationListPage() {
             onClick: () =>
               router.push(`/sales-orders/${row.id}/stock-verification`),
           })}
-          locale={{ emptyText: "ไม่มีใบสั่งขายที่รอตรวจสอบสต๊อก" }}
+          locale={{ emptyText: t("ไม่มีใบสั่งขายที่รอตรวจสอบสต๊อก") }}
         />
       </section>
     </div>

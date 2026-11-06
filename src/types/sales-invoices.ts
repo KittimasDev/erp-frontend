@@ -214,3 +214,28 @@ export type SalesInvoiceByDeliveryApiResponse = {
   message: string;
   data: SalesInvoice | null;
 };
+
+/** ป้ายสถานะ/วิธีชำระตามภาษา — ไทยใช้ค่าคงที่เดิม ("ยกเลิก" ชนกับปุ่ม Cancel) */
+export function salesInvoiceStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = { DRAFT: "Draft", POSTED: "Posted", CANCELLED: "Cancelled" };
+    return en[status] ?? status;
+  }
+  return SALES_INVOICE_STATUS_LABEL[status] ?? status;
+}
+
+export function salesInvoicePaymentStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = { UNPAID: "Unpaid", PARTIALLY_PAID: "Partially paid", PAID: "Paid" };
+    return en[status] ?? status;
+  }
+  return SALES_INVOICE_PAYMENT_STATUS_LABEL[status] ?? status;
+}
+
+export function salesInvoicePaymentMethodLabel(method: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = { CASH: "Cash", TRANSFER: "Bank transfer", CHEQUE: "Cheque" };
+    return en[method] ?? method;
+  }
+  return SALES_INVOICE_PAYMENT_METHOD_LABEL[method] ?? method;
+}

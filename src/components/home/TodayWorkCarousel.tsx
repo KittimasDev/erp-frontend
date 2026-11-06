@@ -17,6 +17,7 @@ import { SCREEN_CODE_HUB_HREF } from "@/lib/auth/screen-routes";
 import { MENU_BADGE_REGISTRY } from "@/hooks/badges/menu-badge-registry";
 import type { MenuBadgeCounts } from "@/hooks/badges/useMenuBadgeCounts";
 import { getVisiblePortalModules, PORTAL_MODULES } from "./portal-modules";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./TodayWorkCarousel.module.css";
 
 const PAGE_SIZE = 4;
@@ -75,6 +76,7 @@ type Props = {
 
 export default function TodayWorkCarousel({ counts }: Props) {
   const router = useRouter();
+  const t = useT();
   const [page, setPage] = useState(0);
 
   const items = useMemo(() => {
@@ -123,10 +125,10 @@ export default function TodayWorkCarousel({ counts }: Props) {
   };
 
   return (
-    <section className={styles.card} aria-label="งานของคุณวันนี้">
-      <h2 className={styles.title}>งานของคุณวันนี้</h2>
+    <section className={styles.card} aria-label={t("งานของคุณวันนี้")}>
+      <h2 className={styles.title}>{t("งานของคุณวันนี้")}</h2>
       {items.length === 0 ? (
-        <p className={styles.empty}>ไม่มีงานค้างวันนี้</p>
+        <p className={styles.empty}>{t("ไม่มีงานค้างวันนี้")}</p>
       ) : (
         <>
           <ul className={styles.list}>
@@ -136,13 +138,13 @@ export default function TodayWorkCarousel({ counts }: Props) {
                   type="button"
                   className={styles.row}
                   onClick={() => openItem(item)}
-                  aria-label={`${item.label} ${item.count} รายการ`}
+                  aria-label={`${t(item.label)} ${t("{n} รายการ", { n: item.count })}`}
                 >
                   <span
                     className={`${styles.dot} ${DOT_CLASS[index % DOT_CLASS.length]}`}
                     aria-hidden
                   />
-                  <span className={styles.label}>{item.label}</span>
+                  <span className={styles.label}>{t(item.label)}</span>
                   <span className={styles.count}>
                     {item.count > 99 ? "99+" : item.count}
                   </span>
@@ -152,14 +154,14 @@ export default function TodayWorkCarousel({ counts }: Props) {
             ))}
           </ul>
           {pageCount > 1 ? (
-            <div className={styles.pager} role="tablist" aria-label="หน้างานค้าง">
+            <div className={styles.pager} role="tablist" aria-label={t("หน้างานค้าง")}>
               {Array.from({ length: pageCount }, (_, i) => (
                 <button
                   key={i}
                   type="button"
                   role="tab"
                   aria-selected={i === page}
-                  aria-label={`หน้า ${i + 1}`}
+                  aria-label={t("หน้า {n}", { n: i + 1 })}
                   className={`${styles.pageDot} ${i === page ? styles.pageDotActive : ""}`}
                   onClick={() => setPage(i)}
                 />

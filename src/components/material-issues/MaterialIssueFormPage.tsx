@@ -25,6 +25,7 @@ import {
 } from "@/hooks/stock-issues/useStockIssueMutations";
 import { useStockIssueQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
 import type { CreateStockIssueBody } from "@/types/stock-issues";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./MaterialIssueFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -56,6 +57,7 @@ type Props = {
 };
 
 export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }: Props) {
+  const t = useT();
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const detailQuery = useStockIssueQuery(mode === "edit" ? id : undefined);
@@ -127,11 +129,11 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
             key: index,
             text: item
               ? `${item.itemNameTh} ${line.quantity ?? "-"}`
-              : `รายการที่ ${index + 1} (รอเลือกสินค้า)`,
+              : t("รายการที่ {n} (รอเลือกสินค้า)", { n: index + 1 }),
           };
         })
         .filter(Boolean) as Array<{ key: number; text: string }>,
-    [watchedItems, items],
+    [watchedItems, items, t],
   );
 
   const onFinish = async (values: FormValues) => {
@@ -167,13 +169,23 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
       <PageHeader
         eyebrow={chemicalOnly ? "Chemical Issue" : "Material Issue"}
         icon={<SwapOutlined />}
-        title={chemicalOnly ? "เบิกสารเคมี" : mode === "create" ? "สร้างใบเบิกของ" : "แก้ไขใบเบิกของ"}
-        subtitle={chemicalOnly ? "เลือกสารเคมีและ Lot (ผ่านการตรวจ COA และยังไม่หมดอายุ) ผูกใบสั่งผลิตที่นำไปใช้ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด — ใบเบิกอยู่ในรายการใบเบิกของตามปกติ" : "เลือกสินค้า/Lot ที่มีสต๊อกพอ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด"}
+        title={
+          chemicalOnly
+            ? t("เบิกสารเคมี")
+            : mode === "create"
+              ? t("สร้างใบเบิกของ")
+              : t("แก้ไขใบเบิกของ")
+        }
+        subtitle={
+          chemicalOnly
+            ? t("เลือกสารเคมีและ Lot (ผ่านการตรวจ COA และยังไม่หมดอายุ) ผูกใบสั่งผลิตที่นำไปใช้ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด — ใบเบิกอยู่ในรายการใบเบิกของตามปกติ")
+            : t("เลือกสินค้า/Lot ที่มีสต๊อกพอ บันทึกเป็น DRAFT แล้วส่งอนุมัติจากหน้ารายละเอียด")
+        }
         actions={
           <>
 <div className={styles.backLink}>
           <Link href="/inventory/material-issues">
-            <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
+            <Button icon={<ArrowLeftOutlined />}>{t("กลับรายการ")}</Button>
           </Link>
         </div>
           </>
@@ -192,32 +204,32 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+                  <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
                   <p className={styles.sectionHint}>
-                    เลขที่ใบเบิกจะสร้างอัตโนมัติเมื่อบันทึก
+                    {t("เลขที่ใบเบิกจะสร้างอัตโนมัติเมื่อบันทึก")}
                   </p>
                 </div>
 
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่เบิก"
+                    label={t("วันที่เบิก")}
                     name="issueDate"
-                    rules={[{ required: true, message: "กรุณาเลือกวันที่เบิก" }]}
+                    rules={[{ required: true, message: t("กรุณาเลือกวันที่เบิก") }]}
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
 
                   <Form.Item
                     className={styles.field}
-                    label="ใบสั่งผลิต (optional)"
+                    label={t("ใบสั่งผลิต (optional)")}
                     name="productionOrderId"
                   >
                     <Select
                       allowClear
                       showSearch
                       optionFilterProp="label"
-                      placeholder="ผูกกับใบสั่งผลิต (ถ้ามี)"
+                      placeholder={t("ผูกกับใบสั่งผลิต (ถ้ามี)")}
                       loading={productionOrdersQuery.isLoading}
                       options={productionOrders.map((order) => ({
                         value: order.id,
@@ -228,19 +240,19 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
 
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     name="remark"
                   >
-                    <Input.TextArea rows={2} placeholder="หมายเหตุหัวเอกสาร (ถ้ามี)" />
+                    <Input.TextArea rows={2} placeholder={t("หมายเหตุหัวเอกสาร (ถ้ามี)")} />
                   </Form.Item>
                 </div>
               </div>
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>รายการเบิก</h2>
+                  <h2 className={styles.sectionTitle}>{t("รายการเบิก")}</h2>
                   <p className={styles.sectionHint}>
-                    ต้องเลือก Lot ที่มีสต๊อกคงเหลือพอสำหรับแต่ละรายการ
+                    {t("ต้องเลือก Lot ที่มีสต๊อกคงเหลือพอสำหรับแต่ละรายการ")}
                   </p>
                 </div>
 
@@ -251,7 +263,7 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                       validator: async (_, value) => {
                         if (!value || value.length < 1) {
                           return Promise.reject(
-                            new Error("ต้องมีรายการอย่างน้อย 1 รายการ"),
+                            new Error(t("ต้องมีรายการอย่างน้อย 1 รายการ")),
                           );
                         }
                       },
@@ -328,7 +340,7 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                         return (
                           <div key={key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
-                              <strong>รายการที่ {index + 1}</strong>
+                              <strong>{t("รายการที่ {n}", { n: index + 1 })}</strong>
                               {fields.length > 1 ? (
                                 <Button
                                   type="text"
@@ -337,7 +349,7 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                                   icon={<DeleteOutlined />}
                                   onClick={() => remove(name)}
                                 >
-                                  ลบ
+                                  {t("ลบ")}
                                 </Button>
                               ) : null}
                             </div>
@@ -346,12 +358,12 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="สินค้า"
+                                label={t("สินค้า")}
                                 name={[name, "itemId"]}
-                                rules={[{ required: true, message: "เลือกสินค้า" }]}
+                                rules={[{ required: true, message: t("เลือกสินค้า") }]}
                               >
                                 <Select
-                                  placeholder="ค้นหา/เลือกสินค้า"
+                                  placeholder={t("ค้นหา/เลือกสินค้า")}
                                   showSearch
                                   optionFilterProp="label"
                                   options={items.map((item) => ({
@@ -387,17 +399,19 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="จำนวนเบิก"
+                                label={t("จำนวนเบิก")}
                                 name={[name, "quantity"]}
                                 dependencies={[["items", name, "lotId"]]}
                                 rules={[
-                                  { required: true, message: "ระบุจำนวน" },
+                                  { required: true, message: t("ระบุจำนวน") },
                                   {
                                     validator: async (_, value) => {
                                       // แปลงเพดานไม่ได้ = ไม่มีกฎแปลงคู่นี้ กดบันทึกไปก็โดนปฏิเสธ
                                       if (ceiling.unconvertible) {
                                         throw new Error(
-                                          "ยังไม่มีกฎแปลงหน่วยคู่นี้ — เลือกหน่วยหลักของสินค้า หรือตั้งกฎที่ ข้อมูลหลัก > กฎแปลงหน่วยนับ",
+                                          t(
+                                            "ยังไม่มีกฎแปลงหน่วยคู่นี้ — เลือกหน่วยหลักของสินค้า หรือตั้งกฎที่ ข้อมูลหลัก > กฎแปลงหน่วยนับ",
+                                          ),
                                         );
                                       }
                                       if (
@@ -406,7 +420,9 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                                         Number(value) > selectedLotQty
                                       ) {
                                         throw new Error(
-                                          `จำนวนต้องไม่เกินคงเหลือ (${selectedLotQty.toFixed(3)})`,
+                                          t("จำนวนต้องไม่เกินคงเหลือ ({qty})", {
+                                            qty: selectedLotQty.toFixed(3),
+                                          }),
                                         );
                                       }
                                     },
@@ -432,9 +448,9 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="หน่วย"
+                                label={t("หน่วย")}
                                 name={[name, "unitId"]}
-                                rules={[{ required: true, message: "เลือกหน่วย" }]}
+                                rules={[{ required: true, message: t("เลือกหน่วย") }]}
                               >
                                 <Select
                                   showSearch
@@ -451,9 +467,9 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="คลัง"
+                                label={t("คลัง")}
                                 name={[name, "warehouseId"]}
-                                rules={[{ required: true, message: "เลือกคลัง" }]}
+                                rules={[{ required: true, message: t("เลือกคลัง") }]}
                               >
                                 <Select
                                   showSearch
@@ -462,10 +478,10 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                                   disabled={!line?.itemId}
                                   placeholder={
                                     !line?.itemId
-                                      ? "เลือกสินค้าเพื่อดูคลัง"
+                                      ? t("เลือกสินค้าเพื่อดูคลัง")
                                       : warehouseOptions.length === 0
-                                        ? "ไม่มีคลังที่มีสต๊อก"
-                                        : "เลือกคลังที่มีสต๊อก"
+                                        ? t("ไม่มีคลังที่มีสต๊อก")
+                                        : t("เลือกคลังที่มีสต๊อก")
                                   }
                                   options={warehouseOptions}
                                   onChange={() => {
@@ -484,9 +500,9 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="ตำแหน่ง"
+                                label={t("ตำแหน่ง")}
                                 name={[name, "locationId"]}
-                                rules={[{ required: true, message: "เลือกตำแหน่ง" }]}
+                                rules={[{ required: true, message: t("เลือกตำแหน่ง") }]}
                               >
                                 <Select
                                   showSearch
@@ -495,10 +511,10 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                                   loading={lotsQuery.isLoading}
                                   placeholder={
                                     !line?.warehouseId
-                                      ? "เลือกคลังก่อน"
+                                      ? t("เลือกคลังก่อน")
                                       : locationOptions.length === 0
-                                        ? "ไม่มีตำแหน่งที่มีสต๊อก"
-                                        : "เลือกตำแหน่งที่มีสต๊อก"
+                                        ? t("ไม่มีตำแหน่งที่มีสต๊อก")
+                                        : t("เลือกตำแหน่งที่มีสต๊อก")
                                   }
                                   options={locationOptions}
                                   onChange={() => {
@@ -513,9 +529,9 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="Lot (คงเหลือ)"
+                                label={t("Lot (คงเหลือ)")}
                                 name={[name, "lotId"]}
-                                rules={[{ required: true, message: "เลือก Lot" }]}
+                                rules={[{ required: true, message: t("เลือก Lot") }]}
                               >
                                 <Select
                                   showSearch
@@ -529,14 +545,14 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                                     !line?.itemId ||
                                     !line?.warehouseId ||
                                     !line?.locationId
-                                      ? "เลือกสินค้า/คลัง/ตำแหน่งก่อน"
-                                      : "เลือก Lot"
+                                      ? t("เลือกสินค้า/คลัง/ตำแหน่งก่อน")
+                                      : t("เลือก Lot")
                                   }
                                   options={availableLots.map((lot) => ({
                                     value: lot.lotId,
                                     label: chemicalOnly
-                                      ? `${lot.lotNo}${lot.batchNo ? ` (Batch ${lot.batchNo})` : ""} — คงเหลือ ${lot.quantityAvailable}${lot.expiryDate ? ` · หมดอายุ ${lot.expiryDate}` : ""}${lot.expiryStatus === "CRITICAL" || lot.expiryStatus === "WARNING" ? " ⚠ ใกล้หมดอายุ" : ""}`
-                                      : `${lot.lotNo} — คงเหลือ ${lot.quantityAvailable}`,
+                                      ? `${lot.lotNo}${lot.batchNo ? ` (Batch ${lot.batchNo})` : ""} — ${t("คงเหลือ")} ${lot.quantityAvailable}${lot.expiryDate ? ` · ${t("หมดอายุ")} ${lot.expiryDate}` : ""}${lot.expiryStatus === "CRITICAL" || lot.expiryStatus === "WARNING" ? ` ⚠ ${t("ใกล้หมดอายุ")}` : ""}`
+                                      : `${lot.lotNo} — ${t("คงเหลือ")} ${lot.quantityAvailable}`,
                                   }))}
                                 />
                               </Form.Item>
@@ -545,10 +561,10 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="หมายเหตุรายการ"
+                              label={t("หมายเหตุรายการ")}
                               name={[name, "remark"]}
                             >
-                              <Input placeholder="หมายเหตุ (ถ้ามี)" />
+                              <Input placeholder={t("หมายเหตุ (ถ้ามี)")} />
                             </Form.Item>
                           </div>
                         );
@@ -560,7 +576,7 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                         icon={<PlusOutlined />}
                         onClick={() => add({})}
                       >
-                        เพิ่มรายการ
+                        {t("เพิ่มรายการ")}
                       </Button>
                       <Form.ErrorList errors={errors} />
                     </div>
@@ -571,14 +587,14 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
 
             <div className={styles.footerBar}>
               <p className={styles.footerHint}>
-                บันทึกแล้วสถานะจะเป็น DRAFT — หัวหน้าคลังต้องอนุมัติก่อนตัดสต๊อกจริง
+                {t("บันทึกแล้วสถานะจะเป็น DRAFT — หัวหน้าคลังต้องอนุมัติก่อนตัดสต๊อกจริง")}
               </p>
               <div className={styles.footerActions}>
                 <Button
                   className={styles.cancelBtn}
                   onClick={() => router.push("/inventory/material-issues")}
                 >
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -586,7 +602,7 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                   htmlType="submit"
                   loading={saving}
                 >
-                  {mode === "create" ? "บันทึกใบเบิกของ" : "บันทึกการแก้ไข"}
+                  {mode === "create" ? t("บันทึกใบเบิกของ") : t("บันทึกการแก้ไข")}
                 </Button>
               </div>
             </div>
@@ -594,18 +610,18 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
 
           <aside className={styles.summaryCard}>
             <div>
-              <p className={styles.summaryEyebrow}>สรุปแบบฟอร์ม</p>
+              <p className={styles.summaryEyebrow}>{t("สรุปแบบฟอร์ม")}</p>
               <h2 className={styles.summaryTitle}>
-                {mode === "create" ? "ใบเบิกใหม่" : "แก้ไข DRAFT"}
+                {mode === "create" ? t("ใบเบิกใหม่") : t("แก้ไข DRAFT")}
               </h2>
               <p className={styles.summaryLead}>
-                ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ
+                {t("ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ")}
               </p>
             </div>
 
             <div>
               <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                รายการเบิก
+                {t("รายการเบิก")}
               </Typography.Text>
               {previewLines.length > 0 ? (
                 <ul className={styles.previewList}>
@@ -614,15 +630,14 @@ export default function MaterialIssueFormPage({ mode, id, chemicalOnly = false }
                   ))}
                 </ul>
               ) : (
-                <p className={styles.previewMeta}>ยังไม่มีรายการ</p>
+                <p className={styles.previewMeta}>{t("ยังไม่มีรายการ")}</p>
               )}
             </div>
 
             <div className={styles.flowNote}>
-              <strong>ขั้นตอนถัดไป</strong>
+              <strong>{t("ขั้นตอนถัดไป")}</strong>
               <p>
-                หลังบันทึก → เปิดหน้ารายละเอียด → กด “อนุมัติ” →
-                หัวหน้าคลังตัดสต๊อกจริง
+                {t("หลังบันทึก → เปิดหน้ารายละเอียด → กด “อนุมัติ” → หัวหน้าคลังตัดสต๊อกจริง")}
               </p>
             </div>
           </aside>

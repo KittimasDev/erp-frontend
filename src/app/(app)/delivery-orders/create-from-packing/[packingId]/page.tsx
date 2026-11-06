@@ -11,6 +11,7 @@ import { useReadyPackingsForDeliveryQuery } from "@/hooks/delivery-orders/useDel
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { ApiError } from "@/lib/api/client";
 import { canCreateDeliveryFromPacking } from "@/lib/sales/sales-fulfillment-nav";
+import { useT } from "@/lib/i18n/useT";
 
 /**
  * ใบบรรจุพร้อมส่ง → ไปหน้าเลือกใบบรรจุ (เลือกไว้ให้แล้ว รวมใบอื่นของ SO เดียวกันได้)
@@ -21,6 +22,7 @@ export default function Page({
 }: {
   params: Promise<{ packingId: string }>;
 }) {
+  const t = useT();
   const { packingId } = use(params);
   const router = useRouter();
   const readyQuery = useReadyPackingsForDeliveryQuery();
@@ -70,7 +72,7 @@ export default function Page({
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : "ไม่สามารถสร้างใบส่งสินค้าได้",
+            : t("ไม่สามารถสร้างใบส่งสินค้าได้"),
         );
       }
     })();
@@ -90,16 +92,16 @@ export default function Page({
     return (
       <Result
         status="error"
-        title="สร้างใบส่งสินค้าไม่สำเร็จ"
+        title={t("สร้างใบส่งสินค้าไม่สำเร็จ")}
         subTitle={
           errorMessage ??
           (readyQuery.error instanceof Error
             ? readyQuery.error.message
-            : "โหลดรายการใบบรรจุไม่สำเร็จ")
+            : t("โหลดรายการใบบรรจุไม่สำเร็จ"))
         }
         extra={
           <Link href={`/packings/${packingId}`}>
-            <Button type="primary">กลับใบบรรจุ</Button>
+            <Button type="primary">{t("กลับใบบรรจุ")}</Button>
           </Link>
         }
       />
@@ -108,7 +110,7 @@ export default function Page({
 
   return (
     <div style={{ padding: 48, textAlign: "center" }}>
-      <Spin description="กำลังเปิดใบส่งสินค้า..." />
+      <Spin description={t("กำลังเปิดใบส่งสินค้า...")} />
     </div>
   );
 }

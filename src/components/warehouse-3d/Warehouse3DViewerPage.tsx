@@ -45,6 +45,7 @@ import { Warehouse3DRightPanel } from "./Warehouse3DRightPanel";
 import { DroneHUDOverlay } from "./DroneHUDOverlay";
 import { Warehouse3DLayoutEditorModal } from "./Warehouse3DLayoutEditorModal";
 import { ZoneLotList } from "./ZoneLotList";
+import { useT } from "@/lib/i18n/useT";
 
 const LOCATION_COLOR_PALETTE = [
   "#10b981", // Emerald Green
@@ -184,6 +185,7 @@ function sanitizeWarehouseLayout(raw: any): Warehouse3DLayoutConfig {
 }
 
 export default function Warehouse3DViewerPage() {
+  const t = useT();
   const { message } = App.useApp();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -518,7 +520,7 @@ export default function Warehouse3DViewerPage() {
       name: newRack.name,
     });
 
-    message.success(`วางชั้นวาง ${newRack.code} ลงในพื้นที่แล้ว (อย่าลืมกดบันทึกผัง)`);
+    message.success(t("วางชั้นวาง {code} ลงในพื้นที่แล้ว (อย่าลืมกดบันทึกผัง)", { code: newRack.code }));
   };
 
   const handleQuickAddZone = () => {
@@ -546,7 +548,7 @@ export default function Warehouse3DViewerPage() {
       name: newZone.name,
     });
 
-    message.success(`วางลานกอง ${newZone.code} ลงในพื้นที่แล้ว`);
+    message.success(t("วางลานกอง {code} ลงในพื้นที่แล้ว", { code: newZone.code }));
   };
 
   const handleQuickAddTank = () => {
@@ -576,7 +578,7 @@ export default function Warehouse3DViewerPage() {
       name: newTank.name,
     });
 
-    message.success(`วางถังบรรจุ ${newTank.code} ลงในพื้นที่แล้ว`);
+    message.success(t("วางถังบรรจุ {code} ลงในพื้นที่แล้ว", { code: newTank.code }));
   };
 
   // ลาก/ยืดโซนบนภาพ 3D: ถ้าผังยังไม่มีโซนเก็บไว้ (โซนที่เห็นสร้างจาก Location อัตโนมัติ) ให้เก็บทั้งชุดก่อนแล้วค่อยแก้
@@ -607,7 +609,7 @@ export default function Warehouse3DViewerPage() {
     setSelectedObject(null);
     setSelectedSlotKey(null);
     setHasUnsavedChanges(true);
-    message.info("ล้างเป็นคลังเปล่าแล้ว — สามารถเริ่มวางชั้นวางและลานกองใหม่ได้");
+    message.info(t("ล้างเป็นคลังเปล่าแล้ว — สามารถเริ่มวางชั้นวางและลานกองใหม่ได้"));
   };
 
   const handleSaveWorkingLayout = async () => {
@@ -619,15 +621,15 @@ export default function Warehouse3DViewerPage() {
       });
       setHasUnsavedChanges(false);
       refetchLayout();
-      message.success("บันทึกผังคลัง 3 มิติสำเร็จแล้ว");
+      message.success(t("บันทึกผังคลัง 3 มิติสำเร็จแล้ว"));
     } catch {
-      message.error("เกิดข้อผิดพลาดในการบันทึกผัง");
+      message.error(t("เกิดข้อผิดพลาดในการบันทึกผัง"));
     }
   };
 
   const handleLocationPicked = (locationCode: string, locationId?: string) => {
     if (isPickerMode) {
-      message.success(`เลือกตำแหน่ง ${locationCode} สำเร็จ`);
+      message.success(t("เลือกตำแหน่ง {code} สำเร็จ", { code: locationCode }));
       if (window.opener) {
         window.opener.postMessage(
           {
@@ -689,9 +691,9 @@ export default function Warehouse3DViewerPage() {
           });
         }),
       );
-      message.success("บันทึกพิกัด ขนาดอาคารคลัง และถนนโรงงานสำเร็จเรียบร้อย");
+      message.success(t("บันทึกพิกัด ขนาดอาคารคลัง และถนนโรงงานสำเร็จเรียบร้อย"));
     } catch {
-      message.error("เกิดข้อผิดพลาดในการบันทึกผังโรงงาน");
+      message.error(t("เกิดข้อผิดพลาดในการบันทึกผังโรงงาน"));
     }
   };
 
@@ -743,9 +745,9 @@ export default function Warehouse3DViewerPage() {
               setSelectedSlotKey(null);
             }}
             className="text-slate-300 hover:text-white hover:bg-slate-800"
-            title="กลับไปหน้ารวมคลังสินค้า"
+            title={t("กลับไปหน้ารวมคลังสินค้า")}
           >
-            <span className="hidden sm:inline text-xs font-semibold">เปลี่ยนคลัง</span>
+            <span className="hidden sm:inline text-xs font-semibold">{t("เปลี่ยนคลัง")}</span>
           </Button>
 
           <div className="h-4 w-[1px] bg-slate-700" />
@@ -774,7 +776,7 @@ export default function Warehouse3DViewerPage() {
 
           {hasUnsavedChanges && (
             <span className="text-[11px] text-amber-400 animate-pulse hidden lg:inline-block">
-              ● มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก
+              {t("● มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก")}
             </span>
           )}
         </div>
@@ -791,7 +793,7 @@ export default function Warehouse3DViewerPage() {
             }`}
           >
             <AppstoreOutlined />
-            <span>3D ผังคลัง (Locations)</span>
+            <span>{t("3D ผังคลัง (Locations)")}</span>
           </button>
 
           <button
@@ -804,7 +806,7 @@ export default function Warehouse3DViewerPage() {
             }`}
           >
             <SendOutlined />
-            <span>โดรนสำรวจ (Drone)</span>
+            <span>{t("โดรนสำรวจ (Drone)")}</span>
           </button>
 
           <button
@@ -817,7 +819,7 @@ export default function Warehouse3DViewerPage() {
             }`}
           >
             <EditOutlined />
-            <span>ปรับแต่งผัง (Editor)</span>
+            <span>{t("ปรับแต่งผัง (Editor)")}</span>
           </button>
         </nav>
 
@@ -834,7 +836,7 @@ export default function Warehouse3DViewerPage() {
             }
           >
             <span className="hidden sm:inline">
-              {isFullscreen ? "ย่อจอ (Exit)" : "ขยายเต็มจอ (Fullscreen)"}
+              {isFullscreen ? t("ย่อจอ (Exit)") : t("ขยายเต็มจอ (Fullscreen)")}
             </span>
           </Button>
 
@@ -842,12 +844,12 @@ export default function Warehouse3DViewerPage() {
             type="text"
             icon={<SyncOutlined className="text-slate-400" />}
             onClick={() => refetchLayout()}
-            title="รีเฟรชผัง"
+            title={t("รีเฟรชผัง")}
           />
 
           {isPickerMode && (
             <Tag color="cyan" className="font-semibold text-xs">
-              โหมดเลือกตำแหน่ง
+              {t("โหมดเลือกตำแหน่ง")}
             </Tag>
           )}
         </div>
@@ -858,7 +860,7 @@ export default function Warehouse3DViewerPage() {
         {isLayoutLoading ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20 gap-3">
             <Spin size="large" />
-            <span className="text-slate-400 text-sm">กำลังโหลดพื้นที่คลังสินค้า 3 มิติ...</span>
+            <span className="text-slate-400 text-sm">{t("กำลังโหลดพื้นที่คลังสินค้า 3 มิติ...")}</span>
           </div>
         ) : (
           <>
@@ -882,7 +884,7 @@ export default function Warehouse3DViewerPage() {
 
             {selectedObject?.type === "zone" && !isPickerMode && viewMode !== "drone" && (
               <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-700 text-[11px] text-slate-200 pointer-events-none">
-                ลากก้อนขาวตรงกลางเพื่อ<b className="text-sky-300">ย้าย</b> · ลากก้อนส้มที่ขอบเพื่อ<b className="text-amber-300">ยืด/หด</b> · อย่าลืมกดบันทึกผัง
+                {t("ลากก้อนขาวตรงกลางเพื่อย้าย · ลากก้อนส้มที่ขอบเพื่อยืด/หด · อย่าลืมกดบันทึกผัง")}
               </div>
             )}
 

@@ -6,6 +6,9 @@ import type { ColumnsType } from "antd/es/table";
 import { PrinterOutlined } from "@ant-design/icons";
 
 import { useWithholdingCertificatesQuery } from "@/hooks/payroll/usePayroll";
+import { formatMoney } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { getCompanyInfoSnapshot } from "@/lib/company/company-info";
 import type { WithholdingCertificate } from "@/types/payroll";
 import { ensureCompanyInfo, releasePdfWindow, reservePdfWindow } from "@/utils/pdf-common";
@@ -13,9 +16,6 @@ import {
   openWhtCertificatesPdf,
   type WhtCertificatePdfData,
 } from "@/utils/generateWhtCertificatePdf";
-
-const money = (v: number) =>
-  v.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type Props = { open: boolean; onClose: () => void };
 
@@ -57,6 +57,9 @@ function toPdfData(
 /** 50 ทวิ เงินเดือนรายปี — รวมเฉพาะงวดที่ปิดแล้ว พิมพ์รายคนหรือทั้งบริษัท */
 export default function PayrollWhtModal({ open, onClose }: Props) {
   const { message } = App.useApp();
+  const t = useT();
+  const language = useLanguage();
+  const money = (v: number) => formatMoney(v, language);
   const thisYear = new Date().getFullYear();
   const [year, setYear] = useState(thisYear);
   const query = useWithholdingCertificatesQuery(year, open);
@@ -71,13 +74,13 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
       await openWhtCertificatesPdf(list.map(({ c, index }) => toPdfData(year, index, c, payer)));
     } catch (error) {
       releasePdfWindow();
-      message.error(error instanceof Error ? error.message : "สร้าง PDF ไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("สร้าง PDF ไม่สำเร็จ"));
     }
   };
 
   const columns: ColumnsType<WithholdingCertificate> = [
     {
-      title: "พนักงาน",
+      title: t("พนักงาน"),
       key: "user",
       render: (_v, c) => (
         <div>
@@ -85,16 +88,16 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
           <div style={{ fontSize: 12, color: "#8a94a6" }}>
             {[c.employeeCode, c.position].filter(Boolean).join(" · ") || "—"}
           </div>
-          {!c.nationalId ? <Tag color="orange">ไม่มีเลขประจำตัวประชาชน</Tag> : null}
-          {!c.address ? <Tag color="orange">ไม่มีที่อยู่</Tag> : null}
+          {!c.nationalId ? <Tag color="orange">{t("ไม่มีเลขประจำตัวประชาชน")}</Tag> : null}
+          {!c.address ? <Tag color="orange">{t("ไม่มีที่อยู่")}</Tag> : null}
         </div>
       ),
     },
-    { title: "จำนวนงวด", key: "n", width: 90, align: "center", render: (_v, c) => c.payments.length },
-    { title: "เงินได้รวม", key: "income", width: 130, align: "right", render: (_v, c) => money(c.totalIncome) },
-    { title: "ภาษีที่หัก", key: "tax", width: 120, align: "right", render: (_v, c) => money(c.totalWithholdingTax) },
-    { title: "ประกันสังคม", key: "ss", width: 110, align: "right", render: (_v, c) => money(c.totalSocialSecurity) },
-    { title: "กองทุน", key: "pf", width: 110, align: "right", render: (_v, c) => money(c.totalProvidentFund) },
+    { title: t("จำนวนงวด"), key: "n", width: 90, align: "center", render: (_v, c) => c.payments.length },
+    { title: t("เงินได้รวม"), key: "income", width: 130, align: "right", render: (_v, c) => money(c.totalIncome) },
+    { title: t("ภาษีที่หัก"), key: "tax", width: 120, align: "right", render: (_v, c) => money(c.totalWithholdingTax) },
+    { title: t("ประกันสังคม"), key: "ss", width: 110, align: "right", render: (_v, c) => money(c.totalSocialSecurity) },
+    { title: t("กองทุน"), key: "pf", width: 110, align: "right", render: (_v, c) => money(c.totalProvidentFund) },
     {
       title: "",
       key: "act",
@@ -105,7 +108,7 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
           icon={<PrinterOutlined />}
           onClick={() => void print([{ c, index: items.indexOf(c) }])}
         >
-          พิมพ์
+          {t("พิมพ์")}
         </Button>
       ),
     },
@@ -117,17 +120,17 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
       onCancel={onClose}
       footer={null}
       width={960}
-      title="หนังสือรับรองหัก ณ ที่จ่าย (50 ทวิ) — เงินเดือน"
+      title={t("หนังสือรับรองหัก ณ ที่จ่าย (50 ทวิ) — เงินเดือน")}
     >
       <Space style={{ marginBottom: 12 }} wrap>
-        <span>ปีภาษี</span>
+        <span>{t("ปีภาษี")}</span>
         <Select
           value={year}
           onChange={setYear}
           style={{ width: 140 }}
           options={[0, 1, 2, 3].map((i) => ({
             value: thisYear - i,
-            label: `${thisYear - i + 543} (${thisYear - i})`,
+            label: language === "en" ? `${thisYear - i}` : `${thisYear - i + 543} (${thisYear - i})`,
           }))}
         />
         <Button
@@ -136,14 +139,14 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
           disabled={items.length === 0}
           onClick={() => void print(items.map((c, index) => ({ c, index })))}
         >
-          พิมพ์ทั้งหมด ({items.length})
+          {t("พิมพ์ทั้งหมด ({n})", { n: items.length })}
         </Button>
       </Space>
       <Alert
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title="รวมเฉพาะงวดที่ปิดงวดแล้ว โดยถือวันสิ้นสุดงวดเป็นวันที่จ่าย (ถ้าปิดงวดก่อนสิ้นสุดงวด ใช้วันปิดงวดแทน) — เลขประจำตัวประชาชนและที่อยู่ตั้งได้ที่ฟอร์มผู้ใช้งาน /users"
+        title={t("รวมเฉพาะงวดที่ปิดงวดแล้ว โดยถือวันสิ้นสุดงวดเป็นวันที่จ่าย (ถ้าปิดงวดก่อนสิ้นสุดงวด ใช้วันปิดงวดแทน) — เลขประจำตัวประชาชนและที่อยู่ตั้งได้ที่ฟอร์มผู้ใช้งาน /users")}
       />
       <Table
         rowKey="userId"
@@ -152,7 +155,7 @@ export default function PayrollWhtModal({ open, onClose }: Props) {
         columns={columns}
         dataSource={items}
         pagination={{ pageSize: 10, hideOnSinglePage: true }}
-        locale={{ emptyText: "ยังไม่มีงวดที่ปิดแล้วในปีนี้" }}
+        locale={{ emptyText: t("ยังไม่มีงวดที่ปิดแล้วในปีนี้") }}
         scroll={{ x: 800 }}
       />
     </Modal>

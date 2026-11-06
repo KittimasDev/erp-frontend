@@ -11,13 +11,16 @@ import type { ColumnsType } from "antd/es/table";
 import { useQueries } from "@tanstack/react-query";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatDate as formatLocaleDate } from "@/lib/i18n/format";
 import { useStockPostingApprovalsQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import { getStockPostingApprovals } from "@/lib/api/stock-posting-requests";
 import { getAccessToken } from "@/lib/auth/token";
 import { useCanApproveStockPostingApprovals } from "@/lib/auth/stock-posting-access";
 import type { StockPostingRequest } from "@/types/stock-posting-request";
 import {
-  STOCK_POSTING_REQUEST_STATUS_LABEL,
+  stockPostingStatusLabel,
   StockPostingRequestStatus,
 } from "@/types/stock-posting-request";
 import styles from "@/components/weighbridge/WeighbridgeDashboardPage.module.css";
@@ -52,13 +55,6 @@ const STATUS_FILTERS: {
 
 const PAGE_SIZE = 10;
 
-function formatDate(value?: string) {
-  if (!value) {
-    return "-";
-  }
-  return new Date(value).toLocaleDateString("th-TH");
-}
-
 function statusTagColor(status: string) {
   switch (status) {
     case StockPostingRequestStatus.PENDING_APPROVAL:
@@ -76,6 +72,8 @@ function statusTagColor(status: string) {
 
 export default function StockPostingApprovalsPage() {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
   const [status, setStatus] = useState<string>(
     StockPostingRequestStatus.PENDING_APPROVAL,
   );
@@ -119,27 +117,27 @@ export default function StockPostingApprovalsPage() {
   const columns: ColumnsType<StockPostingRequest> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "index",
         width: 72,
         align: "center",
         render: (_value, _row, index) => (page - 1) * PAGE_SIZE + index + 1,
       },
       {
-        title: "เลขที่คำขอ",
+        title: t("เลขที่คำขอ"),
         dataIndex: "requestNo",
         key: "requestNo",
         width: 160,
         render: (value: string) => <strong>{value}</strong>,
       },
       {
-        title: "ใบรับซื้อ",
+        title: t("ใบรับซื้อ"),
         key: "receipt",
         width: 150,
         render: (_, row) => row.receipt?.receiptNo ?? row.receiptId,
       },
       {
-        title: "คลัง / ตำแหน่ง",
+        title: t("คลัง / ตำแหน่ง"),
         key: "warehouse",
         render: (_, row) => {
           const warehouse = [row.warehouseCode, row.warehouseName]
@@ -159,14 +157,14 @@ export default function StockPostingApprovalsPage() {
         },
       },
       {
-        title: "วันที่รับเข้า",
+        title: t("วันที่รับเข้า"),
         dataIndex: "postingDate",
         key: "postingDate",
         width: 120,
-        render: (value: string) => formatDate(value),
+        render: (value: string) => formatLocaleDate(value, lang),
       },
       {
-        title: "ผู้ขอ",
+        title: t("ผู้ขอ"),
         key: "requestedBy",
         width: 140,
         render: (_, row) =>
@@ -175,18 +173,18 @@ export default function StockPostingApprovalsPage() {
           row.requestedById,
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 130,
         render: (value: string) => (
           <Tag color={statusTagColor(value)} className={styles.flowTag}>
-            {STOCK_POSTING_REQUEST_STATUS_LABEL[value] ?? value}
+            {stockPostingStatusLabel(value, lang)}
           </Tag>
         ),
       },
       {
-        title: "ดำเนินการ",
+        title: t("ดำเนินการ"),
         key: "actions",
         width: 130,
         fixed: "right",
@@ -204,13 +202,13 @@ export default function StockPostingApprovalsPage() {
             }}
           >
             {row.status === StockPostingRequestStatus.PENDING_APPROVAL
-              ? "ตรวจสอบ"
-              : "ดูรายละเอียด"}
+              ? t("ตรวจสอบ")
+              : t("ดูรายละเอียด")}
           </Button>
         ),
       },
     ],
-    [page, router],
+    [page, router, t, lang],
   );
 
   return (
@@ -219,8 +217,8 @@ export default function StockPostingApprovalsPage() {
         <PageHeader
           eyebrow="Warehouse"
           icon={<InboxOutlined />}
-          title="อนุมัติรับเข้าคลัง"
-          subtitle="หัวหน้าคลังตรวจสอบคำขอรับยางดิบ — อนุมัติแล้วระบบจึง POST สต๊อกจริง"
+          title={t("อนุมัติรับเข้าคลัง")}
+          subtitle={t("หัวหน้าคลังตรวจสอบคำขอรับยางดิบ — อนุมัติแล้วระบบจึง POST สต๊อกจริง")}
           actions={
             <>
 <Button
@@ -229,7 +227,7 @@ export default function StockPostingApprovalsPage() {
               loading={approvalsQuery.isFetching}
               onClick={() => void approvalsQuery.refetch()}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
             </>
           }
@@ -241,11 +239,11 @@ export default function StockPostingApprovalsPage() {
               " ",
             )}
           >
-            <span>รออนุมัติ</span>
+            <span>{t("รออนุมัติ")}</span>
             <strong>{pendingCount.toLocaleString("th-TH")}</strong>
           </div>
           <div className={styles.statHighlight}>
-            <span>รายการที่แสดง</span>
+            <span>{t("รายการที่แสดง")}</span>
             <strong>{rows.length.toLocaleString("th-TH")}</strong>
           </div>
         </div>
@@ -270,7 +268,7 @@ export default function StockPostingApprovalsPage() {
               setPage(1);
             }}
           >
-            <span>อนุมัติแล้ว</span>
+            <span>{t("อนุมัติแล้ว")}</span>
             <strong>
               {(
                 statusCounts[StockPostingRequestStatus.APPROVED] ?? 0
@@ -293,7 +291,7 @@ export default function StockPostingApprovalsPage() {
               setPage(1);
             }}
           >
-            <span>ไม่อนุมัติ</span>
+            <span>{stockPostingStatusLabel(StockPostingRequestStatus.REJECTED, lang)}</span>
             <strong>
               {(
                 statusCounts[StockPostingRequestStatus.REJECTED] ?? 0
@@ -301,9 +299,9 @@ export default function StockPostingApprovalsPage() {
             </strong>
           </button>
           <div className={styles.summaryCard} style={{ cursor: "default" }}>
-            <span>สิทธิ์</span>
+            <span>{t("สิทธิ์")}</span>
             <strong style={{ fontSize: 16 }}>
-              {canApprove ? "อนุมัติได้" : "ดูอย่างเดียว"}
+              {canApprove ? t("อนุมัติได้") : t("ดูอย่างเดียว")}
             </strong>
           </div>
         </div>
@@ -312,8 +310,7 @@ export default function StockPostingApprovalsPage() {
           <div className={styles.card}>
             <div className={styles.cardBody}>
               <Typography.Text type="secondary">
-                ดูรายการได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์{" "}
-                STOCK_POSTING_APPROVALS · APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต
+                {t("ดูรายการได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์ STOCK_POSTING_APPROVALS · APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต")}
               </Typography.Text>
             </div>
           </div>
@@ -321,7 +318,7 @@ export default function StockPostingApprovalsPage() {
 
         <div className={styles.filterBar}>
           <div className={styles.stageStrip}>
-            <span className={styles.stageStripLabel}>สถานะ</span>
+            <span className={styles.stageStripLabel}>{t("สถานะ")}</span>
             <div className={styles.stageChips}>
               {STATUS_FILTERS.map((option) => {
                 const active = status === option.key;
@@ -335,13 +332,13 @@ export default function StockPostingApprovalsPage() {
                     ]
                       .filter(Boolean)
                       .join(" ")}
-                    title={option.description}
+                    title={t(option.description)}
                     onClick={() => {
                       setStatus(option.key);
                       setPage(1);
                     }}
                   >
-                    <span>{option.label}</span>
+                    <span>{stockPostingStatusLabel(option.key, lang)}</span>
                     <em>{statusCounts[option.key] ?? 0}</em>
                   </button>
                 );
@@ -354,14 +351,15 @@ export default function StockPostingApprovalsPage() {
           <div className={styles.listHeader}>
             <div>
               <h3>
-                {STATUS_FILTERS.find((item) => item.key === status)?.label ??
-                  "รายการคำขอ"}
+                {STATUS_FILTERS.some((item) => item.key === status)
+                  ? stockPostingStatusLabel(status, lang)
+                  : t("รายการคำขอ")}
               </h3>
               <p>
-                กดแถวหรือปุ่มเพื่อเปิดรายละเอียด
+                {t("กดแถวหรือปุ่มเพื่อเปิดรายละเอียด")}
                 {canApprove &&
                 status === StockPostingRequestStatus.PENDING_APPROVAL
-                  ? " · อนุมัติได้จากหน้ารายละเอียด"
+                  ? ` · ${t("อนุมัติได้จากหน้ารายละเอียด")}`
                   : ""}
               </p>
             </div>
@@ -376,11 +374,11 @@ export default function StockPostingApprovalsPage() {
               current: page,
               pageSize: PAGE_SIZE,
               showSizeChanger: false,
-              showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+              showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
               onChange: setPage,
             }}
             scroll={{ x: 980 }}
-            locale={{ emptyText: "ไม่พบคำขอตามเงื่อนไขที่เลือก" }}
+            locale={{ emptyText: t("ไม่พบคำขอตามเงื่อนไขที่เลือก") }}
             onRow={(record) => ({
               onClick: () =>
                 router.push(`/warehouse/stock-posting-approvals/${record.id}`),

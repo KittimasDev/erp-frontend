@@ -21,6 +21,7 @@ import {
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
+import { tNow, useT } from "@/lib/i18n/useT";
 import { useStockMovementsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import { formatErpDate, formatErpTime } from "@/lib/datetime/erp-timezone";
@@ -49,7 +50,7 @@ type DraftFilters = {
 };
 
 const MOVEMENT_OPTIONS = Object.entries(STOCK_MOVEMENT_TYPE_LABEL).map(
-  ([value, label]) => ({ value, label: `${value} — ${label}` }),
+  ([value, label]) => ({ value, label }),
 );
 
 const PAGE_SIZE = 20;
@@ -86,19 +87,21 @@ function pageCopy(
   const scope = getInventoryPageScope(searchParams, itemCategoryCode);
   if (scope) {
     return {
-      ...scope,
-      subtitle: "ตรวจสอบประวัติความเคลื่อนไหวของสินค้า",
+      eyebrow: tNow(scope.eyebrow),
+      title: tNow(scope.title),
+      subtitle: tNow("ตรวจสอบประวัติความเคลื่อนไหวของสินค้า"),
     };
   }
   return {
     eyebrow: "Inventory · Audit",
-    title: "ประวัติความเคลื่อนไหวสต๊อก",
+    title: tNow("ประวัติความเคลื่อนไหวสต๊อก"),
     subtitle:
-      "ตรวจสอบรับเข้า · เบิกออก · ขายออก · ปรับยอด · โอนคลัง พร้อมเอกสารต้นทาง",
+      tNow("ตรวจสอบรับเข้า · เบิกออก · ขายออก · ปรับยอด · โอนคลัง พร้อมเอกสารต้นทาง"),
   };
 }
 
 export default function StockMovementsPage() {
+  const t = useT();
   const searchParams = useSearchParams();
   const scopeFilter = inventoryScopeApiFilter(searchParams);
   const copy = pageCopy(searchParams, scopeFilter.itemCategoryCode);
@@ -157,14 +160,14 @@ export default function StockMovementsPage() {
 
   const columns: ColumnsType<StockMovementRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 72,
       align: "center",
       render: (_value, _row, index) => (page - 1) * PAGE_SIZE + index + 1,
     },
     {
-      title: "วันเวลา",
+      title: t("วันเวลา"),
       dataIndex: "movementDate",
       key: "movementDate",
       width: 150,
@@ -182,19 +185,19 @@ export default function StockMovementsPage() {
       },
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       dataIndex: "movementType",
       key: "movementType",
       width: 120,
       render: (_v: string, row) => {
         const label = resolveStockMovementTypeLabel(row);
         return (
-          <Tag color={describeStockMovement(row).tagColor}>{label}</Tag>
+          <Tag color={describeStockMovement(row).tagColor}>{t(label)}</Tag>
         );
       },
     },
     {
-      title: "รายการ",
+      title: t("รายการ"),
       key: "movementName",
       width: 240,
       render: (_v, row) => {
@@ -202,7 +205,7 @@ export default function StockMovementsPage() {
         const remark = row.remark?.trim();
         return (
           <div className={styles.movementCell}>
-            <span className={styles.movementStatus}>{d.name}</span>
+            <span className={styles.movementStatus}>{t(d.name)}</span>
             {remark ? (
               <Tooltip title={remark} placement="topLeft">
                 <span className={styles.movementDetail}>{remark}</span>
@@ -213,7 +216,7 @@ export default function StockMovementsPage() {
       },
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       width: 220,
       render: (_, row) => (
@@ -224,7 +227,7 @@ export default function StockMovementsPage() {
       ),
     },
     {
-      title: "คลัง / ตำแหน่ง",
+      title: t("คลัง / ตำแหน่ง"),
       key: "place",
       width: 150,
       render: (_, row) => (
@@ -235,7 +238,7 @@ export default function StockMovementsPage() {
       ),
     },
     {
-      title: "จำนวนเข้า",
+      title: t("จำนวนเข้า"),
       dataIndex: "quantityIn",
       key: "quantityIn",
       align: "right",
@@ -247,7 +250,7 @@ export default function StockMovementsPage() {
       },
     },
     {
-      title: "จำนวนออก",
+      title: t("จำนวนออก"),
       dataIndex: "quantityOut",
       key: "quantityOut",
       align: "right",
@@ -259,7 +262,7 @@ export default function StockMovementsPage() {
       },
     },
     {
-      title: "หน่วยนับ",
+      title: t("หน่วยนับ"),
       dataIndex: "unitCode",
       key: "unitCode",
       width: 90,
@@ -267,7 +270,7 @@ export default function StockMovementsPage() {
         value ? value : <span className={styles.qtyMuted}>—</span>,
     },
     {
-      title: "มูลค่า (บาท)",
+      title: t("มูลค่า (บาท)"),
       key: "money",
       align: "right",
       width: 130,
@@ -288,7 +291,7 @@ export default function StockMovementsPage() {
       },
     },
     {
-      title: "ต้นทุน",
+      title: t("ต้นทุน"),
       dataIndex: "amount",
       key: "amount",
       align: "right",
@@ -297,9 +300,9 @@ export default function StockMovementsPage() {
     },
     {
       title: (
-        <Tooltip title="ยอดรวมสินค้าทุก Lot ในคลังและตำแหน่งนั้น ณ เวลาที่เกิดรายการ ไม่ใช่ยอดคงเหลือของ Lot ในแถวนี้">
+        <Tooltip title={t("ยอดรวมสินค้าทุก Lot ในคลังและตำแหน่งนั้น ณ เวลาที่เกิดรายการ ไม่ใช่ยอดคงเหลือของ Lot ในแถวนี้")}>
           <span>
-            ยอดคงเหลือรวมหลังรายการ{" "}
+            {t("ยอดคงเหลือรวมหลังรายการ")}{" "}
             <InfoCircleOutlined style={{ color: "#8c8c8c" }} />
           </span>
         </Tooltip>
@@ -320,7 +323,7 @@ export default function StockMovementsPage() {
       render: (v?: string) => v || "—",
     },
     {
-      title: "เอกสารอ้างอิง",
+      title: t("เอกสารอ้างอิง"),
       key: "ref",
       width: 200,
       render: (_, row) => {
@@ -330,7 +333,7 @@ export default function StockMovementsPage() {
           <Tooltip title={row.referenceDocType || undefined}>
             <div className={styles.refChip}>
               {ref.typeLabel ? (
-                <span className={styles.refType}>{ref.typeLabel}</span>
+                <span className={styles.refType}>{t(ref.typeLabel)}</span>
               ) : null}
               <span className={styles.refNo}>{ref.docNo ?? "—"}</span>
             </div>
@@ -339,7 +342,7 @@ export default function StockMovementsPage() {
       },
     },
     {
-      title: "ผู้ทำรายการ",
+      title: t("ผู้ทำรายการ"),
       dataIndex: "createdByName",
       key: "createdByName",
       width: 130,
@@ -383,7 +386,7 @@ export default function StockMovementsPage() {
         controls={
           <>
 <div className={styles.headerMeta}>
-          <span className={styles.headerMetaLabel}>รายการที่พบ</span>
+          <span className={styles.headerMetaLabel}>{t("รายการที่พบ")}</span>
           <span className={styles.headerMetaValue}>{summary.total}</span>
         </div>
           </>
@@ -392,27 +395,27 @@ export default function StockMovementsPage() {
 
       <div className={styles.summaryRow}>
         <div className={`${styles.summaryCard} ${styles.summaryIn}`}>
-          <span>ยอดเข้า (ในผลลัพธ์)</span>
+          <span>{t("ยอดเข้า (ในผลลัพธ์)")}</span>
           <strong>{formatQtyTotal(summary.inQty)}</strong>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryOut}`}>
-          <span>ยอดออก (ในผลลัพธ์)</span>
+          <span>{t("ยอดออก (ในผลลัพธ์)")}</span>
           <strong>{formatQtyTotal(summary.outQty)}</strong>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryIn}`}>
-          <span>รายรับ (ในผลลัพธ์)</span>
+          <span>{t("รายรับ (ในผลลัพธ์)")}</span>
           <strong>{formatMoney(summary.revenue)}</strong>
         </div>
         <div className={`${styles.summaryCard} ${styles.summaryOut}`}>
-          <span>รายจ่าย (ในผลลัพธ์)</span>
+          <span>{t("รายจ่าย (ในผลลัพธ์)")}</span>
           <strong>{formatMoney(summary.expense)}</strong>
         </div>
         <div className={`${styles.summaryCard} ${styles.summarySales}`}>
-          <span>รายการขายออก</span>
+          <span>{t("รายการขายออก")}</span>
           <strong>{summary.salesCount}</strong>
         </div>
         <div className={styles.summaryCard}>
-          <span>ทั้งหมดในตาราง</span>
+          <span>{t("ทั้งหมดในตาราง")}</span>
           <strong>{summary.total}</strong>
         </div>
       </div>
@@ -420,12 +423,12 @@ export default function StockMovementsPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>คลัง</label>
+            <label>{t("คลัง")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทุกคลัง"
+              placeholder={t("ทุกคลัง")}
               value={draft.warehouseId}
               onChange={(warehouseId) =>
                 setDraft((d) => ({ ...d, warehouseId }))
@@ -434,19 +437,19 @@ export default function StockMovementsPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ประเภท</label>
+            <label>{t("ประเภท")}</label>
             <Select
               allowClear
-              placeholder="ทุกประเภท"
+              placeholder={t("ทุกประเภท")}
               value={draft.movementType}
               onChange={(movementType) =>
                 setDraft((d) => ({ ...d, movementType }))
               }
-              options={MOVEMENT_OPTIONS}
+              options={MOVEMENT_OPTIONS.map((o) => ({ value: o.value, label: `${o.value} — ${t(o.label)}` }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่</label>
+            <label>{t("ช่วงวันที่")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               value={draft.range}
@@ -460,10 +463,10 @@ export default function StockMovementsPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="สินค้า / เลขเอกสาร / Lot"
+              placeholder={t("สินค้า / เลขเอกสาร / Lot")}
               value={draft.q}
               onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
               onPressEnter={applySearch}
@@ -476,7 +479,7 @@ export default function StockMovementsPage() {
             icon={<ClearOutlined />}
             onClick={clearFilters}
           >
-            ล้าง
+            {t("ล้าง")}
           </Button>
           <Button
             type="primary"
@@ -485,7 +488,7 @@ export default function StockMovementsPage() {
             loading={movementsQuery.isFetching}
             onClick={applySearch}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -493,10 +496,9 @@ export default function StockMovementsPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            <p className={styles.toolbarTitle}>รายการเคลื่อนไหว</p>
+            <p className={styles.toolbarTitle}>{t("รายการเคลื่อนไหว")}</p>
             <p className={styles.toolbarHint}>
-              สีเขียว = เข้าคลัง / รายรับ · สีแดง = ออกคลัง / รายจ่าย · สีฟ้า =
-              ขายออกจากใบจ่าย (มูลค่าจากราคาใบสั่งขาย)
+              {t("สีเขียว = เข้าคลัง / รายรับ · สีแดง = ออกคลัง / รายจ่าย · สีฟ้า = ขายออกจากใบจ่าย (มูลค่าจากราคาใบสั่งขาย)")}
             </p>
           </div>
         </div>
@@ -509,12 +511,12 @@ export default function StockMovementsPage() {
           pagination={{
             current: page,
             pageSize: PAGE_SIZE,
-            showTotal: (t) => `ทั้งหมด ${t} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
             showSizeChanger: false,
             onChange: (next) => setPage(next),
           }}
           scroll={{ x: 2082 }}
-          locale={{ emptyText: "ยังไม่มีการเคลื่อนไหวตามเงื่อนไข" }}
+          locale={{ emptyText: t("ยังไม่มีการเคลื่อนไหวตามเงื่อนไข") }}
         />
       </section>
     </div>

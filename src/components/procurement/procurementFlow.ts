@@ -1,3 +1,6 @@
+import { tNow } from "@/lib/i18n/useT";
+import { tStatus } from "@/types/purchase-orders";
+
 export const PROCUREMENT_FLOW_STEPS = [
   { key: "pr", title: "ขอซื้อ", shortTitle: "ขอซื้อ" },
   { key: "po", title: "สั่งซื้อ", shortTitle: "สั่งซื้อ" },
@@ -159,8 +162,8 @@ export function resolveProcurementFlow(
     current = 3;
   }
 
-  let nextHint = "ติดตามสถานะเอกสารในสายจัดซื้อ";
-  let summaryLabel = "อยู่ระหว่างดำเนินการ";
+  let nextHint = tNow("ติดตามสถานะเอกสารในสายจัดซื้อ");
+  let summaryLabel = tNow("อยู่ระหว่างดำเนินการ");
   let badgeLabel = `${Math.min(current + 1, 4)}/4 · ${PROCUREMENT_FLOW_STEPS[Math.min(current, 3)].shortTitle}`;
   let badgeTone: ProcurementFlowResult["badgeTone"] = "active";
   let stepsStatus: ProcurementFlowResult["stepsStatus"] = "process";
@@ -168,81 +171,81 @@ export function resolveProcurementFlow(
   if (isTerminalFail(pr?.status)) {
     nextHint =
       pr?.status === "REJECTED"
-        ? "ใบขอซื้อถูกปฏิเสธ — แก้ไขหรือสร้างใบใหม่"
-        : "ใบขอซื้อถูกยกเลิกแล้ว";
-    summaryLabel = pr?.status === "REJECTED" ? "ปฏิเสธแล้ว" : "ยกเลิกแล้ว";
-    badgeLabel = pr?.status === "REJECTED" ? "ปฏิเสธ" : "ยกเลิก";
+        ? tNow("ใบขอซื้อถูกปฏิเสธ — แก้ไขหรือสร้างใบใหม่")
+        : tNow("ใบขอซื้อถูกยกเลิกแล้ว");
+    summaryLabel = pr?.status === "REJECTED" ? tNow("ปฏิเสธแล้ว") : tNow("ยกเลิกแล้ว");
+    badgeLabel = pr?.status === "REJECTED" ? tNow("ปฏิเสธ") : tStatus("ยกเลิก");
     badgeTone = "error";
     stepsStatus = "error";
   } else if (isTerminalFail(po?.status)) {
     nextHint =
       po?.status === "REJECTED"
-        ? "ใบสั่งซื้อไม่ผ่านอนุมัติ — แก้ไขแล้วสร้างใบใหม่"
-        : "ใบสั่งซื้อถูกยกเลิกแล้ว";
-    summaryLabel = po?.status === "REJECTED" ? "ไม่อนุมัติ" : "ยกเลิกแล้ว";
-    badgeLabel = po?.status === "REJECTED" ? "ไม่อนุมัติ" : "ยกเลิก";
+        ? tNow("ใบสั่งซื้อไม่ผ่านอนุมัติ — แก้ไขแล้วสร้างใบใหม่")
+        : tNow("ใบสั่งซื้อถูกยกเลิกแล้ว");
+    summaryLabel = po?.status === "REJECTED" ? tNow("ไม่อนุมัติ") : tNow("ยกเลิกแล้ว");
+    badgeLabel = po?.status === "REJECTED" ? tNow("ไม่อนุมัติ") : tStatus("ยกเลิก");
     badgeTone = "error";
     stepsStatus = "error";
   } else if (po?.status === "RECEIVE_CANCELLED") {
-    nextHint = "ยกเลิกการรับทุกรอบแล้ว — ไม่มีของเข้าคลัง จึงไม่ต้องจ่ายเงิน";
-    summaryLabel = "ยกเลิกการรับ";
-    badgeLabel = "ยกเลิกการรับ";
+    nextHint = tNow("ยกเลิกการรับทุกรอบแล้ว — ไม่มีของเข้าคลัง จึงไม่ต้องจ่ายเงิน");
+    summaryLabel = tNow("ยกเลิกการรับ");
+    badgeLabel = tNow("ยกเลิกการรับ");
     badgeTone = "error";
     stepsStatus = "error";
     current = 2;
     stepStates[2] = "error";
   } else if (current >= 4 || (grDone && payDone)) {
-    nextHint = "สายงานจัดซื้อเสร็จครบแล้ว (ขอซื้อ → สั่งซื้อ → รับของ → จ่ายเงิน)";
-    summaryLabel = "เสร็จครบ";
-    badgeLabel = "เสร็จครบ";
+    nextHint = tNow("สายงานจัดซื้อเสร็จครบแล้ว (ขอซื้อ → สั่งซื้อ → รับของ → จ่ายเงิน)");
+    summaryLabel = tNow("เสร็จครบ");
+    badgeLabel = tNow("เสร็จครบ");
     badgeTone = "done";
     stepsStatus = "finish";
     current = 4;
   } else if (current === 0) {
     if (!pr || pr.status === "DRAFT") {
-      nextHint = "ส่งใบขอซื้อเพื่อรออนุมัติ";
+      nextHint = tNow("ส่งใบขอซื้อเพื่อรออนุมัติ");
     } else if (pr.status === "REVISING") {
-      nextHint = "ผู้อนุมัติส่งกลับให้แก้ไข — แก้แล้วส่งอนุมัติอีกครั้ง";
+      nextHint = tNow("ผู้อนุมัติส่งกลับให้แก้ไข — แก้แล้วส่งอนุมัติอีกครั้ง");
     } else if (pr.status === "PENDING_APPROVAL") {
-      nextHint = "รอผู้อนุมัติพิจารณาใบขอซื้อ";
+      nextHint = tNow("รอผู้อนุมัติพิจารณาใบขอซื้อ");
     } else {
-      nextHint = "ดำเนินการใบขอซื้อให้เสร็จ";
+      nextHint = tNow("ดำเนินการใบขอซื้อให้เสร็จ");
     }
-    summaryLabel = "ขั้นขอซื้อ";
-    badgeLabel = "1/4 · ขอซื้อ";
+    summaryLabel = tNow("ขั้นขอซื้อ");
+    badgeLabel = tNow("1/4 · ขอซื้อ");
   } else if (current === 1) {
     if (!poExists) {
-      nextHint = "ไปที่เมนูใบสั่งซื้อ เพื่อสร้างใบสั่งซื้อจากรายการที่อนุมัติแล้ว";
-      badgeLabel = "รอสร้างที่ใบสั่งซื้อ";
+      nextHint = tNow("ไปที่เมนูใบสั่งซื้อ เพื่อสร้างใบสั่งซื้อจากรายการที่อนุมัติแล้ว");
+      badgeLabel = tNow("รอสร้างที่ใบสั่งซื้อ");
       badgeTone = "wait";
     } else if (po?.status === "DRAFT") {
-      nextHint = "ตรวจสอบราคา/ผู้ขายแล้วกดส่งอนุมัติใบสั่งซื้อ";
-      badgeLabel = "2/4 · สั่งซื้อ";
+      nextHint = tNow("ตรวจสอบราคา/ผู้ขายแล้วกดส่งอนุมัติใบสั่งซื้อ");
+      badgeLabel = tNow("2/4 · สั่งซื้อ");
     } else if (po?.status === "REVISING") {
-      nextHint = "หัวหน้าส่งกลับให้แก้ไข — แก้แล้วกดส่งอนุมัติอีกครั้ง";
-      badgeLabel = "2/4 · แก้ไข PO";
+      nextHint = tNow("หัวหน้าส่งกลับให้แก้ไข — แก้แล้วกดส่งอนุมัติอีกครั้ง");
+      badgeLabel = tNow("2/4 · แก้ไข PO");
     } else if (po?.status === "PENDING_APPROVAL") {
-      nextHint = "รอหัวหน้าจัดซื้ออนุมัติใบสั่งซื้อ";
-      badgeLabel = "2/4 · รออนุมัติ PO";
+      nextHint = tNow("รอหัวหน้าจัดซื้ออนุมัติใบสั่งซื้อ");
+      badgeLabel = tNow("2/4 · รออนุมัติ PO");
     } else {
-      nextHint = "ดำเนินการใบสั่งซื้อ";
-      badgeLabel = "2/4 · สั่งซื้อ";
+      nextHint = tNow("ดำเนินการใบสั่งซื้อ");
+      badgeLabel = tNow("2/4 · สั่งซื้อ");
     }
-    summaryLabel = "ขั้นสั่งซื้อ";
+    summaryLabel = tNow("ขั้นสั่งซื้อ");
   } else if (current === 2) {
     if (payDone) {
-      nextHint = "ชำระเงินเรียบร้อยแล้ว — อยู่ระหว่างรอตรวจรับสินค้าเข้าคลัง";
-      summaryLabel = "จ่ายแล้ว รอรับของ";
-      badgeLabel = "3/4 · จ่ายแล้ว รอรับของ";
+      nextHint = tNow("ชำระเงินเรียบร้อยแล้ว — อยู่ระหว่างรอตรวจรับสินค้าเข้าคลัง");
+      summaryLabel = tNow("จ่ายแล้ว รอรับของ");
+      badgeLabel = tNow("3/4 · จ่ายแล้ว รอรับของ");
     } else {
-      nextHint = "สร้างและ Confirm ใบรับของเพื่อโพสต์สต๊อก";
-      summaryLabel = "ขั้นรับของ";
-      badgeLabel = "3/4 · รับของ";
+      nextHint = tNow("สร้างและ Confirm ใบรับของเพื่อโพสต์สต๊อก");
+      summaryLabel = tNow("ขั้นรับของ");
+      badgeLabel = tNow("3/4 · รับของ");
     }
   } else if (current === 3) {
-    nextHint = "สร้างใบสำคัญจ่ายและ Confirm การจ่ายเงิน";
-    summaryLabel = "ขั้นจ่ายเงิน";
-    badgeLabel = "4/4 · จ่ายเงิน";
+    nextHint = tNow("สร้างใบสำคัญจ่ายและ Confirm การจ่ายเงิน");
+    summaryLabel = tNow("ขั้นจ่ายเงิน");
+    badgeLabel = tNow("4/4 · จ่ายเงิน");
   }
 
   const confirmedGrs = goodsReceipts.filter((gr) => gr.status === "CONFIRMED");
@@ -315,66 +318,66 @@ export function resolveListFlowBadge(source: ListFlowSource): {
   switch (source.kind) {
     case "pr": {
       if (source.status === "REJECTED") {
-        return { label: "ปฏิเสธ", tone: "error" };
+        return { label: tNow("ปฏิเสธ"), tone: "error" };
       }
       if (source.status === "CANCELLED") {
-        return { label: "ยกเลิก", tone: "error" };
+        return { label: tStatus("ยกเลิก"), tone: "error" };
       }
       if (source.status === "REVISING") {
-        return { label: "1/4 · แก้ไข PR", tone: "active" };
+        return { label: tNow("1/4 · แก้ไข PR"), tone: "active" };
       }
       if (source.status === "APPROVED") {
         return {
-          label: "รอสร้างที่ใบสั่งซื้อ",
+          label: tNow("รอสร้างที่ใบสั่งซื้อ"),
           tone: "wait",
           href: "/purchase-orders",
         };
       }
-      return { label: "1/4 · ขอซื้อ", tone: "active" };
+      return { label: tNow("1/4 · ขอซื้อ"), tone: "active" };
     }
     case "po": {
       if (source.status === "CANCELLED") {
-        return { label: "ยกเลิก", tone: "error" };
+        return { label: tStatus("ยกเลิก"), tone: "error" };
       }
       if (source.status === "REJECTED") {
-        return { label: "ไม่อนุมัติ", tone: "error" };
+        return { label: tNow("ไม่อนุมัติ"), tone: "error" };
       }
       if (source.status === "PENDING_APPROVAL") {
         return {
-          label: "2/4 · รออนุมัติ PO",
+          label: tNow("2/4 · รออนุมัติ PO"),
           tone: "wait",
           href: "/purchase-orders/approvals",
         };
       }
       if (source.status === "REVISING") {
-        return { label: "2/4 · แก้ไข PO", tone: "active" };
+        return { label: tNow("2/4 · แก้ไข PO"), tone: "active" };
       }
       if (source.status === "DRAFT") {
-        return { label: "2/4 · สั่งซื้อ", tone: "active" };
+        return { label: tNow("2/4 · สั่งซื้อ"), tone: "active" };
       }
       if (
         source.status === "CONFIRMED" ||
         source.status === "PARTIALLY_RECEIVED"
       ) {
-        return { label: "3/4 · รับของ", tone: "active" };
+        return { label: tNow("3/4 · รับของ"), tone: "active" };
       }
       if (source.status === "RECEIVE_CANCELLED") {
-        return { label: "ยกเลิกการรับ", tone: "error" };
+        return { label: tNow("ยกเลิกการรับ"), tone: "error" };
       }
       if (
         source.status === "COMPLETED" ||
         source.status === "CLOSED_PARTIAL"
       ) {
         if (source.paymentStatus === "PAID") {
-          return { label: "เสร็จครบ", tone: "done" };
+          return { label: tNow("เสร็จครบ"), tone: "done" };
         }
-        return { label: "4/4 · จ่ายเงิน", tone: "active" };
+        return { label: tNow("4/4 · จ่ายเงิน"), tone: "active" };
       }
-      return { label: "2/4 · สั่งซื้อ", tone: "active" };
+      return { label: tNow("2/4 · สั่งซื้อ"), tone: "active" };
     }
     case "gr": {
       if (source.status === "CANCELLED") {
-        return { label: "ยกเลิก", tone: "error" };
+        return { label: tStatus("ยกเลิก"), tone: "error" };
       }
       // ให้ตรงกับ resolveProcurementFlow: รับครบหรือปิดรับบางส่วน = ขั้นจ่ายเงิน
       if (
@@ -383,25 +386,25 @@ export function resolveListFlowBadge(source: ListFlowSource): {
           source.poStatus === "CLOSED_PARTIAL")
       ) {
         if (source.paymentStatus === "PAID") {
-          return { label: "เสร็จครบ", tone: "done" };
+          return { label: tNow("เสร็จครบ"), tone: "done" };
         }
-        return { label: "4/4 · จ่ายเงิน", tone: "active" };
+        return { label: tNow("4/4 · จ่ายเงิน"), tone: "active" };
       }
       if (source.status === "CONFIRMED") {
-        return { label: "3/4 · รับของ", tone: "active" };
+        return { label: tNow("3/4 · รับของ"), tone: "active" };
       }
-      return { label: "3/4 · รับของ", tone: "active" };
+      return { label: tNow("3/4 · รับของ"), tone: "active" };
     }
     case "pending-pay":
-      return { label: "4/4 · จ่ายเงิน", tone: "active" };
+      return { label: tNow("4/4 · จ่ายเงิน"), tone: "active" };
     case "payment": {
       if (source.status === "CANCELLED") {
-        return { label: "ยกเลิก", tone: "error" };
+        return { label: tStatus("ยกเลิก"), tone: "error" };
       }
       if (source.status === "PAID") {
-        return { label: "เสร็จครบ", tone: "done" };
+        return { label: tNow("เสร็จครบ"), tone: "done" };
       }
-      return { label: "4/4 · จ่ายเงิน", tone: "active" };
+      return { label: tNow("4/4 · จ่ายเงิน"), tone: "active" };
     }
     default:
       return { label: "—", tone: "wait" };

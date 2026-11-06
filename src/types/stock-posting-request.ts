@@ -12,6 +12,20 @@ export const STOCK_POSTING_REQUEST_STATUS_LABEL: Record<string, string> = {
   CANCELLED: "ยกเลิก",
 };
 
+/** ป้ายสถานะตามภาษา — ไทยใช้ STOCK_POSTING_REQUEST_STATUS_LABEL เดิม ("ยกเลิก" ชนกับปุ่ม Cancel จึงไม่ผ่าน dictionary) */
+export function stockPostingStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = {
+      PENDING_APPROVAL: "Pending approval",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+      CANCELLED: "Cancelled",
+    };
+    return en[status] ?? status;
+  }
+  return STOCK_POSTING_REQUEST_STATUS_LABEL[status] ?? status;
+}
+
 export type StockPostingRequestUser = {
   id: string;
   username: string;

@@ -8,7 +8,10 @@ import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import { useCreatePayrollRunMutation, usePayrollRunsQuery } from "@/hooks/payroll/usePayroll";
-import { PAYROLL_STATUS_LABEL, type PayrollRun } from "@/types/payroll";
+import { formatMoney } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import { payrollStatusLabel, type PayrollRun } from "@/types/payroll";
 import styles from "@/components/masters/shared/master-page.module.css";
 
 import PayrollDetailDrawer from "./PayrollDetailDrawer";
@@ -18,15 +21,15 @@ import PayrollSalaryCertificateModal from "./PayrollSalaryCertificateModal";
 import { formatBeRange } from "./shutdownPlanFormat";
 import PageHeader from "@/components/common/PageHeader";
 
-const money = (v: number) =>
-  v.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
 const STATUS_COLOR = { DRAFT: "gold", FINALIZED: "green", CANCELLED: "default" } as const;
 
 type CreateValues = { name: string; range: [Dayjs, Dayjs]; note?: string };
 
 /** หน้า /hrm/payroll — งวดเงินเดือน: สร้างงวด (กำหนดวันเริ่ม–สิ้นสุดเอง) → ตรวจ/ปรับ → ปิดงวด → ส่งออก */
 export default function PayrollPage() {
+  const t = useT();
+  const language = useLanguage();
+  const money = (v: number) => formatMoney(v, language);
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -60,14 +63,14 @@ export default function PayrollPage() {
 
   const columns: ColumnsType<PayrollRun> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
     {
-      title: "งวด",
+      title: t("งวด"),
       key: "name",
       render: (_v, r) => (
         <button
@@ -79,22 +82,22 @@ export default function PayrollPage() {
         </button>
       ),
     },
-    { title: "ช่วงวันที่", key: "range", width: 220, render: (_v, r) => formatBeRange(r.periodStart, r.periodEnd) },
-    { title: "จำนวนคน", key: "count", width: 100, align: "right", render: (_v, r) => r.totals.slipCount },
-    { title: "ค่า OT", key: "ot", width: 120, align: "right", render: (_v, r) => money(r.totals.otAmount) },
-    { title: "ยอดสุทธิรวม", key: "net", width: 140, align: "right", render: (_v, r) => money(r.totals.netPay) },
+    { title: t("ช่วงวันที่"), key: "range", width: 220, render: (_v, r) => formatBeRange(r.periodStart, r.periodEnd, language) },
+    { title: t("จำนวนคน"), key: "count", width: 100, align: "right", render: (_v, r) => r.totals.slipCount },
+    { title: t("ค่า OT"), key: "ot", width: 120, align: "right", render: (_v, r) => money(r.totals.otAmount) },
+    { title: t("ยอดสุทธิรวม"), key: "net", width: 140, align: "right", render: (_v, r) => money(r.totals.netPay) },
     {
-      title: "คำเตือน",
+      title: t("คำเตือน"),
       key: "warn",
       width: 90,
       align: "center",
       render: (_v, r) => (r.totals.warningCount ? <Tag color="orange">{r.totals.warningCount}</Tag> : "—"),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 120,
-      render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{PAYROLL_STATUS_LABEL[r.status]}</Tag>,
+      render: (_v, r) => <Tag color={STATUS_COLOR[r.status]}>{payrollStatusLabel(r.status, language)}</Tag>,
     },
   ];
 
@@ -104,22 +107,22 @@ export default function PayrollPage() {
         <PageHeader
           eyebrow="HRM · PAYROLL"
           icon={<DollarOutlined />}
-          title="เงินเดือน"
-          subtitle="คำนวณเงินเดือน/ค่าแรง + OT หักขาด/ลาไม่รับเงิน/ประกันสังคม/กองทุน/ภาษีหัก ณ ที่จ่าย เป็นงวด แล้วส่งออก Excel/CSV"
+          title={t("เงินเดือน")}
+          subtitle={t("คำนวณเงินเดือน/ค่าแรง + OT หักขาด/ลาไม่รับเงิน/ประกันสังคม/กองทุน/ภาษีหัก ณ ที่จ่าย เป็นงวด แล้วส่งออก Excel/CSV")}
           actions={
             <>
 <div style={{ display: "flex", gap: 8 }}>
             <Button size="large" icon={<FileTextOutlined />} onClick={() => setWhtOpen(true)}>
-              50 ทวิ
+              {t("50 ทวิ")}
             </Button>
             <Button size="large" icon={<FileTextOutlined />} onClick={() => setSalaryCertOpen(true)}>
-              หนังสือรับรองเงินเดือน
+              {t("หนังสือรับรองเงินเดือน")}
             </Button>
             <Button size="large" icon={<SettingOutlined />} onClick={() => setSettingsOpen(true)}>
-              ตั้งค่า
+              {t("ตั้งค่า")}
             </Button>
             <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-              สร้างงวดเงินเดือน
+              {t("สร้างงวดเงินเดือน")}
             </Button>
           </div>
             </>
@@ -129,16 +132,16 @@ export default function PayrollPage() {
         <Alert
           type="info"
           showIcon
-          title="ข้อมูลอ่อนไหว — เห็นได้เฉพาะผู้ที่ได้รับสิทธิ์หน้านี้"
-          description="ระบบคำนวณให้อัตโนมัติ: เงินเดือน/ค่าแรงรายวัน, OT ที่อนุมัติแล้ว, หักขาดงาน/ลาไม่รับเงิน, ประกันสังคม, กองทุน (เลือก % รายคน), ภาษีหัก ณ ที่จ่าย (ประมาณการทั้งปี) · เบี้ยขยัน ค่ากะ ค่ากะกลางคืน โบนัส ใส่เป็น “รายการปรับ” รายคนในแต่ละงวด"
+          title={t("ข้อมูลอ่อนไหว — เห็นได้เฉพาะผู้ที่ได้รับสิทธิ์หน้านี้")}
+          description={t("ระบบคำนวณให้อัตโนมัติ: เงินเดือน/ค่าแรงรายวัน, OT ที่อนุมัติแล้ว, หักขาดงาน/ลาไม่รับเงิน, ประกันสังคม, กองทุน (เลือก % รายคน), ภาษีหัก ณ ที่จ่าย (ประมาณการทั้งปี) · เบี้ยขยัน ค่ากะ ค่ากะกลางคืน โบนัส ใส่เป็น “รายการปรับ” รายคนในแต่ละงวด")}
           style={{ marginBottom: 12 }}
         />
 
         <div className={styles.tableCard}>
           <div className={styles.tableHeader}>
             <div>
-              <h3>งวดเงินเดือน</h3>
-              <p>กดชื่องวดเพื่อดูสลิป ปรับรายการ ปิดงวด และส่งออก</p>
+              <h3>{t("งวดเงินเดือน")}</h3>
+              <p>{t("กดชื่องวดเพื่อดูสลิป ปรับรายการ ปิดงวด และส่งออก")}</p>
             </div>
           </div>
           <Table
@@ -147,30 +150,30 @@ export default function PayrollPage() {
             columns={columns}
             dataSource={runs}
             loading={runsQuery.isFetching}
-            pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} งวด` }}
+            pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} งวด", { n: total }) }}
             scroll={{ x: 900 }}
-            locale={{ emptyText: "ยังไม่มีงวดเงินเดือน — กด สร้างงวดเงินเดือน" }}
+            locale={{ emptyText: t("ยังไม่มีงวดเงินเดือน — กด สร้างงวดเงินเดือน") }}
           />
         </div>
 
         <Modal
           open={createOpen}
-          title="สร้างงวดเงินเดือน"
-          okText="สร้างและคำนวณ"
-          cancelText="ยกเลิก"
+          title={t("สร้างงวดเงินเดือน")}
+          okText={t("สร้างและคำนวณ")}
+          cancelText={t("ยกเลิก")}
           confirmLoading={createMutation.isPending}
           onCancel={() => setCreateOpen(false)}
           onOk={submit}
           destroyOnHidden
         >
           <Form form={form} layout="vertical" preserve={false}>
-            <Form.Item name="name" label="ชื่องวด" rules={[{ required: true, whitespace: true, message: "ใส่ชื่องวด" }]}>
-              <Input maxLength={200} placeholder="เช่น เงินเดือน ต.ค. 2569" />
+            <Form.Item name="name" label={t("ชื่องวด")} rules={[{ required: true, whitespace: true, message: t("ใส่ชื่องวด") }]}>
+              <Input maxLength={200} placeholder={t("เช่น เงินเดือน ต.ค. 2569")} />
             </Form.Item>
             <Form.Item
               name="range"
-              label="ช่วงวันที่ของงวด (เริ่ม–สิ้นสุด กำหนดเองได้ ไม่เกิน 62 วัน)"
-              rules={[{ required: true, message: "เลือกช่วงวันที่" }]}
+              label={t("ช่วงวันที่ของงวด (เริ่ม–สิ้นสุด กำหนดเองได้ ไม่เกิน 62 วัน)")}
+              rules={[{ required: true, message: t("เลือกช่วงวันที่") }]}
             >
               <DatePicker.RangePicker
                 style={{ width: "100%" }}
@@ -178,7 +181,7 @@ export default function PayrollPage() {
                 disabledDate={(d) => d.isAfter(dayjs().add(1, "year"))}
               />
             </Form.Item>
-            <Form.Item name="note" label="หมายเหตุ">
+            <Form.Item name="note" label={t("หมายเหตุ")}>
               <Input.TextArea rows={2} maxLength={2000} />
             </Form.Item>
           </Form>

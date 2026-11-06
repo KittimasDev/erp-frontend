@@ -9,12 +9,14 @@ import AccessDenied from "@/components/auth/AccessDenied";
 import { useCreatePackingFromPickingMutation } from "@/hooks/packings/usePackingMutations";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { ApiError } from "@/lib/api/client";
+import { useT } from "@/lib/i18n/useT";
 
 export default function Page({
   params,
 }: {
   params: Promise<{ pickingId: string }>;
 }) {
+  const t = useT();
   const { pickingId } = use(params);
   const router = useRouter();
   const createMutation = useCreatePackingFromPickingMutation();
@@ -46,7 +48,7 @@ export default function Page({
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : "ไม่สามารถสร้างใบบรรจุสินค้าได้",
+            : t("ไม่สามารถสร้างใบบรรจุสินค้าได้"),
         );
       }
     })();
@@ -64,11 +66,11 @@ export default function Page({
     return (
       <Result
         status="error"
-        title="สร้างใบบรรจุสินค้าไม่สำเร็จ"
+        title={t("สร้างใบบรรจุสินค้าไม่สำเร็จ")}
         subTitle={errorMessage}
         extra={
           <Link href={`/pickings/${pickingId}`}>
-            <Button type="primary">กลับใบจ่ายสินค้า</Button>
+            <Button type="primary">{t("กลับใบจ่ายสินค้า")}</Button>
           </Link>
         }
       />
@@ -77,7 +79,7 @@ export default function Page({
 
   return (
     <div style={{ padding: 48, textAlign: "center" }}>
-      <Spin description="กำลังเปิดใบบรรจุสินค้า..." />
+      <Spin description={t("กำลังเปิดใบบรรจุสินค้า...")} />
     </div>
   );
 }

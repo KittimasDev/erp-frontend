@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { ThreeEvent } from "@react-three/fiber";
 import { Billboard, Text } from "@react-three/drei";
 import type { ZoneConfig, Selected3DObject } from "@/types/warehouse-3d";
+import { useT } from "@/lib/i18n/useT";
 import { LotCargo3D } from "./LotCargo3D";
 
 interface FloorZone3DProps {
@@ -21,6 +22,7 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
   onSelect,
   onHover,
 }) => {
+  const t = useT();
   const { id, name, code, type, color = "#10b981", locationId, locationCode } = zone;
   const rawDims = Array.isArray(zone?.dimensions)
     ? zone.dimensions
@@ -184,7 +186,7 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
           anchorX="center"
           anchorY="middle"
         >
-          {`${name} (${width}x${length} ม.)`}
+          {t("{name} ({w}x{l} ม.)", { name, w: width, l: length })}
         </Text>
       </group>
 
@@ -229,7 +231,7 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
             {`📍 ${locationCode || code} : ${name}`}
           </Text>
           <Text position={[0, 0.86, 0.02]} fontSize={0.16} color={color} anchorX="center" anchorY="middle">
-            {`พื้นที่จัดเก็บ Location • ขนาด ${width}x${length} ม. (${width * length} ตร.ม.)`}
+            {t("พื้นที่จัดเก็บ Location • ขนาด {w}x{l} ม. ({area} ตร.ม.)", { w: width, l: length, area: width * length })}
           </Text>
 
           {/* Horizontal Divider Line */}
@@ -259,7 +261,7 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
                   anchorX="left"
                   anchorY="middle"
                 >
-                  {`   จำนวน: ${Number(it.quantity).toLocaleString()} ${it.unit}  •  Lot: ${it.lotNumber || 'ไม่มีเลข Lot'}`}
+                  {`   ${t("จำนวน:")} ${Number(it.quantity).toLocaleString()} ${it.unit}  •  Lot: ${it.lotNumber || t("ไม่มีเลข Lot")}`}
                 </Text>
               </group>
             );
@@ -267,7 +269,7 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
 
           {zoneItems.length > 3 && (
             <Text position={[0, -0.68, 0.02]} fontSize={0.14} color="#94a3b8" anchorX="center" anchorY="middle">
-              {`... และอีก ${zoneItems.length - 3} รายการ (คลิกเพื่อดูรายการทั้งหมด)`}
+              {t("... และอีก {n} รายการ (คลิกเพื่อดูรายการทั้งหมด)", { n: zoneItems.length - 3 })}
             </Text>
           )}
 
@@ -277,7 +279,7 @@ export const FloorZone3D: React.FC<FloorZone3DProps> = ({
             <meshBasicMaterial color="#334155" />
           </mesh>
           <Text position={[0, -1.08, 0.02]} fontSize={0.16} color="#38bdf8" anchorX="center" anchorY="middle">
-            {`📊 รวม: ${totalQuantity.toLocaleString()} กก.  •  ใช้งาน: ${utilization}%  •  คลิกเพื่อเลือก`}
+            {t("📊 รวม: {qty} กก.  •  ใช้งาน: {pct}%  •  คลิกเพื่อเลือก", { qty: totalQuantity.toLocaleString(), pct: utilization })}
           </Text>
         </Billboard>
       ) : (

@@ -1,4 +1,5 @@
 import { ERP_TIMEZONE } from "./erp-timezone";
+import type { Language } from "@/lib/i18n/translate";
 
 function toDate(value?: string | Date | null): Date | null {
   if (!value) return null;
@@ -13,10 +14,12 @@ function toDate(value?: string | Date | null): Date | null {
 export function formatThaiBuddhistDate(
   value?: string | Date | null,
   fallback = "",
+  /** ไม่ส่ง = ไทย (พ.ศ.) · "en" = ค.ศ. แบบ 24 August 2026 */
+  lang: Language = "th",
 ): string {
   const d = toDate(value);
   if (!d) return fallback;
-  return new Intl.DateTimeFormat("th-TH", {
+  return new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "th-TH", {
     timeZone: ERP_TIMEZONE,
     day: "numeric",
     month: "long",
@@ -39,12 +42,14 @@ export function formatThaiBuddhistDate(
 export function salesOrderRevisionStamp(
   revisionNo?: number | null,
   revisedAt?: string | Date | null,
+  lang: Language = "th",
 ): string {
   const parsed = Number(revisionNo ?? 0);
   const revision = Number.isFinite(parsed) ? parsed : 0;
-  const label = `ฉบับ ${revision}`;
+  const label = lang === "en" ? `Rev. ${revision}` : `ฉบับ ${revision}`;
 
   if (revision < 2) return label;
-  const date = formatThaiBuddhistDate(revisedAt);
-  return date ? `${label} · แก้ไข ${date}` : label;
+  const date = formatThaiBuddhistDate(revisedAt, "", lang);
+  if (!date) return label;
+  return lang === "en" ? `${label} · Edited ${date}` : `${label} · แก้ไข ${date}`;
 }

@@ -19,6 +19,25 @@ export const PURCHASE_REQUEST_STATUS_LABEL: Record<
   CANCELLED: "ยกเลิก",
 };
 
+/** ป้ายสถานะตามภาษา — ไม่ผ่าน dictionary เพราะ "ยกเลิก"/"แก้ไข" ชนกับปุ่ม Cancel/Edit */
+export function purchaseRequestStatusLabel(
+  status: string,
+  lang: "th" | "en",
+): string {
+  if (lang === "en") {
+    const en: Record<PurchaseRequestStatus, string> = {
+      DRAFT: "Draft",
+      PENDING_APPROVAL: "Pending approval",
+      REVISING: "Revising",
+      APPROVED: "Approved",
+      REJECTED: "Rejected",
+      CANCELLED: "Cancelled",
+    };
+    return en[status as PurchaseRequestStatus] ?? status;
+  }
+  return PURCHASE_REQUEST_STATUS_LABEL[status as PurchaseRequestStatus] ?? status;
+}
+
 export type PurchaseRequestUserSummary = {
   id: string;
   username: string;

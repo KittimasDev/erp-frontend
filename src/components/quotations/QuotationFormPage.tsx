@@ -57,6 +57,8 @@ import {
   withVatPercentLabel,
 } from "@/lib/money/vat-totals";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./QuotationFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -117,6 +119,8 @@ const QUOTATION_VAT_MODE_OPTIONS = [
 
 export default function QuotationFormPage({ mode, id }: Props) {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const detailQuery = useQuotationQuery(mode === "edit" ? id : undefined);
   const createMutation = useCreateQuotationMutation();
@@ -183,8 +187,8 @@ export default function QuotationFormPage({ mode, id }: Props) {
           value: item.id,
           available,
           label: hasStock
-            ? `${item.itemCode} — ${item.itemNameTh} (คงเหลือ ${formatQty(available)})`
-            : `${item.itemCode} — ${item.itemNameTh} (ไม่มีสต๊อก)`,
+            ? `${item.itemCode} — ${item.itemNameTh} (${t("คงเหลือ")} ${formatQty(available)})`
+            : `${item.itemCode} — ${item.itemNameTh} (${t("ไม่มีสต๊อก")})`,
         };
       })
       .sort((a, b) => {
@@ -195,7 +199,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
         }
         return a.label.localeCompare(b.label, "th");
       });
-  }, [availableByItemId, items]);
+  }, [availableByItemId, items, t]);
 
   useEffect(() => {
     if (mode === "create") {
@@ -434,10 +438,10 @@ export default function QuotationFormPage({ mode, id }: Props) {
   return (
     <div className={styles.page}>
       <PageHeader
-        eyebrow="ใบเสนอราคา"
+        eyebrow={t("ใบเสนอราคา")}
         icon={<FileTextOutlined />}
-        title={mode === "create" ? "สร้างใบเสนอราคา" : "แก้ไขใบเสนอราคา"}
-        subtitle="เลือกลูกค้าและสินค้าสำเร็จรูป — แสดงยอดคงเหลือเพื่ออ้างอิง (ยังไม่ตัดสต๊อก)"
+        title={mode === "create" ? t("สร้างใบเสนอราคา") : t("แก้ไขใบเสนอราคา")}
+        subtitle={t("เลือกลูกค้าและสินค้าสำเร็จรูป — แสดงยอดคงเหลือเพื่ออ้างอิง (ยังไม่ตัดสต๊อก)")}
         actions={
           <>
 <Button
@@ -448,7 +452,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
               )
             }
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           </>
         }
@@ -465,31 +469,33 @@ export default function QuotationFormPage({ mode, id }: Props) {
           >
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
-                <Typography.Title level={5}>ข้อมูลลูกค้า</Typography.Title>
+                <Typography.Title level={5}>
+                  {lang === "en" ? "Customer information" : "ข้อมูลลูกค้า"}
+                </Typography.Title>
                 <div className={styles.formGrid}>
-                  <Form.Item label="ลูกค้า" required>
+                  <Form.Item label={t("ลูกค้า")} required>
                     <div className={styles.customerField}>
                       <Form.Item
                         name="customerId"
                         noStyle
-                        rules={[{ required: true, message: "เลือกลูกค้า" }]}
+                        rules={[{ required: true, message: t("เลือกลูกค้า") }]}
                       >
                         <Select
                           showSearch
                           optionFilterProp="label"
-                          placeholder="เลือกลูกค้า"
+                          placeholder={t("เลือกลูกค้า")}
                           loading={customersQuery.isLoading}
                           notFoundContent={
                             customersQuery.isLoading
-                              ? "กำลังโหลด..."
+                              ? t("กำลังโหลด...")
                               : customersQuery.isError
-                                ? "โหลดลูกค้าไม่สำเร็จ — ตรวจสิทธิ์หรือลองรีเฟรช"
-                                : "ไม่พบลูกค้า — กดเพิ่มลูกค้าใหม่ได้เลย"
+                                ? t("โหลดลูกค้าไม่สำเร็จ — ตรวจสิทธิ์หรือลองรีเฟรช")
+                                : t("ไม่พบลูกค้า — กดเพิ่มลูกค้าใหม่ได้เลย")
                           }
                           options={customers.map((c) => ({
                             value: c.id,
                             label: `${c.customerCode} — ${c.nameTh}${
-                              c.isActive ? "" : " (ปิดใช้งาน)"
+                              c.isActive ? "" : ` (${t("ปิดใช้งาน")})`
                             }`,
                             disabled: !c.isActive,
                           }))}
@@ -519,7 +525,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                     }
                                     onClick={() => setCustomerModalOpen(true)}
                                   >
-                                    เพิ่มลูกค้าใหม่
+                                    {t("เพิ่มลูกค้าใหม่")}
                                   </Button>
                                 </div>
                               ) : null}
@@ -531,26 +537,26 @@ export default function QuotationFormPage({ mode, id }: Props) {
                         <Button
                           icon={<UserAddOutlined />}
                           onClick={() => setCustomerModalOpen(true)}
-                          aria-label="เพิ่มลูกค้าใหม่"
+                          aria-label={t("เพิ่มลูกค้าใหม่")}
                         >
-                          เพิ่ม
+                          {t("เพิ่ม")}
                         </Button>
                       ) : null}
                     </div>
                   </Form.Item>
-                  <Form.Item label="รหัสลูกค้า">
+                  <Form.Item label={t("รหัสลูกค้า")}>
                     <Input
                       disabled
                       value={displayDash(selectedCustomer?.customerCode)}
                     />
                   </Form.Item>
-                  <Form.Item label="เลขที่ผู้เสียภาษี">
+                  <Form.Item label={t("เลขที่ผู้เสียภาษี")}>
                     <Input
                       disabled
                       value={displayDash(selectedCustomer?.taxId)}
                     />
                   </Form.Item>
-                  <Form.Item label="เบอร์โทร">
+                  <Form.Item label={t("เบอร์โทร")}>
                     <Input
                       disabled
                       value={displayDash(selectedCustomer?.contactPhone)}
@@ -559,45 +565,45 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   <Form.Item
                     className={styles.formGridFull}
                     name="customerAddress"
-                    label="ที่อยู่"
-                    extra="ใช้ต่อในใบสั่งขายและเป็นค่าเริ่มต้นที่อยู่จัดส่งของใบส่งสินค้า"
+                    label={t("ที่อยู่")}
+                    extra={t("ใช้ต่อในใบสั่งขายและเป็นค่าเริ่มต้นที่อยู่จัดส่งของใบส่งสินค้า")}
                   >
                     <Input.TextArea
                       rows={2}
                       maxLength={2000}
-                      placeholder="ดึงจากข้อมูลลูกค้า แล้วแก้ได้"
+                      placeholder={t("ดึงจากข้อมูลลูกค้า แล้วแก้ได้")}
                     />
                   </Form.Item>
-                  <Form.Item name="contactName" label="ผู้ติดต่อ">
-                    <Input placeholder="ดึงจากข้อมูลลูกค้า แล้วแก้ได้" />
+                  <Form.Item name="contactName" label={t("ผู้ติดต่อ")}>
+                    <Input placeholder={t("ดึงจากข้อมูลลูกค้า แล้วแก้ได้")} />
                   </Form.Item>
                 </div>
               </div>
 
               <div className={styles.sectionBlock}>
                 <Typography.Title level={5}>
-                  การชำระเงินและการจัดส่ง
+                  {t("การชำระเงินและการจัดส่ง")}
                 </Typography.Title>
                 <div className={styles.formGrid}>
                   <Form.Item
                     name="quotationDate"
-                    label="วันที่เอกสาร"
-                    rules={[{ required: true, message: "เลือกวันที่เอกสาร" }]}
+                    label={t("วันที่เอกสาร")}
+                    rules={[{ required: true, message: t("เลือกวันที่เอกสาร") }]}
                   >
                     <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
                   </Form.Item>
-                  <Form.Item name="validUntil" label="วันหมดอายุ">
+                  <Form.Item name="validUntil" label={t("วันหมดอายุ")}>
                     <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
                   </Form.Item>
-                  <Form.Item name="paymentTermId" label="เงื่อนไขการชำระเงิน">
+                  <Form.Item name="paymentTermId" label={t("เงื่อนไขการชำระเงิน")}>
                     <Select
                       allowClear
                       showSearch
                       optionFilterProp="label"
-                      placeholder="ถ้ามี"
-                      options={paymentTerms.map((t) => ({
-                        value: t.id,
-                        label: `${t.code} — ${t.name}`,
+                      placeholder={t("ถ้ามี")}
+                      options={paymentTerms.map((term) => ({
+                        value: term.id,
+                        label: `${term.code} — ${term.name}`,
                       }))}
                     />
                   </Form.Item>
@@ -605,54 +611,63 @@ export default function QuotationFormPage({ mode, id }: Props) {
                     ไม่มีช่อง "อัตราภาษี" — เมื่อคิด VAT บังคับ 7% ตามรูปแบบภาษีมูลค่าเพิ่ม
                     (ดู resolveDocumentVatPercent)
                   */}
-                  <Form.Item name="vatMode" label="รูปแบบภาษีมูลค่าเพิ่ม">
-                    <Select options={QUOTATION_VAT_MODE_OPTIONS} />
+                  <Form.Item name="vatMode" label={t("รูปแบบภาษีมูลค่าเพิ่ม")}>
+                    <Select
+                      options={QUOTATION_VAT_MODE_OPTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label),
+                      }))}
+                    />
                   </Form.Item>
                   <Form.Item
                     name="withholdingTaxType"
-                    label="ภาษีหัก ณ ที่จ่าย"
+                    label={t("ภาษีหัก ณ ที่จ่าย")}
                   >
-                    <Select options={WITHHOLDING_TAX_TYPE_OPTIONS} />
+                    <Select
+                      options={WITHHOLDING_TAX_TYPE_OPTIONS.map((o) => ({
+                        ...o,
+                        label: t(o.label),
+                      }))}
+                    />
                   </Form.Item>
                   {watchedWhtType === WithholdingTaxType.CUSTOM ? (
                     <Form.Item
                       name="withholdingTaxPercent"
-                      label="อัตราหัก ณ ที่จ่าย (%)"
+                      label={t("อัตราหัก ณ ที่จ่าย (%)")}
                     >
                       <InputNumber min={0} max={100} style={{ width: "100%" }} />
                     </Form.Item>
                   ) : null}
-                  <Form.Item name="discountAmount" label="ส่วนลดท้ายบิล">
+                  <Form.Item name="discountAmount" label={t("ส่วนลดท้ายบิล")}>
                     <InputNumber min={0} style={{ width: "100%" }} />
                   </Form.Item>
-                  <Form.Item label="ผู้เสนอราคา">
+                  <Form.Item label={t("ผู้เสนอราคา")}>
                     <Input value={preparedByName} disabled />
                   </Form.Item>
-                  <Form.Item name="preparedByPhone" label="เบอร์โทรผู้เสนอราคา">
-                    <Input placeholder="เช่น 0812345678" />
+                  <Form.Item name="preparedByPhone" label={t("เบอร์โทรผู้เสนอราคา")}>
+                    <Input placeholder={t("เช่น 0812345678")} />
                   </Form.Item>
                   <Form.Item
                     className={styles.formGridFull}
                     name="remark"
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     style={{ marginBottom: 0 }}
                   >
                     <DocumentHtmlEditor
-                      ariaLabel="หมายเหตุ"
-                      placeholder="รายละเอียดเพิ่มเติมบนใบเสนอราคา"
+                      ariaLabel={t("หมายเหตุ")}
+                      placeholder={t("รายละเอียดเพิ่มเติมบนใบเสนอราคา")}
                     />
                   </Form.Item>
                 </div>
               </div>
 
               <div className={styles.sectionBlock}>
-                <Typography.Title level={5}>รายการสินค้า</Typography.Title>
+                <Typography.Title level={5}>{t("รายการสินค้า")}</Typography.Title>
                 <Typography.Paragraph
                   type="secondary"
                   style={{ marginTop: -4, marginBottom: 12 }}
                 >
-                  เลือกสินค้าสำเร็จรูปที่เปิดใช้งานได้ — ใบเสนอราคายังไม่ตัดสต๊อก
-                  (แสดงยอดคงเหลือเพื่ออ้างอิง)
+                  {t("เลือกสินค้าสำเร็จรูปที่เปิดใช้งานได้ — ใบเสนอราคายังไม่ตัดสต๊อก (แสดงยอดคงเหลือเพื่ออ้างอิง)")}
                 </Typography.Paragraph>
                 <Form.List
                   name="items"
@@ -661,7 +676,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                       validator: async (_, value) => {
                         if (!value || value.length < 1) {
                           return Promise.reject(
-                            new Error("เพิ่มอย่างน้อย 1 รายการ"),
+                            new Error(t("เพิ่มอย่างน้อย 1 รายการ")),
                           );
                         }
                       },
@@ -682,7 +697,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                         return (
                           <div key={field.key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
-                              <strong>รายการที่ {index + 1}</strong>
+                              <strong>{t("รายการที่ {no}", { no: index + 1 })}</strong>
                               {fields.length > 1 ? (
                                 <Button
                                   type="text"
@@ -690,7 +705,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                                   icon={<DeleteOutlined />}
                                   onClick={() => remove(field.name)}
                                 >
-                                  ลบ
+                                  {t("ลบ")}
                                 </Button>
                               ) : null}
                             </div>
@@ -698,25 +713,27 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               <Form.Item
                                 className={styles.formGridFull}
                                 name={[field.name, "itemId"]}
-                                label="สินค้า"
+                                label={t("สินค้า")}
                                 rules={[
-                                  { required: true, message: "เลือกสินค้า" },
+                                  { required: true, message: t("เลือกสินค้า") },
                                 ]}
                                 extra={
                                   lineItemId
-                                    ? `สต๊อกพร้อมใช้: ${formatQty(availableTotal)} (อ้างอิง — ใบเสนอราคาไม่ตัดสต๊อก)`
-                                    : "สินค้าสำเร็จรูปที่เปิดใช้งาน"
+                                    ? t("สต๊อกพร้อมใช้: {qty} (อ้างอิง — ใบเสนอราคาไม่ตัดสต๊อก)", {
+                                        qty: formatQty(availableTotal),
+                                      })
+                                    : t("สินค้าสำเร็จรูปที่เปิดใช้งาน")
                                 }
                               >
                                 <Select
                                   showSearch
                                   optionFilterProp="label"
-                                  placeholder="เลือกสินค้า"
+                                  placeholder={t("เลือกสินค้า")}
                                   loading={itemsLoading}
                                   notFoundContent={
                                     itemsLoading
-                                      ? "กำลังโหลด..."
-                                      : "ไม่พบสินค้าสำเร็จรูป"
+                                      ? t("กำลังโหลด...")
+                                      : t("ไม่พบสินค้าสำเร็จรูป")
                                   }
                                   options={itemSelectOptions}
                                   onChange={(value) =>
@@ -726,14 +743,14 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               </Form.Item>
                               <Form.Item
                                 name={[field.name, "quantity"]}
-                                label="จำนวน"
+                                label={t("จำนวน")}
                                 rules={[
-                                  { required: true, message: "กรอกจำนวน" },
+                                  { required: true, message: t("กรอกจำนวน") },
                                   {
                                     validator: async (_, value) => {
                                       if (!(Number(value) > 0)) {
                                         return Promise.reject(
-                                          new Error("จำนวนต้องมากกว่า 0"),
+                                          new Error(t("จำนวนต้องมากกว่า 0")),
                                         );
                                       }
                                     },
@@ -749,9 +766,9 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               </Form.Item>
                               <Form.Item
                                 name={[field.name, "unitId"]}
-                                label="หน่วย"
+                                label={t("หน่วย")}
                                 rules={[
-                                  { required: true, message: "เลือกหน่วย" },
+                                  { required: true, message: t("เลือกหน่วย") },
                                 ]}
                               >
                                 <Select
@@ -765,9 +782,9 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               </Form.Item>
                               <Form.Item
                                 name={[field.name, "unitPrice"]}
-                                label="ราคา/หน่วย"
+                                label={t("ราคา/หน่วย")}
                                 rules={[
-                                  { required: true, message: "กรอกราคา" },
+                                  { required: true, message: t("กรอกราคา") },
                                 ]}
                                 extra={
                                   <UnitPriceSourceHint
@@ -792,12 +809,12 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               </Form.Item>
                               <Form.Item
                                 name={[field.name, "discountAmount"]}
-                                label="ส่วนลดรายการ"
+                                label={t("ส่วนลดรายการ")}
                               >
                                 <InputNumber min={0} style={{ width: "100%" }} />
                               </Form.Item>
                               <div className={styles.lineAmount}>
-                                <span>จำนวนเงิน</span>
+                                <span>{t("จำนวนเงิน")}</span>
                                 <strong>
                                   {formatMoney(
                                     preview.lineAmounts[index] ?? 0,
@@ -807,7 +824,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                               <Form.Item
                                 className={styles.formGridFull}
                                 name={[field.name, "description"]}
-                                label="รายละเอียด"
+                                label={t("รายละเอียด")}
                               >
                                 <Input />
                               </Form.Item>
@@ -822,7 +839,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                         disabled={items.length === 0}
                         onClick={() => add({ discountAmount: 0 })}
                       >
-                        เพิ่มรายการ
+                        {t("เพิ่มรายการ")}
                       </Button>
                       <Form.ErrorList errors={errors} />
                     </div>
@@ -833,7 +850,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
 
             <div className={styles.footerBar}>
               <p className={styles.footerHint}>
-                ยอดที่แสดงเป็นประมาณการ — ยอดจริงคำนวณที่เซิร์ฟเวอร์หลังบันทึก
+                {t("ยอดที่แสดงเป็นประมาณการ — ยอดจริงคำนวณที่เซิร์ฟเวอร์หลังบันทึก")}
               </p>
               <div className={styles.footerActions}>
                 <Button
@@ -843,14 +860,14 @@ export default function QuotationFormPage({ mode, id }: Props) {
                     )
                   }
                 >
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   htmlType="button"
                   icon={<FilePdfOutlined />}
                   onClick={() => void handleDraftPreview()}
                 >
-                  ดูตัวอย่าง
+                  {t("ดูตัวอย่าง")}
                 </Button>
                 <Button
                   type="primary"
@@ -858,7 +875,7 @@ export default function QuotationFormPage({ mode, id }: Props) {
                   className={styles.primaryBtn}
                   loading={saving}
                 >
-                  บันทึกร่าง
+                  {t("บันทึกร่าง")}
                 </Button>
               </div>
             </div>
@@ -866,56 +883,56 @@ export default function QuotationFormPage({ mode, id }: Props) {
         </section>
 
         <aside className={styles.summaryCard}>
-          <h3 className={styles.summaryTitle}>สรุปยอดเงิน</h3>
+          <h3 className={styles.summaryTitle}>{t("สรุปยอดเงิน")}</h3>
           <p className={styles.summaryLead}>
             {selectedCustomer
               ? `${selectedCustomer.customerCode} — ${selectedCustomer.nameTh}`
-              : "ยังไม่ได้เลือกลูกค้า"}
+              : t("ยังไม่ได้เลือกลูกค้า")}
           </p>
           <div className={styles.summaryRows}>
             <div className={styles.summaryRow}>
-              <span>ยอดรวมก่อนส่วนลด</span>
+              <span>{t("ยอดรวมก่อนส่วนลด")}</span>
               <strong>{formatMoney(preview.subtotal)}</strong>
             </div>
             <div className={styles.summaryRow}>
-              <span>ส่วนลดท้ายบิล</span>
+              <span>{t("ส่วนลดท้ายบิล")}</span>
               <strong>{formatMoney(preview.discount)}</strong>
             </div>
             <div className={styles.summaryRow}>
-              <span>ยอดหลังหักส่วนลด</span>
+              <span>{t("ยอดหลังหักส่วนลด")}</span>
               <strong>{formatMoney(preview.afterDiscount)}</strong>
             </div>
-            <p className={styles.summaryHint}>ฐานก่อนคำนวณภาษีมูลค่าเพิ่ม</p>
+            <p className={styles.summaryHint}>{t("ฐานก่อนคำนวณภาษีมูลค่าเพิ่ม")}</p>
             <div className={styles.summaryRow}>
               <span>
                 {preview.vatRate > 0
-                  ? `ภาษีมูลค่าเพิ่ม ${preview.vatRate}%`
-                  : "ภาษีมูลค่าเพิ่ม"}
+                  ? `${t("ภาษีมูลค่าเพิ่ม")} ${preview.vatRate}%`
+                  : t("ภาษีมูลค่าเพิ่ม")}
               </span>
               <strong>{formatMoney(preview.vat)}</strong>
             </div>
             {preview.whtPercent > 0 ? (
               <div className={styles.summaryRow}>
-                <span>ภาษีหัก ณ ที่จ่าย {preview.whtPercent}%</span>
+                <span>{t("ภาษีหัก ณ ที่จ่าย")} {preview.whtPercent}%</span>
                 <strong>{formatMoney(preview.whtAmount)}</strong>
               </div>
             ) : null}
             <div className={styles.summaryRow}>
-              <span>ยอดสุทธิ</span>
+              <span>{t("ยอดสุทธิ")}</span>
               <strong>{formatMoney(preview.total)}</strong>
             </div>
           </div>
           <p className={styles.masterHint}>
-            สินค้าสำเร็จรูป {items.length} รายการ
+            {t("สินค้าสำเร็จรูป {n} รายการ", { n: items.length })}
             {itemSelectOptions.length
-              ? ` · มีสต๊อก ${itemSelectOptions.filter((row) => row.available > 1e-9).length} · ไม่มีสต๊อก ${itemSelectOptions.filter((row) => row.available <= 1e-9).length}`
+              ? ` · ${t("มีสต๊อก")} ${itemSelectOptions.filter((row) => row.available > 1e-9).length} · ${t("ไม่มีสต๊อก")} ${itemSelectOptions.filter((row) => row.available <= 1e-9).length}`
               : ""}{" "}
             ·{" "}
             <Link href="/inventory/stock-balances?isFinishedGood=true">
-              ดูยอดคงเหลือ
+              {t("ดูยอดคงเหลือ")}
             </Link>
             {" · "}
-            <Link href="/customers">ลูกค้า</Link>
+            <Link href="/customers">{t("ลูกค้า")}</Link>
           </p>
         </aside>
       </div>

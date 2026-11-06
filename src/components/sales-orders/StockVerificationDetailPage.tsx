@@ -29,12 +29,14 @@ import {
 import { resolveTimelineStepHref } from "@/lib/sales/sales-tracking-timeline";
 import {
   SALES_ORDER_STATUS_LABEL,
+  tSoStatus,
   type SalesOrderStatus,
   type SalesOrderStockVerificationLine,
 } from "@/types/sales-orders";
 import type { SalesTrackingTimelineStep } from "@/types/sales-tracking";
 import styles from "./StockVerificationDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 type Props = { id: string };
 
@@ -70,6 +72,7 @@ function statusClass(status: string) {
 }
 
 function LocationHints({ row }: { row: SalesOrderStockVerificationLine }) {
+  const t = useT();
   if (row.availableLots?.length) {
     return (
       <ul className={styles.hintList}>
@@ -85,7 +88,7 @@ function LocationHints({ row }: { row: SalesOrderStockVerificationLine }) {
         ))}
         {row.availableLots.length > 4 ? (
           <li className={styles.hintMore}>
-            …อีก {row.availableLots.length - 4} Lot
+            {t("…อีก {n} Lot", { n: row.availableLots.length - 4 })}
           </li>
         ) : null}
       </ul>
@@ -107,14 +110,14 @@ function LocationHints({ row }: { row: SalesOrderStockVerificationLine }) {
         ))}
         {row.availableLocations.length > 4 ? (
           <li className={styles.hintMore}>
-            …อีก {row.availableLocations.length - 4} ตำแหน่ง
+            {t("…อีก {n} ตำแหน่ง", { n: row.availableLocations.length - 4 })}
           </li>
         ) : null}
       </ul>
     );
   }
 
-  return <span className={styles.hintEmpty}>ไม่มีตำแหน่งพร้อมใช้</span>;
+  return <span className={styles.hintEmpty}>{t("ไม่มีตำแหน่งพร้อมใช้")}</span>;
 }
 
 function findTimelineStep(
@@ -131,6 +134,7 @@ function lineCardToneClass(tag: StockVerificationLineTag) {
 }
 
 export default function StockVerificationDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const orderQuery = useSalesOrderQuery(id);
   const verifyQuery = useSalesOrderStockVerificationQuery(id);
@@ -195,7 +199,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
   if (verifyQuery.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -203,9 +207,9 @@ export default function StockVerificationDetailPage({ id }: Props) {
   if (!verification) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบข้อมูลใบสั่งขายหรือผลการตรวจสต๊อก
+        {t("ไม่พบข้อมูลใบสั่งขายหรือผลการตรวจสต๊อก")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-orders/stock-verification">กลับรายการ</Link>
+          <Link href="/sales-orders/stock-verification">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -230,7 +234,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
           router.push(draft && !href.endsWith("/edit") ? `${href}/edit` : href)
         }
       >
-        {draft ? "เปิดใบจ่ายสินค้า (ร่าง)" : "เปิดใบจ่ายสินค้า"}
+        {draft ? t("เปิดใบจ่ายสินค้า (ร่าง)") : t("เปิดใบจ่ายสินค้า")}
       </Button>
     );
   };
@@ -251,7 +255,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
         icon={<ShoppingOutlined />}
         onClick={() => router.push("/pickings/create-from-sales-order")}
       >
-        ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย
+        {t("ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย")}
       </Button>
     );
   };
@@ -267,7 +271,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
         icon={<ProfileOutlined />}
         onClick={() => router.push(`/sales-orders/${id}`)}
       >
-        ไปใบสั่งขายเพื่อออกใบขอผลิต
+        {t("ไปใบสั่งขายเพื่อออกใบขอผลิต")}
       </Button>
     );
   };
@@ -281,7 +285,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
         icon={<ProfileOutlined />}
         onClick={() => router.push(`/sales-orders/${id}`)}
       >
-        ไปใบสั่งขายเพื่อติดตามใบขอผลิต
+        {t("ไปใบสั่งขายเพื่อติดตามใบขอผลิต")}
       </Button>
     );
   };
@@ -322,7 +326,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
               router.push(`/pickings/create-from-sales-order/${id}`)
             }
           >
-            สร้างใบจ่ายสินค้า
+            {t("สร้างใบจ่ายสินค้า")}
           </Button>
         );
       }
@@ -332,28 +336,28 @@ export default function StockVerificationDetailPage({ id }: Props) {
   };
 
   const statusBannerTitle = isPastStockVerification
-    ? "ขั้นตอนตรวจสต๊อกเสร็จแล้ว"
+    ? t("ขั้นตอนตรวจสต๊อกเสร็จแล้ว")
     : isStockChecked
-      ? "ยืนยันผลตรวจสอบสต๊อกแล้ว"
+      ? t("ยืนยันผลตรวจสอบสต๊อกแล้ว")
       : allOk
-        ? "สต๊อกพอทุกรายการ"
+        ? t("สต๊อกพอทุกรายการ")
         : waitingProduction
-          ? "รอผลผลิตเข้าคลัง"
-          : "สต๊อกไม่พอบางรายการ";
+          ? t("รอผลผลิตเข้าคลัง")
+          : t("สต๊อกไม่พอบางรายการ");
 
   const statusBannerText = isPastStockVerification
-    ? "ใบสั่งขายไปขั้นถัดไปแล้ว — หน้านี้ดูผลตรวจย้อนหลังได้อย่างเดียว ไม่สร้างใบจ่ายใหม่จากที่นี่"
+    ? t("ใบสั่งขายไปขั้นถัดไปแล้ว — หน้านี้ดูผลตรวจย้อนหลังได้อย่างเดียว ไม่สร้างใบจ่ายใหม่จากที่นี่")
     : isStockChecked
       ? hasPickingDocument
-        ? "มีใบจ่ายสินค้าแล้ว — กดเปิดใบจ่ายเพื่อดำเนินการต่อ"
-        : "ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบจ่ายสินค้าเพื่อไปขั้นถัดไป"
+        ? t("มีใบจ่ายสินค้าแล้ว — กดเปิดใบจ่ายเพื่อดำเนินการต่อ")
+        : t("ขั้นตอนตรวจสต๊อกเสร็จแล้ว — สร้างใบจ่ายสินค้าเพื่อไปขั้นถัดไป")
       : allOk
-        ? "หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด (ใช้ของที่จองไว้แล้ว ไม่จองซ้ำ)"
+        ? t("หน้านี้เป็นรายงานอ่านอย่างเดียว — ขั้นถัดไปคือคลังเปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด (ใช้ของที่จองไว้แล้ว ไม่จองซ้ำ)")
         : waitingProduction
-          ? "มีใบขอผลิตคุมยอดที่ขาดอยู่แล้ว — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง"
+          ? t("มีใบขอผลิตคุมยอดที่ขาดอยู่แล้ว — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง")
           : canOpenDetail
-            ? "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต"
-            : "ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง";
+            ? t("ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง กดไปหน้าใบสั่งขายใบนี้เพื่อออกใบขอผลิต")
+            : t("ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง");
 
   const statusBannerTone =
     isPastStockVerification || isStockChecked || allOk
@@ -361,54 +365,54 @@ export default function StockVerificationDetailPage({ id }: Props) {
       : styles.statusBannerWarn;
 
   const statusPillLabel = isPastStockVerification
-    ? "เสร็จแล้ว"
+    ? t("เสร็จแล้ว")
     : isStockChecked
       ? hasPickingDocument
-        ? "มีใบจ่ายแล้ว"
-        : "พร้อมจ่ายสินค้า"
+        ? t("มีใบจ่ายแล้ว")
+        : t("พร้อมจ่ายสินค้า")
       : allOk
-        ? "ของพอ"
+        ? t("ของพอ")
         : waitingProduction
-          ? "รอผลผลิต"
-          : `ขาด ${shortCount} รายการ`;
+          ? t("รอผลผลิต")
+          : t("ขาด {n} รายการ", { n: shortCount });
 
   const sideNote = isPastStockVerification ? (
     <>
-      ดูผลตรวจได้อย่างเดียว — ไปทำต่อที่{" "}
-      <strong>ใบจ่ายสินค้า</strong> หรือใบสั่งขาย
+      {t("ดูผลตรวจได้อย่างเดียว — ไปทำต่อที่")}{" "}
+      <strong>{tSoStatus("ใบจ่ายสินค้า")}</strong> {t("หรือใบสั่งขาย")}
     </>
   ) : isStockChecked ? (
     hasPickingDocument ? (
       <>
-        มีใบจ่ายแล้ว — กด <strong>เปิดใบจ่ายสินค้า</strong> เพื่อไปขั้นถัดไป
+        {t("มีใบจ่ายแล้ว — กด")} <strong>{t("เปิดใบจ่ายสินค้า")}</strong> {t("เพื่อไปขั้นถัดไป")}
       </>
     ) : (
       <>
-        ตรวจสต๊อกเสร็จแล้ว — กด <strong>สร้างใบจ่ายสินค้า</strong> เพื่อไปขั้นถัดไป
+        {t("ตรวจสต๊อกเสร็จแล้ว — กด")} <strong>{t("สร้างใบจ่ายสินค้า")}</strong> {t("เพื่อไปขั้นถัดไป")}
       </>
     )
   ) : allOk && pickingActions.canAdd ? (
     <>
-      ขั้นถัดไป: กด <strong>ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย</strong> — ของจะถูก
-      จองตอนสร้างใบจ่าย ไม่ใช่ตอนนี้
+      {t("ขั้นถัดไป: กด")} <strong>{t("ไปเลือกรอบจัดส่งเพื่อสร้างใบจ่าย")}</strong>{" "}
+      {t("— ของจะถูกจองตอนสร้างใบจ่าย ไม่ใช่ตอนนี้")}
     </>
   ) : allOk ? (
-    <>ของพอแล้ว — ขั้นถัดไปเป็นงานของคลัง (เปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด)</>
+    <>{t("ของพอแล้ว — ขั้นถัดไปเป็นงานของคลัง (เปิดใบจ่ายสินค้าของรอบที่ถึงกำหนด)")}</>
   ) : waitingProduction ? (
     canOpenDetail ? (
       <>
-        รอผลผลิตเข้าคลัง — กด <strong>ไปใบสั่งขาย</strong> เพื่อติดตามใบขอผลิต
+        {t("รอผลผลิตเข้าคลัง — กด")} <strong>{t("ไปใบสั่งขาย")}</strong> {t("เพื่อติดตามใบขอผลิต")}
       </>
     ) : (
-      <>รอผลผลิตเข้าคลัง — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง</>
+      <>{t("รอผลผลิตเข้าคลัง — เปิดใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง")}</>
     )
   ) : canOpenDetail ? (
     <>
-      ของไม่พอ — กด <strong>ไปใบสั่งขายเพื่อออกใบขอผลิต</strong> (ใบ{" "}
-      {soNo}) แล้วออกใบขอผลิตจากหน้านั้น
+      {t("ของไม่พอ — กด")} <strong>{t("ไปใบสั่งขายเพื่อออกใบขอผลิต")}</strong>{" "}
+      {t("(ใบ {soNo}) แล้วออกใบขอผลิตจากหน้านั้น", { soNo })}
     </>
   ) : (
-    <>ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง</>
+    <>{t("ของไม่พอ — สร้างใบจ่ายไม่ได้จนกว่าของจะเข้าคลัง")}</>
   );
 
   return (
@@ -420,16 +424,16 @@ export default function StockVerificationDetailPage({ id }: Props) {
         subtitle={<>{order?.customer
               ? `${order.customer.customerCode} — ${order.customer.nameTh}`
               : "—"}{" "}
-            · วันที่ SO {formatDate(order?.soDate)} ·{" "}
-            {SALES_ORDER_STATUS_LABEL[soStatus as SalesOrderStatus] ??
-              soStatus}</>}
+            · {t("วันที่ SO")} {formatDate(order?.soDate)} ·{" "}
+            {tSoStatus(SALES_ORDER_STATUS_LABEL[soStatus as SalesOrderStatus] ??
+              soStatus)}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/sales-orders/stock-verification")}
           >
-            กลับรายการ
+            {t("กลับรายการ")}
           </Button>
           <Button
             icon={<ReloadOutlined />}
@@ -437,12 +441,12 @@ export default function StockVerificationDetailPage({ id }: Props) {
             disabled={isPastStockVerification}
             title={
               isPastStockVerification
-                ? "ขั้นตอนนี้เสร็จแล้ว — ไม่ต้องตรวจสอบใหม่"
+                ? t("ขั้นตอนนี้เสร็จแล้ว — ไม่ต้องตรวจสอบใหม่")
                 : undefined
             }
             onClick={() => void verifyQuery.refetch()}
           >
-            ตรวจสอบใหม่
+            {t("ตรวจสอบใหม่")}
           </Button>
           {renderPrimaryAction()}
           </>
@@ -478,7 +482,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลใบสั่งขาย</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลใบสั่งขาย")}</h2>
               <span
                 className={`${styles.statusPill} ${statusClass(soStatus)}`}
               >
@@ -488,7 +492,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่ SO</span>
+                <span className={styles.metaLabel}>{t("เลขที่ SO")}</span>
                 <div className={styles.metaValue}>
                   {canOpenDetail ? (
                     <Link href={`/sales-orders/${id}`}>{soNo}</Link>
@@ -498,19 +502,19 @@ export default function StockVerificationDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่</span>
+                <span className={styles.metaLabel}>{t("วันที่")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(order?.soDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันส่งที่ขอ</span>
+                <span className={styles.metaLabel}>{t("วันส่งที่ขอ")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(order?.requestedDeliveryDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ลูกค้า</span>
+                <span className={styles.metaLabel}>{t("ลูกค้า")}</span>
                 <div className={styles.metaValue}>
                   {order?.customer
                     ? `${order.customer.customerCode} — ${order.customer.nameTh}`
@@ -522,9 +526,9 @@ export default function StockVerificationDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการตรวจสต๊อก</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการตรวจสต๊อก")}</h2>
               <Typography.Text type="secondary">
-                {lines.length} รายการ
+                {t("{n} รายการ", { n: lines.length })}
               </Typography.Text>
             </div>
 
@@ -557,30 +561,30 @@ export default function StockVerificationDetailPage({ id }: Props) {
                           )
                         }
                       >
-                        {tag.label}
+                        {tSoStatus(tag.label)}
                       </Tag>
                     </div>
 
                     <div className={styles.qtyGrid}>
                       <div className={styles.qtyItem}>
-                        <span>ยอดสั่งขาย</span>
+                        <span>{t("ยอดสั่งขาย")}</span>
                         <strong>{formatQty(row.orderedQty)}</strong>
                       </div>
                       <div className={styles.qtyItem}>
-                        <span>จ่ายแล้ว</span>
+                        <span>{tSoStatus("จ่ายแล้ว")}</span>
                         <strong>{formatQty(row.issuedQty ?? 0)}</strong>
                       </div>
                       <div className={styles.qtyItem}>
-                        <span>จองแล้ว</span>
+                        <span>{t("จองแล้ว")}</span>
                         <strong>{formatQty(row.reservedQty ?? 0)}</strong>
                       </div>
                       <div className={styles.qtyItem}>
-                        <span>พร้อมใช้ว่าง</span>
+                        <span>{t("พร้อมใช้ว่าง")}</span>
                         <strong>{formatQty(row.availableQty)}</strong>
                       </div>
                       {Number(row.pendingProductionQty ?? 0) > 0.0005 ? (
                         <div className={styles.qtyItem}>
-                          <span>รอผลิต</span>
+                          <span>{t("รอผลิต")}</span>
                           <strong>
                             {formatQty(row.pendingProductionQty)}
                           </strong>
@@ -594,7 +598,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
                             : ""
                         }`}
                       >
-                        <span>ยอดขาด</span>
+                        <span>{t("ยอดขาด")}</span>
                         <strong>
                           {formatQty(
                             row.unplannedShortageQty ?? row.shortageQty,
@@ -605,7 +609,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
 
                     <div className={styles.locationBlock}>
                       <span className={styles.locationLabel}>
-                        คลัง / ตำแหน่ง / Lot
+                        {t("คลัง / ตำแหน่ง / Lot")}
                       </span>
                       <LocationHints row={row} />
                     </div>
@@ -619,32 +623,32 @@ export default function StockVerificationDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <p className={styles.sideEyebrow}>SUMMARY</p>
-          <h3 className={styles.sideTitle}>สรุปผลตรวจ</h3>
+          <h3 className={styles.sideTitle}>{t("สรุปผลตรวจ")}</h3>
           <p className={styles.sideLead}>
-            ตรวจยอดจองแล้ว + พร้อมใช้ว่าง เทียบกับยอดสั่งขาย — ยังไม่ตัดสต๊อก
+            {t("ตรวจยอดจองแล้ว + พร้อมใช้ว่าง เทียบกับยอดสั่งขาย — ยังไม่ตัดสต๊อก")}
           </p>
 
           <div className={styles.statGrid}>
             <div className={styles.statItem}>
-              <span>รายการทั้งหมด</span>
+              <span>{t("รายการทั้งหมด")}</span>
               <strong>{lines.length}</strong>
             </div>
             <div className={`${styles.statItem} ${styles.statOk}`}>
-              <span>พอ</span>
+              <span>{t("พอ")}</span>
               <strong>{okCount}</strong>
             </div>
             {waitingCount > 0 ? (
               <div className={styles.statItem}>
-                <span>รอผลผลิต</span>
+                <span>{t("รอผลผลิต")}</span>
                 <strong>{waitingCount}</strong>
               </div>
             ) : null}
             <div className={`${styles.statItem} ${styles.statWarn}`}>
-              <span>ไม่พอ</span>
+              <span>{t("ไม่พอ")}</span>
               <strong>{shortCount}</strong>
             </div>
             <div className={styles.statItem}>
-              <span>ยอดขาดรวม</span>
+              <span>{t("ยอดขาดรวม")}</span>
               <strong>{formatQty(totalShortage)}</strong>
             </div>
           </div>
@@ -658,7 +662,7 @@ export default function StockVerificationDetailPage({ id }: Props) {
               block
               onClick={() => router.push(`/sales-orders/${id}`)}
             >
-              เปิดใบสั่งขาย
+              {t("เปิดใบสั่งขาย")}
             </Button>
           ) : null}
         </aside>

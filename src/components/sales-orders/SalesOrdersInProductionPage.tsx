@@ -16,11 +16,13 @@ import {
 } from "@/types/production-request";
 import {
   SALES_ORDER_STATUS_LABEL,
+  tSoStatus,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
 import masterStyles from "@/components/masters/shared/master-page.module.css";
 import styles from "./SalesOrdersInProductionPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 const PR_STATUS_COLOR: Record<string, string> = {
   PENDING: "default",
@@ -129,6 +131,7 @@ function shouldShowPoolBanner(pool: SharedItemPool) {
 }
 
 export default function SalesOrdersInProductionPage() {
+  const t = useT();
   const router = useRouter();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -157,32 +160,32 @@ export default function SalesOrdersInProductionPage() {
   const itemColumns: ColumnsType<LinkedSalesOrderLine> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_, __, index) => index + 1,
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "item",
         render: (_, line) => (
           <div>
             <p className={styles.itemName}>
-              {line.itemNameTh || line.itemCode || "สินค้า"}
+              {line.itemNameTh || line.itemCode || t("สินค้า")}
             </p>
             <p className={styles.itemCode}>{line.itemCode || "—"}</p>
           </div>
         ),
       },
       {
-        title: "สั่ง",
+        title: t("สั่ง"),
         key: "orderedQty",
         align: "right",
         render: (_, line) => `${fmtQty(line.orderedQty)} ${line.unitCode ?? ""}`,
       },
       {
-        title: "จองแล้ว",
+        title: t("จองแล้ว"),
         key: "reservedQty",
         align: "right",
         render: (_, line) => (
@@ -192,7 +195,7 @@ export default function SalesOrdersInProductionPage() {
         ),
       },
       {
-        title: "รอผลิต",
+        title: t("รอผลิต"),
         key: "pendingProductionQty",
         align: "right",
         render: (_, line) =>
@@ -205,7 +208,7 @@ export default function SalesOrdersInProductionPage() {
           ),
       },
       {
-        title: "ขาด",
+        title: t("ขาด"),
         key: "shortageQty",
         align: "right",
         render: (_, line) =>
@@ -218,11 +221,11 @@ export default function SalesOrdersInProductionPage() {
           ),
       },
       {
-        title: "สถานะของ",
+        title: t("สถานะของ"),
         key: "stockStatus",
         render: (_, line) => {
           if (line.isFullyReserved && hasReservedQty(line)) {
-            return <Tag color="success">จัดลง SO ครบแล้ว</Tag>;
+            return <Tag color="success">{t("จัดลง SO ครบแล้ว")}</Tag>;
           }
           // มีใบขอผลิตคุมส่วนที่ขาดครบแล้ว — ไม่ต้องไปแย่งของกลาง
           if (
@@ -231,7 +234,7 @@ export default function SalesOrdersInProductionPage() {
           ) {
             return (
               <Tag color="processing">
-                รอผลผลิต {fmtQty(line.pendingProductionQty)}
+                {t("รอผลผลิต {qty}", { qty: fmtQty(line.pendingProductionQty) })}
               </Tag>
             );
           }
@@ -242,46 +245,48 @@ export default function SalesOrdersInProductionPage() {
           const warehouse = Number(line.warehouseAvailableQty);
           const totalNeed = poolByItemId.get(line.itemId)?.totalNeed ?? need;
           if (need > warehouse + 0.0005) {
-            return <Tag color="warning">คลังไม่พอ ต้องเปิดใบขอผลิตเพิ่ม</Tag>;
+            return <Tag color="warning">{t("คลังไม่พอ ต้องเปิดใบขอผลิตเพิ่ม")}</Tag>;
           }
           if (totalNeed > warehouse + 0.0005) {
-            return <Tag color="processing">พอถ้าเลือกใบนี้</Tag>;
+            return <Tag color="processing">{t("พอถ้าเลือกใบนี้")}</Tag>;
           }
-          return <Tag color="success">คลังพอ</Tag>;
+          return <Tag color="success">{t("คลังพอ")}</Tag>;
         },
       },
     ],
-    [poolByItemId],
+    [poolByItemId, t],
   );
 
   return (
     <MasterPageGate>
       <section className={masterStyles.page}>
         <PageHeader
-          eyebrow="SALES · รอยืนยันใบสั่งขาย"
-          title="ใบสั่งขายที่ส่งผลิต"
-          subtitle="เห็นสินค้าต่อใบและยอดที่ยังต้องการ โดยไม่ต้องเปิดใบสั่งขายทีละใบ ของในคลังเป็นยอดรวม ต้องเลือกจัดลง SO ใบไหนก่อน"
+          eyebrow={t("SALES · รอยืนยันใบสั่งขาย")}
+          title={t("ใบสั่งขายที่ส่งผลิต")}
+          subtitle={t("เห็นสินค้าต่อใบและยอดที่ยังต้องการ โดยไม่ต้องเปิดใบสั่งขายทีละใบ ของในคลังเป็นยอดรวม ต้องเลือกจัดลง SO ใบไหนก่อน")}
         />
 
         {bannerPools.length ? (
           <div className={styles.poolBanner}>
             <p className={styles.poolBannerLead}>
-              ของในคลังเป็นยอดรวม ไม่ใช่มีให้ทุกใบเท่ากัน ต้องเลือกจัดลง SO
-              ใบไหนก่อน · คำนวณจากรายการบนหน้านี้
+              {t("ของในคลังเป็นยอดรวม ไม่ใช่มีให้ทุกใบเท่ากัน ต้องเลือกจัดลง SO ใบไหนก่อน · คำนวณจากรายการบนหน้านี้")}
             </p>
             {bannerPools.map((pool) => (
               <div key={pool.itemId} className={styles.poolBannerCard}>
                 <strong>
-                  {pool.itemNameTh || pool.itemCode || "สินค้า"}
+                  {pool.itemNameTh || pool.itemCode || t("สินค้า")}
                   {pool.itemCode && pool.itemNameTh ? ` · ${pool.itemCode}` : ""}
                 </strong>
                 <span>
-                  คลัง {fmtQty(pool.warehouseAvailable)} {pool.unitCode ?? ""} ·
-                  ต้องการรวม {fmtQty(pool.totalNeed)} {pool.unitCode ?? ""} จาก{" "}
-                  {pool.competingSoCount} ใบ · พอได้เต็ม{" "}
-                  {pool.fullyCoverableSoCount} จาก {pool.competingSoCount} ใบ
+                  {t("คลัง {qty} {unit} · ต้องการรวม {need} {unit} จาก {count} ใบ · พอได้เต็ม {full} จาก {count} ใบ", {
+                    qty: fmtQty(pool.warehouseAvailable),
+                    need: fmtQty(pool.totalNeed),
+                    unit: pool.unitCode ?? "",
+                    count: pool.competingSoCount,
+                    full: pool.fullyCoverableSoCount,
+                  })}
                   {pool.shortage > 0.0005
-                    ? ` · ขาดรวม ${fmtQty(pool.shortage)} ${pool.unitCode ?? ""}`
+                    ? ` · ${t("ขาดรวม {qty} {unit}", { qty: fmtQty(pool.shortage), unit: pool.unitCode ?? "" })}`
                     : ""}
                 </span>
               </div>
@@ -292,18 +297,18 @@ export default function SalesOrdersInProductionPage() {
         <div className={masterStyles.filterCard}>
           <div className={masterStyles.filterHeader}>
             <div>
-              <div className={masterStyles.filterEyebrow}>ค้นหา</div>
-              <h3>รายการรอยืนยันใบสั่งขาย</h3>
-              <p>ทั้งหมด {total} ใบ</p>
+              <div className={masterStyles.filterEyebrow}>{t("ค้นหา")}</div>
+              <h3>{t("รายการรอยืนยันใบสั่งขาย")}</h3>
+              <p>{t("ทั้งหมด {total} ใบ", { total })}</p>
             </div>
           </div>
           <div className={masterStyles.filterForm}>
             <div className={masterStyles.formGrid}>
               <Input
                 allowClear
-                aria-label="ค้นหาเลขที่ใบสั่งขาย ลูกค้า หรือใบขอผลิต"
+                aria-label={t("ค้นหาเลขที่ใบสั่งขาย ลูกค้า หรือใบขอผลิต")}
                 prefix={<SearchOutlined />}
-                placeholder="ค้นหาเลขที่ SO / ลูกค้า / ใบขอผลิต"
+                placeholder={t("ค้นหาเลขที่ SO / ลูกค้า / ใบขอผลิต")}
                 value={q}
                 onChange={(e) => {
                   setQ(e.target.value);
@@ -316,10 +321,10 @@ export default function SalesOrdersInProductionPage() {
 
         <div className={styles.list}>
           {listQuery.isFetching && !rows.length ? (
-            <div className={styles.empty}>กำลังโหลดรายการ...</div>
+            <div className={styles.empty}>{t("กำลังโหลดรายการ...")}</div>
           ) : null}
           {!listQuery.isFetching && !rows.length ? (
-            <div className={styles.empty}>ยังไม่มีใบสั่งขายรอยืนยัน</div>
+            <div className={styles.empty}>{t("ยังไม่มีใบสั่งขายรอยืนยัน")}</div>
           ) : null}
           {rows.map((row) => (
             <article key={row.salesOrderId} className={styles.card}>
@@ -335,11 +340,13 @@ export default function SalesOrdersInProductionPage() {
                     {row.soNo}
                   </button>
                   <p className={styles.meta}>
-                    {row.customerName || "ไม่ระบุลูกค้า"} ·{" "}
-                    {SALES_ORDER_STATUS_LABEL[row.soStatus as SalesOrderStatus] ??
-                      row.soStatus}
+                    {row.customerName || t("ไม่ระบุลูกค้า")} ·{" "}
+                    {tSoStatus(
+                      SALES_ORDER_STATUS_LABEL[row.soStatus as SalesOrderStatus] ??
+                        row.soStatus,
+                    )}
                     {row.requestedDeliveryDate
-                      ? ` · ต้องการภายใน ${dayjs(row.requestedDeliveryDate).format("DD/MM/YYYY")}`
+                      ? ` · ${t("ต้องการภายใน {date}", { date: dayjs(row.requestedDeliveryDate).format("DD/MM/YYYY") })}`
                       : ""}
                   </p>
                   <div className={styles.prRow}>
@@ -367,8 +374,10 @@ export default function SalesOrdersInProductionPage() {
                         <Tag
                           color={PR_STATUS_COLOR[request.status] ?? "default"}
                         >
-                          {PRODUCTION_REQUEST_STATUS_LABEL[request.status] ??
-                            request.status}
+                          {tSoStatus(
+                            PRODUCTION_REQUEST_STATUS_LABEL[request.status] ??
+                              request.status,
+                          )}
                         </Tag>
                         <Progress
                           percent={request.producedPercent}
@@ -385,11 +394,11 @@ export default function SalesOrdersInProductionPage() {
                 </div>
                 <div className={styles.actions}>
                   {row.isFullyReserved ? (
-                    <Tag color="success">พร้อมยืนยัน</Tag>
+                    <Tag color="success">{t("พร้อมยืนยัน")}</Tag>
                   ) : row.hasUnplannedShortage ? (
-                    <Tag color="warning">ของไม่พอ ต้องเปิดใบขอผลิตเพิ่ม</Tag>
+                    <Tag color="warning">{t("ของไม่พอ ต้องเปิดใบขอผลิตเพิ่ม")}</Tag>
                   ) : (
-                    <Tag color="processing">รอผลผลิต</Tag>
+                    <Tag color="processing">{t("รอผลผลิต")}</Tag>
                   )}
                   <Button
                     type="primary"
@@ -397,18 +406,17 @@ export default function SalesOrdersInProductionPage() {
                       router.push(`/sales-orders/${row.salesOrderId}`)
                     }
                   >
-                    จัดของลง SO
+                    {t("จัดของลง SO")}
                   </Button>
                 </div>
               </div>
 
               <div>
                 <p className={styles.itemHint}>
-                  สินค้าในใบนี้ · <strong>รอผลิต</strong>{" "}
-                  คือของที่มีใบขอผลิตคุมไว้ให้ใบนี้แล้ว ผลิตเสร็จเมื่อไหร่ระบบจะจอง
-                  กลับมาให้อัตโนมัติ ใบสั่งขายอื่นแย่งไปไม่ได้ ·{" "}
-                  <strong>ขาด</strong> คือส่วนที่ยังไม่มีทั้งของและใบขอผลิต
-                  ต้องเปิดใบขอผลิตเพิ่ม
+                  {t("สินค้าในใบนี้")} · <strong>{t("รอผลิต")}</strong>{" "}
+                  {t("คือของที่มีใบขอผลิตคุมไว้ให้ใบนี้แล้ว ผลิตเสร็จเมื่อไหร่ระบบจะจองกลับมาให้อัตโนมัติ ใบสั่งขายอื่นแย่งไปไม่ได้")} ·{" "}
+                  <strong>{t("ขาด")}</strong>{" "}
+                  {t("คือส่วนที่ยังไม่มีทั้งของและใบขอผลิต ต้องเปิดใบขอผลิตเพิ่ม")}
                 </p>
                 <Table<LinkedSalesOrderLine>
                   size="small"
@@ -429,7 +437,7 @@ export default function SalesOrdersInProductionPage() {
               pageSize={20}
               total={total}
               onChange={setPage}
-              showTotal={(count) => `ทั้งหมด ${count} ใบ`}
+              showTotal={(count) => t("ทั้งหมด {total} ใบ", { total: count })}
             />
           </div>
         ) : null}

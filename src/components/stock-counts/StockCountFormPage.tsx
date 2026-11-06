@@ -30,6 +30,8 @@ import {
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateStockCountBody } from "@/types/stock-counts";
 import { STOCK_COUNT_TYPE_LABEL } from "@/types/stock-counts";
+import { useT } from "@/lib/i18n/useT";
+import { tStockLabel } from "@/types/stock-adjustments";
 import styles from "./StockCountFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -56,6 +58,7 @@ type Props = {
 };
 
 export default function StockCountFormPage({ mode, id }: Props) {
+  const t = useT();
   const router = useRouter();
   const warehouseGroup = readWarehouseGroup(useSearchParams());
   const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
@@ -154,11 +157,11 @@ export default function StockCountFormPage({ mode, id }: Props) {
             key: index,
             text: item
               ? `${item.itemNameTh} ${line.countedQuantity ?? "-"}`
-              : `รายการที่ ${index + 1} (รอเลือกสินค้า)`,
+              : t("รายการที่ {n} (รอเลือกสินค้า)", { n: index + 1 }),
           };
         })
         .filter(Boolean) as Array<{ key: number; text: string }>,
-    [watchedItems, items],
+    [watchedItems, items, t],
   );
 
   const onFinish = async (values: FormValues) => {
@@ -195,13 +198,15 @@ export default function StockCountFormPage({ mode, id }: Props) {
       <PageHeader
         eyebrow="Stock Count"
         icon={<FileSearchOutlined />}
-        title={mode === "create" ? "สร้างใบนับสต๊อก" : "แก้ไขใบนับสต๊อก"}
-        subtitle="เลือกคลัง/ตำแหน่งที่จะนับ แล้วกรอกยอดที่นับได้จริงต่อ Lot"
+        title={
+          mode === "create" ? t("สร้างใบนับสต๊อก") : t("แก้ไขใบนับสต๊อก")
+        }
+        subtitle={t("เลือกคลัง/ตำแหน่งที่จะนับ แล้วกรอกยอดที่นับได้จริงต่อ Lot")}
         actions={
           <>
 <div className={styles.backLink}>
           <Link href={scopePath("/inventory/stock-counts")}>
-            <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
+            <Button icon={<ArrowLeftOutlined />}>{t("กลับรายการ")}</Button>
           </Link>
         </div>
           </>
@@ -220,40 +225,43 @@ export default function StockCountFormPage({ mode, id }: Props) {
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+                  <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
                   <p className={styles.sectionHint}>
-                    เลขที่ใบนับสต๊อกจะสร้างอัตโนมัติเมื่อบันทึก
+                    {t("เลขที่ใบนับสต๊อกจะสร้างอัตโนมัติเมื่อบันทึก")}
                   </p>
                 </div>
 
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่นับ"
+                    label={t("วันที่นับ")}
                     name="countDate"
-                    rules={[{ required: true, message: "กรุณาเลือกวันที่นับ" }]}
+                    rules={[{ required: true, message: t("กรุณาเลือกวันที่นับ") }]}
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
 
                   <Form.Item
                     className={styles.field}
-                    label="ประเภทการนับ"
+                    label={t("ประเภทการนับ")}
                     name="countType"
-                    rules={[{ required: true, message: "เลือกประเภทการนับ" }]}
+                    rules={[{ required: true, message: t("เลือกประเภทการนับ") }]}
                   >
                     <Select
                       options={Object.entries(STOCK_COUNT_TYPE_LABEL).map(
-                        ([value, label]) => ({ value, label }),
+                        ([value, label]) => ({
+                          value,
+                          label: tStockLabel(label),
+                        }),
                       )}
                     />
                   </Form.Item>
 
                   <Form.Item
                     className={styles.field}
-                    label="คลังที่นับ"
+                    label={t("คลังที่นับ")}
                     name="warehouseId"
-                    rules={[{ required: true, message: "เลือกคลังที่นับ" }]}
+                    rules={[{ required: true, message: t("เลือกคลังที่นับ") }]}
                   >
                     <Select
                       showSearch
@@ -274,16 +282,18 @@ export default function StockCountFormPage({ mode, id }: Props) {
 
                   <Form.Item
                     className={styles.field}
-                    label="ตำแหน่งที่นับ"
+                    label={t("ตำแหน่งที่นับ")}
                     name="locationId"
-                    rules={[{ required: true, message: "เลือกตำแหน่งที่นับ" }]}
+                    rules={[{ required: true, message: t("เลือกตำแหน่งที่นับ") }]}
                   >
                     <Select
                       showSearch
                       optionFilterProp="label"
                       disabled={!headerWarehouseId}
                       placeholder={
-                        !headerWarehouseId ? "เลือกคลังก่อน" : "เลือกตำแหน่ง"
+                        !headerWarehouseId
+                          ? t("เลือกคลังก่อน")
+                          : t("เลือกตำแหน่ง")
                       }
                       options={headerLocations.map((loc) => ({
                         value: loc.id,
@@ -300,19 +310,19 @@ export default function StockCountFormPage({ mode, id }: Props) {
 
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     name="remark"
                   >
-                    <Input.TextArea rows={2} placeholder="หมายเหตุหัวเอกสาร (ถ้ามี)" />
+                    <Input.TextArea rows={2} placeholder={t("หมายเหตุหัวเอกสาร (ถ้ามี)")} />
                   </Form.Item>
                 </div>
               </div>
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>รายการนับสต๊อก</h2>
+                  <h2 className={styles.sectionTitle}>{t("รายการนับสต๊อก")}</h2>
                   <p className={styles.sectionHint}>
-                    ต้องเลือก Lot ที่มีในคลัง/ตำแหน่งที่เลือกไว้ด้านบน
+                    {t("ต้องเลือก Lot ที่มีในคลัง/ตำแหน่งที่เลือกไว้ด้านบน")}
                   </p>
                 </div>
 
@@ -323,7 +333,7 @@ export default function StockCountFormPage({ mode, id }: Props) {
                       validator: async (_, value) => {
                         if (!value || value.length < 1) {
                           return Promise.reject(
-                            new Error("ต้องมีรายการอย่างน้อย 1 รายการ"),
+                            new Error(t("ต้องมีรายการอย่างน้อย 1 รายการ")),
                           );
                         }
                       },
@@ -357,7 +367,7 @@ export default function StockCountFormPage({ mode, id }: Props) {
                         return (
                           <div key={key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
-                              <strong>รายการที่ {index + 1}</strong>
+                              <strong>{t("รายการที่ {n}", { n: index + 1 })}</strong>
                               {fields.length > 1 ? (
                                 <Button
                                   type="text"
@@ -366,7 +376,7 @@ export default function StockCountFormPage({ mode, id }: Props) {
                                   icon={<DeleteOutlined />}
                                   onClick={() => remove(name)}
                                 >
-                                  ลบ
+                                  {t("ลบ")}
                                 </Button>
                               ) : null}
                             </div>
@@ -375,12 +385,12 @@ export default function StockCountFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="สินค้า"
+                                label={t("สินค้า")}
                                 name={[name, "itemId"]}
-                                rules={[{ required: true, message: "เลือกสินค้า" }]}
+                                rules={[{ required: true, message: t("เลือกสินค้า") }]}
                               >
                                 <Select
-                                  placeholder="ค้นหา/เลือกสินค้า"
+                                  placeholder={t("ค้นหา/เลือกสินค้า")}
                                   showSearch
                                   optionFilterProp="label"
                                   options={items.map((item) => ({
@@ -408,9 +418,9 @@ export default function StockCountFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="หน่วย"
+                                label={t("หน่วย")}
                                 name={[name, "unitId"]}
-                                rules={[{ required: true, message: "เลือกหน่วย" }]}
+                                rules={[{ required: true, message: t("เลือกหน่วย") }]}
                               >
                                 <Select
                                   showSearch
@@ -425,9 +435,9 @@ export default function StockCountFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="Lot (ยอดระบบ)"
+                                label={t("Lot (ยอดระบบ)")}
                                 name={[name, "lotId"]}
-                                rules={[{ required: true, message: "เลือก Lot" }]}
+                                rules={[{ required: true, message: t("เลือก Lot") }]}
                               >
                                 <Select
                                   showSearch
@@ -439,14 +449,14 @@ export default function StockCountFormPage({ mode, id }: Props) {
                                   }
                                   placeholder={
                                     !headerWarehouseId || !headerLocationId
-                                      ? "เลือกคลัง/ตำแหน่งด้านบนก่อน"
+                                      ? t("เลือกคลัง/ตำแหน่งด้านบนก่อน")
                                       : !line?.itemId
-                                        ? "เลือกสินค้าก่อน"
-                                        : "เลือก Lot"
+                                        ? t("เลือกสินค้าก่อน")
+                                        : t("เลือก Lot")
                                   }
                                   options={availableLots.map((lot) => ({
                                     value: lot.lotId,
-                                    label: `${lot.lotNo} — ระบบ ${lot.quantityOnHand}`,
+                                    label: `${lot.lotNo} — ${t("ระบบ")} ${lot.quantityOnHand}`,
                                   }))}
                                 />
                               </Form.Item>
@@ -456,9 +466,9 @@ export default function StockCountFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="จำนวนที่นับได้จริง"
+                                label={t("จำนวนที่นับได้จริง")}
                                 name={[name, "countedQuantity"]}
-                                rules={[{ required: true, message: "ระบุจำนวนที่นับได้" }]}
+                                rules={[{ required: true, message: t("ระบุจำนวนที่นับได้") }]}
                               >
                                 <InputNumber
                                   min={0}
@@ -470,19 +480,19 @@ export default function StockCountFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="หมายเหตุรายการ"
+                                label={t("หมายเหตุรายการ")}
                                 name={[name, "remark"]}
                               >
-                                <Input placeholder="หมายเหตุ (ถ้ามี)" />
+                                <Input placeholder={t("หมายเหตุ (ถ้ามี)")} />
                               </Form.Item>
                             </div>
 
                             {selectedLot ? (
                               <div className={styles.varianceRow}>
-                                <span>ยอดระบบ {selectedLot.quantityOnHand}</span>
+                                <span>{t("ยอดระบบ")} {selectedLot.quantityOnHand}</span>
                                 <span>·</span>
                                 <span>
-                                  ส่วนต่าง:{" "}
+                                  {t("ส่วนต่าง:")}{" "}
                                   <span
                                     className={`${styles.varianceValue} ${varianceTone}`}
                                   >
@@ -505,7 +515,7 @@ export default function StockCountFormPage({ mode, id }: Props) {
                         icon={<PlusOutlined />}
                         onClick={() => add({})}
                       >
-                        เพิ่มรายการ
+                        {t("เพิ่มรายการ")}
                       </Button>
                       <Form.ErrorList errors={errors} />
                     </div>
@@ -516,15 +526,14 @@ export default function StockCountFormPage({ mode, id }: Props) {
 
             <div className={styles.footerBar}>
               <p className={styles.footerHint}>
-                บันทึกแล้วสถานะจะเป็น DRAFT — หัวหน้าคลังต้องอนุมัติก่อนปรับปรุงสต๊อกจริง
-                (ระบบจะคำนวณส่วนต่างจากยอดปัจจุบันจริงอีกครั้งตอนอนุมัติ)
+                {t("บันทึกแล้วสถานะจะเป็น DRAFT — หัวหน้าคลังต้องอนุมัติก่อนปรับปรุงสต๊อกจริง (ระบบจะคำนวณส่วนต่างจากยอดปัจจุบันจริงอีกครั้งตอนอนุมัติ)")}
               </p>
               <div className={styles.footerActions}>
                 <Button
                   className={styles.cancelBtn}
                   onClick={() => router.push(scopePath("/inventory/stock-counts"))}
                 >
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -532,7 +541,7 @@ export default function StockCountFormPage({ mode, id }: Props) {
                   htmlType="submit"
                   loading={saving}
                 >
-                  {mode === "create" ? "บันทึกใบนับสต๊อก" : "บันทึกการแก้ไข"}
+                  {mode === "create" ? t("บันทึกใบนับสต๊อก") : t("บันทึกการแก้ไข")}
                 </Button>
               </div>
             </div>
@@ -540,18 +549,18 @@ export default function StockCountFormPage({ mode, id }: Props) {
 
           <aside className={styles.summaryCard}>
             <div>
-              <p className={styles.summaryEyebrow}>สรุปแบบฟอร์ม</p>
+              <p className={styles.summaryEyebrow}>{t("สรุปแบบฟอร์ม")}</p>
               <h2 className={styles.summaryTitle}>
-                {mode === "create" ? "ใบนับสต๊อกใหม่" : "แก้ไข DRAFT"}
+                {mode === "create" ? t("ใบนับสต๊อกใหม่") : t("แก้ไข DRAFT")}
               </h2>
               <p className={styles.summaryLead}>
-                ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ
+                {t("ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ")}
               </p>
             </div>
 
             <div>
               <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                รายการนับสต๊อก
+                {t("รายการนับสต๊อก")}
               </Typography.Text>
               {previewLines.length > 0 ? (
                 <ul className={styles.previewList}>
@@ -560,15 +569,14 @@ export default function StockCountFormPage({ mode, id }: Props) {
                   ))}
                 </ul>
               ) : (
-                <p className={styles.previewMeta}>ยังไม่มีรายการ</p>
+                <p className={styles.previewMeta}>{t("ยังไม่มีรายการ")}</p>
               )}
             </div>
 
             <div className={styles.flowNote}>
-              <strong>ขั้นตอนถัดไป</strong>
+              <strong>{t("ขั้นตอนถัดไป")}</strong>
               <p>
-                หลังบันทึก → เปิดหน้ารายละเอียด → กด “อนุมัติ” →
-                หัวหน้าคลังปรับปรุงสต๊อกจริงตามส่วนต่าง
+                {t("หลังบันทึก → เปิดหน้ารายละเอียด → กด “อนุมัติ” → หัวหน้าคลังปรับปรุงสต๊อกจริงตามส่วนต่าง")}
               </p>
             </div>
           </aside>

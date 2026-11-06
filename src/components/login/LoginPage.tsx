@@ -4,11 +4,16 @@ import { useState } from "react";
 import Image from "next/image";
 import { App, Button, Input } from "antd";
 
+import LanguageFlag from "@/components/common/LanguageFlag";
 import { useLoginMutation } from "@/hooks/auth/useLoginMutation";
+import { setLanguage, useLanguage, type Language } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./LoginPage.module.css";
 
 export default function LoginPage() {
   const { message } = App.useApp();
+  const t = useT();
+  const language = useLanguage();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const loginMutation = useLoginMutation();
@@ -17,12 +22,12 @@ export default function LoginPage() {
     event?.preventDefault();
 
     if (!username.trim()) {
-      message.warning("กรุณากรอกชื่อผู้ใช้งาน");
+      message.warning(t("กรุณากรอกชื่อผู้ใช้งาน"));
       return;
     }
 
     if (!password.trim()) {
-      message.warning("กรุณากรอกรหัสผ่าน");
+      message.warning(t("กรุณากรอกรหัสผ่าน"));
       return;
     }
 
@@ -45,17 +50,16 @@ export default function LoginPage() {
                 Inventory Management System
               </div>
 
-              <h1>ระบบจัดการคลังสินค้า สำหรับ SMT Energy</h1>
+              <h1>{t("ระบบจัดการคลังสินค้า สำหรับ SMT Energy")}</h1>
               <p>
-                เข้าสู่ระบบเพื่อจัดการใบขอซื้อ ตรวจสอบเอกสารอนุมัติ
-                และติดตามข้อมูลสินค้าคงคลังได้จากศูนย์กลางเดียว
+                {t("เข้าสู่ระบบเพื่อจัดการใบขอซื้อ ตรวจสอบเอกสารอนุมัติ และติดตามข้อมูลสินค้าคงคลังได้จากศูนย์กลางเดียว")}
               </p>
             </div>
           </div>
 
           <div className={styles.dashboardPreview}>
             <div className={styles.previewTop}>
-              <b>ภาพรวมการทำงานวันนี้</b>
+              <b>{t("ภาพรวมการทำงานวันนี้")}</b>
               <span className={styles.previewChip}>Online</span>
             </div>
 
@@ -69,6 +73,21 @@ export default function LoginPage() {
 
         <section className={styles.formPanel}>
           <div className={styles.loginCard}>
+            <div className={styles.langSwitch} role="group" aria-label={t("ภาษา")}>
+              {(["th", "en"] as Language[]).map((code) => (
+                <button
+                  key={code}
+                  type="button"
+                  className={`${styles.langOption} ${language === code ? styles.langOptionActive : ""}`}
+                  aria-pressed={language === code}
+                  onClick={() => setLanguage(code)}
+                >
+                  <LanguageFlag language={code} size={18} ring={false} />
+                  <span>{code === "th" ? "ไทย" : "English"}</span>
+                </button>
+              ))}
+            </div>
+
             <div className={styles.mobileBrand}>
               <Brand isMobile />
             </div>
@@ -78,21 +97,21 @@ export default function LoginPage() {
               Secure Login
             </div>
 
-            <h2>ยินดีต้อนรับกลับ</h2>
+            <h2>{t("ยินดีต้อนรับกลับ")}</h2>
             <p className={styles.subtitle}>
-              กรุณากรอกบัญชีผู้ใช้งานเพื่อเข้าสู่ระบบ Inventory Management
+              {t("กรุณากรอกบัญชีผู้ใช้งานเพื่อเข้าสู่ระบบ Inventory Management")}
             </p>
 
             <form onSubmit={handleLogin}>
               <div className={styles.formRow}>
                 <label className={styles.formLabel} htmlFor="login-username">
-                  ชื่อผู้ใช้งาน
+                  {t("ชื่อผู้ใช้งาน")}
                 </label>
                 <Input
                   id="login-username"
                   size="large"
                   prefix="👤"
-                  placeholder="กรอกชื่อผู้ใช้งาน"
+                  placeholder={t("กรอกชื่อผู้ใช้งาน")}
                   autoComplete="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -102,13 +121,13 @@ export default function LoginPage() {
 
               <div className={styles.formRow}>
                 <label className={styles.formLabel} htmlFor="login-password">
-                  รหัสผ่าน
+                  {t("รหัสผ่าน")}
                 </label>
                 <Input.Password
                   id="login-password"
                   size="large"
                   prefix="🔒"
-                  placeholder="กรอกรหัสผ่าน"
+                  placeholder={t("กรอกรหัสผ่าน")}
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -124,13 +143,13 @@ export default function LoginPage() {
                 block
                 loading={loginMutation.isPending}
               >
-                เข้าสู่ระบบ
+                {t("เข้าสู่ระบบ")}
               </Button>
             </form>
 
             <div className={styles.helperGrid}>
-              <Button className={styles.helperButton}>ติดต่อผู้ดูแลระบบ</Button>
-              <Button className={styles.helperButton}>คู่มือการใช้งาน</Button>
+              <Button className={styles.helperButton}>{t("ติดต่อผู้ดูแลระบบ")}</Button>
+              <Button className={styles.helperButton}>{t("คู่มือการใช้งาน")}</Button>
             </div>
 
             <div className={styles.footer}>

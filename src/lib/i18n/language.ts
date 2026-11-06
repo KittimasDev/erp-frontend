@@ -2,13 +2,15 @@
 
 import { useSyncExternalStore } from "react";
 
+import type { Language } from "./translate";
+
 /**
  * ภาษาของหน้าจอ (ไทย / อังกฤษ) — เก็บใน localStorage เพื่อจำค่าต่อเครื่อง
  *
- * ตอนนี้ตัวสลับมีผลกับส่วนกรอบของระบบที่แปลแล้ว (เมนูผู้ใช้, วันที่บนแถบบน) และตั้งค่า `<html lang>`
- * เนื้อหาหน้าต่าง ๆ ยังเป็นภาษาไทย — หน้าที่แปลแล้วอ่านภาษาได้จาก `useLanguage()` แล้วเลือกข้อความเอง
+ * ตัวสลับมีผลกับทั้งแอป: ข้อความผ่าน `useT()` (`lib/i18n/useT.ts`), antd/dayjs locale ใน `AntdProvider`,
+ * และตั้งค่า `<html lang>` — หน้าที่ยังไม่แปลจะแสดงไทยตามเดิม (ดู `translate.ts`)
  */
-export type Language = "th" | "en";
+export type { Language };
 
 export const LANGUAGE_STORAGE_KEY = "erp:language";
 export const LANGUAGE_CHANGED_EVENT = "erp:language-changed";

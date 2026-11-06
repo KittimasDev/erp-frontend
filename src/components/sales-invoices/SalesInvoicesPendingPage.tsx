@@ -16,6 +16,7 @@ import dayjs from "dayjs";
 import { usePendingSalesInvoicesQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import type { PendingSalesInvoiceDelivery } from "@/types/sales-invoices";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./SalesInvoicesPendingPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -34,6 +35,7 @@ function formatMoney(value?: string | number) {
 }
 
 export default function SalesInvoicesPendingPage() {
+  const t = useT();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -62,42 +64,42 @@ export default function SalesInvoicesPendingPage() {
   const columns: ColumnsType<PendingSalesInvoiceDelivery> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ DO",
+        title: t("เลขที่ DO"),
         dataIndex: "deliveryOrderNo",
         render: (value: string) => (
           <span className={styles.poNo}>{value}</span>
         ),
       },
       {
-        title: "วันที่ส่ง",
+        title: t("วันที่ส่ง"),
         dataIndex: "deliveryDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ใบสั่งขาย",
+        title: t("ใบสั่งขาย"),
         dataIndex: "salesOrderNo",
         render: (value?: string) => value ?? "—",
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         dataIndex: "customerName",
         render: (value?: string) => value ?? "—",
       },
       {
-        title: "รายการ",
+        title: t("รายการ"),
         dataIndex: "itemCount",
         width: 80,
         align: "center",
       },
       {
-        title: "ยอด SO",
+        title: t("ยอด SO"),
         dataIndex: "salesOrderTotalAmount",
         align: "right",
         render: (value?: string) => formatMoney(value),
@@ -119,7 +121,7 @@ export default function SalesInvoicesPendingPage() {
                 );
               }}
             >
-              ออกบิล
+              {t("ออกบิล")}
             </Button>
           ) : (
             <Button
@@ -129,12 +131,12 @@ export default function SalesInvoicesPendingPage() {
                 router.push(`/delivery-orders/${row.id}`);
               }}
             >
-              ดู DO
+              {t("ดู DO")}
             </Button>
           ),
       },
     ],
-    [canWrite, limit, page, router],
+    [canWrite, limit, page, router, t],
   );
 
   return (
@@ -142,12 +144,12 @@ export default function SalesInvoicesPendingPage() {
       <PageHeader
         eyebrow="Sales · Pending Invoices"
         icon={<FileTextOutlined />}
-        title="รอออกใบแจ้งหนี้"
-        subtitle="Delivery Order สถานะส่งมอบแล้ว ที่ยังไม่มีใบแจ้งหนี้ใช้งาน"
+        title={t("รอออกใบแจ้งหนี้")}
+        subtitle={t("Delivery Order สถานะส่งมอบแล้ว ที่ยังไม่มีใบแจ้งหนี้ใช้งาน")}
         actions={
           <>
 <Link href="/sales-invoices">
-            <Button icon={<HistoryOutlined />}>ประวัติใบแจ้งหนี้</Button>
+            <Button icon={<HistoryOutlined />}>{t("ประวัติใบแจ้งหนี้")}</Button>
           </Link>
           </>
         }
@@ -156,10 +158,10 @@ export default function SalesInvoicesPendingPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="DO / SO / ลูกค้า"
+              placeholder={t("DO / SO / ลูกค้า")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onPressEnter={() => setAppliedKeyword(keyword.trim())}
@@ -172,14 +174,14 @@ export default function SalesInvoicesPendingPage() {
                 setAppliedKeyword("");
               }}
             >
-              เคลียร์
+              {t("เคลียร์")}
             </Button>
             <Button
               type="primary"
               icon={<SearchOutlined />}
               onClick={() => setAppliedKeyword(keyword.trim())}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -198,15 +200,15 @@ export default function SalesInvoicesPendingPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ไม่มี DO รอออกบิล</strong>
-                เมื่อส่งมอบสินค้าแล้ว รายการจะแสดงที่นี่
+                <strong>{t("ไม่มี DO รอออกบิล")}</strong>
+                {t("เมื่อส่งมอบสินค้าแล้ว รายการจะแสดงที่นี่")}
               </div>
             ),
           }}
         />
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            พบ {total} รายการ · แสดงในหน้านี้ {filteredRows.length}
+            {t("พบ {total} รายการ · แสดงในหน้านี้ {shown}", { total, shown: filteredRows.length })}
           </div>
           <div className={styles.entriesBox}>
             <Select

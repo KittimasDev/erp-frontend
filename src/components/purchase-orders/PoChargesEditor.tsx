@@ -6,6 +6,7 @@ import type { FormInstance } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
 import { useExpenseTypesQuery } from "@/hooks/expense-types/useExpenseTypes";
+import { tNow, useT } from "@/lib/i18n/useT";
 import {
   STANDARD_VAT_PERCENT,
   VAT_MODE_OPTIONS,
@@ -54,9 +55,9 @@ const CHARGE_TYPE_OPTIONS = Object.entries(PO_CHARGE_TYPE_LABEL).map(([value, la
 
 function amountFieldLabel(vatMode?: string | null): string {
   const mode = resolveVatMode(vatMode);
-  if (mode === VatMode.NONE) return "จำนวนเงิน";
-  if (mode === VatMode.INCLUSIVE) return "จำนวนเงินรวม VAT";
-  return "จำนวนเงินก่อน VAT";
+  if (mode === VatMode.NONE) return tNow("จำนวนเงิน");
+  if (mode === VatMode.INCLUSIVE) return tNow("จำนวนเงินรวม VAT");
+  return tNow("จำนวนเงินก่อน VAT");
 }
 
 function deriveWithholdingTaxType(
@@ -141,22 +142,23 @@ type Props = {
  * VAT ต่อรายการแบบหัว PO (ไม่คิด / ไม่รวม / รวม · 7%) · WHT เป็นประเภทไม่ระบุ/1%/3%/กำหนดเอง
  */
 export default function PoChargesEditor({ form, disabled }: Props) {
+  const t = useT();
   const watched = (Form.useWatch("charges", form) ?? []) as ChargeFormRow[];
   const expenseTypesQuery = useExpenseTypesQuery({ isActive: true });
   const activeTypes = expenseTypesQuery.data ?? [];
   const defaultExpenseType =
-    activeTypes.find((t) => t.code === "FREIGHT") ?? activeTypes[0];
+    activeTypes.find((et) => et.code === "FREIGHT") ?? activeTypes[0];
 
   /** ตัวเลือกของแถว: ประเภทที่เปิดใช้งาน + ประเภทที่แถวนี้ใช้อยู่แล้วแม้ถูกปิดไปภายหลัง (ไม่ให้ค่าเดิมหาย) */
   const optionsFor = (row: ChargeFormRow) => {
-    const options = activeTypes.map((t) => ({
-      value: t.id,
-      label: `${t.code} — ${t.nameTh}${t.glAccountId ? "" : " (ยังไม่ผูก GL)"}`,
+    const options = activeTypes.map((et) => ({
+      value: et.id,
+      label: `${et.code} — ${et.nameTh}${et.glAccountId ? "" : ` ${t("(ยังไม่ผูก GL)")}`}`,
     }));
     if (row.expenseTypeId && !options.some((o) => o.value === row.expenseTypeId)) {
       options.push({
         value: row.expenseTypeId,
-        label: `${row._expenseTypeName ?? "ประเภทเดิม"} (ปิดใช้งาน)`,
+        label: `${row._expenseTypeName ?? t("ประเภทเดิม")} ${t("(ปิดใช้งาน)")}`,
       });
     }
     return options;
@@ -165,10 +167,11 @@ export default function PoChargesEditor({ form, disabled }: Props) {
   return (
     <div className={styles.sectionBlock}>
       <div className={styles.chargeHead}>
-        <h2 className={styles.sectionTitle}>ค่าใช้จ่ายเพิ่มเติม</h2>
+        <h2 className={styles.sectionTitle}>{t("ค่าใช้จ่ายเพิ่มเติม")}</h2>
         <p className={styles.sectionHint}>
-          ค่าขนส่ง ค่าบริการ หรือค่าใช้จ่ายอื่น ๆ ของ Supplier รายนี้ — แยกจากรายการสินค้า ไม่เข้าสต๊อก/Lot
-          และแบ่งไปตั้งหนี้ในแต่ละใบตั้งหนี้ได้ภายหลัง
+          {t(
+            "ค่าขนส่ง ค่าบริการ หรือค่าใช้จ่ายอื่น ๆ ของ Supplier รายนี้ — แยกจากรายการสินค้า ไม่เข้าสต๊อก/Lot และแบ่งไปตั้งหนี้ในแต่ละใบตั้งหนี้ได้ภายหลัง",
+          )}
         </p>
       </div>
       <Form.List name="charges">
@@ -188,10 +191,12 @@ export default function PoChargesEditor({ form, disabled }: Props) {
               return (
                 <div key={field.key} className={styles.chargeCard}>
                   <div className={styles.chargeCardHeader}>
-                    <strong>ค่าใช้จ่ายรายการที่ {index + 1}</strong>
+                    <strong>{t("ค่าใช้จ่ายรายการที่ {n}", { n: index + 1 })}</strong>
                     <span>
                       {locked ? (
-                        <Tag color="gold">ตั้งหนี้แล้ว {money(allocated)}</Tag>
+                        <Tag color="gold">
+                          {t("ตั้งหนี้แล้ว {amount}", { amount: money(allocated) })}
+                        </Tag>
                       ) : null}
                       <Button
                         type="text"
@@ -199,7 +204,7 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                         icon={<DeleteOutlined />}
                         disabled={disabled || locked}
                         onClick={() => remove(field.name)}
-                        aria-label={`ลบค่าใช้จ่ายรายการที่ ${index + 1}`}
+                        aria-label={t("ลบค่าใช้จ่ายรายการที่ {n}", { n: index + 1 })}
                       />
                     </span>
                   </div>
@@ -212,20 +217,20 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                   <div className={styles.chargeFields}>
                     <Form.Item
                       name={[field.name, "expenseTypeId"]}
-                      label="ประเภทค่าใช้จ่าย"
+                      label={t("ประเภทค่าใช้จ่าย")}
                       extra={
                         locked
-                          ? "ล็อกแล้ว — มีการนำไปตั้งหนี้"
+                          ? t("ล็อกแล้ว — มีการนำไปตั้งหนี้")
                           : row.expenseTypeId
-                            ? "สมุดรายวันซื้อใช้บัญชี GL ของประเภทนี้"
-                            : "ไม่เลือก = ใช้ประเภทแบบเดิมด้านล่าง"
+                            ? t("สมุดรายวันซื้อใช้บัญชี GL ของประเภทนี้")
+                            : t("ไม่เลือก = ใช้ประเภทแบบเดิมด้านล่าง")
                       }
                       rules={[
                         {
                           validator: (_, value?: string) =>
                             value || row.chargeType
                               ? Promise.resolve()
-                              : Promise.reject(new Error("เลือกประเภท")),
+                              : Promise.reject(new Error(t("เลือกประเภท"))),
                         },
                       ]}
                     >
@@ -235,10 +240,10 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                         optionFilterProp="label"
                         options={optionsFor(row)}
                         loading={expenseTypesQuery.isLoading}
-                        placeholder="เลือกประเภทค่าใช้จ่าย"
+                        placeholder={t("เลือกประเภทค่าใช้จ่าย")}
                         disabled={disabled || locked}
                         onChange={(value?: string) => {
-                          const type = activeTypes.find((t) => t.id === value);
+                          const type = activeTypes.find((et) => et.id === value);
                           form.setFieldValue(
                             ["charges", field.name, "_expenseTypeName"],
                             type?.nameTh,
@@ -256,24 +261,24 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                     {!row.expenseTypeId ? (
                       <Form.Item
                         name={[field.name, "chargeType"]}
-                        label="ประเภท (แบบเดิม)"
-                        rules={[{ required: true, message: "เลือกประเภท" }]}
+                        label={t("ประเภท (แบบเดิม)")}
+                        rules={[{ required: true, message: t("เลือกประเภท") }]}
                       >
                         <Select
-                          options={CHARGE_TYPE_OPTIONS}
-                          placeholder="เลือกประเภท"
+                          options={CHARGE_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
+                          placeholder={t("เลือกประเภท")}
                           disabled={disabled || locked}
                         />
                       </Form.Item>
                     ) : null}
                     <Form.Item
                       name={[field.name, "description"]}
-                      label="รายละเอียดค่าใช้จ่าย"
-                      rules={[{ required: true, whitespace: true, message: "ระบุรายละเอียด" }]}
+                      label={t("รายละเอียดค่าใช้จ่าย")}
+                      rules={[{ required: true, whitespace: true, message: t("ระบุรายละเอียด") }]}
                     >
                       <Input
                         maxLength={500}
-                        placeholder="เช่น ค่าขนส่งจากโรงงานถึงคลัง"
+                        placeholder={t("เช่น ค่าขนส่งจากโรงงานถึงคลัง")}
                         disabled={disabled}
                       />
                     </Form.Item>
@@ -281,7 +286,7 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                       name={[field.name, "amountBeforeVat"]}
                       label={amountFieldLabel(vatMode)}
                       rules={[
-                        { required: true, message: "ระบุจำนวนเงิน" },
+                        { required: true, message: t("ระบุจำนวนเงิน") },
                         {
                           validator: (_, value?: number) => {
                             if (!locked || value === undefined) return Promise.resolve();
@@ -292,7 +297,11 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                                 : value;
                             return base < allocated - 0.004
                               ? Promise.reject(
-                                  new Error(`ต่ำกว่ายอดที่ตั้งหนี้แล้ว ${money(allocated)}`),
+                                  new Error(
+                                    t("ต่ำกว่ายอดที่ตั้งหนี้แล้ว {amount}", {
+                                      amount: money(allocated),
+                                    }),
+                                  ),
                                 )
                               : Promise.resolve();
                           },
@@ -308,23 +317,23 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "vatMode"]}
-                      label="รูปแบบ VAT"
-                      rules={[{ required: true, message: "เลือกรูปแบบ VAT" }]}
+                      label={t("รูปแบบ VAT")}
+                      rules={[{ required: true, message: t("เลือกรูปแบบ VAT") }]}
                     >
-                      <Select options={VAT_MODE_OPTIONS} disabled={disabled || locked} />
+                      <Select options={VAT_MODE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} disabled={disabled || locked} />
                     </Form.Item>
                     <Form.Item
                       name={[field.name, "withholdingTaxType"]}
-                      label="ภาษีหัก ณ ที่จ่าย"
-                      rules={[{ required: true, message: "เลือกภาษีหัก ณ ที่จ่าย" }]}
+                      label={t("ภาษีหัก ณ ที่จ่าย")}
+                      rules={[{ required: true, message: t("เลือกภาษีหัก ณ ที่จ่าย") }]}
                     >
-                      <Select options={WITHHOLDING_TAX_TYPE_OPTIONS} disabled={disabled} />
+                      <Select options={WITHHOLDING_TAX_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))} disabled={disabled} />
                     </Form.Item>
                     {whtType === WithholdingTaxType.CUSTOM ? (
                       <Form.Item
                         name={[field.name, "whtRate"]}
-                        label="อัตราหัก ณ ที่จ่าย (%)"
-                        rules={[{ required: true, message: "ระบุอัตรา" }]}
+                        label={t("อัตราหัก ณ ที่จ่าย (%)")}
+                        rules={[{ required: true, message: t("ระบุอัตรา") }]}
                       >
                         <InputNumber
                           min={0.01}
@@ -336,17 +345,18 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                       </Form.Item>
                     ) : null}
                     {whtType !== WithholdingTaxType.NONE ? (
-                      <Form.Item name={[field.name, "whtIncomeType"]} label="ประเภทเงินได้">
+                      <Form.Item name={[field.name, "whtIncomeType"]} label={t("ประเภทเงินได้")}>
                         <Input
                           maxLength={100}
-                          placeholder="เช่น ค่าขนส่ง"
+                          placeholder={t("เช่น ค่าขนส่ง")}
                           disabled={disabled}
                         />
                       </Form.Item>
                     ) : null}
                   </div>
                   <div className={styles.chargeSummary}>
-                    VAT {money(totals.vat)} · รวม <strong>{money(totals.total)}</strong>
+                    VAT {money(totals.vat)} · {t("รวม")}{" "}
+                    <strong>{money(totals.total)}</strong>
                   </div>
                 </div>
               );
@@ -365,7 +375,7 @@ export default function PoChargesEditor({ form, disabled }: Props) {
                 })
               }
             >
-              เพิ่มค่าใช้จ่าย
+              {t("เพิ่มค่าใช้จ่าย")}
             </Button>
           </div>
         )}

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Checkbox, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { tNow, useT } from "@/lib/i18n/useT";
 import type {
   PurchaseRequest,
   PurchaseRequestItem,
@@ -16,7 +18,7 @@ import styles from "./PurchaseOrdersListPage.module.css";
 export function itemLabelOf(item: PurchaseRequestItem) {
   return (
     [item.itemCode, item.itemNameTh].filter(Boolean).join(" — ") ||
-    "ไม่ระบุชื่อสินค้า"
+    tNow("ไม่ระบุชื่อสินค้า")
   );
 }
 
@@ -38,7 +40,7 @@ function formatDate(value?: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? "—"
-    : date.toLocaleDateString("th-TH", {
+    : date.toLocaleDateString(getStoredLanguage() === "en" ? "en-GB" : "th-TH", {
         day: "2-digit",
         month: "short",
         year: "numeric",
@@ -63,11 +65,12 @@ function PendingPrItemsPanel({
   selectedItemIds,
   onToggleItem,
 }: Props) {
+  const t = useT();
   const items = pr.items ?? [];
 
   const columns: ColumnsType<PurchaseRequestItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
@@ -86,14 +89,14 @@ function PendingPrItemsPanel({
                 onChange={(event) =>
                   onToggleItem(pr, item, event.target.checked)
                 }
-                aria-label={`เลือก ${itemLabelOf(item)}`}
+                aria-label={t("เลือก {name}", { name: itemLabelOf(item) })}
               />
             ),
           },
         ]
       : []),
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       ellipsis: true,
       render: (_v, item) => (
@@ -106,38 +109,38 @@ function PendingPrItemsPanel({
       ),
     },
     {
-      title: "จำนวน",
+      title: t("จำนวน"),
       key: "qty",
       width: 100,
       align: "right",
       render: (_v, item) => formatQty(item.quantity),
     },
     {
-      title: "หน่วย",
+      title: t("หน่วย"),
       key: "unit",
       width: 90,
       render: (_v, item) => item.unitNameTh ?? item.unitCode ?? "—",
     },
     {
-      title: "ต้องการภายใน",
+      title: t("ต้องการภายใน"),
       key: "requiredDate",
       width: 130,
       render: (_v, item) => formatDate(item.requiredDate),
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 190,
       render: (_v, item) =>
         item.orderedPurchaseOrder ? (
           <span className={styles.panelOrdered}>
-            <Tag>สั่งแล้ว</Tag>
+            <Tag>{t("สั่งแล้ว")}</Tag>
             <Link href={`/purchase-orders/${item.orderedPurchaseOrder.id}`}>
               {item.orderedPurchaseOrder.poNo}
             </Link>
           </span>
         ) : (
-          <Tag color="success">ยังไม่สั่ง</Tag>
+          <Tag color="success">{t("ยังไม่สั่ง")}</Tag>
         ),
     },
   ];
@@ -151,8 +154,10 @@ function PendingPrItemsPanel({
     >
       <p className={styles.panelHint}>
         {selectable
-          ? "เลือกเฉพาะสินค้าที่จะสั่งจากผู้ขายรายนี้ — ที่เหลือยังค้างอยู่ในคิวให้เปิดใบถัดไปได้"
-          : "รายการสินค้าในใบขอซื้อนี้"}
+          ? t(
+              "เลือกเฉพาะสินค้าที่จะสั่งจากผู้ขายรายนี้ — ที่เหลือยังค้างอยู่ในคิวให้เปิดใบถัดไปได้",
+            )
+          : t("รายการสินค้าในใบขอซื้อนี้")}
       </p>
       <Table
         rowKey="id"

@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n/useT";
 import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -49,6 +50,7 @@ type FormValues = {
 type Props = { id: string };
 
 export default function GoodsReceiptEditPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const detailQuery = useGoodsReceiptQuery(id);
@@ -120,7 +122,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
   if (detailQuery.isLoading) {
     return (
       <div className={styles.page}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -128,9 +130,9 @@ export default function GoodsReceiptEditPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.page}>
-        ไม่พบใบรับของ
+        {t("ไม่พบใบรับของ")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/goods-receipts">กลับ</Link>
+          <Link href="/goods-receipts">{t("กลับ")}</Link>
         </div>
       </div>
     );
@@ -163,13 +165,13 @@ export default function GoodsReceiptEditPage({ id }: Props) {
       <PageHeader
         eyebrow="Goods Receipt"
         icon={<EditOutlined />}
-        title="แก้ไขใบรับของ"
+        title={t("แก้ไขใบรับของ")}
         subtitle={data.grNo}
         actions={
           <>
 <div className={styles.backLink}>
           <Link href={`/goods-receipts/${data.id}`}>
-            <Button icon={<ArrowLeftOutlined />}>กลับ</Button>
+            <Button icon={<ArrowLeftOutlined />}>{t("กลับ")}</Button>
           </Link>
         </div>
           </>
@@ -184,7 +186,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่รับ"
+                    label={t("วันที่รับ")}
                     name="grDate"
                     rules={[{ required: true }]}
                   >
@@ -192,7 +194,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                   </Form.Item>
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     name="remark"
                   >
                     <Input.TextArea rows={2} />
@@ -226,7 +228,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                           line?.itemLabel ||
                           (persisted
                             ? `${persisted.itemCode ?? ""} — ${persisted.itemNameTh ?? ""}`
-                            : `รายการที่ ${index + 1}`);
+                            : t("รายการที่ {n}", { n: index + 1 }));
                         return (
                           <div key={key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
@@ -267,7 +269,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="จำนวนรับ"
+                                label={t("จำนวนรับ")}
                                 name={[name, "qty"]}
                                 rules={[
                                   {
@@ -292,7 +294,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="คลัง"
+                                label={t("คลัง")}
                                 name={[name, "warehouseId"]}
                                 rules={[{ required: true }]}
                               >
@@ -314,7 +316,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="ตำแหน่ง"
+                                label={t("ตำแหน่ง")}
                                 name={[name, "locationId"]}
                                 rules={[{ required: true }]}
                               >
@@ -348,7 +350,7 @@ export default function GoodsReceiptEditPage({ id }: Props) {
               <div />
               <div className={styles.footerActions}>
                 <Button onClick={() => router.push(`/goods-receipts/${id}`)}>
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -356,16 +358,16 @@ export default function GoodsReceiptEditPage({ id }: Props) {
                   htmlType="submit"
                   loading={updateMutation.isPending}
                 >
-                  บันทึก
+                  {t("บันทึก")}
                 </Button>
               </div>
             </div>
           </section>
           <aside className={styles.summaryCard}>
-            <p className={styles.summaryEyebrow}>แก้ไข DRAFT</p>
+            <p className={styles.summaryEyebrow}>{t("แก้ไข DRAFT")}</p>
             <h2 className={styles.summaryTitle}>{data.grNo}</h2>
             <p className={styles.summaryLead}>
-              Confirm แล้วยังไม่ได้ — แก้ได้จนกว่าจะโพสต์สต๊อก
+              {t("Confirm แล้วยังไม่ได้ — แก้ได้จนกว่าจะโพสต์สต๊อก")}
             </p>
           </aside>
         </div>

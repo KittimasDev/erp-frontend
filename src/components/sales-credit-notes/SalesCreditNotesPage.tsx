@@ -12,18 +12,20 @@ import {
 import { useCreateSalesCreditNoteMutation } from "@/hooks/sales-credit-notes/useSalesCreditNoteMutations";
 import {
   SALES_CREDIT_NOTE_STATUS_LABEL,
+  salesCreditNoteStatusLabel,
   type SalesCreditNote,
   type SalesCreditNotePendingRow,
 } from "@/types/sales-credit-notes";
 import PageHeader from "@/components/common/PageHeader";
-
-const money = new Intl.NumberFormat("th-TH", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+import { formatMoney } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 
 export default function SalesCreditNotesPage() {
   const { message } = App.useApp();
+  const t = useT();
+  const lang = useLanguage();
+  const money = { format: (value: number) => formatMoney(value, lang) };
   const router = useRouter();
   const pendingQuery = usePendingSalesCreditNotesQuery();
   const [page, setPage] = useState(1);
@@ -65,29 +67,29 @@ export default function SalesCreditNotesPage() {
 
   const pendingColumns: ColumnsType<SalesCreditNotePendingRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
-    { title: "รหัส", dataIndex: "itemCode", width: 120 },
-    { title: "สินค้า", dataIndex: "itemName" },
+    { title: t("รหัส"), dataIndex: "itemCode", width: 120 },
+    { title: t("สินค้า"), dataIndex: "itemName" },
     {
-      title: "จำนวนที่ไม่ส่งใหม่",
+      title: t("จำนวนที่ไม่ส่งใหม่"),
       dataIndex: "quantity",
       align: "right",
       width: 150,
     },
     {
-      title: "คงเหลือ",
+      title: t("คงเหลือ"),
       dataIndex: "remainingQuantity",
       align: "right",
       width: 110,
     },
-    { title: "หน่วย", dataIndex: "unitName", width: 80 },
+    { title: t("หน่วย"), dataIndex: "unitName", width: 80 },
     {
-      title: "ราคาต่อหน่วย",
+      title: t("ราคาต่อหน่วย"),
       dataIndex: "unitPrice",
       align: "right",
       width: 130,
@@ -97,26 +99,26 @@ export default function SalesCreditNotesPage() {
 
   const noteColumns: ColumnsType<SalesCreditNote> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => (page - 1) * 20 + index + 1,
     },
-    { title: "เลขที่", dataIndex: "creditNoteNo", width: 180 },
-    { title: "วันที่", dataIndex: "creditNoteDate", width: 120 },
+    { title: t("เลขที่"), dataIndex: "creditNoteNo", width: 180 },
+    { title: t("วันที่"), dataIndex: "creditNoteDate", width: 120 },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "status",
       width: 120,
       render: (value: string) =>
-        SALES_CREDIT_NOTE_STATUS_LABEL[value] ?? value,
+        salesCreditNoteStatusLabel(value, lang),
     },
-    { title: "ลูกค้า", dataIndex: "customerName" },
-    { title: "ใบสั่งขาย", dataIndex: "salesOrderNo", width: 150 },
-    { title: "ใบส่งสินค้า", dataIndex: "deliveryOrderNo", width: 160 },
+    { title: t("ลูกค้า"), dataIndex: "customerName" },
+    { title: t("ใบสั่งขาย"), dataIndex: "salesOrderNo", width: 150 },
+    { title: t("ใบส่งสินค้า"), dataIndex: "deliveryOrderNo", width: 160 },
     {
-      title: "ยอดรวม",
+      title: t("ยอดรวม"),
       dataIndex: "totalAmount",
       align: "right",
       width: 140,
@@ -137,25 +139,25 @@ export default function SalesCreditNotesPage() {
           discountAmount: 0,
         })),
       });
-      message.success("สร้างใบลดหนี้ร่างแล้ว");
+      message.success(t("สร้างใบลดหนี้ร่างแล้ว"));
       router.push(`/finance/receivables/credit-notes/${res.data.id}`);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "สร้างใบลดหนี้ไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("สร้างใบลดหนี้ไม่สำเร็จ"));
     }
   }
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <PageHeader
-        title="ใบลดหนี้"
-        subtitle="รอดำเนินการลดหนี้จากใบรับคืนสินค้า"
+        title={t("ใบลดหนี้")}
+        subtitle={t("รอดำเนินการลดหนี้จากใบรับคืนสินค้า")}
       />
 
-      <Card title="รอดำเนินการลดหนี้">
+      <Card title={t("รอดำเนินการลดหนี้")}>
         <Space orientation="vertical" size={16} style={{ width: "100%" }}>
           {groups.length === 0 && !pendingQuery.isLoading ? (
             <Typography.Text type="secondary">
-              ยังไม่มีจำนวนที่ไม่ส่งใหม่รอเปิดใบลดหนี้
+              {t("ยังไม่มีจำนวนที่ไม่ส่งใหม่รอเปิดใบลดหนี้")}
             </Typography.Text>
           ) : null}
           {groups.map((group) => (
@@ -169,12 +171,12 @@ export default function SalesCreditNotesPage() {
                   loading={createNote.isPending}
                   onClick={() => createFromDelivery(group.deliveryOrderId)}
                 >
-                  สร้างใบลดหนี้
+                  {t("สร้างใบลดหนี้")}
                 </Button>
               }
             >
               <Typography.Paragraph type="secondary" style={{ marginBottom: 8 }}>
-                อ้างอิงใบสั่งขาย {group.salesOrderNo}
+                {t("อ้างอิงใบสั่งขาย {no}", { no: group.salesOrderNo })}
               </Typography.Paragraph>
               <Table
                 rowKey="id"
@@ -188,11 +190,11 @@ export default function SalesCreditNotesPage() {
         </Space>
       </Card>
 
-      <Card title="ใบลดหนี้ทั้งหมด">
+      <Card title={t("ใบลดหนี้ทั้งหมด")}>
         <Space style={{ marginBottom: 12 }} wrap>
           <Input.Search
             allowClear
-            placeholder="เลขที่ / ลูกค้า / SO / ใบส่ง"
+            placeholder={t("เลขที่ / ลูกค้า / SO / ใบส่ง")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             onSearch={(value) => {
@@ -203,7 +205,7 @@ export default function SalesCreditNotesPage() {
           />
           <Select
             allowClear
-            placeholder="สถานะ"
+            placeholder={t("สถานะ")}
             value={status}
             style={{ width: 160 }}
             onChange={(value) => {
@@ -211,7 +213,10 @@ export default function SalesCreditNotesPage() {
               setStatus(value);
             }}
             options={Object.entries(SALES_CREDIT_NOTE_STATUS_LABEL).map(
-              ([value, label]) => ({ value, label }),
+              ([value]) => ({
+                value,
+                label: salesCreditNoteStatusLabel(value, lang),
+              }),
             )}
           />
         </Space>

@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/stock-posting-requests";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
+import { useT } from "@/lib/i18n/useT";
 import type {
   ApproveStockPostingRequestBody,
   CreateStockPostingRequestBody,
@@ -19,6 +20,7 @@ import { stockPostingRequestsQueryKey } from "./useStockPostingQueries";
 
 export function useCreateStockPostingRequestMutation(receiptId: string) {
   const queryClient = useQueryClient();
+  const t = useT();
   const { message } = App.useApp();
 
   return useMutation({
@@ -29,13 +31,13 @@ export function useCreateStockPostingRequestMutation(receiptId: string) {
       await queryClient.invalidateQueries({
         queryKey: stockPostingRequestsQueryKey,
       });
-      message.success(response.message || "ส่งคำขอรับเข้าคลังสำเร็จแล้ว");
+      message.success(response.message || t("ส่งคำขอรับเข้าคลังสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "ส่งคำขอรับเข้าคลังไม่สำเร็จ",
+          : t("ส่งคำขอรับเข้าคลังไม่สำเร็จ"),
       );
     },
   });
@@ -43,6 +45,7 @@ export function useCreateStockPostingRequestMutation(receiptId: string) {
 
 export function useApproveStockPostingRequestMutation() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { message } = App.useApp();
 
   return useMutation({
@@ -58,11 +61,11 @@ export function useApproveStockPostingRequestMutation() {
       await queryClient.invalidateQueries({
         queryKey: stockPostingRequestsQueryKey,
       });
-      message.success(response.message || "อนุมัติรับเข้าคลังสำเร็จแล้ว");
+      message.success(response.message || t("อนุมัติรับเข้าคลังสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "อนุมัติไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("อนุมัติไม่สำเร็จ"),
       );
     },
   });
@@ -70,6 +73,7 @@ export function useApproveStockPostingRequestMutation() {
 
 export function useRejectStockPostingRequestMutation() {
   const queryClient = useQueryClient();
+  const t = useT();
   const { message } = App.useApp();
 
   return useMutation({
@@ -85,11 +89,11 @@ export function useRejectStockPostingRequestMutation() {
       await queryClient.invalidateQueries({
         queryKey: stockPostingRequestsQueryKey,
       });
-      message.success(response.message || "ไม่อนุมัติคำขอแล้ว");
+      message.success(response.message || t("ไม่อนุมัติคำขอแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ไม่อนุมัติไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ไม่อนุมัติไม่สำเร็จ"),
       );
     },
   });

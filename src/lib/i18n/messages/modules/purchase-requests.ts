@@ -1,0 +1,128 @@
+/** ข้อความอังกฤษของโมดูล purchase-requests — คีย์ = ข้อความไทยในโค้ด (ดู ../../translate.ts) */
+export const EN_PURCHASE_REQUESTS: Record<string, string> = {
+  /* ---------- form ---------- */
+  "รายการที่ {n} (รอเลือกสินค้า)": "Line {n} (item not selected)",
+  "กรอกข้อมูลหัวเอกสารและรายการสินค้า บันทึกเป็น DRAFT แล้วส่งอนุมัติได้จากหน้ารายละเอียด":
+    "Fill in the header and items. It is saved as DRAFT; submit it for approval from the detail page.",
+  "กลับรายการ": "Back to list",
+  "ข้อมูลเอกสาร": "Document details",
+  "เลขที่ใบขอซื้อจะสร้างอัตโนมัติเมื่อบันทึก":
+    "The PR number is generated automatically on save",
+  "วันที่ขอซื้อ": "Request date",
+  "กรุณาเลือกวันที่ขอซื้อ": "Please select the request date",
+  "กรุณาเลือกประเภทใบขอซื้อ": "Please select the PR type",
+  "ส่วนงานที่ขอซื้อ": "Requesting department",
+  "เลือกแผนก (ถ้ามี)": "Select department (optional)",
+  "เช่น ใช้ในกระบวนการผลิต / ซ่อมบำรุง": "e.g. for production / maintenance",
+  "รายการสินค้า": "Items",
+  "อย่างน้อย 1 รายการ · เลือกสินค้าแล้วหน่วยจะเติมให้อัตโนมัติ":
+    "At least 1 line · the unit is filled in automatically when you pick an item",
+  "ต้องมีรายการสินค้าอย่างน้อย 1 รายการ": "At least 1 item line is required",
+  "รายการที่ {n}": "Line {n}",
+  "เลือกสินค้า": "Select item",
+  "ค้นหา/เลือกสินค้า": "Search/select item",
+  "ระบุจำนวน": "Enter quantity",
+  "เลือกหน่วย": "Select unit",
+  "ต้องการภายในวันที่": "Required by",
+  "ไม่ระบุ": "Not specified",
+  "รายละเอียดเพิ่มเติม (ถ้ามี)": "Additional details (optional)",
+  "เพิ่มรายการสินค้า": "Add item line",
+  "รายละเอียดเพิ่มเติมบนใบขอซื้อ": "Additional details on the purchase request",
+  "บันทึกแล้วสถานะจะเป็น DRAFT — สามารถแก้ไขและส่งอนุมัติทีหลังได้":
+    "Once saved the status will be DRAFT — you can edit and submit for approval later",
+  "บันทึกใบขอซื้อ": "Save purchase request",
+  "บันทึกการแก้ไข": "Save changes",
+  "สรุปแบบฟอร์ม": "Form summary",
+  "ใบขอซื้อใหม่": "New purchase request",
+  "แก้ไข DRAFT": "Edit DRAFT",
+  "ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ":
+    "Review the data before saving. The document number is generated automatically.",
+  "จำนวนรายการ": "Number of lines",
+  "รายการที่กรอกครบสินค้า · จำนวน · หน่วย":
+    "Lines with item · quantity · unit completed",
+  "ยังไม่เลือก": "Not selected",
+  "ยังไม่มีรายการ": "No lines yet",
+  "ขั้นตอนถัดไป": "Next steps",
+  "หลังบันทึก → เปิดหน้ารายละเอียด → กด “ส่งอนุมัติ” → ผู้จัดการจัดซื้ออนุมัติ":
+    "After saving → open the detail page → click “Submit for approval” → the procurement manager approves",
+
+  /* ---------- list ---------- */
+  "เลขที่ใบขอซื้อ": "PR no.",
+  "สั่งซื้อแล้ว {done} / {total} รายการ": "{done} / {total} lines ordered",
+  "วันออกเอกสาร": "Issued date",
+  "ผู้ขอซื้อ": "Requester",
+  "จำนวนรายการสั่งซื้อ": "Order lines",
+  "จัดการ": "Actions",
+  "เมนูจัดการ {no}": "Actions menu {no}",
+  "พิมพ์ PDF": "Print PDF",
+  "รายการใบขอซื้อ": "Purchase requests",
+  "ดู ค้นหา และจัดการใบขอซื้อทั่วไป · สร้างใหม่แล้วส่งอนุมัติได้จากหน้ารายละเอียด":
+    "View, search and manage purchase requests · create a new one, then submit it for approval from the detail page",
+  "เช่น PR-20260718-001": "e.g. PR-20260718-001",
+  "เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก":
+    "Select items — all selected items must be present",
+  "สถานะเอกสาร": "Document status",
+  "เคลียร์": "Clear",
+  "พบทั้งหมด": "Found",
+  "รายการ": "items",
+  "แสดง": "Show",
+  "รายการ/หน้า": "per page",
+  "ยังไม่มีใบขอซื้อ": "No purchase requests yet",
+  "แสดง {from}–{to} จาก {total}": "Showing {from}–{to} of {total}",
+
+  /* ---------- approvals ---------- */
+  "ผู้ขอ": "Requester",
+  "ส่งกลับแก้ไข": "Return for revision",
+  "ไม่อนุมัติ": "Reject",
+  "คุณไม่มีสิทธิ์เข้าถึงหน้ารออนุมัติใบขอซื้อ — ต้องเปิด PURCHASE_REQUEST_APPROVALS · VIEW หรือ APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต":
+    "You do not have access to the PR approvals page — enable PURCHASE_REQUEST_APPROVALS · VIEW or APPROVE under Users → Permissions",
+  "รายการรออนุมัติ": "Pending approvals",
+  "รายการใบขอซื้อรออนุมัติ": "Purchase requests pending approval",
+  "ดูรายการได้ — การอนุมัติ/ปฏิเสธต้องเปิดสิทธิ์ PURCHASE_REQUEST_APPROVALS · APPROVE":
+    "You can view the list — approving/rejecting requires PURCHASE_REQUEST_APPROVALS · APPROVE",
+  "ไม่มีรายการรออนุมัติ": "No pending approvals",
+  "Showing {from} to {to} of {total} entries": "Showing {from} to {to} of {total} entries",
+  "ไม่อนุมัติใบขอซื้อ": "Reject purchase request",
+  "ส่งกลับให้ผู้ขอแก้ไข": "Return to requester for revision",
+  "เหตุผลที่ไม่อนุมัติ (ถ้ามี)": "Reason for rejection (optional)",
+  "สิ่งที่ต้องแก้ไข (ถ้ามี)": "What needs to be corrected (optional)",
+
+  /* ---------- detail ---------- */
+  "กำลังโหลดรายละเอียดใบขอซื้อ...": "Loading purchase request...",
+  "ไม่พบใบขอซื้อ": "Purchase request not found",
+  "เลขที่": "No.",
+  "ส่วนงาน": "Department",
+  "อัปเดตล่าสุด": "Last updated",
+  "ต้องการภายใน {date}": "Required by {date}",
+  "สั่งซื้อแล้วใน": "Ordered in",
+  "ยังไม่ได้สั่งซื้อ": "Not ordered yet",
+  "ผู้อนุมัติส่งกลับให้แก้ไข": "Returned by the approver for revision",
+  "ยืนยันยกเลิกใบขอซื้อ?": "Cancel this purchase request?",
+  "ยกเลิกเอกสาร": "Cancel document",
+  "ดูใบสั่งซื้อ": "View purchase order",
+  "สั่งซื้อรายการที่เหลือ": "Order remaining items",
+  "ไปที่ใบสั่งซื้อ": "Go to purchase orders",
+
+  /* ---------- hooks ---------- */
+  "สร้างประเภทใบขอซื้อสำเร็จแล้ว": "Purchase request type created",
+  "สร้างประเภทใบขอซื้อไม่สำเร็จ": "Failed to create purchase request type",
+  "ลบประเภทใบขอซื้อสำเร็จแล้ว": "Purchase request type deleted",
+  "ลบประเภทใบขอซื้อไม่สำเร็จ": "Failed to delete purchase request type",
+  "แก้ไขประเภทใบขอซื้อสำเร็จแล้ว": "Purchase request type updated",
+  "แก้ไขประเภทใบขอซื้อไม่สำเร็จ": "Failed to update purchase request type",
+  "สร้างใบขอซื้อสำเร็จแล้ว": "Purchase request created",
+  "สร้างใบขอซื้อไม่สำเร็จ": "Failed to create purchase request",
+  "แก้ไขใบขอซื้อสำเร็จแล้ว": "Purchase request updated",
+  "แก้ไขใบขอซื้อไม่สำเร็จ": "Failed to update purchase request",
+  "ส่งอนุมัติสำเร็จแล้ว": "Submitted for approval",
+  "ส่งอนุมัติไม่สำเร็จ": "Failed to submit for approval",
+  "อนุมัติแล้ว — ไปสร้างใบสั่งซื้อได้ที่เมนูใบสั่งซื้อ":
+    "Approved — create the purchase order from the Purchase Orders menu",
+  "อนุมัติใบขอซื้อไม่สำเร็จ": "Failed to approve purchase request",
+  "ปฏิเสธใบขอซื้อแล้ว": "Purchase request rejected",
+  "ปฏิเสธใบขอซื้อไม่สำเร็จ": "Failed to reject purchase request",
+  "ส่งกลับให้แก้ไขแล้ว": "Returned for revision",
+  "ส่งกลับแก้ไขไม่สำเร็จ": "Failed to return for revision",
+  "ยกเลิกใบขอซื้อแล้ว": "Purchase request cancelled",
+  "ยกเลิกใบขอซื้อไม่สำเร็จ": "Failed to cancel purchase request",
+};

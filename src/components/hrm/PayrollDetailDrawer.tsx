@@ -12,7 +12,10 @@ import {
   useRecalculatePayrollMutation,
 } from "@/hooks/payroll/usePayroll";
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
-import { PAYROLL_STATUS_LABEL, type PayrollSlip } from "@/types/payroll";
+import { formatMoney } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
+import { payrollStatusLabel, type PayrollSlip } from "@/types/payroll";
 import { downloadTabularReport } from "@/utils/downloadTabularReport";
 import { openPayslipPdf } from "@/utils/generatePayslipPdf";
 import { releasePdfWindow, reservePdfWindow } from "@/utils/pdf-common";
@@ -29,8 +32,6 @@ import {
 } from "./payrollSlipFilter";
 import { formatBeRange } from "./shutdownPlanFormat";
 
-const money = (v: number) =>
-  v.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const STATUS_COLOR = { DRAFT: "gold", FINALIZED: "green", CANCELLED: "default" } as const;
 
@@ -39,6 +40,18 @@ type Props = { runId?: string; onClose: () => void };
 /** รายละเอียดงวด: สลิปทุกคน ยอดรวม รายการปรับ + คำนวณใหม่/ปิดงวด/ยกเลิก/ส่งออก */
 export default function PayrollDetailDrawer({ runId, onClose }: Props) {
   const { message } = App.useApp();
+  const t = useT();
+  const language = useLanguage();
+  const money = (v: number) => formatMoney(v, language);
+  // คำเตือนต่อสลิปมาจาก backend (ไทย) — มีชุดข้อความจำกัด จึงแปลฝั่งหน้าจอ · ข้อความที่ไม่รู้จักแสดงตามเดิม
+  const warningText = (w: string) => {
+    const otUnpriced = w.match(/^มีคำขอ OT ที่อนุมัติแล้วแต่คิดเงินไม่ได้ (\d+) รายการ/);
+    return otUnpriced
+      ? t("มีคำขอ OT ที่อนุมัติแล้วแต่คิดเงินไม่ได้ {n} รายการ (ไม่มีฐานค่าจ้างตอนอนุมัติ) — ไม่รวมในยอด", {
+          n: otUnpriced[1],
+        })
+      : t(w);
+  };
   const query = usePayrollRunQuery(runId);
   const recalc = useRecalculatePayrollMutation();
   const finalize = useFinalizePayrollMutation();
@@ -66,7 +79,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
     try {
       await downloadTabularReport(format, toPayrollSheet(run));
     } catch {
-      message.error("ส่งออกไม่สำเร็จ");
+      message.error(t("ส่งออกไม่สำเร็จ"));
     }
   };
 
@@ -77,7 +90,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
       await openPayslipPdf(run, slips);
     } catch (error) {
       releasePdfWindow();
-      message.error(error instanceof Error ? error.message : "สร้างสลิป PDF ไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("สร้างสลิป PDF ไม่สำเร็จ"));
     }
   };
   // สลิปที่ไม่มีรายได้เลย (ไม่มีฐานค่าจ้าง) ไม่พิมพ์ในชุดทั้งงวด
@@ -92,21 +105,21 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
         <InputNumber
           size="small"
           min={key === "netPay" ? undefined : 0}
-          placeholder="ต่ำสุด"
+          placeholder={t("ต่ำสุด")}
           style={{ width: 96 }}
           value={filter[key].min ?? null}
           onChange={(v) => set({ min: v })}
-          aria-label={`${label} ต่ำสุด`}
+          aria-label={`${label} ${t("ต่ำสุด")}`}
         />
         <span>–</span>
         <InputNumber
           size="small"
           min={key === "netPay" ? undefined : 0}
-          placeholder="สูงสุด"
+          placeholder={t("สูงสุด")}
           style={{ width: 96 }}
           value={filter[key].max ?? null}
           onChange={(v) => set({ max: v })}
-          aria-label={`${label} สูงสุด`}
+          aria-label={`${label} ${t("สูงสุด")}`}
         />
       </Space>
     );
@@ -114,14 +127,14 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
 
   const columns: ColumnsType<PayrollSlip> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "พนักงาน",
+      title: t("พนักงาน"),
       key: "user",
       fixed: "left",
       width: 210,
@@ -133,61 +146,61 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           </div>
           {s.warnings.map((w) => (
             <Tag key={w} color="orange" style={{ marginTop: 2, whiteSpace: "normal" }}>
-              {w}
+              {warningText(w)}
             </Tag>
           ))}
         </div>
       ),
     },
     {
-      title: "ประเภท",
+      title: t("ประเภท"),
       key: "payType",
       width: 90,
-      render: (_v, s) => (s.payType === "DAILY" ? "รายวัน" : "รายเดือน"),
+      render: (_v, s) => (s.payType === "DAILY" ? t("รายวัน") : t("รายเดือน")),
     },
     {
-      title: "เงินเดือน / ค่าแรงรายวัน",
+      title: t("เงินเดือน / ค่าแรงรายวัน"),
       key: "base",
       width: 150,
       align: "right",
-      render: (_v, s) => `${money(s.basePay)} ${s.payType === "DAILY" ? "/วัน" : "/เดือน"}`,
+      render: (_v, s) => `${money(s.basePay)} ${s.payType === "DAILY" ? t("/วัน") : t("/เดือน")}`,
     },
     {
-      title: "วัน (มา/ขาด/ลาจ่าย/ลาไม่จ่าย)",
+      title: t("วัน (มา/ขาด/ลาจ่าย/ลาไม่จ่าย)"),
       key: "days",
       width: 190,
       render: (_v, s) => `${s.attendedDays}/${s.absentDays}/${s.paidLeaveDays}/${s.unpaidLeaveDays}`,
     },
-    { title: "ค่าจ้างปกติ", key: "reg", width: 110, align: "right", render: (_v, s) => money(s.regularPay) },
-    { title: "หักขาด/ลา", key: "abs", width: 100, align: "right", render: (_v, s) => money(s.absenceDeduction) },
+    { title: t("ค่าจ้างปกติ"), key: "reg", width: 110, align: "right", render: (_v, s) => money(s.regularPay) },
+    { title: t("หักขาด/ลา"), key: "abs", width: 100, align: "right", render: (_v, s) => money(s.absenceDeduction) },
     {
       title: "OT",
       key: "ot",
       width: 120,
       align: "right",
-      render: (_v, s) => `${money(s.otAmount)} (${s.otHours} ชม.)`,
+      render: (_v, s) => `${money(s.otAmount)} (${s.otHours} ${t("ชม.")})`,
     },
     {
-      title: "ปรับ (+/−)",
+      title: t("ปรับ (+/−)"),
       key: "adj",
       width: 130,
       align: "right",
       render: (_v, s) => `+${money(s.adjustmentEarnings)} / −${money(s.adjustmentDeductions)}`,
     },
-    { title: "ประกันสังคม", key: "ss", width: 110, align: "right", render: (_v, s) => money(s.socialSecurity) },
+    { title: t("ประกันสังคม"), key: "ss", width: 110, align: "right", render: (_v, s) => money(s.socialSecurity) },
     {
-      title: "กองทุน",
+      title: t("กองทุน"),
       key: "pf",
       width: 120,
       align: "right",
       render: (_v, s) =>
         s.providentFundEmployer > 0
-          ? `${money(s.providentFund)} (+นจ. ${money(s.providentFundEmployer)})`
+          ? `${money(s.providentFund)} (+${t("นจ.")} ${money(s.providentFundEmployer)})`
           : money(s.providentFund),
     },
-    { title: "ภาษีหัก ณ ที่จ่าย", key: "tax", width: 130, align: "right", render: (_v, s) => money(s.withholdingTax) },
+    { title: t("ภาษีหัก ณ ที่จ่าย"), key: "tax", width: 130, align: "right", render: (_v, s) => money(s.withholdingTax) },
     {
-      title: "สุทธิ",
+      title: t("สุทธิ"),
       key: "net",
       width: 120,
       align: "right",
@@ -203,12 +216,12 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
         <Space size={4}>
           {isDraft ? (
             <Button size="small" icon={<EditOutlined />} onClick={() => setAdjusting(s)}>
-              ปรับ{s.adjustments.length ? ` (${s.adjustments.length})` : ""}
+              {t("ปรับ")}{s.adjustments.length ? ` (${s.adjustments.length})` : ""}
             </Button>
           ) : null}
           {canExport ? (
             <Button size="small" icon={<PrinterOutlined />} onClick={() => void printSlips([s])}>
-              สลิป
+              {t("สลิป")}
             </Button>
           ) : null}
         </Space>
@@ -225,7 +238,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
       }}
       size="large"
       styles={{ wrapper: { width: "min(1200px, 96vw)" } }}
-      title={run ? `${run.name} · ${formatBeRange(run.periodStart, run.periodEnd)}` : "งวดเงินเดือน"}
+      title={run ? `${run.name} · ${formatBeRange(run.periodStart, run.periodEnd, language)}` : t("งวดเงินเดือน")}
       loading={query.isLoading}
       extra={
         run ? (
@@ -243,39 +256,39 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
                   disabled={printableSlips.length === 0}
                   onClick={() => void printSlips(printableSlips)}
                 >
-                  สลิปทั้งงวด (PDF)
+                  {t("สลิปทั้งงวด (PDF)")}
                 </Button>
               </>
             ) : null}
             {isDraft ? (
               <Popconfirm
-                title="คำนวณใหม่?"
-                description="ดึงเวลา/ลา/OT/ฐานค่าจ้างล่าสุดมาคิดใหม่ทุกสลิป (รายการปรับคงอยู่)"
-                okText="คำนวณใหม่"
-                cancelText="ยกเลิก"
+                title={t("คำนวณใหม่?")}
+                description={t("ดึงเวลา/ลา/OT/ฐานค่าจ้างล่าสุดมาคิดใหม่ทุกสลิป (รายการปรับคงอยู่)")}
+                okText={t("คำนวณใหม่")}
+                cancelText={t("ยกเลิก")}
                 onConfirm={() => recalc.mutate(run.id)}
               >
                 <Button icon={<ReloadOutlined />} loading={recalc.isPending}>
-                  คำนวณใหม่
+                  {t("คำนวณใหม่")}
                 </Button>
               </Popconfirm>
             ) : null}
             {isDraft && canApprove ? (
               <Popconfirm
-                title="ปิดงวดนี้?"
-                description="ปิดแล้วแก้ไข/คำนวณใหม่ไม่ได้ (ยกเลิกงวดได้)"
-                okText="ปิดงวด"
-                cancelText="ยกเลิก"
+                title={t("ปิดงวดนี้?")}
+                description={t("ปิดแล้วแก้ไข/คำนวณใหม่ไม่ได้ (ยกเลิกงวดได้)")}
+                okText={t("ปิดงวด")}
+                cancelText={t("ยกเลิก")}
                 onConfirm={() => finalize.mutate(run.id)}
               >
                 <Button type="primary" loading={finalize.isPending} disabled={negativeSlips.length > 0}>
-                  ปิดงวด
+                  {t("ปิดงวด")}
                 </Button>
               </Popconfirm>
             ) : null}
             {run.status !== "CANCELLED" && canApprove ? (
               <Button danger onClick={() => setCancelOpen(true)}>
-                ยกเลิกงวด
+                {t("ยกเลิกงวด")}
               </Button>
             ) : null}
           </Space>
@@ -285,32 +298,35 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
       {run ? (
         <>
           <Descriptions size="small" column={{ xs: 1, md: 3 }} style={{ marginBottom: 12 }}>
-            <Descriptions.Item label="สถานะ">
-              <Tag color={STATUS_COLOR[run.status]}>{PAYROLL_STATUS_LABEL[run.status]}</Tag>
+            <Descriptions.Item label={t("สถานะ")}>
+              <Tag color={STATUS_COLOR[run.status]}>{payrollStatusLabel(run.status, language)}</Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="จำนวนคน">{run.totals.slipCount}</Descriptions.Item>
-            <Descriptions.Item label="รายได้รวม">{money(run.totals.grossIncome)}</Descriptions.Item>
-            <Descriptions.Item label="ค่า OT">{money(run.totals.otAmount)}</Descriptions.Item>
-            <Descriptions.Item label="ประกันสังคม">{money(run.totals.socialSecurity)}</Descriptions.Item>
-            <Descriptions.Item label="กองทุน (พนักงาน / นายจ้างสมทบ)">
+            <Descriptions.Item label={t("จำนวนคน")}>{run.totals.slipCount}</Descriptions.Item>
+            <Descriptions.Item label={t("รายได้รวม")}>{money(run.totals.grossIncome)}</Descriptions.Item>
+            <Descriptions.Item label={t("ค่า OT")}>{money(run.totals.otAmount)}</Descriptions.Item>
+            <Descriptions.Item label={t("ประกันสังคม")}>{money(run.totals.socialSecurity)}</Descriptions.Item>
+            <Descriptions.Item label={t("กองทุน (พนักงาน / นายจ้างสมทบ)")}>
               {money(run.totals.providentFund)} / {money(run.totals.providentFundEmployer)}
             </Descriptions.Item>
-            <Descriptions.Item label="ภาษีหัก ณ ที่จ่าย">{money(run.totals.withholdingTax)}</Descriptions.Item>
-            <Descriptions.Item label="ยอดสุทธิรวม">
+            <Descriptions.Item label={t("ภาษีหัก ณ ที่จ่าย")}>{money(run.totals.withholdingTax)}</Descriptions.Item>
+            <Descriptions.Item label={t("ยอดสุทธิรวม")}>
               <strong>{money(run.totals.netPay)}</strong>
             </Descriptions.Item>
           </Descriptions>
           {run.status === "CANCELLED" && run.cancelReason ? (
-            <Alert type="info" showIcon title={`เหตุผลที่ยกเลิก: ${run.cancelReason}`} style={{ marginBottom: 12 }} />
+            <Alert type="info" showIcon title={`${t("เหตุผลที่ยกเลิก")}: ${run.cancelReason}`} style={{ marginBottom: 12 }} />
           ) : null}
           {isDraft && negativeSlips.length > 0 ? (
             <Alert
               type="error"
               showIcon
-              title={`ปิดงวดไม่ได้ — ${negativeSlips.length} สลิปมียอดสุทธิติดลบ: ${negativeSlips
-                .slice(0, 5)
-                .map((s) => s.displayName)
-                .join(", ")}${negativeSlips.length > 5 ? " ..." : ""} (แก้รายการหัก/รายการปรับก่อน)`}
+              title={t("ปิดงวดไม่ได้ — {n} สลิปมียอดสุทธิติดลบ: {names} (แก้รายการหัก/รายการปรับก่อน)", {
+                n: negativeSlips.length,
+                names: `${negativeSlips
+                  .slice(0, 5)
+                  .map((s) => s.displayName)
+                  .join(", ")}${negativeSlips.length > 5 ? " ..." : ""}`,
+              })}
               style={{ marginBottom: 12 }}
             />
           ) : null}
@@ -318,7 +334,9 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
             <Alert
               type="warning"
               showIcon
-              title={`มี ${run.totals.warningCount} สลิปที่มีคำเตือน (เช่น ไม่มีฐานค่าจ้าง, OT คิดเงินไม่ได้) — ตรวจก่อนปิดงวด`}
+              title={t("มี {n} สลิปที่มีคำเตือน (เช่น ไม่มีฐานค่าจ้าง, OT คิดเงินไม่ได้) — ตรวจก่อนปิดงวด", {
+                n: run.totals.warningCount,
+              })}
               style={{ marginBottom: 12 }}
             />
           ) : null}
@@ -327,7 +345,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
               allowClear
               size="small"
               prefix={<SearchOutlined />}
-              placeholder="ค้นหา ชื่อ / รหัส / ตำแหน่ง / แผนก"
+              placeholder={t("ค้นหา ชื่อ / รหัส / ตำแหน่ง / แผนก")}
               style={{ width: 260 }}
               value={filter.keyword}
               onChange={(e) => setFilter((f) => ({ ...f, keyword: e.target.value }))}
@@ -338,9 +356,9 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
               value={filter.payType}
               onChange={(payType) => setFilter((f) => ({ ...f, payType }))}
               options={[
-                { value: "ALL", label: "ทุกประเภท" },
-                { value: "MONTHLY", label: "รายเดือน" },
-                { value: "DAILY", label: "รายวัน" },
+                { value: "ALL", label: t("ทุกประเภท") },
+                { value: "MONTHLY", label: t("รายเดือน") },
+                { value: "DAILY", label: t("รายวัน") },
               ]}
             />
             <Select
@@ -348,28 +366,28 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
               style={{ width: 190 }}
               value={filter.status}
               onChange={(status) => setFilter((f) => ({ ...f, status }))}
-              options={SLIP_STATUS_OPTIONS}
+              options={SLIP_STATUS_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
             />
             <Select
               size="small"
               allowClear
               showSearch
-              placeholder="ทุกแผนก"
+              placeholder={t("ทุกแผนก")}
               style={{ width: 170 }}
               value={filter.department || undefined}
               onChange={(department) => setFilter((f) => ({ ...f, department: department ?? "" }))}
               options={departmentOptions}
             />
-            {rangeInputs("เงินเดือน/ค่าแรง", "basePay")}
-            {rangeInputs("ค่า OT (บาท)", "otAmount")}
-            {rangeInputs("สุทธิ", "netPay")}
+            {rangeInputs(t("เงินเดือน/ค่าแรง"), "basePay")}
+            {rangeInputs(t("ค่า OT (บาท)"), "otAmount")}
+            {rangeInputs(t("สุทธิ"), "netPay")}
             <Button
               size="small"
               icon={<ClearOutlined />}
               disabled={!isSlipFilterActive(filter)}
               onClick={() => setFilter(EMPTY_SLIP_FILTER)}
             >
-              ล้างตัวกรอง
+              {t("ล้างตัวกรอง")}
             </Button>
           </Space>
           <Table
@@ -379,8 +397,10 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
             dataSource={filteredSlips}
             pagination={{
               pageSize: 50,
-              showTotal: (t) =>
-                isSlipFilterActive(filter) ? `พบ ${t} จาก ${run.slips.length} คน` : `ทั้งหมด ${t} คน`,
+              showTotal: (total) =>
+                isSlipFilterActive(filter)
+                  ? t("พบ {n} จาก {total} คน", { n: total, total: run.slips.length })
+                  : t("ทั้งหมด {n} คน", { n: total }),
             }}
             scroll={{ x: 1440 }}
           />
@@ -392,10 +412,10 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
           />
           <Modal
             open={cancelOpen}
-            title="ยกเลิกงวดเงินเดือน"
-            okText="ยืนยันยกเลิกงวด"
+            title={t("ยกเลิกงวดเงินเดือน")}
+            okText={t("ยืนยันยกเลิกงวด")}
             okButtonProps={{ danger: true }}
-            cancelText="ไม่ยกเลิก"
+            cancelText={t("ไม่ยกเลิก")}
             confirmLoading={cancel.isPending}
             onCancel={() => setCancelOpen(false)}
             onOk={() =>
@@ -413,7 +433,7 @@ export default function PayrollDetailDrawer({ runId, onClose }: Props) {
             <Input.TextArea
               rows={3}
               maxLength={2000}
-              placeholder="เหตุผล (ไม่บังคับ)"
+              placeholder={t("เหตุผล (ไม่บังคับ)")}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />

@@ -20,6 +20,7 @@ import type { Selected3DObject, Warehouse3DLayoutConfig, ZoneConfig, ZoneLot } f
 import ItemImage from "@/components/masters/items/ItemImage";
 import { ZoneLotList } from "./ZoneLotList";
 import { useStockBalancesQuery } from "@/hooks/inventory/useInventoryQueries";
+import { useT } from "@/lib/i18n/useT";
 
 export interface WarehouseLocationItem {
   id: string;
@@ -58,6 +59,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
   isPickerMode = false,
   lotsByLocation,
 }) => {
+  const t = useT();
   const { message } = App.useApp();
   const [activeTab, setActiveTab] = useState<"detail" | "locations" | "stock" | "summary">("locations");
   const [copied, setCopied] = useState(false);
@@ -81,13 +83,13 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopied(true);
-    message.success(`คัดลอกรหัส ${code} สำเร็จแล้ว`);
+    message.success(t("คัดลอกรหัส {code} สำเร็จแล้ว", { code }));
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleExportCSV = () => {
     if (!stockRows || stockRows.length === 0) {
-      message.warning("ไม่มีข้อมูลสต๊อกสำหรับส่งออก");
+      message.warning(t("ไม่มีข้อมูลสต๊อกสำหรับส่งออก"));
       return;
     }
     const headers = "รหัสสินค้า,ชื่อสินค้า,ตำแหน่งจัดเก็บ,จำนวนคงเหลือ,หน่วย\n";
@@ -105,7 +107,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    message.success("ส่งออก CSV สต๊อกสำเร็จแล้ว");
+    message.success(t("ส่งออก CSV สต๊อกสำเร็จแล้ว"));
   };
 
   // Find 3D entity bound to a location (only zones)
@@ -204,7 +206,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               : "text-slate-400 hover:text-white"
           }`}
         >
-          ตำแหน่งที่เลือก
+          {t("ตำแหน่งที่เลือก")}
         </button>
         <button
           type="button"
@@ -215,7 +217,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               : "text-slate-400 hover:text-white"
           }`}
         >
-          ผังตำแหน่ง ({locations.length})
+          {t("ผังตำแหน่ง ({n})", { n: locations.length })}
         </button>
         <button
           type="button"
@@ -226,7 +228,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               : "text-slate-400 hover:text-white"
           }`}
         >
-          สินค้า
+          {t("สินค้า")}
         </button>
         <button
           type="button"
@@ -237,7 +239,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               : "text-slate-400 hover:text-white"
           }`}
         >
-          สต๊อกรวม
+          {t("สต๊อกรวม")}
         </button>
       </div>
 
@@ -250,17 +252,17 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               <div className="flex items-center justify-between">
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/40">
                   {selectedObject.type === "rack_slot"
-                    ? "📦 ช่องแร็ค (Rack Slot)"
+                    ? t("📦 ช่องแร็ค (Rack Slot)")
                     : selectedObject.type === "rack"
-                    ? "📦 แถวชั้นวางพาเลท (Rack)"
+                    ? t("📦 แถวชั้นวางพาเลท (Rack)")
                     : selectedObject.type === "zone"
-                    ? "🏗️ ลานกองระดับพื้น (Floor Zone)"
+                    ? t("🏗️ ลานกองระดับพื้น (Floor Zone)")
                     : selectedObject.type === "tank"
-                    ? "🛢️ ถังบรรจุของเหลว (Liquid Tank)"
-                    : "📍 ตำแหน่งจัดเก็บ"}
+                    ? t("🛢️ ถังบรรจุของเหลว (Liquid Tank)")
+                    : t("📍 ตำแหน่งจัดเก็บ")}
                 </span>
                 <span className="text-xs text-slate-400">
-                  คลัง: <strong className="text-slate-200">{warehouseCode}</strong>
+                  {t("คลัง:")} <strong className="text-slate-200">{warehouseCode}</strong>
                 </span>
               </div>
 
@@ -278,7 +280,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                     type="button"
                     onClick={() => handleCopyCode(selectedObject.code)}
                     className="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white transition"
-                    title="คัดลอกรหัส"
+                    title={t("คัดลอกรหัส")}
                   >
                     {copied ? <CheckOutlined className="text-emerald-400" /> : <CopyOutlined />}
                   </button>
@@ -288,7 +290,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               {/* Linked Warehouse Location Information */}
               <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 space-y-1.5 text-xs">
                 <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                  ผูกกับ Location ในระบบ (Warehouse Location)
+                  {t("ผูกกับ Location ในระบบ (Warehouse Location)")}
                 </div>
                 {selectedLocationMeta ? (
                   <div>
@@ -304,14 +306,14 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                   </div>
                 ) : (
                   <div className="flex items-center justify-between text-amber-400">
-                    <span className="text-[11px]">⚠️ ยังไม่ได้เชื่อม Location ในระบบ</span>
+                    <span className="text-[11px]">{t("⚠️ ยังไม่ได้เชื่อม Location ในระบบ")}</span>
                     {onOpenEditor && (
                       <button
                         type="button"
                         onClick={onOpenEditor}
                         className="text-[10px] text-sky-400 hover:underline cursor-pointer"
                       >
-                        ผูกตอนนี้
+                        {t("ผูกตอนนี้")}
                       </button>
                     )}
                   </div>
@@ -322,12 +324,12 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               {selectedObject.type === "rack_slot" && (
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-slate-950/50 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">ช่วงเสา (Bay)</span>
-                    <span className="text-white font-bold text-sm">ช่องที่ {selectedObject.bay}</span>
+                    <span className="text-slate-400 block text-[10px]">{t("ช่วงเสา (Bay)")}</span>
+                    <span className="text-white font-bold text-sm">{t("ช่องที่ {n}", { n: selectedObject.bay ?? "" })}</span>
                   </div>
                   <div className="bg-slate-950/50 p-2 rounded-lg border border-slate-800">
-                    <span className="text-slate-400 block text-[10px]">ระดับชั้น (Tier)</span>
-                    <span className="text-white font-bold text-sm">ชั้นที่ {selectedObject.level}</span>
+                    <span className="text-slate-400 block text-[10px]">{t("ระดับชั้น (Tier)")}</span>
+                    <span className="text-white font-bold text-sm">{t("ชั้นที่ {n}", { n: selectedObject.level ?? "" })}</span>
                   </div>
                 </div>
               )}
@@ -335,7 +337,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               {/* Capacity & Utilization Gauge */}
               <div className="bg-slate-950/50 p-3 rounded-xl border border-slate-800 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">อัตราการใช้งานพื้นที่ (Utilization)</span>
+                  <span className="text-slate-400">{t("อัตราการใช้งานพื้นที่ (Utilization)")}</span>
                   <span className="font-bold text-orange-400">
                     {selectedObject.utilizationPercent ?? 0}%
                   </span>
@@ -354,8 +356,8 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                   />
                 </div>
                 <div className="flex justify-between text-[11px] text-slate-400">
-                  <span>คงเหลือ: {selectedObject.currentStock ?? 0}</span>
-                  <span>ความจุ: {selectedObject.capacity ?? 0}</span>
+                  <span>{t("คงเหลือ:")} {selectedObject.currentStock ?? 0}</span>
+                  <span>{t("ความจุ:")} {selectedObject.capacity ?? 0}</span>
                 </div>
               </div>
 
@@ -364,7 +366,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                 <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 space-y-2">
                   <div className="text-[11px] font-bold text-white flex items-center gap-1.5">
                     <InboxOutlined className="text-orange-400" />
-                    <span>สินค้า/Lot ในตำแหน่งนี้ ({selectedObject.lots?.length ?? 0})</span>
+                    <span>{t("สินค้า/Lot ในตำแหน่งนี้ ({n})", { n: selectedObject.lots?.length ?? 0 })}</span>
                   </div>
                   <ZoneLotList lots={selectedObject.lots ?? []} />
                 </div>
@@ -376,10 +378,10 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-white flex items-center gap-1.5">
                       <InboxOutlined className="text-orange-400" />
-                      <span>สินค้าที่จัดเก็บในตำแหน่งนี้ ({selectedObject.items.length})</span>
+                      <span>{t("สินค้าที่จัดเก็บในตำแหน่งนี้ ({n})", { n: selectedObject.items.length })}</span>
                     </span>
                     <span className="text-[10px] text-slate-400">
-                      รวม {selectedObject.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0).toLocaleString()} {selectedObject.items[0]?.unit || 'กก.'}
+                      {t("รวม")} {selectedObject.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0).toLocaleString()} {selectedObject.items[0]?.unit || t("กก.")}
                     </span>
                   </div>
 
@@ -429,7 +431,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                     className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <SettingOutlined className="text-amber-400" />
-                    <span>ปรับแต่งพื้นที่ 3D</span>
+                    <span>{t("ปรับแต่งพื้นที่ 3D")}</span>
                   </button>
                 )}
                 <button
@@ -447,16 +449,16 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                   className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-semibold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <CheckOutlined />
-                  <span>{isPickerMode ? "ยืนยันเลือก" : "คัดลอกรหัส"}</span>
+                  <span>{isPickerMode ? t("ยืนยันเลือก") : t("คัดลอกรหัส")}</span>
                 </button>
               </div>
             </>
           ) : (
             <div className="text-center py-10 px-4 space-y-2 text-slate-400">
               <EnvironmentOutlined className="text-2xl text-slate-600 mx-auto animate-bounce" />
-              <div className="text-xs font-semibold text-slate-300">ยังไม่ได้เลือกตำแหน่ง</div>
+              <div className="text-xs font-semibold text-slate-300">{t("ยังไม่ได้เลือกตำแหน่ง")}</div>
               <p className="text-[11px] leading-relaxed">
-                คลิกที่ชั้นวางแพลเล็ต ลานกอง หรือถังบรรจุในโมเดล 3D หรือเลือกจากแท็บ <b>"ผังตำแหน่ง"</b> ด้านบน
+                {t("คลิกที่ชั้นวางแพลเล็ต ลานกอง หรือถังบรรจุในโมเดล 3D หรือเลือกจากแท็บ “ผังตำแหน่ง” ด้านบน")}
               </p>
             </div>
           )}
@@ -469,7 +471,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-white flex items-center gap-1">
               <TagsOutlined className="text-orange-400" />
-              <span>ตำแหน่งทั้งหมดในคลัง ({locations.length})</span>
+              <span>{t("ตำแหน่งทั้งหมดในคลัง ({n})", { n: locations.length })}</span>
             </span>
             {onOpenEditor && (
               <Button
@@ -479,7 +481,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                 onClick={onOpenEditor}
                 className="text-[11px] text-slate-300 hover:text-white p-0 h-auto"
               >
-                จัดการผัง 3D
+                {t("จัดการผัง 3D")}
               </Button>
             )}
           </div>
@@ -487,7 +489,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
           {/* Search Box */}
           <Input
             size="small"
-            placeholder="ค้นหารหัส หรือชื่อตำแหน่ง..."
+            placeholder={t("ค้นหารหัส หรือชื่อตำแหน่ง...")}
             prefix={<SearchOutlined className="text-slate-500" />}
             value={locationSearch}
             onChange={(e) => setLocationSearch(e.target.value)}
@@ -506,7 +508,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                   : "bg-slate-800 text-slate-400 hover:text-white"
               }`}
             >
-              ทั้งหมด ({locations.length})
+              {t("ทั้งหมด ({n})", { n: locations.length })}
             </button>
             <button
               type="button"
@@ -517,7 +519,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                   : "bg-slate-800 text-slate-400 hover:text-white"
               }`}
             >
-              มีผัง 3D ({layout?.zones?.length || 0})
+              {t("มีผัง 3D ({n})", { n: layout?.zones?.length || 0 })}
             </button>
             <button
               type="button"
@@ -528,7 +530,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                   : "bg-slate-800 text-slate-400 hover:text-white"
               }`}
             >
-              ยังไม่ผูก
+              {t("ยังไม่ผูก")}
             </button>
           </div>
 
@@ -551,11 +553,11 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                       </span>
                       {binding ? (
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                          <span>✓ ผูกพื้นที่ 3D แล้ว</span>
+                          <span>{t("✓ ผูกพื้นที่ 3D แล้ว")}</span>
                         </span>
                       ) : (
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400 border border-slate-700">
-                          ⚪ ยังไม่วางผัง 3D
+                          {t("⚪ ยังไม่วางผัง 3D")}
                         </span>
                       )}
                     </div>
@@ -581,13 +583,13 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                             />
                             <span>{(binding.entity as ZoneConfig).name}</span>
                             <span className="text-slate-500 text-[10px]">
-                              ({(binding.entity as ZoneConfig).dimensions[0]}x{(binding.entity as ZoneConfig).dimensions[2]}ม.)
+                              ({(binding.entity as ZoneConfig).dimensions[0]}x{(binding.entity as ZoneConfig).dimensions[2]}{t("ม.")})
                             </span>
                           </span>
                         </div>
                       ) : (
                         <span className="text-[10px] text-slate-500">
-                          กดจัดสรรพื้นที่เพื่อวางโมเดล
+                          {t("กดจัดสรรพื้นที่เพื่อวางโมเดล")}
                         </span>
                       )}
 
@@ -597,10 +599,10 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                           type="button"
                           onClick={() => handleFocusLocationIn3D(loc)}
                           className="px-2 py-1 rounded bg-slate-800 hover:bg-orange-600 text-slate-200 hover:text-white text-[10px] font-semibold transition flex items-center gap-1 cursor-pointer"
-                          title="ซูม/เลือกจุดนี้ใน 3D"
+                          title={t("ซูม/เลือกจุดนี้ใน 3D")}
                         >
                           <AimOutlined />
-                          <span>ดูใน 3D</span>
+                          <span>{t("ดูใน 3D")}</span>
                         </button>
                       ) : (
                         onOpenEditor && (
@@ -609,7 +611,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                             onClick={onOpenEditor}
                             className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-sky-400 text-[10px] font-semibold transition cursor-pointer"
                           >
-                            + วางในผัง
+                            {t("+ วางในผัง")}
                           </button>
                         )
                       )}
@@ -641,8 +643,8 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                     {/* Stock note if available */}
                     {totalQty > 0 && (
                       <div className="text-[10px] text-emerald-400 font-mono flex items-center justify-between bg-slate-900/60 px-1.5 py-0.5 rounded">
-                        <span>คงเหลือ: {totalQty.toLocaleString()}</span>
-                        <span className="text-slate-400">{itemsInLoc.length} รายการ</span>
+                        <span>{t("คงเหลือ:")} {totalQty.toLocaleString()}</span>
+                        <span className="text-slate-400">{t("{n} รายการ", { n: itemsInLoc.length })}</span>
                       </div>
                     )}
                   </div>
@@ -650,7 +652,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
               })
             ) : (
               <div className="text-center py-8 text-xs text-slate-500">
-                ไม่พบตำแหน่งที่ตรงกับเงื่อนไขค้นหา
+                {t("ไม่พบตำแหน่งที่ตรงกับเงื่อนไขค้นหา")}
               </div>
             )}
           </div>
@@ -662,7 +664,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-slate-300">
-              {selectedObject ? `รายการใน ${selectedObject.code}` : "สินค้าในตำแหน่ง"}
+              {selectedObject ? t("รายการใน {code}", { code: selectedObject.code }) : t("สินค้าในตำแหน่ง")}
             </span>
             <span className="text-[10px] text-slate-500">Live Lots</span>
           </div>
@@ -694,7 +696,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
           ) : (
             <div className="text-center py-8 text-slate-500 text-xs">
               <InboxOutlined className="text-3xl text-slate-700 mx-auto mb-1" />
-              <span>ไม่มีสินค้าคงเหลือในตำแหน่งนี้</span>
+              <span>{t("ไม่มีสินค้าคงเหลือในตำแหน่งนี้")}</span>
             </div>
           )}
         </div>
@@ -704,20 +706,20 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
       {activeTab === "summary" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-300">ภาพรวมสต๊อก {warehouseName}</span>
+            <span className="font-semibold text-slate-300">{t("ภาพรวมสต๊อก {name}", { name: warehouseName })}</span>
             <button
               type="button"
               onClick={handleExportCSV}
               className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-orange-400 text-[11px] font-medium border border-slate-700 transition cursor-pointer"
             >
               <DownloadOutlined />
-              <span>ส่งออก CSV</span>
+              <span>{t("ส่งออก CSV")}</span>
             </button>
           </div>
 
           <div className="max-h-72 overflow-y-auto space-y-1.5 pr-1">
             {isStockLoading ? (
-              <div className="text-center py-6 text-xs text-slate-500">กำลังโหลดสต๊อก...</div>
+              <div className="text-center py-6 text-xs text-slate-500">{t("กำลังโหลดสต๊อก...")}</div>
             ) : stockRows.length > 0 ? (
               stockRows.slice(0, 15).map((row, idx) => (
                 <div
@@ -736,7 +738,7 @@ export const Warehouse3DRightPanel: React.FC<Warehouse3DRightPanelProps> = ({
                 </div>
               ))
             ) : (
-              <div className="text-center py-6 text-xs text-slate-500">ไม่มีข้อมูลสต๊อกในคลังนี้</div>
+              <div className="text-center py-6 text-xs text-slate-500">{t("ไม่มีข้อมูลสต๊อกในคลังนี้")}</div>
             )}
           </div>
         </div>

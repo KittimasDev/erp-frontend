@@ -6,6 +6,9 @@ import { PrinterOutlined } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
 import { useSalaryCertificateEmployeesQuery } from "@/hooks/payroll/usePayroll";
+import { formatMoney } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { getCompanyInfoSnapshot } from "@/lib/company/company-info";
 import { ensureCompanyInfo, releasePdfWindow, reservePdfWindow } from "@/utils/pdf-common";
 import { openSalaryCertificatePdf } from "@/utils/generateSalaryCertificatePdf";
@@ -22,12 +25,11 @@ type FormValues = {
   signerTitle?: string;
 };
 
-const money = (v: number) =>
-  v.toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
 /** หนังสือรับรองเงินเดือน — เลือกพนักงาน ใส่ผู้รับ/วัตถุประสงค์ แล้วพิมพ์เป็น PDF */
 export default function PayrollSalaryCertificateModal({ open, onClose }: Props) {
   const { message } = App.useApp();
+  const t = useT();
+  const language = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const [printing, setPrinting] = useState(false);
   const query = useSalaryCertificateEmployeesQuery(open);
@@ -72,7 +74,7 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
       });
     } catch (error) {
       releasePdfWindow();
-      message.error(error instanceof Error ? error.message : "สร้าง PDF ไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("สร้าง PDF ไม่สำเร็จ"));
     } finally {
       setPrinting(false);
     }
@@ -82,12 +84,12 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
     <Modal
       open={open}
       onCancel={onClose}
-      title="หนังสือรับรองเงินเดือน"
+      title={t("หนังสือรับรองเงินเดือน")}
       width={640}
       destroyOnHidden
       footer={[
         <Button key="close" onClick={onClose}>
-          ปิด
+          {t("ปิด")}
         </Button>,
         <Button
           key="print"
@@ -96,7 +98,7 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
           loading={printing}
           onClick={() => void submit()}
         >
-          พิมพ์ / ดู PDF
+          {t("พิมพ์ / ดู PDF")}
         </Button>,
       ]}
     >
@@ -104,7 +106,7 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
         type="info"
         showIcon
         style={{ marginBottom: 12 }}
-        title="ใช้ฐานค่าจ้างปัจจุบันของพนักงานจากข้อมูลพนักงาน — เลขประจำตัวประชาชน วันที่เริ่มงาน และตำแหน่งตั้งได้ที่ฟอร์มผู้ใช้งาน /users"
+        title={t("ใช้ฐานค่าจ้างปัจจุบันของพนักงานจากข้อมูลพนักงาน — เลขประจำตัวประชาชน วันที่เริ่มงาน และตำแหน่งตั้งได้ที่ฟอร์มผู้ใช้งาน /users")}
       />
       <Form<FormValues>
         form={form}
@@ -112,48 +114,48 @@ export default function PayrollSalaryCertificateModal({ open, onClose }: Props) 
         preserve={false}
         initialValues={{ issuedAt: dayjs() }}
       >
-        <Form.Item name="userId" label="พนักงาน" rules={[{ required: true, message: "เลือกพนักงาน" }]}>
+        <Form.Item name="userId" label={t("พนักงาน")} rules={[{ required: true, message: t("เลือกพนักงาน") }]}>
           <Select
             showSearch
             loading={query.isLoading}
-            placeholder="ค้นหาชื่อหรือรหัสพนักงาน"
+            placeholder={t("ค้นหาชื่อหรือรหัสพนักงาน")}
             optionFilterProp="label"
             options={employees.map((e) => ({
               value: e.userId,
               label: [e.employeeCode, e.displayName].filter(Boolean).join(" · "),
             }))}
-            notFoundContent="ไม่พบพนักงานที่มีฐานค่าจ้าง"
+            notFoundContent={t("ไม่พบพนักงานที่มีฐานค่าจ้าง")}
           />
         </Form.Item>
         {selected ? (
           <div style={{ marginBottom: 16, fontSize: 13, color: "#666" }}>
-            {selected.payType === "MONTHLY" ? "เงินเดือน" : "ค่าจ้างรายวัน"}{" "}
-            <b>{money(selected.basePay)}</b> บาท
+            {selected.payType === "MONTHLY" ? t("เงินเดือน") : t("ค่าจ้างรายวัน")}{" "}
+            <b>{formatMoney(selected.basePay, language)}</b> {t("บาท")}
             {selected.position ? ` · ${selected.position}` : ""}
-            {selected.hireDate ? ` · เริ่มงาน ${dayjs(selected.hireDate).format("DD/MM/YYYY")}` : " · ยังไม่ระบุวันเริ่มงาน"}
-            {selected.nationalId ? "" : " · ยังไม่มีเลขประจำตัวประชาชน"}
+            {selected.hireDate ? ` · ${t("เริ่มงาน")} ${dayjs(selected.hireDate).format("DD/MM/YYYY")}` : ` · ${t("ยังไม่ระบุวันเริ่มงาน")}`}
+            {selected.nationalId ? "" : ` · ${t("ยังไม่มีเลขประจำตัวประชาชน")}`}
           </div>
         ) : null}
-        <Form.Item name="addressedTo" label="เรียน (ผู้รับ)">
-          <Input maxLength={200} placeholder="เช่น ผู้จัดการธนาคาร… (ว่าง = ผู้ที่เกี่ยวข้อง)" />
+        <Form.Item name="addressedTo" label={t("เรียน (ผู้รับ)")}>
+          <Input maxLength={200} placeholder={t("เช่น ผู้จัดการธนาคาร… (ว่าง = ผู้ที่เกี่ยวข้อง)")} />
         </Form.Item>
-        <Form.Item name="purpose" label="วัตถุประสงค์">
-          <Input maxLength={200} placeholder="เช่น ยื่นขอสินเชื่อ / ขอวีซ่า" />
+        <Form.Item name="purpose" label={t("วัตถุประสงค์")}>
+          <Input maxLength={200} placeholder={t("เช่น ยื่นขอสินเชื่อ / ขอวีซ่า")} />
         </Form.Item>
-        <Form.Item name="issuedAt" label="วันที่ออกหนังสือ" rules={[{ required: true, message: "เลือกวันที่" }]}>
+        <Form.Item name="issuedAt" label={t("วันที่ออกหนังสือ")} rules={[{ required: true, message: t("เลือกวันที่") }]}>
           <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" allowClear={false} />
         </Form.Item>
         <Form.Item
           name="otherIncome"
-          label="รายได้อื่นเฉลี่ยต่อเดือน (ถ้ามี เช่น ค่าตำแหน่ง เบี้ยขยัน)"
+          label={t("รายได้อื่นเฉลี่ยต่อเดือน (ถ้ามี เช่น ค่าตำแหน่ง เบี้ยขยัน)")}
         >
-          <InputNumber min={0} style={{ width: "100%" }} suffix="บาท" />
+          <InputNumber min={0} style={{ width: "100%" }} suffix={t("บาท")} />
         </Form.Item>
-        <Form.Item name="signerName" label="ชื่อผู้ลงนาม">
+        <Form.Item name="signerName" label={t("ชื่อผู้ลงนาม")}>
           <Input maxLength={200} />
         </Form.Item>
-        <Form.Item name="signerTitle" label="ตำแหน่งผู้ลงนาม">
-          <Input maxLength={200} placeholder="เช่น ผู้จัดการฝ่ายบุคคล" />
+        <Form.Item name="signerTitle" label={t("ตำแหน่งผู้ลงนาม")}>
+          <Input maxLength={200} placeholder={t("เช่น ผู้จัดการฝ่ายบุคคล")} />
         </Form.Item>
       </Form>
     </Modal>

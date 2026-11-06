@@ -3,6 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import {
   deleteAiOcrApiKey,
   getAiOcrAvailability,
@@ -42,6 +44,7 @@ export function useAiOcrSettingsQuery(options?: { enabled?: boolean }) {
 export function useUpdateAiOcrSettingsMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["settings", "ai-ocr", "update"],
@@ -49,11 +52,11 @@ export function useUpdateAiOcrSettingsMutation() {
       updateAiOcrSettings(getAccessToken(), body),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: aiOcrSettingsQueryKey });
-      message.success(response.message || "บันทึกการตั้งค่าสำเร็จแล้ว");
+      message.success(response.message || t("บันทึกการตั้งค่าสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "บันทึกการตั้งค่าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("บันทึกการตั้งค่าไม่สำเร็จ"),
       );
     },
   });
@@ -62,17 +65,18 @@ export function useUpdateAiOcrSettingsMutation() {
 export function useDeleteAiOcrApiKeyMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["settings", "ai-ocr", "delete-key"],
     mutationFn: () => deleteAiOcrApiKey(getAccessToken()),
     onSuccess: async (response) => {
       await queryClient.invalidateQueries({ queryKey: aiOcrSettingsQueryKey });
-      message.success(response.message || "ลบ API key สำเร็จแล้ว");
+      message.success(response.message || t("ลบ API key สำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ลบ API key ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ลบ API key ไม่สำเร็จ"),
       );
     },
   });
@@ -81,6 +85,7 @@ export function useDeleteAiOcrApiKeyMutation() {
 export function useTestAiOcrConnectionMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["settings", "ai-ocr", "test"],
@@ -96,7 +101,7 @@ export function useTestAiOcrConnectionMutation() {
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ทดสอบการเชื่อมต่อไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ทดสอบการเชื่อมต่อไม่สำเร็จ"),
       );
     },
   });

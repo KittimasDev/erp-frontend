@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Button, Popover, Tag } from "antd";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import type { Item } from "@/types/items";
 
 import styles from "./UnitPriceSourceHint.module.css";
@@ -18,8 +20,8 @@ type Props = {
   onUseBasePrice: () => void;
 };
 
-function formatMoney(value: number) {
-  return value.toLocaleString("th-TH", {
+function formatMoney(value: number, lang: "th" | "en" = "th") {
+  return value.toLocaleString(lang === "en" ? "en-GB" : "th-TH", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -55,13 +57,15 @@ export default function UnitPriceSourceHint({
   canViewItemMaster,
   onUseBasePrice,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   if (!item) {
     return null;
   }
 
   const basePrice = toFiniteNumber(item.sellingPrice);
   const price = toFiniteNumber(currentPrice);
-  const unitLabel = item.unit?.nameTh ?? item.unit?.code ?? "หน่วย";
+  const unitLabel = item.unit?.nameTh ?? item.unit?.code ?? t("หน่วย");
 
   /*
     เทียบราคาแบบ string 4 ตำแหน่ง เพราะ sellingPrice จาก backend เป็น decimal(18,4)
@@ -91,46 +95,45 @@ export default function UnitPriceSourceHint({
       target="_blank"
       rel="noreferrer"
     >
-      เปิดหน้าข้อมูลหลักสินค้า (แท็บใหม่)
+      {t("เปิดหน้าข้อมูลหลักสินค้า (แท็บใหม่)")}
     </Link>
   );
 
   const content = (
     <div className={styles.popoverBody}>
       <p className={styles.lead}>
-        ตั้งค่าที่ <strong>ข้อมูลหลักสินค้า</strong> → ช่อง &ldquo;ราคาขาย (ก่อน
-        VAT)&rdquo;
+        {t("ตั้งค่าที่")} <strong>{t("ข้อมูลหลักสินค้า")}</strong> → {t("ช่อง")} &ldquo;{t("ราคาขาย (ก่อน VAT)")}&rdquo;
       </p>
 
       <dl className={styles.detailList}>
         <div className={styles.detailRow}>
-          <dt>สินค้า</dt>
+          <dt>{t("สินค้า")}</dt>
           <dd>
             {item.itemCode} — {item.itemNameTh}
           </dd>
         </div>
         <div className={styles.detailRow}>
-          <dt>ราคาตั้งต้น</dt>
+          <dt>{t("ราคาตั้งต้น")}</dt>
           <dd>
             {basePrice === null
-              ? "ยังไม่กำหนด"
-              : `${formatMoney(basePrice)} บาท / ${unitLabel}`}
+              ? t("ยังไม่กำหนด")
+              : `${formatMoney(basePrice, lang)} ${t("บาท")} / ${unitLabel}`}
           </dd>
         </div>
         {state === "different" || state === "no-price" ? (
           <div className={styles.detailRow}>
-            <dt>ราคาที่ใช้ในใบนี้</dt>
+            <dt>{t("ราคาที่ใช้ในใบนี้")}</dt>
             <dd>
-              {price === null ? "ยังไม่ได้กรอก" : `${formatMoney(price)} บาท`}
+              {price === null ? t("ยังไม่ได้กรอก") : `${formatMoney(price, lang)} ${t("บาท")}`}
             </dd>
           </div>
         ) : null}
         {diff !== null ? (
           <div className={styles.detailRow}>
-            <dt>ส่วนต่าง</dt>
+            <dt>{t("ส่วนต่าง")}</dt>
             <dd className={diff > 0 ? styles.diffUp : styles.diffDown}>
               {diff > 0 ? "+" : "−"}
-              {formatMoney(Math.abs(diff))} บาท
+              {formatMoney(Math.abs(diff), lang)} {t("บาท")}
               {diffPercent !== null
                 ? ` (${diff > 0 ? "+" : "−"}${Math.abs(diffPercent).toFixed(1)}%)`
                 : ""}
@@ -141,15 +144,13 @@ export default function UnitPriceSourceHint({
 
       {state === "no-base" ? (
         <p className={styles.note}>
-          สินค้านี้ยังไม่มีราคาขายในข้อมูลหลัก ระบบจึงเติมราคาให้ไม่ได้ —
-          กรอกราคาในใบนี้เองได้ หรือไปตั้งราคาที่ข้อมูลหลักสินค้าเพื่อให้ใบถัดไป
-          เติมให้อัตโนมัติ
+          {t("สินค้านี้ยังไม่มีราคาขายในข้อมูลหลัก ระบบจึงเติมราคาให้ไม่ได้ — กรอกราคาในใบนี้เองได้ หรือไปตั้งราคาที่ข้อมูลหลักสินค้าเพื่อให้ใบถัดไปเติมให้อัตโนมัติ")}
         </p>
       ) : null}
 
       {state === "different" ? (
         <p className={styles.note}>
-          อาจเกิดจากพิมพ์ราคาเอง หรือราคาในข้อมูลหลักถูกแก้ทีหลัง
+          {t("อาจเกิดจากพิมพ์ราคาเอง หรือราคาในข้อมูลหลักถูกแก้ทีหลัง")}
         </p>
       ) : null}
 
@@ -160,19 +161,18 @@ export default function UnitPriceSourceHint({
           onClick={onUseBasePrice}
           className={styles.resetButton}
         >
-          ใช้ราคาตั้งต้น {formatMoney(basePrice)} บาท
+          {t("ใช้ราคาตั้งต้น {price} บาท", { price: formatMoney(basePrice, lang) })}
         </Button>
       ) : null}
 
       <p className={styles.note}>
-        ระบบนี้ยังไม่มีตารางราคาหรือราคาเฉพาะลูกค้า —
-        ราคาทุกใบอ้างจากข้อมูลหลักสินค้าจุดเดียว
+        {t("ระบบนี้ยังไม่มีตารางราคาหรือราคาเฉพาะลูกค้า — ราคาทุกใบอ้างจากข้อมูลหลักสินค้าจุดเดียว")}
       </p>
 
       <p className={styles.linkRow}>
         {canViewItemMaster
           ? masterLink
-          : "ตั้งค่าที่เมนูข้อมูลหลักสินค้า (บัญชีนี้ยังไม่มีสิทธิ์เข้าถึง)"}
+          : t("ตั้งค่าที่เมนูข้อมูลหลักสินค้า (บัญชีนี้ยังไม่มีสิทธิ์เข้าถึง)")}
       </p>
     </div>
   );
@@ -182,7 +182,7 @@ export default function UnitPriceSourceHint({
       <Popover
         trigger="click"
         placement="bottomLeft"
-        title="ที่มาของราคา"
+        title={t("ที่มาของราคา")}
         content={content}
       >
         <Tag
@@ -191,7 +191,7 @@ export default function UnitPriceSourceHint({
           role="button"
           tabIndex={0}
         >
-          {TAG_LABEL[state]} · ดูที่มา
+          {t(TAG_LABEL[state])} · {t("ดูที่มา")}
         </Tag>
       </Popover>
     </span>

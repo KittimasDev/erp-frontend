@@ -21,6 +21,7 @@ import type {
 } from "@/types/delivery-orders";
 import { DELIVERY_RESULT_LABEL } from "@/types/delivery-orders";
 import styles from "./DeliveryResultModal.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 const QTY_EPSILON = 5e-4;
 
@@ -33,11 +34,12 @@ type Props = {
 };
 
 export default function DeliveryResultModal(props: Props) {
+  const t = useT();
   return (
     <Modal
       open={props.open}
       destroyOnHidden
-      title="บันทึกผลการส่ง"
+      title={t("บันทึกผลการส่ง")}
       footer={null}
       width={760}
       onCancel={props.onCancel}
@@ -50,6 +52,7 @@ export default function DeliveryResultModal(props: Props) {
 type LineQty = { accepted: number; returned: number };
 
 function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
+  const t = useT();
   const [result, setResult] = useState<DeliveryResult | null>(null);
   const [reason, setReason] = useState("");
   const [returnToStock, setReturnToStock] = useState<boolean | null>(null);
@@ -73,13 +76,13 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
   };
 
   const errors: string[] = [];
-  if (!result) errors.push("กรุณาเลือกผลการส่ง");
+  if (!result) errors.push(t("กรุณาเลือกผลการส่ง"));
   if (isReturn) {
-    if (!reason.trim()) errors.push("กรุณาระบุเหตุผลการตีกลับ");
+    if (!reason.trim()) errors.push(t("กรุณาระบุเหตุผลการตีกลับ"));
     if (returnToStock === null)
-      errors.push("กรุณาเลือกว่าจะนำสินค้าคืนเข้าคลังหรือไม่");
-    if (redeliver === null) errors.push("กรุณาเลือกว่าจะส่งใหม่หรือไม่");
-    if (redeliver && !redeliverDate) errors.push("กรุณาระบุวันที่ต้องการส่งใหม่");
+      errors.push(t("กรุณาเลือกว่าจะนำสินค้าคืนเข้าคลังหรือไม่"));
+    if (redeliver === null) errors.push(t("กรุณาเลือกว่าจะส่งใหม่หรือไม่"));
+    if (redeliver && !redeliverDate) errors.push(t("กรุณาระบุวันที่ต้องการส่งใหม่"));
   }
   if (result === "PARTIAL_RETURN") {
     let totalAccepted = 0;
@@ -93,12 +96,12 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
         QTY_EPSILON
       ) {
         errors.push(
-          `${item.itemCode ?? item.itemNameTh ?? "รายการ"}: รับจริง + ตีกลับ ต้องเท่ากับจำนวนที่ส่ง`,
+          `${item.itemCode ?? item.itemNameTh ?? t("รายการ")}: ${t("รับจริง + ตีกลับ ต้องเท่ากับจำนวนที่ส่ง")}`,
         );
       }
     }
     if (!(totalAccepted > QTY_EPSILON) || !(totalReturned > QTY_EPSILON)) {
-      errors.push("ตีกลับบางส่วน — จำนวนรับจริงและจำนวนตีกลับต้องมากกว่า 0");
+      errors.push(t("ตีกลับบางส่วน — จำนวนรับจริงและจำนวนตีกลับต้องมากกว่า 0"));
     }
   }
 
@@ -128,14 +131,14 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
 
   const columns: ColumnsType<DeliveryOrderItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_v, item) => (
         <div>
@@ -145,7 +148,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
       ),
     },
     {
-      title: "จำนวนที่ส่ง",
+      title: t("จำนวนที่ส่ง"),
       key: "shipped",
       align: "right",
       width: 110,
@@ -153,7 +156,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
         `${Number(item.deliveredQty).toLocaleString("th-TH")} ${item.unitCode ?? ""}`,
     },
     {
-      title: "รับจริง",
+      title: t("รับจริง"),
       key: "accepted",
       width: 130,
       render: (_v, item) => (
@@ -168,7 +171,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
       ),
     },
     {
-      title: "ตีกลับ",
+      title: t("ตีกลับ"),
       key: "returned",
       width: 130,
       render: (_v, item) => (
@@ -213,7 +216,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
   return (
     <div className={styles.body}>
       <div className={styles.field}>
-        <span className={styles.label}>ผลการส่ง</span>
+        <span className={styles.label}>{t("ผลการส่ง")}</span>
         <Radio.Group
           value={result}
           onChange={(e) => setResult(e.target.value as DeliveryResult)}
@@ -221,7 +224,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
           buttonStyle="solid"
           options={(
             ["SUCCESS", "FULL_RETURN", "PARTIAL_RETURN"] as DeliveryResult[]
-          ).map((value) => ({ value, label: DELIVERY_RESULT_LABEL[value] }))}
+          ).map((value) => ({ value, label: t(DELIVERY_RESULT_LABEL[value]) }))}
         />
       </div>
 
@@ -229,8 +232,8 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
         <Alert
           type="success"
           showIcon
-          title="ลูกค้ารับสินค้าครบตามจำนวนที่ส่ง"
-          description="รอบจัดส่งจะเป็นส่งแล้ว — ไม่มีการตัดสต๊อกในขั้นตอนนี้"
+          title={t("ลูกค้ารับสินค้าครบตามจำนวนที่ส่ง")}
+          description={t("รอบจัดส่งจะเป็นส่งแล้ว — ไม่มีการตัดสต๊อกในขั้นตอนนี้")}
         />
       ) : null}
 
@@ -238,13 +241,13 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
         <>
           <label className={styles.field}>
             <span className={styles.label}>
-              เหตุผลการตีกลับ <span className={styles.required}>*</span>
+              {t("เหตุผลการตีกลับ")} <span className={styles.required}>*</span>
             </span>
             <Input.TextArea
               rows={2}
               maxLength={2000}
               value={reason}
-              placeholder="เช่น สินค้าเสียหาย / ลูกค้าไม่อยู่รับ"
+              placeholder={t("เช่น สินค้าเสียหาย / ลูกค้าไม่อยู่รับ")}
               onChange={(e) => setReason(e.target.value)}
             />
           </label>
@@ -260,27 +263,27 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
           <div className={styles.grid}>
             <div className={styles.field}>
               <span className={styles.label}>
-                สินค้าที่ตีกลับ <span className={styles.required}>*</span>
+                {t("สินค้าที่ตีกลับ")} <span className={styles.required}>*</span>
               </span>
               <Radio.Group
                 value={returnToStock}
                 onChange={(e) => setReturnToStock(e.target.value as boolean)}
                 options={[
-                  { value: true, label: "นำสินค้าคืนเข้าคลัง" },
-                  { value: false, label: "ไม่นำเข้าคลัง" },
+                  { value: true, label: t("นำสินค้าคืนเข้าคลัง") },
+                  { value: false, label: t("ไม่นำเข้าคลัง") },
                 ]}
               />
             </div>
             <div className={styles.field}>
               <span className={styles.label}>
-                ต้องส่งสินค้าใหม่หรือไม่ <span className={styles.required}>*</span>
+                {t("ต้องส่งสินค้าใหม่หรือไม่")} <span className={styles.required}>*</span>
               </span>
               <Radio.Group
                 value={redeliver}
                 onChange={(e) => setRedeliver(e.target.value as boolean)}
                 options={[
-                  { value: true, label: "ส่งใหม่" },
-                  { value: false, label: "ไม่ส่งใหม่" },
+                  { value: true, label: t("ส่งใหม่") },
+                  { value: false, label: t("ไม่ส่งใหม่") },
                 ]}
               />
             </div>
@@ -289,7 +292,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
           {redeliver ? (
             <label className={styles.field}>
               <span className={styles.label}>
-                วันที่ต้องการส่งใหม่ <span className={styles.required}>*</span>
+                {t("วันที่ต้องการส่งใหม่")} <span className={styles.required}>*</span>
               </span>
               <DatePicker
                 value={redeliverDate}
@@ -300,8 +303,8 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
               />
               <span className={styles.hint}>
                 {returnToStock === false
-                  ? "ระบบจะสร้างใบส่งสินค้าใหม่ (ร่าง) ด้วยจำนวนที่ตีกลับ ลงวันที่ส่งใหม่ — ไม่จ่าย/บรรจุใหม่ ไม่ตัดสต๊อกซ้ำ"
-                  : "ระบบจะสร้างรอบจัดส่งใหม่ของ SO ด้วยจำนวนที่ตีกลับ แล้วไปจ่าย/บรรจุ/ส่งตามปกติ"}
+                  ? t("ระบบจะสร้างใบส่งสินค้าใหม่ (ร่าง) ด้วยจำนวนที่ตีกลับ ลงวันที่ส่งใหม่ — ไม่จ่าย/บรรจุใหม่ ไม่ตัดสต๊อกซ้ำ")
+                  : t("ระบบจะสร้างรอบจัดส่งใหม่ของ SO ด้วยจำนวนที่ตีกลับ แล้วไปจ่าย/บรรจุ/ส่งตามปกติ")}
               </span>
             </label>
           ) : redeliver === false ? (
@@ -309,7 +312,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
               type="warning"
               showIcon
               title={
-                "ไม่ส่งใหม่ — จำนวนที่ตีกลับปิดการส่ง ไม่ค้างส่ง และไม่ลดยอดเงินใบสั่งขาย ระบบเปิดคิวใบลดหนี้ให้กรอกจำนวนกับราคาเอง"
+                t("ไม่ส่งใหม่ — จำนวนที่ตีกลับปิดการส่ง ไม่ค้างส่ง และไม่ลดยอดเงินใบสั่งขาย ระบบเปิดคิวใบลดหนี้ให้กรอกจำนวนกับราคาเอง")
               }
             />
           ) : null}
@@ -318,7 +321,7 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
             <Alert
               type="info"
               showIcon
-              title="ระบบจะสร้างใบคืนสินค้า (รออนุมัติ) เฉพาะจำนวนที่ตีกลับ — อนุมัติแล้วสินค้าเข้าคลังตรวจสอบ"
+              title={t("ระบบจะสร้างใบคืนสินค้า (รออนุมัติ) เฉพาะจำนวนที่ตีกลับ — อนุมัติแล้วสินค้าเข้าคลังตรวจสอบ")}
             />
           ) : null}
         </>
@@ -333,14 +336,14 @@ function DeliveryResultBody({ items, loading, onCancel, onConfirm }: Props) {
       ) : null}
 
       <div className={styles.actions}>
-        <Button onClick={onCancel}>ปิด</Button>
+        <Button onClick={onCancel}>{t("ปิด")}</Button>
         <Button
           type="primary"
           loading={loading}
           disabled={!result || errors.length > 0}
           onClick={submit}
         >
-          บันทึกผลการส่ง
+          {t("บันทึกผลการส่ง")}
         </Button>
       </div>
     </div>

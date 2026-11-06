@@ -13,6 +13,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+
 import {
   readWarehouseGroup,
   withWarehouseGroup,
@@ -21,6 +23,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { useStockTransfersQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
 import type { StockTransfer } from "@/types/stock-transfers";
 import { STOCK_TRANSFER_STATUS_LABEL } from "@/types/stock-transfers";
+import { tStockLabel } from "@/types/stock-adjustments";
 import styles from "./StockTransfersListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -40,12 +43,15 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span className={`${styles.statusPill} ${tone}`}>
       <span className={styles.statusDot} aria-hidden />
-      {STOCK_TRANSFER_STATUS_LABEL[status] ?? status}
+      {STOCK_TRANSFER_STATUS_LABEL[status]
+        ? tStockLabel(STOCK_TRANSFER_STATUS_LABEL[status])
+        : status}
     </span>
   );
 }
 
 export default function StockTransfersListPage() {
+  const t = useT();
   const router = useRouter();
   const warehouseGroup = readWarehouseGroup(useSearchParams());
   const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
@@ -126,14 +132,14 @@ export default function StockTransfersListPage() {
   const columns: ColumnsType<StockTransfer> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 52,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบโอนย้าย",
+        title: t("เลขที่ใบโอนย้าย"),
         dataIndex: "transferNo",
         key: "transferNo",
         render: (value: string) => (
@@ -141,26 +147,26 @@ export default function StockTransfersListPage() {
         ),
       },
       {
-        title: "วันที่โอนย้าย",
+        title: t("วันที่โอนย้าย"),
         dataIndex: "transferDate",
         key: "transferDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ผู้ขอโอนย้าย",
+        title: t("ผู้ขอโอนย้าย"),
         key: "requestedBy",
         render: (_v, row) => row.requestedBy?.displayName ?? "—",
       },
       {
-        title: "จำนวนรายการ",
+        title: t("จำนวนรายการ"),
         key: "itemCount",
         align: "right",
         width: 110,
         render: (_v, row) => row.items?.length ?? 0,
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 130,
@@ -175,7 +181,7 @@ export default function StockTransfersListPage() {
             <button
               type="button"
               className={styles.actionBtn}
-              title="ดูรายละเอียด"
+              title={t("ดูรายละเอียด")}
               onClick={() => router.push(scopePath(`/inventory/stock-transfers/${row.id}`))}
             >
               <EyeOutlined />
@@ -184,7 +190,7 @@ export default function StockTransfersListPage() {
               <button
                 type="button"
                 className={styles.actionBtn}
-                title="แก้ไข"
+                title={t("แก้ไข")}
                 onClick={() =>
                   router.push(scopePath(`/inventory/stock-transfers/${row.id}/edit`))
                 }
@@ -196,7 +202,7 @@ export default function StockTransfersListPage() {
         ),
       },
     ],
-    [canEdit, limit, page, router],
+    [canEdit, limit, page, router, t],
   );
 
   return (
@@ -204,8 +210,8 @@ export default function StockTransfersListPage() {
       <PageHeader
         eyebrow="Warehouse · Stock Transfer"
         icon={<SwapOutlined />}
-        title="โอนย้ายสินค้า"
-        subtitle="สร้างใบโอน (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัด+เพิ่มสต๊อกจริง"
+        title={t("โอนย้ายสินค้า")}
+        subtitle={t("สร้างใบโอน (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัด+เพิ่มสต๊อกจริง")}
         actions={
           <>
 {canAdd ? (
@@ -215,7 +221,7 @@ export default function StockTransfersListPage() {
               icon={<PlusOutlined />}
               onClick={() => router.push(scopePath("/inventory/stock-transfers/create"))}
             >
-              สร้างใบโอนย้าย
+              {t("สร้างใบโอนย้าย")}
             </Button>
           </div>
         ) : null}
@@ -229,86 +235,86 @@ export default function StockTransfersListPage() {
           className={`${styles.statChip} ${!applied.status ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus(undefined)}
         >
-          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statLabel}>{t("ทั้งหมด")}</span>
           <span className={styles.statValue}>{allTotal}</span>
-          <span className={styles.statHint}>เอกสารทั้งหมด</span>
+          <span className={styles.statHint}>{t("เอกสารทั้งหมด")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "DRAFT" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("DRAFT")}
         >
-          <span className={styles.statLabel}>ร่าง</span>
+          <span className={styles.statLabel}>{t("ร่าง")}</span>
           <span className={styles.statValue}>{draftTotal}</span>
-          <span className={styles.statHint}>รออนุมัติ</span>
+          <span className={styles.statHint}>{t("รออนุมัติ")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "POSTED" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("POSTED")}
         >
-          <span className={styles.statLabel}>อนุมัติแล้ว</span>
+          <span className={styles.statLabel}>{t("อนุมัติแล้ว")}</span>
           <span className={styles.statValue}>{postedTotal}</span>
-          <span className={styles.statHint}>โอนย้ายสต๊อกแล้ว</span>
+          <span className={styles.statHint}>{t("โอนย้ายสต๊อกแล้ว")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "CANCELLED" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("CANCELLED")}
         >
-          <span className={styles.statLabel}>ยกเลิก</span>
+          <span className={styles.statLabel}>{tStockLabel("ยกเลิก")}</span>
           <span className={styles.statValue}>{cancelledTotal}</span>
-          <span className={styles.statHint}>ไม่ใช้งาน</span>
+          <span className={styles.statHint}>{t("ไม่ใช้งาน")}</span>
         </button>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ใบโอนย้าย</label>
+            <label>{t("เลขที่ใบโอนย้าย")}</label>
             <Input
               allowClear
-              placeholder="เช่น ST-20260721-001"
+              placeholder={t("เช่น ST-20260721-001")}
               value={transferNo}
               onChange={(e) => setTransferNo(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่โอนย้าย</label>
+            <label>{t("วันที่โอนย้าย")}</label>
             <DatePicker
               style={{ width: "100%" }}
               value={transferDate}
               onChange={setTransferDate}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "แบบร่างเอกสาร" },
-                { value: "POSTED", label: "อนุมัติแล้ว" },
-                { value: "CANCELLED", label: "ยกเลิก" },
+                { value: "DRAFT", label: t("แบบร่างเอกสาร") },
+                { value: "POSTED", label: t("อนุมัติแล้ว") },
+                { value: "CANCELLED", label: tStockLabel("ยกเลิก") },
               ]}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.searchBtn}
             icon={<SearchOutlined />}
             onClick={applySearch}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -316,10 +322,10 @@ export default function StockTransfersListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -334,7 +340,7 @@ export default function StockTransfersListPage() {
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -351,8 +357,8 @@ export default function StockTransfersListPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ยังไม่มีใบโอนย้ายสินค้า</strong>
-                สร้างใบโอนย้ายใหม่ผ่านปุ่ม “สร้างใบโอนย้าย”
+                <strong>{t("ยังไม่มีใบโอนย้ายสินค้า")}</strong>
+                {t("สร้างใบโอนย้ายใหม่ผ่านปุ่ม “สร้างใบโอนย้าย”")}
               </div>
             ),
           }}
@@ -360,8 +366,8 @@ export default function StockTransfersListPage() {
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง")} {total === 0 ? 0 : (page - 1) * limit + 1}–
+            {Math.min(page * limit, total)} {t("จาก")} {total}
           </div>
           <Pagination
             size="small"

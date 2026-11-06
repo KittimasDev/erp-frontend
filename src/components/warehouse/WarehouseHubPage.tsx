@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useT } from "@/lib/i18n/useT";
 import {
   canAccessAnyScreen,
   isMatrixPermissionMode,
@@ -95,6 +96,7 @@ export default function WarehouseHubPage({
   sections,
 }: WarehouseHubPageProps) {
   const router = useRouter();
+  const t = useT();
 
   /*
     สิทธิ์อยู่ใน localStorage — กรองตั้งแต่ render แรกจะไม่ตรงกับ markup ฝั่ง server
@@ -122,10 +124,10 @@ export default function WarehouseHubPage({
     <MasterPageGate isLoading={isLoading}>
       <section className={styles.page}>
         <PageHeader
-          eyebrow={eyebrow}
+          eyebrow={t(eyebrow)}
           icon={icon ?? <DatabaseOutlined />}
-          title={title}
-          subtitle={subtitle}
+          title={t(title)}
+          subtitle={t(subtitle)}
         />
 
         {headerExtra}
@@ -133,7 +135,7 @@ export default function WarehouseHubPage({
         {visibleSections.length === 0 ? (
           <div className={styles.emptyState}>
             <Typography.Text type="secondary">
-              ยังไม่มีเมนูที่คุณมีสิทธิ์เข้าใช้งานในหน้านี้
+              {t("ยังไม่มีเมนูที่คุณมีสิทธิ์เข้าใช้งานในหน้านี้")}
             </Typography.Text>
           </div>
         ) : (
@@ -141,9 +143,9 @@ export default function WarehouseHubPage({
             <div key={section.key} className={styles.section}>
               {section.title ? (
                 <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>{section.title}</h2>
+                  <h2 className={styles.sectionTitle}>{t(section.title)}</h2>
                   {section.description ? (
-                    <p className={styles.sectionDesc}>{section.description}</p>
+                    <p className={styles.sectionDesc}>{t(section.description)}</p>
                   ) : null}
                 </div>
               ) : null}
@@ -175,11 +177,11 @@ export default function WarehouseHubPage({
                       ) : null}
                       <div className={styles.hubCardBody}>
                         <strong>
-                          {card.title}
+                          {t(card.title)}
                           {count > 0 ? (
                             <span
                               className={styles.hubCardBadge}
-                              aria-label={`${count} รายการรอดำเนินการ`}
+                              aria-label={t("{count} รายการรอดำเนินการ", { count })}
                             >
                               {count > 99 ? "99+" : count}
                             </span>
@@ -189,14 +191,14 @@ export default function WarehouseHubPage({
                           type="secondary"
                           className={styles.hubCardDesc}
                         >
-                          {card.description}
+                          {t(card.description)}
                         </Typography.Paragraph>
                         {disabled && card.disabledHint ? (
                           <Typography.Text
                             type="warning"
                             className={styles.hubCardHint}
                           >
-                            {card.disabledHint}
+                            {t(card.disabledHint)}
                           </Typography.Text>
                         ) : null}
                       </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { tStatus } from "@/types/purchase-orders";
+import { useT } from "@/lib/i18n/useT";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -46,6 +48,7 @@ function formatMoney(value?: string) {
 }
 
 function StatusPill({ status }: { status: string }) {
+  useT(); /* subscribe to language changes (tStatus reads the current language) */
   const tone =
     status === "CONFIRMED"
       ? styles.statusConfirmed
@@ -56,12 +59,13 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span className={`${styles.statusPill} ${tone}`}>
       <span className={styles.statusDot} aria-hidden />
-      {GOODS_RECEIPT_STATUS_LABEL[status] ?? status}
+      {tStatus(GOODS_RECEIPT_STATUS_LABEL[status] ?? status)}
     </span>
   );
 }
 
 export default function GoodsReceiptsListPage() {
+  const t = useT();
   const router = useRouter();
   const [grNo, setGrNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -131,14 +135,14 @@ export default function GoodsReceiptsListPage() {
   const columns: ColumnsType<GoodsReceipt> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 52,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบรับของ",
+        title: t("เลขที่ใบรับของ"),
         dataIndex: "grNo",
         key: "grNo",
         render: (value: string, row) => (
@@ -154,14 +158,14 @@ export default function GoodsReceiptsListPage() {
         ),
       },
       {
-        title: "วันที่รับ",
+        title: t("วันที่รับ"),
         dataIndex: "grDate",
         key: "grDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "อ้างอิง PO",
+        title: t("อ้างอิง PO"),
         key: "po",
         render: (_v, row) =>
           row.purchaseOrder ? (
@@ -177,7 +181,7 @@ export default function GoodsReceiptsListPage() {
           ),
       },
       {
-        title: "ผู้ขาย",
+        title: t("ผู้ขาย"),
         key: "creditor",
         render: (_v, row) =>
           row.creditor ? (
@@ -192,7 +196,7 @@ export default function GoodsReceiptsListPage() {
           ),
       },
       {
-        title: "ยอดรวม",
+        title: t("ยอดรวม"),
         dataIndex: "totalAmount",
         key: "totalAmount",
         align: "right",
@@ -201,7 +205,7 @@ export default function GoodsReceiptsListPage() {
         ),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 130,
@@ -216,7 +220,7 @@ export default function GoodsReceiptsListPage() {
             <button
               type="button"
               className={styles.actionBtn}
-              title="ดูรายละเอียด"
+              title={t("ดูรายละเอียด")}
               onClick={() => router.push(`/goods-receipts/${row.id}`)}
             >
               <EyeOutlined />
@@ -225,7 +229,7 @@ export default function GoodsReceiptsListPage() {
               <button
                 type="button"
                 className={styles.actionBtn}
-                title="แก้ไข"
+                title={t("แก้ไข")}
                 onClick={() => router.push(`/goods-receipts/${row.id}/edit`)}
               >
                 <EditOutlined />
@@ -235,7 +239,7 @@ export default function GoodsReceiptsListPage() {
         ),
       },
     ],
-    [canEdit, limit, page, router],
+    [canEdit, limit, page, router, t],
   );
 
   return (
@@ -243,8 +247,8 @@ export default function GoodsReceiptsListPage() {
       <PageHeader
         eyebrow="Warehouse · Goods Receipt"
         icon={<InboxOutlined />}
-        title="ใบรับของ"
-        subtitle="รับสินค้าจากใบสั่งซื้อที่ยืนยันแล้ว — Confirm แล้วสต๊อกเข้าคลังจริง"
+        title={t("ใบรับของ")}
+        subtitle={t("รับสินค้าจากใบสั่งซื้อที่ยืนยันแล้ว — Confirm แล้วสต๊อกเข้าคลังจริง")}
         actions={
           <>
 <Link href="/purchase-orders">
@@ -252,7 +256,7 @@ export default function GoodsReceiptsListPage() {
               className={styles.secondaryBtn}
               icon={<ShoppingCartOutlined />}
             >
-              ไปที่ใบสั่งซื้อ
+              {t("ไปที่ใบสั่งซื้อ")}
             </Button>
           </Link>
           </>
@@ -267,86 +271,86 @@ export default function GoodsReceiptsListPage() {
           className={`${styles.statChip} ${!applied.status ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus(undefined)}
         >
-          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statLabel}>{t("ทั้งหมด")}</span>
           <span className={styles.statValue}>{allTotal}</span>
-          <span className={styles.statHint}>เอกสารทั้งหมด</span>
+          <span className={styles.statHint}>{t("เอกสารทั้งหมด")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "DRAFT" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("DRAFT")}
         >
-          <span className={styles.statLabel}>ร่าง</span>
+          <span className={styles.statLabel}>{t("ร่าง")}</span>
           <span className={styles.statValue}>{draftTotal}</span>
-          <span className={styles.statHint}>รอ Confirm</span>
+          <span className={styles.statHint}>{t("รอ Confirm")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "CONFIRMED" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("CONFIRMED")}
         >
-          <span className={styles.statLabel}>ยืนยันแล้ว</span>
+          <span className={styles.statLabel}>{t("ยืนยันแล้ว")}</span>
           <span className={styles.statValue}>{confirmedTotal}</span>
-          <span className={styles.statHint}>โพสต์สต๊อกแล้ว</span>
+          <span className={styles.statHint}>{t("โพสต์สต๊อกแล้ว")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "CANCELLED" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("CANCELLED")}
         >
-          <span className={styles.statLabel}>ยกเลิก</span>
+          <span className={styles.statLabel}>{t("ยกเลิก")}</span>
           <span className={styles.statValue}>{cancelledTotal}</span>
-          <span className={styles.statHint}>ไม่ใช้งาน</span>
+          <span className={styles.statHint}>{t("ไม่ใช้งาน")}</span>
         </button>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ใบรับของ</label>
+            <label>{t("เลขที่ใบรับของ")}</label>
             <Input
               allowClear
-              placeholder="เช่น GR-20260718-001"
+              placeholder={t("เช่น GR-20260718-001")}
               value={grNo}
               onChange={(e) => setGrNo(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่รับ</label>
+            <label>{t("วันที่รับ")}</label>
             <DatePicker
               style={{ width: "100%" }}
               value={grDate}
               onChange={setGrDate}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "แบบร่างเอกสาร" },
-                { value: "CONFIRMED", label: "ยืนยันแล้ว" },
-                { value: "CANCELLED", label: "ยกเลิก" },
+                { value: "DRAFT", label: t("แบบร่างเอกสาร") },
+                { value: "CONFIRMED", label: t("ยืนยันแล้ว") },
+                { value: "CANCELLED", label: t("ยกเลิก") },
               ]}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.primaryBtn}
             icon={<SearchOutlined />}
             onClick={applySearch}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -354,10 +358,10 @@ export default function GoodsReceiptsListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -372,7 +376,7 @@ export default function GoodsReceiptsListPage() {
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -389,8 +393,8 @@ export default function GoodsReceiptsListPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ยังไม่มีใบรับของ</strong>
-                สร้างจากใบสั่งซื้อที่ยืนยันแล้วผ่านปุ่ม “รับของ”
+                <strong>{t("ยังไม่มีใบรับของ")}</strong>
+                {t("สร้างจากใบสั่งซื้อที่ยืนยันแล้วผ่านปุ่ม “รับของ”")}
               </div>
             ),
           }}
@@ -398,8 +402,11 @@ export default function GoodsReceiptsListPage() {
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง {from}–{to} จาก {total}", {
+              from: total === 0 ? 0 : (page - 1) * limit + 1,
+              to: Math.min(page * limit, total),
+              total,
+            })}
           </div>
           <Pagination
             size="small"

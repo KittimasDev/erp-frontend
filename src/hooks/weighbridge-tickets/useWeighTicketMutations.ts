@@ -21,6 +21,7 @@ import { weighbridgeTicketQueryKey } from "./useWeighbridgeTicketQuery";
 import { weighbridgeDashboardQueryKey } from "./useWeighbridgeDashboardQuery";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { rawTirePurchaseReceiptQueryKey } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
+import { useT } from "@/lib/i18n/useT";
 
 function invalidateAfterWeigh(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -43,6 +44,7 @@ function invalidateAfterWeigh(
 }
 
 export function useSaveClassificationPlanMutation(ticketId: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -52,19 +54,20 @@ export function useSaveClassificationPlanMutation(ticketId: string) {
       saveClassificationPlan(getAccessToken(), ticketId, payload),
     onSuccess: async (response) => {
       await invalidateAfterWeigh(queryClient, ticketId);
-      message.success(response.message || "บันทึกแผนคัดแยกสำเร็จแล้ว");
+      message.success(response.message || t("บันทึกแผนคัดแยกสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "บันทึกแผนคัดแยกไม่สำเร็จ",
+          : t("บันทึกแผนคัดแยกไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useCompleteWeighAndReceiptMutation(ticketId: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -80,20 +83,21 @@ export function useCompleteWeighAndReceiptMutation(ticketId: string) {
     onSuccess: async (response) => {
       await invalidateAfterWeigh(queryClient, ticketId);
       message.success(
-        response.message || "บันทึกน้ำหนักและยืนยันใบรับซื้อสำเร็จแล้ว",
+        response.message || t("บันทึกน้ำหนักและยืนยันใบรับซื้อสำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "บันทึกน้ำหนักและยืนยันใบรับซื้อไม่สำเร็จ",
+          : t("บันทึกน้ำหนักและยืนยันใบรับซื้อไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useWeighInMutation(ticketId: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -103,17 +107,18 @@ export function useWeighInMutation(ticketId: string) {
       weighInWeighbridgeTicket(getAccessToken(), ticketId, payload),
     onSuccess: async (response) => {
       await invalidateAfterWeigh(queryClient, ticketId);
-      message.success(response.message || "บันทึกชั่งเข้าสำเร็จแล้ว");
+      message.success(response.message || t("บันทึกชั่งเข้าสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "บันทึกชั่งเข้าไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("บันทึกชั่งเข้าไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useWeighOutMutation(ticketId: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -123,17 +128,18 @@ export function useWeighOutMutation(ticketId: string) {
       weighOutWeighbridgeTicket(getAccessToken(), ticketId, payload),
     onSuccess: async (response) => {
       await invalidateAfterWeigh(queryClient, ticketId);
-      message.success(response.message || "บันทึกชั่งออกสำเร็จแล้ว");
+      message.success(response.message || t("บันทึกชั่งออกสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "บันทึกชั่งออกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("บันทึกชั่งออกไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useCreatePurchaseReceiptFromTicketMutation(ticketId: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -158,13 +164,13 @@ export function useCreatePurchaseReceiptFromTicketMutation(ticketId: string) {
           queryKey: weighbridgeDashboardQueryKey,
         }),
       ]);
-      message.success(response.message || "สร้างใบรับซื้อยางสำเร็จแล้ว");
+      message.success(response.message || t("สร้างใบรับซื้อยางสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างใบรับซื้อยางไม่สำเร็จ",
+          : t("สร้างใบรับซื้อยางไม่สำเร็จ"),
       );
     },
   });

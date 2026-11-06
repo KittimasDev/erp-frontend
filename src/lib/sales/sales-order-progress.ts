@@ -1,8 +1,10 @@
 import {
   SALES_ORDER_STATUS_LABEL,
   isPreConfirmSalesOrderStatus,
+  tSoStatus,
   type SalesOrderStatus,
 } from "@/types/sales-orders";
+import { tNow } from "@/lib/i18n/useT";
 
 /**
  * 5 ขั้นของใบสั่งขาย: ร่าง → ยืนยัน → จ่ายสินค้า → บรรจุ → ส่งสินค้า
@@ -47,18 +49,18 @@ export function salesOrderDeliveryStatusLabel(
   deliveryStatus?: string,
 ): string {
   if (status === "CANCELLED" || deliveryStatus === "CANCELLED") {
-    return "ยกเลิก";
+    return tSoStatus("ยกเลิก");
   }
   if (isPreConfirmSalesOrderStatus(status)) {
     return "—";
   }
   if (deliveryStatus === "DELIVERED") {
-    return "ส่งแล้ว";
+    return tSoStatus("ส่งแล้ว");
   }
   if (deliveryStatus === "PARTIALLY_DELIVERED") {
-    return "กำลังจัดส่ง";
+    return tNow("กำลังจัดส่ง");
   }
-  return "รอจัดส่ง";
+  return tNow("รอจัดส่ง");
 }
 
 /** map สถานะ SO → ชื่อขั้นใน timeline เอกสาร (ใช้ไฮไลต์การ์ด) */
@@ -118,8 +120,8 @@ export function resolveSalesOrderProgress(
       current: 0,
       inProgress: 0,
       total,
-      label: "ยกเลิก",
-      currentStepLabel: "ยกเลิก",
+      label: tSoStatus("ยกเลิก"),
+      currentStepLabel: tSoStatus("ยกเลิก"),
       tone: "stopped",
     };
   }
@@ -132,8 +134,8 @@ export function resolveSalesOrderProgress(
         current: 5,
         inProgress: 5,
         total,
-        label: "ส่งครบทุกรอบแล้ว",
-        currentStepLabel: "ส่งสินค้า",
+        label: tNow("ส่งครบทุกรอบแล้ว"),
+        currentStepLabel: tNow("ส่งสินค้า"),
         tone: "done",
       };
     }
@@ -152,8 +154,8 @@ export function resolveSalesOrderProgress(
         current: 4,
         inProgress: 5,
         total,
-        label: `${partialPrefix}รอส่งสินค้า`,
-        currentStepLabel: "ส่งสินค้า",
+        label: `${partialPrefix}${tNow("รอส่งสินค้า")}`,
+        currentStepLabel: tNow("ส่งสินค้า"),
         tone: "active",
       };
     }
@@ -162,8 +164,8 @@ export function resolveSalesOrderProgress(
         current: 3,
         inProgress: 4,
         total,
-        label: `${partialPrefix}รอบรรจุสินค้า`,
-        currentStepLabel: "บรรจุ",
+        label: `${partialPrefix}${tNow("รอบรรจุสินค้า")}`,
+        currentStepLabel: tSoStatus("บรรจุ"),
         tone: "active",
       };
     }
@@ -173,9 +175,9 @@ export function resolveSalesOrderProgress(
       inProgress: 3,
       total,
       label: partial
-        ? "ส่งบางรอบแล้ว รอรอบที่เหลือ"
-        : "รอจ่ายสินค้าตามรอบจัดส่ง",
-      currentStepLabel: "จ่ายสินค้า",
+        ? tNow("ส่งบางรอบแล้ว รอรอบที่เหลือ")
+        : tNow("รอจ่ายสินค้าตามรอบจัดส่ง"),
+      currentStepLabel: tNow("จ่ายสินค้า"),
       tone: "active",
     };
   }
@@ -193,52 +195,52 @@ export function resolveSalesOrderProgress(
     DRAFT: {
       current: 1,
       inProgress: 1,
-      label: "รอจัดรอบจัดส่ง/ยืนยัน",
-      currentStepLabel: "แบบร่างเอกสาร",
+      label: tNow("รอจัดรอบจัดส่ง/ยืนยัน"),
+      currentStepLabel: tNow("แบบร่างเอกสาร"),
     },
     AWAITING_CONFIRM: {
       current: 1,
       inProgress: 1,
-      label: "รอจัดรอบให้ครบแล้วยืนยันใบสั่งขาย",
-      currentStepLabel: "รอยืนยันใบสั่งขาย",
+      label: tNow("รอจัดรอบให้ครบแล้วยืนยันใบสั่งขาย"),
+      currentStepLabel: tNow("รอยืนยันใบสั่งขาย"),
     },
     // ── สถานะเก่าของใบที่ค้างมาก่อนเปลี่ยนระบบ (2026-08-26) ─────────────────
     // ระบบไม่เขียนค่าพวกนี้อีกแล้ว แต่ใบเก่ายังมีอยู่ใน DB จึงต้องแปลได้
     STOCK_CHECKED: {
       current: 2,
       inProgress: 3,
-      label: "รอจ่ายสินค้า",
-      currentStepLabel: "จ่ายสินค้า",
+      label: tNow("รอจ่ายสินค้า"),
+      currentStepLabel: tNow("จ่ายสินค้า"),
     },
     PICKING: {
       current: 3,
       inProgress: 4,
-      label: "รอบรรจุสินค้า",
-      currentStepLabel: "บรรจุ",
+      label: tNow("รอบรรจุสินค้า"),
+      currentStepLabel: tSoStatus("บรรจุ"),
     },
     PARTIALLY_ISSUED: {
       current: 3,
       inProgress: 4,
-      label: "รอบรรจุสินค้า",
-      currentStepLabel: "บรรจุ",
+      label: tNow("รอบรรจุสินค้า"),
+      currentStepLabel: tSoStatus("บรรจุ"),
     },
     PACKED: {
       current: 4,
       inProgress: 5,
-      label: "รอส่งสินค้า",
-      currentStepLabel: "ส่งสินค้า",
+      label: tNow("รอส่งสินค้า"),
+      currentStepLabel: tNow("ส่งสินค้า"),
     },
     DELIVERED: {
       current: 5,
       inProgress: 5,
-      label: "ส่งสินค้าสำเร็จ",
-      currentStepLabel: "ส่งสินค้า",
+      label: tNow("ส่งสินค้าสำเร็จ"),
+      currentStepLabel: tNow("ส่งสินค้า"),
     },
     COMPLETED: {
       current: 5,
       inProgress: 5,
-      label: "ส่งสินค้าสำเร็จ",
-      currentStepLabel: "ส่งสินค้า",
+      label: tNow("ส่งสินค้าสำเร็จ"),
+      currentStepLabel: tNow("ส่งสินค้า"),
     },
   };
 
@@ -258,9 +260,9 @@ export function resolveSalesOrderProgress(
     current: 1,
     inProgress: 1,
     total,
-    label: SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status,
+    label: tSoStatus(SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status),
     currentStepLabel:
-      SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status,
+      tSoStatus(SALES_ORDER_STATUS_LABEL[status as SalesOrderStatus] ?? status),
     tone: "active",
   };
 }

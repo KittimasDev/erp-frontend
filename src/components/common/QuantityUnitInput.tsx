@@ -15,6 +15,7 @@ import {
 } from "@/lib/units/conversion";
 import { formatQty, formatQtyUnit } from "@/lib/units/format";
 import type { Unit } from "@/types/units";
+import { tNow, useT } from "@/lib/i18n/useT";
 
 import styles from "./QuantityUnitInput.module.css";
 
@@ -78,6 +79,7 @@ export default function QuantityUnitInput({
   id,
   "aria-label": ariaLabel,
 }: QuantityUnitInputProps) {
+  const t = useT();
   // hook ยิงเสมอแม้ parent จะส่ง props มาแล้ว จึงต้องใช้ params ชุดเดียวกับที่หน้าอื่นใช้
   // ({ isActive: true }) เพื่อให้ TanStack Query dedupe เป็น request เดียว ไม่ใช่ยิงต่อ instance
   const fallbackIndex = useUnitConversionIndex();
@@ -120,7 +122,7 @@ export default function QuantityUnitInput({
           <span>{unitLabelOf(unit)}</span>
           {unit.id === baseUnitId ? (
             <Tag className={styles.optionTag} color="blue">
-              หลัก
+              {t("หลัก")}
             </Tag>
           ) : null}
         </span>
@@ -139,15 +141,15 @@ export default function QuantityUnitInput({
         title: orphan ? `${orphan.code} ${orphan.nameTh}` : selectedUnitId,
         label: (
           <span className={styles.optionLabel}>
-            <span>{orphan ? unitLabelOf(orphan) : "หน่วยเดิม"}</span>
+            <span>{orphan ? unitLabelOf(orphan) : t("หน่วยเดิม")}</span>
             <Tag className={styles.optionTag} color="warning">
-              ไม่มีกฎแปลง
+              {t("ไม่มีกฎแปลง")}
             </Tag>
           </span>
         ),
       },
     ];
-  }, [convertibleUnits, baseUnitId, isOrphanUnit, selectedUnitId, unitById]);
+  }, [convertibleUnits, baseUnitId, isOrphanUnit, selectedUnitId, unitById, t]);
 
   // onChange ของ Form.Item เป็น closure ใหม่ทุก render — เก็บใน ref ไม่งั้น effect เติมหน่วยยิงรัว
   // sync ใน effect ตัวแรกเพราะ effect ทำงานตามลำดับที่ประกาศ
@@ -220,8 +222,9 @@ export default function QuantityUnitInput({
       if (baseQty === null) {
         return (
           <Typography.Text className={`${styles.hint} ${styles.hintDanger}`}>
-            แปลงหน่วยนี้เป็น{baseUnitLabel ? ` ${baseUnitLabel}` : "หน่วยหลัก"}
-            ไม่ได้ — เลือกหน่วยใหม่ก่อนบันทึก
+            {t("แปลงหน่วยนี้เป็น {unit} ไม่ได้ — เลือกหน่วยใหม่ก่อนบันทึก", {
+              unit: baseUnitLabel || t("หน่วยหลัก"),
+            })}
           </Typography.Text>
         );
       }
@@ -242,7 +245,7 @@ export default function QuantityUnitInput({
       const inBase = formatQtyUnit(maxBaseQty, baseUnitLabel, precision);
       return (
         <Typography.Text className={styles.hint}>
-          สูงสุด {inUnit ?? inBase}
+          {t("สูงสุด")} {inUnit ?? inBase}
           {inUnit && selectedUnitId !== baseUnitId ? ` (${inBase})` : ""}
         </Typography.Text>
       );
@@ -264,7 +267,7 @@ export default function QuantityUnitInput({
           precision={unitDecimals}
           step={isCount ? 1 : Math.pow(10, -unitDecimals)}
           disabled={disabled || lockedByItem}
-          placeholder={lockedByItem ? "เลือกสินค้าก่อน" : placeholder}
+          placeholder={lockedByItem ? t("เลือกสินค้าก่อน") : placeholder}
           style={{ borderStartEndRadius: 0, borderEndEndRadius: 0 }}
           value={value?.quantity ?? undefined}
           onChange={(next) => {
@@ -338,16 +341,16 @@ export function makeQtyUnitValidator({
 }: QtyUnitValidatorArgs) {
   return async (_rule: unknown, value?: QuantityUnitValue) => {
     if (!value?.unitId) {
-      throw new Error("กรุณาเลือกหน่วย");
+      throw new Error(tNow("กรุณาเลือกหน่วย"));
     }
 
     if (value.quantity === null || value.quantity === undefined || Number.isNaN(Number(value.quantity))) {
-      throw new Error("กรุณากรอกจำนวน");
+      throw new Error(tNow("กรุณากรอกจำนวน"));
     }
 
     const qty = Number(value.quantity);
     if (!(qty > 0)) {
-      throw new Error("กรุณากรอกจำนวนที่มากกว่า 0");
+      throw new Error(tNow("กรุณากรอกจำนวนที่มากกว่า 0"));
     }
 
     const unitMap = units ? new Map(units.map((u) => [u.id, u])) : undefined;
@@ -355,11 +358,15 @@ export function makeQtyUnitValidator({
     const unitDecimals = selectedUnit?.decimalPlaces ?? (selectedUnit?.dimension === "COUNT" ? 0 : 3);
 
     if (unitDecimals === 0 && !Number.isInteger(qty)) {
-      throw new Error("หน่วยนี้ต้องเป็นจำนวนเต็มเท่านั้น (ไม่อนุญาตให้มีทศนิยม)");
+      throw new Error(
+        tNow("หน่วยนี้ต้องเป็นจำนวนเต็มเท่านั้น (ไม่อนุญาตให้มีทศนิยม)"),
+      );
     } else if (unitDecimals > 0) {
       const factor = 10 ** unitDecimals;
       if (Math.abs(Math.round(qty * factor) - qty * factor) > 1e-5) {
-        throw new Error(`หน่วยนี้อนุญาตทศนิยมไม่เกิน ${unitDecimals} ตำแหน่ง`);
+        throw new Error(
+          tNow("หน่วยนี้อนุญาตทศนิยมไม่เกิน {n} ตำแหน่ง", { n: unitDecimals }),
+        );
       }
     }
 
@@ -372,7 +379,9 @@ export function makeQtyUnitValidator({
 
     if (base === null) {
       throw new Error(
-        `หน่วยนี้ยังไม่มีกฎแปลงเป็น${baseUnitLabel ? ` ${baseUnitLabel}` : "หน่วยหลัก"} — เลือกหน่วยใหม่ก่อนบันทึก`,
+        tNow("หน่วยนี้ยังไม่มีกฎแปลงเป็น {unit} — เลือกหน่วยใหม่ก่อนบันทึก", {
+          unit: baseUnitLabel || tNow("หน่วยหลัก"),
+        }),
       );
     }
 
@@ -383,7 +392,10 @@ export function makeQtyUnitValidator({
       const roundedBase = roundQty(base);
       if (!Number.isInteger(roundedBase)) {
         throw new Error(
-          `จำนวนเมื่อแปลงเป็นหน่วยหลัก (${baseUnitLabel || "หน่วยหลัก"}) ต้องเป็นจำนวนเต็ม (ได้ ${roundedBase})`,
+          tNow(
+            "จำนวนเมื่อแปลงเป็นหน่วยหลัก ({unit}) ต้องเป็นจำนวนเต็ม (ได้ {n})",
+            { unit: baseUnitLabel || tNow("หน่วยหลัก"), n: roundedBase },
+          ),
         );
       }
     }
@@ -401,11 +413,13 @@ export function makeQtyUnitValidator({
       });
       const inCurrentUnitText =
         maxInCurrentUnit !== null && value.unitId !== baseUnitId
-          ? `${formatQty(maxInCurrentUnit)} ${selectedUnit?.nameTh || selectedUnit?.code || ""} (${formatQty(maxBaseQty)} ${baseUnitLabel || "หน่วยหลัก"})`
+          ? `${formatQty(maxInCurrentUnit)} ${selectedUnit?.nameTh || selectedUnit?.code || ""} (${formatQty(maxBaseQty)} ${baseUnitLabel || tNow("หน่วยหลัก")})`
           : `${formatQty(maxBaseQty)} ${baseUnitLabel || ""}`;
 
       throw new Error(
-        `จำนวนที่รับครั้งนี้เกินยอดคงเหลือของ PO (คงเหลือสูงสุด ${inCurrentUnitText})`,
+        tNow("จำนวนที่รับครั้งนี้เกินยอดคงเหลือของ PO (คงเหลือสูงสุด {text})", {
+          text: inCurrentUnitText,
+        }),
       );
     }
   };

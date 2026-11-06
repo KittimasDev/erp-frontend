@@ -4,6 +4,7 @@ import { Button } from "antd";
 import { PrinterOutlined } from "@ant-design/icons";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 export type ReceivingDocumentRow = {
   key: string;
@@ -28,11 +29,12 @@ type Props = {
 
 /** เอกสารของตั๋วใบนี้ที่เดียว: ใบรับซื้อ · ใบสำคัญจ่าย · ใบรับสินค้า (ใบที่ยังไม่ออกแสดงจางพร้อมบอกว่ารอขั้นไหน) */
 export default function ReceivingDocumentsCard({ rows }: Props) {
+  const t = useT();
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
-        <h3>เอกสาร</h3>
-        <p>ใบรับซื้อ · ใบสำคัญจ่าย · ใบรับสินค้า ของตั๋วใบนี้ — เปิดดูหรือพิมพ์ได้ที่นี่</p>
+        <h3>{t("เอกสาร")}</h3>
+        <p>{t("ใบรับซื้อ · ใบสำคัญจ่าย · ใบรับสินค้า ของตั๋วใบนี้ — เปิดดูหรือพิมพ์ได้ที่นี่")}</p>
       </div>
       <div className={styles.cardBody}>
         <div className={styles.stepDocList}>
@@ -53,7 +55,7 @@ export default function ReceivingDocumentsCard({ rows }: Props) {
                   <span className={styles.stepDocValue}>
                     {issued ? row.docNo : row.pendingHint}
                     {issued && row.dateText ? (
-                      <span className={styles.stepDocMeta}>ลว. {row.dateText}</span>
+                      <span className={styles.stepDocMeta}>{t("ลว. {date}", { date: row.dateText })}</span>
                     ) : null}
                     {issued && row.statusText ? (
                       <span className={styles.stepDocMeta}>{row.statusText}</span>
@@ -71,12 +73,12 @@ export default function ReceivingDocumentsCard({ rows }: Props) {
                         disabled={row.printDisabled}
                         onClick={row.onPrint}
                       >
-                        พิมพ์
+                        {t("พิมพ์")}
                       </Button>
                     ) : null}
                     {row.onOpen ? (
                       <Button size="small" onClick={row.onOpen}>
-                        เปิด
+                        {t("เปิด")}
                       </Button>
                     ) : null}
                   </div>

@@ -6,6 +6,7 @@ import { Image, Spin, Typography } from "antd";
 import { getT2900CameraPhotoBlob } from "@/lib/api/t2900";
 import { getAccessToken } from "@/lib/auth/token";
 import type { T2900CameraPhotoFlag } from "@/types/t2900";
+import { useT } from "@/lib/i18n/useT";
 
 type Props = {
   tckNo: string;
@@ -16,6 +17,7 @@ type Loaded = { key: string; label: string; url: string };
 
 /** รูปกล้องจากบัตร T2900 (ดึงจาก payload ก่อนเปิดตั๋ว ERP) */
 export default function T2900TicketPhotos({ tckNo, photos }: Props) {
+  const t = useT();
   const [items, setItems] = useState<Loaded[]>([]);
   const [loading, setLoading] = useState(false);
   const present = photos.filter((photo) => photo.present);
@@ -72,7 +74,7 @@ export default function T2900TicketPhotos({ tckNo, photos }: Props) {
   if (present.length === 0) {
     return (
       <Typography.Text type="secondary">
-        บัตรนี้ไม่มีรูปจากกล้องเครื่องชั่ง
+        {t("บัตรนี้ไม่มีรูปจากกล้องเครื่องชั่ง")}
       </Typography.Text>
     );
   }
@@ -82,7 +84,7 @@ export default function T2900TicketPhotos({ tckNo, photos }: Props) {
   if (items.length === 0) {
     return (
       <Typography.Text type="secondary">
-        มีรูป {present.length} รูป แต่เปิดดูไม่ได้
+        {t("มีรูป {n} รูป แต่เปิดดูไม่ได้", { n: present.length })}
       </Typography.Text>
     );
   }

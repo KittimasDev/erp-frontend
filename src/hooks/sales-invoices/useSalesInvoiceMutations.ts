@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
+import { useT } from "@/lib/i18n/useT";
 
 import { ApiError } from "@/lib/api/client";
 import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
@@ -36,6 +37,7 @@ async function invalidateSalesInvoiceFlow(queryClient: ReturnType<typeof useQuer
 export function useCreateSalesInvoiceFromDeliveryMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({
@@ -49,13 +51,13 @@ export function useCreateSalesInvoiceFromDeliveryMutation() {
     onSuccess: async (res) => {
       await invalidateSalesInvoiceFlow(queryClient);
       await queryClient.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
-      message.success(res.message || "สร้างใบแจ้งหนี้สำเร็จ");
+      message.success(res.message || t("สร้างใบแจ้งหนี้สำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "สร้างใบแจ้งหนี้ไม่สำเร็จ",
+          : t("สร้างใบแจ้งหนี้ไม่สำเร็จ"),
       );
     },
   });
@@ -64,19 +66,20 @@ export function useCreateSalesInvoiceFromDeliveryMutation() {
 export function useUpdateSalesInvoiceMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: UpdateSalesInvoiceBody }) =>
       updateSalesInvoice(getAccessToken(), id, body),
     onSuccess: async (res) => {
       await queryClient.invalidateQueries({ queryKey: salesInvoicesQueryKey });
-      message.success(res.message || "บันทึกใบแจ้งหนี้สำเร็จ");
+      message.success(res.message || t("บันทึกใบแจ้งหนี้สำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "บันทึกใบแจ้งหนี้ไม่สำเร็จ",
+          : t("บันทึกใบแจ้งหนี้ไม่สำเร็จ"),
       );
     },
   });
@@ -85,18 +88,19 @@ export function useUpdateSalesInvoiceMutation() {
 export function useConfirmSalesInvoiceMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (id: string) => confirmSalesInvoice(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidateSalesInvoiceFlow(queryClient);
-      message.success(res.message || "ยืนยันใบแจ้งหนี้สำเร็จ");
+      message.success(res.message || t("ยืนยันใบแจ้งหนี้สำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "ยืนยันใบแจ้งหนี้ไม่สำเร็จ",
+          : t("ยืนยันใบแจ้งหนี้ไม่สำเร็จ"),
       );
     },
   });
@@ -105,6 +109,7 @@ export function useConfirmSalesInvoiceMutation() {
 export function useReceiveSalesInvoicePaymentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({
@@ -116,11 +121,11 @@ export function useReceiveSalesInvoicePaymentMutation() {
     }) => receiveSalesInvoicePayment(getAccessToken(), id, body),
     onSuccess: async (res) => {
       await invalidateSalesInvoiceFlow(queryClient);
-      message.success(res.message || "รับชำระเงินสำเร็จ");
+      message.success(res.message || t("รับชำระเงินสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "รับชำระเงินไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("รับชำระเงินไม่สำเร็จ"),
       );
     },
   });
@@ -129,19 +134,20 @@ export function useReceiveSalesInvoicePaymentMutation() {
 export function useCancelSalesInvoiceMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (id: string) => cancelSalesInvoice(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidateSalesInvoiceFlow(queryClient);
       await queryClient.invalidateQueries({ queryKey: deliveryOrdersQueryKey });
-      message.success(res.message || "ยกเลิกใบแจ้งหนี้แล้ว");
+      message.success(res.message || t("ยกเลิกใบแจ้งหนี้แล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "ยกเลิกใบแจ้งหนี้ไม่สำเร็จ",
+          : t("ยกเลิกใบแจ้งหนี้ไม่สำเร็จ"),
       );
     },
   });
@@ -150,6 +156,7 @@ export function useCancelSalesInvoiceMutation() {
 export function useUploadSalesInvoicePaymentAttachmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: [...salesInvoicesQueryKey, "upload-payment-attachment"],
@@ -170,7 +177,7 @@ export function useUploadSalesInvoicePaymentAttachmentMutation() {
         description,
       }),
     onSuccess: (res, vars) => {
-      message.success(res.message || "อัปโหลดไฟล์ยืนยันชำระเงินสำเร็จ");
+      message.success(res.message || t("อัปโหลดไฟล์ยืนยันชำระเงินสำเร็จ"));
       void queryClient.invalidateQueries({
         queryKey: [
           ...salesInvoicesQueryKey,
@@ -183,7 +190,7 @@ export function useUploadSalesInvoicePaymentAttachmentMutation() {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "อัปโหลดไฟล์ยืนยันชำระเงินไม่สำเร็จ",
+          : t("อัปโหลดไฟล์ยืนยันชำระเงินไม่สำเร็จ"),
       );
     },
   });

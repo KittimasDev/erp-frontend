@@ -22,6 +22,7 @@ import {
 import type { ReturnSourceLine } from "@/types/return-notes";
 import styles from "./ReturnNoteDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 const EPS = 5e-4;
 
@@ -35,6 +36,7 @@ function isReturnResult(result?: string) {
 }
 
 export default function ReturnNoteCreatePage() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromDeliveryOrderId = searchParams.get("deliveryOrderId") ?? undefined;
@@ -88,29 +90,29 @@ export default function ReturnNoteCreatePage() {
 
   const errors: string[] = [];
   if (source) {
-    if (!reason.trim()) errors.push("กรุณาระบุเหตุผลการคืนสินค้า");
+    if (!reason.trim()) errors.push(t("กรุณาระบุเหตุผลการคืนสินค้า"));
     let positive = 0;
     for (const line of source.lines) {
       const q = qtyOf(line) ?? 0;
-      if (q < 0) errors.push(`${line.itemCode ?? "สินค้า"}: จำนวนคืนต้องไม่ติดลบ`);
+      if (q < 0) errors.push(`${line.itemCode ?? t("สินค้า")}: ${t("จำนวนคืนต้องไม่ติดลบ")}`);
       if (q - Number(line.maxReturnQty) > EPS) {
-        errors.push(`${line.itemCode ?? "สินค้า"}: คืนได้สูงสุด ${fmt(line.maxReturnQty)}`);
+        errors.push(`${line.itemCode ?? t("สินค้า")}: ${t("คืนได้สูงสุด {max}", { max: fmt(line.maxReturnQty) })}`);
       }
       if (q > EPS) positive += 1;
     }
-    if (positive === 0) errors.push("ต้องมีจำนวนคืนมากกว่า 0 อย่างน้อย 1 รายการ");
+    if (positive === 0) errors.push(t("ต้องมีจำนวนคืนมากกว่า 0 อย่างน้อย 1 รายการ"));
   }
 
   const columns: ColumnsType<ReturnSourceLine> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_: unknown, line) => (
         <div style={{ lineHeight: 1.4 }}>
@@ -123,14 +125,14 @@ export default function ReturnNoteCreatePage() {
       ),
     },
     {
-      title: "จ่ายออก",
+      title: t("จ่ายออก"),
       key: "issued",
       width: 100,
       align: "right",
       render: (_: unknown, line) => `${fmt(line.issuedQty)} ${line.unitCode ?? ""}`,
     },
     {
-      title: "คืนสะสม",
+      title: t("คืนสะสม"),
       key: "returned",
       width: 100,
       align: "right",
@@ -139,7 +141,7 @@ export default function ReturnNoteCreatePage() {
     ...(fromReturn
       ? [
           {
-            title: "ตีกลับตอนส่ง",
+            title: t("ตีกลับตอนส่ง"),
             key: "deliveryReturned",
             width: 110,
             align: "right" as const,
@@ -149,14 +151,14 @@ export default function ReturnNoteCreatePage() {
         ]
       : []),
     {
-      title: "คืนได้",
+      title: t("คืนได้"),
       key: "max",
       width: 100,
       align: "right",
       render: (_: unknown, line) => <strong>{fmt(line.maxReturnQty)}</strong>,
     },
     {
-      title: "คืนครั้งนี้",
+      title: t("คืนครั้งนี้"),
       key: "qty",
       width: 150,
       render: (_: unknown, line) => {
@@ -216,12 +218,12 @@ export default function ReturnNoteCreatePage() {
       <PageHeader
         eyebrow="Return Note"
         icon={<RollbackOutlined />}
-        title="สร้างใบคืนสินค้า"
-        subtitle={prefilled ? "ดึงข้อมูลจากใบส่งสินค้าที่ถูกตีกลับ — ตรวจจำนวนแล้วบันทึก" : "เลือกใบสั่งขาย → ใบจ่ายสินค้า แล้วระบุจำนวนที่คืน"}
+        title={t("สร้างใบคืนสินค้า")}
+        subtitle={prefilled ? t("ดึงข้อมูลจากใบส่งสินค้าที่ถูกตีกลับ — ตรวจจำนวนแล้วบันทึก") : t("เลือกใบสั่งขาย → ใบจ่ายสินค้า แล้วระบุจำนวนที่คืน")}
         actions={
           <>
 <Button icon={<ArrowLeftOutlined />} onClick={() => router.push("/return-notes")}>
-            กลับ
+            {t("กลับ")}
           </Button>
           </>
         }
@@ -231,24 +233,23 @@ export default function ReturnNoteCreatePage() {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>เอกสารอ้างอิง</h2>
+              <h2 className={styles.sectionTitle}>{t("เอกสารอ้างอิง")}</h2>
             </div>
 
             {prefilled ? (
               deliveryOrderQuery.isLoading ? (
                 <Spin />
               ) : !fromDeliveryOrder ? (
-                <Alert type="error" showIcon title="ไม่พบใบส่งสินค้าที่อ้างอิง" />
+                <Alert type="error" showIcon title={t("ไม่พบใบส่งสินค้าที่อ้างอิง")} />
               ) : multiPicking ? (
                 <div className={styles.metaGrid}>
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>
-                      ใบจ่ายสินค้า (ใบส่ง {fromDeliveryOrder.deliveryOrderNo} รวม{" "}
-                      {doPickings.length} ใบจ่าย)
+                      {t("ใบจ่ายสินค้า (ใบส่ง {doNo} รวม {n} ใบจ่าย)", { doNo: fromDeliveryOrder.deliveryOrderNo ?? "", n: doPickings.length })}
                     </span>
                     <Select
                       style={{ width: "100%" }}
-                      placeholder="เลือกใบจ่ายสินค้าที่จะคืน"
+                      placeholder={t("เลือกใบจ่ายสินค้าที่จะคืน")}
                       value={pickingId}
                       onChange={(value: string) => {
                         setPrefilledPickingId(value);
@@ -258,7 +259,7 @@ export default function ReturnNoteCreatePage() {
                         value: ref.pickingId,
                         label: `${ref.pickingNo ?? ref.pickingId}${
                           ref.packingNo ? ` · ${ref.packingNo}` : ""
-                        }${ref.roundNo ? ` · รอบที่ ${ref.roundNo}` : ""}`,
+                        }${ref.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: ref.roundNo }) : ""}`,
                       }))}
                     />
                   </div>
@@ -267,12 +268,12 @@ export default function ReturnNoteCreatePage() {
             ) : (
               <div className={styles.metaGrid}>
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>ใบสั่งขาย</span>
+                  <span className={styles.metaLabel}>{t("ใบสั่งขาย")}</span>
                   <Select
                     showSearch
                     allowClear
                     style={{ width: "100%" }}
-                    placeholder="ค้นหาเลขที่ SO / ลูกค้า"
+                    placeholder={t("ค้นหาเลขที่ SO / ลูกค้า")}
                     filterOption={false}
                     onSearch={setSoKeyword}
                     loading={salesOrdersQuery.isFetching}
@@ -287,15 +288,15 @@ export default function ReturnNoteCreatePage() {
                       value: so.id,
                       label: `${so.soNo}${so.customerName ? ` · ${so.customerName}` : ""}`,
                     }))}
-                    notFoundContent="ไม่พบ SO ที่มีใบส่งสินค้าส่งถึงลูกค้าแล้ว"
+                    notFoundContent={t("ไม่พบ SO ที่มีใบส่งสินค้าส่งถึงลูกค้าแล้ว")}
                   />
                 </div>
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>ใบจ่ายสินค้า</span>
+                  <span className={styles.metaLabel}>{t("ใบจ่ายสินค้า")}</span>
                   <Select
                     allowClear
                     style={{ width: "100%" }}
-                    placeholder={salesOrderId ? "เลือกใบจ่ายสินค้า" : "เลือก SO ก่อน"}
+                    placeholder={salesOrderId ? t("เลือกใบจ่ายสินค้า") : t("เลือก SO ก่อน")}
                     disabled={!salesOrderId}
                     loading={pickingsQuery.isFetching}
                     value={pickedPickingId}
@@ -307,11 +308,11 @@ export default function ReturnNoteCreatePage() {
                     }}
                     options={(pickingsQuery.data?.data ?? []).map((p) => ({
                       value: p.id,
-                      label: `${p.pickingNo}${p.roundNo ? ` · รอบที่ ${p.roundNo}` : ""}${
+                      label: `${p.pickingNo}${p.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: p.roundNo }) : ""}${
                         p.deliveryOrderNo ? ` · ${p.deliveryOrderNo}` : ""
                       }${
                         isReturnResult(p.deliveryResult)
-                          ? ` (${DELIVERY_RESULT_LABEL[p.deliveryResult as DeliveryResult]})`
+                          ? ` (${t(DELIVERY_RESULT_LABEL[p.deliveryResult as DeliveryResult])})`
                           : ""
                       }`,
                     }))}
@@ -323,22 +324,22 @@ export default function ReturnNoteCreatePage() {
             {source ? (
               <div className={styles.metaGrid} style={{ marginTop: 12 }}>
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>ใบสั่งขาย</span>
+                  <span className={styles.metaLabel}>{t("ใบสั่งขาย")}</span>
                   <div className={styles.metaValue}>
                     {source.salesOrderNo ?? "—"}
-                    {source.roundNo ? ` · รอบที่ ${source.roundNo}` : ""}
+                    {source.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: source.roundNo }) : ""}
                   </div>
                 </div>
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>ลูกค้า</span>
+                  <span className={styles.metaLabel}>{t("ลูกค้า")}</span>
                   <div className={styles.metaValue}>{source.customerName ?? "—"}</div>
                 </div>
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>ใบจ่ายสินค้า</span>
+                  <span className={styles.metaLabel}>{t("ใบจ่ายสินค้า")}</span>
                   <div className={styles.metaValue}>{source.pickingNo}</div>
                 </div>
                 <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>ใบส่งสินค้า</span>
+                  <span className={styles.metaLabel}>{t("ใบส่งสินค้า")}</span>
                   <div className={styles.metaValue}>
                     {source.deliveryOrderId ? (
                       <Link href={`/delivery-orders/${source.deliveryOrderId}`}>
@@ -352,8 +353,8 @@ export default function ReturnNoteCreatePage() {
                         style={{ marginLeft: 8 }}
                         color={DELIVERY_RESULT_COLOR[source.deliveryResult as DeliveryResult]}
                       >
-                        {DELIVERY_RESULT_LABEL[source.deliveryResult as DeliveryResult] ??
-                          source.deliveryResult}
+                        {t(DELIVERY_RESULT_LABEL[source.deliveryResult as DeliveryResult] ??
+                          source.deliveryResult)}
                       </Tag>
                     ) : null}
                   </div>
@@ -365,7 +366,7 @@ export default function ReturnNoteCreatePage() {
           {pickingId ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>รายการคืน</h2>
+                <h2 className={styles.sectionTitle}>{t("รายการคืน")}</h2>
               </div>
               {sourceError ? (
                 <Alert type="error" showIcon title={sourceError.message} />
@@ -378,7 +379,7 @@ export default function ReturnNoteCreatePage() {
                   loading={sourceQuery.isLoading}
                   pagination={false}
                   scroll={{ x: 760 }}
-                  locale={{ emptyText: "ใบจ่ายนี้ไม่มีรายการที่จ่ายออก" }}
+                  locale={{ emptyText: t("ใบจ่ายนี้ไม่มีรายการที่จ่ายออก") }}
                 />
               )}
             </div>
@@ -387,20 +388,20 @@ export default function ReturnNoteCreatePage() {
           {source ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>เหตุผลการคืน</h2>
+                <h2 className={styles.sectionTitle}>{t("เหตุผลการคืน")}</h2>
               </div>
               <Input.TextArea
                 rows={3}
                 value={reason}
                 status={submitted && !reason.trim() ? "error" : undefined}
-                placeholder="เช่น ลูกค้าตีกลับ สินค้าเสียหาย"
+                placeholder={t("เช่น ลูกค้าตีกลับ สินค้าเสียหาย")}
                 onChange={(e) => setReasonInput(e.target.value)}
               />
               <Input.TextArea
                 rows={2}
                 style={{ marginTop: 8 }}
                 value={remark}
-                placeholder="หมายเหตุ (ถ้ามี)"
+                placeholder={t("หมายเหตุ (ถ้ามี)")}
                 onChange={(e) => setRemark(e.target.value)}
               />
             </div>
@@ -409,29 +410,29 @@ export default function ReturnNoteCreatePage() {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สรุป</p>
-            <h2 className={styles.sideTitle}>ใบคืนสินค้าใหม่</h2>
+            <p className={styles.sideEyebrow}>{t("สรุป")}</p>
+            <h2 className={styles.sideTitle}>{t("ใบคืนสินค้าใหม่")}</h2>
           </div>
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>รายการที่คืน</span>
+              <span>{t("รายการที่คืน")}</span>
               <strong>
                 {(source?.lines ?? []).filter((l) => (qtyOf(l) ?? 0) > EPS).length}
               </strong>
             </div>
             <div className={styles.sideRow}>
-              <span>จำนวนคืนรวม</span>
+              <span>{t("จำนวนคืนรวม")}</span>
               <strong>{fmt(totalQty)}</strong>
             </div>
           </div>
           <p className={styles.sideNote}>
-            บันทึกแล้วสถานะเป็น “รอคลังอนุมัติ” ยังไม่แตะสต๊อก — คลังอนุมัติจึงรับเข้าคลังตรวจสอบ
+            {t("บันทึกแล้วสถานะเป็น “รอคลังอนุมัติ” ยังไม่แตะสต๊อก — คลังอนุมัติจึงรับเข้าคลังตรวจสอบ")}
           </p>
           {submitted && errors.length ? (
             <Alert
               type="error"
               showIcon
-              title="ตรวจข้อมูลก่อนบันทึก"
+              title={t("ตรวจข้อมูลก่อนบันทึก")}
               description={
                 <ul style={{ margin: 0, paddingLeft: 18 }}>
                   {errors.map((e) => (
@@ -450,7 +451,7 @@ export default function ReturnNoteCreatePage() {
               loading={createMutation.isPending}
               onClick={onSubmit}
             >
-              บันทึกใบคืนสินค้า
+              {t("บันทึกใบคืนสินค้า")}
             </Button>
           </div>
         </aside>

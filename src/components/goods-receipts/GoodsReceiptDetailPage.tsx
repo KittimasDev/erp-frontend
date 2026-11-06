@@ -1,5 +1,6 @@
 "use client";
 
+import { tStatus } from "@/types/purchase-orders";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { App, Button, Spin } from "antd";
@@ -26,6 +27,7 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { usePurchaseOrderQuery } from "@/hooks/purchase-orders/usePurchaseOrdersQuery";
 import { usePurchasePaymentByPoQuery } from "@/hooks/purchase-payments/usePurchasePaymentsQuery";
 import { usePoDeliverySchedulesQuery } from "@/hooks/po-delivery-schedules/usePoDeliverySchedulesQuery";
+import { useT } from "@/lib/i18n/useT";
 import { formatQtyWithBase, pickUnitLabel } from "@/lib/units/format";
 import { GOODS_RECEIPT_STATUS_LABEL } from "@/types/goods-receipts";
 import { isPoPayableStatus } from "@/types/purchase-orders";
@@ -61,6 +63,7 @@ function statusClass(status: string) {
 }
 
 export default function GoodsReceiptDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const { modal } = App.useApp();
   const query = useGoodsReceiptQuery(id);
@@ -98,7 +101,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -106,9 +109,9 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบรับของ
+        {t("ไม่พบใบรับของ")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/goods-receipts">กลับรายการ</Link>
+          <Link href="/goods-receipts">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -184,17 +187,17 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
         icon={<InboxOutlined />}
         title={data.grNo}
         subtitle={<>{data.creditor?.nameTh ?? "—"} · {formatDate(data.grDate)} ·{" "}
-            {data.items?.length ?? 0} รายการ</>}
+            {t("{n} รายการ", { n: data.items?.length ?? 0 })}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/goods-receipts")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           <Button icon={<FilePdfOutlined />} onClick={() => void printPdf()}>
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           </>
         }
@@ -204,19 +207,19 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.grNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่รับ</span>
+                <span className={styles.metaLabel}>{t("วันที่รับ")}</span>
                 <div className={styles.metaValue}>{formatDate(data.grDate)}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้ขาย</span>
+                <span className={styles.metaLabel}>{t("ผู้ขาย")}</span>
                 <div className={styles.metaValue}>
                   {data.creditor
                     ? `${data.creditor.creditorCode} — ${data.creditor.nameTh}`
@@ -224,7 +227,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อ้างอิง PO</span>
+                <span className={styles.metaLabel}>{t("อ้างอิง PO")}</span>
                 <div className={styles.metaValue}>
                   {data.purchaseOrder ? (
                     <Link href={`/purchase-orders/${data.purchaseOrder.id}`}>
@@ -236,17 +239,17 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้รับ</span>
+                <span className={styles.metaLabel}>{t("ผู้รับ")}</span>
                 <div className={styles.metaValue}>
                   {data.receivedBy?.displayName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>โพสต์สต๊อก</span>
+                <span className={styles.metaLabel}>{t("โพสต์สต๊อก")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
                     ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
-                    : "ยังไม่โพสต์"}
+                    : t("ยังไม่โพสต์")}
                 </div>
               </div>
             </div>
@@ -254,7 +257,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการรับของ</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการรับของ")}</h2>
             </div>
             <div className={styles.itemList}>
               {(data.items ?? []).map((item, index) => (
@@ -296,7 +299,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
           {data.remark ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
               </div>
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
@@ -305,20 +308,20 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.grNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {GOODS_RECEIPT_STATUS_LABEL[data.status] ?? data.status}
+            {tStatus(GOODS_RECEIPT_STATUS_LABEL[data.status] ?? data.status)}
           </div>
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>รวม</span>
+              <span>{t("รวม")}</span>
               <strong>{formatMoney(data.totalAmount)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>รายการ</span>
+              <span>{t("รายการ")}</span>
               <strong>{data.items?.length ?? 0}</strong>
             </div>
           </div>
@@ -333,14 +336,14 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันรับสินค้าเข้าสต๊อก",
+                      title: t("ยืนยันรับสินค้าเข้าสต๊อก"),
                       content:
-                        "ยืนยันการรับสินค้าเพื่อบันทึกเข้าสต๊อก หลังยืนยันแล้วไม่สามารถแก้ไขเอกสารได้",
+                        t("ยืนยันการรับสินค้าเพื่อบันทึกเข้าสต๊อก หลังยืนยันแล้วไม่สามารถแก้ไขเอกสารได้"),
                       onOk: () => confirmMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  Confirm รับของ
+                  {t("Confirm รับของ")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -349,7 +352,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                     router.push(`/goods-receipts/${data.id}/edit`)
                   }
                 >
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -357,12 +360,12 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันยกเลิกใบรับของ?",
+                      title: t("ยืนยันยกเลิกใบรับของ?"),
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  ยกเลิกเอกสาร
+                  {t("ยกเลิกเอกสาร")}
                 </Button>
               </>
             ) : null}
@@ -379,7 +382,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   router.push(`/goods-receipts/create-from-po/${poId}`)
                 }
               >
-                รับของต่อ
+                {t("รับของต่อ")}
               </Button>
             ) : null}
 
@@ -394,7 +397,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   router.push(`/purchase-payments/${linkedPayment.id}`)
                 }
               >
-                ดูประวัติการจ่ายเงิน
+                {t("ดูประวัติการจ่ายเงิน")}
               </Button>
             ) : null}
 
@@ -412,7 +415,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   router.push(`/purchase-payments/create-from-po/${poId}`)
                 }
               >
-                จ่ายเงิน
+                {t("จ่ายเงิน")}
               </Button>
             ) : null}
 
@@ -429,7 +432,7 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                   router.push(`/purchase-payments/${linkedPayment.id}`)
                 }
               >
-                ดูใบสำคัญจ่าย (DRAFT)
+                {t("ดูใบสำคัญจ่าย (DRAFT)")}
               </Button>
             ) : null}
 
@@ -451,8 +454,8 @@ export default function GoodsReceiptDetailPage({ id }: Props) {
                 }
               >
                 {linkedPayment
-                  ? "ดูใบสำคัญจ่าย"
-                  : "ไปใบสั่งซื้อ · ขั้นจ่ายเงิน"}
+                  ? t("ดูใบสำคัญจ่าย")
+                  : t("ไปใบสั่งซื้อ · ขั้นจ่ายเงิน")}
               </Button>
             ) : null}
           </div>

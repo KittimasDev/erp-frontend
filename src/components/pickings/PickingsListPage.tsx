@@ -27,6 +27,8 @@ import {
 } from "@/types/pickings";
 import styles from "./PickingsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -34,6 +36,7 @@ function formatDate(value?: string) {
 }
 
 export default function PickingsListPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
@@ -62,35 +65,35 @@ export default function PickingsListPage() {
   const columns: ColumnsType<Picking> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_, __, index) => (page - 1) * 10 + index + 1,
       },
       {
-        title: "เลขที่",
+        title: t("เลขที่"),
         dataIndex: "pickingNo",
         render: (v: string) => <span className={styles.prNo}>{v}</span>,
       },
       {
-        title: "ใบสั่งขาย",
+        title: t("ใบสั่งขาย"),
         dataIndex: "salesOrderNo",
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         dataIndex: "customerName",
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "pickingDate",
         width: 110,
         render: formatDate,
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 120,
         render: (v: string) => (
@@ -99,17 +102,17 @@ export default function PickingsListPage() {
               v === "CONFIRMED" ? "success" : v === "CANCELLED" ? "default" : "processing"
             }
           >
-            {PICKING_STATUS_LABEL[v as PickingStatus] ?? v}
+            {statusT(t, PICKING_STATUS_LABEL[v as PickingStatus] ?? v)}
           </Tag>
         ),
       },
       {
-        title: "สร้างโดย",
+        title: t("สร้างโดย"),
         dataIndex: "createdByName",
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "ยืนยันเมื่อ",
+        title: t("ยืนยันเมื่อ"),
         dataIndex: "confirmedAt",
         width: 140,
         render: (v?: string) =>
@@ -137,7 +140,7 @@ export default function PickingsListPage() {
         ),
       },
     ],
-    [canEdit, router],
+    [canEdit, router, t],
   );
 
   return (
@@ -145,8 +148,8 @@ export default function PickingsListPage() {
       <PageHeader
         eyebrow="Sales · Picking"
         icon={<ShoppingOutlined />}
-        title="ใบจ่ายสินค้า"
-        subtitle="หยิบสินค้าจากคลังตามใบสั่งขายที่ตรวจสต๊อกแล้ว — ตัดสต๊อกตอนยืนยันเท่านั้น"
+        title={t("ใบจ่ายสินค้า")}
+        subtitle={t("หยิบสินค้าจากคลังตามใบสั่งขายที่ตรวจสต๊อกแล้ว — ตัดสต๊อกตอนยืนยันเท่านั้น")}
         actions={
           <>
 {canAdd ? (
@@ -157,7 +160,7 @@ export default function PickingsListPage() {
                   type="primary"
                   icon={<PlusOutlined />}
                 >
-                  สร้างจาก SO
+                  {t("สร้างจาก SO")}
                 </Button>
               </Badge>
             </Link>
@@ -169,16 +172,16 @@ export default function PickingsListPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="เลขที่ / ลูกค้า"
+              placeholder={t("เลขที่ / ลูกค้า")}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
@@ -186,12 +189,12 @@ export default function PickingsListPage() {
               onChange={setStatus}
               options={Object.entries(PICKING_STATUS_LABEL).map(([value, label]) => ({
                 value,
-                label,
+                label: statusT(t, label),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ลูกค้า</label>
+            <label>{t("ลูกค้า")}</label>
             <Select
               allowClear
               showSearch
@@ -206,7 +209,7 @@ export default function PickingsListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่</label>
+            <label>{t("วันที่")}</label>
             <DatePicker
               value={date}
               onChange={setDate}
@@ -225,7 +228,7 @@ export default function PickingsListPage() {
               setApplied({});
             }}
           >
-            เคลียร์
+            {t("เคลียร์")}
           </Button>
           <Button
             type="primary"
@@ -241,7 +244,7 @@ export default function PickingsListPage() {
               })
             }
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -256,7 +259,7 @@ export default function PickingsListPage() {
           onRow={(row) => ({
             onClick: () => router.push(`/pickings/${row.id}`),
           })}
-          locale={{ emptyText: "ยังไม่มีใบจ่ายสินค้า" }}
+          locale={{ emptyText: t("ยังไม่มีใบจ่ายสินค้า") }}
         />
       </section>
     </div>

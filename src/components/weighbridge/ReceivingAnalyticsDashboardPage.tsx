@@ -36,6 +36,8 @@ import {
 
 import MasterPageGate from "@/components/common/MasterPageGate";
 import PageHeader from "@/components/common/PageHeader";
+import { getStoredLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
 import { useWeighbridgeAnalyticsQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeAnalyticsQuery";
 import type { WeighbridgeAnalyticsSource } from "@/types/weighbridge-tickets";
@@ -58,12 +60,15 @@ const SOURCE_OPTIONS: Array<{
   { value: "T2900", label: "เฉพาะบัตร T2900 ที่ยังไม่เปิดตั๋ว" },
 ];
 
+/** locale ตัวเลขตามภาษาปัจจุบัน — เรียกตอน render เท่านั้น */
+const numberLocale = () => (getStoredLanguage() === "en" ? "en-GB" : "th-TH");
+
 function formatMoney(value: string | number) {
   const n = Number(value);
   if (Number.isNaN(n)) {
     return String(value);
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(numberLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -74,7 +79,7 @@ function formatWeight(value: string | number) {
   if (Number.isNaN(n)) {
     return String(value);
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(numberLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   });
@@ -89,6 +94,7 @@ function formatHourLabel(hour: number) {
 }
 
 export default function ReceivingAnalyticsDashboardPage() {
+  const t = useT();
   const router = useRouter();
   const today = dayjs();
   const [range, setRange] = useState<[Dayjs, Dayjs]>([
@@ -175,11 +181,11 @@ export default function ReceivingAnalyticsDashboardPage() {
     const waiting = summary?.waitingPayment ?? 0;
     const unreceipted = summary?.unreceipted ?? 0;
     return [
-      { name: "จ่ายแล้ว", value: paid, color: GREEN },
-      { name: "รอจ่าย", value: waiting, color: AMBER },
-      { name: "ยังไม่เปิดใบรับซื้อ", value: unreceipted, color: GRAY },
+      { name: t("จ่ายแล้ว"), value: paid, color: GREEN },
+      { name: t("รอจ่าย"), value: waiting, color: AMBER },
+      { name: t("ยังไม่เปิดใบรับซื้อ"), value: unreceipted, color: GRAY },
     ].filter((item) => item.value > 0);
-  }, [summary?.paid, summary?.waitingPayment, summary?.unreceipted]);
+  }, [summary?.paid, summary?.waitingPayment, summary?.unreceipted, t]);
 
   const classificationChartData = useMemo(
     () =>
@@ -246,7 +252,7 @@ export default function ReceivingAnalyticsDashboardPage() {
       <section className={styles.page}>
         <PageHeader
           eyebrow="Raw Tire · Receiving"
-          title="ภาพรวมรับซื้อยาง"
+          title={t("ภาพรวมรับซื้อยาง")}
           subtitle={
             <>
               {dayjs(from).format("D MMM YYYY")} –{" "}
@@ -254,7 +260,7 @@ export default function ReceivingAnalyticsDashboardPage() {
               {selectedClassificationLabel
                 ? ` · ${selectedClassificationLabel}`
                 : ""}
-              {analyticsQuery.isFetching ? " · กำลังอัปเดต…" : ""}
+              {analyticsQuery.isFetching ? ` · ${t("กำลังอัปเดต…")}` : ""}
             </>
           }
         />
@@ -262,7 +268,7 @@ export default function ReceivingAnalyticsDashboardPage() {
         <div className={styles.toolbar}>
           <div className={styles.toolbarFilters}>
             <label className={styles.filterField}>
-              <span>ช่วงรายวัน</span>
+              <span>{t("ช่วงรายวัน")}</span>
               <DatePicker.RangePicker
                 allowClear={false}
                 value={range}
@@ -290,7 +296,7 @@ export default function ReceivingAnalyticsDashboardPage() {
               />
             </label>
             <label className={styles.filterField}>
-              <span>วันรายชั่วโมง</span>
+              <span>{t("วันรายชั่วโมง")}</span>
               <DatePicker
                 allowClear={false}
                 value={hourlyDate}
@@ -313,20 +319,20 @@ export default function ReceivingAnalyticsDashboardPage() {
               />
             </label>
             <label className={styles.filterField}>
-              <span>แหล่งตั๋ว</span>
+              <span>{t("แหล่งตั๋ว")}</span>
               <Select
                 className={styles.productSelect}
-                options={SOURCE_OPTIONS}
+                options={SOURCE_OPTIONS.map((o) => ({ ...o, label: t(o.label) }))}
                 value={source}
                 onChange={(value) => setSource(value)}
               />
             </label>
             <label className={styles.filterField}>
-              <span>ประเภท/กลุ่มยาง</span>
+              <span>{t("ประเภท/กลุ่มยาง")}</span>
               <Select
                 allowClear
                 showSearch
-                placeholder="ทั้งหมด"
+                placeholder={t("ทั้งหมด")}
                 className={styles.productSelect}
                 options={classificationOptions}
                 value={tireClassificationId}
@@ -345,7 +351,7 @@ export default function ReceivingAnalyticsDashboardPage() {
               className={styles.backButton}
               onClick={() => router.push("/receiving")}
             >
-              กลับรายการ
+              {t("กลับรายการ")}
             </Button>
           </div>
         </div>
@@ -354,14 +360,16 @@ export default function ReceivingAnalyticsDashboardPage() {
           <div className={styles.actionBanner} role="status">
             <WarningOutlined className={styles.actionIcon} />
             <div className={styles.actionText}>
-              <strong>มีรายการที่ต้องดำเนินการ</strong>
+              <strong>{t("มีรายการที่ต้องดำเนินการ")}</strong>
               <span>
-                {waitingCount > 0 ? `รอจ่ายเงิน ${waitingCount} ใบ` : null}
+                {waitingCount > 0
+                  ? t("รอจ่ายเงิน {n} ใบ", { n: waitingCount })
+                  : null}
                 {waitingCount > 0 && unreceiptedCount > 0 ? " · " : null}
                 {unreceiptedCount > 0
-                  ? `ยังไม่เปิดใบรับซื้อ ${unreceiptedCount} ใบ`
+                  ? t("ยังไม่เปิดใบรับซื้อ {n} ใบ", { n: unreceiptedCount })
                   : null}
-                {" "}ในช่วงที่เลือก
+                {" "}{t("ในช่วงที่เลือก")}
               </span>
             </div>
             <Button
@@ -369,7 +377,7 @@ export default function ReceivingAnalyticsDashboardPage() {
               className={styles.actionButton}
               onClick={() => router.push("/receiving")}
             >
-              ไปที่รายการรับซื้อ
+              {t("ไปที่รายการรับซื้อ")}
             </Button>
           </div>
         ) : null}
@@ -380,49 +388,49 @@ export default function ReceivingAnalyticsDashboardPage() {
               <span className={`${styles.kpiIcon} ${styles.kpiIconGreen}`}>
                 <CarOutlined />
               </span>
-              <span className={styles.kpiLabel}>รถเข้า</span>
+              <span className={styles.kpiLabel}>{t("รถเข้า")}</span>
             </div>
             <strong>{summary?.tickets ?? 0}</strong>
-            <small>เฉลี่ย {formatWeight(insights.avgTicketsPerDay)} คัน/วัน</small>
+            <small>{t("เฉลี่ย {value} คัน/วัน", { value: formatWeight(insights.avgTicketsPerDay) })}</small>
           </div>
           <div className={styles.summaryCard}>
             <div className={styles.kpiHead}>
               <span className={`${styles.kpiIcon} ${styles.kpiIconGreen}`}>
                 <InboxOutlined />
               </span>
-              <span className={styles.kpiLabel}>น้ำหนักสุทธิ</span>
+              <span className={styles.kpiLabel}>{t("น้ำหนักสุทธิ")}</span>
             </div>
             <strong>
               {formatWeight(summary?.totalNetWeightKg ?? "0")}
-              <em>กก.</em>
+              <em>{t("กก.")}</em>
             </strong>
-            <small>เฉลี่ย {formatWeight(insights.avgWeightPerTicket)} กก./คัน</small>
+            <small>{t("เฉลี่ย {value} กก./คัน", { value: formatWeight(insights.avgWeightPerTicket) })}</small>
           </div>
           <div className={styles.summaryCard}>
             <div className={styles.kpiHead}>
               <span className={`${styles.kpiIcon} ${styles.kpiIconBlue}`}>
                 <WalletOutlined />
               </span>
-              <span className={styles.kpiLabel}>ยอดเงิน</span>
+              <span className={styles.kpiLabel}>{t("ยอดเงิน")}</span>
             </div>
             <strong>
               {formatMoney(summary?.totalAmount ?? "0")}
-              <em>บาท</em>
+              <em>{t("บาท")}</em>
             </strong>
-            <small>เฉลี่ย {formatMoney(insights.avgPricePerKg)} บาท/กก.</small>
+            <small>{t("เฉลี่ย {value} บาท/กก.", { value: formatMoney(insights.avgPricePerKg) })}</small>
           </div>
           <div className={styles.summaryCard}>
             <div className={styles.kpiHead}>
               <span className={`${styles.kpiIcon} ${styles.kpiIconGreen}`}>
                 <CheckCircleOutlined />
               </span>
-              <span className={styles.kpiLabel}>จ่ายแล้ว</span>
+              <span className={styles.kpiLabel}>{t("จ่ายแล้ว")}</span>
             </div>
             <strong>{summary?.paid ?? 0}</strong>
             <small>
               {insights.receipted > 0
-                ? `${insights.paidPct}% ของใบรับซื้อทั้งหมด`
-                : "ยังไม่มีใบรับซื้อ"}
+                ? t("{pct}% ของใบรับซื้อทั้งหมด", { pct: insights.paidPct })
+                : t("ยังไม่มีใบรับซื้อ")}
             </small>
           </div>
           <div
@@ -434,20 +442,20 @@ export default function ReceivingAnalyticsDashboardPage() {
               <span className={`${styles.kpiIcon} ${styles.kpiIconAmber}`}>
                 <ClockCircleOutlined />
               </span>
-              <span className={styles.kpiLabel}>รอจ่าย</span>
+              <span className={styles.kpiLabel}>{t("รอจ่าย")}</span>
             </div>
             <strong>{waitingCount}</strong>
-            <small>ใบรับซื้อที่ยังไม่จ่ายเงิน</small>
+            <small>{t("ใบรับซื้อที่ยังไม่จ่ายเงิน")}</small>
           </div>
           <div className={styles.summaryCard}>
             <div className={styles.kpiHead}>
               <span className={`${styles.kpiIcon} ${styles.kpiIconGray}`}>
                 <FileSearchOutlined />
               </span>
-              <span className={styles.kpiLabel}>ยังไม่เปิดใบรับซื้อ</span>
+              <span className={styles.kpiLabel}>{t("ยังไม่เปิดใบรับซื้อ")}</span>
             </div>
             <strong>{unreceiptedCount}</strong>
-            <small>รวมบัตร T2900 ที่ยังไม่เปิดตั๋ว {summary?.t2900Only ?? 0} ใบ</small>
+            <small>{t("รวมบัตร T2900 ที่ยังไม่เปิดตั๋ว {n} ใบ", { n: summary?.t2900Only ?? 0 })}</small>
           </div>
         </div>
 
@@ -455,10 +463,10 @@ export default function ReceivingAnalyticsDashboardPage() {
           <div className={styles.insightItem}>
             <CalendarOutlined />
             <div>
-              <span>วันที่รถเข้ามากที่สุด</span>
+              <span>{t("วันที่รถเข้ามากที่สุด")}</span>
               <strong>
                 {insights.peakDay
-                  ? `${dayjs(insights.peakDay.date).format("D MMM")} · ${insights.peakDay.tickets} คัน`
+                  ? `${dayjs(insights.peakDay.date).format("D MMM")} · ${t("{n} คัน", { n: insights.peakDay.tickets })}`
                   : "—"}
               </strong>
             </div>
@@ -467,12 +475,13 @@ export default function ReceivingAnalyticsDashboardPage() {
             <FireOutlined />
             <div>
               <span>
-                ชั่วโมงเร่งด่วน (
-                {dayjs(data?.hourlyDate ?? date).format("D MMM")})
+                {t("ชั่วโมงเร่งด่วน ({date})", {
+                  date: dayjs(data?.hourlyDate ?? date).format("D MMM"),
+                })}
               </span>
               <strong>
                 {insights.peakHour
-                  ? `${formatHourLabel(insights.peakHour.hour)} · ${insights.peakHour.tickets} คัน`
+                  ? `${formatHourLabel(insights.peakHour.hour)} · ${t("{n} คัน", { n: insights.peakHour.tickets })}`
                   : "—"}
               </strong>
             </div>
@@ -480,7 +489,7 @@ export default function ReceivingAnalyticsDashboardPage() {
           <div className={styles.insightItem}>
             <TagsOutlined />
             <div>
-              <span>ประเภทยางที่รับมากที่สุด</span>
+              <span>{t("ประเภทยางที่รับมากที่สุด")}</span>
               <strong>
                 {insights.topClass
                   ? `${insights.topClass.label} · ${insights.topClass.sharePct}%`
@@ -493,9 +502,9 @@ export default function ReceivingAnalyticsDashboardPage() {
         <div className={styles.chartsGrid}>
           <div className={`${styles.chartCard} ${styles.chartCardFull}`}>
             <div className={styles.chartHeader}>
-              <h3>แนวโน้มรายวัน</h3>
+              <h3>{t("แนวโน้มรายวัน")}</h3>
               <p>
-                จำนวนรถและน้ำหนักสุทธิ · {formatDayLabel(from)} –{" "}
+                {t("จำนวนรถและน้ำหนักสุทธิ")} · {formatDayLabel(from)} –{" "}
                 {formatDayLabel(to)}
                 {selectedClassificationLabel
                   ? ` · ${selectedClassificationLabel}`
@@ -504,7 +513,7 @@ export default function ReceivingAnalyticsDashboardPage() {
             </div>
             <div className={`${styles.chartBody} ${styles.chartBodyTall}`}>
               {dailyChartData.every((point) => point.tickets === 0) ? (
-                <div className={styles.emptyState}>ไม่มีข้อมูลในช่วงนี้</div>
+                <div className={styles.emptyState}>{t("ไม่มีข้อมูลในช่วงนี้")}</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
@@ -554,7 +563,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                       tickLine={false}
                       width={56}
                       tickFormatter={(value: number) =>
-                        Number(value).toLocaleString("th-TH")
+                        Number(value).toLocaleString(numberLocale())
                       }
                     />
                     <Tooltip
@@ -564,10 +573,10 @@ export default function ReceivingAnalyticsDashboardPage() {
                       }}
                       formatter={(value, name) => {
                         const n = Number(value ?? 0);
-                        if (name === "น้ำหนัก (กก.)") {
+                        if (name === t("น้ำหนัก (กก.)")) {
                           return [formatWeight(n), name];
                         }
-                        if (name === "ยอดเงิน (บาท)") {
+                        if (name === t("ยอดเงิน (บาท)")) {
                           return [formatMoney(n), name];
                         }
                         return [n, name];
@@ -578,7 +587,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                       yAxisId="tickets"
                       type="monotone"
                       dataKey="tickets"
-                      name="จำนวนรถ"
+                      name={t("จำนวนรถ")}
                       stroke={GREEN_DARK}
                       fill="url(#ticketsFill)"
                       strokeWidth={2}
@@ -587,7 +596,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                       yAxisId="weight"
                       type="monotone"
                       dataKey="netWeight"
-                      name="น้ำหนัก (กก.)"
+                      name={t("น้ำหนัก (กก.)")}
                       stroke={GREEN_SOFT}
                       fill="transparent"
                       strokeWidth={2}
@@ -600,13 +609,13 @@ export default function ReceivingAnalyticsDashboardPage() {
 
           <div className={`${styles.chartCard} ${styles.chartCardFull}`}>
             <div className={styles.chartHeader}>
-              <h3>แยกตามประเภท/กลุ่มยาง</h3>
-              <p>น้ำหนักและยอดเงินจากรายการคัดแยกในช่วงที่เลือก</p>
+              <h3>{t("แยกตามประเภท/กลุ่มยาง")}</h3>
+              <p>{t("น้ำหนักและยอดเงินจากรายการคัดแยกในช่วงที่เลือก")}</p>
             </div>
             {classificationChartData.length === 0 ? (
               <div className={styles.chartBody}>
                 <div className={styles.emptyState}>
-                  ยังไม่มีรายการคัดแยกในช่วงนี้
+                  {t("ยังไม่มีรายการคัดแยกในช่วงนี้")}
                 </div>
               </div>
             ) : (
@@ -621,7 +630,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                   }}
                 >
                   <div className={styles.classificationChartPane}>
-                    <h4>น้ำหนัก (กก.)</h4>
+                    <h4>{t("น้ำหนัก (กก.)")}</h4>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         layout="vertical"
@@ -639,7 +648,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                           axisLine={{ stroke: "#e4e7eb" }}
                           tickLine={false}
                           tickFormatter={(value: number) =>
-                            Number(value).toLocaleString("th-TH")
+                            Number(value).toLocaleString(numberLocale())
                           }
                         />
                         <YAxis
@@ -657,7 +666,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                           }}
                           formatter={(value) => [
                             formatWeight(Number(value ?? 0)),
-                            "น้ำหนัก (กก.)",
+                            t("น้ำหนัก (กก.)"),
                           ]}
                         />
                         <Bar
@@ -679,7 +688,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                     </ResponsiveContainer>
                   </div>
                   <div className={styles.classificationChartPane}>
-                    <h4>ยอดเงิน (บาท)</h4>
+                    <h4>{t("ยอดเงิน (บาท)")}</h4>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         layout="vertical"
@@ -697,7 +706,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                           axisLine={{ stroke: "#e4e7eb" }}
                           tickLine={false}
                           tickFormatter={(value: number) =>
-                            Number(value).toLocaleString("th-TH")
+                            Number(value).toLocaleString(numberLocale())
                           }
                         />
                         <YAxis
@@ -715,7 +724,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                           }}
                           formatter={(value) => [
                             formatMoney(Number(value ?? 0)),
-                            "ยอดเงิน (บาท)",
+                            t("ยอดเงิน (บาท)"),
                           ]}
                         />
                         <Bar
@@ -742,10 +751,10 @@ export default function ReceivingAnalyticsDashboardPage() {
                   <table className={styles.classificationTable}>
                     <thead>
                       <tr>
-                        <th>ประเภท/กลุ่มยาง</th>
-                        <th>รถเข้า</th>
-                        <th>น้ำหนัก (กก.)</th>
-                        <th>ยอดเงิน (บาท)</th>
+                        <th>{t("ประเภท/กลุ่มยาง")}</th>
+                        <th>{t("รถเข้า")}</th>
+                        <th>{t("น้ำหนัก (กก.)")}</th>
+                        <th>{t("ยอดเงิน (บาท)")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -771,15 +780,15 @@ export default function ReceivingAnalyticsDashboardPage() {
 
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>รายชั่วโมง</h3>
+              <h3>{t("รายชั่วโมง")}</h3>
               <p>
-                จำนวนรถตามชั่วโมง ·{" "}
+                {t("จำนวนรถตามชั่วโมง")} ·{" "}
                 {dayjs(data?.hourlyDate ?? date).format("DD/MM/YYYY")}
               </p>
             </div>
             <div className={styles.chartBody}>
               {hourlyChartData.every((point) => point.tickets === 0) ? (
-                <div className={styles.emptyState}>ไม่มีข้อมูลในวันนี้</div>
+                <div className={styles.emptyState}>{t("ไม่มีข้อมูลในวันนี้")}</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -808,7 +817,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                       }}
                       formatter={(value, name) => {
                         const n = Number(value ?? 0);
-                        if (name === "น้ำหนัก (กก.)") {
+                        if (name === t("น้ำหนัก (กก.)")) {
                           return [formatWeight(n), name];
                         }
                         return [n, name];
@@ -816,7 +825,7 @@ export default function ReceivingAnalyticsDashboardPage() {
                     />
                     <Bar
                       dataKey="tickets"
-                      name="จำนวนรถ"
+                      name={t("จำนวนรถ")}
                       fill={GREEN}
                       radius={[4, 4, 0, 0]}
                     />
@@ -828,21 +837,21 @@ export default function ReceivingAnalyticsDashboardPage() {
 
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>สถานะการจ่ายเงิน</h3>
+              <h3>{t("สถานะการจ่ายเงิน")}</h3>
               <p>
-                จ่ายแล้ว · รอจ่าย · ยังไม่เปิดใบรับซื้อ (รวมบัตร T2900 ที่ยังไม่เปิดตั๋ว {summary?.t2900Only ?? 0} ใบ)
+                {t("จ่ายแล้ว · รอจ่าย · ยังไม่เปิดใบรับซื้อ (รวมบัตร T2900 ที่ยังไม่เปิดตั๋ว {n} ใบ)", { n: summary?.t2900Only ?? 0 })}
               </p>
             </div>
             <div className={`${styles.chartBody} ${styles.chartBodyRel}`}>
               {paymentChartData.length > 0 ? (
                 <div className={styles.donutCenter}>
                   <strong>{insights.paidPct}%</strong>
-                  <span>จ่ายแล้ว</span>
+                  <span>{t("จ่ายแล้ว")}</span>
                 </div>
               ) : null}
               {paymentChartData.length === 0 ? (
                 <div className={styles.emptyState}>
-                  ไม่มีตั๋วในช่วงที่เลือก
+                  {t("ไม่มีตั๋วในช่วงที่เลือก")}
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">

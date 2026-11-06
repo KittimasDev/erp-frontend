@@ -6,6 +6,7 @@ import { Button, Steps } from "antd";
 import { ShoppingCartOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
 import {
   RECEIVE_TIMING_LABEL,
   receiveTiming,
@@ -38,6 +39,7 @@ const TIMING_CLASS: Record<ReceiveTiming, string> = {
 };
 
 function DeliveryRounds({ schedules }: { schedules: PoDeliverySchedule[] }) {
+  const t = useT();
   const sorted = [...schedules].sort((a, b) => a.roundNo - b.roundNo);
   return (
     <div className={styles.rounds}>
@@ -48,21 +50,27 @@ function DeliveryRounds({ schedules }: { schedules: PoDeliverySchedule[] }) {
         );
         return (
           <div key={schedule.id} className={styles.round}>
-            <strong>รอบที่ {schedule.roundNo}</strong>
-            <span>กำหนดส่ง {formatDate(schedule.effectiveDeliveryDate)}</span>
+            <strong>{t("รอบที่ {n}", { n: schedule.roundNo })}</strong>
+            <span>
+              {t("กำหนดส่ง {date}", {
+                date: formatDate(schedule.effectiveDeliveryDate),
+              })}
+            </span>
             {schedule.latestActualReceiveDate ? (
               <>
                 <span>
-                  รับจริงล่าสุด {formatDate(schedule.latestActualReceiveDate)}
+                  {t("รับจริงล่าสุด {date}", {
+                    date: formatDate(schedule.latestActualReceiveDate),
+                  })}
                 </span>
                 {timing ? (
                   <span className={TIMING_CLASS[timing]}>
-                    {RECEIVE_TIMING_LABEL[timing]}
+                    {t(RECEIVE_TIMING_LABEL[timing])}
                   </span>
                 ) : null}
               </>
             ) : schedule.status === "CANCELLED" ? (
-              <span>ยกเลิกการรับ</span>
+              <span>{t("ยกเลิกการรับ")}</span>
             ) : null}
           </div>
         );
@@ -76,6 +84,7 @@ export default function ProcurementFlowTimeline({
   hideLinks = false,
   deliverySchedules,
 }: Props) {
+  const t = useT();
   const flow = resolveProcurementFlow(input);
   const current =
     flow.current >= 4 ? PROCUREMENT_FLOW_STEPS.length - 1 : flow.current;
@@ -87,7 +96,7 @@ export default function ProcurementFlowTimeline({
     if (index === 0 && flow.docs.pr) description = flow.docs.pr.no;
     if (index === 1 && flow.docs.po) description = flow.docs.po.no;
     if (index === 1 && !flow.docs.po && goToPurchaseOrders) {
-      description = "ทำที่เมนูใบสั่งซื้อ";
+      description = t("ทำที่เมนูใบสั่งซื้อ");
     }
     if (index === 2 && flow.docs.goodsReceipts[0]) {
       description =
@@ -106,7 +115,7 @@ export default function ProcurementFlowTimeline({
     if (index === 3 && flow.docs.payment) description = flow.docs.payment.no;
 
     return {
-      title: step.title,
+      title: t(step.title),
       content: description,
       status: flow.stepStates[index],
     };
@@ -158,7 +167,7 @@ export default function ProcurementFlowTimeline({
           ) : null}
           {flow.docs.payment ? (
             <div className={styles.docLinkRow}>
-              <span className={styles.docLinkLabel}>จ่าย</span>
+              <span className={styles.docLinkLabel}>{t("จ่าย")}</span>
               <Link className={styles.docLink} href={flow.docs.payment.href}>
                 {flow.docs.payment.no}
               </Link>
@@ -168,14 +177,14 @@ export default function ProcurementFlowTimeline({
       ) : null}
 
       <p className={styles.nextHint}>
-        <strong>ขั้นตอนถัดไป</strong>
+        <strong>{t("ขั้นตอนถัดไป")}</strong>
         {flow.nextHint}
       </p>
 
       {goToPurchaseOrders ? (
         <Link href="/purchase-orders" className={styles.createPoBtnWrap}>
           <Button block icon={<ShoppingCartOutlined />}>
-            ไปที่ใบสั่งซื้อ
+            {t("ไปที่ใบสั่งซื้อ")}
           </Button>
         </Link>
       ) : null}

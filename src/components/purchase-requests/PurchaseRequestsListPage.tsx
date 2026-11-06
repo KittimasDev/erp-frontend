@@ -35,9 +35,11 @@ import { userHasRole } from "@/lib/auth/session";
 import { DocNoWithFlowBadge } from "@/components/procurement/ProcurementFlowBadge";
 import {
   PURCHASE_REQUEST_STATUS_LABEL,
+  purchaseRequestStatusLabel,
   type PurchaseRequest,
-  type PurchaseRequestStatus,
 } from "@/types/purchase-requests";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import CollapsibleItemList from "@/components/common/CollapsibleItemList";
 import { formatErpDate } from "@/lib/datetime/erp-timezone";
@@ -72,6 +74,8 @@ function formatDate(value?: string) {
 
 export default function PurchaseRequestsListPage() {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
   const [prNo, setPrNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
   const [prDate, setPrDate] = useState<dayjs.Dayjs | null>(null);
@@ -152,14 +156,14 @@ export default function PurchaseRequestsListPage() {
   const columns: ColumnsType<PurchaseRequest> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 72,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบขอซื้อ",
+        title: t("เลขที่ใบขอซื้อ"),
         dataIndex: "prNo",
         key: "prNo",
         render: (value: string, row) => {
@@ -191,7 +195,10 @@ export default function PurchaseRequestsListPage() {
               />
               {!fullyOrdered && orderedCount > 0 ? (
                 <span className={styles.partialNote}>
-                  สั่งซื้อแล้ว {orderedCount} / {items.length} รายการ
+                  {t("สั่งซื้อแล้ว {done} / {total} รายการ", {
+                    done: orderedCount,
+                    total: items.length,
+                  })}
                 </span>
               ) : null}
             </div>
@@ -199,40 +206,41 @@ export default function PurchaseRequestsListPage() {
         },
       },
       {
-        title: "วันออกเอกสาร",
+        title: t("วันออกเอกสาร"),
         dataIndex: "createdAt",
         key: "createdAt",
         width: 130,
         render: (value: string) => formatErpDate(value),
       },
       {
-        title: "วันที่ขอซื้อ",
+        title: t("วันที่ขอซื้อ"),
         dataIndex: "prDate",
         key: "prDate",
         width: 120,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ประเภทใบขอซื้อ",
+        title: t("ประเภทใบขอซื้อ"),
         key: "type",
         ellipsis: true,
         render: (_v, row) => row.purchaseRequestType?.nameTh ?? "—",
       },
       {
-        title: "ผู้ขอซื้อ",
+        title: t("ผู้ขอซื้อ"),
         key: "requestedBy",
         width: 140,
         render: (_v, row) => row.requestedBy?.displayName ?? "—",
       },
       {
-        title: "จำนวนรายการสั่งซื้อ",
+        title: t("จำนวนรายการสั่งซื้อ"),
         key: "itemCount",
         width: 170,
         align: "center",
-        render: (_v, row) => `${row.items?.length ?? 0} รายการ`,
+        render: (_v, row) =>
+          t("{n} รายการ", { n: row.items?.length ?? 0 }),
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "items",
         width: 240,
         className: styles.itemColumn,
@@ -241,42 +249,41 @@ export default function PurchaseRequestsListPage() {
         ),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 130,
         render: (value: string) => (
           <Tag color={statusColor(value)}>
-            {PURCHASE_REQUEST_STATUS_LABEL[value as PurchaseRequestStatus] ??
-              value}
+            {purchaseRequestStatusLabel(value, lang)}
           </Tag>
         ),
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "action",
         width: 100,
         align: "center",
         render: (_v, row) => (
           <RowActionsMenu
-            ariaLabel={`เมนูจัดการ ${row.prNo}`}
+            ariaLabel={t("เมนูจัดการ {no}", { no: row.prNo })}
             actions={[
               {
                 key: "view",
                 icon: <EyeOutlined />,
-                label: "ดูรายละเอียด",
+                label: t("ดูรายละเอียด"),
                 onClick: () => router.push(`/purchase-requests/${row.id}`),
               },
               {
                 key: "pdf",
                 icon: <FilePdfOutlined />,
-                label: "พิมพ์ PDF",
+                label: t("พิมพ์ PDF"),
                 onClick: () => void handlePrintPdf(row),
               },
               PR_EDITABLE_STATUSES.includes(row.status) && {
                 key: "edit",
                 icon: <EditOutlined />,
-                label: "แก้ไข",
+                label: t("แก้ไข"),
                 onClick: () =>
                   router.push(`/purchase-requests/${row.id}/edit`),
               },
@@ -285,7 +292,7 @@ export default function PurchaseRequestsListPage() {
         ),
       },
     ],
-    [handlePrintPdf, limit, page, router],
+    [handlePrintPdf, lang, limit, page, router, t],
   );
 
   return (
@@ -293,14 +300,14 @@ export default function PurchaseRequestsListPage() {
       <PageHeader
         eyebrow="Purchase Request"
         icon={<FileTextOutlined />}
-        title="รายการใบขอซื้อ"
-        subtitle="ดู ค้นหา และจัดการใบขอซื้อทั่วไป · สร้างใหม่แล้วส่งอนุมัติได้จากหน้ารายละเอียด"
+        title={t("รายการใบขอซื้อ")}
+        subtitle={t("ดู ค้นหา และจัดการใบขอซื้อทั่วไป · สร้างใหม่แล้วส่งอนุมัติได้จากหน้ารายละเอียด")}
         actions={
           <>
 {canAccessApprovals ? (
             <Link href="/purchase-requests/approvals">
               <Button className={styles.secondaryBtn} icon={<AuditOutlined />}>
-                รออนุมัติ
+                {t("รออนุมัติ")}
               </Button>
             </Link>
           ) : null}
@@ -310,7 +317,7 @@ export default function PurchaseRequestsListPage() {
               type="primary"
               icon={<PlusOutlined />}
             >
-              สร้างใบขอซื้อ
+              {t("สร้างใบขอซื้อ")}
             </Button>
           </Link>
           </>
@@ -320,27 +327,27 @@ export default function PurchaseRequestsListPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ใบขอซื้อ</label>
+            <label>{t("เลขที่ใบขอซื้อ")}</label>
             <Input
               allowClear
-              placeholder="เช่น PR-20260718-001"
+              placeholder={t("เช่น PR-20260718-001")}
               value={prNo}
               onChange={(e) => setPrNo(e.target.value)}
               onPressEnter={applyFilters}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่ขอซื้อ</label>
+            <label>{t("วันที่ขอซื้อ")}</label>
             <DatePicker
               style={{ width: "100%" }}
               value={prDate}
               onChange={(value) => setPrDate(value)}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สินค้า</label>
+            <label>{t("สินค้า")}</label>
             <Select
               allowClear
               showSearch
@@ -348,8 +355,8 @@ export default function PurchaseRequestsListPage() {
               maxTagCount="responsive"
               optionFilterProp="label"
               style={{ width: "100%" }}
-              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
-              aria-label="สินค้า"
+              placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+              aria-label={t("สินค้า")}
               value={itemIds}
               onChange={(value) => setItemIds(value)}
               options={catalogItems.map((item) => ({
@@ -359,28 +366,31 @@ export default function PurchaseRequestsListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะเอกสาร</label>
+            <label>{t("สถานะเอกสาร")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={(value) => setStatus(value)}
               options={Object.entries(PURCHASE_REQUEST_STATUS_LABEL).map(
-                ([value, label]) => ({ value, label }),
+                ([value]) => ({
+                  value,
+                  label: purchaseRequestStatusLabel(value, lang),
+                }),
               )}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.primaryBtn}
             icon={<SearchOutlined />}
             onClick={applyFilters}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -388,10 +398,10 @@ export default function PurchaseRequestsListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -406,7 +416,7 @@ export default function PurchaseRequestsListPage() {
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -417,13 +427,16 @@ export default function PurchaseRequestsListPage() {
           loading={query.isLoading}
           pagination={false}
           className={styles.table}
-          locale={{ emptyText: "ยังไม่มีใบขอซื้อ" }}
+          locale={{ emptyText: t("ยังไม่มีใบขอซื้อ") }}
         />
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง {from}–{to} จาก {total}", {
+              from: total === 0 ? 0 : (page - 1) * limit + 1,
+              to: Math.min(page * limit, total),
+              total,
+            })}
           </div>
           <Pagination
             size="small"

@@ -17,10 +17,12 @@ import {
   usePendingSalesInvoicesQuery,
   useSalesInvoicesQuery,
 } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import type { SalesInvoice } from "@/types/sales-invoices";
 import {
-  SALES_INVOICE_PAYMENT_STATUS_LABEL,
-  SALES_INVOICE_STATUS_LABEL,
+  salesInvoicePaymentStatusLabel,
+  salesInvoiceStatusLabel,
 } from "@/types/sales-invoices";
 import styles from "./SalesInvoicesListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -53,6 +55,8 @@ function formatMoney(value?: string | number) {
 }
 
 export default function SalesInvoicesListPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -125,20 +129,20 @@ export default function SalesInvoicesListPage() {
   const columns: ColumnsType<SalesInvoice> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบแจ้งหนี้",
+        title: t("เลขที่ใบแจ้งหนี้"),
         dataIndex: "invoiceNo",
         render: (value: string) => (
           <span className={styles.voucherNo}>{value}</span>
         ),
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "invoiceDate",
         width: 110,
         render: (value: string) => (
@@ -146,7 +150,7 @@ export default function SalesInvoicesListPage() {
         ),
       },
       {
-        title: "อ้างอิง DO",
+        title: t("อ้างอิง DO"),
         key: "delivery",
         render: (_v, row) => (
           <span className={styles.poRef}>
@@ -155,7 +159,7 @@ export default function SalesInvoicesListPage() {
         ),
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         key: "customer",
         render: (_v, row) =>
           row.customer ? (
@@ -170,7 +174,7 @@ export default function SalesInvoicesListPage() {
           ),
       },
       {
-        title: "ยอดรวม",
+        title: t("ยอดรวม"),
         dataIndex: "totalAmount",
         align: "right",
         render: (value: string) => (
@@ -178,24 +182,24 @@ export default function SalesInvoicesListPage() {
         ),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 120,
         render: (value: string) => (
           <span className={`${styles.statusPill} ${statusClass(value)}`}>
             <span className={styles.statusDot} aria-hidden />
-            {SALES_INVOICE_STATUS_LABEL[value] ?? value}
+            {salesInvoiceStatusLabel(value, lang)}
           </span>
         ),
       },
       {
-        title: "ชำระ",
+        title: t("ชำระ"),
         dataIndex: "paymentStatus",
         width: 110,
         render: (value?: string) =>
           value ? (
             <span className={styles.methodCell}>
-              {SALES_INVOICE_PAYMENT_STATUS_LABEL[value] ?? value}
+              {salesInvoicePaymentStatusLabel(value, lang)}
             </span>
           ) : (
             "—"
@@ -209,7 +213,7 @@ export default function SalesInvoicesListPage() {
           <button
             type="button"
             className={styles.actionBtn}
-            title="ดูรายละเอียด"
+            title={t("ดูรายละเอียด")}
             onClick={(e) => {
               e.stopPropagation();
               router.push(`/sales-invoices/${row.id}`);
@@ -220,7 +224,7 @@ export default function SalesInvoicesListPage() {
         ),
       },
     ],
-    [limit, page, router],
+    [lang, limit, page, router, t],
   );
 
   return (
@@ -228,8 +232,8 @@ export default function SalesInvoicesListPage() {
       <PageHeader
         eyebrow="Sales · Accounts Receivable"
         icon={<FileTextOutlined />}
-        title="ใบแจ้งหนี้ขาย"
-        subtitle="ออกบิลจากใบส่งสินค้าที่ส่งมอบแล้ว — ยืนยันโพสต์ และรับชำระเต็มจำนวน"
+        title={t("ใบแจ้งหนี้ขาย")}
+        subtitle={t("ออกบิลจากใบส่งสินค้าที่ส่งมอบแล้ว — ยืนยันโพสต์ และรับชำระเต็มจำนวน")}
         actions={
           <>
 <Link href="/sales-invoices/pending">
@@ -238,11 +242,11 @@ export default function SalesInvoicesListPage() {
               type="primary"
               icon={<HourglassOutlined />}
             >
-              DO รอออกบิล
+              {t("DO รอออกบิล")}
               {pendingCount > 0 ? (
                 <span
                   className={styles.pendingCountBadge}
-                  aria-label={`${pendingCount} ใบค้าง`}
+                  aria-label={t("{n} ใบค้าง", { n: pendingCount })}
                 >
                   {pendingCount > 99 ? "99+" : pendingCount}
                 </span>
@@ -255,89 +259,89 @@ export default function SalesInvoicesListPage() {
 
       <div className={styles.statRow}>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statLabel}>{t("ทั้งหมด")}</span>
           <span className={styles.statValue}>{total}</span>
-          <span className={styles.statHint}>ใบตามเงื่อนไขค้นหา</span>
+          <span className={styles.statHint}>{t("ใบตามเงื่อนไขค้นหา")}</span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>ยอดในหน้านี้</span>
+          <span className={styles.statLabel}>{t("ยอดในหน้านี้")}</span>
           <span className={`${styles.statValue} ${styles.statValuePaid}`}>
             {formatMoney(pageAmount)}
           </span>
           <span className={styles.statHint}>
-            บาท · โพสต์ {postedOnPage} · ร่าง {draftOnPage}
+            {t("บาท · โพสต์ {posted} · ร่าง {draft}", { posted: postedOnPage, draft: draftOnPage })}
           </span>
         </div>
         <div className={styles.statChip}>
-          <span className={styles.statLabel}>สถานะในหน้านี้</span>
+          <span className={styles.statLabel}>{t("สถานะในหน้านี้")}</span>
           <span className={`${styles.statValue} ${styles.statValueDraft}`}>
             {postedOnPage}/{rows.length || 0}
           </span>
-          <span className={styles.statHint}>โพสต์แล้ว / รายการที่แสดง</span>
+          <span className={styles.statHint}>{t("โพสต์แล้ว / รายการที่แสดง")}</span>
         </div>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="เลขที่ SI / DO / SO / ลูกค้า"
+              placeholder={t("เลขที่ SI / DO / SO / ลูกค้า")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะเอกสาร</label>
+            <label>{t("สถานะเอกสาร")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               style={{ width: "100%" }}
               options={[
-                { value: "DRAFT", label: "แบบร่างเอกสาร" },
-                { value: "POSTED", label: "โพสต์แล้ว" },
-                { value: "CANCELLED", label: "ยกเลิก" },
+                { value: "DRAFT", label: salesInvoiceStatusLabel("DRAFT", lang) },
+                { value: "POSTED", label: salesInvoiceStatusLabel("POSTED", lang) },
+                { value: "CANCELLED", label: salesInvoiceStatusLabel("CANCELLED", lang) },
               ]}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะชำระ</label>
+            <label>{t("สถานะชำระ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={paymentStatus}
               onChange={setPaymentStatus}
               style={{ width: "100%" }}
               options={[
-                { value: "UNPAID", label: "ยังไม่ชำระ" },
-                { value: "PARTIALLY_PAID", label: "ชำระบางส่วน" },
-                { value: "PAID", label: "ชำระแล้ว" },
+                { value: "UNPAID", label: salesInvoicePaymentStatusLabel("UNPAID", lang) },
+                { value: "PARTIALLY_PAID", label: salesInvoicePaymentStatusLabel("PARTIALLY_PAID", lang) },
+                { value: "PAID", label: salesInvoicePaymentStatusLabel("PAID", lang) },
               ]}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่ใบแจ้งหนี้</label>
+            <label>{t("วันที่ใบแจ้งหนี้")}</label>
             <DatePicker
               value={invoiceDate}
               onChange={setInvoiceDate}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
               style={{ width: "100%" }}
             />
           </div>
           <div className={styles.filterActions}>
-            <Button onClick={clearFilters}>เคลียร์</Button>
+            <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
             <Button
               type="primary"
               className={styles.primaryBtn}
               icon={<SearchOutlined />}
               onClick={applySearch}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </div>
@@ -346,16 +350,16 @@ export default function SalesInvoicesListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
             {hasActiveFilters ? (
               <>
                 {" "}
-                · แสดงในหน้านี้ <strong>{rows.length}</strong>
+                · {t("แสดงในหน้านี้")} <strong>{rows.length}</strong>
               </>
             ) : null}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -370,7 +374,7 @@ export default function SalesInvoicesListPage() {
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -387,8 +391,8 @@ export default function SalesInvoicesListPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ยังไม่มีใบแจ้งหนี้</strong>
-                สร้างจาก Delivery ที่ส่งมอบแล้วได้ที่หน้ารอออกบิล
+                <strong>{t("ยังไม่มีใบแจ้งหนี้")}</strong>
+                {t("สร้างจาก Delivery ที่ส่งมอบแล้วได้ที่หน้ารอออกบิล")}
               </div>
             ),
           }}
@@ -396,8 +400,11 @@ export default function SalesInvoicesListPage() {
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง {from}–{to} จาก {total}", {
+              from: total === 0 ? 0 : (page - 1) * limit + 1,
+              to: Math.min(page * limit, total),
+              total,
+            })}
           </div>
           <Pagination
             size="small"

@@ -10,8 +10,10 @@ import type { ConfirmFromT2900Request } from "@/types/t2900";
 import { weighbridgeDashboardQueryKey } from "./useWeighbridgeDashboardQuery";
 import { t2900OutboundTicketsQueryKey } from "./useT2900OutboundTicketsQuery";
 import { t2900TicketDetailQueryKey } from "./useT2900TicketDetailQuery";
+import { useT } from "@/lib/i18n/useT";
 
 export function useConfirmT2900TicketMutation() {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -30,14 +32,14 @@ export function useConfirmT2900TicketMutation() {
         }),
       ]);
       message.success(
-        response.message || "ยืนยันรับซื้อจากบัตรชั่ง T2900 สำเร็จแล้ว",
+        response.message || t("ยืนยันรับซื้อจากบัตรชั่ง T2900 สำเร็จแล้ว"),
       );
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "ยืนยันรับซื้อจากบัตรชั่ง T2900 ไม่สำเร็จ",
+          : t("ยืนยันรับซื้อจากบัตรชั่ง T2900 ไม่สำเร็จ"),
       );
     },
   });

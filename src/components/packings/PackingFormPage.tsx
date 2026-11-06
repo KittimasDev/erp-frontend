@@ -54,6 +54,8 @@ import {
 } from "@/types/packings";
 import styles from "./PackingFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string; mode: "view" | "edit" };
 
@@ -65,6 +67,7 @@ type RowEdit = {
 };
 
 export default function PackingFormPage({ id, mode }: Props) {
+  const t = useT();
   const router = useRouter();
   const { modal } = App.useApp();
   const query = usePackingQuery(id);
@@ -202,20 +205,22 @@ export default function PackingFormPage({ id, mode }: Props) {
     return <AccessDenied screenCodes={["PACKINGS"]} />;
   }
 
-  const statusLabel =
+  const statusLabel = statusT(
+    t,
     PACKING_STATUS_LABEL[data.status as keyof typeof PACKING_STATUS_LABEL] ??
-    data.status;
+      data.status,
+  );
 
   const columns: ColumnsType<PackingItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_v, item) => (
         <div>
@@ -225,7 +230,7 @@ export default function PackingFormPage({ id, mode }: Props) {
       ),
     },
     {
-      title: "จำนวนบรรจุ",
+      title: t("จำนวนบรรจุ"),
       key: "packedQty",
       width: 160,
       render: (_v, item) => {
@@ -255,7 +260,7 @@ export default function PackingFormPage({ id, mode }: Props) {
       },
     },
     {
-      title: "เลขที่บรรจุภัณฑ์",
+      title: t("เลขที่บรรจุภัณฑ์"),
       key: "packageNo",
       width: 170,
       render: (_v, item) => {
@@ -264,14 +269,14 @@ export default function PackingFormPage({ id, mode }: Props) {
         return (
           <Input
             value={row.packageNo}
-            placeholder="เช่น BOX-001"
+            placeholder={t("เช่น BOX-001")}
             onChange={(e) => updateRow(item.id, { packageNo: e.target.value })}
           />
         );
       },
     },
     {
-      title: "หมายเหตุ",
+      title: t("หมายเหตุ"),
       key: "remark",
       render: (_v, item) => {
         const row = rows.find((r) => r.id === item.id);
@@ -296,7 +301,7 @@ export default function PackingFormPage({ id, mode }: Props) {
           <>
 <div className={styles.backRow}>
             <Link href="/packings" className={styles.backLink}>
-              <ArrowLeftOutlined /> กลับรายการใบบรรจุ
+              <ArrowLeftOutlined /> {t("กลับรายการใบบรรจุ")}
             </Link>
             <Link
               href={
@@ -306,7 +311,7 @@ export default function PackingFormPage({ id, mode }: Props) {
               }
               className={styles.backLink}
             >
-              <ShoppingCartOutlined /> กลับใบสั่งขาย
+              <ShoppingCartOutlined /> {t("กลับใบสั่งขาย")}
             </Link>
           </div>
           </>
@@ -319,12 +324,12 @@ export default function PackingFormPage({ id, mode }: Props) {
                 href={`/pickings/${data.pickingId}`}
                 className={styles.docLink}
               >
-                ใบจ่าย {data.pickingNo ?? data.pickingId}
+                {t("ใบจ่าย")} {data.pickingNo ?? data.pickingId}
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
             ) : (
               <span className={styles.metaChip}>
-                ใบจ่าย{" "}
+                {t("ใบจ่าย")}{" "}
                 <span className={styles.metaChipMuted}>—</span>
               </span>
             )}
@@ -338,7 +343,7 @@ export default function PackingFormPage({ id, mode }: Props) {
               </Link>
             ) : null}
             <span className={styles.metaChip}>
-              ลูกค้า{" "}
+              {t("ลูกค้า")}{" "}
               <span className={styles.metaChipMuted}>
                 {data.customerName ?? "—"}
               </span>
@@ -370,7 +375,7 @@ export default function PackingFormPage({ id, mode }: Props) {
               )
             }
           >
-            ไปใบสั่งขาย
+            {t("ไปใบสั่งขาย")}
           </Button>
           <Button
             className={styles.secondaryBtn}
@@ -400,7 +405,7 @@ export default function PackingFormPage({ id, mode }: Props) {
               });
             }}
           >
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           {editable ? (
             <>
@@ -410,7 +415,7 @@ export default function PackingFormPage({ id, mode }: Props) {
                 loading={updateMutation.isPending}
                 onClick={() => void handleSave()}
               >
-                บันทึก DRAFT
+                {t("บันทึก DRAFT")}
               </Button>
               {canConfirm ? (
                 <Button
@@ -420,8 +425,8 @@ export default function PackingFormPage({ id, mode }: Props) {
                   loading={confirmMutation.isPending}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันใบบรรจุนี้?",
-                      content: "จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบจ่ายสินค้า",
+                      title: t("ยืนยันใบบรรจุนี้?"),
+                      content: t("จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบจ่ายสินค้า"),
                       onOk: async () => {
                         await handleSave();
                         await confirmMutation.mutateAsync(id);
@@ -430,7 +435,7 @@ export default function PackingFormPage({ id, mode }: Props) {
                     })
                   }
                 >
-                  ยืนยันใบบรรจุ
+                  {t("ยืนยันใบบรรจุ")}
                 </Button>
               ) : null}
               <Button
@@ -440,7 +445,7 @@ export default function PackingFormPage({ id, mode }: Props) {
                 loading={cancelMutation.isPending}
                 onClick={() =>
                   modal.confirm({
-                    title: "ยกเลิกใบบรรจุ?",
+                    title: t("ยกเลิกใบบรรจุ?"),
                     onOk: async () => {
                       await cancelMutation.mutateAsync(id);
                       router.push("/packings");
@@ -448,7 +453,7 @@ export default function PackingFormPage({ id, mode }: Props) {
                   })
                 }
               >
-                ยกเลิก
+                {t("ยกเลิก")}
               </Button>
             </>
           ) : null}
@@ -459,7 +464,7 @@ export default function PackingFormPage({ id, mode }: Props) {
               icon={<EditOutlined />}
               onClick={() => router.push(`/packings/${id}/edit`)}
             >
-              แก้ไข
+              {t("แก้ไข")}
             </Button>
           ) : null}
           </>
@@ -478,12 +483,12 @@ export default function PackingFormPage({ id, mode }: Props) {
              งานถัดไปคือสร้าง/เปิดใบส่งสินค้าจากใบบรรจุนี้ (ของรอบนี้เท่านั้น) */
           title={
             deliveryHref
-              ? "ยืนยันแล้ว — บรรจุครบตามรอบนี้แล้ว เปิดใบส่งสินค้าของรอบนี้ได้"
+              ? t("ยืนยันแล้ว — บรรจุครบตามรอบนี้แล้ว เปิดใบส่งสินค้าของรอบนี้ได้")
               : canCreateDeliveryFromThis
-                ? "ยืนยันแล้ว — บรรจุครบตามรอบจัดส่งนี้แล้ว ขั้นถัดไปคือสร้างใบส่งสินค้า"
+                ? t("ยืนยันแล้ว — บรรจุครบตามรอบจัดส่งนี้แล้ว ขั้นถัดไปคือสร้างใบส่งสินค้า")
                 : deliveryRoundDone
-                  ? "ยืนยันแล้ว — รอบนี้ส่งของไปแล้ว ไม่สร้างใบส่งซ้ำจากใบบรรจุนี้"
-                  : "ยืนยันแล้ว — บรรจุครบตามรอบจัดส่งนี้แล้ว"
+                  ? t("ยืนยันแล้ว — รอบนี้ส่งของไปแล้ว ไม่สร้างใบส่งซ้ำจากใบบรรจุนี้")
+                  : t("ยืนยันแล้ว — บรรจุครบตามรอบจัดส่งนี้แล้ว")
           }
           action={
             deliveryHref ? (
@@ -494,12 +499,12 @@ export default function PackingFormPage({ id, mode }: Props) {
                 icon={<CarOutlined />}
                 onClick={() => router.push(deliveryHref)}
               >
-                เปิดใบส่งสินค้า
+                {t("เปิดใบส่งสินค้า")}
               </Button>
             ) : canCreateDeliveryFromThis ? (
               <Tooltip
                 title={
-                  canCreateDelivery ? undefined : "ไม่มีสิทธิ์สร้างใบส่งสินค้า"
+                  canCreateDelivery ? undefined : t("ไม่มีสิทธิ์สร้างใบส่งสินค้า")
                 }
               >
                 <span>
@@ -511,7 +516,7 @@ export default function PackingFormPage({ id, mode }: Props) {
                     disabled={!canCreateDelivery}
                     onClick={() => setDeliveryModalOpen(true)}
                   >
-                    สร้างใบส่งสินค้า
+                    {t("สร้างใบส่งสินค้า")}
                   </Button>
                 </span>
               </Tooltip>
@@ -521,7 +526,7 @@ export default function PackingFormPage({ id, mode }: Props) {
       ) : null}
 
       <section className={styles.formCard}>
-        <h2 className={styles.sectionTitle}>เอกสารอ้างอิง</h2>
+        <h2 className={styles.sectionTitle}>{t("เอกสารอ้างอิง")}</h2>
         <div className={styles.relatedCard}>
           {data.pickingId ? (
             <Link
@@ -532,11 +537,11 @@ export default function PackingFormPage({ id, mode }: Props) {
                 <ShoppingCartOutlined />
               </div>
               <div className={styles.relatedBody}>
-                <p className={styles.relatedLabel}>ใบจ่ายสินค้า</p>
+                <p className={styles.relatedLabel}>{t("ใบจ่ายสินค้า")}</p>
                 <p className={styles.relatedValue}>
                   {data.pickingNo ?? data.pickingId}
                 </p>
-                <p className={styles.relatedHint}>คลิกเพื่อเปิดรายละเอียดใบจ่าย</p>
+                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียดใบจ่าย")}</p>
               </div>
             </Link>
           ) : null}
@@ -549,11 +554,11 @@ export default function PackingFormPage({ id, mode }: Props) {
                 <FileTextOutlined />
               </div>
               <div className={styles.relatedBody}>
-                <p className={styles.relatedLabel}>ใบสั่งขาย</p>
+                <p className={styles.relatedLabel}>{t("ใบสั่งขาย")}</p>
                 <p className={styles.relatedValue}>
                   {data.salesOrderNo ?? data.salesOrderId}
                 </p>
-                <p className={styles.relatedHint}>คลิกเพื่อเปิดรายละเอียด SO</p>
+                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียด SO")}</p>
               </div>
             </Link>
           ) : null}
@@ -561,10 +566,10 @@ export default function PackingFormPage({ id, mode }: Props) {
       </section>
 
       <section className={styles.formCard}>
-        <h2 className={styles.sectionTitle}>ข้อมูลใบบรรจุ</h2>
+        <h2 className={styles.sectionTitle}>{t("ข้อมูลใบบรรจุ")}</h2>
         <div className={styles.formGrid}>
           <label className={styles.field}>
-            <span>วันที่บรรจุ</span>
+            <span>{t("วันที่บรรจุ")}</span>
             {editable ? (
               <DatePicker
                 value={packingDate}
@@ -579,16 +584,16 @@ export default function PackingFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={styles.field}>
-            <span>ประเภทบรรจุภัณฑ์</span>
+            <span>{t("ประเภทบรรจุภัณฑ์")}</span>
             {editable ? (
               <Select
                 value={packageType || undefined}
                 onChange={(value) => setPackageType(value ?? "")}
                 allowClear
-                placeholder="เลือกประเภทบรรจุ"
+                placeholder={t("เลือกประเภทบรรจุ")}
                 style={{ width: "100%" }}
                 options={[
-                  ...PACKAGE_TYPE_OPTIONS,
+                  ...PACKAGE_TYPE_OPTIONS.map((o) => ({ ...o, label: t(o.label) })),
                   // ข้อมูลเก่าที่พิมพ์เป็นข้อความอิสระ — คงไว้ให้เลือกค้างได้ ไม่ทำให้ค่าหาย
                   ...(packageType && !PACKAGE_TYPE_OPTIONS.some((o) => o.value === packageType)
                     ? [{ value: packageType, label: packageType }]
@@ -596,12 +601,12 @@ export default function PackingFormPage({ id, mode }: Props) {
                 ]}
               />
             ) : (
-              <div className={styles.fieldValue}>{packageTypeLabel(data.packageType)}</div>
+              <div className={styles.fieldValue}>{t(packageTypeLabel(data.packageType))}</div>
             )}
           </label>
           {packageType === "TANK" ? (
             <label className={styles.field}>
-              <span>ใบจ่ายน้ำมันจากถัง (Tank Loading)</span>
+              <span>{t("ใบจ่ายน้ำมันจากถัง (Tank Loading)")}</span>
               {editable ? (
                 <Select
                   showSearch
@@ -610,11 +615,11 @@ export default function PackingFormPage({ id, mode }: Props) {
                   value={oilDispatchId}
                   onChange={(value) => setOilDispatchId(value)}
                   loading={oilDispatchesQuery.isLoading}
-                  placeholder="เลือกใบจ่ายน้ำมัน"
+                  placeholder={t("เลือกใบจ่ายน้ำมัน")}
                   style={{ width: "100%" }}
                   options={(oilDispatchesQuery.data?.data ?? []).map((d) => ({
                     value: d.id,
-                    label: `${d.dispatchNo} · ${Number(d.quantityLiters).toLocaleString("th-TH")} ลิตร (${d.status})`,
+                    label: `${d.dispatchNo} · ${Number(d.quantityLiters).toLocaleString("th-TH")} ${t("ลิตร")} (${d.status})`,
                   }))}
                 />
               ) : (
@@ -623,7 +628,7 @@ export default function PackingFormPage({ id, mode }: Props) {
             </label>
           ) : null}
           <label className={styles.field}>
-            <span>จำนวนหน่วยบรรจุ</span>
+            <span>{t("จำนวนหน่วยบรรจุ")}</span>
             {editable ? (
               <InputNumber
                 min={1}
@@ -638,7 +643,7 @@ export default function PackingFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={styles.field}>
-            <span>น้ำหนักรวม (กก.)</span>
+            <span>{t("น้ำหนักรวม (กก.)")}</span>
             {editable ? (
               <InputNumber
                 min={0}
@@ -653,7 +658,7 @@ export default function PackingFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={styles.field}>
-            <span>น้ำหนักสุทธิ (กก.)</span>
+            <span>{t("น้ำหนักสุทธิ (กก.)")}</span>
             {editable ? (
               <InputNumber
                 min={0}
@@ -666,12 +671,12 @@ export default function PackingFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={`${styles.field} ${styles.fieldWide}`}>
-            <span>หมายเหตุ</span>
+            <span>{t("หมายเหตุ")}</span>
             {editable ? (
               <Input.TextArea
                 rows={2}
                 value={remark}
-                placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
+                placeholder={t("ระบุหมายเหตุเพิ่มเติม (ถ้ามี)")}
                 onChange={(e) => setRemark(e.target.value)}
               />
             ) : (
@@ -684,9 +689,9 @@ export default function PackingFormPage({ id, mode }: Props) {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            <p className={styles.toolbarTitle}>รายการสินค้าที่บรรจุ</p>
+            <p className={styles.toolbarTitle}>{t("รายการสินค้าที่บรรจุ")}</p>
             <p className={styles.toolbarHint}>
-              จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบจ่ายสินค้า
+              {t("จำนวนบรรจุต้องเท่ากับจำนวนที่หยิบในใบจ่ายสินค้า")}
             </p>
           </div>
         </div>

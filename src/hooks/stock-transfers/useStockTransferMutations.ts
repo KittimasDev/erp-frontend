@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
 import {
   approveStockTransfer,
   cancelStockTransfer,
@@ -23,16 +24,17 @@ import { stockTransfersQueryKey } from "./useStockTransfersQuery";
 export function useCreateStockTransferMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (body: CreateStockTransferBody) =>
       createStockTransfer(getAccessToken(), body),
     onSuccess: (res) => {
-      message.success(res.message || "สร้างใบโอนย้ายสินค้าสำเร็จ");
+      message.success(res.message || t("สร้างใบโอนย้ายสินค้าสำเร็จ"));
       void queryClient.invalidateQueries({ queryKey: stockTransfersQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "สร้างใบโอนย้ายสินค้าไม่สำเร็จ");
+      message.error(err.message || t("สร้างใบโอนย้ายสินค้าไม่สำเร็จ"));
     },
   });
 }
@@ -40,6 +42,7 @@ export function useCreateStockTransferMutation() {
 export function useUpdateStockTransferMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({
@@ -50,11 +53,11 @@ export function useUpdateStockTransferMutation() {
       body: UpdateStockTransferBody;
     }) => updateStockTransfer(getAccessToken(), id, body),
     onSuccess: (res) => {
-      message.success(res.message || "บันทึกใบโอนย้ายสินค้าสำเร็จ");
+      message.success(res.message || t("บันทึกใบโอนย้ายสินค้าสำเร็จ"));
       void queryClient.invalidateQueries({ queryKey: stockTransfersQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "บันทึกใบโอนย้ายสินค้าไม่สำเร็จ");
+      message.error(err.message || t("บันทึกใบโอนย้ายสินค้าไม่สำเร็จ"));
     },
   });
 }
@@ -62,15 +65,16 @@ export function useUpdateStockTransferMutation() {
 export function useCancelStockTransferMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (id: string) => cancelStockTransfer(getAccessToken(), id),
     onSuccess: (res) => {
-      message.success(res.message || "ยกเลิกใบโอนย้ายสินค้าแล้ว");
+      message.success(res.message || t("ยกเลิกใบโอนย้ายสินค้าแล้ว"));
       void queryClient.invalidateQueries({ queryKey: stockTransfersQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "ยกเลิกใบโอนย้ายสินค้าไม่สำเร็จ");
+      message.error(err.message || t("ยกเลิกใบโอนย้ายสินค้าไม่สำเร็จ"));
     },
   });
 }
@@ -78,6 +82,7 @@ export function useCancelStockTransferMutation() {
 export function useApproveStockTransferMutation() {
   const queryClient = useQueryClient();
   const { message, modal } = App.useApp();
+  const t = useT();
 
   const mutation = useMutation({
     mutationFn: (vars: string | { id: string; acknowledge?: boolean }) => {
@@ -86,7 +91,7 @@ export function useApproveStockTransferMutation() {
       return approveStockTransfer(getAccessToken(), id, acknowledge);
     },
     onSuccess: (res) => {
-      message.success(res.message || "อนุมัติและโอนย้ายสต๊อกสำเร็จ");
+      message.success(res.message || t("อนุมัติและโอนย้ายสต๊อกสำเร็จ"));
       void queryClient.invalidateQueries({ queryKey: stockTransfersQueryKey });
     },
     onError: (err: Error, vars) => {
@@ -99,7 +104,7 @@ export function useApproveStockTransferMutation() {
         );
         return;
       }
-      message.error(err.message || "อนุมัติใบโอนย้ายสินค้าไม่สำเร็จ");
+      message.error(err.message || t("อนุมัติใบโอนย้ายสินค้าไม่สำเร็จ"));
     },
   });
   return mutation;

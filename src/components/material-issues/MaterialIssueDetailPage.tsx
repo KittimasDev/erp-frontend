@@ -12,12 +12,15 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+
 import {
   useApproveStockIssueMutation,
   useCancelStockIssueMutation,
 } from "@/hooks/stock-issues/useStockIssueMutations";
 import { useStockIssueQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
+import { tStockLabel } from "@/types/stock-adjustments";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./MaterialIssueDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
@@ -41,6 +44,7 @@ function statusClass(status: string) {
 }
 
 export default function MaterialIssueDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const { modal } = App.useApp();
   const query = useStockIssueQuery(id);
@@ -57,7 +61,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -65,9 +69,9 @@ export default function MaterialIssueDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบเบิกของ
+        {t("ไม่พบใบเบิกของ")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/inventory/material-issues">กลับรายการ</Link>
+          <Link href="/inventory/material-issues">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -81,14 +85,14 @@ export default function MaterialIssueDetailPage({ id }: Props) {
         eyebrow="Material Issue"
         icon={<SwapOutlined />}
         title={data.issueNo}
-        subtitle={<>{formatDate(data.issueDate)} · {data.items?.length ?? 0} รายการ</>}
+        subtitle={<>{formatDate(data.issueDate)} · {data.items?.length ?? 0} {t("รายการ")}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/inventory/material-issues")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           <Button
             icon={<FilePdfOutlined />}
@@ -126,7 +130,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
               });
             }}
           >
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           </>
         }
@@ -136,35 +140,35 @@ export default function MaterialIssueDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.issueNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่เบิก</span>
+                <span className={styles.metaLabel}>{t("วันที่เบิก")}</span>
                 <div className={styles.metaValue}>{formatDate(data.issueDate)}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้ขอเบิก</span>
+                <span className={styles.metaLabel}>{t("ผู้ขอเบิก")}</span>
                 <div className={styles.metaValue}>
                   {data.requestedBy?.displayName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้อนุมัติ</span>
+                <span className={styles.metaLabel}>{t("ผู้อนุมัติ")}</span>
                 <div className={styles.metaValue}>
                   {data.issuedBy?.displayName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ตัดสต๊อกเมื่อ</span>
+                <span className={styles.metaLabel}>{t("ตัดสต๊อกเมื่อ")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
                     ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
-                    : "ยังไม่ตัดสต๊อก"}
+                    : t("ยังไม่ตัดสต๊อก")}
                 </div>
               </div>
             </div>
@@ -172,7 +176,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการเบิก</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการเบิก")}</h2>
             </div>
             <div className={styles.itemList}>
               {(data.items ?? []).map((item, index) => (
@@ -202,7 +206,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
           {data.remark ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
               </div>
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
@@ -211,16 +215,18 @@ export default function MaterialIssueDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.issueNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {STOCK_ISSUE_STATUS_LABEL[data.status] ?? data.status}
+            {STOCK_ISSUE_STATUS_LABEL[data.status]
+              ? tStockLabel(STOCK_ISSUE_STATUS_LABEL[data.status])
+              : data.status}
           </div>
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>รายการ</span>
+              <span>{t("รายการ")}</span>
               <strong>{data.items?.length ?? 0}</strong>
             </div>
           </div>
@@ -234,14 +240,15 @@ export default function MaterialIssueDetailPage({ id }: Props) {
                 loading={busy}
                 onClick={() =>
                   modal.confirm({
-                    title: "อนุมัติใบเบิกของและตัดสต๊อก?",
-                    content:
+                    title: t("อนุมัติใบเบิกของและตัดสต๊อก?"),
+                    content: t(
                       "ยืนยันแล้วจะลด quantity_on_hand / available ตาม Lot ที่เลือก และแก้เอกสารไม่ได้",
+                    ),
                     onOk: () => approveMutation.mutateAsync(data.id),
                   })
                 }
               >
-                อนุมัติและตัดสต๊อก
+                {t("อนุมัติและตัดสต๊อก")}
               </Button>
             ) : null}
             {canRequest && data.status === "DRAFT" ? (
@@ -253,7 +260,7 @@ export default function MaterialIssueDetailPage({ id }: Props) {
                     router.push(`/inventory/material-issues/${data.id}/edit`)
                   }
                 >
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -261,12 +268,12 @@ export default function MaterialIssueDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันยกเลิกใบเบิกของ?",
+                      title: t("ยืนยันยกเลิกใบเบิกของ?"),
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  ยกเลิกเอกสาร
+                  {t("ยกเลิกเอกสาร")}
                 </Button>
               </>
             ) : null}

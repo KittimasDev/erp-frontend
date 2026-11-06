@@ -24,7 +24,13 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import { useQuotationsQuery } from "@/hooks/quotations/useQuotationsQuery";
 import { useCustomersQuery } from "@/hooks/customers/useCustomersQuery";
 import { useItemsQuery } from "@/hooks/items/useItemsQuery";
-import type { Quotation } from "@/types/quotations";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT, type TFunction } from "@/lib/i18n/useT";
+import {
+  quotationFlowText,
+  quotationStatusLabel,
+  type Quotation,
+} from "@/types/quotations";
 import {
   QUOTATION_FLOW_STEPS,
   QUOTATION_STATUS_FILTER_LABEL,
@@ -42,12 +48,12 @@ const CUSTOMER_TYPE_LABEL: Record<string, string> = {
   GENERAL: "ทั่วไป",
 };
 
-/** วันที่เอกสารแสดงเป็น พ.ศ. ตามดีไซน์หน้ารายการใบเสนอราคา */
-function formatDate(value?: string) {
+/** วันที่เอกสารแสดงเป็น พ.ศ. ตามดีไซน์หน้ารายการใบเสนอราคา (อังกฤษ = ค.ศ.) */
+function formatDate(value: string | undefined, lang: "th" | "en") {
   if (!value) return "—";
   const d = dayjs(value);
   if (!d.isValid()) return "—";
-  return `${d.format("DD/MM")}/${d.year() + 543}`;
+  return `${d.format("DD/MM")}/${d.year() + (lang === "en" ? 0 : 543)}`;
 }
 
 function formatMoney(value?: string) {
@@ -63,25 +69,31 @@ function formatMoney(value?: string) {
  * ป้ายสถานะของคอลัมน์ "สถานะ" — ข้อความ/สีตามดีไซน์หน้านี้
  * (แยกจาก shortLabel ใน resolveQuotationFlow ที่หน้ารายละเอียดกับหน้าติดตามใช้ร่วมกัน)
  */
-function resolveStatusBadge(row: Quotation): { label: string; tone: string } {
+function resolveStatusBadge(
+  row: Quotation,
+  t: TFunction,
+  lang: "th" | "en",
+): { label: string; tone: string } {
   if (row.salesOrderId) {
-    return { label: "เปิด SO แล้ว", tone: styles.statusDone };
+    return { label: t("เปิด SO แล้ว"), tone: styles.statusDone };
   }
   switch (row.status) {
     case "ACCEPTED":
-      return { label: "ลูกค้าตอบรับแล้ว", tone: styles.statusAccepted };
+      return { label: t("ลูกค้าตอบรับแล้ว"), tone: styles.statusAccepted };
     case "SENT":
-      return { label: "รอลูกค้าตอบรับ", tone: styles.statusSent };
+      return { label: t("รอลูกค้าตอบรับ"), tone: styles.statusSent };
     case "REJECTED":
-      return { label: "ลูกค้าปฏิเสธ", tone: styles.statusRejected };
+      return { label: t("ลูกค้าปฏิเสธ"), tone: styles.statusRejected };
     case "CANCELLED":
-      return { label: "ยกเลิก", tone: styles.statusCancelled };
+      return { label: quotationStatusLabel("CANCELLED", lang), tone: styles.statusCancelled };
     default:
-      return { label: "ร่าง (Draft)", tone: styles.statusDraft };
+      return { label: t("ร่าง (Draft)"), tone: styles.statusDraft };
   }
 }
 
 function QuotationProgressCell({ row }: { row: Quotation }) {
+  const t = useT();
+  const lang = useLanguage();
   const flow = resolveQuotationFlow(row);
   const stopped = flow.tone === "stopped";
 
@@ -93,7 +105,7 @@ function QuotationProgressCell({ row }: { row: Quotation }) {
           return (
             <span
               key={step.key}
-              title={step.label}
+              title={quotationFlowText(step.label, lang)}
               className={[
                 styles.progressSeg,
                 filled ? styles.progressSegOn : "",
@@ -106,7 +118,9 @@ function QuotationProgressCell({ row }: { row: Quotation }) {
         })}
       </div>
       <span className={styles.progressStep}>
-        {stopped ? flow.shortLabel : `ขั้นตอนที่ ${flow.step}/${flow.total}`}
+        {stopped
+          ? quotationFlowText(flow.shortLabel, lang)
+          : t("ขั้นตอนที่ {step}/{total}", { step: flow.step, total: flow.total })}
       </span>
     </div>
   );
@@ -114,6 +128,8 @@ function QuotationProgressCell({ row }: { row: Quotation }) {
 
 export default function QuotationsListPage() {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
 
   const [quotationNo, setQuotationNo] = useState("");
   const [customerId, setCustomerId] = useState<string | undefined>();
@@ -238,7 +254,7 @@ export default function QuotationsListPage() {
       {
         key: "view",
         icon: <EyeOutlined />,
-        label: "ดูรายละเอียด",
+        label: t("ดูรายละเอียด"),
         onClick: (info) => {
           info.domEvent.stopPropagation();
           router.push(`/quotations/${row.id}`);
@@ -250,7 +266,7 @@ export default function QuotationsListPage() {
       items.push({
         key: "edit",
         icon: <EditOutlined />,
-        label: "แก้ไข",
+        label: t("แก้ไข"),
         onClick: (info) => {
           info.domEvent.stopPropagation();
           router.push(`/quotations/${row.id}/edit`);
@@ -262,7 +278,7 @@ export default function QuotationsListPage() {
       items.push({
         key: "accept",
         icon: <CheckOutlined />,
-        label: "บันทึกผลลูกค้าตอบรับ",
+        label: t("บันทึกผลลูกค้าตอบรับ"),
         onClick: (info) => {
           info.domEvent.stopPropagation();
           router.push(`/quotations/${row.id}`);
@@ -276,32 +292,32 @@ export default function QuotationsListPage() {
   const columns: ColumnsType<Quotation> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "index",
         width: 72,
         align: "center",
         render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,
       },
       {
-        title: "เลขที่ใบเสนอราคา",
+        title: t("เลขที่ใบเสนอราคา"),
         dataIndex: "quotationNo",
         width: 170,
         render: (value: string) => <span className={styles.prNo}>{value}</span>,
       },
       {
-        title: "วันที่เอกสาร",
+        title: t("วันที่เอกสาร"),
         dataIndex: "quotationDate",
         width: 130,
-        render: (value: string) => formatDate(value),
+        render: (value: string) => formatDate(value, lang),
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         key: "customer",
         render: (_v, row) => {
           if (!row.customer) return "—";
           const master = customerById.get(row.customer.id);
           const typeLabel = master?.customerType
-            ? CUSTOMER_TYPE_LABEL[master.customerType] ?? master.customerType
+            ? t(CUSTOMER_TYPE_LABEL[master.customerType] ?? master.customerType)
             : undefined;
           return (
             <div className={styles.customerCell}>
@@ -315,7 +331,7 @@ export default function QuotationsListPage() {
         },
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "items",
         width: 240,
         className: styles.itemColumn,
@@ -324,7 +340,7 @@ export default function QuotationsListPage() {
         ),
       },
       {
-        title: "ผู้สร้าง",
+        title: t("ผู้สร้าง"),
         key: "createdBy",
         width: 150,
         ellipsis: true,
@@ -332,7 +348,7 @@ export default function QuotationsListPage() {
           row.createdBy?.displayName?.trim() || row.createdBy?.username || "—",
       },
       {
-        title: "ยอดสุทธิ(บาท)",
+        title: t("ยอดสุทธิ(บาท)"),
         dataIndex: "totalAmount",
         align: "right",
         width: 140,
@@ -341,17 +357,17 @@ export default function QuotationsListPage() {
         ),
       },
       {
-        title: "ขั้นตอน",
+        title: t("ขั้นตอน"),
         key: "progress",
         width: 160,
         render: (_v, row) => <QuotationProgressCell row={row} />,
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         key: "status",
         width: 160,
         render: (_v, row) => {
-          const badge = resolveStatusBadge(row);
+          const badge = resolveStatusBadge(row, t, lang);
           return (
             <span className={`${styles.statusPill} ${badge.tone}`}>
               {badge.label}
@@ -360,7 +376,7 @@ export default function QuotationsListPage() {
         },
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "actions",
         width: 90,
         align: "center",
@@ -381,7 +397,7 @@ export default function QuotationsListPage() {
                 type="text"
                 className={styles.actionBtn}
                 icon={<EllipsisOutlined />}
-                aria-label={`จัดการใบเสนอราคา ${row.quotationNo}`}
+                aria-label={t("จัดการใบเสนอราคา {no}", { no: row.quotationNo })}
               />
             </Dropdown>
           </div>
@@ -390,7 +406,7 @@ export default function QuotationsListPage() {
     ],
     // rowActions ใช้ canEdit / canApprove / router อยู่ข้างใน
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [canApprove, canEdit, customerById, page, router],
+    [canApprove, canEdit, customerById, lang, page, router, t],
   );
 
   if (!canView) {
@@ -402,8 +418,8 @@ export default function QuotationsListPage() {
       <PageHeader
         eyebrow="Sales · Quotation"
         icon={<FileTextOutlined />}
-        title="ใบเสนอราคา"
-        subtitle="ใช้ใบเสนอราคาให้ลูกค้าพิจารณา และนำไปสร้าง SO เมื่อลูกค้าตอบรับ โดยยังไม่ตัดสต๊อก"
+        title={t("ใบเสนอราคา")}
+        subtitle={t("ใช้ใบเสนอราคาให้ลูกค้าพิจารณา และนำไปสร้าง SO เมื่อลูกค้าตอบรับ โดยยังไม่ตัดสต๊อก")}
         actions={
           <>
 {canCreate ? (
@@ -413,7 +429,7 @@ export default function QuotationsListPage() {
                 type="primary"
                 icon={<PlusOutlined />}
               >
-                สร้างใบเสนอราคา
+                {t("สร้างใบเสนอราคา")}
               </Button>
             </Link>
           ) : null}
@@ -424,15 +440,15 @@ export default function QuotationsListPage() {
       <section className={styles.filterCard}>
         <div className={styles.sectionHead}>
           <p className={styles.sectionEyebrow}>Search</p>
-          <h2 className={styles.sectionTitle}>ค้นหาใบเสนอราคา</h2>
+          <h2 className={styles.sectionTitle}>{t("ค้นหาใบเสนอราคา")}</h2>
           <p className={styles.sectionSubtitle}>
-            กรองด้วยเลขที่ใบเสนอราคา สินค้า ข้อมูลลูกค้า สถานะเอกสาร และช่วงเวลา
+            {t("กรองด้วยเลขที่ใบเสนอราคา สินค้า ข้อมูลลูกค้า สถานะเอกสาร และช่วงเวลา")}
           </p>
         </div>
 
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ใบเสนอราคา</label>
+            <label>{t("เลขที่ใบเสนอราคา")}</label>
             <Input
               allowClear
               prefix={<SearchOutlined className={styles.inputPrefix} />}
@@ -443,15 +459,15 @@ export default function QuotationsListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สินค้า</label>
+            <label>{t("สินค้า")}</label>
             <Select
               allowClear
               showSearch
               mode="multiple"
               maxTagCount="responsive"
               optionFilterProp="label"
-              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
-              aria-label="สินค้าในใบเสนอราคา"
+              placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+              aria-label={t("สินค้าในใบเสนอราคา")}
               value={itemIds}
               onChange={(value) => setItemIds(value)}
               style={{ width: "100%" }}
@@ -460,12 +476,12 @@ export default function QuotationsListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ลูกค้า</label>
+            <label>{t("ลูกค้า")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={customerId}
               onChange={setCustomerId}
               style={{ width: "100%" }}
@@ -477,25 +493,28 @@ export default function QuotationsListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               style={{ width: "100%" }}
               options={Object.entries(QUOTATION_STATUS_FILTER_LABEL).map(
-                ([value, label]) => ({ value, label }),
+                ([value, label]) => ({
+                  value,
+                  label: quotationFlowText(label, lang),
+                }),
               )}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ผู้สร้าง</label>
+            <label>{t("ผู้สร้าง")}</label>
             <Select
               allowClear
               showSearch
               optionFilterProp="label"
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={createdById}
               onChange={setCreatedById}
               style={{ width: "100%" }}
@@ -503,27 +522,30 @@ export default function QuotationsListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ขั้นตอน</label>
+            <label>{t("ขั้นตอน")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={step}
               onChange={setStep}
               style={{ width: "100%" }}
               options={QUOTATION_FLOW_STEPS.map((flowStep, index) => ({
                 value: index + 1,
-                label: `ขั้นตอนที่ ${index + 1} — ${flowStep.label}`,
+                label: t("ขั้นตอนที่ {no} — {label}", {
+                  no: index + 1,
+                  label: quotationFlowText(flowStep.label, lang),
+                }),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่เอกสาร</label>
+            <label>{t("วันที่เอกสาร")}</label>
             <DatePicker
               value={date}
               onChange={setDate}
               format="DD/MM/YYYY"
               style={{ width: "100%" }}
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
             />
           </div>
         </div>
@@ -534,14 +556,14 @@ export default function QuotationsListPage() {
             icon={<FilterOutlined />}
             onClick={clearFilters}
           >
-            ล้างค่า
+            {t("ล้างค่า")}
           </Button>
           <Button
             className={styles.searchBtn}
             icon={<SearchOutlined />}
             onClick={applyFilters}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -550,15 +572,15 @@ export default function QuotationsListPage() {
         <div className={`${styles.sectionHead} ${styles.tableHead}`}>
           <p className={styles.sectionEyebrow}>Quotation List</p>
           <div className={styles.tableTitleRow}>
-            <h2 className={styles.sectionTitle}>รายการใบเสนอราคา</h2>
+            <h2 className={styles.sectionTitle}>{t("รายการใบเสนอราคา")}</h2>
             <span className={styles.countPill}>
-              พบทั้งหมด {total.toLocaleString("th-TH")} รายการ
+              {t("พบทั้งหมด {n} รายการ", { n: total.toLocaleString("th-TH") })}
             </span>
           </div>
           <p className={styles.sectionSubtitle}>
             {canViewAll
-              ? "แสดงข้อมูลและสถานะใบเสนอราคาทั้งหมด"
-              : "แสดงข้อมูลและสถานะใบเสนอราคาที่คุณสร้าง"}
+              ? t("แสดงข้อมูลและสถานะใบเสนอราคาทั้งหมด")
+              : t("แสดงข้อมูลและสถานะใบเสนอราคาที่คุณสร้าง")}
           </p>
         </div>
 
@@ -573,13 +595,15 @@ export default function QuotationsListPage() {
           onRow={(row) => ({
             onClick: () => router.push(`/quotations/${row.id}`),
           })}
-          locale={{ emptyText: "ยังไม่มีใบเสนอราคา" }}
+          locale={{ emptyText: t("ยังไม่มีใบเสนอราคา") }}
         />
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดงทั้งหมด {pagedRows.length.toLocaleString("th-TH")} รายการ จาก{" "}
-            {total.toLocaleString("th-TH")} รายการ
+            {t("แสดงทั้งหมด {shown} รายการ จาก {total} รายการ", {
+              shown: pagedRows.length.toLocaleString("th-TH"),
+              total: total.toLocaleString("th-TH"),
+            })}
           </div>
           <Pagination
             size="small"

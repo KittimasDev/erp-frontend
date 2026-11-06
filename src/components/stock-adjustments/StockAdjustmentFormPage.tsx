@@ -41,6 +41,7 @@ import {
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { CreateStockAdjustmentBody } from "@/types/stock-adjustments";
 import { STOCK_ADJUSTMENT_TYPE_LABEL } from "@/types/stock-adjustments";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./StockAdjustmentFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -68,6 +69,7 @@ type Props = {
 };
 
 export default function StockAdjustmentFormPage({ mode, id }: Props) {
+  const t = useT();
   const router = useRouter();
   const warehouseGroup = readWarehouseGroup(useSearchParams());
   const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
@@ -129,7 +131,9 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
     if (current && !options.some((option) => option.value === current)) {
       const name =
         detail?.adjustmentTypeName ||
-        STOCK_ADJUSTMENT_TYPE_LABEL[current] ||
+        (STOCK_ADJUSTMENT_TYPE_LABEL[current]
+          ? t(STOCK_ADJUSTMENT_TYPE_LABEL[current])
+          : "") ||
         current;
       options.push({
         value: current,
@@ -137,7 +141,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
       });
     }
     return options;
-  }, [activeTypes, watchedType, detail]);
+  }, [activeTypes, watchedType, detail, t]);
 
   useEffect(() => {
     if (mode === "create") {
@@ -211,11 +215,11 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
             key: index,
             text: item
               ? `${item.itemNameTh} ${qtyText}`
-              : `รายการที่ ${index + 1} (รอเลือกสินค้า)`,
+              : t("รายการที่ {n} (รอเลือกสินค้า)", { n: index + 1 }),
           };
         })
         .filter(Boolean) as Array<{ key: number; text: string }>,
-    [watchedItems, items],
+    [watchedItems, items, t],
   );
 
   const onFinish = async (values: FormValues) => {
@@ -256,13 +260,17 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
       <PageHeader
         eyebrow="Stock Adjustment"
         icon={<SwapOutlined />}
-        title={mode === "create" ? "สร้างใบปรับปรุงสต๊อก" : "แก้ไขใบปรับปรุงสต๊อก"}
-        subtitle="กรอกจำนวนแบบมีเครื่องหมาย (+ เพิ่ม / − ลด) ต่อบรรทัด — สต๊อกจะเปลี่ยนเมื่ออนุมัติเท่านั้น"
+        title={
+          mode === "create"
+            ? t("สร้างใบปรับปรุงสต๊อก")
+            : t("แก้ไขใบปรับปรุงสต๊อก")
+        }
+        subtitle={t("กรอกจำนวนแบบมีเครื่องหมาย (+ เพิ่ม / − ลด) ต่อบรรทัด — สต๊อกจะเปลี่ยนเมื่ออนุมัติเท่านั้น")}
         actions={
           <>
 <div className={styles.backLink}>
           <Link href={scopePath("/inventory/stock-adjustments")}>
-            <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
+            <Button icon={<ArrowLeftOutlined />}>{t("กลับรายการ")}</Button>
           </Link>
         </div>
           </>
@@ -281,27 +289,27 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+                  <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
                   <p className={styles.sectionHint}>
-                    เลขที่ใบปรับปรุงจะสร้างอัตโนมัติเมื่อบันทึก
+                    {t("เลขที่ใบปรับปรุงจะสร้างอัตโนมัติเมื่อบันทึก")}
                   </p>
                 </div>
 
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่"
+                    label={t("วันที่")}
                     name="adjustmentDate"
-                    rules={[{ required: true, message: "กรุณาเลือกวันที่" }]}
+                    rules={[{ required: true, message: t("กรุณาเลือกวันที่") }]}
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
 
-                  <Form.Item className={styles.field} label="ประเภท" required>
+                  <Form.Item className={styles.field} label={t("ประเภท")} required>
                     <div className={styles.typeFieldRow}>
                       <Form.Item
                         name="adjustmentType"
-                        rules={[{ required: true, message: "เลือกประเภท" }]}
+                        rules={[{ required: true, message: t("เลือกประเภท") }]}
                         noStyle
                       >
                         <Select
@@ -322,7 +330,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                                     }
                                     onClick={() => setTypeModalOpen(true)}
                                   >
-                                    สร้างประเภทใหม่
+                                    {t("สร้างประเภทใหม่")}
                                   </Button>
                                 </div>
                               ) : null}
@@ -334,31 +342,31 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                         <Button
                           icon={<PlusOutlined />}
                           onClick={() => setTypeModalOpen(true)}
-                          aria-label="สร้างประเภทใหม่"
+                          aria-label={t("สร้างประเภทใหม่")}
                         >
-                          สร้าง
+                          {t("สร้าง")}
                         </Button>
                       ) : null}
                     </div>
                     <p className={styles.typeHint}>
                       <Link href="/masters/stock-adjustment-types">
-                        จัดการประเภทใบปรับปรุงสต๊อก
+                        {t("จัดการประเภทใบปรับปรุงสต๊อก")}
                       </Link>
                     </p>
                   </Form.Item>
 
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="เหตุผล"
+                    label={t("เหตุผล")}
                     name="reason"
                     rules={[
-                      { required: true, message: "กรุณาระบุเหตุผล" },
-                      { whitespace: true, message: "กรุณาระบุเหตุผล" },
+                      { required: true, message: t("กรุณาระบุเหตุผล") },
+                      { whitespace: true, message: t("กรุณาระบุเหตุผล") },
                     ]}
                   >
                     <Input.TextArea
                       rows={2}
-                      placeholder="เช่น พบของเกินจากการนับ / ของเสียหาย"
+                      placeholder={t("เช่น พบของเกินจากการนับ / ของเสียหาย")}
                     />
                   </Form.Item>
                 </div>
@@ -366,9 +374,9 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>รายการปรับปรุง</h2>
+                  <h2 className={styles.sectionTitle}>{t("รายการปรับปรุง")}</h2>
                   <p className={styles.sectionHint}>
-                    Lot ไม่บังคับ — ถ้าเลือก Lot จะปรับทั้งยอด Lot และยอดคลัง
+                    {t("Lot ไม่บังคับ — ถ้าเลือก Lot จะปรับทั้งยอด Lot และยอดคลัง")}
                   </p>
                 </div>
 
@@ -379,7 +387,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                       validator: async (_, value) => {
                         if (!value || value.length < 1) {
                           return Promise.reject(
-                            new Error("ต้องมีรายการอย่างน้อย 1 รายการ"),
+                            new Error(t("ต้องมีรายการอย่างน้อย 1 รายการ")),
                           );
                         }
                       },
@@ -408,7 +416,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                         return (
                           <div key={key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
-                              <strong>รายการที่ {index + 1}</strong>
+                              <strong>{t("รายการที่ {n}", { n: index + 1 })}</strong>
                               {fields.length > 1 ? (
                                 <Button
                                   type="text"
@@ -417,7 +425,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                                   icon={<DeleteOutlined />}
                                   onClick={() => remove(name)}
                                 >
-                                  ลบ
+                                  {t("ลบ")}
                                 </Button>
                               ) : null}
                             </div>
@@ -426,14 +434,14 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="สินค้า"
+                                label={t("สินค้า")}
                                 name={[name, "itemId"]}
                                 rules={[
-                                  { required: true, message: "เลือกสินค้า" },
+                                  { required: true, message: t("เลือกสินค้า") },
                                 ]}
                               >
                                 <Select
-                                  placeholder="ค้นหา/เลือกสินค้า"
+                                  placeholder={t("ค้นหา/เลือกสินค้า")}
                                   showSearch
                                   optionFilterProp="label"
                                   options={items.map((item) => ({
@@ -461,10 +469,10 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="หน่วย"
+                                label={t("หน่วย")}
                                 name={[name, "unitId"]}
                                 rules={[
-                                  { required: true, message: "เลือกหน่วย" },
+                                  { required: true, message: t("เลือกหน่วย") },
                                 ]}
                               >
                                 <Select
@@ -480,10 +488,10 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="คลัง"
+                                label={t("คลัง")}
                                 name={[name, "warehouseId"]}
                                 rules={[
-                                  { required: true, message: "เลือกคลัง" },
+                                  { required: true, message: t("เลือกคลัง") },
                                 ]}
                               >
                                 <Select
@@ -509,10 +517,10 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="ตำแหน่ง"
+                                label={t("ตำแหน่ง")}
                                 name={[name, "locationId"]}
                                 rules={[
-                                  { required: true, message: "เลือกตำแหน่ง" },
+                                  { required: true, message: t("เลือกตำแหน่ง") },
                                 ]}
                               >
                                 <Select
@@ -521,8 +529,8 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                                   disabled={!line?.warehouseId}
                                   placeholder={
                                     !line?.warehouseId
-                                      ? "เลือกคลังก่อน"
-                                      : "เลือกตำแหน่ง"
+                                      ? t("เลือกคลังก่อน")
+                                      : t("เลือกตำแหน่ง")
                                   }
                                   options={lineLocations.map((loc) => ({
                                     value: loc.id,
@@ -540,7 +548,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="Lot (ถ้ามี)"
+                                label={t("Lot (ถ้ามี)")}
                                 name={[name, "lotId"]}
                               >
                                 <Select
@@ -550,12 +558,12 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                                   disabled={!line?.itemId || !line?.locationId}
                                   placeholder={
                                     !line?.itemId || !line?.locationId
-                                      ? "เลือกสินค้าและตำแหน่งก่อน"
-                                      : "ไม่ระบุ Lot"
+                                      ? t("เลือกสินค้าและตำแหน่งก่อน")
+                                      : t("ไม่ระบุ Lot")
                                   }
                                   options={availableLots.map((lot) => ({
                                     value: lot.lotId,
-                                    label: `${lot.lotNo} (คงเหลือ ${lot.quantityOnHand})`,
+                                    label: `${lot.lotNo} (${t("คงเหลือ")} ${lot.quantityOnHand})`,
                                   }))}
                                 />
                               </Form.Item>
@@ -563,12 +571,12 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="จำนวนปรับ (+/−)"
+                                label={t("จำนวนปรับ (+/−)")}
                                 name={[name, "adjustQuantity"]}
                                 rules={[
                                   {
                                     required: true,
-                                    message: "กรอกจำนวนปรับ",
+                                    message: t("กรอกจำนวนปรับ"),
                                   },
                                   {
                                     validator: async (_, value) => {
@@ -577,7 +585,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                                         Number(value) === 0
                                       ) {
                                         return Promise.reject(
-                                          new Error("จำนวนต้องไม่เป็นศูนย์"),
+                                          new Error(t("จำนวนต้องไม่เป็นศูนย์")),
                                         );
                                       }
                                     },
@@ -586,38 +594,38 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                               >
                                 <InputNumber
                                   style={{ width: "100%" }}
-                                  placeholder="เช่น 10 หรือ -5"
+                                  placeholder={t("เช่น 10 หรือ -5")}
                                 />
                               </Form.Item>
 
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="ต้นทุน/หน่วย"
+                                label={t("ต้นทุน/หน่วย")}
                                 name={[name, "unitCost"]}
                               >
                                 <InputNumber
                                   style={{ width: "100%" }}
                                   min={0}
-                                  placeholder="ถ้ามี"
+                                  placeholder={t("ถ้ามี")}
                                 />
                               </Form.Item>
 
                               <Form.Item
                                 {...restField}
                                 className={`${styles.field} ${styles.formGridFull}`}
-                                label="หมายเหตุบรรทัด"
+                                label={t("หมายเหตุบรรทัด")}
                                 name={[name, "remark"]}
                               >
-                                <Input placeholder="ถ้ามี" />
+                                <Input placeholder={t("ถ้ามี")} />
                               </Form.Item>
                             </div>
 
                             {selectedLot ? (
                               <p className={styles.sectionHint}>
-                                ยอด Lot ปัจจุบัน (อ้างอิง):{" "}
-                                {selectedLot.quantityOnHand} — ยอดจริงตอนอนุมัติ
-                                จะคำนวณจากฐานข้อมูลอีกครั้ง
+                                {t("ยอด Lot ปัจจุบัน (อ้างอิง):")}{" "}
+                                {selectedLot.quantityOnHand} —{" "}
+                                {t("ยอดจริงตอนอนุมัติ จะคำนวณจากฐานข้อมูลอีกครั้ง")}
                               </p>
                             ) : null}
                           </div>
@@ -630,7 +638,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                         onClick={() => add({})}
                         block
                       >
-                        เพิ่มรายการ
+                        {t("เพิ่มรายการ")}
                       </Button>
                       <Form.ErrorList errors={errors} />
                     </div>
@@ -641,14 +649,14 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
 
             <div className={styles.footerBar}>
               <p className={styles.footerHint}>
-                บันทึกแล้วสถานะจะเป็น DRAFT — ส่งอนุมัติแล้วให้หัวหน้าคลังอนุมัติก่อนปรับสต๊อกจริง
+                {t("บันทึกแล้วสถานะจะเป็น DRAFT — ส่งอนุมัติแล้วให้หัวหน้าคลังอนุมัติก่อนปรับสต๊อกจริง")}
               </p>
               <div className={styles.footerActions}>
                 <Button
                   className={styles.cancelBtn}
                   onClick={() => router.push(scopePath("/inventory/stock-adjustments"))}
                 >
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -656,7 +664,7 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                   htmlType="submit"
                   loading={saving}
                 >
-                  {mode === "create" ? "บันทึกร่าง" : "บันทึกการแก้ไข"}
+                  {mode === "create" ? t("บันทึกร่าง") : t("บันทึกการแก้ไข")}
                 </Button>
               </div>
             </div>
@@ -664,12 +672,12 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
 
           <aside className={styles.summaryCard}>
             <div>
-              <p className={styles.summaryEyebrow}>สรุปแบบฟอร์ม</p>
+              <p className={styles.summaryEyebrow}>{t("สรุปแบบฟอร์ม")}</p>
               <h2 className={styles.summaryTitle}>
-                {mode === "create" ? "ใบปรับปรุงใหม่" : "แก้ไข DRAFT"}
+                {mode === "create" ? t("ใบปรับปรุงใหม่") : t("แก้ไข DRAFT")}
               </h2>
               <p className={styles.summaryLead}>
-                ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ
+                {t("ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ")}
               </p>
             </div>
 
@@ -681,14 +689,14 @@ export default function StockAdjustmentFormPage({ mode, id }: Props) {
                   ))}
                 </ul>
               ) : (
-                <p className={styles.previewMeta}>ยังไม่มีรายการ</p>
+                <p className={styles.previewMeta}>{t("ยังไม่มีรายการ")}</p>
               )}
             </div>
 
             <div className={styles.flowNote}>
-              <strong>ขั้นตอนถัดไป</strong>
+              <strong>{t("ขั้นตอนถัดไป")}</strong>
               <p>
-                หลังบันทึก → ส่งอนุมัติ → หัวหน้าคลังอนุมัติ → ปรับสต๊อกจริง
+                {t("หลังบันทึก → ส่งอนุมัติ → หัวหน้าคลังอนุมัติ → ปรับสต๊อกจริง")}
               </p>
             </div>
           </aside>

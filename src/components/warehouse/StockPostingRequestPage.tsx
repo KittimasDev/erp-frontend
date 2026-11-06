@@ -24,6 +24,9 @@ import {
 import dayjs from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatDate as formatLocaleDate } from "@/lib/i18n/format";
 import { useCreateStockPostingRequestMutation } from "@/hooks/stock-posting/useStockPostingMutations";
 import { useStockPostingRequestByReceiptQuery } from "@/hooks/stock-posting/useStockPostingQueries";
 import { useRawTirePurchaseReceiptQuery } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
@@ -34,7 +37,7 @@ import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-ac
 import { RoleCode } from "@/lib/auth/role-codes";
 import type { ReceiptItem } from "@/types/raw-tire-purchase-receipt";
 import {
-  STOCK_POSTING_REQUEST_STATUS_LABEL,
+  stockPostingStatusLabel,
   StockPostingRequestStatus,
 } from "@/types/stock-posting-request";
 import {
@@ -95,13 +98,6 @@ function formatWeight(value?: string | number) {
   });
 }
 
-function formatDate(value?: string) {
-  if (!value) {
-    return "-";
-  }
-  return new Date(value).toLocaleDateString("th-TH");
-}
-
 function getRemainingKg(item: ReceiptItem) {
   if (item.remainingWeightKg !== undefined && item.remainingWeightKg !== "") {
     return Math.max(0, Number(item.remainingWeightKg) || 0);
@@ -126,6 +122,13 @@ function newDestKey() {
 
 export default function StockPostingRequestPage({ receiptId }: Props) {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
+  // "ยกเลิก" (สถานะ Cancelled) ชนกับปุ่ม Cancel จึงไม่ผ่าน dictionary
+  const receiptStatusText = (status: string) =>
+    lang === "en" && status === "CANCELLED"
+      ? "Cancelled"
+      : t(RECEIPT_STATUS_LABELS[status] ?? status);
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
   const [lineDrafts, setLineDrafts] = useState<Record<string, LineDraft>>({});
@@ -275,7 +278,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
     );
 
     if (!selectedLines.length) {
-      message.warning("กรุณาเลือกรายการที่ต้องการรับเข้าคลังอย่างน้อย 1 รายการ");
+      message.warning(t("กรุณาเลือกรายการที่ต้องการรับเข้าคลังอย่างน้อย 1 รายการ"));
       return;
     }
 
@@ -297,7 +300,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
         line.purchaseItemId;
 
       if (!line.destinations.length) {
-        message.error(`${label}: ต้องมีปลายทางอย่างน้อย 1 คลัง`);
+        message.error(t("{label}: ต้องมีปลายทางอย่างน้อย 1 คลัง", { label }));
         return;
       }
 
@@ -306,13 +309,13 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
         const qty = Number(dest.receivedWeightKg) || 0;
         if (!(qty > 0)) {
           message.error(
-            `${label} ปลายทางที่ ${index + 1}: น้ำหนักต้องมากกว่า 0`,
+            t("{label} ปลายทางที่ {n}: น้ำหนักต้องมากกว่า 0", { label, n: index + 1 }),
           );
           return;
         }
         if (!dest.warehouseId || !dest.warehouseLocationId) {
           message.error(
-            `${label} ปลายทางที่ ${index + 1}: กรุณาเลือกคลังและตำแหน่ง`,
+            t("{label} ปลายทางที่ {n}: กรุณาเลือกคลังและตำแหน่ง", { label, n: index + 1 }),
           );
           return;
         }
@@ -327,7 +330,11 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
 
       if (destSum > remaining + 1e-9) {
         message.error(
-          `${label}: รวมน้ำหนักปลายทาง ${formatWeight(destSum)} เกินคงเหลือ ${formatWeight(remaining)} กก.`,
+          t("{label}: รวมน้ำหนักปลายทาง {sum} เกินคงเหลือ {remaining} กก.", {
+            label,
+            sum: formatWeight(destSum),
+            remaining: formatWeight(remaining),
+          }),
         );
         return;
       }
@@ -357,24 +364,24 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
 
   const statusTag = (() => {
     if (fullyPosted) {
-      return { color: "success" as const, label: "รับเข้าคลังแล้ว" };
+      return { color: "success" as const, label: t("รับเข้าคลังแล้ว") };
     }
     if (pendingExists) {
-      return { color: "processing" as const, label: "รอคลังเลือกคลังและอนุมัติ" };
+      return { color: "processing" as const, label: t("รอคลังเลือกคลังและอนุมัติ") };
     }
     if (unpaid && receipt?.status === "CONFIRMED") {
-      return { color: "warning" as const, label: "รอจ่ายเงินก่อนเข้าคลัง" };
+      return { color: "warning" as const, label: t("รอจ่ายเงินก่อนเข้าคลัง") };
     }
     if (receipt?.stockPostingStatus === "PARTIALLY_POSTED") {
-      return { color: "warning" as const, label: "รับเข้าบางส่วน — ส่งต่อได้" };
+      return { color: "warning" as const, label: t("รับเข้าบางส่วน — ส่งต่อได้") };
     }
     if (existing?.status === StockPostingRequestStatus.REJECTED) {
-      return { color: "warning" as const, label: "ไม่อนุมัติ — ส่งใหม่ได้" };
+      return { color: "warning" as const, label: t("ไม่อนุมัติ — ส่งใหม่ได้") };
     }
     if (receipt?.status === "CONFIRMED") {
-      return { color: "processing" as const, label: "พร้อมส่งคำขอ" };
+      return { color: "processing" as const, label: t("พร้อมส่งคำขอ") };
     }
-    return { color: "default" as const, label: "ยังไม่พร้อม" };
+    return { color: "default" as const, label: t("ยังไม่พร้อม") };
   })();
 
   return (
@@ -384,14 +391,14 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
       <section className={styles.page}>
         <PageHeader
           eyebrow="Raw Tire Receiving"
-          title="ขอรับยางเข้าคลัง"
+          title={t("ขอรับยางเข้าคลัง")}
           back={
             <Button
             type="text"
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(`/receiving/receipts/${receiptId}`)}
           >
-            กลับใบรับซื้อ
+            {t("กลับใบรับซื้อ")}
           </Button>
           }
           actions={
@@ -404,7 +411,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                 void existingQuery.refetch();
               }}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
             </>
           }
@@ -414,7 +421,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
           <div className={styles.card}>
             <div className={styles.cardBody}>
               <Typography.Text type="danger">
-                โหลดข้อมูลคำขอเข้าคลังไม่สำเร็จ
+                {t("โหลดข้อมูลคำขอเข้าคลังไม่สำเร็จ")}
               </Typography.Text>
             </div>
           </div>
@@ -424,17 +431,19 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
               <div className={styles.cardHeader}>
                 <div className={styles.detailTitleRow}>
                   <div>
-                    <h3>ส่งคำขอรับเข้าคลัง</h3>
+                    <h3>{t("ส่งคำขอรับเข้าคลัง")}</h3>
                     <p>
-                      ใบรับซื้อ {receipt.receiptNo} ·{" "}
-                      {receipt.seller?.sellerName ?? "-"} · น้ำหนักจ่ายได้{" "}
-                      {formatWeight(receipt.payableWeightKg)} กก. · ยอด{" "}
-                      {formatMoney(receipt.totalAmount)} บาท
+                      {t("ใบรับซื้อ {no} · {seller} · น้ำหนักจ่ายได้ {weight} กก. · ยอด {amount} บาท", {
+                        no: receipt.receiptNo,
+                        seller: receipt.seller?.sellerName ?? "-",
+                        weight: formatWeight(receipt.payableWeightKg),
+                        amount: formatMoney(receipt.totalAmount),
+                      })}
                     </p>
                   </div>
                   <div className={styles.detailTitleTags}>
                     <Tag className={styles.flowTag}>
-                      {RECEIPT_STATUS_LABELS[receipt.status] ?? receipt.status}
+                      {receiptStatusText(receipt.status)}
                     </Tag>
                     <Tag color={statusTag.color} className={styles.flowTag}>
                       {statusTag.label}
@@ -450,8 +459,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                   <div className={styles.card}>
                     <div className={styles.cardBody}>
                       <Typography.Text type="warning">
-                        ต้องมีสิทธิ์ส่งคำขอเข้าคลัง (RECEIVING.EDIT / ADD
-                        หรือ STOCK_POSTING_APPROVALS.ADD ใน Permission Matrix)
+                        {t("ต้องมีสิทธิ์ส่งคำขอเข้าคลัง (RECEIVING.EDIT / ADD หรือ STOCK_POSTING_APPROVALS.ADD ใน Permission Matrix)")}
                       </Typography.Text>
                     </div>
                   </div>
@@ -461,7 +469,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                   <div className={styles.card}>
                     <div className={styles.cardBody}>
                       <Typography.Text type="danger">
-                        ใบรับซื้อต้องสถานะยืนยันแล้วก่อนส่งคำขอรับเข้าคลัง
+                        {t("ใบรับซื้อต้องสถานะยืนยันแล้วก่อนส่งคำขอรับเข้าคลัง")}
                       </Typography.Text>
                     </div>
                   </div>
@@ -470,17 +478,16 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                 {existing ? (
                   <div className={styles.card}>
                     <div className={styles.cardHeader}>
-                      <h3>คำขอล่าสุด</h3>
+                      <h3>{t("คำขอล่าสุด")}</h3>
                       <p>
                         {existing.requestNo} ·{" "}
-                        {STOCK_POSTING_REQUEST_STATUS_LABEL[existing.status] ??
-                          existing.status}
+                        {stockPostingStatusLabel(existing.status, lang)}
                       </p>
                     </div>
                     <div className={styles.cardBody}>
                       <div className={styles.detailGrid}>
                         <DetailItem
-                          label="คลัง (หัวคำขอ)"
+                          label={t("คลัง (หัวคำขอ)")}
                           value={
                             existing.warehouseName
                               ? `${existing.warehouseCode ?? ""} · ${existing.warehouseName}`
@@ -488,7 +495,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                           }
                         />
                         <DetailItem
-                          label="ตำแหน่ง"
+                          label={t("ตำแหน่ง")}
                           value={
                             existing.locationName
                               ? `${existing.locationCode ?? ""} · ${existing.locationName}`
@@ -496,11 +503,11 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                           }
                         />
                         <DetailItem
-                          label="วันที่รับเข้า"
-                          value={formatDate(existing.postingDate)}
+                          label={t("วันที่รับเข้า")}
+                          value={formatLocaleDate(existing.postingDate, lang)}
                         />
                         <DetailItem
-                          label="ผู้ขอ"
+                          label={t("ผู้ขอ")}
                           value={
                             existing.requestedBy?.displayName ||
                             existing.requestedBy?.username ||
@@ -509,7 +516,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                         />
                         {existing.rejectReason ? (
                           <DetailItem
-                            label="เหตุผลไม่อนุมัติ"
+                            label={t("เหตุผลไม่อนุมัติ")}
                             value={existing.rejectReason}
                             fullWidth
                           />
@@ -520,8 +527,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                           type="secondary"
                           style={{ marginTop: 12, marginBottom: 0 }}
                         >
-                          มีคำขอรออนุมัติอยู่แล้ว — ไม่สามารถส่งซ้ำได้
-                          จนกว่าจะถูกอนุมัติหรือปฏิเสธ
+                          {t("มีคำขอรออนุมัติอยู่แล้ว — ไม่สามารถส่งซ้ำได้ จนกว่าจะถูกอนุมัติหรือปฏิเสธ")}
                         </Typography.Paragraph>
                       ) : null}
                       {fullyPosted ? (
@@ -529,7 +535,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                           type="success"
                           style={{ marginTop: 12, marginBottom: 0 }}
                         >
-                          อนุมัติและรับเข้าคลังครบแล้ว
+                          {t("อนุมัติและรับเข้าคลังครบแล้ว")}
                         </Typography.Paragraph>
                       ) : null}
                     </div>
@@ -539,9 +545,9 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                 <div className={styles.card}>
                   <div className={styles.listHeader}>
                     <div>
-                      <h3>เลือกรายการและคลังปลายทาง</h3>
+                      <h3>{t("เลือกรายการและคลังปลายทาง")}</h3>
                       <p>
-                        แยกรายการเดียวเข้าได้หลายคลัง — รวมน้ำหนักห้ามเกินคงเหลือ
+                        {t("แยกรายการเดียวเข้าได้หลายคลัง — รวมน้ำหนักห้ามเกินคงเหลือ")}
                       </p>
                     </div>
                   </div>
@@ -549,8 +555,8 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                     {(canSubmit ? receivableItems : []).length === 0 ? (
                       <Typography.Text type="secondary">
                         {fullyPosted
-                          ? "รับเข้าคลังครบทุกรายการแล้ว"
-                          : "ไม่มีรายการคงเหลือให้รับเข้า"}
+                          ? t("รับเข้าคลังครบทุกรายการแล้ว")
+                          : t("ไม่มีรายการคงเหลือให้รับเข้า")}
                       </Typography.Text>
                     ) : (
                       <div className={lineStyles.lineList}>
@@ -583,9 +589,11 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                   <strong>{label}</strong>
                                 </Checkbox>
                                 <span className={lineStyles.sectionHint}>
-                                  รวม {formatWeight(item.weightKg)} · รับแล้ว{" "}
-                                  {formatWeight(posted)} · เหลือ{" "}
-                                  {formatWeight(remaining)} กก.
+                                  {t("รวม {total} · รับแล้ว {posted} · เหลือ {remaining} กก.", {
+                                    total: formatWeight(item.weightKg),
+                                    posted: formatWeight(posted),
+                                    remaining: formatWeight(remaining),
+                                  })}
                                 </span>
                               </div>
 
@@ -620,7 +628,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                       >
                                         <div className={lineStyles.destCardHead}>
                                           <span>
-                                            ปลายทางที่ {destIndex + 1}
+                                            {t("ปลายทางที่ {n}", { n: destIndex + 1 })}
                                           </span>
                                           {destinations.length > 1 ? (
                                             <Button
@@ -637,7 +645,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                                 })
                                               }
                                             >
-                                              ลบ
+                                              {t("ลบ")}
                                             </Button>
                                           ) : null}
                                         </div>
@@ -651,7 +659,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                                 marginBottom: 4,
                                               }}
                                             >
-                                              น้ำหนัก (กก.)
+                                              {t("น้ำหนัก (กก.)")}
                                             </Typography.Text>
                                             <InputNumber
                                               style={{ width: "100%" }}
@@ -684,13 +692,13 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                                 marginBottom: 4,
                                               }}
                                             >
-                                              คลังสินค้า
+                                              {t("คลังสินค้า")}
                                             </Typography.Text>
                                             <Select
                                               showSearch
                                               optionFilterProp="label"
                                               style={{ width: "100%" }}
-                                              placeholder="เลือกคลัง"
+                                              placeholder={t("เลือกคลัง")}
                                               options={warehouseOptions}
                                               loading={
                                                 warehousesQuery.isLoading
@@ -714,7 +722,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                                 marginBottom: 4,
                                               }}
                                             >
-                                              ตำแหน่งจัดเก็บ
+                                              {t("ตำแหน่งจัดเก็บ")}
                                             </Typography.Text>
                                             <Select
                                               showSearch
@@ -722,8 +730,8 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                               style={{ width: "100%" }}
                                               placeholder={
                                                 dest.warehouseId
-                                                  ? "เลือกตำแหน่ง"
-                                                  : "เลือกคลังก่อน"
+                                                  ? t("เลือกตำแหน่ง")
+                                                  : t("เลือกคลังก่อน")
                                               }
                                               disabled={!dest.warehouseId}
                                               loading={
@@ -771,11 +779,13 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                         });
                                       }}
                                     >
-                                      เพิ่มคลัง
+                                      {t("เพิ่มคลัง")}
                                     </Button>
                                     <Typography.Text type="secondary">
-                                      รวมรับ {formatWeight(destSum)} / เหลือ{" "}
-                                      {formatWeight(remaining)} กก.
+                                      {t("รวมรับ {sum} / เหลือ {remaining} กก.", {
+                                        sum: formatWeight(destSum),
+                                        remaining: formatWeight(remaining),
+                                      })}
                                     </Typography.Text>
                                   </div>
                                 </div>
@@ -790,8 +800,8 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
 
                 <div className={styles.card}>
                   <div className={styles.cardHeader}>
-                    <h3>ข้อมูลคำขอรับเข้าคลัง</h3>
-                    <p>ระบุวันที่รับเข้า แล้วส่งให้หัวหน้าคลังอนุมัติ</p>
+                    <h3>{t("ข้อมูลคำขอรับเข้าคลัง")}</h3>
+                    <p>{t("ระบุวันที่รับเข้า แล้วส่งให้หัวหน้าคลังอนุมัติ")}</p>
                   </div>
                   <div className={styles.cardBody}>
                     <Form
@@ -808,12 +818,12 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                         <>
                           <div className={styles.detailGrid}>
                             <Form.Item
-                              label="วันที่รับเข้า"
+                              label={t("วันที่รับเข้า")}
                               name="postingDate"
                               rules={[
                                 {
                                   required: true,
-                                  message: "กรุณาเลือกวันที่",
+                                  message: t("กรุณาเลือกวันที่"),
                                 },
                               ]}
                             >
@@ -824,10 +834,10 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                             </Form.Item>
                           </div>
 
-                          <Form.Item label="หมายเหตุ" name="remark">
+                          <Form.Item label={t("หมายเหตุ")} name="remark">
                             <Input.TextArea
                               rows={3}
-                              placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"
+                              placeholder={t("หมายเหตุเพิ่มเติม (ถ้ามี)")}
                             />
                           </Form.Item>
 
@@ -844,8 +854,9 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                 selectedRequestWeight <= 0
                               }
                             >
-                              ส่งคำขอรับเข้าคลัง (
-                              {formatWeight(selectedRequestWeight)} กก.)
+                              {t("ส่งคำขอรับเข้าคลัง ({weight} กก.)", {
+                                weight: formatWeight(selectedRequestWeight),
+                              })}
                             </Button>
                             <Button
                               disabled={isBusy}
@@ -853,7 +864,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                 router.push(`/receiving/receipts/${receiptId}`)
                               }
                             >
-                              ยกเลิก
+                              {t("ยกเลิก")}
                             </Button>
                           </div>
                         </>
@@ -861,16 +872,16 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                         <div className={styles.slipLocked}>
                           <Typography.Text type="secondary">
                             {fullyPosted
-                              ? "รับเข้าคลังครบแล้ว — ไม่ต้องส่งคำขออีก"
+                              ? t("รับเข้าคลังครบแล้ว — ไม่ต้องส่งคำขออีก")
                               : pendingExists
-                                ? "มีคำขอรออนุมัติอยู่ — รอคลังเลือกคลังและอนุมัติ"
+                                ? t("มีคำขอรออนุมัติอยู่ — รอคลังเลือกคลังและอนุมัติ")
                                 : unpaid
-                                  ? "ต้องจ่ายเงินใบรับซื้อให้เสร็จก่อน จึงจะเข้าคลังได้"
+                                  ? t("ต้องจ่ายเงินใบรับซื้อให้เสร็จก่อน จึงจะเข้าคลังได้")
                                   : receipt.status !== "CONFIRMED"
-                                  ? "ยืนยันใบรับซื้อก่อน จึงจะส่งคำขอเข้าคลังได้"
+                                  ? t("ยืนยันใบรับซื้อก่อน จึงจะส่งคำขอเข้าคลังได้")
                                   : !canRequest
-                                    ? "ไม่มีสิทธิ์ส่งคำขอรับเข้าคลัง"
-                                    : "ยังไม่สามารถส่งคำขอได้ในสถานะนี้"}
+                                    ? t("ไม่มีสิทธิ์ส่งคำขอรับเข้าคลัง")
+                                    : t("ยังไม่สามารถส่งคำขอได้ในสถานะนี้")}
                           </Typography.Text>
                           {fullyPosted || pendingExists ? (
                             <div style={{ marginTop: 12 }}>
@@ -881,7 +892,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                                   )
                                 }
                               >
-                                ไปหน้ารายการอนุมัติเข้าคลัง
+                                {t("ไปหน้ารายการอนุมัติเข้าคลัง")}
                               </Button>
                             </div>
                           ) : null}
@@ -895,49 +906,47 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
               <aside className={styles.classificationSummarySticky}>
                 <div>
                   <p className={styles.classificationSummaryEyebrow}>
-                    สรุปเข้าคลัง
+                    {t("สรุปเข้าคลัง")}
                   </p>
                   <h3 style={{ margin: "4px 0 8px", fontSize: 18 }}>
                     {receipt.receiptNo}
                   </h3>
                   <Typography.Text type="secondary">
-                    {receipt.seller?.sellerName ?? "ผู้ขาย"}
+                    {receipt.seller?.sellerName ?? t("ผู้ขาย")}
                   </Typography.Text>
                 </div>
 
                 <div className={styles.detailGrid}>
                   <DetailItem
-                    label="สถานะใบรับซื้อ"
-                    value={
-                      RECEIPT_STATUS_LABELS[receipt.status] ?? receipt.status
-                    }
+                    label={t("สถานะใบรับซื้อ")}
+                    value={receiptStatusText(receipt.status)}
                   />
                   <DetailItem
-                    label="สถานะสต๊อก"
-                    value={
+                    label={t("สถานะสต๊อก")}
+                    value={t(
                       STOCK_POSTING_STATUS_LABELS[
                         receipt.stockPostingStatus
                       ] ??
                       receipt.stockPostingStatus ??
-                      "-"
-                    }
+                      "-",
+                    )}
                   />
                   <DetailItem
-                    label="น้ำหนักจ่ายได้"
-                    value={`${formatWeight(receipt.payableWeightKg)} กก.`}
+                    label={t("น้ำหนักจ่ายได้")}
+                    value={t("{w} กก.", { w: formatWeight(receipt.payableWeightKg) })}
                   />
                   <DetailItem
-                    label="ยอดเงิน"
-                    value={`${formatMoney(receipt.totalAmount)} บาท`}
+                    label={t("ยอดเงิน")}
+                    value={t("{w} บาท", { w: formatMoney(receipt.totalAmount) })}
                   />
                   <DetailItem
-                    label="รายการคงเหลือ"
-                    value={`${receivableItems.length} รายการ`}
+                    label={t("รายการคงเหลือ")}
+                    value={t("{n} รายการ", { n: receivableItems.length })}
                   />
                   {canSubmit ? (
                     <DetailItem
-                      label="น้ำหนักที่ขอรอบนี้"
-                      value={`${formatWeight(selectedRequestWeight)} กก.`}
+                      label={t("น้ำหนักที่ขอรอบนี้")}
+                      value={t("{w} กก.", { w: formatWeight(selectedRequestWeight) })}
                     />
                   ) : null}
                 </div>
@@ -946,8 +955,7 @@ export default function StockPostingRequestPage({ receiptId }: Props) {
                   type="secondary"
                   style={{ marginBottom: 0, fontSize: 13 }}
                 >
-                  กด &quot;เพิ่มคลัง&quot; เพื่อแยกน้ำหนักเข้าหลายคลัง
-                  รวมแล้วต้องไม่เกินคงเหลือ
+                  {t("กด “เพิ่มคลัง” เพื่อแยกน้ำหนักเข้าหลายคลัง รวมแล้วต้องไม่เกินคงเหลือ")}
                 </Typography.Paragraph>
               </aside>
             </div>

@@ -7,6 +7,8 @@ import { Button, DatePicker, Form, Input, Spin } from "antd";
 import { ArrowLeftOutlined, FileTextOutlined, SaveOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { useUpdateSalesInvoiceMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import { useSalesInvoiceQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import styles from "./SalesInvoiceFormPage.module.css";
@@ -21,6 +23,7 @@ type FormValues = {
 type Props = { id: string };
 
 export default function SalesInvoiceEditPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const query = useSalesInvoiceQuery(id);
@@ -43,7 +46,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.page}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -51,9 +54,9 @@ export default function SalesInvoiceEditPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.page}>
-        ไม่พบใบแจ้งหนี้
+        {t("ไม่พบใบแจ้งหนี้")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-invoices">กลับ</Link>
+          <Link href="/sales-invoices">{t("กลับ")}</Link>
         </div>
       </div>
     );
@@ -77,14 +80,14 @@ export default function SalesInvoiceEditPage({ id }: Props) {
         eyebrow="Sales Invoices · Edit Draft"
         icon={<FileTextOutlined />}
         title={data.invoiceNo}
-        subtitle="แก้ไขหัวใบแจ้งหนี้ (เฉพาะ DRAFT)"
+        subtitle={t("แก้ไขหัวใบแจ้งหนี้ (เฉพาะ DRAFT)")}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(`/sales-invoices/${id}`)}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           </>
         }
@@ -94,20 +97,20 @@ export default function SalesInvoiceEditPage({ id }: Props) {
         <Form form={form} layout="vertical" onFinish={onFinish}>
           <Form.Item
             name="invoiceDate"
-            label="วันที่ใบแจ้งหนี้"
-            rules={[{ required: true, message: "ระบุวันที่" }]}
+            label={t("วันที่ใบแจ้งหนี้")}
+            rules={[{ required: true, message: t("ระบุวันที่") }]}
           >
             <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="dueDate" label="วันครบกำหนดชำระ">
+          <Form.Item name="dueDate" label={t("วันครบกำหนดชำระ")}>
             <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="remark" label="หมายเหตุ">
+          <Form.Item name="remark" label={t("หมายเหตุ")}>
             <Input.TextArea rows={3} />
           </Form.Item>
           <div className={styles.formActions}>
             <Button onClick={() => router.push(`/sales-invoices/${id}`)}>
-              ยกเลิก
+              {t("ยกเลิก")}
             </Button>
             <Button
               type="primary"
@@ -115,7 +118,7 @@ export default function SalesInvoiceEditPage({ id }: Props) {
               icon={<SaveOutlined />}
               loading={updateMutation.isPending}
             >
-              บันทึก
+              {t("บันทึก")}
             </Button>
           </div>
         </Form>

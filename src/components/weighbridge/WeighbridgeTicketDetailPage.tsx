@@ -28,6 +28,7 @@ import { useT2900TicketDetailQuery } from "@/hooks/weighbridge-tickets/useT2900T
 import { useWeighbridgeTicketQuery } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { useCanApproveStockPostingApprovals } from "@/lib/auth/stock-posting-access";
 import { STOCK_POSTING_STATUS_LABELS } from "@/types/raw-tire-purchase-receipt";
+import { appLocale, tLabel } from "./receiving-i18n";
 import { StockPostingRequestStatus } from "@/types/stock-posting-request";
 import { buildRawTireWarehouseReceiptSlipData } from "@/utils/buildRawTireWarehouseReceiptSlipData";
 
@@ -38,6 +39,7 @@ import ReceivingTicketClassifyWeighPanel from "./ReceivingTicketClassifyWeighPan
 import { TICKET_ORIGIN_COLOR, TICKET_ORIGIN_LABEL } from "./ticket-origin";
 import T2900CameraPhotosGallery from "./T2900CameraPhotosGallery";
 import styles from "./WeighbridgeDashboardPage.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 const DISPLAY_LABELS: Record<string, string> = {
   WAITING_WEIGH_IN: "รอกรอกน้ำหนัก",
@@ -91,7 +93,7 @@ function formatWeight(value?: string) {
   if (Number.isNaN(n)) {
     return value;
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   });
@@ -101,7 +103,7 @@ function formatDateTime(value?: string) {
   if (!value) {
     return "-";
   }
-  return new Date(value).toLocaleString("th-TH");
+  return new Date(value).toLocaleString(appLocale());
 }
 
 function formatMoney(value?: string) {
@@ -109,7 +111,7 @@ function formatMoney(value?: string) {
   if (value === undefined || value === null || value === "" || Number.isNaN(n)) {
     return "-";
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -120,7 +122,7 @@ function formatDateOnly(value?: string) {
   if (!value) {
     return "-";
   }
-  return new Date(value).toLocaleDateString("th-TH");
+  return new Date(value).toLocaleDateString(appLocale());
 }
 
 function isPaymentPaid(view: PaymentView) {
@@ -202,6 +204,7 @@ type Props = {
 };
 
 export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const [isPrinting, setIsPrinting] = useState(false);
@@ -233,7 +236,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const handleExportPhotoReceipt = async () => {
     const detail = t2900Query.data?.data;
     if (!detail) {
-      message.warning("ยังโหลดข้อมูลบัตรจากเครื่องชั่งไม่เสร็จ");
+      message.warning(t("ยังโหลดข้อมูลบัตรจากเครื่องชั่งไม่เสร็จ"));
       return;
     }
     setExportingPhotoReceipt(true);
@@ -245,7 +248,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
       message.error(
         error instanceof Error
           ? error.message
-          : "Export เอกสารแนบรูปเข้า-ออกไม่สำเร็จ",
+          : t("Export เอกสารแนบรูปเข้า-ออกไม่สำเร็จ"),
       );
     } finally {
       setExportingPhotoReceipt(false);
@@ -254,7 +257,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
 
   const handlePrintReceipt = async () => {
     if (!receipt) {
-      message.warning("ยังไม่มีใบรับซื้อให้พิมพ์");
+      message.warning(t("ยังไม่มีใบรับซื้อให้พิมพ์"));
       return;
     }
     setPrintingReceipt(true);
@@ -266,7 +269,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
       );
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "พิมพ์ใบรับซื้อไม่สำเร็จ",
+        error instanceof Error ? error.message : t("พิมพ์ใบรับซื้อไม่สำเร็จ"),
       );
     } finally {
       setPrintingReceipt(false);
@@ -279,7 +282,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   */
   const handlePrintVoucher = async () => {
     if (!paymentContext?.voucher) {
-      message.warning("ยังไม่มีใบสำคัญจ่าย ให้กดออกใบจ่ายเงินก่อน");
+      message.warning(t("ยังไม่มีใบสำคัญจ่าย ให้กดออกใบจ่ายเงินก่อน"));
       return;
     }
     setPrintingVoucher(true);
@@ -292,7 +295,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
       );
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "พิมพ์ใบสำคัญจ่ายไม่สำเร็จ",
+        error instanceof Error ? error.message : t("พิมพ์ใบสำคัญจ่ายไม่สำเร็จ"),
       );
     } finally {
       setPrintingVoucher(false);
@@ -405,13 +408,13 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const documentRows: ReceivingDocumentRow[] = [
     {
       key: "receipt",
-      label: "ใบรับซื้อ",
+      label: t("ใบรับซื้อ"),
       docNo: ticket?.receiptId ? (ticket.receiptNo ?? receipt?.receiptNo) : undefined,
       dateText: receipt?.receiptDate ? formatDateOnly(receipt.receiptDate) : undefined,
       statusText: ticket?.receiptStatus
-        ? (RECEIPT_STATUS_LABELS[ticket.receiptStatus] ?? ticket.receiptStatus)
+        ? tLabel(RECEIPT_STATUS_LABELS[ticket.receiptStatus] ?? ticket.receiptStatus)
         : undefined,
-      pendingHint: "ยังไม่ออก — บันทึกคัดแยกและน้ำหนักใน Step 1 แล้วยืนยันใบรับซื้อ",
+      pendingHint: t("ยังไม่ออก — บันทึกคัดแยกและน้ำหนักใน Step 1 แล้วยืนยันใบรับซื้อ"),
       onOpen: ticket?.receiptId
         ? () => router.push(`/receiving/receipts/${ticket.receiptId}`)
         : undefined,
@@ -421,15 +424,15 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
     },
     {
       key: "voucher",
-      label: "ใบสำคัญจ่าย",
+      label: t("ใบสำคัญจ่าย"),
       docNo: paymentVoucher?.voucherNo,
       dateText: paymentVoucher?.voucherDate
         ? formatDateOnly(paymentVoucher.voucherDate)
         : undefined,
-      statusText: paid ? "จ่ายเงินแล้ว" : undefined,
+      statusText: paid ? t("จ่ายเงินแล้ว") : undefined,
       pendingHint: hasReceipt
-        ? "ยังไม่ออก — กดออกใบจ่ายเงินใน Step 2"
-        : "ยังไม่ออก — ต้องมีใบรับซื้อก่อน",
+        ? t("ยังไม่ออก — กดออกใบจ่ายเงินใน Step 2")
+        : t("ยังไม่ออก — ต้องมีใบรับซื้อก่อน"),
       onOpen: ticket?.receiptId
         ? () => router.push(`/receiving/receipts/${ticket.receiptId}/payment`)
         : undefined,
@@ -438,13 +441,13 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
     },
     {
       key: "warehouse",
-      label: "ใบรับสินค้า",
+      label: t("ใบรับสินค้า"),
       docNo: stockPosted ? (stockRequest?.requestNo ?? receipt?.receiptNo) : undefined,
       dateText: stockRequest?.approvedAt
         ? formatDateOnly(stockRequest.approvedAt)
         : undefined,
-      statusText: stockPosted ? STOCK_POSTING_STATUS_LABELS.POSTED : undefined,
-      pendingHint: "ยังไม่ออก — ออกหลังคลังอนุมัติรับเข้า (Step 3)",
+      statusText: stockPosted ? tLabel(STOCK_POSTING_STATUS_LABELS.POSTED) : undefined,
+      pendingHint: t("ยังไม่ออก — ออกหลังคลังอนุมัติรับเข้า (Step 3)"),
       onOpen: ticket?.receiptId
         ? () =>
             router.push(`/receiving/receipts/${ticket.receiptId}/warehouse-receipt`)
@@ -470,7 +473,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
   const handlePrintTicket = async () => {
     if (!ticket) return;
     if (!ticket.weighOutAt) {
-      message.warning("พิมพ์ตั๋วชั่งได้หลังบันทึกน้ำหนักครบแล้ว");
+      message.warning(t("พิมพ์ตั๋วชั่งได้หลังบันทึกน้ำหนักครบแล้ว"));
       return;
     }
     setIsPrinting(true);
@@ -486,7 +489,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
       );
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "พิมพ์ตั๋วชั่งไม่สำเร็จ",
+        error instanceof Error ? error.message : t("พิมพ์ตั๋วชั่งไม่สำเร็จ"),
       );
     } finally {
       setIsPrinting(false);
@@ -502,7 +505,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/receiving")}
           >
-            กลับภาพรวม
+            {t("กลับภาพรวม")}
           </Button>
           <div style={{ display: "flex", gap: 8 }}>
             <Button
@@ -511,7 +514,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               disabled={!ticket?.weighOutAt}
               onClick={() => void handlePrintTicket()}
             >
-              พิมพ์ตั๋วชั่ง
+              {t("พิมพ์ตั๋วชั่ง")}
             </Button>
             {t2900TckNo ? (
               <Button
@@ -520,7 +523,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                 disabled={!t2900Query.data?.data}
                 onClick={() => void handleExportPhotoReceipt()}
               >
-                Export เอกสารแนบรูปเข้า-ออก
+                {t("Export เอกสารแนบรูปเข้า-ออก")}
               </Button>
             ) : null}
             <Button
@@ -534,7 +537,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                 }
               }}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
           </div>
         </div>
@@ -545,7 +548,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               <Typography.Text type="danger">
                 {ticketQuery.error instanceof Error
                   ? ticketQuery.error.message
-                  : "โหลดรายละเอียดไม่สำเร็จ"}
+                  : t("โหลดรายละเอียดไม่สำเร็จ")}
               </Typography.Text>
             </div>
           </div>
@@ -555,23 +558,23 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               <div className={styles.cardHeader}>
                 <div className={styles.detailTitleRow}>
                   <div>
-                    <h3>ชั่งน้ำหนักรับซื้อยาง</h3>
+                    <h3>{t("ชั่งน้ำหนักรับซื้อยาง")}</h3>
                     <p>
-                      เลขที่ตั๋ว {ticket.ticketNo} · สถานะตั๋ว {ticket.status}
+                      {t("เลขที่ตั๋ว {no} · สถานะตั๋ว {status}", { no: ticket.ticketNo, status: ticket.status })}
                     </p>
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <Tag color={TICKET_ORIGIN_COLOR[ticket.origin ?? "MANUAL"]}>
-                      {TICKET_ORIGIN_LABEL[ticket.origin ?? "MANUAL"]}
+                      {tLabel(TICKET_ORIGIN_LABEL[ticket.origin ?? "MANUAL"])}
                       {ticket.origin === "T2900" && ticket.referenceDocNo
-                        ? ` · บัตร ${ticket.referenceDocNo}`
+                        ? ` · ${t("บัตร {no}", { no: ticket.referenceDocNo })}`
                         : ""}
                     </Tag>
                   <Tag className={styles.flowTag}>
-                    {FLOW_LABELS[ticket.flowState ?? ""] ??
+                    {tLabel(FLOW_LABELS[ticket.flowState ?? ""] ??
                       (paid ? FLOW_LABELS.PAYMENT_PAID : undefined) ??
                       DISPLAY_LABELS[ticket.displayStatus] ??
-                      ticket.displayStatus}
+                      ticket.displayStatus)}
                   </Tag>
                   </div>
                 </div>
@@ -587,9 +590,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         : "process"
                   }
                   items={[
-                    { title: "คัดแยกและชั่ง" },
-                    { title: "ออกใบจ่ายเงิน" },
-                    { title: "เข้าคลัง" },
+                    { title: t("คัดแยกและชั่ง") },
+                    { title: t("ออกใบจ่ายเงิน") },
+                    { title: t("เข้าคลัง") },
                   ]}
                 />
                 {nextActionLabel ? (
@@ -609,7 +612,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         className={styles.submitButton}
                         onClick={() => router.push(nextActionHref)}
                       >
-                        ไปดำเนินการต่อ
+                        {t("ไปดำเนินการต่อ")}
                       </Button>
                     ) : null}
                   </div>
@@ -621,8 +624,8 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               <>
                 <div className={styles.card}>
                   <div className={styles.cardHeader}>
-                    <h3>ข้อมูลตั๋วชั่ง</h3>
-                    <p>ผู้ขาย รถ สินค้า เวลา และน้ำหนัก</p>
+                    <h3>{t("ข้อมูลตั๋วชั่ง")}</h3>
+                    <p>{t("ผู้ขาย รถ สินค้า เวลา และน้ำหนัก")}</p>
                   </div>
                   <div className={styles.cardBody}>
                     <Descriptions
@@ -630,35 +633,35 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       size="small"
                       column={{ xs: 1, md: 2 }}
                       items={[
-                        { key: "no", label: "เลขที่ตั๋วชั่ง", children: ticket.ticketNo },
+                        { key: "no", label: t("เลขที่ตั๋วชั่ง"), children: ticket.ticketNo },
                         {
                           key: "origin",
-                          label: "ที่มา",
-                          children: `${TICKET_ORIGIN_LABEL[ticket.origin ?? "MANUAL"]}${
-                            ticket.referenceDocNo ? ` · บัตร ${ticket.referenceDocNo}` : ""
+                          label: t("ที่มา"),
+                          children: `${tLabel(TICKET_ORIGIN_LABEL[ticket.origin ?? "MANUAL"])}${
+                            ticket.referenceDocNo ? ` · ${t("บัตร {no}", { no: ticket.referenceDocNo })}` : ""
                           }`,
                         },
                         {
                           key: "seller",
-                          label: "ผู้ขาย",
+                          label: t("ผู้ขาย"),
                           children:
                             `${ticket.sellerCode ?? ""} ${ticket.sellerName ?? ""}`.trim() || "-",
                         },
-                        { key: "truck", label: "ทะเบียนรถ", children: ticket.truckLicensePlate || "-" },
-                        { key: "driver", label: "คนขับ", children: ticket.driverName || "-" },
+                        { key: "truck", label: t("ทะเบียนรถ"), children: ticket.truckLicensePlate || "-" },
+                        { key: "driver", label: t("คนขับ"), children: ticket.driverName || "-" },
                         {
                           key: "scale",
-                          label: "เครื่องชั่ง",
+                          label: t("เครื่องชั่ง"),
                           children: ticket.scaleName
                             ? `${ticket.scaleCode ? `${ticket.scaleCode} · ` : ""}${ticket.scaleName}`
                             : "-",
                         },
-                        { key: "in", label: "ชั่งเข้า", children: formatDateTime(ticket.weighInAt as string | undefined) },
-                        { key: "out", label: "ชั่งออก", children: formatDateTime(ticket.weighOutAt as string | undefined) },
-                        { key: "gross", label: "น้ำหนักรวม (เข้า)", children: `${formatWeight(ticket.grossWeightKg)} กก.` },
-                        { key: "tare", label: "น้ำหนักรถ (ออก)", children: `${formatWeight(ticket.tareWeightKg)} กก.` },
-                        { key: "net", label: "น้ำหนักสุทธิ", children: `${formatWeight(ticket.netWeightKg)} กก.` },
-                        { key: "created", label: "เปิดตั๋วเมื่อ", children: formatDateTime(ticket.createdAt) },
+                        { key: "in", label: t("ชั่งเข้า"), children: formatDateTime(ticket.weighInAt as string | undefined) },
+                        { key: "out", label: t("ชั่งออก"), children: formatDateTime(ticket.weighOutAt as string | undefined) },
+                        { key: "gross", label: t("น้ำหนักรวม (เข้า)"), children: `${formatWeight(ticket.grossWeightKg)} ${t("กก.")}` },
+                        { key: "tare", label: t("น้ำหนักรถ (ออก)"), children: `${formatWeight(ticket.tareWeightKg)} ${t("กก.")}` },
+                        { key: "net", label: t("น้ำหนักสุทธิ"), children: `${formatWeight(ticket.netWeightKg)} ${t("กก.")}` },
+                        { key: "created", label: t("เปิดตั๋วเมื่อ"), children: formatDateTime(ticket.createdAt) },
                       ]}
                     />
                   </div>
@@ -666,8 +669,8 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
 
                 <div className={styles.card}>
                   <div className={styles.cardHeader}>
-                    <h3>รายการรับซื้อและยอดเงิน</h3>
-                    <p>จากใบรับซื้อ {receipt?.receiptNo ?? ticket.receiptNo ?? ""}</p>
+                    <h3>{t("รายการรับซื้อและยอดเงิน")}</h3>
+                    <p>{t("จากใบรับซื้อ {no}", { no: receipt?.receiptNo ?? ticket.receiptNo ?? "" })}</p>
                   </div>
                   <div className={styles.cardBody}>
                     {receipt ? (
@@ -680,26 +683,26 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             key: `item-${item.id}`,
                             label:
                               `${item.classificationCode ?? ""} ${item.classificationName ?? ""}`.trim() ||
-                              "รายการ",
-                            children: `${formatWeight(item.weightKg)} กก. × ${formatMoney(item.pricePerKg)} = ${formatMoney(item.amount)} บาท`,
+                              t("รายการ"),
+                            children: `${formatWeight(item.weightKg)} ${t("กก.")} × ${formatMoney(item.pricePerKg)} = ${formatMoney(item.amount)} ${t("บาท")}`,
                           })),
                           ...(receipt.deductions ?? []).map((row) => ({
                             key: `ded-${row.id}`,
-                            label: `หัก: ${row.description || row.deductionType}`,
-                            children: `${formatWeight(row.deductionWeightKg)} กก. = ${formatMoney(row.deductionAmount)} บาท`,
+                            label: `${t("หัก:")} ${row.description || row.deductionType}`,
+                            children: `${formatWeight(row.deductionWeightKg)} ${t("กก.")} = ${formatMoney(row.deductionAmount)} ${t("บาท")}`,
                           })),
-                          { key: "payable", label: "น้ำหนักที่จ่าย", children: `${formatWeight(receipt.payableWeightKg)} กก.` },
-                          { key: "subtotal", label: "ยอดก่อนหัก", children: `${formatMoney(receipt.subtotalAmount)} บาท` },
-                          { key: "deduct", label: "ยอดหัก", children: `${formatMoney(receipt.deductionAmount)} บาท` },
+                          { key: "payable", label: t("น้ำหนักที่จ่าย"), children: `${formatWeight(receipt.payableWeightKg)} ${t("กก.")}` },
+                          { key: "subtotal", label: t("ยอดก่อนหัก"), children: `${formatMoney(receipt.subtotalAmount)} ${t("บาท")}` },
+                          { key: "deduct", label: t("ยอดหัก"), children: `${formatMoney(receipt.deductionAmount)} ${t("บาท")}` },
                           {
                             key: "total",
-                            label: "ยอดสุทธิ",
-                            children: <strong>{`${formatMoney(receipt.totalAmount)} บาท`}</strong>,
+                            label: t("ยอดสุทธิ"),
+                            children: <strong>{`${formatMoney(receipt.totalAmount)} ${t("บาท")}`}</strong>,
                           },
                         ]}
                       />
                     ) : (
-                      <Typography.Text type="secondary">กำลังโหลดใบรับซื้อ...</Typography.Text>
+                      <Typography.Text type="secondary">{t("กำลังโหลดใบรับซื้อ...")}</Typography.Text>
                     )}
                   </div>
                 </div>
@@ -708,61 +711,61 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
               <>
             <div className={styles.card}>
               <div className={styles.cardHeader}>
-                <h3>ข้อมูลตั๋วชั่ง</h3>
-                <p>ผู้ขาย รถ คนขับ และเครื่องชั่ง</p>
+                <h3>{t("ข้อมูลตั๋วชั่ง")}</h3>
+                <p>{t("ผู้ขาย รถ คนขับ และเครื่องชั่ง")}</p>
               </div>
               <div className={styles.cardBody}>
                 <div className={styles.ticketInfoLayout}>
                   <div className={styles.ticketInfoPanel}>
-                    <div className={styles.ticketInfoPanelTitle}>ตั๋ว / ผู้ขาย</div>
+                    <div className={styles.ticketInfoPanelTitle}>{t("ตั๋ว / ผู้ขาย")}</div>
                     <div className={styles.ticketInfoRows}>
                       <div className={styles.ticketInfoRow}>
-                        <span>เลขที่ตั๋วชั่ง</span>
+                        <span>{t("เลขที่ตั๋วชั่ง")}</span>
                         <strong>{ticket.ticketNo}</strong>
                       </div>
                       <div className={styles.ticketInfoRow}>
-                        <span>วันที่เปิดตั๋ว</span>
+                        <span>{t("วันที่เปิดตั๋ว")}</span>
                         <strong>{formatDateTime(ticket.createdAt)}</strong>
                       </div>
                       <div className={styles.ticketInfoRow}>
-                        <span>ผู้ขาย</span>
+                        <span>{t("ผู้ขาย")}</span>
                         <strong>{ticket.sellerName || "-"}</strong>
                       </div>
                       <div className={styles.ticketInfoRow}>
-                        <span>รหัสผู้ขาย</span>
+                        <span>{t("รหัสผู้ขาย")}</span>
                         <strong>{ticket.sellerCode || "-"}</strong>
                       </div>
                       <div className={styles.ticketInfoRow}>
-                        <span>สถานะงาน</span>
+                        <span>{t("สถานะงาน")}</span>
                         <strong>
-                          {DISPLAY_LABELS[ticket.displayStatus] ??
-                            ticket.displayStatus}
+                          {tLabel(DISPLAY_LABELS[ticket.displayStatus] ??
+                            ticket.displayStatus)}
                         </strong>
                       </div>
                     </div>
                   </div>
 
                   <div className={styles.ticketInfoPanel}>
-                    <div className={styles.ticketInfoPanelTitle}>รถ / เครื่องชั่ง</div>
+                    <div className={styles.ticketInfoPanelTitle}>{t("รถ / เครื่องชั่ง")}</div>
                     <div className={styles.ticketInfoRows}>
                       <div className={styles.ticketInfoRow}>
-                        <span>ทะเบียนรถ</span>
+                        <span>{t("ทะเบียนรถ")}</span>
                         <strong>{ticket.truckLicensePlate || "-"}</strong>
                       </div>
                       <div className={styles.ticketInfoRow}>
-                        <span>จังหวัด</span>
+                        <span>{t("จังหวัด")}</span>
                         <strong>{ticket.truckProvince || "-"}</strong>
                       </div>
                       <div className={styles.ticketInfoRow}>
-                        <span>คนขับ</span>
+                        <span>{t("คนขับ")}</span>
                         <strong>{ticket.driverName || "-"}</strong>
                       </div>
                       <div className={styles.ticketInfoRow}>
-                        <span>เบอร์โทรคนขับ</span>
+                        <span>{t("เบอร์โทรคนขับ")}</span>
                         <strong>{ticket.driverPhone || "-"}</strong>
                       </div>
                       <div className={styles.ticketInfoRow}>
-                        <span>เครื่องชั่ง</span>
+                        <span>{t("เครื่องชั่ง")}</span>
                         <strong>
                           {ticket.scaleName
                             ? `${ticket.scaleCode ? `${ticket.scaleCode} · ` : ""}${ticket.scaleName}`
@@ -778,26 +781,26 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                   Number(ticket.netWeightKg) > 0) && (
                   <div className={styles.ticketWeightCards}>
                     <div className={styles.ticketWeightCard}>
-                      <span>น้ำหนักเข้า</span>
+                      <span>{t("น้ำหนักเข้า")}</span>
                       <strong>
                         {formatWeight(ticket.grossWeightKg)}
-                        <em>กก.</em>
+                        <em>{t("กก.")}</em>
                       </strong>
                     </div>
                     <div className={styles.ticketWeightCard}>
-                      <span>น้ำหนักออก</span>
+                      <span>{t("น้ำหนักออก")}</span>
                       <strong>
                         {formatWeight(ticket.tareWeightKg)}
-                        <em>กก.</em>
+                        <em>{t("กก.")}</em>
                       </strong>
                     </div>
                     <div
                       className={`${styles.ticketWeightCard} ${styles.ticketWeightNet}`}
                     >
-                      <span>น้ำหนักสุทธิ</span>
+                      <span>{t("น้ำหนักสุทธิ")}</span>
                       <strong>
                         {formatWeight(ticket.netWeightKg)}
-                        <em>กก.</em>
+                        <em>{t("กก.")}</em>
                       </strong>
                     </div>
                   </div>
@@ -812,8 +815,8 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
 
             <div className={styles.card}>
               <div className={styles.cardHeader}>
-                <h3>รูปจากกล้องเครื่องชั่ง</h3>
-                <p>ไฟล์ที่ส่งมากับบัตร T2900 (เข้า/ออก · กล้อง 1–2) — คลิกดูขยาย</p>
+                <h3>{t("รูปจากกล้องเครื่องชั่ง")}</h3>
+                <p>{t("ไฟล์ที่ส่งมากับบัตร T2900 (เข้า/ออก · กล้อง 1–2) — คลิกดูขยาย")}</p>
               </div>
               <div className={styles.cardBody}>
                 <T2900CameraPhotosGallery
@@ -833,7 +836,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     items={[
                       {
                         key: "steps",
-                        label: "ขั้นตอนดำเนินการ (คัดแยก · จ่ายเงิน · เข้าคลัง)",
+                        label: t("ขั้นตอนดำเนินการ (คัดแยก · จ่ายเงิน · เข้าคลัง)"),
                         children: (
             <div className={styles.weighStepsStack}>
               <ReceivingTicketClassifyWeighPanel
@@ -869,9 +872,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       2
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 2 · ออกใบจ่ายเงิน</h3>
+                      <h3>{t("Step 2 · ออกใบจ่ายเงิน")}</h3>
                       <p>
-                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — เมื่อจ่ายสำเร็จระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
+                        {t("บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — เมื่อจ่ายสำเร็จระบบจะแจ้งคลังให้อนุมัติเข้าคลัง")}
                       </p>
                     </div>
                   </div>
@@ -888,31 +891,31 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     }
                   >
                     {paid
-                      ? "จ่ายเงินแล้ว"
+                      ? t("จ่ายเงินแล้ว")
                       : readyToPay
-                        ? "รอออกใบจ่ายเงิน"
+                        ? t("รอออกใบจ่ายเงิน")
                         : hasReceipt
-                          ? "ตั๋วชั่งยังเป็นร่าง"
-                          : "รอมีตั๋วชั่ง"}
+                          ? t("ตั๋วชั่งยังเป็นร่าง")
+                          : t("รอมีตั๋วชั่ง")}
                   </Tag>
                 </div>
                 <div className={styles.stepCardBody}>
                   <div className={styles.stepMetaGrid}>
                     <div className={styles.stepMetaItem}>
-                      <span>ใบรับซื้อ</span>
+                      <span>{t("ใบรับซื้อ")}</span>
                       <strong>
                         {paymentView?.receiptNo
-                          ? `${paymentView.receiptNo} (${RECEIPT_STATUS_LABELS[paymentView.receiptStatus ?? ""] ?? paymentView.receiptStatus ?? "-"})`
-                          : "ยังไม่มี"}
+                          ? `${paymentView.receiptNo} (${tLabel(RECEIPT_STATUS_LABELS[paymentView.receiptStatus ?? ""] ?? paymentView.receiptStatus ?? "-")})`
+                          : t("ยังไม่มี")}
                       </strong>
                     </div>
                     <div
                       className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
                     >
-                      <span>สถานะจ่ายเงิน</span>
+                      <span>{t("สถานะจ่ายเงิน")}</span>
                       <strong>
                         {paymentView
-                          ? resolvePaymentStatusLabel(paymentView)
+                          ? tLabel(resolvePaymentStatusLabel(paymentView))
                           : "-"}
                         {paid && paymentVoucher?.voucherNo
                           ? ` · ${paymentVoucher.voucherNo}`
@@ -936,12 +939,12 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         .join(" ")}
                     >
                       <div className={styles.stepDocMain}>
-                        <span className={styles.stepDocLabel}>ใบสำคัญจ่าย</span>
+                        <span className={styles.stepDocLabel}>{t("ใบสำคัญจ่าย")}</span>
                         <span className={styles.stepDocValue}>
-                          {paymentVoucher?.voucherNo ?? "ยังไม่ออก — กดปุ่มด้านล่างเพื่อออกใบจ่ายเงิน"}
+                          {paymentVoucher?.voucherNo ?? t("ยังไม่ออก — กดปุ่มด้านล่างเพื่อออกใบจ่ายเงิน")}
                           {paymentVoucher?.voucherDate ? (
                             <span className={styles.stepDocMeta}>
-                              ลว. {formatDateOnly(paymentVoucher.voucherDate)}
+                              {t("ลว. {date}", { date: formatDateOnly(paymentVoucher.voucherDate) })}
                             </span>
                           ) : null}
                         </span>
@@ -955,7 +958,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             loading={printingVoucher}
                             onClick={() => void handlePrintVoucher()}
                           >
-                            พิมพ์
+                            {t("พิมพ์")}
                           </Button>
                           <Button
                             size="small"
@@ -965,7 +968,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               )
                             }
                           >
-                            เปิด
+                            {t("เปิด")}
                           </Button>
                         </div>
                       ) : null}
@@ -983,16 +986,16 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           )
                         }
                       >
-                        ออกใบจ่ายเงิน
+                        {t("ออกใบจ่ายเงิน")}
                       </Button>
                     </div>
                   ) : hasReceipt ? (
                     <div className={styles.stepEmptyHint}>
-                      ใบรับซื้อยังไม่พร้อมจ่าย — ตรวจยอดและยืนยันจาก Step 1
+                      {t("ใบรับซื้อยังไม่พร้อมจ่าย — ตรวจยอดและยืนยันจาก Step 1")}
                     </div>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน
+                      {t("บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน")}
                     </div>
                   )}
                 </div>
@@ -1032,9 +1035,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       3
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 3 · เข้าคลัง</h3>
+                      <h3>{t("Step 3 · เข้าคลัง")}</h3>
                       <p>
-                        คนคลังเลือกคลัง/ตำแหน่งแล้วกดอนุมัติ — ทำได้หลังจ่ายเงิน Step 2 เสร็จ
+                        {t("คนคลังเลือกคลัง/ตำแหน่งแล้วกดอนุมัติ — ทำได้หลังจ่ายเงิน Step 2 เสร็จ")}
                       </p>
                     </div>
                   </div>
@@ -1051,39 +1054,39 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     }
                   >
                     {stockPosted
-                      ? STOCK_POSTING_STATUS_LABELS.POSTED
+                      ? tLabel(STOCK_POSTING_STATUS_LABELS.POSTED)
                         : stockRequestPending
-                        ? "รอคลังเลือกคลังและอนุมัติ"
+                        ? t("รอคลังเลือกคลังและอนุมัติ")
                         : readyForStockIn
-                          ? "รอคลังรับเข้า"
+                          ? t("รอคลังรับเข้า")
                           : paid
-                            ? "พร้อมเข้าคลัง"
+                            ? t("พร้อมเข้าคลัง")
                             : receiptConfirmed
-                              ? "รอจ่ายเงินก่อน"
-                              : "รอยืนยันยอดก่อน"}
+                              ? t("รอจ่ายเงินก่อน")
+                              : t("รอยืนยันยอดก่อน")}
                   </Tag>
                 </div>
                 <div className={styles.stepCardBody}>
                   <div className={styles.stepMetaGrid}>
                     <div className={styles.stepMetaItem}>
-                      <span>ใบรับซื้อ</span>
+                      <span>{t("ใบรับซื้อ")}</span>
                       <strong>
                         {ticket.receiptNo
-                          ? `${ticket.receiptNo} (${RECEIPT_STATUS_LABELS[ticket.receiptStatus ?? ""] ?? ticket.receiptStatus ?? "-"})`
-                          : "ยังไม่มี"}
+                          ? `${ticket.receiptNo} (${tLabel(RECEIPT_STATUS_LABELS[ticket.receiptStatus ?? ""] ?? ticket.receiptStatus ?? "-")})`
+                          : t("ยังไม่มี")}
                       </strong>
                     </div>
                     <div
                       className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
                     >
-                      <span>สถานะเข้าคลัง</span>
+                      <span>{t("สถานะเข้าคลัง")}</span>
                       <strong>
                         {stockPosted
-                          ? STOCK_POSTING_STATUS_LABELS.POSTED
+                          ? tLabel(STOCK_POSTING_STATUS_LABELS.POSTED)
                           : stockRequestPending
-                            ? "รอคลังเลือกคลังและอนุมัติ"
+                            ? t("รอคลังเลือกคลังและอนุมัติ")
                             : readyForStockIn
-                              ? "รอคลังรับเข้า"
+                              ? t("รอคลังรับเข้า")
                               : "-"}
                       </strong>
                     </div>
@@ -1113,7 +1116,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             .finally(() => setIsPrintingWarehouseSlip(false));
                         }}
                       >
-                        พิมพ์ใบรับสินค้า
+                        {t("พิมพ์ใบรับสินค้า")}
                       </Button>
                       <Button
                         onClick={() =>
@@ -1122,7 +1125,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           )
                         }
                       >
-                        ดูเต็มจอ
+                        {t("ดูเต็มจอ")}
                       </Button>
                     </div>
                   ) : stockRequestPending &&
@@ -1140,7 +1143,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           )
                         }
                       >
-                        คลังเลือกคลังและอนุมัติ
+                        {t("คลังเลือกคลังและอนุมัติ")}
                       </Button>
                     </div>
                   ) : paid &&
@@ -1156,16 +1159,16 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           router.push("/warehouse/stock-posting-approvals")
                         }
                       >
-                        เปิดรายการรอคลังอนุมัติ
+                        {t("เปิดรายการรอคลังอนุมัติ")}
                       </Button>
                     </div>
                   ) : receiptConfirmed && !paid ? (
                     <div className={styles.stepEmptyHint}>
-                      จ่ายเงินใน Step 2 ให้เสร็จก่อน ระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
+                      {t("จ่ายเงินใน Step 2 ให้เสร็จก่อน ระบบจะแจ้งคลังให้อนุมัติเข้าคลัง")}
                     </div>
                   ) : stockRequestPending || readyForStockIn ? null : (
                     <div className={styles.stepEmptyHint}>
-                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จ แล้วจ่ายเงิน Step 2 ก่อนเข้าคลัง
+                      {t("บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จ แล้วจ่ายเงิน Step 2 ก่อนเข้าคลัง")}
                     </div>
                   )}
                 </div>
@@ -1212,9 +1215,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       2
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 2 · ออกใบจ่ายเงิน</h3>
+                      <h3>{t("Step 2 · ออกใบจ่ายเงิน")}</h3>
                       <p>
-                        บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — เมื่อจ่ายสำเร็จระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
+                        {t("บันทึกโอน/จ่ายเงินจริงให้ผู้ขาย — เมื่อจ่ายสำเร็จระบบจะแจ้งคลังให้อนุมัติเข้าคลัง")}
                       </p>
                     </div>
                   </div>
@@ -1231,31 +1234,31 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     }
                   >
                     {paid
-                      ? "จ่ายเงินแล้ว"
+                      ? t("จ่ายเงินแล้ว")
                       : readyToPay
-                        ? "รอออกใบจ่ายเงิน"
+                        ? t("รอออกใบจ่ายเงิน")
                         : hasReceipt
-                          ? "ตั๋วชั่งยังเป็นร่าง"
-                          : "รอมีตั๋วชั่ง"}
+                          ? t("ตั๋วชั่งยังเป็นร่าง")
+                          : t("รอมีตั๋วชั่ง")}
                   </Tag>
                 </div>
                 <div className={styles.stepCardBody}>
                   <div className={styles.stepMetaGrid}>
                     <div className={styles.stepMetaItem}>
-                      <span>ใบรับซื้อ</span>
+                      <span>{t("ใบรับซื้อ")}</span>
                       <strong>
                         {paymentView?.receiptNo
-                          ? `${paymentView.receiptNo} (${RECEIPT_STATUS_LABELS[paymentView.receiptStatus ?? ""] ?? paymentView.receiptStatus ?? "-"})`
-                          : "ยังไม่มี"}
+                          ? `${paymentView.receiptNo} (${tLabel(RECEIPT_STATUS_LABELS[paymentView.receiptStatus ?? ""] ?? paymentView.receiptStatus ?? "-")})`
+                          : t("ยังไม่มี")}
                       </strong>
                     </div>
                     <div
                       className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
                     >
-                      <span>สถานะจ่ายเงิน</span>
+                      <span>{t("สถานะจ่ายเงิน")}</span>
                       <strong>
                         {paymentView
-                          ? resolvePaymentStatusLabel(paymentView)
+                          ? tLabel(resolvePaymentStatusLabel(paymentView))
                           : "-"}
                         {paid && paymentVoucher?.voucherNo
                           ? ` · ${paymentVoucher.voucherNo}`
@@ -1279,12 +1282,12 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                         .join(" ")}
                     >
                       <div className={styles.stepDocMain}>
-                        <span className={styles.stepDocLabel}>ใบสำคัญจ่าย</span>
+                        <span className={styles.stepDocLabel}>{t("ใบสำคัญจ่าย")}</span>
                         <span className={styles.stepDocValue}>
-                          {paymentVoucher?.voucherNo ?? "ยังไม่ออก — กดปุ่มด้านล่างเพื่อออกใบจ่ายเงิน"}
+                          {paymentVoucher?.voucherNo ?? t("ยังไม่ออก — กดปุ่มด้านล่างเพื่อออกใบจ่ายเงิน")}
                           {paymentVoucher?.voucherDate ? (
                             <span className={styles.stepDocMeta}>
-                              ลว. {formatDateOnly(paymentVoucher.voucherDate)}
+                              {t("ลว. {date}", { date: formatDateOnly(paymentVoucher.voucherDate) })}
                             </span>
                           ) : null}
                         </span>
@@ -1298,7 +1301,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             loading={printingVoucher}
                             onClick={() => void handlePrintVoucher()}
                           >
-                            พิมพ์
+                            {t("พิมพ์")}
                           </Button>
                           <Button
                             size="small"
@@ -1308,7 +1311,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                               )
                             }
                           >
-                            เปิด
+                            {t("เปิด")}
                           </Button>
                         </div>
                       ) : null}
@@ -1326,16 +1329,16 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           )
                         }
                       >
-                        ออกใบจ่ายเงิน
+                        {t("ออกใบจ่ายเงิน")}
                       </Button>
                     </div>
                   ) : hasReceipt ? (
                     <div className={styles.stepEmptyHint}>
-                      ใบรับซื้อยังไม่พร้อมจ่าย — ตรวจยอดและยืนยันจาก Step 1
+                      {t("ใบรับซื้อยังไม่พร้อมจ่าย — ตรวจยอดและยืนยันจาก Step 1")}
                     </div>
                   ) : (
                     <div className={styles.stepEmptyHint}>
-                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน
+                      {t("บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จก่อน แล้วจะได้ใบรับซื้อเพื่อออกใบจ่ายเงิน")}
                     </div>
                   )}
                 </div>
@@ -1375,9 +1378,9 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                       3
                     </div>
                     <div className={styles.stepCardTitle}>
-                      <h3>Step 3 · เข้าคลัง</h3>
+                      <h3>{t("Step 3 · เข้าคลัง")}</h3>
                       <p>
-                        คนคลังเลือกคลัง/ตำแหน่งแล้วกดอนุมัติ — ทำได้หลังจ่ายเงิน Step 2 เสร็จ
+                        {t("คนคลังเลือกคลัง/ตำแหน่งแล้วกดอนุมัติ — ทำได้หลังจ่ายเงิน Step 2 เสร็จ")}
                       </p>
                     </div>
                   </div>
@@ -1394,39 +1397,39 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                     }
                   >
                     {stockPosted
-                      ? STOCK_POSTING_STATUS_LABELS.POSTED
+                      ? tLabel(STOCK_POSTING_STATUS_LABELS.POSTED)
                         : stockRequestPending
-                        ? "รอคลังเลือกคลังและอนุมัติ"
+                        ? t("รอคลังเลือกคลังและอนุมัติ")
                         : readyForStockIn
-                          ? "รอคลังรับเข้า"
+                          ? t("รอคลังรับเข้า")
                           : paid
-                            ? "พร้อมเข้าคลัง"
+                            ? t("พร้อมเข้าคลัง")
                             : receiptConfirmed
-                              ? "รอจ่ายเงินก่อน"
-                              : "รอยืนยันยอดก่อน"}
+                              ? t("รอจ่ายเงินก่อน")
+                              : t("รอยืนยันยอดก่อน")}
                   </Tag>
                 </div>
                 <div className={styles.stepCardBody}>
                   <div className={styles.stepMetaGrid}>
                     <div className={styles.stepMetaItem}>
-                      <span>ใบรับซื้อ</span>
+                      <span>{t("ใบรับซื้อ")}</span>
                       <strong>
                         {ticket.receiptNo
-                          ? `${ticket.receiptNo} (${RECEIPT_STATUS_LABELS[ticket.receiptStatus ?? ""] ?? ticket.receiptStatus ?? "-"})`
-                          : "ยังไม่มี"}
+                          ? `${ticket.receiptNo} (${tLabel(RECEIPT_STATUS_LABELS[ticket.receiptStatus ?? ""] ?? ticket.receiptStatus ?? "-")})`
+                          : t("ยังไม่มี")}
                       </strong>
                     </div>
                     <div
                       className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}
                     >
-                      <span>สถานะเข้าคลัง</span>
+                      <span>{t("สถานะเข้าคลัง")}</span>
                       <strong>
                         {stockPosted
-                          ? STOCK_POSTING_STATUS_LABELS.POSTED
+                          ? tLabel(STOCK_POSTING_STATUS_LABELS.POSTED)
                           : stockRequestPending
-                            ? "รอคลังเลือกคลังและอนุมัติ"
+                            ? t("รอคลังเลือกคลังและอนุมัติ")
                             : readyForStockIn
-                              ? "รอคลังรับเข้า"
+                              ? t("รอคลังรับเข้า")
                               : "-"}
                       </strong>
                     </div>
@@ -1456,7 +1459,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                             .finally(() => setIsPrintingWarehouseSlip(false));
                         }}
                       >
-                        พิมพ์ใบรับสินค้า
+                        {t("พิมพ์ใบรับสินค้า")}
                       </Button>
                       <Button
                         onClick={() =>
@@ -1465,7 +1468,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           )
                         }
                       >
-                        ดูเต็มจอ
+                        {t("ดูเต็มจอ")}
                       </Button>
                     </div>
                   ) : stockRequestPending &&
@@ -1483,7 +1486,7 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           )
                         }
                       >
-                        คลังเลือกคลังและอนุมัติ
+                        {t("คลังเลือกคลังและอนุมัติ")}
                       </Button>
                     </div>
                   ) : paid &&
@@ -1499,16 +1502,16 @@ export default function WeighbridgeTicketDetailPage({ ticketId }: Props) {
                           router.push("/warehouse/stock-posting-approvals")
                         }
                       >
-                        เปิดรายการรอคลังอนุมัติ
+                        {t("เปิดรายการรอคลังอนุมัติ")}
                       </Button>
                     </div>
                   ) : receiptConfirmed && !paid ? (
                     <div className={styles.stepEmptyHint}>
-                      จ่ายเงินใน Step 2 ให้เสร็จก่อน ระบบจะแจ้งคลังให้อนุมัติเข้าคลัง
+                      {t("จ่ายเงินใน Step 2 ให้เสร็จก่อน ระบบจะแจ้งคลังให้อนุมัติเข้าคลัง")}
                     </div>
                   ) : stockRequestPending || readyForStockIn ? null : (
                     <div className={styles.stepEmptyHint}>
-                      บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จ แล้วจ่ายเงิน Step 2 ก่อนเข้าคลัง
+                      {t("บันทึกคัดแยกและน้ำหนักใน Step 1 ให้เสร็จ แล้วจ่ายเงิน Step 2 ก่อนเข้าคลัง")}
                     </div>
                   )}
                 </div>

@@ -14,8 +14,10 @@ import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissi
 import type { ReadyPicking } from "@/types/packings";
 import styles from "./PackingsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 export default function CreatePackingSelectPickingPage() {
+  const t = useT();
   const router = useRouter();
   const query = useReadyPickingsForPackingQuery();
   const createMutation = useCreatePackingFromPickingMutation();
@@ -29,33 +31,33 @@ export default function CreatePackingSelectPickingPage() {
 
   const columns: ColumnsType<ReadyPicking> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขที่ใบจ่ายสินค้า",
+      title: t("เลขที่ใบจ่ายสินค้า"),
       dataIndex: "pickingNo",
       render: (v: string) => <span className={styles.prNo}>{v}</span>,
     },
     {
-      title: "ใบสั่งขาย",
+      title: t("ใบสั่งขาย"),
       dataIndex: "salesOrderNo",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "ลูกค้า",
+      title: t("ลูกค้า"),
       dataIndex: "customerName",
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "วันที่",
+      title: t("วันที่"),
       dataIndex: "pickingDate",
       render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
     },
-    { title: "รายการ", dataIndex: "itemCount", width: 90, align: "center" },
+    { title: t("รายการ"), dataIndex: "itemCount", width: 90, align: "center" },
     {
       title: "",
       key: "action",
@@ -73,7 +75,7 @@ export default function CreatePackingSelectPickingPage() {
             router.push(`/packings/${res.data.id}/edit`);
           }}
         >
-          สร้างใบบรรจุ
+          {t("สร้างใบบรรจุ")}
         </Button>
       ),
     },
@@ -83,12 +85,12 @@ export default function CreatePackingSelectPickingPage() {
     <div className={styles.page}>
       <PageHeader
         eyebrow="Packing · Create"
-        title="เลือกใบจ่ายสินค้าที่พร้อมบรรจุ"
-        subtitle="เฉพาะใบจ่ายสินค้าสถานะ CONFIRMED และยังไม่มีใบบรรจุที่ใช้งาน"
+        title={t("เลือกใบจ่ายสินค้าที่พร้อมบรรจุ")}
+        subtitle={t("เฉพาะใบจ่ายสินค้าสถานะ CONFIRMED และยังไม่มีใบบรรจุที่ใช้งาน")}
         back={
           <>
 <Link href="/packings" className={styles.backLink}>
-            <ArrowLeftOutlined /> กลับรายการ
+            <ArrowLeftOutlined /> {t("กลับรายการ")}
           </Link>
           </>
         }
@@ -100,7 +102,7 @@ export default function CreatePackingSelectPickingPage() {
           columns={columns}
           dataSource={rows}
           pagination={false}
-          locale={{ emptyText: "ไม่มีใบจ่ายสินค้าที่พร้อมสร้างใบบรรจุ" }}
+          locale={{ emptyText: t("ไม่มีใบจ่ายสินค้าที่พร้อมสร้างใบบรรจุ") }}
         />
       </section>
     </div>

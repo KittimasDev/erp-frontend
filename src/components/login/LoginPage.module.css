@@ -493,3 +493,31 @@
   .loginButton { height: 48px !important; }
   .helperButton { height: 42px; }
 }
+
+.langSwitch {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.langOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid #e1e2dd;
+  border-radius: 999px;
+  background: #fff;
+  color: #5c6570;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.langOptionActive {
+  border-color: #8ab933;
+  background: #f4f9e8;
+  color: #3f5a14;
+  font-weight: 600;
+}

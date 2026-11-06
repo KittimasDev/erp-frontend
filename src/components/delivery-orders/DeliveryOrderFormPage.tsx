@@ -53,6 +53,8 @@ import {
 import DeliveryResultModal from "./DeliveryResultModal";
 import styles from "./DeliveryOrderFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function formatWeightKg(value?: string) {
   if (value == null || value === "") return "—";
@@ -78,6 +80,7 @@ type WeightField =
 type Props = { id: string; mode: "view" | "edit" };
 
 export default function DeliveryOrderFormPage({ id, mode }: Props) {
+  const t = useT();
   const router = useRouter();
   const { modal } = App.useApp();
   const query = useDeliveryOrderQuery(id);
@@ -153,10 +156,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
     );
   }
 
-  const statusLabel =
+  const statusLabel = statusT(
+    t,
     DELIVERY_ORDER_STATUS_LABEL[
       data.status as keyof typeof DELIVERY_ORDER_STATUS_LABEL
-    ] ?? data.status;
+    ] ?? data.status,
+  );
 
   const packingRefs: DeliveryOrderPackingRef[] = data.packings?.length
     ? data.packings
@@ -175,7 +180,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       Boolean(ref.pickingId) &&
       all.findIndex((other) => other.pickingId === ref.pickingId) === index,
   );
-  const roundSuffix = (roundNo?: number) => (roundNo ? ` · รอบ ${roundNo}` : "");
+  const roundSuffix = (roundNo?: number) => (roundNo ? t(" · รอบ {roundNo}", { roundNo }) : "");
   const packingNosText =
     packingRefs.map((ref) => ref.packingNo ?? ref.packingId).join(", ") || "—";
 
@@ -217,14 +222,14 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
 
   const columns: ColumnsType<DeliveryOrderItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "ใบบรรจุ",
+      title: t("ใบบรรจุ"),
       key: "packing",
       width: 150,
       render: (_v, item) => {
@@ -238,13 +243,13 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       },
     },
     {
-      title: "รอบ",
+      title: t("รอบ"),
       dataIndex: "roundNo",
       width: 80,
-      render: (v?: number) => (v ? `รอบที่ ${v}` : "—"),
+      render: (v?: number) => (v ? t("รอบที่ {v}", { v }) : "—"),
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_v, item) => (
         <div>
@@ -254,20 +259,20 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       ),
     },
     {
-      title: "จำนวนส่ง",
+      title: t("จำนวนส่ง"),
       dataIndex: "deliveredQty",
       align: "right",
       width: 120,
       render: (v: string) => Number(v).toLocaleString("th-TH"),
     },
     {
-      title: "หน่วย",
+      title: t("หน่วย"),
       dataIndex: "unitCode",
       width: 90,
       render: (v?: string) => v ?? "—",
     },
     {
-      title: "หมายเหตุ",
+      title: t("หมายเหตุ"),
       dataIndex: "remark",
       render: (v?: string) => v || "—",
     },
@@ -289,7 +294,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       columns.findIndex((col) => "dataIndex" in col && col.dataIndex === "deliveredQty") + 1;
     columns.splice(afterDeliveredQty, 0,
       {
-        title: "รับจริง",
+        title: t("รับจริง"),
         dataIndex: "acceptedQty",
         align: "right",
         width: 110,
@@ -297,7 +302,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           v != null ? Number(v).toLocaleString("th-TH") : "—",
       },
       {
-        title: "ตีกลับ",
+        title: t("ตีกลับ"),
         dataIndex: "returnedQty",
         align: "right",
         width: 110,
@@ -328,7 +333,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
         back={
           <>
 <Link href="/delivery-orders" className={styles.backLink}>
-            <ArrowLeftOutlined /> กลับรายการ
+            <ArrowLeftOutlined /> {t("กลับรายการ")}
           </Link>
           </>
         }
@@ -361,7 +366,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 href={`/pickings/${ref.pickingId}`}
                 className={styles.docLink}
               >
-                ใบจ่าย {ref.pickingNo ?? ref.pickingId}
+                {t("ใบจ่าย")} {ref.pickingNo ?? ref.pickingId}
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
             ))}
@@ -371,13 +376,13 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 className={styles.docLink}
               >
                 <Tag color="volcano" style={{ marginInlineEnd: 0 }}>
-                  ส่งซ้ำจาก {data.sourceDeliveryOrderNo ?? "ใบส่งเดิม"}
+                  {t("ส่งซ้ำจาก")} {data.sourceDeliveryOrderNo ?? t("ใบส่งเดิม")}
                 </Tag>
                 <ExportOutlined className={styles.docLinkIcon} />
               </Link>
             ) : null}
             <span className={styles.metaChip}>
-              ลูกค้า{" "}
+              {t("ลูกค้า")}{" "}
               <span className={styles.metaChipMuted}>
                 {data.customerName ?? "—"}
               </span>
@@ -433,7 +438,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               });
             }}
           >
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           {editable ? (
             <Button
@@ -442,7 +447,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               loading={updateMutation.isPending}
               onClick={() => void save()}
             >
-              บันทึก
+              {t("บันทึก")}
             </Button>
           ) : null}
           {data.status === "DRAFT" && canConfirm ? (
@@ -453,7 +458,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               loading={confirmMutation.isPending}
               onClick={() =>
                 modal.confirm({
-                  title: "ยืนยันเตรียมส่ง?",
+                  title: t("ยืนยันเตรียมส่ง?"),
                   onOk: async () => {
                     if (editable) await save();
                     await confirmMutation.mutateAsync(id);
@@ -461,7 +466,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 })
               }
             >
-              ยืนยันเตรียมส่ง
+              {t("ยืนยันเตรียมส่ง")}
             </Button>
           ) : null}
           {data.status === "CONFIRMED" && canConfirm ? (
@@ -483,7 +488,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 router.push(`/return-notes/create?deliveryOrderId=${id}`)
               }
             >
-              สร้างใบคืนสินค้า
+              {t("สร้างใบคืนสินค้า")}
             </Button>
           ) : null}
           {(data.status === "DRAFT" || data.status === "CONFIRMED") &&
@@ -496,7 +501,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               loading={cancelMutation.isPending}
               onClick={() =>
                 modal.confirm({
-                  title: "ยกเลิกใบส่ง?",
+                  title: t("ยกเลิกใบส่ง?"),
                   onOk: async () => {
                     await cancelMutation.mutateAsync(id);
                     router.push("/delivery-orders");
@@ -504,7 +509,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 })
               }
             >
-              ยกเลิก
+              {t("ยกเลิก")}
             </Button>
           ) : null}
           {showEditButton ? (
@@ -514,7 +519,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               icon={<EditOutlined />}
               onClick={() => router.push(`/delivery-orders/${id}/edit`)}
             >
-              แก้ไข
+              {t("แก้ไข")}
             </Button>
           ) : null}
           </>
@@ -542,8 +547,8 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
         <Alert
           type="info"
           showIcon
-          title={`ใบส่งซ้ำของ ${data.sourceDeliveryOrderNo ?? "ใบส่งเดิม"} — ส่งของชุดเดิมที่ตีกลับ ไม่ต้องจ่าย/บรรจุใหม่ และไม่ตัดสต๊อกซ้ำ`}
-          description="จำนวนล็อกตามยอดที่ตีกลับ · แก้วันที่ส่ง/ข้อมูลรถได้ แต่ยกเลิกใบนี้ไม่ได้"
+          title={t("ใบส่งซ้ำของ {no} — ส่งของชุดเดิมที่ตีกลับ ไม่ต้องจ่าย/บรรจุใหม่ และไม่ตัดสต๊อกซ้ำ", { no: data.sourceDeliveryOrderNo ?? t("ใบส่งเดิม") })}
+          description={t("จำนวนล็อกตามยอดที่ตีกลับ · แก้วันที่ส่ง/ข้อมูลรถได้ แต่ยกเลิกใบนี้ไม่ได้")}
         />
       ) : null}
 
@@ -551,16 +556,16 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
         <Alert
           type="success"
           showIcon
-          title="ส่งมอบแล้ว — ไม่มีการตัดสต๊อกในขั้นตอนนี้"
+          title={t("ส่งมอบแล้ว — ไม่มีการตัดสต๊อกในขั้นตอนนี้")}
         />
       ) : null}
 
       {data.status === "DELIVERED" && isReturnResult ? (
         <section className={styles.formCard}>
-          <h2 className={styles.sectionTitle}>ผลการส่ง</h2>
+          <h2 className={styles.sectionTitle}>{t("ผลการส่ง")}</h2>
           <div className={styles.formGrid}>
             <div className={styles.field}>
-              <span>ผลการส่ง</span>
+              <span>{t("ผลการส่ง")}</span>
               <div className={styles.fieldValue}>
                 <Tag
                   color={
@@ -569,18 +574,18 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                   }
                   style={{ fontWeight: 600 }}
                 >
-                  {DELIVERY_RESULT_LABEL[data.deliveryResult as DeliveryResult] ??
-                    data.deliveryResult}
+                  {t(DELIVERY_RESULT_LABEL[data.deliveryResult as DeliveryResult] ??
+                    data.deliveryResult)}
                 </Tag>
               </div>
             </div>
             <div className={styles.field}>
-              <span>สินค้าที่ตีกลับ</span>
+              <span>{t("สินค้าที่ตีกลับ")}</span>
               <div className={styles.fieldValue}>
-                {data.returnToStock ? "นำสินค้าคืนเข้าคลัง" : "ไม่นำเข้าคลัง"}
+                {data.returnToStock ? t("นำสินค้าคืนเข้าคลัง") : t("ไม่นำเข้าคลัง")}
                 {data.returnNoteId ? (
                   <>
-                    {" · ใบคืนสินค้า "}
+                    {` · ${t("ใบคืนสินค้า")} `}
                     <Link
                       href={`/return-notes/${data.returnNoteId}`}
                       className={styles.docLink}
@@ -593,11 +598,11 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               </div>
             </div>
             <div className={styles.field}>
-              <span>ส่งสินค้าใหม่</span>
+              <span>{t("ส่งสินค้าใหม่")}</span>
               <div className={styles.fieldValue}>
                 {data.redeliverRequired ? (
                   <>
-                    ส่งใหม่
+                    {t("ส่งใหม่")}
                     {data.redeliverDate
                       ? ` · ${dayjs(data.redeliverDate).format("DD/MM/YYYY")}`
                       : ""}
@@ -608,14 +613,14 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                           href={`/sales-orders/${data.salesOrderId}`}
                           className={styles.docLink}
                         >
-                          รอบที่ {data.redeliveryRoundNo ?? "—"}
+                          {t("รอบที่")} {data.redeliveryRoundNo ?? "—"}
                           <ExportOutlined className={styles.docLinkIcon} />
                         </Link>
                       </>
                     ) : null}
                     {data.redeliveryDeliveryOrderId ? (
                       <>
-                        {" · ใบส่งใหม่ "}
+                        {` · ${t("ใบส่งใหม่")} `}
                         <Link
                           href={`/delivery-orders/${data.redeliveryDeliveryOrderId}`}
                           className={styles.docLink}
@@ -627,12 +632,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                     ) : null}
                   </>
                 ) : (
-                  "ไม่ส่งใหม่"
+                  t("ไม่ส่งใหม่")
                 )}
               </div>
             </div>
             <div className={styles.field}>
-              <span>ผู้บันทึก</span>
+              <span>{t("ผู้บันทึก")}</span>
               <div className={styles.fieldValue}>
                 {data.deliveredByName ?? "—"}
                 {data.deliveredAt
@@ -641,7 +646,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
               </div>
             </div>
             <div className={`${styles.field} ${styles.fieldWide}`}>
-              <span>เหตุผลการตีกลับ</span>
+              <span>{t("เหตุผลการตีกลับ")}</span>
               <div className={styles.fieldValue}>{data.returnReason || "—"}</div>
             </div>
           </div>
@@ -649,7 +654,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       ) : null}
 
       <section className={styles.formCard}>
-        <h2 className={styles.sectionTitle}>เอกสารอ้างอิง</h2>
+        <h2 className={styles.sectionTitle}>{t("เอกสารอ้างอิง")}</h2>
         <div className={styles.relatedCard}>
           {data.salesOrderId ? (
             <Link
@@ -660,11 +665,11 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 <FileTextOutlined />
               </div>
               <div className={styles.relatedBody}>
-                <p className={styles.relatedLabel}>ใบสั่งขาย</p>
+                <p className={styles.relatedLabel}>{t("ใบสั่งขาย")}</p>
                 <p className={styles.relatedValue}>
                   {data.salesOrderNo ?? data.salesOrderId}
                 </p>
-                <p className={styles.relatedHint}>คลิกเพื่อเปิดรายละเอียด SO</p>
+                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียด SO")}</p>
               </div>
             </Link>
           ) : null}
@@ -678,12 +683,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 <ShoppingCartOutlined />
               </div>
               <div className={styles.relatedBody}>
-                <p className={styles.relatedLabel}>ใบจ่ายสินค้า</p>
+                <p className={styles.relatedLabel}>{t("ใบจ่ายสินค้า")}</p>
                 <p className={styles.relatedValue}>
                   {ref.pickingNo ?? ref.pickingId}
                   {pickingRefs.length > 1 ? roundSuffix(ref.roundNo) : ""}
                 </p>
-                <p className={styles.relatedHint}>คลิกเพื่อเปิดรายละเอียดใบจ่าย</p>
+                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียดใบจ่าย")}</p>
               </div>
             </Link>
           ))}
@@ -697,12 +702,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
                 <InboxOutlined />
               </div>
               <div className={styles.relatedBody}>
-                <p className={styles.relatedLabel}>ใบบรรจุสินค้า</p>
+                <p className={styles.relatedLabel}>{t("ใบบรรจุสินค้า")}</p>
                 <p className={styles.relatedValue}>
                   {ref.packingNo ?? ref.packingId}
                   {packingRefs.length > 1 ? roundSuffix(ref.roundNo) : ""}
                 </p>
-                <p className={styles.relatedHint}>คลิกเพื่อเปิดรายละเอียดใบบรรจุ</p>
+                <p className={styles.relatedHint}>{t("คลิกเพื่อเปิดรายละเอียดใบบรรจุ")}</p>
               </div>
             </Link>
           ))}
@@ -710,10 +715,10 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       </section>
 
       <section className={styles.formCard}>
-        <h2 className={styles.sectionTitle}>ข้อมูลจัดส่ง</h2>
+        <h2 className={styles.sectionTitle}>{t("ข้อมูลจัดส่ง")}</h2>
         <div className={styles.formGrid}>
           <label className={styles.field}>
-            <span>วันที่ส่ง</span>
+            <span>{t("วันที่ส่ง")}</span>
             {editable ? (
               <DatePicker
                 value={form.deliveryDate}
@@ -730,7 +735,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={styles.field}>
-            <span>ผู้ติดต่อ</span>
+            <span>{t("ผู้ติดต่อ")}</span>
             {editable ? (
               <Input
                 value={form.contactName}
@@ -745,7 +750,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={styles.field}>
-            <span>เบอร์ติดต่อ</span>
+            <span>{t("เบอร์ติดต่อ")}</span>
             {editable ? (
               <Input
                 value={form.contactPhone}
@@ -760,7 +765,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={`${styles.field} ${styles.fieldWide}`}>
-            <span>ที่อยู่จัดส่ง</span>
+            <span>{t("ที่อยู่จัดส่ง")}</span>
             {editable ? (
               <Input.TextArea
                 rows={2}
@@ -777,9 +782,9 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
           </label>
           {(
             [
-              ["vehicleWeightBeforeKg", "น้ำหนักรถก่อนบรรทุก (กก.)"],
-              ["vehicleWeightAfterKg", "น้ำหนักรถหลังบรรทุก (กก.)"],
-              ["cargoNetWeightKg", "น้ำหนักสินค้าสุทธิ (กก.)"],
+              ["vehicleWeightBeforeKg", t("น้ำหนักรถก่อนบรรทุก (กก.)")],
+              ["vehicleWeightAfterKg", t("น้ำหนักรถหลังบรรทุก (กก.)")],
+              ["cargoNetWeightKg", t("น้ำหนักสินค้าสุทธิ (กก.)")],
             ] as const
           ).map(([field, label]) => (
             <label key={field} className={styles.field}>
@@ -803,10 +808,10 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       </section>
 
       <section className={styles.formCard}>
-        <h2 className={styles.sectionTitle}>ขนส่ง / พาหนะ</h2>
+        <h2 className={styles.sectionTitle}>{t("ขนส่ง / พาหนะ")}</h2>
         <div className={styles.formGrid}>
           <label className={styles.field}>
-            <span>ขนส่ง</span>
+            <span>{t("ขนส่ง")}</span>
             {editable ? (
               <Input
                 value={form.carrierName}
@@ -821,7 +826,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={styles.field}>
-            <span>ทะเบียนรถ</span>
+            <span>{t("ทะเบียนรถ")}</span>
             {editable ? (
               <Input
                 value={form.vehiclePlate}
@@ -836,7 +841,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={styles.field}>
-            <span>คนขับ</span>
+            <span>{t("คนขับ")}</span>
             {editable ? (
               <Input
                 value={form.driverName}
@@ -851,7 +856,7 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={styles.field}>
-            <span>เบอร์คนขับ</span>
+            <span>{t("เบอร์คนขับ")}</span>
             {editable ? (
               <Input
                 value={form.driverPhone}
@@ -866,12 +871,12 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
             )}
           </label>
           <label className={`${styles.field} ${styles.fieldWide}`}>
-            <span>หมายเหตุ</span>
+            <span>{t("หมายเหตุ")}</span>
             {editable ? (
               <Input.TextArea
                 rows={2}
                 value={form.remark}
-                placeholder="ระบุหมายเหตุเพิ่มเติม (ถ้ามี)"
+                placeholder={t("ระบุหมายเหตุเพิ่มเติม (ถ้ามี)")}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, remark: e.target.value }))
                 }
@@ -886,9 +891,9 @@ export default function DeliveryOrderFormPage({ id, mode }: Props) {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            <p className={styles.toolbarTitle}>รายการสินค้าที่ส่ง</p>
+            <p className={styles.toolbarTitle}>{t("รายการสินค้าที่ส่ง")}</p>
             <p className={styles.toolbarHint}>
-              สินค้าและจำนวนดึงจากใบบรรจุที่อ้างอิง — แก้ไข เพิ่ม หรือลบรายการไม่ได้
+              {t("สินค้าและจำนวนดึงจากใบบรรจุที่อ้างอิง — แก้ไข เพิ่ม หรือลบรายการไม่ได้")}
             </p>
           </div>
         </div>

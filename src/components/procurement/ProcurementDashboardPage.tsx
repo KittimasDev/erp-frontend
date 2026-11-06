@@ -1,5 +1,8 @@
 "use client";
 
+import { useLanguage } from "@/lib/i18n/language";
+import { tStatus } from "@/types/purchase-orders";
+import { useT } from "@/lib/i18n/useT";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -145,6 +148,8 @@ type TrackingFilters = {
 };
 
 export default function ProcurementDashboardPage() {
+  const t = useT();
+  const lang = useLanguage();
   const router = useRouter();
   const today = dayjs();
   const [year, setYear] = useState(today.year());
@@ -188,10 +193,13 @@ export default function ProcurementDashboardPage() {
     () =>
       (summary?.statusBreakdown ?? []).map((row) => ({
         ...row,
-        label: PURCHASE_ORDER_STATUS_LABEL[row.status] ?? row.status,
+        label: tStatus(
+          PURCHASE_ORDER_STATUS_LABEL[row.status] ?? row.status,
+          lang,
+        ),
         fill: STATUS_BAR_COLOR[row.status] ?? GREEN,
       })),
-    [summary?.statusBreakdown],
+    [summary?.statusBreakdown, lang],
   );
 
   const trendChartData = useMemo(
@@ -208,14 +216,14 @@ export default function ProcurementDashboardPage() {
   const columns: ColumnsType<ProcurementTrackingRow> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบสั่งซื้อ",
+        title: t("เลขที่ใบสั่งซื้อ"),
         dataIndex: "poNo",
         key: "poNo",
         width: 180,
@@ -224,27 +232,27 @@ export default function ProcurementDashboardPage() {
         render: (value: string) => <span className={styles.poNo}>{value}</span>,
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "poDate",
         key: "poDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "อ้างอิง PR",
+        title: t("อ้างอิง PR"),
         dataIndex: "prNo",
         key: "prNo",
         width: 150,
         render: (value?: string) => value ?? "—",
       },
       {
-        title: "ผู้ขาย",
+        title: t("ผู้ขาย"),
         dataIndex: "creditorName",
         key: "creditorName",
         ellipsis: true,
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "items",
         width: 240,
         className: styles.itemColumn,
@@ -253,7 +261,7 @@ export default function ProcurementDashboardPage() {
         ),
       },
       {
-        title: "ยอดรวม",
+        title: t("ยอดรวม"),
         dataIndex: "totalAmount",
         key: "totalAmount",
         align: "right",
@@ -261,36 +269,36 @@ export default function ProcurementDashboardPage() {
         render: (value: string) => formatMoney(value),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 130,
         render: (value: string) => (
           <Tag color={statusColor(value)}>
-            {PURCHASE_ORDER_STATUS_LABEL[value] ?? value}
+            {tStatus(PURCHASE_ORDER_STATUS_LABEL[value] ?? value)}
           </Tag>
         ),
       },
       {
-        title: "จ่ายเงิน",
+        title: t("จ่ายเงิน"),
         dataIndex: "paymentStatus",
         key: "paymentStatus",
         width: 100,
         render: (value: string) => (
           <Tag color={paymentStatusColor(value)}>
-            {PAYMENT_STATUS_LABEL[value] ?? value}
+            {t(PAYMENT_STATUS_LABEL[value] ?? value)}
           </Tag>
         ),
       },
       {
-        title: "ใบรับของ",
+        title: t("ใบรับของ"),
         dataIndex: "grCount",
         key: "grCount",
         width: 90,
         align: "center",
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "action",
         width: 70,
         align: "center",
@@ -298,7 +306,7 @@ export default function ProcurementDashboardPage() {
           <button
             className={styles.actionBtn}
             type="button"
-            title="ดูรายละเอียด"
+            title={t("ดูรายละเอียด")}
             onClick={() => router.push(`/purchase-orders/${row.id}`)}
           >
             <EyeOutlined />
@@ -306,7 +314,7 @@ export default function ProcurementDashboardPage() {
         ),
       },
     ],
-    [limit, page, router],
+    [limit, page, router, t],
   );
 
   return (
@@ -315,13 +323,13 @@ export default function ProcurementDashboardPage() {
         <PageHeader
           eyebrow="Procurement"
           icon={<FileTextOutlined />}
-          title="ติดตามจัดซื้อ"
-          subtitle="สรุปสถานะสายงาน ใบขอซื้อ → ใบสั่งซื้อ → ใบรับของ → จ่ายเงิน ในหน้าเดียว"
+          title={t("ติดตามจัดซื้อ")}
+          subtitle={t("สรุปสถานะสายงาน ใบขอซื้อ → ใบสั่งซื้อ → ใบรับของ → จ่ายเงิน ในหน้าเดียว")}
         />
 
         <div className={styles.toolbar}>
           <label className={styles.filterField}>
-            <span>ปี</span>
+            <span>{t("ปี")}</span>
             <DatePicker
               picker="year"
               allowClear={false}
@@ -340,7 +348,7 @@ export default function ProcurementDashboardPage() {
             />
           </label>
           <label className={styles.filterField}>
-            <span>ช่วงวันที่</span>
+            <span>{t("ช่วงวันที่")}</span>
             <DatePicker.RangePicker
               allowClear={false}
               value={dateRange}
@@ -365,19 +373,21 @@ export default function ProcurementDashboardPage() {
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>ใบสั่งซื้อทั้งหมด</span>
+            <span>{t("ใบสั่งซื้อทั้งหมด")}</span>
             <strong>{summary?.totalPOs ?? 0}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ยอดเงินรวม</span>
-            <strong>{formatMoney(summary?.totalAmount ?? "0")} บาท</strong>
+            <span>{t("ยอดเงินรวม")}</span>
+            <strong>
+              {formatMoney(summary?.totalAmount ?? "0")} {t("บาท")}
+            </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>รอรับของ</span>
+            <span>{t("รอรับของ")}</span>
             <strong>{summary?.awaitingGrCount ?? 0}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>รอจ่ายเงิน</span>
+            <span>{t("รอจ่ายเงิน")}</span>
             <strong>{summary?.awaitingPaymentCount ?? 0}</strong>
           </div>
         </div>
@@ -385,12 +395,12 @@ export default function ProcurementDashboardPage() {
         <div className={styles.chartsGrid}>
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>ภาพรวมสถานะการจัดซื้อ</h3>
-              <p>จำนวนใบสั่งซื้อแยกตามสถานะในช่วงที่เลือก</p>
+              <h3>{t("ภาพรวมสถานะการจัดซื้อ")}</h3>
+              <p>{t("จำนวนใบสั่งซื้อแยกตามสถานะในช่วงที่เลือก")}</p>
             </div>
             <div className={styles.chartBody}>
               {statusChartData.length === 0 ? (
-                <div className={styles.emptyState}>ไม่มีข้อมูลในช่วงนี้</div>
+                <div className={styles.emptyState}>{t("ไม่มีข้อมูลในช่วงนี้")}</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -423,7 +433,7 @@ export default function ProcurementDashboardPage() {
                         borderRadius: 10,
                         border: "1px solid #e4e7eb",
                       }}
-                      formatter={(value) => [value, "จำนวน"]}
+                      formatter={(value) => [value, t("จำนวน")]}
                     />
                     <Bar dataKey="count" radius={[0, 4, 4, 0]} minPointSize={4}>
                       {statusChartData.map((row) => (
@@ -443,12 +453,12 @@ export default function ProcurementDashboardPage() {
 
           <div className={styles.chartCard}>
             <div className={styles.chartHeader}>
-              <h3>ยอดจัดซื้อรายเดือน</h3>
-              <p>ยอดเงินใบสั่งซื้อย้อนหลังตามช่วงที่เลือก</p>
+              <h3>{t("ยอดจัดซื้อรายเดือน")}</h3>
+              <p>{t("ยอดเงินใบสั่งซื้อย้อนหลังตามช่วงที่เลือก")}</p>
             </div>
             <div className={styles.chartBody}>
               {trendChartData.every((point) => point.poCount === 0) ? (
-                <div className={styles.emptyState}>ไม่มีข้อมูลในช่วงนี้</div>
+                <div className={styles.emptyState}>{t("ไม่มีข้อมูลในช่วงนี้")}</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
@@ -478,12 +488,12 @@ export default function ProcurementDashboardPage() {
                       }}
                       formatter={(value) => [
                         formatMoney(Number(value ?? 0)),
-                        "ยอดเงิน",
+                        t("ยอดเงิน"),
                       ]}
                     />
                     <Bar
                       dataKey="totalAmountNum"
-                      name="ยอดเงิน"
+                      name={t("ยอดเงิน")}
                       radius={[4, 4, 0, 0]}
                     >
                       {trendChartData.map((row) => (
@@ -500,25 +510,25 @@ export default function ProcurementDashboardPage() {
         <section className={styles.filterCard}>
           <div className={styles.filterGrid}>
             <div className={styles.filterItem}>
-              <label>เลขที่ใบสั่งซื้อ</label>
+              <label>{t("เลขที่ใบสั่งซื้อ")}</label>
               <Input
                 allowClear
-                placeholder="เช่น PO-20260718-001"
+                placeholder={t("เช่น PO-20260718-001")}
                 value={poNo}
                 onChange={(e) => setPoNo(e.target.value)}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>เลขที่ใบขอซื้อ</label>
+              <label>{t("เลขที่ใบขอซื้อ")}</label>
               <Input
                 allowClear
-                placeholder="เช่น PR-20260701-001"
+                placeholder={t("เช่น PR-20260701-001")}
                 value={prNo}
                 onChange={(e) => setPrNo(e.target.value)}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>สินค้า</label>
+              <label>{t("สินค้า")}</label>
               <Select
                 allowClear
                 showSearch
@@ -526,39 +536,39 @@ export default function ProcurementDashboardPage() {
                 maxTagCount="responsive"
                 optionFilterProp="label"
                 style={{ width: "100%" }}
-                placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
-                aria-label="สินค้าในใบสั่งซื้อ"
+                placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+                aria-label={t("สินค้าในใบสั่งซื้อ")}
                 value={itemIds}
                 onChange={(value) => setItemIds(value)}
                 options={itemOptions}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>สถานะ</label>
+              <label>{t("สถานะ")}</label>
               <Select
                 allowClear
                 style={{ width: "100%" }}
-                placeholder="ทั้งหมด"
+                placeholder={t("ทั้งหมด")}
                 value={status}
                 onChange={setStatus}
                 options={Object.entries(PURCHASE_ORDER_STATUS_LABEL).map(
-                  ([value, label]) => ({ value, label }),
+                  ([value, label]) => ({ value, label: tStatus(label) }),
                 )}
               />
             </div>
             <div className={styles.filterItem}>
-              <label>สถานะจ่ายเงิน</label>
+              <label>{t("สถานะจ่ายเงิน")}</label>
               <Select
                 allowClear
                 style={{ width: "100%" }}
-                placeholder="ทั้งหมด"
+                placeholder={t("ทั้งหมด")}
                 value={paymentStatus}
                 onChange={setPaymentStatus}
                 options={[
-                  { value: "UNPAID", label: "รอจ่าย" },
-                  { value: "PARTIAL", label: "จ่ายบางส่วน" },
-                  { value: "PAID", label: "จ่ายแล้ว" },
-                  { value: "NOT_REQUIRED", label: "ไม่ต้องชำระ" },
+                  { value: "UNPAID", label: t("รอจ่าย") },
+                  { value: "PARTIAL", label: t("จ่ายบางส่วน") },
+                  { value: "PAID", label: t("จ่ายแล้ว") },
+                  { value: "NOT_REQUIRED", label: t("ไม่ต้องชำระ") },
                 ]}
               />
             </div>
@@ -575,7 +585,7 @@ export default function ProcurementDashboardPage() {
                 setPage(1);
               }}
             >
-              เคลียร์
+              {t("เคลียร์")}
             </Button>
             <Button
               type="primary"
@@ -592,7 +602,7 @@ export default function ProcurementDashboardPage() {
                 });
               }}
             >
-              ค้นหา
+              {t("ค้นหา")}
             </Button>
           </div>
         </section>
@@ -600,10 +610,10 @@ export default function ProcurementDashboardPage() {
         <section className={styles.tableCard}>
           <div className={styles.tableToolbar}>
             <div className={styles.toolbarLeft}>
-              ใบสั่งซื้อทั้งหมด <strong>{total}</strong> รายการ
+              {t("ใบสั่งซื้อทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
             </div>
             <div className={styles.entriesBox}>
-              <span>แสดง</span>
+              <span>{t("แสดง")}</span>
               <Select
                 size="small"
                 value={limit}
@@ -618,7 +628,7 @@ export default function ProcurementDashboardPage() {
                   setPage(1);
                 }}
               />
-              <span>รายการ/หน้า</span>
+              <span>{t("รายการ/หน้า")}</span>
             </div>
           </div>
 
@@ -630,13 +640,16 @@ export default function ProcurementDashboardPage() {
             pagination={false}
             scroll={{ x: 1280 }}
             className={styles.table}
-            locale={{ emptyText: "ยังไม่มีใบสั่งซื้อ" }}
+            locale={{ emptyText: t("ยังไม่มีใบสั่งซื้อ") }}
           />
 
           <div className={styles.tableFooter}>
             <div className={styles.footerText}>
-              แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-              {Math.min(page * limit, total)} จาก {total}
+              {t("แสดง {from}–{to} จาก {total}", {
+                from: total === 0 ? 0 : (page - 1) * limit + 1,
+                to: Math.min(page * limit, total),
+                total,
+              })}
             </div>
             <Pagination
               size="small"

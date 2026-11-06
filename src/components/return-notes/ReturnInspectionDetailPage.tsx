@@ -15,6 +15,8 @@ import { RETURN_NOTE_STATUS_LABEL } from "@/types/return-notes";
 import ReturnInspectionSortModal from "./ReturnInspectionSortModal";
 import styles from "./ReturnNoteDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string };
 
@@ -25,6 +27,7 @@ function formatQty(value?: string) {
 }
 
 export default function ReturnInspectionDetailPage({ id }: Props) {
+  const t = useT();
   const query = useInspectionDetailQuery(id);
   const data = query.data?.data;
   const actions = useScreenActionPermissions("RETURN_INSPECTIONS");
@@ -48,14 +51,14 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
 
   const columns: ColumnsType<ReturnNoteItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_, row) => (
         <div>
@@ -66,35 +69,35 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
     },
     { title: "Lot", dataIndex: "lotNo", render: (value?: string) => value || "—" },
     {
-      title: "จำนวนคืน",
+      title: t("จำนวนคืน"),
       dataIndex: "returnQty",
       align: "right",
       render: (value: string) => formatQty(value),
     },
     {
-      title: "ใช้งานได้",
+      title: t("ใช้งานได้"),
       dataIndex: "goodQty",
       align: "right",
       render: (value?: string) => formatQty(value),
     },
     {
-      title: "เสีย",
+      title: t("เสีย"),
       dataIndex: "scrapQty",
       align: "right",
       render: (value?: string) => formatQty(value),
     },
     {
-      title: "ปลายทาง",
+      title: t("ปลายทาง"),
       key: "dest",
       render: (_, row) => (
         <div style={{ lineHeight: 1.4 }}>
           {row.goodQty != null ? (
-            <div>ดี: {row.goodWarehouseCode ?? "—"}</div>
+            <div>{t("ดี:")} {row.goodWarehouseCode ?? "—"}</div>
           ) : null}
           {row.scrapQty != null ? (
-            <div>เสีย: {row.scrapWarehouseCode ?? "—"}</div>
+            <div>{t("เสีย:")} {row.scrapWarehouseCode ?? "—"}</div>
           ) : (
-            "ยังไม่คัดแยก"
+            t("ยังไม่คัดแยก")
           )}
         </div>
       ),
@@ -106,7 +109,7 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
       render: (_, row) =>
         canSort ? (
           <Button size="small" onClick={() => setSorting(row)}>
-            คัดแยกสินค้า
+            {t("คัดแยกสินค้า")}
           </Button>
         ) : null,
     },
@@ -115,11 +118,11 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
   return (
     <div className={styles.page}>
       <PageHeader
-        title="ตรวจสอบและคัดแยกสินค้า"
+        title={t("ตรวจสอบและคัดแยกสินค้า")}
         subtitle={data.returnNoteNo}
         back={
           <Link href="/return-notes/inspections">
-            <ArrowLeftOutlined /> รอตรวจสอบ
+            <ArrowLeftOutlined /> {t("รอตรวจสอบ")}
           </Link>
         }
       />
@@ -132,23 +135,23 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
             pagination={false}
           />
           <div style={{ marginTop: 12 }}>
-            <div>เอกสารที่เกี่ยวข้อง</div>
+            <div>{t("เอกสารที่เกี่ยวข้อง")}</div>
             <div>
               <Link href={`/return-notes/${data.id}`}>{data.returnNoteNo}</Link>
               {data.salesOrderNo ? ` · SO ${data.salesOrderNo}` : ""}
-              {data.pickingNo ? ` · ใบจ่าย ${data.pickingNo}` : ""}
-              {data.deliveryOrderNo ? ` · ใบส่ง ${data.deliveryOrderNo}` : ""}
+              {data.pickingNo ? t(" · ใบจ่าย {pickingNo}", { pickingNo: data.pickingNo }) : ""}
+              {data.deliveryOrderNo ? t(" · ใบส่ง {deliveryOrderNo}", { deliveryOrderNo: data.deliveryOrderNo }) : ""}
             </div>
           </div>
         </section>
         <aside className={styles.sideCard}>
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>วันที่คืน</span>
+              <span>{t("วันที่คืน")}</span>
               <strong>{dayjs(data.createdAt).format("DD/MM/YYYY")}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ลูกค้า</span>
+              <span>{t("ลูกค้า")}</span>
               <strong>{data.customerName ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>
@@ -156,23 +159,23 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
               <strong>{data.salesOrderNo ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ใบจ่ายสินค้า</span>
+              <span>{t("ใบจ่ายสินค้า")}</span>
               <strong>{data.pickingNo ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ใบส่งสินค้า</span>
+              <span>{t("ใบส่งสินค้า")}</span>
               <strong>{data.deliveryOrderNo ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>ผู้รับคืน</span>
+              <span>{t("ผู้รับคืน")}</span>
               <strong>{data.approvedByName ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>สถานะ</span>
+              <span>{t("สถานะ")}</span>
               <strong>
                 {confirmed
-                  ? "ตรวจสอบแล้ว"
-                  : (RETURN_NOTE_STATUS_LABEL[data.status as ReturnNoteStatus] ??
+                  ? t("ตรวจสอบแล้ว")
+                  : statusT(t, RETURN_NOTE_STATUS_LABEL[data.status as ReturnNoteStatus] ??
                     data.status)}
               </strong>
             </div>
@@ -184,13 +187,13 @@ export default function ReturnInspectionDetailPage({ id }: Props) {
               onClick={() => confirm.mutate()}
               style={{ marginTop: 16 }}
             >
-              ยืนยันผลการตรวจทั้งหมด
+              {t("ยืนยันผลการตรวจทั้งหมด")}
             </Button>
           ) : null}
           {confirmed ? (
             <p className={styles.sideNote}>
-              ยืนยันแล้วโดย {data.inspectionConfirmedByName ?? "—"} ของดีเข้าคลังสำเร็จรูป
-              และของเสียเข้าคลังของเสีย
+              {t("ยืนยันแล้วโดย")} {data.inspectionConfirmedByName ?? "—"} {t("ของดีเข้าคลังสำเร็จรูป")}
+              {t("และของเสียเข้าคลังของเสีย")}
             </p>
           ) : null}
         </aside>

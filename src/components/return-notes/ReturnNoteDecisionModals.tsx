@@ -9,6 +9,7 @@ import {
 } from "@/hooks/return-notes/useReturnNoteMutations";
 import { useInspectionWarehousesQuery } from "@/hooks/return-notes/useReturnNotesQuery";
 import type { InspectionWarehouse, ReturnNote } from "@/types/return-notes";
+import { useT } from "@/lib/i18n/useT";
 
 type Target = Pick<ReturnNote, "id" | "returnNoteNo" | "totalReturnQty">;
 
@@ -35,6 +36,7 @@ function ApproveBody({
   onClose: () => void;
   onDone?: () => void;
 }) {
+  const t = useT();
   const warehousesQuery = useInspectionWarehousesQuery();
   const approveMutation = useApproveReturnNoteMutation();
   const warehouses = warehousesQuery.data?.data ?? [];
@@ -56,9 +58,9 @@ function ApproveBody({
     <Modal
       open
       destroyOnHidden
-      title={`อนุมัติใบคืนสินค้า ${note.returnNoteNo}`}
-      okText="อนุมัติ รับเข้าคลังตรวจสอบ"
-      cancelText="ยกเลิก"
+      title={t("อนุมัติใบคืนสินค้า {returnNoteNo}", { returnNoteNo: note.returnNoteNo })}
+      okText={t("อนุมัติ รับเข้าคลังตรวจสอบ")}
+      cancelText={t("ยกเลิก")}
       okButtonProps={{ disabled: !canSubmit }}
       confirmLoading={approveMutation.isPending}
       onCancel={onClose}
@@ -82,18 +84,18 @@ function ApproveBody({
         <Alert
           type="error"
           showIcon
-          title="ยังไม่มีคลังตรวจสอบ (ประเภท INSPECTION) ที่เปิดใช้งาน"
-          description="ตั้งค่าคลังประเภทคลังตรวจสอบที่ข้อมูลหลักคลังสินค้าก่อน"
+          title={t("ยังไม่มีคลังตรวจสอบ (ประเภท INSPECTION) ที่เปิดใช้งาน")}
+          description={t("ตั้งค่าคลังประเภทคลังตรวจสอบที่ข้อมูลหลักคลังสินค้าก่อน")}
         />
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
           <p style={{ margin: 0 }}>
-            รับของคืนรวม <strong>{Number(note.totalReturnQty).toLocaleString("th-TH")}</strong>{" "}
-            เข้าคลังตรวจสอบ ระบบจะเพิ่มสต๊อกและบันทึกการเคลื่อนไหว
-            &quot;รับคืนจากลูกค้า&quot; — อนุมัติแล้วแก้ไม่ได้
+            {t("รับของคืนรวม")} <strong>{Number(note.totalReturnQty).toLocaleString("th-TH")}</strong>{" "}
+            {t("เข้าคลังตรวจสอบ ระบบจะเพิ่มสต๊อกและบันทึกการเคลื่อนไหว")}{" "}
+            {t("\"รับคืนจากลูกค้า\" — อนุมัติแล้วแก้ไม่ได้")}
           </p>
           <div>
-            <label style={{ display: "block", marginBottom: 4 }}>คลังตรวจสอบ</label>
+            <label style={{ display: "block", marginBottom: 4 }}>{t("คลังตรวจสอบ")}</label>
             <Select
               style={{ width: "100%" }}
               value={warehouseId}
@@ -108,12 +110,12 @@ function ApproveBody({
             />
           </div>
           <div>
-            <label style={{ display: "block", marginBottom: 4 }}>ตำแหน่งจัดเก็บ</label>
+            <label style={{ display: "block", marginBottom: 4 }}>{t("ตำแหน่งจัดเก็บ")}</label>
             <Select
               style={{ width: "100%" }}
               value={locationId}
               onChange={(value: string) => setPickedLocationId(value)}
-              placeholder="คลังนี้ยังไม่มีตำแหน่งจัดเก็บ"
+              placeholder={t("คลังนี้ยังไม่มีตำแหน่งจัดเก็บ")}
               options={(warehouse?.locations ?? []).map((l) => ({
                 value: l.id,
                 label: `${l.locationCode} · ${l.locationName}`,
@@ -140,6 +142,7 @@ function RejectBody({
   onClose: () => void;
   onDone?: () => void;
 }) {
+  const t = useT();
   const rejectMutation = useRejectReturnNoteMutation();
   const [reason, setReason] = useState("");
   const [touched, setTouched] = useState(false);
@@ -149,10 +152,10 @@ function RejectBody({
     <Modal
       open
       destroyOnHidden
-      title={`ไม่อนุมัติใบคืนสินค้า ${note.returnNoteNo}`}
-      okText="ไม่อนุมัติ"
+      title={t("ไม่อนุมัติใบคืนสินค้า {returnNoteNo}", { returnNoteNo: note.returnNoteNo })}
+      okText={t("ไม่อนุมัติ")}
       okButtonProps={{ danger: true, disabled: missing }}
-      cancelText="ยกเลิก"
+      cancelText={t("ยกเลิก")}
       confirmLoading={rejectMutation.isPending}
       onCancel={onClose}
       onOk={async () => {
@@ -171,18 +174,18 @@ function RejectBody({
       }}
     >
       <label style={{ display: "block", marginBottom: 4 }}>
-        เหตุผลที่ไม่อนุมัติ <span style={{ color: "#dc2626" }}>*</span>
+        {t("เหตุผลที่ไม่อนุมัติ")} <span style={{ color: "#dc2626" }}>*</span>
       </label>
       <Input.TextArea
         rows={3}
         value={reason}
         status={touched && missing ? "error" : undefined}
-        placeholder="เช่น ของที่ส่งคืนไม่ตรงกับรายการในใบ"
+        placeholder={t("เช่น ของที่ส่งคืนไม่ตรงกับรายการในใบ")}
         onChange={(e) => setReason(e.target.value)}
         onBlur={() => setTouched(true)}
       />
       {touched && missing ? (
-        <div style={{ color: "#dc2626", marginTop: 4 }}>กรุณาระบุเหตุผล</div>
+        <div style={{ color: "#dc2626", marginTop: 4 }}>{t("กรุณาระบุเหตุผล")}</div>
       ) : null}
     </Modal>
   );

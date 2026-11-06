@@ -7,48 +7,49 @@ import {
   canAccessDocumentAuditTrail,
   useAuditLogsQuery,
 } from "@/hooks/audit-logs/useAuditLogsQuery";
+import { useT, type TFunction } from "@/lib/i18n/useT";
 
 type Props = {
   documentId: string;
   title?: string;
 };
 
-function actionLabel(action: string) {
+function actionLabel(action: string, t: TFunction) {
   switch (action) {
     case "CREATE":
-      return "สร้างเอกสาร";
+      return t("สร้างเอกสาร");
     case "CONFIRM":
-      return "ยืนยันใบสั่งขาย";
+      return t("ยืนยันใบสั่งขาย");
     case "CANCEL":
-      return "ยกเลิก";
+      return t("ยกเลิก");
     case "CANCEL_ROUND":
-      return "ยกเลิกรอบจัดส่ง";
+      return t("ยกเลิกรอบจัดส่ง");
     case "UPDATE":
-      return "แก้ไข";
+      return t("แก้ไข");
     case "UPDATE_ITEMS":
-      return "แก้รายการ/ยอด";
+      return t("แก้รายการ/ยอด");
     case "UPDATE_CUSTOMER_PO":
-      return "แก้เลข PO ลูกค้า";
+      return t("แก้เลข PO ลูกค้า");
     case "UPDATE_HEADER":
-      return "แก้หัวเอกสาร/การชำระ";
+      return t("แก้หัวเอกสาร/การชำระ");
     case "RESCHEDULE":
-      return "เลื่อนกำหนดส่ง";
+      return t("เลื่อนกำหนดส่ง");
     case "DELIVERY_RETURN":
-      return "ลูกค้าตีกลับสินค้า";
+      return t("ลูกค้าตีกลับสินค้า");
     case "DELETE":
-      return "ลบ";
+      return t("ลบ");
     case "APPROVE":
-      return "อนุมัติ";
+      return t("อนุมัติ");
     case "REJECT":
-      return "ปฏิเสธ";
+      return t("ปฏิเสธ");
     case "SUBMIT":
-      return "ส่งอนุมัติ";
+      return t("ส่งอนุมัติ");
     case "FINALIZE":
-      return "สรุป/ปิดรายการ";
+      return t("สรุป/ปิดรายการ");
     case "PRINT":
-      return "พิมพ์";
+      return t("พิมพ์");
     case "EXPORT":
-      return "ส่งออก";
+      return t("ส่งออก");
     default:
       return action;
   }
@@ -84,8 +85,9 @@ function actionColor(action: string) {
 
 export default function DocumentAuditTrail({
   documentId,
-  title = "ประวัติการดำเนินการ",
+  title,
 }: Props) {
+  const t = useT();
   const allowed = canAccessDocumentAuditTrail();
   const query = useAuditLogsQuery({ documentId, limit: 20 });
   const items = query.data?.data?.items ?? [];
@@ -97,14 +99,14 @@ export default function DocumentAuditTrail({
   return (
     <div>
       <h3 style={{ margin: "0 0 12px", fontSize: 15, fontWeight: 700 }}>
-        {title}
+        {title ?? t("ประวัติการดำเนินการ")}
       </h3>
       {query.isLoading ? (
         <Spin size="small" />
       ) : items.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="ยังไม่มีประวัติการดำเนินการ"
+          description={t("ยังไม่มีประวัติการดำเนินการ")}
         />
       ) : (
         <Timeline
@@ -114,10 +116,10 @@ export default function DocumentAuditTrail({
             content: (
               <div>
                 <Tag color={actionColor(log.action)}>
-                  {actionLabel(log.action)}
+                  {actionLabel(log.action, t)}
                 </Tag>{" "}
                 <span style={{ fontSize: 13 }}>
-                  {log.performedBy?.displayName ?? "ระบบ"}
+                  {log.performedBy?.displayName ?? t("ระบบ")}
                 </span>
                 <div style={{ fontSize: 12, color: "#8a9199" }}>
                   {dayjs(log.performedAt).format("DD/MM/YYYY HH:mm:ss")}

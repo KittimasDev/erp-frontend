@@ -20,6 +20,7 @@ import type {
 import { createWarehouseLocation } from "@/lib/api/warehouse-locations";
 import { getAccessToken } from "@/lib/auth/token";
 import { ZoneSplitPanel } from "./ZoneSplitPanel";
+import { useT } from "@/lib/i18n/useT";
 
 const AUTO_ZONE_COLORS = ["#10b981", "#f59e0b", "#06b6d4", "#8b5cf6", "#ec4899", "#3b82f6", "#14b8a6", "#eab308"];
 
@@ -85,6 +86,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
   onSave,
   isSaving,
 }) => {
+  const t = useT();
   const { message } = App.useApp();
 
   const normalizeLayout = (cfg: Warehouse3DLayoutConfig): Warehouse3DLayoutConfig => {
@@ -259,7 +261,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
       return { ...prev, zones: next };
     });
     setExpandedZones((prev) => new Set([...prev, ...cells.slice(1).map((c) => c.id)]));
-    message.success(`แบ่งเป็น ${cells.length} ช่องแล้ว กด "บันทึกผัง 3D" เพื่อยืนยัน`);
+    message.success(t("แบ่งเป็น {n} ช่องแล้ว กด “บันทึกผัง 3D” เพื่อยืนยัน", { n: cells.length }));
   };
 
   // วางโซนอัตโนมัติให้ Location ที่ยังไม่มีโซนบนผัง (เรียงเป็นตาราง)
@@ -271,7 +273,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
     if (unmappedLocations.length === 0) return;
     const created = placeZonesForLocations(draftLayout.building, unmappedLocations, draftLayout.zones?.length || 0);
     setDraftLayout((prev) => ({ ...prev, zones: [...(prev.zones || []), ...created] }));
-    message.success(`วางโซนให้ ${created.length} Location แล้ว ปรับขนาด/ตำแหน่งต่อได้`);
+    message.success(t("วางโซนให้ {n} Location แล้ว ปรับขนาด/ตำแหน่งต่อได้", { n: created.length }));
   };
 
   const overlappingIds = (() => {
@@ -429,7 +431,10 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
           setDraftLayout(toSave);
         } catch (err) {
           message.error(
-            `สร้าง Location ${z.code} ไม่สำเร็จ${err instanceof Error ? `: ${err.message}` : ""} ช่องที่สร้างไปแล้วจะไม่สร้างซ้ำ แก้รหัสแล้วกดบันทึกอีกครั้ง`,
+            t("สร้าง Location {code} ไม่สำเร็จ{detail} ช่องที่สร้างไปแล้วจะไม่สร้างซ้ำ แก้รหัสแล้วกดบันทึกอีกครั้ง", {
+              code: z.code,
+              detail: err instanceof Error ? `: ${err.message}` : "",
+            }),
           );
           return;
         }
@@ -444,22 +449,22 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
         }),
       };
       await onSave(cleaned);
-      message.success("บันทึกผังคลัง 3 มิติสำเร็จแล้ว");
+      message.success(t("บันทึกผังคลัง 3 มิติสำเร็จแล้ว"));
       onClose();
     } catch {
-      message.error("เกิดข้อผิดพลาดในการบันทึกผัง 3 มิติ");
+      message.error(t("เกิดข้อผิดพลาดในการบันทึกผัง 3 มิติ"));
     }
   };
 
   return (
     <Drawer
-      title="🛠️ ตัวแก้ไขผังคลังสินค้า 3 มิติ (3D Layout Configurator)"
+      title={t("🛠️ ตัวแก้ไขผังคลังสินค้า 3 มิติ (3D Layout Configurator)")}
       open={open}
       onClose={onClose}
       size={560}
       extra={
         <Space>
-          <Button onClick={onClose}>ยกเลิก</Button>
+          <Button onClick={onClose}>{t("ยกเลิก")}</Button>
           <Button
             type="primary"
             icon={<SaveOutlined />}
@@ -467,7 +472,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
             onClick={handleSaveLayout}
             className="bg-orange-600 hover:bg-orange-500"
           >
-            บันทึกผัง 3D
+            {t("บันทึกผัง 3D")}
           </Button>
         </Space>
       }
@@ -477,15 +482,15 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
         items={[
           {
             key: "zones",
-            label: `พื้นที่จัดเก็บตาม Location (${draftLayout.zones?.length || 0})`,
+            label: t("พื้นที่จัดเก็บตาม Location ({n})", { n: draftLayout.zones?.length || 0 }),
             children: (
               <div className="space-y-3">
                 <div className="flex justify-between items-center gap-2 flex-wrap">
-                  <span className="text-xs text-slate-500">พื้นที่จัดเก็บ / โซนแบ่งตามสีประจำ Location</span>
+                  <span className="text-xs text-slate-500">{t("พื้นที่จัดเก็บ / โซนแบ่งตามสีประจำ Location")}</span>
                   <Space size={4}>
                     {unmappedLocations.length > 0 && (
                       <Button size="small" icon={<ThunderboltOutlined />} onClick={handleAutoPlaceUnmapped}>
-                        วางโซนให้ Location ที่ยังไม่ผูก ({unmappedLocations.length})
+                        {t("วางโซนให้ Location ที่ยังไม่ผูก ({n})", { n: unmappedLocations.length })}
                       </Button>
                     )}
                     <Button
@@ -495,13 +500,13 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                       onClick={handleAddZone}
                       className="text-emerald-600 border-emerald-400"
                     >
-                      เพิ่มโซน
+                      {t("เพิ่มโซน")}
                     </Button>
                   </Space>
                 </div>
                 {overlappingIds.size > 0 && (
                   <div className="text-[11px] text-amber-600">
-                    ⚠️ มี {overlappingIds.size} โซนที่พื้นที่ทับกัน (ยังบันทึกได้ แต่ควรขยับให้ไม่ซ้อนกัน)
+                    {t("⚠️ มี {n} โซนที่พื้นที่ทับกัน (ยังบันทึกได้ แต่ควรขยับให้ไม่ซ้อนกัน)", { n: overlappingIds.size })}
                   </div>
                 )}
 
@@ -527,13 +532,13 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                           <span className="font-semibold text-slate-800 text-xs">
                             {zone.name} ({zone.code})
                           </span>
-                          {zone.pendingCreate && <Tag color="green" className="m-0 text-[10px]">ใหม่</Tag>}
-                          {overlappingIds.has(zone.id) && <Tag color="orange" className="m-0 text-[10px]">ทับกัน</Tag>}
+                          {zone.pendingCreate && <Tag color="green" className="m-0 text-[10px]">{t("ใหม่")}</Tag>}
+                          {overlappingIds.has(zone.id) && <Tag color="orange" className="m-0 text-[10px]">{t("ทับกัน")}</Tag>}
                         </div>
                       }
                       extra={
                         <Popconfirm
-                          title="ลบลานนี้?"
+                          title={t("ลบลานนี้?")}
                           onConfirm={() => handleDeleteZone(idx)}
                         >
                           <Button
@@ -549,7 +554,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                       <div className={`space-y-2 text-xs ${isZoneOpen(zone.id) ? "" : "hidden"}`}>
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <span className="text-[10px] text-slate-500 block">ชื่อ Location</span>
+                            <span className="text-[10px] text-slate-500 block">{t("ชื่อ Location")}</span>
                             <Input
                               size="small"
                               value={zone.name}
@@ -557,7 +562,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                             />
                           </div>
                           <div>
-                            <span className="text-[10px] text-slate-500 block">รหัส</span>
+                            <span className="text-[10px] text-slate-500 block">{t("รหัส")}</span>
                             <Input
                               size="small"
                               value={zone.code}
@@ -568,12 +573,12 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
 
                         <div>
                           <span className="text-[10px] text-slate-500 block">
-                            ผูก Location ในระบบ (Warehouse Location)
+                            {t("ผูก Location ในระบบ (Warehouse Location)")}
                           </span>
                           <Select
                             size="small"
                             allowClear
-                            placeholder="เลือก Location ในระบบ"
+                            placeholder={t("เลือก Location ในระบบ")}
                             value={zone.locationId}
                             onChange={(val) => {
                               const loc = locations.find((l) => l.id === val);
@@ -594,7 +599,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                         <div className="grid grid-cols-2 gap-2">
                           <div>
                             <span className="text-[10px] text-slate-500 block">
-                              ประเภทการใช้งานพื้นที่
+                              {t("ประเภทการใช้งานพื้นที่")}
                             </span>
                             <Select
                               size="small"
@@ -602,16 +607,16 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                               onChange={(val) => handleUpdateZone(idx, { type: val })}
                               className="w-full"
                               options={[
-                                { value: "floor_bulk", label: "🏗️ ลานเทกอง (Bulk Yard)" },
-                                { value: "staging", label: "📦 ลานพักสินค้า (Staging)" },
-                                { value: "quarantine", label: "⚠️ กักกันรอตรวจ (QC Hold)" },
-                                { value: "dock", label: "🚪 ลานหน้าประตู Dock (Apron)" },
+                                { value: "floor_bulk", label: t("🏗️ ลานเทกอง (Bulk Yard)") },
+                                { value: "staging", label: t("📦 ลานพักสินค้า (Staging)") },
+                                { value: "quarantine", label: t("⚠️ กักกันรอตรวจ (QC Hold)") },
+                                { value: "dock", label: t("🚪 ลานหน้าประตู Dock (Apron)") },
                               ]}
                             />
                           </div>
                           <div>
                             <span className="text-[10px] text-slate-500 block">
-                              สีประจำพื้น Location บนผัง 3D
+                              {t("สีประจำพื้น Location บนผัง 3D")}
                             </span>
                             <Select
                               size="small"
@@ -619,14 +624,14 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                               onChange={(val) => handleUpdateZone(idx, { color: val })}
                               className="w-full"
                               options={[
-                                { value: "#10b981", label: "🟢 เขียวมรกต (#10b981)" },
-                                { value: "#f59e0b", label: "🟠 ส้มอำพัน (#f59e0b)" },
-                                { value: "#06b6d4", label: "🔵 ฟ้าไซแอน (#06b6d4)" },
-                                { value: "#8b5cf6", label: "🟣 ม่วง (#8b5cf6)" },
-                                { value: "#ec4899", label: "🌸 ชมพู (#ec4899)" },
-                                { value: "#3b82f6", label: "🔷 น้ำเงินหลวง (#3b82f6)" },
-                                { value: "#14b8a6", label: "🩵 เขียวหัวเป็ด (#14b8a6)" },
-                                { value: "#eab308", label: "🟡 เหลืองทอง (#eab308)" },
+                                { value: "#10b981", label: t("🟢 เขียวมรกต (#10b981)") },
+                                { value: "#f59e0b", label: t("🟠 ส้มอำพัน (#f59e0b)") },
+                                { value: "#06b6d4", label: t("🔵 ฟ้าไซแอน (#06b6d4)") },
+                                { value: "#8b5cf6", label: t("🟣 ม่วง (#8b5cf6)") },
+                                { value: "#ec4899", label: t("🌸 ชมพู (#ec4899)") },
+                                { value: "#3b82f6", label: t("🔷 น้ำเงินหลวง (#3b82f6)") },
+                                { value: "#14b8a6", label: t("🩵 เขียวหัวเป็ด (#14b8a6)") },
+                                { value: "#eab308", label: t("🟡 เหลืองทอง (#eab308)") },
                               ]}
                             />
                           </div>
@@ -634,7 +639,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
 
                         <div className="grid grid-cols-3 gap-2">
                           <div>
-                            <span className="text-[10px] text-slate-500 block">กว้าง x ยาว</span>
+                            <span className="text-[10px] text-slate-500 block">{t("กว้าง x ยาว")}</span>
                             <div className="flex gap-1">
                               <InputNumber
                                 size="small"
@@ -662,7 +667,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                           </div>
 
                           <div>
-                            <span className="text-[10px] text-slate-500 block">พิกัด X/Z</span>
+                            <span className="text-[10px] text-slate-500 block">{t("พิกัด X/Z")}</span>
                             <div className="flex gap-1">
                               <InputNumber
                                 size="small"
@@ -690,7 +695,7 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
                           </div>
 
                           <div>
-                            <span className="text-[10px] text-slate-500 block">ความสูง (H)</span>
+                            <span className="text-[10px] text-slate-500 block">{t("ความสูง (H)")}</span>
                             <InputNumber
                               size="small"
                               value={dims[1] ?? 1}
@@ -717,49 +722,49 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
           },
           {
             key: "building",
-            label: "อาคาร (Building)",
+            label: t("อาคาร (Building)"),
             children: (
               <div className="space-y-4">
                 <p className="text-xs text-slate-500">
-                  กำหนดขนาดมิติของอาคารคลังสินค้า (หน่วยเป็นเมตร)
+                  {t("กำหนดขนาดมิติของอาคารคลังสินค้า (หน่วยเป็นเมตร)")}
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-medium text-slate-700 block mb-1">
-                      ความกว้าง (Width - X)
+                      {t("ความกว้าง (Width - X)")}
                     </label>
                     <InputNumber
                       min={10}
                       max={200}
                       value={draftLayout.building?.width || 40}
                       onChange={(v) => handleBuildingChange("width", v)}
-                      suffix="ม."
+                      suffix={t("ม.")}
                       className="w-full"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-700 block mb-1">
-                      ความยาว (Length - Z)
+                      {t("ความยาว (Length - Z)")}
                     </label>
                     <InputNumber
                       min={10}
                       max={300}
                       value={draftLayout.building?.length || 60}
                       onChange={(v) => handleBuildingChange("length", v)}
-                      suffix="ม."
+                      suffix={t("ม.")}
                       className="w-full"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-slate-700 block mb-1">
-                      ความสูง (Height - Y)
+                      {t("ความสูง (Height - Y)")}
                     </label>
                     <InputNumber
                       min={4}
                       max={30}
                       value={draftLayout.building?.height || 10}
                       onChange={(v) => handleBuildingChange("height", v)}
-                      suffix="ม."
+                      suffix={t("ม.")}
                       className="w-full"
                     />
                   </div>
@@ -769,18 +774,18 @@ export const Warehouse3DLayoutEditorModal: React.FC<Warehouse3DLayoutEditorModal
           },
           {
             key: "docks",
-            label: `ประตูเทียบท่า (${draftLayout.docks?.length || 0})`,
+            label: t("ประตูเทียบท่า ({n})", { n: draftLayout.docks?.length || 0 }),
             children: (
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500">ประตูขนถ่ายสินค้า (Loading Docks)</span>
+                  <span className="text-xs text-slate-500">{t("ประตูขนถ่ายสินค้า (Loading Docks)")}</span>
                 </div>
                 <div className="space-y-2">
                   {draftLayout.docks?.map((dock) => (
                     <Card key={dock.id} size="small" className="bg-slate-50">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-semibold text-slate-700">🚪 {dock.name}</span>
-                        <span className="text-slate-500">{dock.width}x{dock.height} ม.</span>
+                        <span className="text-slate-500">{dock.width}x{dock.height} {t("ม.")}</span>
                       </div>
                     </Card>
                   ))}

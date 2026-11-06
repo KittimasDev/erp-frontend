@@ -13,11 +13,14 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockIssuesQuery } from "@/hooks/stock-issues/useStockIssuesQuery";
 import { useLowStockItemsQuery } from "@/hooks/inventory/useInventoryQueries";
 import type { StockIssue } from "@/types/stock-issues";
 import { STOCK_ISSUE_STATUS_LABEL } from "@/types/stock-issues";
+import { tStockLabel } from "@/types/stock-adjustments";
 import styles from "./MaterialIssuesListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -37,12 +40,15 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span className={`${styles.statusPill} ${tone}`}>
       <span className={styles.statusDot} aria-hidden />
-      {STOCK_ISSUE_STATUS_LABEL[status] ?? status}
+      {STOCK_ISSUE_STATUS_LABEL[status]
+        ? tStockLabel(STOCK_ISSUE_STATUS_LABEL[status])
+        : status}
     </span>
   );
 }
 
 export default function MaterialIssuesListPage() {
+  const t = useT();
   const router = useRouter();
   const [issueNo, setIssueNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -111,39 +117,39 @@ export default function MaterialIssuesListPage() {
   const columns: ColumnsType<StockIssue> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 52,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบเบิก",
+        title: t("เลขที่ใบเบิก"),
         dataIndex: "issueNo",
         key: "issueNo",
         render: (value: string) => <span className={styles.issueNo}>{value}</span>,
       },
       {
-        title: "วันที่เบิก",
+        title: t("วันที่เบิก"),
         dataIndex: "issueDate",
         key: "issueDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ผู้ขอเบิก",
+        title: t("ผู้ขอเบิก"),
         key: "requestedBy",
         render: (_v, row) => row.requestedBy?.displayName ?? "—",
       },
       {
-        title: "จำนวนรายการ",
+        title: t("จำนวนรายการ"),
         key: "itemCount",
         align: "right",
         width: 110,
         render: (_v, row) => row.items?.length ?? 0,
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 130,
@@ -158,7 +164,7 @@ export default function MaterialIssuesListPage() {
             <button
               type="button"
               className={styles.actionBtn}
-              title="ดูรายละเอียด"
+              title={t("ดูรายละเอียด")}
               onClick={() => router.push(`/inventory/material-issues/${row.id}`)}
             >
               <EyeOutlined />
@@ -167,7 +173,7 @@ export default function MaterialIssuesListPage() {
               <button
                 type="button"
                 className={styles.actionBtn}
-                title="แก้ไข"
+                title={t("แก้ไข")}
                 onClick={() =>
                   router.push(`/inventory/material-issues/${row.id}/edit`)
                 }
@@ -179,7 +185,7 @@ export default function MaterialIssuesListPage() {
         ),
       },
     ],
-    [canEdit, limit, page, router],
+    [canEdit, limit, page, router, t],
   );
 
   return (
@@ -187,8 +193,8 @@ export default function MaterialIssuesListPage() {
       <PageHeader
         eyebrow="Warehouse · Material Issue"
         icon={<SwapOutlined />}
-        title="เบิกของออกจากคลัง"
-        subtitle="สร้างใบเบิก (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัดสต๊อกจริง"
+        title={t("เบิกของออกจากคลัง")}
+        subtitle={t("สร้างใบเบิก (DRAFT) แล้วส่งให้หัวหน้าคลังอนุมัติเพื่อตัดสต๊อกจริง")}
         actions={
           <>
 {canAdd ? (
@@ -198,7 +204,7 @@ export default function MaterialIssuesListPage() {
               icon={<PlusOutlined />}
               onClick={() => router.push("/inventory/material-issues/create")}
             >
-              สร้างใบเบิกของ
+              {t("สร้างใบเบิกของ")}
             </Button>
           </div>
         ) : null}
@@ -212,86 +218,86 @@ export default function MaterialIssuesListPage() {
           className={`${styles.statChip} ${!applied.status ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus(undefined)}
         >
-          <span className={styles.statLabel}>ทั้งหมด</span>
+          <span className={styles.statLabel}>{t("ทั้งหมด")}</span>
           <span className={styles.statValue}>{allTotal}</span>
-          <span className={styles.statHint}>เอกสารทั้งหมด</span>
+          <span className={styles.statHint}>{t("เอกสารทั้งหมด")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "DRAFT" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("DRAFT")}
         >
-          <span className={styles.statLabel}>ร่าง</span>
+          <span className={styles.statLabel}>{t("ร่าง")}</span>
           <span className={styles.statValue}>{draftTotal}</span>
-          <span className={styles.statHint}>รออนุมัติ</span>
+          <span className={styles.statHint}>{t("รออนุมัติ")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "POSTED" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("POSTED")}
         >
-          <span className={styles.statLabel}>อนุมัติแล้ว</span>
+          <span className={styles.statLabel}>{t("อนุมัติแล้ว")}</span>
           <span className={styles.statValue}>{postedTotal}</span>
-          <span className={styles.statHint}>ตัดสต๊อกแล้ว</span>
+          <span className={styles.statHint}>{t("ตัดสต๊อกแล้ว")}</span>
         </button>
         <button
           type="button"
           className={`${styles.statChip} ${applied.status === "CANCELLED" ? styles.statChipActive : ""}`}
           onClick={() => setQuickStatus("CANCELLED")}
         >
-          <span className={styles.statLabel}>ยกเลิก</span>
+          <span className={styles.statLabel}>{tStockLabel("ยกเลิก")}</span>
           <span className={styles.statValue}>{cancelledTotal}</span>
-          <span className={styles.statHint}>ไม่ใช้งาน</span>
+          <span className={styles.statHint}>{t("ไม่ใช้งาน")}</span>
         </button>
       </div>
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่ใบเบิก</label>
+            <label>{t("เลขที่ใบเบิก")}</label>
             <Input
               allowClear
-              placeholder="เช่น SI-20260721-001"
+              placeholder={t("เช่น SI-20260721-001")}
               value={issueNo}
               onChange={(e) => setIssueNo(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่เบิก</label>
+            <label>{t("วันที่เบิก")}</label>
             <DatePicker
               style={{ width: "100%" }}
               value={issueDate}
               onChange={setIssueDate}
               format="DD/MM/YYYY"
-              placeholder="เลือกวันที่"
+              placeholder={t("เลือกวันที่")}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               options={[
-                { value: "DRAFT", label: "แบบร่างเอกสาร" },
-                { value: "POSTED", label: "อนุมัติแล้ว" },
-                { value: "CANCELLED", label: "ยกเลิก" },
+                { value: "DRAFT", label: t("แบบร่างเอกสาร") },
+                { value: "POSTED", label: t("อนุมัติแล้ว") },
+                { value: "CANCELLED", label: tStockLabel("ยกเลิก") },
               ]}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.searchBtn}
             icon={<SearchOutlined />}
             onClick={applySearch}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -299,10 +305,10 @@ export default function MaterialIssuesListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -317,7 +323,7 @@ export default function MaterialIssuesListPage() {
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -339,8 +345,8 @@ export default function MaterialIssuesListPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ยังไม่มีใบเบิกของ</strong>
-                สร้างใบเบิกใหม่ผ่านปุ่ม “สร้างใบเบิกของ”
+                <strong>{t("ยังไม่มีใบเบิกของ")}</strong>
+                {t("สร้างใบเบิกใหม่ผ่านปุ่ม “สร้างใบเบิกของ”")}
               </div>
             ),
           }}
@@ -348,8 +354,8 @@ export default function MaterialIssuesListPage() {
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง")} {total === 0 ? 0 : (page - 1) * limit + 1}–
+            {Math.min(page * limit, total)} {t("จาก")} {total}
           </div>
           <Pagination
             size="small"

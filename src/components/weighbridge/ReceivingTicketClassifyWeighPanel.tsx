@@ -24,6 +24,7 @@ import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTir
 import { useCompleteWeighAndReceiptMutation } from "@/hooks/weighbridge-tickets/useWeighTicketMutations";
 import { useScanWeighTicketOcrMutation } from "@/hooks/weighbridge-tickets/useScanWeighTicketOcrMutation";
 import { ERP_TIMEZONE } from "@/lib/datetime/erp-timezone";
+import { appLocale } from "./receiving-i18n";
 import { DEDUCTION_TYPE_LABELS } from "@/types/raw-tire-purchase-receipt";
 import type { RawTirePriceRule } from "@/types/raw-tire-price-rules";
 import type { WeighbridgeTicketDetail } from "@/types/weighbridge-tickets";
@@ -36,6 +37,7 @@ import WeighTicketOcrCaptureButton from "./WeighTicketOcrCaptureButton";
 import WeighTicketOcrReviewModal from "./WeighTicketOcrReviewModal";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 type PlanItemRow = {
   key: string;
@@ -78,7 +80,7 @@ function formatPrice(value?: string | number) {
   if (Number.isNaN(n)) {
     return String(value);
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
   });
@@ -96,7 +98,7 @@ function latestPriceByClassification(rules: RawTirePriceRule[]) {
 }
 
 function formatBaht(value?: number) {
-  return Number(value ?? 0).toLocaleString("th-TH", {
+  return Number(value ?? 0).toLocaleString(appLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -110,7 +112,7 @@ function formatWeight(value?: string | number) {
   if (Number.isNaN(n)) {
     return String(value);
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   });
@@ -210,6 +212,7 @@ export default function ReceivingTicketClassifyWeighPanel({
   ticket,
   currentStep,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const [printingDoc, setPrintingDoc] = useState<"receipt" | null>(null);
@@ -410,8 +413,8 @@ export default function ReceivingTicketClassifyWeighPanel({
   const classificationOptions = classifications.map((row) => {
     const price = priceByClassificationId.get(row.id);
     const priceText = price
-      ? `${formatPrice(price.pricePerKg)} บาท/กก.`
-      : "ยังไม่มีราคา";
+      ? `${formatPrice(price.pricePerKg)} ${t("บาท/กก.")}`
+      : t("ยังไม่มีราคา");
     return {
       value: row.id,
       label: `${row.classificationCode} · ${row.classificationName} · ${priceText}`,
@@ -449,19 +452,19 @@ export default function ReceivingTicketClassifyWeighPanel({
       [
         {
           value: "OWN",
-          label: "ราคาของใครของมัน (แยกตามประเภท)",
+          label: t("ราคาของใครของมัน (แยกตามประเภท)"),
         },
       ];
     items.forEach((item, index) => {
       const lineNo = index + 1;
       options.push({
         value: lineNo,
-        label: `ราคาของรายการที่ ${lineNo} ทั้งชุด`,
+        label: t("ราคาของรายการที่ {n} ทั้งชุด", { n: lineNo }),
         disabled: !rowHasPricable(item),
       });
     });
     return options;
-  }, [items, priceByClassificationId]);
+  }, [items, priceByClassificationId, t]);
 
   const resolveRowPrice = (item?: PlanItemRow): { pricePerKg: number; source: "scale" | "rule" } | undefined => {
     if (!item) {
@@ -614,7 +617,7 @@ export default function ReceivingTicketClassifyWeighPanel({
 
     closeOcrReview();
     message.success(
-      `เติมค่าจากรูปใบชั่งแล้ว ${selection.count} รายการ — ตรวจสอบให้ตรงกับใบจริงก่อนบันทึก`,
+      t("เติมค่าจากรูปใบชั่งแล้ว {n} รายการ — ตรวจสอบให้ตรงกับใบจริงก่อนบันทึก", { n: selection.count }),
     );
   };
 
@@ -647,7 +650,7 @@ export default function ReceivingTicketClassifyWeighPanel({
       nextItems.map((item) => item.tireClassificationId),
     );
     if (uniqueClassificationIds.size !== nextItems.length) {
-      message.error("ประเภทยางแต่ละรายการต้องไม่ซ้ำกัน");
+      message.error(t("ประเภทยางแต่ละรายการต้องไม่ซ้ำกัน"));
       return;
     }
 
@@ -663,7 +666,7 @@ export default function ReceivingTicketClassifyWeighPanel({
     );
     if (itemsTotal > netWeightKg + 0.0005) {
       message.error(
-        `น้ำหนักรายการยางรวม ${formatWeight(itemsTotal)} กก. เกินน้ำหนักสุทธิของรถ ${formatWeight(netWeightKg)} กก.`,
+        t("น้ำหนักรายการยางรวม {total} กก. เกินน้ำหนักสุทธิของรถ {net} กก.", { total: formatWeight(itemsTotal), net: formatWeight(netWeightKg) }),
       );
       return;
     }
@@ -691,7 +694,7 @@ export default function ReceivingTicketClassifyWeighPanel({
 
     for (const item of nextDeductions) {
       if (!item.description) {
-        message.error("รายการหักสารปนเปื้อนต้องระบุชื่อ");
+        message.error(t("รายการหักสารปนเปื้อนต้องระบุชื่อ"));
         return;
       }
       const hasLumpSum = Number(item.deductionAmount ?? 0) > 0;
@@ -699,11 +702,11 @@ export default function ReceivingTicketClassifyWeighPanel({
         continue;
       }
       if (item.deductionWeightKg <= 0) {
-        message.error(`"${item.description}" ต้องใส่น้ำหนักหัก (กก.)`);
+        message.error(t("\"{name}\" ต้องใส่น้ำหนักหัก (กก.)", { name: item.description }));
         return;
       }
       if (Number(item.deductionPricePerKg ?? 0) <= 0) {
-        message.error(`"${item.description}" ต้องใส่ราคา/กก.`);
+        message.error(t("\"{name}\" ต้องใส่ราคา/กก.", { name: item.description }));
         return;
       }
     }
@@ -727,13 +730,13 @@ export default function ReceivingTicketClassifyWeighPanel({
       const sourceUiIndex = includedUiIndexes[submittedPriceSourceLineNo - 1];
       if (!sourceItem?.tireClassificationId) {
         message.error(
-          `รายการที่ ${submittedPriceSourceLineNo} ยังไม่ได้เลือกประเภทยาง`,
+          t("รายการที่ {n} ยังไม่ได้เลือกประเภทยาง", { n: submittedPriceSourceLineNo }),
         );
         return;
       }
       if (!lineHasPrice(sourceUiIndex, sourceItem.pricePerKg)) {
         message.error(
-          `รายการที่ ${submittedPriceSourceLineNo} ยังไม่มีราคาที่มีผลวันนี้`,
+          t("รายการที่ {n} ยังไม่มีราคาที่มีผลวันนี้", { n: submittedPriceSourceLineNo }),
         );
         return;
       }
@@ -745,8 +748,8 @@ export default function ReceivingTicketClassifyWeighPanel({
           const meta = classificationLabelById.get(item.tireClassificationId);
           message.error(
             meta
-              ? `${meta.name} ยังไม่มีราคาที่มีผลวันนี้`
-              : "มีรายการที่ยังไม่มีราคาที่มีผลวันนี้",
+              ? t("{name} ยังไม่มีราคาที่มีผลวันนี้", { name: meta.name })
+              : t("มีรายการที่ยังไม่มีราคาที่มีผลวันนี้"),
           );
           return;
         }
@@ -758,7 +761,7 @@ export default function ReceivingTicketClassifyWeighPanel({
     );
     if (deductionWeightTotal > itemsTotal + 0.0005) {
       message.error(
-        `น้ำหนักหักรวม ${formatWeight(deductionWeightTotal)} กก. เกินน้ำหนักคัดแยก ${formatWeight(itemsTotal)} กก.`,
+        t("น้ำหนักหักรวม {total} กก. เกินน้ำหนักคัดแยก {sorted} กก.", { total: formatWeight(deductionWeightTotal), sorted: formatWeight(itemsTotal) }),
       );
       return;
     }
@@ -777,7 +780,7 @@ export default function ReceivingTicketClassifyWeighPanel({
 
   const handlePrintReceipt = async () => {
     if (!receipt) {
-      message.warning("ยังไม่มีใบรับซื้อให้พิมพ์");
+      message.warning(t("ยังไม่มีใบรับซื้อให้พิมพ์"));
       return;
     }
     setPrintingDoc("receipt");
@@ -789,7 +792,7 @@ export default function ReceivingTicketClassifyWeighPanel({
       );
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "พิมพ์ใบรับซื้อไม่สำเร็จ",
+        error instanceof Error ? error.message : t("พิมพ์ใบรับซื้อไม่สำเร็จ"),
       );
     } finally {
       setPrintingDoc(null);
@@ -820,10 +823,9 @@ export default function ReceivingTicketClassifyWeighPanel({
             1
           </div>
           <div className={styles.stepCardTitle}>
-            <h3>Step 1 · คัดแยกและบันทึกน้ำหนัก</h3>
+            <h3>{t("Step 1 · คัดแยกและบันทึกน้ำหนัก")}</h3>
             <p>
-              กรอกจากใบเครื่องจักร: น้ำหนักเข้า-ออก ประเภทยาง+กก. และสารปนเปื้อน
-              (กก. × บาท/กก.)
+              {t("กรอกจากใบเครื่องจักร: น้ำหนักเข้า-ออก ประเภทยาง+กก. และสารปนเปื้อน (กก. × บาท/กก.)")}
             </p>
           </div>
         </div>
@@ -838,10 +840,10 @@ export default function ReceivingTicketClassifyWeighPanel({
           }
         >
           {receiptConfirmed
-            ? "ยืนยันใบรับซื้อแล้ว"
+            ? t("ยืนยันใบรับซื้อแล้ว")
             : selectedTypeCount
-              ? `${selectedTypeCount} ประเภท · ${formatWeight(allocatedTireWeightKg)} กก.`
-              : "รอกรอกข้อมูล"}
+              ? t("{count} ประเภท · {weight} กก.", { count: selectedTypeCount, weight: formatWeight(allocatedTireWeightKg) })
+              : t("รอกรอกข้อมูล")}
         </Tag>
       </div>
 
@@ -850,16 +852,16 @@ export default function ReceivingTicketClassifyWeighPanel({
           <>
             <div className={styles.stepMetaGrid}>
               <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                <span>น้ำหนักเข้า</span>
-                <strong>{formatWeight(ticket.grossWeightKg)} กก.</strong>
+                <span>{t("น้ำหนักเข้า")}</span>
+                <strong>{formatWeight(ticket.grossWeightKg)} {t("กก.")}</strong>
               </div>
               <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                <span>น้ำหนักออก</span>
-                <strong>{formatWeight(ticket.tareWeightKg)} กก.</strong>
+                <span>{t("น้ำหนักออก")}</span>
+                <strong>{formatWeight(ticket.tareWeightKg)} {t("กก.")}</strong>
               </div>
               <div className={`${styles.stepMetaItem} ${styles.stepMetaHighlight}`}>
-                <span>น้ำหนักสุทธิ</span>
-                <strong>{formatWeight(ticket.netWeightKg)} กก.</strong>
+                <span>{t("น้ำหนักสุทธิ")}</span>
+                <strong>{formatWeight(ticket.netWeightKg)} {t("กก.")}</strong>
               </div>
             </div>
 
@@ -870,9 +872,9 @@ export default function ReceivingTicketClassifyWeighPanel({
             <div className={styles.stepDocList}>
               <div className={styles.stepDocRow}>
                 <div className={styles.stepDocMain}>
-                  <span className={styles.stepDocLabel}>ใบรับซื้อ</span>
+                  <span className={styles.stepDocLabel}>{t("ใบรับซื้อ")}</span>
                   <span className={styles.stepDocValue}>
-                    {ticket.receiptNo || receipt?.receiptNo || "รอโหลดเลขที่"}
+                    {ticket.receiptNo || receipt?.receiptNo || t("รอโหลดเลขที่")}
                   </span>
                 </div>
                 <div className={styles.stepDocActions}>
@@ -884,7 +886,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                     disabled={!receipt}
                     onClick={() => void handlePrintReceipt()}
                   >
-                    พิมพ์
+                    {t("พิมพ์")}
                   </Button>
                   {ticket.receiptId ? (
                     <Button
@@ -893,7 +895,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                         router.push(`/receiving/receipts/${ticket.receiptId}`)
                       }
                     >
-                      เปิด
+                      {t("เปิด")}
                     </Button>
                   ) : null}
                 </div>
@@ -905,8 +907,8 @@ export default function ReceivingTicketClassifyWeighPanel({
             <section className={styles.weighBridgeCard}>
               <div className={styles.weighBridgeHead}>
                 <div>
-                  <p className={styles.classifyEyebrow}>ชั่งรถ</p>
-                  <h4>น้ำหนักเข้า − ออก = สุทธิ</h4>
+                  <p className={styles.classifyEyebrow}>{t("ชั่งรถ")}</p>
+                  <h4>{t("น้ำหนักเข้า − ออก = สุทธิ")}</h4>
                 </div>
                 <div className={styles.weighBridgeHeadActions}>
                   <WeighTicketOcrCaptureButton
@@ -915,11 +917,11 @@ export default function ReceivingTicketClassifyWeighPanel({
                     onScan={handleScanOcr}
                   />
                   <label className={styles.weighManualToggle}>
-                    <span>กรอกเอง</span>
+                    <span>{t("กรอกเอง")}</span>
                     <Switch
                       checked={isManual}
-                      checkedChildren="ใช่"
-                      unCheckedChildren="ไม่"
+                      checkedChildren={t("ใช่")}
+                      unCheckedChildren={t("ไม่")}
                       disabled={!formEditable}
                       onChange={setIsManual}
                     />
@@ -929,10 +931,10 @@ export default function ReceivingTicketClassifyWeighPanel({
 
               <div className={styles.weighBridgeMath}>
                 <div className={styles.weighBridgeField}>
-                  <span>น้ำหนักเข้า</span>
+                  <span>{t("น้ำหนักเข้า")}</span>
                   <div className={styles.weighBridgeInputRow}>
                     <InputNumber
-                      aria-label="น้ำหนักเข้า"
+                      aria-label={t("น้ำหนักเข้า")}
                       min={0.001}
                       step={0.001}
                       className={styles.weighBridgeInput}
@@ -946,17 +948,17 @@ export default function ReceivingTicketClassifyWeighPanel({
                         )
                       }
                     />
-                    <em>กก.</em>
+                    <em>{t("กก.")}</em>
                   </div>
                 </div>
                 <span className={styles.weighBridgeOp} aria-hidden>
                   −
                 </span>
                 <div className={styles.weighBridgeField}>
-                  <span>น้ำหนักออก</span>
+                  <span>{t("น้ำหนักออก")}</span>
                   <div className={styles.weighBridgeInputRow}>
                     <InputNumber
-                      aria-label="น้ำหนักออก"
+                      aria-label={t("น้ำหนักออก")}
                       min={0.001}
                       step={0.001}
                       className={styles.weighBridgeInput}
@@ -970,7 +972,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                         )
                       }
                     />
-                    <em>กก.</em>
+                    <em>{t("กก.")}</em>
                   </div>
                 </div>
                 <span className={styles.weighBridgeOp} aria-hidden>
@@ -979,21 +981,21 @@ export default function ReceivingTicketClassifyWeighPanel({
                 <div
                   className={`${styles.weighBridgeField} ${styles.weighBridgeNet}`}
                 >
-                  <span>น้ำหนักสุทธิของรถ</span>
+                  <span>{t("น้ำหนักสุทธิของรถ")}</span>
                   <strong>
                     {netWeightKg > 0 ? formatWeight(netWeightKg) : "—"}
-                    <em>กก.</em>
+                    <em>{t("กก.")}</em>
                   </strong>
                 </div>
               </div>
 
               {isManual ? (
                 <Input.TextArea
-                  aria-label="เหตุผลการกรอกน้ำหนักเอง"
+                  aria-label={t("เหตุผลการกรอกน้ำหนักเอง")}
                   rows={2}
                   value={reason}
                   disabled={!formEditable}
-                  placeholder="เหตุผลการกรอกเอง เช่น อ่านจากใบชั่ง (ไม่บังคับ)"
+                  placeholder={t("เหตุผลการกรอกเอง เช่น อ่านจากใบชั่ง (ไม่บังคับ)")}
                   onChange={(event) => setReason(event.target.value)}
                 />
               ) : null}
@@ -1006,12 +1008,12 @@ export default function ReceivingTicketClassifyWeighPanel({
             >
               <div className={styles.weighAllocHead}>
                 <div>
-                  <p className={styles.classifyEyebrow}>จัดสรรน้ำหนักยาง</p>
+                  <p className={styles.classifyEyebrow}>{t("จัดสรรน้ำหนักยาง")}</p>
                   <h4>
-                    รวมรายการยางต้องไม่เกิน{" "}
+                    {t("รวมรายการยางต้องไม่เกิน")}{" "}
                     {netWeightKg > 0
-                      ? `${formatWeight(netWeightKg)} กก.`
-                      : "น้ำหนักสุทธิของรถ"}
+                      ? `${formatWeight(netWeightKg)} ${t("กก.")}`
+                      : t("น้ำหนักสุทธิของรถ")}
                   </h4>
                 </div>
                 <strong
@@ -1024,7 +1026,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                   {formatWeight(allocatedTireWeightKg)}
                   <span>
                     {" "}
-                    / {netWeightKg > 0 ? formatWeight(netWeightKg) : "—"} กก.
+                    / {netWeightKg > 0 ? formatWeight(netWeightKg) : "—"} {t("กก.")}
                   </span>
                 </strong>
               </div>
@@ -1035,7 +1037,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={tireWeightFillPercent}
-                aria-label="สัดส่วนน้ำหนักยางต่อสุทธิ"
+                aria-label={t("สัดส่วนน้ำหนักยางต่อสุทธิ")}
               >
                 <div
                   className={`${styles.weighAllocFill} ${
@@ -1047,12 +1049,12 @@ export default function ReceivingTicketClassifyWeighPanel({
 
               <div className={styles.weighAllocMeta}>
                 <span>
-                  จัดสรรแล้ว {formatWeight(allocatedTireWeightKg)} กก.
+                  {t("จัดสรรแล้ว {weight} กก.", { weight: formatWeight(allocatedTireWeightKg) })}
                 </span>
                 <span>
                   {isTireWeightOver
-                    ? `เกิน ${formatWeight(Math.abs(remainingTireWeightKg))} กก.`
-                    : `เหลือจัดสรร ${formatWeight(Math.max(0, remainingTireWeightKg))} กก.`}
+                    ? t("เกิน {weight} กก.", { weight: formatWeight(Math.abs(remainingTireWeightKg)) })
+                    : t("เหลือจัดสรร {weight} กก.", { weight: formatWeight(Math.max(0, remainingTireWeightKg)) })}
                 </span>
               </div>
             </section>
@@ -1063,9 +1065,9 @@ export default function ReceivingTicketClassifyWeighPanel({
               >
                 <div className={styles.classifyPanelHead}>
                   <div>
-                    <p className={styles.classifyEyebrow}>สินค้าที่รับซื้อ</p>
-                    <h4>ประเภทยาง + น้ำหนัก</h4>
-                    <p>เลือกประเภทแล้วใส่กก. — รวมแล้วต้องไม่เกินสุทธิของรถ</p>
+                    <p className={styles.classifyEyebrow}>{t("สินค้าที่รับซื้อ")}</p>
+                    <h4>{t("ประเภทยาง + น้ำหนัก")}</h4>
+                    <p>{t("เลือกประเภทแล้วใส่กก. — รวมแล้วต้องไม่เกินสุทธิของรถ")}</p>
                   </div>
                   <span
                     className={`${styles.classifyCount} ${
@@ -1073,17 +1075,17 @@ export default function ReceivingTicketClassifyWeighPanel({
                     }`}
                   >
                     {selectedTypeCount
-                      ? `${selectedTypeCount} รายการ · ${formatBaht(totalTireAmount)} บาท`
-                      : "0 รายการ"}
+                      ? t("{count} รายการ · {amount} บาท", { count: selectedTypeCount, amount: formatBaht(totalTireAmount) })
+                      : t("0 รายการ")}
                   </span>
                 </div>
 
                 {items.length > 1 ? (
                   <div className={styles.classifyPriceSource}>
-                    <label htmlFor="price-source-select">การใช้ราคา</label>
+                    <label htmlFor="price-source-select">{t("การใช้ราคา")}</label>
                     <Select
                       id="price-source-select"
-                      aria-label="เลือกแหล่งราคาทั้งชุด"
+                      aria-label={t("เลือกแหล่งราคาทั้งชุด")}
                       value={priceSourceLineNo ?? "OWN"}
                       options={priceSourceOptions}
                       disabled={!formEditable}
@@ -1117,12 +1119,12 @@ export default function ReceivingTicketClassifyWeighPanel({
                             {index + 1}
                           </span>
                           <Select
-                            aria-label={`ประเภทยาง ${index + 1}`}
+                            aria-label={t("ประเภทยาง {n}", { n: index + 1 })}
                             value={item.tireClassificationId || undefined}
                             options={classificationOptionsForRow(
                               item.tireClassificationId,
                             )}
-                            placeholder="เลือกประเภทยาง"
+                            placeholder={t("เลือกประเภทยาง")}
                             disabled={!formEditable}
                             showSearch
                             optionFilterProp="label"
@@ -1149,7 +1151,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                             <Button
                               type="text"
                               danger
-                              aria-label={`ลบประเภทยาง ${index + 1}`}
+                              aria-label={t("ลบประเภทยาง {n}", { n: index + 1 })}
                               icon={<DeleteOutlined />}
                               onClick={() =>
                                 setItems((prev) => {
@@ -1182,30 +1184,30 @@ export default function ReceivingTicketClassifyWeighPanel({
                               <>
                                 <span>
                                   {usingSharedPrice
-                                    ? `ใช้ราคาจากรายการที่ ${priceSourceLineNo}`
+                                    ? t("ใช้ราคาจากรายการที่ {n}", { n: priceSourceLineNo })
                                     : isPriceSourceLine &&
                                         priceSourceLineNo !== undefined
-                                      ? "ใช้เป็นแหล่งราคาทั้งชุด"
+                                      ? t("ใช้เป็นแหล่งราคาทั้งชุด")
                                       : price.source === "scale"
-                                        ? "ราคาจากตาชั่ง"
-                                        : "ราคาซื้อวันนี้"}
+                                        ? t("ราคาจากตาชั่ง")
+                                        : t("ราคาซื้อวันนี้")}
                                 </span>
                                 <strong>
-                                  {formatPrice(price.pricePerKg)} บาท/กก.
+                                  {formatPrice(price.pricePerKg)} {t("บาท/กก.")}
                                 </strong>
                                 <p className={styles.classifyTypeAmount}>
                                   {lineAmount > 0
-                                    ? `${formatWeight(item.weightKg)} กก. × ${formatPrice(price.pricePerKg)} = ${formatBaht(lineAmount)} บาท`
-                                    : "ใส่น้ำหนักเพื่อดูยอดเงิน"}
+                                    ? `${formatWeight(item.weightKg)} ${t("กก.")} × ${formatPrice(price.pricePerKg)} = ${formatBaht(lineAmount)} ${t("บาท")}`
+                                    : t("ใส่น้ำหนักเพื่อดูยอดเงิน")}
                                 </p>
                               </>
                             ) : (
-                              <strong>ยังไม่มีราคาที่มีผลวันนี้</strong>
+                              <strong>{t("ยังไม่มีราคาที่มีผลวันนี้")}</strong>
                             )}
                             <p>
                               {meta
                                 ? `${meta.code} · ${meta.name}`
-                                : "ประเภทยางที่เลือก"}
+                                : t("ประเภทยางที่เลือก")}
                               {meta?.description
                                 ? ` — ${meta.description}`
                                 : ""}
@@ -1215,7 +1217,7 @@ export default function ReceivingTicketClassifyWeighPanel({
 
                         <div className={styles.weighItemInput}>
                           <InputNumber
-                            aria-label={`น้ำหนักยาง ${index + 1}`}
+                            aria-label={t("น้ำหนักยาง {n}", { n: index + 1 })}
                             min={0}
                             max={maxKg}
                             step={0.001}
@@ -1247,7 +1249,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                             type="default"
                             size="small"
                             className={styles.weighItemMaxButton}
-                            aria-label={`ใส่น้ำหนักสูงสุดของรายการยาง ${index + 1}`}
+                            aria-label={t("ใส่น้ำหนักสูงสุดของรายการยาง {n}", { n: index + 1 })}
                             disabled={
                               !formEditable ||
                               !item.tireClassificationId ||
@@ -1269,12 +1271,12 @@ export default function ReceivingTicketClassifyWeighPanel({
                           >
                             Max
                           </Button>
-                          <em>กก.</em>
+                          <em>{t("กก.")}</em>
                         </div>
 
                         <Input
-                          aria-label={`หมายเหตุรายการยาง ${index + 1}`}
-                          placeholder="หมายเหตุรายการ (ไม่บังคับ)"
+                          aria-label={t("หมายเหตุรายการยาง {n}", { n: index + 1 })}
+                          placeholder={t("หมายเหตุรายการ (ไม่บังคับ)")}
                           value={item.description ?? ""}
                           disabled={!formEditable}
                           onChange={(event) =>
@@ -1299,7 +1301,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                       setItems((prev) => [...prev, createItemRow()])
                     }
                   >
-                    เพิ่มประเภทยาง
+                    {t("เพิ่มประเภทยาง")}
                   </Button>
                 ) : null}
               </section>
@@ -1309,9 +1311,9 @@ export default function ReceivingTicketClassifyWeighPanel({
               >
                 <div className={styles.classifyPanelHead}>
                   <div>
-                    <p className={styles.classifyEyebrow}>รายการหัก</p>
-                    <h4>สารปนเปื้อน</h4>
-                    <p>กรอกชื่อรายการแล้วหักด้วยน้ำหนัก × ราคา/กก. หรือยอดหักเป็นก้อนเงิน</p>
+                    <p className={styles.classifyEyebrow}>{t("รายการหัก")}</p>
+                    <h4>{t("สารปนเปื้อน")}</h4>
+                    <p>{t("กรอกชื่อรายการแล้วหักด้วยน้ำหนัก × ราคา/กก. หรือยอดหักเป็นก้อนเงิน")}</p>
                   </div>
                   <span
                     className={`${styles.classifyCount} ${
@@ -1319,8 +1321,8 @@ export default function ReceivingTicketClassifyWeighPanel({
                     }`}
                   >
                     {deductions.length
-                      ? `${formatWeight(totalDeductionWeightKg)} กก. · ${formatBaht(totalDeductionAmount)} บาท`
-                      : "ไม่มี"}
+                      ? `${formatWeight(totalDeductionWeightKg)} ${t("กก.")} · ${formatBaht(totalDeductionAmount)} ${t("บาท")}`
+                      : t("ไม่มี")}
                   </span>
                 </div>
 
@@ -1336,8 +1338,8 @@ export default function ReceivingTicketClassifyWeighPanel({
                         >
                           <div className={styles.classifyDeductionPlanTop}>
                             <Input
-                              aria-label="ชื่อรายการหัก"
-                              placeholder="ชื่อรายการ เช่น ดิน, น้ำ, โลหะ"
+                              aria-label={t("ชื่อรายการหัก")}
+                              placeholder={t("ชื่อรายการ เช่น ดิน, น้ำ, โลหะ")}
                               value={item.description ?? ""}
                               disabled={!formEditable}
                               onChange={(event) =>
@@ -1355,17 +1357,17 @@ export default function ReceivingTicketClassifyWeighPanel({
                             />
                             <span>
                               {lineAmount > 0
-                                ? `= ${formatBaht(lineAmount)} บาท`
+                                ? `= ${formatBaht(lineAmount)} ${t("บาท")}`
                                 : lumpSum
-                                  ? "ยอดหัก (บาท)"
-                                  : "กก. × บาท/กก."}
+                                  ? t("ยอดหัก (บาท)")
+                                  : t("กก. × บาท/กก.")}
                             </span>
                             {formEditable ? (
                               <Button
                                 type="text"
                                 danger
                                 icon={<DeleteOutlined />}
-                                aria-label="ลบรายการหัก"
+                                aria-label={t("ลบรายการหัก")}
                                 onClick={() =>
                                   setDeductions((prev) =>
                                     prev.filter((row) => row.key !== item.key),
@@ -1377,7 +1379,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                           {lumpSum ? (
                             <div className={styles.classifyDeductionAmount}>
                               <InputNumber
-                                aria-label="ยอดหัก"
+                                aria-label={t("ยอดหัก")}
                                 min={0.01}
                                 step={0.01}
                                 precision={2}
@@ -1402,13 +1404,13 @@ export default function ReceivingTicketClassifyWeighPanel({
                                   )
                                 }
                               />
-                              <em>บาท</em>
+                              <em>{t("บาท")}</em>
                             </div>
                           ) : (
                             <>
                           <div className={styles.classifyDeductionAmount}>
                             <InputNumber
-                              aria-label="น้ำหนักหัก"
+                              aria-label={t("น้ำหนักหัก")}
                               min={0.001}
                               step={0.001}
                               className={styles.classifyDeductionInput}
@@ -1435,11 +1437,11 @@ export default function ReceivingTicketClassifyWeighPanel({
                                 )
                               }
                             />
-                            <em>กก.</em>
+                            <em>{t("กก.")}</em>
                           </div>
                           <div className={styles.classifyDeductionAmount}>
                             <InputNumber
-                              aria-label="ราคาต่อกก."
+                              aria-label={t("ราคาต่อกก.")}
                               min={0.01}
                               step={0.01}
                               precision={4}
@@ -1464,7 +1466,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                                 )
                               }
                             />
-                            <em>บาท/กก.</em>
+                            <em>{t("บาท/กก.")}</em>
                           </div>
                             </>
                           )}
@@ -1474,7 +1476,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                   </div>
                 ) : (
                   <div className={styles.classifyEmpty}>
-                    ไม่มีสารปนเปื้อนก็ข้ามได้
+                    {t("ไม่มีสารปนเปื้อนก็ข้ามได้")}
                   </div>
                 )}
 
@@ -1485,23 +1487,23 @@ export default function ReceivingTicketClassifyWeighPanel({
                       setDeductions((prev) => [...prev, createDeductionRow()])
                     }
                   >
-                    เพิ่มรายการหัก
+                    {t("เพิ่มรายการหัก")}
                   </Button>
                 ) : null}
                 {isDeductionWeightOver ? (
                   <div className={styles.stepEmptyHint}>
-                    น้ำหนักหักรวมเกินน้ำหนักคัดแยกยาง — ปรับกก. หักลง
+                    {t("น้ำหนักหักรวมเกินน้ำหนักคัดแยกยาง — ปรับกก. หักลง")}
                   </div>
                 ) : null}
               </section>
             </div>
 
             <Input.TextArea
-              aria-label="หมายเหตุตั๋ว"
+              aria-label={t("หมายเหตุตั๋ว")}
               rows={2}
               value={planRemark}
               disabled={!formEditable}
-              placeholder="หมายเหตุตั๋ว (ไม่บังคับ)"
+              placeholder={t("หมายเหตุตั๋ว (ไม่บังคับ)")}
               onChange={(event) => setPlanRemark(event.target.value)}
             />
 
@@ -1532,7 +1534,7 @@ export default function ReceivingTicketClassifyWeighPanel({
                 }
                 onClick={handleComplete}
               >
-                บันทึกและยืนยันใบรับซื้อ
+                {t("บันทึกและยืนยันใบรับซื้อ")}
               </Button>
             </div>
           </div>

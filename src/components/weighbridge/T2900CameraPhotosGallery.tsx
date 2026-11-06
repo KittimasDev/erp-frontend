@@ -8,6 +8,7 @@ import { downloadDocumentAttachment } from "@/lib/api/document-attachments";
 import { getT2900CameraPhotoBlob } from "@/lib/api/t2900";
 import { getWeighbridgeTicketT2900CameraPhotos } from "@/lib/api/weighbridge-tickets";
 import { getAccessToken } from "@/lib/auth/token";
+import { tNow, useT } from "@/lib/i18n/useT";
 
 type Props = {
   ticketId: string;
@@ -26,6 +27,7 @@ function isImageMime(mime?: string) {
 }
 
 export default function T2900CameraPhotosGallery({ ticketId, tckNo }: Props) {
+  const t = useT();
   const [previews, setPreviews] = useState<PreviewItem[]>([]);
   const [loadingPreviews, setLoadingPreviews] = useState(false);
 
@@ -79,7 +81,7 @@ export default function T2900CameraPhotosGallery({ ticketId, tckNo }: Props) {
             objectUrls.push(url);
             items.push({
               id: file.id,
-              title: file.description || file.originalFileName || "รูปกล้อง",
+              title: file.description || file.originalFileName || tNow("รูปกล้อง"),
               url,
             });
           } catch {
@@ -113,7 +115,7 @@ export default function T2900CameraPhotosGallery({ ticketId, tckNo }: Props) {
   if (query.isError) {
     return (
       <Typography.Text type="danger">
-        โหลดรูปกล้องไม่สำเร็จ
+        {t("โหลดรูปกล้องไม่สำเร็จ")}
       </Typography.Text>
     );
   }
@@ -121,7 +123,7 @@ export default function T2900CameraPhotosGallery({ ticketId, tckNo }: Props) {
   if (cameraFiles.length === 0) {
     return (
       <Typography.Text type="secondary">
-        ยังไม่มีรูปจากกล้องเครื่องชั่ง
+        {t("ยังไม่มีรูปจากกล้องเครื่องชั่ง")}
       </Typography.Text>
     );
   }
@@ -129,7 +131,7 @@ export default function T2900CameraPhotosGallery({ ticketId, tckNo }: Props) {
   if (previews.length === 0) {
     return (
       <Typography.Text type="secondary">
-        มีไฟล์แนบ {cameraFiles.length} ไฟล์ แต่เปิดดูรูปไม่ได้
+        {t("มีไฟล์แนบ {n} ไฟล์ แต่เปิดดูรูปไม่ได้", { n: cameraFiles.length })}
       </Typography.Text>
     );
   }

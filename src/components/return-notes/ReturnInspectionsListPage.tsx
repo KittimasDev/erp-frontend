@@ -10,6 +10,7 @@ import { usePendingInspectionsQuery } from "@/hooks/return-notes/useReturnNotesQ
 import type { ReturnNote } from "@/types/return-notes";
 import styles from "./ReturnNotesListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 function formatQty(value: string) {
   const n = Number(value);
@@ -17,6 +18,7 @@ function formatQty(value: string) {
 }
 
 export default function ReturnInspectionsListPage() {
+  const t = useT();
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const [applied, setApplied] = useState("");
@@ -34,27 +36,27 @@ export default function ReturnInspectionsListPage() {
   const columns: ColumnsType<ReturnNote> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 72,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบคืน",
+        title: t("เลขที่ใบคืน"),
         dataIndex: "returnNoteNo",
         key: "returnNoteNo",
         width: 180,
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         dataIndex: "customerName",
         key: "customerName",
         ellipsis: true,
         render: (value?: string) => value || "—",
       },
       {
-        title: "อ้างอิง",
+        title: t("อ้างอิง"),
         key: "refs",
         width: 240,
         render: (_: unknown, row) => (
@@ -68,20 +70,20 @@ export default function ReturnInspectionsListPage() {
         ),
       },
       {
-        title: "จำนวนคืน",
+        title: t("จำนวนคืน"),
         key: "totalReturnQty",
         width: 110,
         align: "right",
         render: (_: unknown, row) => formatQty(row.totalReturnQty),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         key: "inspectionStatus",
         width: 140,
         render: () => (
           <span className={`${styles.statusPill} ${styles.statusInspection}`}>
             <span className={styles.statusDot} aria-hidden />
-            รอตรวจสอบ
+            {t("รอตรวจสอบ")}
           </span>
         ),
       },
@@ -94,33 +96,33 @@ export default function ReturnInspectionsListPage() {
           <button
             type="button"
             className={styles.inspectBtn}
-            title="ตรวจสอบและคัดแยก"
+            title={t("ตรวจสอบและคัดแยก")}
             onClick={(event) => {
               event.stopPropagation();
               router.push(`/return-notes/inspections/${row.id}`);
             }}
           >
             <FileSearchOutlined />
-            ตรวจสอบ
+            {t("ตรวจสอบ")}
           </button>
         ),
       },
     ],
-    [router, page, limit],
+    [router, page, limit, t],
   );
 
   return (
     <div className={styles.page}>
       <PageHeader
-        title="รอตรวจสอบ"
-        subtitle="สินค้าที่รับเข้าคลังตรวจสอบแล้ว รอคัดแยกของดีและของเสีย"
+        title={t("รอตรวจสอบ")}
+        subtitle={t("สินค้าที่รับเข้าคลังตรวจสอบแล้ว รอคัดแยกของดีและของเสีย")}
       />
 
       <div className={styles.filterCard}>
         <Input
           allowClear
           prefix={<SearchOutlined />}
-          placeholder="ค้นหาเลขที่ใบคืน ลูกค้า หรือ SO"
+          placeholder={t("ค้นหาเลขที่ใบคืน ลูกค้า หรือ SO")}
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
           onPressEnter={() => {
@@ -128,7 +130,7 @@ export default function ReturnInspectionsListPage() {
             setApplied(keyword.trim());
           }}
           style={{ maxWidth: 360 }}
-          aria-label="ค้นหารายการรอตรวจสอบ"
+          aria-label={t("ค้นหารายการรอตรวจสอบ")}
         />
       </div>
 

@@ -24,8 +24,11 @@ import {
 } from "./ReturnNoteDecisionModals";
 import styles from "./ReturnNotesListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function StatusPill({ status }: { status: string }) {
+  const t = useT();
   const tone =
     status === "APPROVED"
       ? styles.statusConfirmed
@@ -35,7 +38,7 @@ function StatusPill({ status }: { status: string }) {
   return (
     <span className={`${styles.statusPill} ${tone}`}>
       <span className={styles.statusDot} aria-hidden />
-      {RETURN_NOTE_STATUS_LABEL[status as ReturnNoteStatus] ?? status}
+      {statusT(t, RETURN_NOTE_STATUS_LABEL[status as ReturnNoteStatus] ?? status)}
     </span>
   );
 }
@@ -46,6 +49,7 @@ function formatQty(value: string) {
 }
 
 export default function ReturnNotesListPage() {
+  const t = useT();
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -117,40 +121,40 @@ export default function ReturnNotesListPage() {
   const columns: ColumnsType<ReturnNote> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 52,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบคืน",
+        title: t("เลขที่ใบคืน"),
         dataIndex: "returnNoteNo",
         key: "returnNoteNo",
         width: 160,
         render: (value: string) => <span className={styles.countNo}>{value}</span>,
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "createdAt",
         key: "createdAt",
         width: 110,
         render: (value: string) => dayjs(value).format("DD/MM/YYYY"),
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         dataIndex: "customerName",
         key: "customerName",
         ellipsis: true,
         render: (value?: string) => value || "—",
       },
       {
-        title: "อ้างอิง",
+        title: t("อ้างอิง"),
         key: "refs",
         width: 220,
         render: (_: unknown, row) => (
           <div style={{ lineHeight: 1.4 }}>
-            <div>{row.salesOrderNo ?? "—"}{row.roundNo ? ` · รอบที่ ${row.roundNo}` : ""}</div>
+            <div>{row.salesOrderNo ?? "—"}{row.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: row.roundNo }) : ""}</div>
             <div style={{ color: "#64748b", fontSize: 12 }}>
               {row.pickingNo ?? "—"}
               {row.deliveryOrderNo ? ` · ${row.deliveryOrderNo}` : ""}
@@ -159,14 +163,14 @@ export default function ReturnNotesListPage() {
         ),
       },
       {
-        title: "จำนวนคืน",
+        title: t("จำนวนคืน"),
         key: "totalReturnQty",
         width: 110,
         align: "right",
         render: (_: unknown, row) => formatQty(row.totalReturnQty),
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         width: 140,
@@ -181,7 +185,7 @@ export default function ReturnNotesListPage() {
             <button
               type="button"
               className={styles.actionBtn}
-              title="ดูรายละเอียด"
+              title={t("ดูรายละเอียด")}
               onClick={() => router.push(`/return-notes/${row.id}`)}
             >
               <EyeOutlined />
@@ -191,7 +195,7 @@ export default function ReturnNotesListPage() {
                 <button
                   type="button"
                   className={styles.actionBtn}
-                  title="อนุมัติ"
+                  title={t("อนุมัติ")}
                   onClick={() => setApproveTarget(row)}
                 >
                   <CheckOutlined />
@@ -199,7 +203,7 @@ export default function ReturnNotesListPage() {
                 <button
                   type="button"
                   className={styles.actionBtn}
-                  title="ไม่อนุมัติ"
+                  title={t("ไม่อนุมัติ")}
                   onClick={() => setRejectTarget(row)}
                 >
                   <CloseOutlined />
@@ -210,7 +214,7 @@ export default function ReturnNotesListPage() {
         ),
       },
     ],
-    [canApprove, limit, page, router],
+    [canApprove, limit, page, router, t],
   );
 
   const chips: Array<{
@@ -219,23 +223,23 @@ export default function ReturnNotesListPage() {
     hint: string;
     value: number;
   }> = [
-    { label: "ทั้งหมด", hint: "เอกสารทั้งหมด", value: allQuery.data?.data?.total ?? 0 },
+    { label: t("ทั้งหมด"), hint: t("เอกสารทั้งหมด"), value: allQuery.data?.data?.total ?? 0 },
     {
       key: "PENDING_APPROVAL",
-      label: "รอคลังอนุมัติ",
-      hint: "ยังไม่รับของเข้า",
+      label: t("รอคลังอนุมัติ"),
+      hint: t("ยังไม่รับของเข้า"),
       value: pendingQuery.data?.data?.total ?? 0,
     },
     {
       key: "APPROVED",
-      label: "อนุมัติแล้ว",
-      hint: "อยู่ในคลังตรวจสอบ",
+      label: t("อนุมัติแล้ว"),
+      hint: t("อยู่ในคลังตรวจสอบ"),
       value: approvedQuery.data?.data?.total ?? 0,
     },
     {
       key: "REJECTED",
-      label: "ไม่อนุมัติ",
-      hint: "ไม่รับของเข้า",
+      label: statusT(t, "ไม่อนุมัติ"),
+      hint: t("ไม่รับของเข้า"),
       value: rejectedQuery.data?.data?.total ?? 0,
     },
   ];
@@ -245,8 +249,8 @@ export default function ReturnNotesListPage() {
       <PageHeader
         eyebrow="Finished Goods · Return Note"
         icon={<RollbackOutlined />}
-        title="คืนสินค้า"
-        subtitle="บันทึกสินค้าที่ลูกค้าตีกลับ อ้างอิงใบจ่ายสินค้า แล้วให้คลังอนุมัติรับเข้าคลังตรวจสอบ"
+        title={t("คืนสินค้า")}
+        subtitle={t("บันทึกสินค้าที่ลูกค้าตีกลับ อ้างอิงใบจ่ายสินค้า แล้วให้คลังอนุมัติรับเข้าคลังตรวจสอบ")}
         actions={
           <>
 {canAdd ? (
@@ -256,7 +260,7 @@ export default function ReturnNotesListPage() {
               icon={<PlusOutlined />}
               onClick={() => router.push("/return-notes/create")}
             >
-              สร้างใบคืนสินค้า
+              {t("สร้างใบคืนสินค้า")}
             </Button>
           </div>
         ) : null}
@@ -282,17 +286,17 @@ export default function ReturnNotesListPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="เลขที่ใบคืน / SO / ใบจ่าย / ใบส่ง / ลูกค้า"
+              placeholder={t("เลขที่ใบคืน / SO / ใบจ่าย / ใบส่ง / ลูกค้า")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onPressEnter={applySearch}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่สร้าง</label>
+            <label>{t("วันที่สร้าง")}</label>
             <DatePicker.RangePicker
               style={{ width: "100%" }}
               value={range}
@@ -301,31 +305,31 @@ export default function ReturnNotesListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               options={(
                 Object.keys(RETURN_NOTE_STATUS_LABEL) as ReturnNoteStatus[]
               ).map((value) => ({
                 value,
-                label: RETURN_NOTE_STATUS_LABEL[value],
+                label: statusT(t, RETURN_NOTE_STATUS_LABEL[value]),
               }))}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.searchBtn}
             icon={<SearchOutlined />}
             onClick={applySearch}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -333,10 +337,10 @@ export default function ReturnNotesListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{total}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{total}</strong> {t("รายการ")}
           </div>
           <div className={styles.entriesBox}>
-            <span>แสดง</span>
+            <span>{t("แสดง")}</span>
             <Select
               size="small"
               value={limit}
@@ -351,7 +355,7 @@ export default function ReturnNotesListPage() {
                 setPage(1);
               }}
             />
-            <span>รายการ/หน้า</span>
+            <span>{t("รายการ/หน้า")}</span>
           </div>
         </div>
 
@@ -369,8 +373,8 @@ export default function ReturnNotesListPage() {
           locale={{
             emptyText: (
               <div className={styles.emptyState}>
-                <strong>ยังไม่มีใบคืนสินค้า</strong>
-                สร้างจากใบส่งสินค้าที่ถูกตีกลับ หรือกดปุ่ม “สร้างใบคืนสินค้า”
+                <strong>{t("ยังไม่มีใบคืนสินค้า")}</strong>
+                {t("สร้างจากใบส่งสินค้าที่ถูกตีกลับ หรือกดปุ่ม “สร้างใบคืนสินค้า”")}
               </div>
             ),
           }}
@@ -378,8 +382,8 @@ export default function ReturnNotesListPage() {
 
         <div className={styles.tableFooter}>
           <div className={styles.footerText}>
-            แสดง {total === 0 ? 0 : (page - 1) * limit + 1}–
-            {Math.min(page * limit, total)} จาก {total}
+            {t("แสดง")} {total === 0 ? 0 : (page - 1) * limit + 1}–
+            {Math.min(page * limit, total)} {t("จาก")} {total}
           </div>
           <Pagination
             size="small"

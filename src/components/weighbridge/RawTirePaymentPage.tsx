@@ -54,7 +54,9 @@ import {
 } from "@/types/raw-tire-purchase-receipt";
 import { optimizePaymentSlipFile } from "@/utils/optimizePaymentSlipFile";
 
+import { appLocale, tLabel } from "./receiving-i18n";
 import styles from "./WeighbridgeDashboardPage.module.css";
+import { useT } from "@/lib/i18n/useT";
 
 type PayFormValues = {
   paymentMethod: "CASH" | "TRANSFER" | "CHEQUE";
@@ -73,7 +75,7 @@ function formatMoney(value?: string | number) {
   if (Number.isNaN(n)) {
     return String(value);
   }
-  return n.toLocaleString("th-TH", {
+  return n.toLocaleString(appLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -83,7 +85,7 @@ function formatDate(value?: string) {
   if (!value) {
     return "-";
   }
-  return new Date(value).toLocaleDateString("th-TH");
+  return new Date(value).toLocaleDateString(appLocale());
 }
 
 function formatFileSize(value?: string) {
@@ -109,6 +111,7 @@ type Props = {
 };
 
 export default function RawTirePaymentPage({ receiptId }: Props) {
+  const t = useT();
   const router = useRouter();
   const [form] = Form.useForm<PayFormValues>();
   const paymentMethod = Form.useWatch("paymentMethod", form);
@@ -174,34 +177,34 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
 
   const bankColumns: ColumnsType<PaymentBankAccount> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_, __, index) => index + 1,
     },
     {
-      title: "ธนาคาร",
+      title: t("ธนาคาร"),
       dataIndex: "bankName",
       key: "bankName",
     },
     {
-      title: "เลขที่บัญชี",
+      title: t("เลขที่บัญชี"),
       dataIndex: "accountNo",
       key: "accountNo",
       width: 160,
     },
     {
-      title: "ชื่อบัญชี",
+      title: t("ชื่อบัญชี"),
       dataIndex: "accountName",
       key: "accountName",
     },
     {
-      title: "บัญชีหลัก",
+      title: t("บัญชีหลัก"),
       dataIndex: "isDefault",
       key: "isDefault",
       width: 100,
-      render: (value: boolean) => (value ? "ใช่" : "-"),
+      render: (value: boolean) => (value ? t("ใช่") : "-"),
     },
   ];
 
@@ -256,9 +259,9 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
     } catch (error) {
       setPreviewSlip(null);
       Modal.error({
-        title: "เปิดสลิปไม่สำเร็จ",
+        title: t("เปิดสลิปไม่สำเร็จ"),
         content:
-          error instanceof ApiError ? error.message : "ไม่สามารถโหลดไฟล์ได้",
+          error instanceof ApiError ? error.message : t("ไม่สามารถโหลดไฟล์ได้"),
       });
     } finally {
       setPreviewLoading(false);
@@ -283,9 +286,9 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
       URL.revokeObjectURL(url);
     } catch (error) {
       Modal.error({
-        title: "ดาวน์โหลดไม่สำเร็จ",
+        title: t("ดาวน์โหลดไม่สำเร็จ"),
         content:
-          error instanceof ApiError ? error.message : "ไม่สามารถดาวน์โหลดได้",
+          error instanceof ApiError ? error.message : t("ไม่สามารถดาวน์โหลดได้"),
       });
     }
   };
@@ -299,12 +302,12 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
       if (!context?.canUploadSlip) {
         Modal.warning({
           title: context?.receipt.paymentStatus === "PAID"
-            ? "จ่ายเงินแล้ว"
-            : "ยังอัปโหลดไม่ได้",
+            ? t("จ่ายเงินแล้ว")
+            : t("ยังอัปโหลดไม่ได้"),
           content:
             context?.receipt.paymentStatus === "PAID"
-              ? "จ่ายเงินแล้ว ไม่สามารถอัปโหลดหรือแก้ไขสลิปได้อีก"
-              : "อัปโหลดสลิปได้เฉพาะช่วงบันทึกจ่ายเงินเท่านั้น",
+              ? t("จ่ายเงินแล้ว ไม่สามารถอัปโหลดหรือแก้ไขสลิปได้อีก")
+              : t("อัปโหลดสลิปได้เฉพาะช่วงบันทึกจ่ายเงินเท่านั้น"),
         });
         return Upload.LIST_IGNORE;
       }
@@ -316,15 +319,15 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
       ];
       if (!allowed.includes(file.type)) {
         Modal.error({
-          title: "ชนิดไฟล์ไม่รองรับ",
-          content: "รองรับเฉพาะ JPG, PNG, WEBP หรือ PDF",
+          title: t("ชนิดไฟล์ไม่รองรับ"),
+          content: t("รองรับเฉพาะ JPG, PNG, WEBP หรือ PDF"),
         });
         return Upload.LIST_IGNORE;
       }
       if (file.size > 10 * 1024 * 1024) {
         Modal.error({
-          title: "ไฟล์ใหญ่เกินไป",
-          content: "ขนาดไฟล์ต้องไม่เกิน 10 MB",
+          title: t("ไฟล์ใหญ่เกินไป"),
+          content: t("ขนาดไฟล์ต้องไม่เกิน 10 MB"),
         });
         return Upload.LIST_IGNORE;
       }
@@ -354,7 +357,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(`/receiving/receipts/${receiptId}`)}
           >
-            กลับใบรับซื้อ
+            {t("กลับใบรับซื้อ")}
           </Button>
           <div className={styles.detailTitleTags}>
             <Button
@@ -362,7 +365,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
               loading={paymentQuery.isFetching}
               onClick={() => paymentQuery.refetch()}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
             <Button
               icon={<PrinterOutlined />}
@@ -370,7 +373,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
               loading={isPrinting}
               onClick={() => void handlePrint()}
             >
-              พิมพ์ใบสำคัญจ่าย
+              {t("พิมพ์ใบสำคัญจ่าย")}
             </Button>
           </div>
         </div>
@@ -381,7 +384,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
               <Typography.Text type="danger">
                 {paymentQuery.error instanceof Error
                   ? paymentQuery.error.message
-                  : "โหลดข้อมูลจ่ายเงินไม่สำเร็จ"}
+                  : t("โหลดข้อมูลจ่ายเงินไม่สำเร็จ")}
               </Typography.Text>
             </div>
           </div>
@@ -391,17 +394,15 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
               <div className={styles.cardHeader}>
                 <div className={styles.detailTitleRow}>
                   <div>
-                    <h3>ใบสำคัญจ่าย / จ่ายเงินผู้ขาย</h3>
+                    <h3>{t("ใบสำคัญจ่าย / จ่ายเงินผู้ขาย")}</h3>
                     <p>
-                      ใบรับซื้อ {context.receipt.receiptNo} ·{" "}
-                      {context.seller.sellerName} · ยอด{" "}
-                      {formatMoney(context.receipt.totalAmount)} บาท
+                      {t("ใบรับซื้อ {no} · {seller} · ยอด {amount} บาท", { no: context.receipt.receiptNo, seller: context.seller.sellerName, amount: formatMoney(context.receipt.totalAmount) })}
                     </p>
                   </div>
                   <div className={styles.detailTitleTags}>
                     <Tag className={styles.flowTag}>
-                      {RECEIPT_STATUS_LABELS[context.receipt.status] ??
-                        context.receipt.status}
+                      {tLabel(RECEIPT_STATUS_LABELS[context.receipt.status] ??
+                        context.receipt.status)}
                     </Tag>
                     <Tag
                       color={
@@ -411,8 +412,8 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                       }
                       className={styles.flowTag}
                     >
-                      {PAYMENT_STATUS_LABELS[context.receipt.paymentStatus] ??
-                        context.receipt.paymentStatus}
+                      {tLabel(PAYMENT_STATUS_LABELS[context.receipt.paymentStatus] ??
+                        context.receipt.paymentStatus)}
                     </Tag>
                   </div>
                 </div>
@@ -425,8 +426,8 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                   <div className={styles.card}>
                     <div className={styles.listHeader}>
                       <div>
-                        <h3>บัญชีธนาคารผู้ขาย</h3>
-                        <p>เลือกบัญชีเมื่อจ่ายแบบโอนเงิน</p>
+                        <h3>{t("บัญชีธนาคารผู้ขาย")}</h3>
+                        <p>{t("เลือกบัญชีเมื่อจ่ายแบบโอนเงิน")}</p>
                       </div>
                     </div>
                     <Table
@@ -435,7 +436,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                       dataSource={context.bankAccounts}
                       pagination={false}
                       size="middle"
-                      locale={{ emptyText: "ไม่มีบัญชีธนาคารที่ใช้งาน" }}
+                      locale={{ emptyText: t("ไม่มีบัญชีธนาคารที่ใช้งาน") }}
                     />
                   </div>
                 ) : null}
@@ -443,24 +444,24 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                 {context.voucher || context.payment ? (
                   <div className={styles.card}>
                     <div className={styles.cardHeader}>
-                      <h3>ใบสำคัญจ่ายที่บันทึกแล้ว</h3>
+                      <h3>{t("ใบสำคัญจ่ายที่บันทึกแล้ว")}</h3>
                     </div>
                     <div className={styles.cardBody}>
                       <div className={styles.detailGrid}>
                         <DetailItem
-                          label="เลขที่ใบสำคัญจ่าย"
+                          label={t("เลขที่ใบสำคัญจ่าย")}
                           value={context.voucher?.voucherNo || "-"}
                         />
                         <DetailItem
-                          label="วันที่จ่าย"
+                          label={t("วันที่จ่าย")}
                           value={formatDate(
                             context.payment?.paymentDate ??
                               context.voucher?.voucherDate,
                           )}
                         />
                         <DetailItem
-                          label="วิธีจ่าย"
-                          value={
+                          label={t("วิธีจ่าย")}
+                          value={tLabel(
                             PAYMENT_METHOD_LABELS[
                               context.payment?.paymentMethod ??
                                 context.voucher?.paymentMethod ??
@@ -468,22 +469,22 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                             ] ??
                             context.payment?.paymentMethod ??
                             context.voucher?.paymentMethod ??
-                            "-"
+                            "-")
                           }
                         />
                         <DetailItem
-                          label="จำนวนเงิน"
+                          label={t("จำนวนเงิน")}
                           value={formatMoney(
                             context.payment?.amount ??
                               context.voucher?.totalAmount,
                           )}
                         />
                         <DetailItem
-                          label="เลขอ้างอิง"
+                          label={t("เลขอ้างอิง")}
                           value={context.payment?.transactionRef || "-"}
                         />
                         <DetailItem
-                          label="บัญชีรับโอน"
+                          label={t("บัญชีรับโอน")}
                           value={
                             context.payment?.bankName
                               ? `${context.payment.bankName} · ${context.payment.accountNo ?? ""}`
@@ -491,7 +492,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                           }
                         />
                         <DetailItem
-                          label="หมายเหตุ"
+                          label={t("หมายเหตุ")}
                           value={
                             context.payment?.remark ||
                             context.voucher?.remark ||
@@ -506,10 +507,9 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
 
                 <div className={styles.card}>
                   <div className={styles.cardHeader}>
-                    <h3>บันทึกจ่ายเงิน</h3>
+                    <h3>{t("บันทึกจ่ายเงิน")}</h3>
                     <p>
-                      จ่ายเต็มจำนวนเท่านั้น · ยอดอ้างอิง{" "}
-                      {formatMoney(context.receipt.totalAmount)} บาท
+                      {t("จ่ายเต็มจำนวนเท่านั้น · ยอดอ้างอิง {amount} บาท", { amount: formatMoney(context.receipt.totalAmount) })}
                     </p>
                   </div>
                   <div className={styles.cardBody}>
@@ -520,36 +520,36 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                       requiredMark="optional"
                     >
                       <Form.Item
-                        label="วิธีจ่าย"
+                        label={t("วิธีจ่าย")}
                         name="paymentMethod"
                         rules={[
-                          { required: true, message: "กรุณาเลือกวิธีจ่าย" },
+                          { required: true, message: t("กรุณาเลือกวิธีจ่าย") },
                         ]}
                       >
                         <Radio.Group
                           options={PAYMENT_METHOD_OPTIONS.map((item) => ({
                             value: item.value,
-                            label: item.label,
+                            label: t(item.label),
                           }))}
                         />
                       </Form.Item>
 
                       {paymentMethod === "TRANSFER" ? (
                         <Form.Item
-                          label="บัญชีธนาคารผู้ขาย"
+                          label={t("บัญชีธนาคารผู้ขาย")}
                           name="sellerBankAccountId"
                           rules={[
                             {
                               required: true,
-                              message: "กรุณาเลือกบัญชีธนาคารผู้ขาย",
+                              message: t("กรุณาเลือกบัญชีธนาคารผู้ขาย"),
                             },
                           ]}
                         >
                           <Select
-                            placeholder="เลือกบัญชี"
+                            placeholder={t("เลือกบัญชี")}
                             options={context.bankAccounts.map((account) => ({
                               value: account.id,
-                              label: `${account.bankName} · ${account.accountNo} · ${account.accountName}${account.isDefault ? " (หลัก)" : ""}`,
+                              label: `${account.bankName} · ${account.accountNo} · ${account.accountName}${account.isDefault ? t(" (หลัก)") : ""}`,
                             }))}
                           />
                         </Form.Item>
@@ -557,12 +557,12 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
 
                       <div className={styles.detailGrid}>
                         <Form.Item
-                          label="วันที่จ่าย"
+                          label={t("วันที่จ่าย")}
                           name="paymentDate"
                           rules={[
                             {
                               required: true,
-                              message: "กรุณาเลือกวันที่จ่าย",
+                              message: t("กรุณาเลือกวันที่จ่าย"),
                             },
                           ]}
                         >
@@ -573,10 +573,10 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                         </Form.Item>
 
                         <Form.Item
-                          label="จำนวนเงิน (บาท)"
+                          label={t("จำนวนเงิน (บาท)")}
                           name="paymentAmount"
                           rules={[
-                            { required: true, message: "กรุณากรอกจำนวนเงิน" },
+                            { required: true, message: t("กรุณากรอกจำนวนเงิน") },
                           ]}
                         >
                           <InputNumber
@@ -590,26 +590,26 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                       </div>
 
                       <Form.Item
-                        label="เลขอ้างอิง / เลขที่โอน"
+                        label={t("เลขอ้างอิง / เลขที่โอน")}
                         name="transactionRef"
                         rules={
                           paymentMethod === "TRANSFER"
                             ? [
                                 {
                                   required: true,
-                                  message: "กรณีโอนเงินต้องระบุเลขอ้างอิง",
+                                  message: t("กรณีโอนเงินต้องระบุเลขอ้างอิง"),
                                 },
                               ]
                             : undefined
                         }
                       >
-                        <Input placeholder="เช่น TRX-20260717-001" />
+                        <Input placeholder={t("เช่น TRX-20260717-001")} />
                       </Form.Item>
 
-                      <Form.Item label="หมายเหตุ" name="remark">
+                      <Form.Item label={t("หมายเหตุ")} name="remark">
                         <Input.TextArea
                           rows={2}
-                          placeholder="หมายเหตุเพิ่มเติม"
+                          placeholder={t("หมายเหตุเพิ่มเติม")}
                         />
                       </Form.Item>
                     </Form>
@@ -618,10 +618,10 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                       {canEditForm ? (
                         <>
                           <Popconfirm
-                            title="ยืนยันบันทึกจ่ายเงิน"
-                            description={`จ่ายเต็มจำนวน ${formatMoney(context.receipt.totalAmount)} บาท และเปลี่ยนสถานะเป็น PAID`}
-                            okText="ยืนยันจ่าย"
-                            cancelText="ยกเลิก"
+                            title={t("ยืนยันบันทึกจ่ายเงิน")}
+                            description={t("จ่ายเต็มจำนวน {amount} บาท และเปลี่ยนสถานะเป็น PAID", { amount: formatMoney(context.receipt.totalAmount) })}
+                            okText={t("ยืนยันจ่าย")}
+                            cancelText={t("ยกเลิก")}
                             disabled={isBusy}
                             onConfirm={() => void handlePay()}
                           >
@@ -631,7 +631,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                               disabled={isBusy}
                               loading={payMutation.isPending}
                             >
-                              บันทึกจ่ายเงิน
+                              {t("บันทึกจ่ายเงิน")}
                             </Button>
                           </Popconfirm>
                           <Button
@@ -640,7 +640,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                               router.push(`/receiving/receipts/${receiptId}`)
                             }
                           >
-                            ยกเลิก
+                            {t("ยกเลิก")}
                           </Button>
                         </>
                       ) : null}
@@ -648,9 +648,9 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                       {context.receipt.paymentStatus === "PAID" ? (
                         <>
                           <Typography.Text type="success">
-                            จ่ายเงินแล้ว
+                            {t("จ่ายเงินแล้ว")}
                             {context.voucher
-                              ? ` · ใบสำคัญจ่าย ${context.voucher.voucherNo}`
+                              ? ` · ${t("ใบสำคัญจ่าย")} ${context.voucher.voucherNo}`
                               : ""}
                           </Typography.Text>
                           <Button
@@ -659,14 +659,14 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                             loading={isPrinting}
                             onClick={() => void handlePrint()}
                           >
-                            พิมพ์ใบสำคัญจ่าย
+                            {t("พิมพ์ใบสำคัญจ่าย")}
                           </Button>
                         </>
                       ) : null}
 
                       {context.receipt.status === "CANCELLED" ? (
                         <Typography.Text type="secondary">
-                          ใบรับซื้อถูกยกเลิกแล้ว ไม่สามารถจ่ายเงินได้
+                          {t("ใบรับซื้อถูกยกเลิกแล้ว ไม่สามารถจ่ายเงินได้")}
                         </Typography.Text>
                       ) : null}
                     </div>
@@ -677,17 +677,17 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
               <aside className={styles.classificationSummarySticky}>
                 <div>
                   <p className={styles.classificationSummaryEyebrow}>
-                    หลักฐานการจ่าย
+                    {t("หลักฐานการจ่าย")}
                   </p>
                   <h3 style={{ margin: "4px 0 8px", fontSize: 18 }}>
-                    สลิปจ่ายเงิน
+                    {t("สลิปจ่ายเงิน")}
                   </h3>
                   <Typography.Text type="secondary">
                     {isPaid
-                      ? "จ่ายแล้ว — ดูสลิปอย่างเดียว ไม่สามารถแก้ไขได้อีก"
+                      ? t("จ่ายแล้ว — ดูสลิปอย่างเดียว ไม่สามารถแก้ไขได้อีก")
                       : canUploadSlip
-                        ? "แนบสลิปก่อนกดบันทึกจ่ายเงิน · จ่ายแล้วจะล็อก"
-                        : "อัปโหลดได้เฉพาะช่วงรอจ่ายเงิน"}
+                        ? t("แนบสลิปก่อนกดบันทึกจ่ายเงิน · จ่ายแล้วจะล็อก")
+                        : t("อัปโหลดได้เฉพาะช่วงรอจ่ายเงิน")}
                   </Typography.Text>
                 </div>
 
@@ -696,18 +696,17 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                     <p className="ant-upload-drag-icon">
                       <UploadOutlined />
                     </p>
-                    <p className="ant-upload-text">คลิกหรือลากไฟล์มาวาง</p>
+                    <p className="ant-upload-text">{t("คลิกหรือลากไฟล์มาวาง")}</p>
                     <p className="ant-upload-hint">
-                      JPG / PNG / WEBP / PDF · ไม่เกิน 10 MB ·
-                      รูปจะย่ออัตโนมัติก่อนบันทึก
+                      {t("JPG / PNG / WEBP / PDF · ไม่เกิน 10 MB · รูปจะย่ออัตโนมัติก่อนบันทึก")}
                     </p>
                   </Upload.Dragger>
                 ) : (
                   <div className={styles.slipLocked}>
                     <Typography.Text type="secondary">
                       {isPaid
-                        ? "จ่ายเงินแล้ว — ไม่สามารถอัปโหลดหรือแก้ไขได้อีก"
-                        : "ยังอัปโหลดไม่ได้ในสถานะนี้"}
+                        ? t("จ่ายเงินแล้ว — ไม่สามารถอัปโหลดหรือแก้ไขได้อีก")
+                        : t("ยังอัปโหลดไม่ได้ในสถานะนี้")}
                     </Typography.Text>
                   </div>
                 )}
@@ -716,7 +715,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                   {slips.length === 0 ? (
                     <Empty
                       image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description="ยังไม่มีสลิป"
+                      description={t("ยังไม่มีสลิป")}
                     />
                   ) : (
                     slips.map((slip) => (
@@ -730,7 +729,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
                         </div>
                         <div className={styles.slipItemMeta}>
                           <strong>
-                            {slip.originalFileName || "สลิปจ่ายเงิน"}
+                            {slip.originalFileName || t("สลิปจ่ายเงิน")}
                           </strong>
                           <span>
                             {formatFileSize(slip.fileSize)} ·{" "}
@@ -769,7 +768,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
 
       <Modal
         open={Boolean(previewSlip)}
-        title={previewSlip?.originalFileName || "ดูสลิปจ่ายเงิน"}
+        title={previewSlip?.originalFileName || t("ดูสลิปจ่ายเงิน")}
         onCancel={() => {
           setPreviewSlip(null);
           if (previewUrl) {
@@ -788,7 +787,7 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
               }
             }}
           >
-            ดาวน์โหลด
+            {t("ดาวน์โหลด")}
           </Button>,
           <Button
             key="close"
@@ -801,18 +800,18 @@ export default function RawTirePaymentPage({ receiptId }: Props) {
               }
             }}
           >
-            ปิด
+            {t("ปิด")}
           </Button>,
         ]}
         width={720}
         destroyOnHidden
       >
         {previewLoading || !previewUrl ? (
-          <Typography.Text type="secondary">กำลังโหลด...</Typography.Text>
+          <Typography.Text type="secondary">{t("กำลังโหลด...")}</Typography.Text>
         ) : isImageMime(previewSlip?.mimeType) ? (
           <Image
             src={previewUrl}
-            alt={previewSlip?.originalFileName || "สลิป"}
+            alt={previewSlip?.originalFileName || t("สลิป")}
             style={{ width: "100%" }}
           />
         ) : (

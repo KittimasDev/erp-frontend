@@ -19,6 +19,7 @@ import {
 import dayjs from "dayjs";
 
 import { uploadDocumentAttachment } from "@/lib/api/document-attachments";
+import { useT } from "@/lib/i18n/useT";
 import { getAccessToken } from "@/lib/auth/token";
 import {
   DOCUMENT_TYPE_PO,
@@ -57,6 +58,7 @@ export default function PoDeliverySchedulesSection({
   canManage,
   showCloseOnReceiving = false,
 }: Props) {
+  const t = useT();
   const schedulesQuery = usePoDeliverySchedulesQuery(purchaseOrderId);
   const rescheduleMutation = useReschedulePoDeliveryMutation();
   const cancelMutation = useCancelPoReceivingMutation();
@@ -78,14 +80,15 @@ export default function PoDeliverySchedulesSection({
   return (
     <div className={styles.section}>
       <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>รอบจัดส่ง</h2>
+        <h2 className={styles.sectionTitle}>{t("รอบจัดส่ง")}</h2>
       </div>
       {schedules.length === 0 ? (
-        <p>ยังไม่มีรอบจัดส่ง</p>
+        <p>{t("ยังไม่มีรอบจัดส่ง")}</p>
       ) : (
         schedules.map((schedule) => {
-          const statusLabel =
-            PO_DELIVERY_RECEIVE_STATUS_LABEL[schedule.status] ?? schedule.status;
+          const statusLabel = t(
+            PO_DELIVERY_RECEIVE_STATUS_LABEL[schedule.status] ?? schedule.status,
+          );
           const timing = receiveTiming(
             schedule.latestActualReceiveDate,
             schedule.effectiveDeliveryDate,
@@ -101,12 +104,16 @@ export default function PoDeliverySchedulesSection({
                 }}
               >
                 <div>
-                  <strong>รอบที่ {schedule.roundNo}</strong>
+                  <strong>{t("รอบที่ {n}", { n: schedule.roundNo })}</strong>
                   <div>
-                    กำหนดส่ง {dayjs(schedule.effectiveDeliveryDate).format("DD/MM/YYYY")}
+                    {t("กำหนดส่ง {date}", {
+                      date: dayjs(schedule.effectiveDeliveryDate).format("DD/MM/YYYY"),
+                    })}
                     {schedule.originalDeliveryDate &&
                     schedule.originalDeliveryDate !== schedule.deliveryDate
-                      ? ` (เลื่อนจาก ${dayjs(schedule.originalDeliveryDate).format("DD/MM/YYYY")})`
+                      ? ` ${t("(เลื่อนจาก {date})", {
+                          date: dayjs(schedule.originalDeliveryDate).format("DD/MM/YYYY"),
+                        })}`
                       : null}
                   </div>
                   {schedule.latestActualReceiveDate ? (
@@ -120,15 +127,16 @@ export default function PoDeliverySchedulesSection({
                       }}
                     >
                       <span>
-                        รับจริงล่าสุด{" "}
-                        {dayjs(schedule.latestActualReceiveDate).format("DD/MM/YYYY")}
+                        {t("รับจริงล่าสุด {date}", {
+                          date: dayjs(schedule.latestActualReceiveDate).format("DD/MM/YYYY"),
+                        })}
                       </span>
                       {timing ? (
                         <Tag
                           color={RECEIVE_TIMING_COLOR[timing]}
                           style={{ fontWeight: 600, marginInlineEnd: 0 }}
                         >
-                          {RECEIVE_TIMING_LABEL[timing]}
+                          {t(RECEIVE_TIMING_LABEL[timing])}
                         </Tag>
                       ) : null}
                     </div>
@@ -142,7 +150,7 @@ export default function PoDeliverySchedulesSection({
                   >
                     {statusLabel}
                   </Tag>
-                  {schedule.isLate ? <Tag color="red">ล่าช้า</Tag> : null}
+                  {schedule.isLate ? <Tag color="red">{t("ล่าช้า")}</Tag> : null}
                 </div>
               </div>
               <Table
@@ -153,15 +161,15 @@ export default function PoDeliverySchedulesSection({
                 dataSource={schedule.items}
                 columns={[
                   {
-                    title: "สินค้า",
+                    title: t("สินค้า"),
                     render: (_, item) =>
                       `${item.itemCode ?? ""} ${item.itemNameTh ?? ""}`.trim(),
                   },
-                  { title: "Qty ตามรอบ", dataIndex: "quantity" },
-                  { title: "รับแล้ว", dataIndex: "receivedQuantity" },
-                  { title: "ยกเลิกการรับ", dataIndex: "cancelledQuantity" },
-                  { title: "คงเหลือ", dataIndex: "remainingQuantity" },
-                  { title: "หน่วย", dataIndex: "unitCode" },
+                  { title: t("Qty ตามรอบ"), dataIndex: "quantity" },
+                  { title: t("รับแล้ว"), dataIndex: "receivedQuantity" },
+                  { title: t("ยกเลิกการรับ"), dataIndex: "cancelledQuantity" },
+                  { title: t("คงเหลือ"), dataIndex: "remainingQuantity" },
+                  { title: t("หน่วย"), dataIndex: "unitCode" },
                 ]}
               />
               <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
@@ -173,7 +181,7 @@ export default function PoDeliverySchedulesSection({
                       setMode("history");
                     }}
                   >
-                    ประวัติเลื่อนวัน
+                    {t("ประวัติเลื่อนวัน")}
                   </Button>
                 ) : null}
                 {canManage && isPoScheduleOpen(schedule.status) ? (
@@ -184,7 +192,7 @@ export default function PoDeliverySchedulesSection({
                       setMode("reschedule");
                     }}
                   >
-                    เลื่อนวันส่ง
+                    {t("เลื่อนวันส่ง")}
                   </Button>
                 ) : null}
                 {canManage && canCancelPoRoundReceiving(schedule) ? (
@@ -196,7 +204,7 @@ export default function PoDeliverySchedulesSection({
                       setMode("cancel");
                     }}
                   >
-                    ยกเลิกการรับทั้งรอบ
+                    {t("ยกเลิกการรับทั้งรอบ")}
                   </Button>
                 ) : null}
                 {(canManage || showCloseOnReceiving) &&
@@ -208,7 +216,7 @@ export default function PoDeliverySchedulesSection({
                       setMode("close");
                     }}
                   >
-                    ยุติการรับสินค้าคงเหลือ
+                    {t("ยุติการรับสินค้าคงเหลือ")}
                   </Button>
                 ) : null}
               </div>
@@ -218,12 +226,12 @@ export default function PoDeliverySchedulesSection({
       )}
 
       <Modal
-        title="เลื่อนวันส่ง"
+        title={t("เลื่อนวันส่ง")}
         open={mode === "reschedule"}
         destroyOnHidden
         onCancel={closeModal}
         confirmLoading={rescheduleMutation.isPending}
-        okText="บันทึก"
+        okText={t("บันทึก")}
         okButtonProps={{ htmlType: "submit", form: RESCHEDULE_FORM_ID }}
       >
         <Form
@@ -256,15 +264,15 @@ export default function PoDeliverySchedulesSection({
         >
           <Form.Item
             name="newDate"
-            label="วันที่ส่งใหม่"
-            rules={[{ required: true, message: "ระบุวันที่ส่งใหม่" }]}
+            label={t("วันที่ส่งใหม่")}
+            rules={[{ required: true, message: t("ระบุวันที่ส่งใหม่") }]}
           >
             <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
           </Form.Item>
           <Form.Item
             name="reason"
-            label="เหตุผล"
-            rules={[{ required: true, message: "ระบุเหตุผล" }]}
+            label={t("เหตุผล")}
+            rules={[{ required: true, message: t("ระบุเหตุผล") }]}
           >
             <Input.TextArea rows={3} />
           </Form.Item>
@@ -276,18 +284,22 @@ export default function PoDeliverySchedulesSection({
             maxCount={1}
             onRemove={() => setFile(null)}
           >
-            <Button>แนบหลักฐาน (ถ้ามี)</Button>
+            <Button>{t("แนบหลักฐาน (ถ้ามี)")}</Button>
           </Upload>
         </Form>
       </Modal>
 
       <Modal
-        title={mode === "cancel" ? "ยกเลิกการรับทั้งรอบ" : "ยุติการรับสินค้าคงเหลือ"}
+        title={
+          mode === "cancel"
+            ? t("ยกเลิกการรับทั้งรอบ")
+            : t("ยุติการรับสินค้าคงเหลือ")
+        }
         open={mode === "cancel" || mode === "close"}
         destroyOnHidden
         onCancel={closeModal}
         confirmLoading={cancelMutation.isPending || closeMutation.isPending}
-        okText="ยืนยัน"
+        okText={t("ยืนยัน")}
         okButtonProps={{
           danger: true,
           htmlType: "submit",
@@ -312,8 +324,8 @@ export default function PoDeliverySchedulesSection({
         >
           <Form.Item
             name="reason"
-            label="เหตุผล"
-            rules={[{ required: true, message: "ระบุเหตุผล" }]}
+            label={t("เหตุผล")}
+            rules={[{ required: true, message: t("ระบุเหตุผล") }]}
           >
             <Input.TextArea rows={3} />
           </Form.Item>
@@ -321,7 +333,7 @@ export default function PoDeliverySchedulesSection({
       </Modal>
 
       <Modal
-        title="ประวัติการเลื่อนวันส่ง"
+        title={t("ประวัติการเลื่อนวันส่ง")}
         open={mode === "history"}
         destroyOnHidden
         footer={null}

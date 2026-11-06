@@ -8,6 +8,9 @@ import { ExperimentOutlined, SearchOutlined } from "@ant-design/icons";
 
 import DocumentAttachmentsPanel from "@/components/common/DocumentAttachmentsPanel";
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatDateTime } from "@/lib/i18n/format";
 import {
   useChemicalLotsQuery,
   useRejectLotCoaMutation,
@@ -36,14 +39,17 @@ const daysLeft = (expiry?: string) =>
   expiry ? Math.ceil((new Date(expiry).getTime() - new Date().setHours(0, 0, 0, 0)) / 86_400_000) : undefined;
 
 function ExpiryTag({ expiry }: { expiry?: string }) {
+  const t = useT();
   if (!expiry) return <span>—</span>;
   const d = daysLeft(expiry) as number;
-  if (d < 0) return <Tag color="red">{expiry} · หมดอายุแล้ว</Tag>;
-  if (d <= 30) return <Tag color="orange">{expiry} · อีก {d} วัน</Tag>;
+  if (d < 0) return <Tag color="red">{expiry} · {t("หมดอายุแล้ว")}</Tag>;
+  if (d <= 30) return <Tag color="orange">{expiry} · {t("อีก {d} วัน", { d })}</Tag>;
   return <span>{expiry}</span>;
 }
 
 function CoaModal({ lot, onClose }: { lot: ChemicalLot; onClose: () => void }) {
+  const t = useT();
+  const lang = useLanguage();
   const verify = useVerifyLotCoaMutation();
   const reject = useRejectLotCoaMutation();
   const [note, setNote] = useState("");
@@ -62,64 +68,64 @@ function CoaModal({ lot, onClose }: { lot: ChemicalLot; onClose: () => void }) {
               danger
               loading={reject.isPending}
               disabled={!note.trim()}
-              title={!note.trim() ? "ใส่เหตุผลก่อนปฏิเสธ" : undefined}
+              title={!note.trim() ? t("ใส่เหตุผลก่อนปฏิเสธ") : undefined}
               onClick={() => reject.mutate({ id: lot.id, reason: note.trim() }, { onSuccess: onClose })}
             >
-              COA ไม่ผ่าน (ปฏิเสธ Lot)
+              {t("COA ไม่ผ่าน (ปฏิเสธ Lot)")}
             </Button>
             <div style={{ display: "flex", gap: 8 }}>
-              <Button onClick={onClose}>ปิด</Button>
+              <Button onClick={onClose}>{t("ปิด")}</Button>
               <Button
                 type="primary"
                 loading={verify.isPending}
                 disabled={lot.coaFileCount < 1}
-                title={lot.coaFileCount < 1 ? "ต้องแนบไฟล์ COA ก่อน" : undefined}
+                title={lot.coaFileCount < 1 ? t("ต้องแนบไฟล์ COA ก่อน") : undefined}
                 onClick={() => verify.mutate({ id: lot.id, remark: note.trim() || undefined }, { onSuccess: onClose })}
               >
-                ยืนยัน COA ผ่าน
+                {t("ยืนยัน COA ผ่าน")}
               </Button>
             </div>
           </div>
         ) : (
-          <Button onClick={onClose}>ปิด</Button>
+          <Button onClick={onClose}>{t("ปิด")}</Button>
         )
       }
     >
       <p style={{ marginTop: 0 }}>
         {lot.itemCode} — {lot.itemNameTh}
         {lot.batchNo ? ` · Batch ${lot.batchNo}` : ""}
-        {lot.sourceDocumentNo ? ` · รับจาก ${lot.sourceDocumentNo}` : ""}
+        {lot.sourceDocumentNo ? ` · ${t("รับจาก {no}", { no: lot.sourceDocumentNo })}` : ""}
       </p>
-      <Typography.Text strong>ไฟล์ COA</Typography.Text>
+      <Typography.Text strong>{t("ไฟล์ COA")}</Typography.Text>
       <DocumentAttachmentsPanel
         documentType={DOCUMENT_TYPE_LOT_COA}
         documentId={lot.id}
         canEdit={pending}
-        emptyText="ยังไม่ได้แนบ COA — ต้องแนบก่อนยืนยัน"
-        uploadLabel="แนบไฟล์ COA"
+        emptyText={t("ยังไม่ได้แนบ COA — ต้องแนบก่อนยืนยัน")}
+        uploadLabel={t("แนบไฟล์ COA")}
       />
       {pending ? (
         <div style={{ marginTop: 12 }}>
-          <Typography.Text strong>หมายเหตุ / เหตุผล</Typography.Text>
+          <Typography.Text strong>{t("หมายเหตุ / เหตุผล")}</Typography.Text>
           <Input.TextArea
             rows={2}
             maxLength={2000}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="หมายเหตุการตรวจ (ไม่บังคับ) — ถ้าปฏิเสธต้องใส่เหตุผล"
+            placeholder={t("หมายเหตุการตรวจ (ไม่บังคับ) — ถ้าปฏิเสธต้องใส่เหตุผล")}
           />
           <Alert
             type="info"
             showIcon
             style={{ marginTop: 8 }}
-            title="ยืนยันแล้วยอดที่รอตรวจ (Hold) จะกลายเป็นพร้อมใช้ · ปฏิเสธแล้วยอดถูก Block ห้ามใช้ · Lot ที่หมดอายุแล้วยืนยันไม่ได้"
+            title={t("ยืนยันแล้วยอดที่รอตรวจ (Hold) จะกลายเป็นพร้อมใช้ · ปฏิเสธแล้วยอดถูก Block ห้ามใช้ · Lot ที่หมดอายุแล้วยืนยันไม่ได้")}
           />
         </div>
       ) : (
         <div style={{ marginTop: 12 }}>
-          <Tag color={COA_COLOR[lot.coaStatus]}>{COA_STATUS_LABEL[lot.coaStatus]}</Tag>
-          {lot.coaVerifiedByName ? <span> โดย {lot.coaVerifiedByName}</span> : null}
-          {lot.coaVerifiedAt ? <span> · {new Date(lot.coaVerifiedAt).toLocaleString("th-TH")}</span> : null}
+          <Tag color={COA_COLOR[lot.coaStatus]}>{t(COA_STATUS_LABEL[lot.coaStatus])}</Tag>
+          {lot.coaVerifiedByName ? <span> {t("โดย {name}", { name: lot.coaVerifiedByName })}</span> : null}
+          {lot.coaVerifiedAt ? <span> · {formatDateTime(lot.coaVerifiedAt, lang)}</span> : null}
           {lot.coaRemark ? <p style={{ margin: "6px 0 0" }}>{lot.coaRemark}</p> : null}
         </div>
       )}
@@ -129,6 +135,7 @@ function CoaModal({ lot, onClose }: { lot: ChemicalLot; onClose: () => void }) {
 
 /** หน้า /inventory/chemical-lots — Lot สารเคมี: ตรวจ COA ก่อนปล่อยใช้, วันหมดอายุ, Batch */
 export default function ChemicalLotsPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const [coaStatus, setCoaStatus] = useState<string>("PENDING");
   const [expiringOnly, setExpiringOnly] = useState(false);
@@ -146,7 +153,7 @@ export default function ChemicalLotsPage() {
 
   const columns: ColumnsType<ChemicalLot> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
@@ -165,13 +172,13 @@ export default function ChemicalLotsPage() {
       ),
     },
     {
-      title: "สารเคมี",
+      title: t("สารเคมี"),
       key: "item",
       render: (_v, l) => `${l.itemCode ?? ""} ${l.itemNameTh ?? ""}`.trim(),
     },
-    { title: "หมดอายุ", key: "expiry", width: 200, render: (_v, l) => <ExpiryTag expiry={l.expiryDate} /> },
+    { title: t("หมดอายุ"), key: "expiry", width: 200, render: (_v, l) => <ExpiryTag expiry={l.expiryDate} /> },
     {
-      title: "คงเหลือ / พร้อมใช้ / รอตรวจ",
+      title: t("คงเหลือ / พร้อมใช้ / รอตรวจ"),
       key: "qty",
       width: 210,
       align: "right",
@@ -184,8 +191,8 @@ export default function ChemicalLotsPage() {
       width: 190,
       render: (_v, l) => (
         <div>
-          <Tag color={COA_COLOR[l.coaStatus]}>{COA_STATUS_LABEL[l.coaStatus]}</Tag>
-          <span style={{ fontSize: 12, color: "#8a94a6" }}>{l.coaFileCount} ไฟล์</span>
+          <Tag color={COA_COLOR[l.coaStatus]}>{t(COA_STATUS_LABEL[l.coaStatus])}</Tag>
+          <span style={{ fontSize: 12, color: "#8a94a6" }}>{t("{n} ไฟล์", { n: l.coaFileCount })}</span>
         </div>
       ),
     },
@@ -195,7 +202,7 @@ export default function ChemicalLotsPage() {
       width: 120,
       render: (_v, l) => (
         <Button size="small" type={l.coaStatus === "PENDING" ? "primary" : "default"} onClick={() => setSelectedId(l.id)}>
-          {l.coaStatus === "PENDING" ? "ตรวจ COA" : "ดู COA"}
+          {l.coaStatus === "PENDING" ? t("ตรวจ COA") : t("ดู COA")}
         </Button>
       ),
     },
@@ -207,13 +214,13 @@ export default function ChemicalLotsPage() {
         <PageHeader
           eyebrow="INVENTORY · CHEMICAL"
           icon={<ExperimentOutlined />}
-          title="Lot สารเคมี / ตรวจ COA"
-          subtitle="สารเคมีที่รับเข้าจะอยู่สถานะรอตรวจ (Hold) จนกว่าจะแนบ COA และยืนยัน — Lot ที่ COA ยังไม่ผ่าน เบิกไม่ได้"
+          title={t("Lot สารเคมี / ตรวจ COA")}
+          subtitle={t("สารเคมีที่รับเข้าจะอยู่สถานะรอตรวจ (Hold) จนกว่าจะแนบ COA และยืนยัน — Lot ที่ COA ยังไม่ผ่าน เบิกไม่ได้")}
           actions={
             <>
 <Link href="/inventory/chemical-issues">
             <Button size="large" type="primary">
-              เบิกสารเคมี
+              {t("เบิกสารเคมี")}
             </Button>
           </Link>
             </>
@@ -227,21 +234,21 @@ export default function ChemicalLotsPage() {
               value={coaStatus}
               onChange={setCoaStatus}
               options={[
-                { value: "", label: "ทุกสถานะ COA" },
-                { value: "PENDING", label: COA_STATUS_LABEL.PENDING },
-                { value: "VERIFIED", label: COA_STATUS_LABEL.VERIFIED },
-                { value: "REJECTED", label: COA_STATUS_LABEL.REJECTED },
-                { value: "NOT_REQUIRED", label: "Lot เดิม (ไม่ต้องตรวจ)" },
+                { value: "", label: t("ทุกสถานะ COA") },
+                { value: "PENDING", label: t(COA_STATUS_LABEL.PENDING) },
+                { value: "VERIFIED", label: t(COA_STATUS_LABEL.VERIFIED) },
+                { value: "REJECTED", label: t(COA_STATUS_LABEL.REJECTED) },
+                { value: "NOT_REQUIRED", label: t("Lot เดิม (ไม่ต้องตรวจ)") },
               ]}
             />
             <Checkbox checked={expiringOnly} onChange={(e) => setExpiringOnly(e.target.checked)}>
-              เฉพาะใกล้หมดอายุ (≤ 30 วัน) / หมดอายุแล้ว
+              {t("เฉพาะใกล้หมดอายุ (≤ 30 วัน) / หมดอายุแล้ว")}
             </Checkbox>
             <Input
               allowClear
               style={{ width: 260 }}
               prefix={<SearchOutlined />}
-              placeholder="ค้น Lot / Batch / สารเคมี"
+              placeholder={t("ค้น Lot / Batch / สารเคมี")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onPressEnter={() => setApplied(keyword)}
@@ -254,9 +261,9 @@ export default function ChemicalLotsPage() {
             columns={columns}
             dataSource={lots}
             loading={query.isFetching}
-            pagination={{ pageSize: 20, showTotal: (t) => `ทั้งหมด ${t} Lot` }}
+            pagination={{ pageSize: 20, showTotal: (total) => t("ทั้งหมด {n} Lot", { n: total }) }}
             scroll={{ x: 1000 }}
-            locale={{ emptyText: "ไม่มี Lot ตามเงื่อนไข" }}
+            locale={{ emptyText: t("ไม่มี Lot ตามเงื่อนไข") }}
           />
         </div>
 

@@ -19,6 +19,8 @@ import {
 } from "antd";
 import { CameraOutlined, RedoOutlined } from "@ant-design/icons";
 
+import { useT } from "@/lib/i18n/useT";
+
 import styles from "./ocr-capture.module.css";
 
 /**
@@ -164,6 +166,7 @@ export default function CameraCaptureModal({
   onClose,
   onUseNativeCamera,
 }: Props) {
+  const t = useT();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   /** กล้องที่ผู้ใช้เลือกเอง — undefined = ให้เบราว์เซอร์เลือกตามความเหมาะสม */
@@ -358,23 +361,23 @@ export default function CameraCaptureModal({
       open
       centered
       width={720}
-      title="ถ่ายรูปใบชั่ง"
+      title={t("ถ่ายรูปใบชั่ง")}
       onCancel={onClose}
       footer={
         shotUrl ? (
           <Space>
             <Button icon={<RedoOutlined />} onClick={() => setShotUrl(null)}>
-              ถ่ายใหม่
+              {t("ถ่ายใหม่")}
             </Button>
             <Button type="primary" onClick={handleUseShot}>
-              ใช้รูปนี้
+              {t("ใช้รูปนี้")}
             </Button>
           </Space>
         ) : error ? (
           // กล้องเปิดไม่ได้ — ไม่ต้องมีปุ่มถ่ายค้างไว้ให้กดไม่ได้ ให้ทางไปต่อแทน
           <Space>
             {onUseNativeCamera ? (
-              <Button onClick={onUseNativeCamera}>ใช้แอปกล้องของเครื่อง</Button>
+              <Button onClick={onUseNativeCamera}>{t("ใช้แอปกล้องของเครื่อง")}</Button>
             ) : null}
             <Button
               type="primary"
@@ -384,7 +387,7 @@ export default function CameraCaptureModal({
                 setRetryKey((value) => value + 1);
               }}
             >
-              ลองอีกครั้ง
+              {t("ลองอีกครั้ง")}
             </Button>
           </Space>
         ) : (
@@ -394,7 +397,7 @@ export default function CameraCaptureModal({
             disabled={!stream}
             onClick={handleShoot}
           >
-            ถ่าย
+            {t("ถ่าย")}
           </Button>
         )
       }
@@ -408,10 +411,10 @@ export default function CameraCaptureModal({
           <Segmented<Orientation>
             value={orientation}
             options={[
-              { value: "PORTRAIT", label: "แนวตั้ง (A4)" },
-              { value: "LANDSCAPE", label: "แนวนอน" },
+              { value: "PORTRAIT", label: t("แนวตั้ง (A4)") },
+              { value: "LANDSCAPE", label: t("แนวนอน") },
               // กล้องความละเอียดต่ำอ่านทั้งใบไม่ไหว — ถ่ายเฉพาะหัวใบให้ตัวหนังสือใหญ่ขึ้นแทน
-              { value: "TOP_STRIP", label: "เฉพาะส่วนบน" },
+              { value: "TOP_STRIP", label: t("เฉพาะส่วนบน") },
             ]}
             onChange={(value) => {
               setOrientation(value);
@@ -426,10 +429,10 @@ export default function CameraCaptureModal({
             <Select
               style={{ minWidth: 240, flex: "1 1 240px" }}
               value={activeDeviceId}
-              placeholder="เลือกกล้อง"
+              placeholder={t("เลือกกล้อง")}
               options={devices.map((device, index) => ({
                 value: device.deviceId,
-                label: device.label || `กล้อง ${index + 1}`,
+                label: device.label || t("กล้อง {n}", { n: index + 1 }),
               }))}
               onChange={(value: string) => {
                 setDeviceId(value);
@@ -441,7 +444,7 @@ export default function CameraCaptureModal({
       ) : null}
 
       {error ? (
-        <Alert type="error" showIcon title={error} />
+        <Alert type="error" showIcon title={t(error)} />
       ) : (
         <div
           className={styles.cameraStage}
@@ -468,7 +471,7 @@ export default function CameraCaptureModal({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={shotUrl}
-              alt="รูปใบชั่งที่เพิ่งถ่าย"
+              alt={t("รูปใบชั่งที่เพิ่งถ่าย")}
               className={styles.cameraShot}
               style={{ objectFit: "contain" }}
             />
@@ -480,7 +483,7 @@ export default function CameraCaptureModal({
               <span className={`${styles.guideCorner} ${styles.guideCornerTr}`} />
               <span className={`${styles.guideCorner} ${styles.guideCornerBl}`} />
               <span className={`${styles.guideCorner} ${styles.guideCornerBr}`} />
-              <span className={styles.guideHint}>วางใบชั่งให้เต็มกรอบ</span>
+              <span className={styles.guideHint}>{t("วางใบชั่งให้เต็มกรอบ")}</span>
             </div>
           ) : null}
 
@@ -489,7 +492,7 @@ export default function CameraCaptureModal({
               {/* ไม่ใช้ `Spin tip` แบบไม่มีลูก เพราะ AntD 6 จะเตือนว่าใช้ได้เฉพาะแบบครอบเนื้อหา */}
               <Space orientation="vertical" align="center">
                 <Spin size="large" />
-                <span>กำลังเปิดกล้อง...</span>
+                <span>{t("กำลังเปิดกล้อง...")}</span>
               </Space>
             </div>
           ) : null}
@@ -498,12 +501,12 @@ export default function CameraCaptureModal({
 
       {!error && !shotUrl ? (
         <Typography.Text type="secondary" className={styles.cameraFootnote}>
-          ระบบจะตัดเฉพาะในกรอบไปอ่าน จัดใบให้เต็มกรอบและไม่เอียง ตัวเลขจะแม่นขึ้นมาก
+          {t("ระบบจะตัดเฉพาะในกรอบไปอ่าน จัดใบให้เต็มกรอบและไม่เอียง ตัวเลขจะแม่นขึ้นมาก")}
           {onUseNativeCamera ? (
             <>
               {" · "}
               <Button type="link" size="small" onClick={onUseNativeCamera}>
-                ใช้แอปกล้องของเครื่อง
+                {t("ใช้แอปกล้องของเครื่อง")}
               </Button>
             </>
           ) : null}

@@ -7,6 +7,8 @@ import { Button, DatePicker, Form, Input, Spin } from "antd";
 import { ArrowLeftOutlined, FileTextOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { useCreateSalesInvoiceFromDeliveryMutation } from "@/hooks/sales-invoices/useSalesInvoiceMutations";
 import { useSalesInvoiceByDeliveryQuery } from "@/hooks/sales-invoices/useSalesInvoicesQuery";
 import { useDeliveryOrderQuery } from "@/hooks/delivery-orders/useDeliveryOrdersQuery";
@@ -26,6 +28,7 @@ type Props = { deliveryOrderId: string };
 export default function SalesInvoiceCreateFromDeliveryPage({
   deliveryOrderId,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   const [form] = Form.useForm<FormValues>();
   const deliveryQuery = useDeliveryOrderQuery(deliveryOrderId);
@@ -50,7 +53,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   if (deliveryQuery.isLoading || existingQuery.isLoading) {
     return (
       <div className={styles.page}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -58,9 +61,9 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   if (!delivery) {
     return (
       <div className={styles.page}>
-        ไม่พบใบส่งสินค้า
+        {t("ไม่พบใบส่งสินค้า")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/sales-invoices/pending">กลับ</Link>
+          <Link href="/sales-invoices/pending">{t("กลับ")}</Link>
         </div>
       </div>
     );
@@ -69,9 +72,9 @@ export default function SalesInvoiceCreateFromDeliveryPage({
   if (delivery.status !== "DELIVERED") {
     return (
       <div className={styles.page}>
-        สร้างใบแจ้งหนี้ได้เฉพาะ Delivery สถานะ DELIVERED
+        {t("สร้างใบแจ้งหนี้ได้เฉพาะ Delivery สถานะ DELIVERED")}
         <div style={{ marginTop: 12 }}>
-          <Link href={`/delivery-orders/${delivery.id}`}>กลับใบส่งสินค้า</Link>
+          <Link href={`/delivery-orders/${delivery.id}`}>{t("กลับใบส่งสินค้า")}</Link>
         </div>
       </div>
     );
@@ -94,7 +97,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
       <PageHeader
         eyebrow="Sales Invoices · AR"
         icon={<FileTextOutlined />}
-        title="สร้างใบแจ้งหนี้"
+        title={t("สร้างใบแจ้งหนี้")}
         subtitle={<>{delivery.deliveryOrderNo} · {delivery.customerName ?? "—"} · SO{" "}
             {delivery.salesOrderNo ?? "—"}</>}
         actions={
@@ -103,7 +106,7 @@ export default function SalesInvoiceCreateFromDeliveryPage({
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/sales-invoices/pending")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           </>
         }
@@ -112,17 +115,17 @@ export default function SalesInvoiceCreateFromDeliveryPage({
       <section className={styles.formCard}>
         <div className={styles.metaGrid}>
           <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>ใบส่งสินค้า</span>
+            <span className={styles.metaLabel}>{t("ใบส่งสินค้า")}</span>
             <div className={styles.metaValue}>{delivery.deliveryOrderNo}</div>
           </div>
           <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>วันที่ส่ง</span>
+            <span className={styles.metaLabel}>{t("วันที่ส่ง")}</span>
             <div className={styles.metaValue}>
               {dayjs(delivery.deliveryDate).format("DD/MM/YYYY")}
             </div>
           </div>
           <div className={styles.metaItem}>
-            <span className={styles.metaLabel}>จำนวนรายการ</span>
+            <span className={styles.metaLabel}>{t("จำนวนรายการ")}</span>
             <div className={styles.metaValue}>
               {delivery.items?.length ?? 0}
             </div>
@@ -138,33 +141,33 @@ export default function SalesInvoiceCreateFromDeliveryPage({
         >
           <Form.Item
             name="invoiceDate"
-            label="วันที่ใบแจ้งหนี้"
-            rules={[{ required: true, message: "ระบุวันที่" }]}
+            label={t("วันที่ใบแจ้งหนี้")}
+            rules={[{ required: true, message: t("ระบุวันที่") }]}
           >
             <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="dueDate" label="วันครบกำหนดชำระ">
+          <Form.Item name="dueDate" label={t("วันครบกำหนดชำระ")}>
             <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item name="remark" label="หมายเหตุ">
-            <Input.TextArea rows={3} placeholder="หมายเหตุ (ถ้ามี)" />
+          <Form.Item name="remark" label={t("หมายเหตุ")}>
+            <Input.TextArea rows={3} placeholder={t("หมายเหตุ (ถ้ามี)")} />
           </Form.Item>
           <div className={styles.formActions}>
             <Button onClick={() => router.push("/sales-invoices/pending")}>
-              ยกเลิก
+              {t("ยกเลิก")}
             </Button>
             <Button
               type="primary"
               htmlType="submit"
               loading={createMutation.isPending}
             >
-              สร้างใบแจ้งหนี้ (DRAFT)
+              {t("สร้างใบแจ้งหนี้ (DRAFT)")}
             </Button>
           </div>
         </Form>
         <p style={{ marginTop: 12, color: "#8a9199", fontSize: 13 }}>
-          ยอดจะคำนวณจากจำนวนที่ส่ง × ราคาในใบสั่งขาย (ส่วนลด/VAT ตามสัดส่วน)
-          {delivery.salesOrderId ? ` · อ้างอิง SO` : null}
+          {t("ยอดจะคำนวณจากจำนวนที่ส่ง × ราคาในใบสั่งขาย (ส่วนลด/VAT ตามสัดส่วน)")}
+          {delivery.salesOrderId ? ` · ${t("อ้างอิง SO")}` : null}
         </p>
       </section>
     </div>

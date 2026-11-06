@@ -21,6 +21,12 @@ import {
 import type { ColumnsType } from "antd/es/table";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import {
+  formatDate as formatLocaleDate,
+  formatDateTime as formatLocaleDateTime,
+} from "@/lib/i18n/format";
 import {
   useApproveStockPostingRequestMutation,
   useRejectStockPostingRequestMutation,
@@ -33,7 +39,7 @@ import {
 } from "@/lib/auth/stock-posting-access";
 import type { StockPostingReceiptItem } from "@/types/stock-posting-request";
 import {
-  STOCK_POSTING_REQUEST_STATUS_LABEL,
+  stockPostingStatusLabel,
   StockPostingRequestStatus,
 } from "@/types/stock-posting-request";
 import styles from "@/components/weighbridge/WeighbridgeDashboardPage.module.css";
@@ -71,20 +77,6 @@ function formatWeight(value?: string | number) {
   });
 }
 
-function formatDate(value?: string) {
-  if (!value) {
-    return "-";
-  }
-  return new Date(value).toLocaleDateString("th-TH");
-}
-
-function formatDateTime(value?: string) {
-  if (!value) {
-    return "-";
-  }
-  return new Date(value).toLocaleString("th-TH");
-}
-
 function statusTagColor(status: string) {
   switch (status) {
     case StockPostingRequestStatus.PENDING_APPROVAL:
@@ -103,6 +95,8 @@ const DEFAULT_RAW_TIRE_WAREHOUSE_CODE = "RAW_WH";
 
 export default function StockPostingApprovalDetailPage({ requestId }: Props) {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
   const { message, modal } = App.useApp();
   const canApprove = useCanApproveStockPostingApprovals();
   const detailQuery = useStockPostingApprovalQuery(requestId);
@@ -186,14 +180,14 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
 
   const itemColumns: ColumnsType<StockPostingReceiptItem> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "index",
       width: 72,
       align: "center",
       render: (_value, _row, index) => index + 1,
     },
     {
-      title: "ประเภทสินค้า",
+      title: t("ประเภทสินค้า"),
       key: "classification",
       render: (_, row) => (
         <div>
@@ -201,7 +195,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
           {row.classificationCode ? (
             <div>
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                รหัสประเภท: {row.classificationCode}
+                {t("รหัสประเภท:")} {row.classificationCode}
               </Typography.Text>
             </div>
           ) : null}
@@ -209,7 +203,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
       ),
     },
     {
-      title: "สินค้าคลัง (Master Items)",
+      title: t("สินค้าคลัง (Master Items)"),
       key: "item",
       render: (_, row) =>
         row.itemCode ? (
@@ -221,15 +215,15 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
           </div>
         ) : (
           <Typography.Text type="danger">
-            ยังไม่ผูกสินค้า
+            {t("ยังไม่ผูกสินค้า")}
             {row.classificationCode
-              ? ` — แก้ประเภทยาง ${row.classificationCode} ให้เลือกสินค้าคลัง`
+              ? ` — ${t("แก้ประเภทยาง {code} ให้เลือกสินค้าคลัง", { code: row.classificationCode })}`
               : ""}
           </Typography.Text>
         ),
     },
     {
-      title: "น้ำหนักขอรับเข้า (กก.)",
+      title: t("น้ำหนักขอรับเข้า (กก.)"),
       dataIndex: "weightKg",
       key: "weightKg",
       align: "right",
@@ -237,7 +231,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
       render: (value: string) => formatWeight(value),
     },
     {
-      title: "คลัง / ตำแหน่ง",
+      title: t("คลัง / ตำแหน่ง"),
       key: "warehouse",
       width: 200,
       render: (_, row) =>
@@ -257,7 +251,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
         ),
     },
     {
-      title: "ราคา/กก.",
+      title: t("ราคา/กก."),
       dataIndex: "pricePerKg",
       key: "pricePerKg",
       align: "right",
@@ -265,7 +259,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
       render: (value: string) => formatMoney(value),
     },
     {
-      title: "ยอดเงิน",
+      title: t("ยอดเงิน"),
       dataIndex: "amount",
       key: "amount",
       align: "right",
@@ -291,18 +285,18 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
 
   const handleApproveClick = () => {
     if (approveBlockedByItems) {
-      message.warning("ผูก Master Items ให้ครบก่อนอนุมัติ");
+      message.warning(t("ผูก Master Items ให้ครบก่อนอนุมัติ"));
       return;
     }
     if (approveBlockedByWarehouse) {
-      message.warning("เลือกคลังและตำแหน่งจัดเก็บก่อนอนุมัติ");
+      message.warning(t("เลือกคลังและตำแหน่งจัดเก็บก่อนอนุมัติ"));
       return;
     }
     modal.confirm({
-      title: "อนุมัติรับเข้าคลัง",
-      content: "ระบบจะ POST สต๊อกจริงทันทีหลังอนุมัติ",
-      okText: "อนุมัติ",
-      cancelText: "ยกเลิก",
+      title: t("อนุมัติรับเข้าคลัง"),
+      content: t("ระบบจะ POST สต๊อกจริงทันทีหลังอนุมัติ"),
+      okText: t("อนุมัติ"),
+      cancelText: t("ยกเลิก"),
       onOk: async () => {
         await handleApprove();
         await detailQuery.refetch();
@@ -331,14 +325,14 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
       <section className={styles.page}>
         <PageHeader
           eyebrow="Raw Tire Receiving"
-          title="รายละเอียดคำขออนุมัติรับยางเข้าคลัง"
+          title={t("รายละเอียดคำขออนุมัติรับยางเข้าคลัง")}
           back={
             <Button
             type="text"
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/warehouse/stock-posting-approvals")}
           >
-            กลับรายการอนุมัติ
+            {t("กลับรายการอนุมัติ")}
           </Button>
           }
           actions={
@@ -348,7 +342,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
               loading={detailQuery.isFetching}
               onClick={() => void detailQuery.refetch()}
             >
-              รีเฟรช
+              {t("รีเฟรช")}
             </Button>
             {isPending && canApprove ? (
               <>
@@ -358,7 +352,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                       showSearch
                       optionFilterProp="label"
                       style={{ minWidth: 220 }}
-                      placeholder="เลือกคลัง"
+                      placeholder={t("เลือกคลัง")}
                       options={warehouseOptions}
                       loading={warehousesQuery.isLoading}
                       value={warehouseId}
@@ -372,7 +366,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                       optionFilterProp="label"
                       style={{ minWidth: 220 }}
                       placeholder={
-                        warehouseId ? "เลือกตำแหน่ง" : "เลือกคลังก่อน"
+                        warehouseId ? t("เลือกตำแหน่ง") : t("เลือกคลังก่อน")
                       }
                       options={locationOptions}
                       loading={locationsQuery.isLoading}
@@ -388,7 +382,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                   disabled={isBusy}
                   onClick={() => setRejectOpen(true)}
                 >
-                  ไม่อนุมัติ
+                  {t("ไม่อนุมัติ")}
                 </Button>
                 <Button
                   type="primary"
@@ -399,13 +393,13 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                   onClick={handleApproveClick}
                   title={
                     approveBlockedByItems
-                      ? "ผูก Master Items ให้ครบก่อนอนุมัติ"
+                      ? t("ผูก Master Items ให้ครบก่อนอนุมัติ")
                       : approveBlockedByWarehouse
-                        ? "เลือกคลังและตำแหน่งก่อนอนุมัติ"
+                        ? t("เลือกคลังและตำแหน่งก่อนอนุมัติ")
                         : undefined
                   }
                 >
-                  อนุมัติและรับเข้าคลัง
+                  {t("อนุมัติและรับเข้าคลัง")}
                 </Button>
               </>
             ) : null}
@@ -417,7 +411,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
           <div className={styles.card}>
             <div className={styles.cardBody}>
               <Typography.Text type="danger">
-                โหลดรายละเอียดคำขอไม่สำเร็จ
+                {t("โหลดรายละเอียดคำขอไม่สำเร็จ")}
               </Typography.Text>
             </div>
           </div>
@@ -427,9 +421,9 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
               <div className={styles.cardHeader}>
                 <div className={styles.detailTitleRow}>
                   <div>
-                    <h3>รายละเอียดคำขอรับเข้าคลัง</h3>
+                    <h3>{t("รายละเอียดคำขอรับเข้าคลัง")}</h3>
                     <p>
-                      {request.requestNo} · ใบรับซื้อ{" "}
+                      {request.requestNo} · {t("ใบรับซื้อ")}{" "}
                       {request.receipt?.receiptNo ?? request.receiptId}
                     </p>
                   </div>
@@ -438,8 +432,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                       color={statusTagColor(request.status)}
                       className={styles.flowTag}
                     >
-                      {STOCK_POSTING_REQUEST_STATUS_LABEL[request.status] ??
-                        request.status}
+                      {stockPostingStatusLabel(request.status, lang)}
                     </Tag>
                   </div>
                 </div>
@@ -450,9 +443,9 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                     <>
                       <div style={{ gridColumn: "1 / -1" }}>
                         <Typography.Text type="secondary">
-                          เลือกคลังและตำแหน่งจากแถบด้านบน (ข้างปุ่มอนุมัติ)
+                          {t("เลือกคลังและตำแหน่งจากแถบด้านบน (ข้างปุ่มอนุมัติ)")}
                           {warehouseId && !warehouseLocationId
-                            ? " — เหลือเลือกตำแหน่งจัดเก็บ"
+                            ? ` — ${t("เหลือเลือกตำแหน่งจัดเก็บ")}`
                             : ""}
                         </Typography.Text>
                       </div>
@@ -460,7 +453,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                   ) : (
                     <>
                       <DetailItem
-                        label="คลังสินค้า"
+                        label={t("คลังสินค้า")}
                         value={
                           request.warehouseName
                             ? `${request.warehouseCode ?? ""} · ${request.warehouseName}`
@@ -468,7 +461,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                         }
                       />
                       <DetailItem
-                        label="ตำแหน่งจัดเก็บ"
+                        label={t("ตำแหน่งจัดเก็บ")}
                         value={
                           request.locationName
                             ? `${request.locationCode ?? ""} · ${request.locationName}`
@@ -478,11 +471,11 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                     </>
                   )}
                   <DetailItem
-                    label="วันที่รับเข้า"
-                    value={formatDate(request.postingDate)}
+                    label={t("วันที่รับเข้า")}
+                    value={formatLocaleDate(request.postingDate, lang)}
                   />
                   <DetailItem
-                    label="ผู้ขอ"
+                    label={t("ผู้ขอ")}
                     value={
                       request.requestedBy?.displayName ||
                       request.requestedBy?.username ||
@@ -490,21 +483,21 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                     }
                   />
                   <DetailItem
-                    label="วันเวลาที่ขอ"
-                    value={formatDateTime(request.requestedAt)}
+                    label={t("วันเวลาที่ขอ")}
+                    value={formatLocaleDateTime(request.requestedAt, lang)}
                   />
                   <DetailItem
-                    label="น้ำหนักรวม"
-                    value={`${formatWeight(totals.weight)} กก.`}
+                    label={t("น้ำหนักรวม")}
+                    value={t("{w} กก.", { w: formatWeight(totals.weight) })}
                   />
                   <DetailItem
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     value={request.remark || "-"}
                     fullWidth
                   />
                   {request.rejectReason ? (
                     <DetailItem
-                      label="เหตุผลไม่อนุมัติ"
+                      label={t("เหตุผลไม่อนุมัติ")}
                       value={request.rejectReason}
                       fullWidth
                     />
@@ -516,21 +509,22 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
             <div className={styles.card}>
               <div className={styles.listHeader}>
                 <div>
-                  <h3>รายการรับเข้า</h3>
+                  <h3>{t("รายการรับเข้า")}</h3>
                   <p>
-                    {totals.count} รายการ · น้ำหนักรวม{" "}
-                    {formatWeight(totals.weight)} กก. · มูลค่า{" "}
-                    {formatMoney(totals.amount)} บาท
+                    {t("{count} รายการ · น้ำหนักรวม {weight} กก. · มูลค่า {amount} บาท", {
+                      count: totals.count,
+                      weight: formatWeight(totals.weight),
+                      amount: formatMoney(totals.amount),
+                    })}
                   </p>
                 </div>
               </div>
               {totals.unlinked.length > 0 ? (
                 <div className={styles.cardBody} style={{ paddingBottom: 0 }}>
                   <Typography.Paragraph type="danger" style={{ marginBottom: 12 }}>
-                    มี {totals.unlinked.length} รายการยังไม่ผูก Master Items —
-                    ไป Masters → ประเภท/กลุ่มยาง แล้วเลือกสินค้าคลังให้ครบ
+                    {t("มี {n} รายการยังไม่ผูก Master Items — ไป Masters → ประเภท/กลุ่มยาง แล้วเลือกสินค้าคลังให้ครบ", { n: totals.unlinked.length })}
                     {totals.unlinked[0]?.classificationCode
-                      ? ` (เช่น ${totals.unlinked
+                      ? ` (${t("เช่น")} ${totals.unlinked
                           .map((row) => row.classificationCode)
                           .filter(Boolean)
                           .join(", ")})`
@@ -545,13 +539,13 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
                 columns={itemColumns}
                 dataSource={request.items ?? []}
                 scroll={{ x: 860 }}
-                locale={{ emptyText: "ไม่มีรายการรับเข้า" }}
+                locale={{ emptyText: t("ไม่มีรายการรับเข้า") }}
                 summary={() =>
                   totals.count > 0 ? (
                     <Table.Summary fixed>
                       <Table.Summary.Row>
                         <Table.Summary.Cell index={0} colSpan={3}>
-                          <strong>รวม</strong>
+                          <strong>{t("รวม")}</strong>
                         </Table.Summary.Cell>
                         <Table.Summary.Cell index={3} align="right">
                           <strong>{formatWeight(totals.weight)}</strong>
@@ -571,10 +565,9 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
               <div className={styles.card}>
                 <div className={styles.cardBody}>
                   <Typography.Text type="warning">
-                    เลือก <strong>คลังสินค้า</strong> และ{" "}
-                    <strong>ตำแหน่งจัดเก็บ</strong> ที่แถบด้านบน
-                    {warehouseId ? " แล้วเลือกตำแหน่งให้ครบ" : ""}{" "}
-                    จากนั้นกด <strong>อนุมัติและรับเข้าคลัง</strong>
+                    {t("เลือกคลังสินค้าและตำแหน่งจัดเก็บที่แถบด้านบน")}
+                    {warehouseId ? ` ${t("แล้วเลือกตำแหน่งให้ครบ")}` : ""}{" "}
+                    {t("จากนั้นกด “อนุมัติและรับเข้าคลัง”")}
                   </Typography.Text>
                 </div>
               </div>
@@ -584,9 +577,7 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
               <div className={styles.card}>
                 <div className={styles.cardBody}>
                   <Typography.Text type="warning">
-                    ดูรายละเอียดได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์{" "}
-                    <strong>STOCK_POSTING_APPROVALS · APPROVE</strong> ที่หน้า
-                    ผู้ใช้งาน → การอนุญาต
+                    {t("ดูรายละเอียดได้ — การอนุมัติ/ไม่อนุมัติต้องเปิดสิทธิ์ STOCK_POSTING_APPROVALS · APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต")}
                   </Typography.Text>
                 </div>
               </div>
@@ -595,10 +586,10 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
         ) : null}
 
         <Modal
-          title="ไม่อนุมัติคำขอรับเข้าคลัง"
+          title={t("ไม่อนุมัติคำขอรับเข้าคลัง")}
           open={rejectOpen}
-          okText="ยืนยันไม่อนุมัติ"
-          cancelText="ปิด"
+          okText={t("ยืนยันไม่อนุมัติ")}
+          cancelText={t("ปิด")}
           okButtonProps={{
             danger: true,
             disabled: !rejectReason.trim(),
@@ -612,13 +603,13 @@ export default function StockPostingApprovalDetailPage({ requestId }: Props) {
           destroyOnHidden
         >
           <Typography.Paragraph>
-            กรุณาระบุเหตุผลที่ไม่อนุมัติ
+            {t("กรุณาระบุเหตุผลที่ไม่อนุมัติ")}
           </Typography.Paragraph>
           <Input.TextArea
             rows={3}
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="เช่น ตำแหน่งจัดเก็บไม่ถูกต้อง"
+            placeholder={t("เช่น ตำแหน่งจัดเก็บไม่ถูกต้อง")}
           />
         </Modal>
       </section>

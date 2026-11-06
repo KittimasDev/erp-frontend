@@ -97,3 +97,17 @@ export type SalesCreditNoteListResponse = ApiEnvelope<{
 }>;
 
 export type SalesCreditNoteResponse = ApiEnvelope<SalesCreditNote>;
+
+/** ป้ายสถานะตามภาษา — ไทยใช้ SALES_CREDIT_NOTE_STATUS_LABEL เดิม ("ยกเลิก" ชนกับปุ่ม Cancel) */
+export function salesCreditNoteStatusLabel(status: string, lang: "th" | "en"): string {
+  if (lang === "en") {
+    const en: Record<string, string> = {
+      DRAFT: "Draft",
+      PENDING_APPROVAL: "Pending approval",
+      COMPLETED: "Completed",
+      CANCELLED: "Cancelled",
+    };
+    return en[status] ?? status;
+  }
+  return SALES_CREDIT_NOTE_STATUS_LABEL[status] ?? status;
+}

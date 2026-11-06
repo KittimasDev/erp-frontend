@@ -36,6 +36,10 @@ import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 import type { CreatePurchaseRequestBody } from "@/types/purchase-requests";
 import styles from "./PurchaseRequestFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
+import type { Language } from "@/lib/i18n/translate";
 
 type LineValues = {
   itemId?: string;
@@ -60,17 +64,17 @@ type Props = {
   id?: string;
 };
 
-function formatQty(value?: number | null) {
+function formatQty(value: number | null | undefined, lang: Language) {
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
     return "—";
   }
-  return Number(value).toLocaleString("th-TH", {
-    maximumFractionDigits: 3,
-  });
+  return formatNumber(Number(value), lang, 3);
 }
 
 export default function PurchaseRequestFormPage({ mode, id }: Props) {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
   const [form] = Form.useForm<FormValues>();
   const detailQuery = usePurchaseRequestQuery(mode === "edit" ? id : undefined);
   const createMutation = useCreatePurchaseRequestMutation();
@@ -159,14 +163,14 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
           return {
             key: index,
             text: item
-              ? `${item.itemNameTh} ${formatQty(line.quantity)} ${
+              ? `${item.itemNameTh} ${formatQty(line.quantity, lang)} ${
                   unit?.nameTh ?? unit?.code ?? ""
                 }`.trim()
-              : `รายการที่ ${index + 1} (รอเลือกสินค้า)`,
+              : t("รายการที่ {n} (รอเลือกสินค้า)", { n: index + 1 }),
           };
         })
         .filter(Boolean) as Array<{ key: number; text: string }>,
-    [watchedItems, items, units],
+    [watchedItems, items, units, lang, t],
   );
 
   const filledCount = watchedItems.filter(
@@ -209,13 +213,13 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
       <PageHeader
         eyebrow="Purchase Request"
         icon={<FileAddOutlined />}
-        title={mode === "create" ? "สร้างใบขอซื้อ" : "แก้ไขใบขอซื้อ"}
-        subtitle="กรอกข้อมูลหัวเอกสารและรายการสินค้า บันทึกเป็น DRAFT แล้วส่งอนุมัติได้จากหน้ารายละเอียด"
+        title={mode === "create" ? t("สร้างใบขอซื้อ") : t("แก้ไขใบขอซื้อ")}
+        subtitle={t("กรอกข้อมูลหัวเอกสารและรายการสินค้า บันทึกเป็น DRAFT แล้วส่งอนุมัติได้จากหน้ารายละเอียด")}
         actions={
           <>
 <div className={styles.backLink}>
           <Link href="/purchase-requests">
-            <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
+            <Button icon={<ArrowLeftOutlined />}>{t("กลับรายการ")}</Button>
           </Link>
         </div>
           </>
@@ -234,19 +238,19 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+                  <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
                   <p className={styles.sectionHint}>
-                    เลขที่ใบขอซื้อจะสร้างอัตโนมัติเมื่อบันทึก
+                    {t("เลขที่ใบขอซื้อจะสร้างอัตโนมัติเมื่อบันทึก")}
                   </p>
                 </div>
 
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่ขอซื้อ"
+                    label={t("วันที่ขอซื้อ")}
                     name="prDate"
                     rules={[
-                      { required: true, message: "กรุณาเลือกวันที่ขอซื้อ" },
+                      { required: true, message: t("กรุณาเลือกวันที่ขอซื้อ") },
                     ]}
                   >
                     <DatePicker
@@ -257,17 +261,17 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
 
                   <Form.Item
                     className={styles.field}
-                    label="ประเภทใบขอซื้อ"
+                    label={t("ประเภทใบขอซื้อ")}
                     name="purchaseRequestTypeId"
                     rules={[
                       {
                         required: true,
-                        message: "กรุณาเลือกประเภทใบขอซื้อ",
+                        message: t("กรุณาเลือกประเภทใบขอซื้อ"),
                       },
                     ]}
                   >
                     <Select
-                      placeholder="เลือกประเภท"
+                      placeholder={t("เลือกประเภท")}
                       options={types.map((type) => ({
                         value: type.id,
                         label: `${type.code} — ${type.nameTh}`,
@@ -279,12 +283,12 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
 
                   <Form.Item
                     className={styles.field}
-                    label="ส่วนงานที่ขอซื้อ"
+                    label={t("ส่วนงานที่ขอซื้อ")}
                     name="departmentId"
                   >
                     <Select
                       allowClear
-                      placeholder="เลือกแผนก (ถ้ามี)"
+                      placeholder={t("เลือกแผนก (ถ้ามี)")}
                       options={departments.map((dept) => ({
                         value: dept.id,
                         label: `${dept.code} — ${dept.nameTh}`,
@@ -296,12 +300,12 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
 
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="วัตถุประสงค์"
+                    label={t("วัตถุประสงค์")}
                     name="objective"
                   >
                     <Input.TextArea
                       rows={2}
-                      placeholder="เช่น ใช้ในกระบวนการผลิต / ซ่อมบำรุง"
+                      placeholder={t("เช่น ใช้ในกระบวนการผลิต / ซ่อมบำรุง")}
                     />
                   </Form.Item>
                 </div>
@@ -309,9 +313,9 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
+                  <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
                   <p className={styles.sectionHint}>
-                    อย่างน้อย 1 รายการ · เลือกสินค้าแล้วหน่วยจะเติมให้อัตโนมัติ
+                    {t("อย่างน้อย 1 รายการ · เลือกสินค้าแล้วหน่วยจะเติมให้อัตโนมัติ")}
                   </p>
                 </div>
 
@@ -322,7 +326,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                       validator: async (_, value) => {
                         if (!value || value.length < 1) {
                           return Promise.reject(
-                            new Error("ต้องมีรายการสินค้าอย่างน้อย 1 รายการ"),
+                            new Error(t("ต้องมีรายการสินค้าอย่างน้อย 1 รายการ")),
                           );
                         }
                       },
@@ -334,7 +338,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                       {fields.map(({ key, name, ...restField }, index) => (
                         <div key={key} className={styles.lineCard}>
                           <div className={styles.lineCardHeader}>
-                            <strong>รายการที่ {index + 1}</strong>
+                            <strong>{t("รายการที่ {n}", { n: index + 1 })}</strong>
                             {fields.length > 1 ? (
                               <Button
                                 type="text"
@@ -343,7 +347,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                                 icon={<DeleteOutlined />}
                                 onClick={() => remove(name)}
                               >
-                                ลบ
+                                {t("ลบ")}
                               </Button>
                             ) : null}
                           </div>
@@ -352,14 +356,14 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="สินค้า"
+                              label={t("สินค้า")}
                               name={[name, "itemId"]}
                               rules={[
-                                { required: true, message: "เลือกสินค้า" },
+                                { required: true, message: t("เลือกสินค้า") },
                               ]}
                             >
                               <Select
-                                placeholder="ค้นหา/เลือกสินค้า"
+                                placeholder={t("ค้นหา/เลือกสินค้า")}
                                 options={items.map((item) => ({
                                   value: item.id,
                                   label: `${item.itemCode} — ${item.itemNameTh}`,
@@ -383,10 +387,10 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="จำนวน"
+                              label={t("จำนวน")}
                               name={[name, "quantity"]}
                               rules={[
-                                { required: true, message: "ระบุจำนวน" },
+                                { required: true, message: t("ระบุจำนวน") },
                               ]}
                             >
                               <InputNumber
@@ -399,10 +403,10 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="หน่วย"
+                              label={t("หน่วย")}
                               name={[name, "unitId"]}
                               rules={[
-                                { required: true, message: "เลือกหน่วย" },
+                                { required: true, message: t("เลือกหน่วย") },
                               ]}
                             >
                               <Select
@@ -420,23 +424,23 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="ต้องการภายในวันที่"
+                              label={t("ต้องการภายในวันที่")}
                               name={[name, "requiredDate"]}
                             >
                               <DatePicker
                                 style={{ width: "100%" }}
                                 format="DD/MM/YYYY"
-                                placeholder="ไม่ระบุ"
+                                placeholder={t("ไม่ระบุ")}
                               />
                             </Form.Item>
 
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="รายละเอียด"
+                              label={t("รายละเอียด")}
                               name={[name, "description"]}
                             >
-                              <Input placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)" />
+                              <Input placeholder={t("รายละเอียดเพิ่มเติม (ถ้ามี)")} />
                             </Form.Item>
                           </div>
                         </div>
@@ -448,7 +452,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                         icon={<PlusOutlined />}
                         onClick={() => add({})}
                       >
-                        เพิ่มรายการสินค้า
+                        {t("เพิ่มรายการสินค้า")}
                       </Button>
                       <Form.ErrorList errors={errors} />
                     </div>
@@ -458,7 +462,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                  <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
                 </div>
                 <Form.Item
                   className={styles.field}
@@ -466,8 +470,8 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                   style={{ marginBottom: 0 }}
                 >
                   <DocumentHtmlEditor
-                    ariaLabel="หมายเหตุ"
-                    placeholder="รายละเอียดเพิ่มเติมบนใบขอซื้อ"
+                    ariaLabel={t("หมายเหตุ")}
+                    placeholder={t("รายละเอียดเพิ่มเติมบนใบขอซื้อ")}
                   />
                 </Form.Item>
               </div>
@@ -475,14 +479,14 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
 
             <div className={styles.footerBar}>
               <p className={styles.footerHint}>
-                บันทึกแล้วสถานะจะเป็น DRAFT — สามารถแก้ไขและส่งอนุมัติทีหลังได้
+                {t("บันทึกแล้วสถานะจะเป็น DRAFT — สามารถแก้ไขและส่งอนุมัติทีหลังได้")}
               </p>
               <div className={styles.footerActions}>
                 <Button
                   className={styles.cancelBtn}
                   onClick={() => router.push("/purchase-requests")}
                 >
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -490,7 +494,7 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                   htmlType="submit"
                   loading={saving}
                 >
-                  {mode === "create" ? "บันทึกใบขอซื้อ" : "บันทึกการแก้ไข"}
+                  {mode === "create" ? t("บันทึกใบขอซื้อ") : t("บันทึกการแก้ไข")}
                 </Button>
               </div>
             </div>
@@ -498,28 +502,28 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
 
           <aside className={styles.summaryCard}>
             <div>
-              <p className={styles.summaryEyebrow}>สรุปแบบฟอร์ม</p>
+              <p className={styles.summaryEyebrow}>{t("สรุปแบบฟอร์ม")}</p>
               <h2 className={styles.summaryTitle}>
-                {mode === "create" ? "ใบขอซื้อใหม่" : "แก้ไข DRAFT"}
+                {mode === "create" ? t("ใบขอซื้อใหม่") : t("แก้ไข DRAFT")}
               </h2>
               <p className={styles.summaryLead}>
-                ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ
+                {t("ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ")}
               </p>
             </div>
 
             <div className={styles.previewBox}>
-              <span className={styles.previewLabel}>จำนวนรายการ</span>
+              <span className={styles.previewLabel}>{t("จำนวนรายการ")}</span>
               <p className={styles.previewValue}>
                 {filledCount} / {Math.max(watchedItems.length, 1)}
               </p>
               <p className={styles.previewMeta}>
-                รายการที่กรอกครบสินค้า · จำนวน · หน่วย
+                {t("รายการที่กรอกครบสินค้า · จำนวน · หน่วย")}
               </p>
             </div>
 
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
-                <span>วันที่</span>
+                <span>{t("วันที่")}</span>
                 <strong>
                   {watchedPrDate
                     ? dayjs(watchedPrDate).format("DD/MM/YYYY")
@@ -527,34 +531,34 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                 </strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>ประเภท</span>
+                <span>{t("ประเภท")}</span>
                 <strong>
                   {selectedType
                     ? `${selectedType.code} — ${selectedType.nameTh}`
-                    : "ยังไม่เลือก"}
+                    : t("ยังไม่เลือก")}
                 </strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>แผนก</span>
+                <span>{t("แผนก")}</span>
                 <strong>
                   {selectedDept
                     ? `${selectedDept.code} — ${selectedDept.nameTh}`
-                    : "ไม่ระบุ"}
+                    : t("ไม่ระบุ")}
                 </strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>วัตถุประสงค์</span>
+                <span>{t("วัตถุประสงค์")}</span>
                 <strong>
                   {watchedObjective?.trim()
                     ? watchedObjective.trim()
-                    : "ไม่ระบุ"}
+                    : t("ไม่ระบุ")}
                 </strong>
               </div>
             </div>
 
             <div>
               <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                รายการสินค้า
+                {t("รายการสินค้า")}
               </Typography.Text>
               {previewLines.length > 0 ? (
                 <ul className={styles.previewList}>
@@ -563,15 +567,14 @@ export default function PurchaseRequestFormPage({ mode, id }: Props) {
                   ))}
                 </ul>
               ) : (
-                <p className={styles.previewMeta}>ยังไม่มีรายการ</p>
+                <p className={styles.previewMeta}>{t("ยังไม่มีรายการ")}</p>
               )}
             </div>
 
             <div className={styles.flowNote}>
-              <strong>ขั้นตอนถัดไป</strong>
+              <strong>{t("ขั้นตอนถัดไป")}</strong>
               <p>
-                หลังบันทึก → เปิดหน้ารายละเอียด → กด “ส่งอนุมัติ” →
-                ผู้จัดการจัดซื้ออนุมัติ
+                {t("หลังบันทึก → เปิดหน้ารายละเอียด → กด “ส่งอนุมัติ” → ผู้จัดการจัดซื้ออนุมัติ")}
               </p>
             </div>
           </aside>

@@ -13,6 +13,9 @@ import { getAccessToken } from "@/lib/auth/token";
 import type { T2900ErpOutboundTicket, T2900RecordStatus } from "@/types/t2900";
 
 import styles from "./WeighbridgeDashboardPage.module.css";
+import { useT } from "@/lib/i18n/useT";
+
+import { appLocale, tLabel } from "./receiving-i18n";
 
 const RECORD_STATUS_LABEL: Record<T2900RecordStatus, string> = {
   ACTIVE: "ใช้งาน",
@@ -26,7 +29,7 @@ type Props = {
 };
 
 function formatWeight(value: number) {
-  return value.toLocaleString("th-TH", {
+  return value.toLocaleString(appLocale(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 3,
   });
@@ -40,10 +43,11 @@ function formatDateTime(value?: string) {
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toLocaleString("th-TH");
+  return parsed.toLocaleString(appLocale());
 }
 
 export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const [exportingReport, setExportingReport] = useState(false);
@@ -73,7 +77,7 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
       await generateT2900DailyReportPdf(response.data);
     } catch (error) {
       message.error(
-        error instanceof Error ? error.message : "Export รายงานรายวันไม่สำเร็จ",
+        error instanceof Error ? error.message : t("Export รายงานรายวันไม่สำเร็จ"),
       );
     } finally {
       setExportingReport(false);
@@ -87,79 +91,79 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
 
   const columns: ColumnsType<T2900ErpOutboundTicket> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "เลขบัตรชั่ง",
+      title: t("เลขบัตรชั่ง"),
       dataIndex: "TckNo",
       key: "TckNo",
       width: 140,
     },
     {
-      title: "ทะเบียน",
+      title: t("ทะเบียน"),
       dataIndex: "TruckNo",
       key: "TruckNo",
       width: 120,
     },
     {
-      title: "ผู้ขาย",
+      title: t("ผู้ขาย"),
       key: "seller",
       width: 200,
       render: (_value, record) =>
         `${record.CustID} ${record.CustomerName ?? ""}`.trim(),
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "product",
       width: 180,
       render: (_value, record) => record.ProdName || record.ProdID || "-",
     },
     {
-      title: "น้ำหนักสุทธิ",
+      title: t("น้ำหนักสุทธิ"),
       dataIndex: "NetWt",
       key: "NetWt",
       width: 120,
       align: "right",
-      render: (value: number) => `${formatWeight(value)} กก.`,
+      render: (value: number) => `${formatWeight(value)} ${t("กก.")}`,
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       dataIndex: "recordStatus",
       key: "recordStatus",
       width: 120,
       render: (value: string, record) => {
-        const label = RECORD_STATUS_LABEL[value as T2900RecordStatus] ?? value;
+        const label = tLabel(RECORD_STATUS_LABEL[value as T2900RecordStatus] ?? value);
         if (record.alreadyImported) {
           if (record.erpStockPostingStatus === "POSTED") {
-            return <Tag color="green">เข้าคลังแล้ว</Tag>;
+            return <Tag color="green">{t("เข้าคลังแล้ว")}</Tag>;
           }
           if (record.erpReceiptId) {
-            return <Tag color="gold">เปิดตั๋วแล้ว</Tag>;
+            return <Tag color="gold">{t("เปิดตั๋วแล้ว")}</Tag>;
           }
-          return <Tag color="blue">รอคัดแยก</Tag>;
+          return <Tag color="blue">{t("รอคัดแยก")}</Tag>;
         }
         if (record.recordStatus === "CANCELLED") {
           return <Tag color="error">{label}</Tag>;
         }
         if (!record.canImport) {
-          return <Tag>รอชั่งออก</Tag>;
+          return <Tag>{t("รอชั่งออก")}</Tag>;
         }
-        return <Tag color="blue">พร้อมยืนยัน</Tag>;
+        return <Tag color="blue">{t("พร้อมยืนยัน")}</Tag>;
       },
     },
     {
-      title: "เวลาอัปเดต",
+      title: t("เวลาอัปเดต"),
       dataIndex: "lastUpdatedAt",
       key: "lastUpdatedAt",
       width: 180,
       render: (value: string) => formatDateTime(value),
     },
     {
-      title: "ดำเนินการ",
+      title: t("ดำเนินการ"),
       key: "action",
       width: 180,
       render: (_value, record) => (
@@ -176,10 +180,10 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
             }}
           >
             {record.alreadyImported
-              ? record.erpActionLabel || "ดูรายละเอียด"
+              ? record.erpActionLabel || t("ดูรายละเอียด")
               : record.canImport
-                ? "ดูและยืนยัน"
-                : "ดูรายละเอียด"}
+                ? t("ดูและยืนยัน")
+                : t("ดูรายละเอียด")}
           </Button>
         </Space>
       ),
@@ -194,7 +198,7 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
           loading={exportingReport}
           onClick={() => void handleExportDailyReport()}
         >
-          Export รายงานรายวัน
+          {t("Export รายงานรายวัน")}
         </Button>
       </div>
       <div className={styles.cardBody}>
@@ -202,7 +206,7 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
           <Typography.Text type="danger">
             {ticketsQuery.error instanceof Error
               ? ticketsQuery.error.message
-              : "โหลดบัตรชั่ง T2900 ไม่สำเร็จ"}
+              : t("โหลดบัตรชั่ง T2900 ไม่สำเร็จ")}
           </Typography.Text>
         ) : (
           <Table
@@ -213,7 +217,7 @@ export default function T2900OutboundTicketsPanel({ dateFrom, dateTo }: Props) {
             loading={ticketsQuery.isLoading}
             pagination={{ pageSize: 10, showSizeChanger: false }}
             scroll={{ x: 1090 }}
-            locale={{ emptyText: "ไม่พบบัตรชั่งในช่วงวันที่เลือก" }}
+            locale={{ emptyText: t("ไม่พบบัตรชั่งในช่วงวันที่เลือก") }}
             onRow={(record) => ({
               onClick: () => {
                 handleOpen(record);

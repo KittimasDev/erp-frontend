@@ -36,6 +36,7 @@ import type { PurchaseRequest } from "@/types/purchase-requests";
 import RowActionsMenu from "@/components/common/RowActionsMenu";
 import styles from "./purchase-request.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -44,6 +45,7 @@ function formatDate(value?: string) {
 
 export default function PurchaseRequestApprovalsPage() {
   const router = useRouter();
+  const t = useT();
   const [page, setPage] = useState(1);
   const limit = 10;
   // modal เหตุผลตัวเดียวใช้ทั้งไม่อนุมัติและส่งกลับแก้ไข
@@ -79,52 +81,52 @@ export default function PurchaseRequestApprovalsPage() {
   const columns: ColumnsType<PurchaseRequest> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "no",
         width: 70,
         align: "center",
         render: (_v, _r, index) => (page - 1) * limit + index + 1,
       },
       {
-        title: "เลขที่ใบขอซื้อ",
+        title: t("เลขที่ใบขอซื้อ"),
         dataIndex: "prNo",
         key: "prNo",
         align: "center",
       },
       {
-        title: "วันที่ขอซื้อ",
+        title: t("วันที่ขอซื้อ"),
         dataIndex: "prDate",
         key: "prDate",
         align: "center",
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ผู้ขอ",
+        title: t("ผู้ขอ"),
         key: "requestedBy",
         align: "center",
         render: (_v, row) => row.requestedBy?.displayName ?? "—",
       },
       {
-        title: "ประเภท",
+        title: t("ประเภท"),
         key: "type",
         align: "center",
         render: (_v, row) => row.purchaseRequestType?.nameTh ?? "—",
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         key: "status",
         align: "center",
-        render: () => <Tag color="gold">รออนุมัติ</Tag>,
+        render: () => <Tag color="gold">{t("รออนุมัติ")}</Tag>,
       },
       {
-        title: "จัดการ",
+        title: t("จัดการ"),
         key: "action",
         width: 170,
         align: "center",
         render: (_v, row) => (
           <RowActionsMenu
-            ariaLabel={`เมนูจัดการ ${row.prNo}`}
+            ariaLabel={t("เมนูจัดการ {no}", { no: row.prNo })}
             primary={
               canApprove ? (
                 <Button
@@ -133,7 +135,7 @@ export default function PurchaseRequestApprovalsPage() {
                   loading={approveMutation.isPending}
                   onClick={() => approveMutation.mutate(row.id)}
                 >
-                  อนุมัติ
+                  {t("อนุมัติ")}
                 </Button>
               ) : null
             }
@@ -141,14 +143,14 @@ export default function PurchaseRequestApprovalsPage() {
               {
                 key: "view",
                 icon: <EyeOutlined />,
-                label: "ดูรายละเอียด",
+                label: t("ดูรายละเอียด"),
                 onClick: () => router.push(`/purchase-requests/${row.id}`),
               },
               canApprove && "divider",
               canApprove && {
                 key: "return",
                 icon: <RollbackOutlined />,
-                label: "ส่งกลับแก้ไข",
+                label: t("ส่งกลับแก้ไข"),
                 onClick: () => {
                   setReviewId(row.id);
                   setReviewAction("return");
@@ -158,7 +160,7 @@ export default function PurchaseRequestApprovalsPage() {
               canApprove && {
                 key: "reject",
                 icon: <CloseCircleOutlined />,
-                label: "ไม่อนุมัติ",
+                label: t("ไม่อนุมัติ"),
                 danger: true,
                 onClick: () => {
                   setReviewId(row.id);
@@ -171,17 +173,15 @@ export default function PurchaseRequestApprovalsPage() {
         ),
       },
     ],
-    [approveMutation, canApprove, limit, page, router],
+    [approveMutation, canApprove, limit, page, router, t],
   );
 
   if (!canAccessApprovals) {
     return (
       <div className={styles.pageWrap}>
-        คุณไม่มีสิทธิ์เข้าถึงหน้ารออนุมัติใบขอซื้อ — ต้องเปิด{" "}
-        PURCHASE_REQUEST_APPROVALS · VIEW หรือ APPROVE ที่หน้าผู้ใช้งาน →
-        การอนุญาต
+        {t("คุณไม่มีสิทธิ์เข้าถึงหน้ารออนุมัติใบขอซื้อ — ต้องเปิด PURCHASE_REQUEST_APPROVALS · VIEW หรือ APPROVE ที่หน้าผู้ใช้งาน → การอนุญาต")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-requests">กลับรายการ</Link>
+          <Link href="/purchase-requests">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -192,21 +192,20 @@ export default function PurchaseRequestApprovalsPage() {
       <Breadcrumb
         className={styles.breadcrumb}
         items={[
-          { title: <Link href="/purchase-requests">ใบขอซื้อ</Link> },
+          { title: <Link href="/purchase-requests">{t("ใบขอซื้อ")}</Link> },
           {
             title: (
-              <span className={styles.breadcrumbActive}>รายการรออนุมัติ</span>
+              <span className={styles.breadcrumbActive}>{t("รายการรออนุมัติ")}</span>
             ),
           },
         ]}
       />
 
-      <PageHeader title="รายการใบขอซื้อรออนุมัติ" />
+      <PageHeader title={t("รายการใบขอซื้อรออนุมัติ")} />
 
       {!canApprove ? (
         <p style={{ marginBottom: 12, color: "#8a9199" }}>
-          ดูรายการได้ — การอนุมัติ/ปฏิเสธต้องเปิดสิทธิ์
-          PURCHASE_REQUEST_APPROVALS · APPROVE
+          {t("ดูรายการได้ — การอนุมัติ/ปฏิเสธต้องเปิดสิทธิ์ PURCHASE_REQUEST_APPROVALS · APPROVE")}
         </p>
       ) : null}
 
@@ -218,14 +217,17 @@ export default function PurchaseRequestApprovalsPage() {
           loading={query.isLoading}
           pagination={false}
           className={styles.customTable}
-          locale={{ emptyText: "ไม่มีรายการรออนุมัติ" }}
+          locale={{ emptyText: t("ไม่มีรายการรออนุมัติ") }}
         />
       </div>
 
       <div className={styles.tableFooter}>
         <div className={styles.footerText}>
-          Showing {total === 0 ? 0 : (page - 1) * limit + 1} to{" "}
-          {Math.min(page * limit, total)} of {total} entries
+          {t("Showing {from} to {to} of {total} entries", {
+            from: total === 0 ? 0 : (page - 1) * limit + 1,
+            to: Math.min(page * limit, total),
+            total,
+          })}
         </div>
         <Pagination
           size="small"
@@ -241,14 +243,16 @@ export default function PurchaseRequestApprovalsPage() {
       <Modal
         title={
           reviewAction === "reject"
-            ? "ไม่อนุมัติใบขอซื้อ"
-            : "ส่งกลับให้ผู้ขอแก้ไข"
+            ? t("ไม่อนุมัติใบขอซื้อ")
+            : t("ส่งกลับให้ผู้ขอแก้ไข")
         }
         open={Boolean(reviewId)}
         onCancel={() => setReviewId(null)}
         confirmLoading={rejectMutation.isPending || returnMutation.isPending}
-        okText={reviewAction === "reject" ? "ไม่อนุมัติ" : "ส่งกลับแก้ไข"}
-        cancelText="ยกเลิก"
+        okText={
+          reviewAction === "reject" ? t("ไม่อนุมัติ") : t("ส่งกลับแก้ไข")
+        }
+        cancelText={t("ยกเลิก")}
         okButtonProps={{ danger: reviewAction === "reject" }}
         onOk={async () => {
           if (!reviewId) return;
@@ -265,8 +269,8 @@ export default function PurchaseRequestApprovalsPage() {
           rows={3}
           placeholder={
             reviewAction === "reject"
-              ? "เหตุผลที่ไม่อนุมัติ (ถ้ามี)"
-              : "สิ่งที่ต้องแก้ไข (ถ้ามี)"
+              ? t("เหตุผลที่ไม่อนุมัติ (ถ้ามี)")
+              : t("สิ่งที่ต้องแก้ไข (ถ้ามี)")
           }
           value={reviewReason}
           onChange={(e) => setReviewReason(e.target.value)}

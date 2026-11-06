@@ -20,6 +20,8 @@ import type {
   SalesOrder,
   UpdateSalesOrderItemsBody,
 } from "@/types/sales-orders";
+import { tSoStatus } from "@/types/sales-orders";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./SalesOrderItemsEditModal.module.css";
 
 /**
@@ -65,6 +67,7 @@ function fmtMoney(value: number) {
 }
 
 export default function SalesOrderItemsEditModal(props: Props) {
+  const t = useT();
   const [form] = Form.useForm<FormValues>();
 
   const itemsQuery = useItemsQuery({
@@ -167,7 +170,7 @@ export default function SalesOrderItemsEditModal(props: Props) {
   return (
     <Modal
       open={props.open}
-      title={`แก้ไขรายการสินค้า — ${props.order.soNo}`}
+      title={t("แก้ไขรายการสินค้า — {soNo}", { soNo: props.order.soNo })}
       onCancel={props.onCancel}
       footer={null}
       destroyOnHidden
@@ -177,8 +180,8 @@ export default function SalesOrderItemsEditModal(props: Props) {
         className={styles.notice}
         type="info"
         showIcon
-        title="แก้ได้เฉพาะตอนใบยังไม่ยืนยัน และไม่ทำให้เลขฉบับเปลี่ยน"
-        description="ระบบจะปรับรอบจัดส่ง คืนการจองสต๊อก แล้วคิดยอดใหม่ให้อัตโนมัติ · บรรทัดที่ลบออกจะถูกเอาออกจากรอบจัดส่งด้วย"
+        title={t("แก้ได้เฉพาะตอนใบยังไม่ยืนยัน และไม่ทำให้เลขฉบับเปลี่ยน")}
+        description={t("ระบบจะปรับรอบจัดส่ง คืนการจองสต๊อก แล้วคิดยอดใหม่ให้อัตโนมัติ · บรรทัดที่ลบออกจะถูกเอาออกจากรอบจัดส่งด้วย")}
       />
 
       <Form
@@ -193,7 +196,7 @@ export default function SalesOrderItemsEditModal(props: Props) {
             {
               validator: async (_, value: FormLine[]) => {
                 if (!value?.length) {
-                  throw new Error("ต้องมีรายการสินค้าอย่างน้อย 1 รายการ");
+                  throw new Error(t("ต้องมีรายการสินค้าอย่างน้อย 1 รายการ"));
                 }
               },
             },
@@ -213,7 +216,7 @@ export default function SalesOrderItemsEditModal(props: Props) {
                         icon={<DeleteOutlined />}
                         onClick={() => remove(field.name)}
                       >
-                        ลบ
+                        {t("ลบ")}
                       </Button>
                     ) : null}
                   </div>
@@ -221,14 +224,14 @@ export default function SalesOrderItemsEditModal(props: Props) {
                   <div className={styles.lineGrid}>
                     <Form.Item
                       name={[field.name, "itemId"]}
-                      label="สินค้า"
-                      rules={[{ required: true, message: "เลือกสินค้า" }]}
+                      label={t("สินค้า")}
+                      rules={[{ required: true, message: t("เลือกสินค้า") }]}
                       className={styles.fieldWide}
                     >
                       <Select
                         showSearch
                         optionFilterProp="label"
-                        placeholder="เลือกสินค้า"
+                        placeholder={t("เลือกสินค้า")}
                         loading={itemsQuery.isLoading}
                         options={itemOptions}
                         onChange={(value: string) =>
@@ -239,13 +242,13 @@ export default function SalesOrderItemsEditModal(props: Props) {
 
                     <Form.Item
                       name={[field.name, "quantity"]}
-                      label="จำนวน"
+                      label={t("จำนวน")}
                       rules={[
-                        { required: true, message: "กรอกจำนวน" },
+                        { required: true, message: t("กรอกจำนวน") },
                         {
                           validator: async (_, value) => {
                             if (!(Number(value) > 0)) {
-                              throw new Error("จำนวนต้องมากกว่า 0");
+                              throw new Error(t("จำนวนต้องมากกว่า 0"));
                             }
                           },
                         },
@@ -260,8 +263,8 @@ export default function SalesOrderItemsEditModal(props: Props) {
 
                     <Form.Item
                       name={[field.name, "unitId"]}
-                      label="หน่วย"
-                      rules={[{ required: true, message: "เลือกหน่วย" }]}
+                      label={t("หน่วย")}
+                      rules={[{ required: true, message: t("เลือกหน่วย") }]}
                     >
                       <Select
                         showSearch
@@ -275,21 +278,21 @@ export default function SalesOrderItemsEditModal(props: Props) {
 
                     <Form.Item
                       name={[field.name, "unitPrice"]}
-                      label="ราคา/หน่วย"
-                      rules={[{ required: true, message: "กรอกราคา" }]}
+                      label={t("ราคา/หน่วย")}
+                      rules={[{ required: true, message: t("กรอกราคา") }]}
                     >
                       <InputNumber min={0} style={{ width: "100%" }} />
                     </Form.Item>
 
                     <Form.Item
                       name={[field.name, "discountAmount"]}
-                      label="ส่วนลดรายการ"
+                      label={t("ส่วนลดรายการ")}
                     >
                       <InputNumber min={0} style={{ width: "100%" }} />
                     </Form.Item>
 
                     <div className={styles.lineAmount}>
-                      <span>จำนวนเงิน</span>
+                      <span>{t("จำนวนเงิน")}</span>
                       <strong>
                         {fmtMoney(preview.lineAmounts[index] ?? 0)}
                       </strong>
@@ -298,9 +301,9 @@ export default function SalesOrderItemsEditModal(props: Props) {
 
                   <Form.Item
                     name={[field.name, "description"]}
-                    label="รายละเอียด"
+                    label={t("รายละเอียด")}
                   >
-                    <Input maxLength={500} placeholder="ไม่กรอกจะใช้ชื่อสินค้า" />
+                    <Input maxLength={500} placeholder={t("ไม่กรอกจะใช้ชื่อสินค้า")} />
                   </Form.Item>
                 </div>
               ))}
@@ -311,7 +314,7 @@ export default function SalesOrderItemsEditModal(props: Props) {
                 icon={<PlusOutlined />}
                 onClick={() => add({ discountAmount: 0 })}
               >
-                เพิ่มรายการ
+                {t("เพิ่มรายการ")}
               </Button>
               <Form.ErrorList errors={errors} />
             </>
@@ -319,29 +322,29 @@ export default function SalesOrderItemsEditModal(props: Props) {
         </Form.List>
 
         <div className={styles.footerGrid}>
-          <Form.Item name="discountAmount" label="ส่วนลดท้ายบิล">
+          <Form.Item name="discountAmount" label={t("ส่วนลดท้ายบิล")}>
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
           <div className={styles.totals}>
             <div>
-              <span>รวมเป็นเงิน</span>
+              <span>{t("รวมเป็นเงิน")}</span>
               <strong>{fmtMoney(preview.subtotal)}</strong>
             </div>
             <div>
-              <span>หลังหักส่วนลด</span>
+              <span>{t("หลังหักส่วนลด")}</span>
               <strong>{fmtMoney(preview.afterDiscount)}</strong>
             </div>
             <p className={styles.totalsHint}>
-              ยอดจริงรวม VAT ระบบคิดใหม่ตอนบันทึก
+              {t("ยอดจริงรวม VAT ระบบคิดใหม่ตอนบันทึก")}
             </p>
           </div>
         </div>
       </Form>
 
       <div className={styles.actions}>
-        <Button onClick={props.onCancel}>ยกเลิก</Button>
+        <Button onClick={props.onCancel}>{tSoStatus("ยกเลิก")}</Button>
         <Button type="primary" loading={props.loading} onClick={() => void submit()}>
-          บันทึกรายการ
+          {t("บันทึกรายการ")}
         </Button>
       </div>
     </Modal>

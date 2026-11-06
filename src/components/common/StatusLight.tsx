@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { useT } from "@/lib/i18n/useT";
 import {
   CheckCircleFilled,
   CloseCircleFilled,
@@ -33,8 +34,9 @@ export default function StatusLight({
   /** ข้อความแทนค่าเริ่มต้นของสถานะ */
   label?: string;
 }) {
+  const t = useT();
   const meta = META[light];
-  const text = label ?? meta.label;
+  const text = label ?? t(meta.label);
   const style: CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
@@ -46,7 +48,7 @@ export default function StatusLight({
     whiteSpace: "nowrap",
   };
   return (
-    <span style={style} role="img" aria-label={`สถานะ ${text}`}>
+    <span style={style} role="img" aria-label={t("สถานะ {text}", { text })}>
       <span style={{ fontSize: size === "lg" ? 40 : 16, display: "inline-flex" }}>{meta.icon}</span>
       {showText ? <span>{text}</span> : null}
     </span>

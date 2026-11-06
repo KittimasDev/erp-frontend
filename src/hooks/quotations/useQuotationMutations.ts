@@ -2,6 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
+import { useT } from "@/lib/i18n/useT";
 
 import {
   acceptQuotation,
@@ -29,6 +30,7 @@ function useInvalidateQuotations() {
 
 export function useCreateQuotationMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateQuotations();
   return useMutation({
     mutationKey: [...quotationsQueryKey, "create"],
@@ -36,16 +38,17 @@ export function useCreateQuotationMutation() {
       createQuotation(getAccessToken(), body),
     onSuccess: async () => {
       await invalidate();
-      message.success("สร้างใบเสนอราคาสำเร็จ");
+      message.success(t("สร้างใบเสนอราคาสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(error.message || "สร้างใบเสนอราคาไม่สำเร็จ");
+      message.error(error.message || t("สร้างใบเสนอราคาไม่สำเร็จ"));
     },
   });
 }
 
 export function useUpdateQuotationMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateQuotations();
   return useMutation({
     mutationKey: [...quotationsQueryKey, "update"],
@@ -53,16 +56,17 @@ export function useUpdateQuotationMutation() {
       updateQuotation(getAccessToken(), id, body),
     onSuccess: async () => {
       await invalidate();
-      message.success("บันทึกใบเสนอราคาสำเร็จ");
+      message.success(t("บันทึกใบเสนอราคาสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(error.message || "บันทึกใบเสนอราคาไม่สำเร็จ");
+      message.error(error.message || t("บันทึกใบเสนอราคาไม่สำเร็จ"));
     },
   });
 }
 
 export function useSendQuotationMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   const invalidate = useInvalidateQuotations();
   return useMutation({
@@ -71,16 +75,17 @@ export function useSendQuotationMutation() {
     onSuccess: async (res, id) => {
       queryClient.setQueryData([...quotationsQueryKey, "detail", id], res);
       await invalidate();
-      message.success("ส่งใบเสนอราคาสำเร็จ");
+      message.success(t("ส่งใบเสนอราคาสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(error.message || "ส่งใบเสนอราคาไม่สำเร็จ");
+      message.error(error.message || t("ส่งใบเสนอราคาไม่สำเร็จ"));
     },
   });
 }
 
 export function useAcceptQuotationMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   const invalidate = useInvalidateQuotations();
   return useMutation({
@@ -89,16 +94,17 @@ export function useAcceptQuotationMutation() {
     onSuccess: async (res, id) => {
       queryClient.setQueryData([...quotationsQueryKey, "detail", id], res);
       await invalidate();
-      message.success("ยืนยันรับใบเสนอราคาสำเร็จ");
+      message.success(t("ยืนยันรับใบเสนอราคาสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(error.message || "ยืนยันรับไม่สำเร็จ");
+      message.error(error.message || t("ยืนยันรับไม่สำเร็จ"));
     },
   });
 }
 
 export function useRejectQuotationMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   const invalidate = useInvalidateQuotations();
   return useMutation({
@@ -107,16 +113,17 @@ export function useRejectQuotationMutation() {
     onSuccess: async (res, id) => {
       queryClient.setQueryData([...quotationsQueryKey, "detail", id], res);
       await invalidate();
-      message.success("ปฏิเสธใบเสนอราคาสำเร็จ");
+      message.success(t("ปฏิเสธใบเสนอราคาสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(error.message || "ปฏิเสธไม่สำเร็จ");
+      message.error(error.message || t("ปฏิเสธไม่สำเร็จ"));
     },
   });
 }
 
 export function useCancelQuotationMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
   const invalidate = useInvalidateQuotations();
   return useMutation({
@@ -125,10 +132,10 @@ export function useCancelQuotationMutation() {
     onSuccess: async (res, id) => {
       queryClient.setQueryData([...quotationsQueryKey, "detail", id], res);
       await invalidate();
-      message.success("ยกเลิกใบเสนอราคาสำเร็จ");
+      message.success(t("ยกเลิกใบเสนอราคาสำเร็จ"));
     },
     onError: (error: Error) => {
-      message.error(error.message || "ยกเลิกไม่สำเร็จ");
+      message.error(error.message || t("ยกเลิกไม่สำเร็จ"));
     },
   });
 }

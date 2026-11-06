@@ -35,6 +35,7 @@ import {
 } from "@ant-design/icons";
 import type { Warehouse } from "@/types/warehouses";
 import type { CampusRoadConfig, RoadType } from "@/types/warehouse-3d";
+import { useT } from "@/lib/i18n/useT";
 
 // Default coordinate presets for standard warehouses on plant campus
 const DEFAULT_SITE_POSITIONS: Record<
@@ -131,6 +132,7 @@ function SiteWarehouseBuilding({
   isEditMode: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   const [isHovered, setIsHovered] = useState(false);
 
   const preset =
@@ -351,7 +353,7 @@ function SiteWarehouseBuilding({
           anchorX="center"
           anchorY="middle"
         >
-          {`${w}ม. x ${l}ม. (สูง ${h}ม.) • ${rotation}°`}
+          {t("{w}ม. x {l}ม. (สูง {h}ม.) • {rot}°", { w, l, h, rot: rotation })}
         </Text>
       </Billboard>
     </group>
@@ -372,6 +374,7 @@ function SiteRoadMesh({
   isEditMode: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   const [isHovered, setIsHovered] = useState(false);
   const roadPos = Array.isArray(road.position) ? road.position : [0, 0];
   const posX = roadPos[0] ?? 0;
@@ -463,7 +466,7 @@ function SiteRoadMesh({
             {road.name}
           </Text>
           <Text position={[0, -0.22, 0.02]} fontSize={0.24} color="#bae6fd" anchorX="center" anchorY="middle">
-            {`${road.width}ม. x ${road.length}ม. • หมุน ${road.rotation}° • [${posX}, ${posZ}]`}
+            {t("{w}ม. x {l}ม. • หมุน {rot}° • [{x}, {z}]", { w: road.width, l: road.length, rot: road.rotation, x: posX, z: posZ })}
           </Text>
         </Billboard>
       )}
@@ -480,6 +483,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
   onSaveSitePositions,
   isSaving = false,
 }) => {
+  const t = useT();
   const { message } = App.useApp();
   const orbitRef = useRef<OrbitControlsImpl | null>(null);
 
@@ -680,7 +684,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
       };
     });
     setHasChanges(true);
-    message.success(`ปรับขนาดคลังเป็น ${presetSize[0]}x${presetSize[2]}ม. (สูง ${presetSize[1]}ม.) แล้ว`);
+    message.success(t("ปรับขนาดคลังเป็น {w}x{l}ม. (สูง {h}ม.) แล้ว", { w: presetSize[0], l: presetSize[2], h: presetSize[1] }));
   };
 
   // ---------------------------------------------------------
@@ -816,7 +820,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
     setEditTarget("roads");
     setIsEditorMinimized(false);
     setHasChanges(true);
-    message.success(`เพิ่ม ${newRoad.name} เรียบร้อยแล้ว`);
+    message.success(t("เพิ่ม {name} เรียบร้อยแล้ว", { name: newRoad.name }));
   };
 
   const handleDuplicateRoad = () => {
@@ -831,13 +835,13 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
     setRoads((prev) => [...prev, duplicated]);
     setSelectedRoadId(duplicated.id);
     setHasChanges(true);
-    message.success(`คัดลอก ${duplicated.name} สำเร็จ`);
+    message.success(t("คัดลอก {name} สำเร็จ", { name: duplicated.name }));
   };
 
   const handleDeleteRoad = () => {
     if (!activeRoad) return;
     if (roads.length <= 1) {
-      message.warning("ต้องมีถนนบนผังโรงงานอย่างน้อย 1 เส้น");
+      message.warning(t("ต้องมีถนนบนผังโรงงานอย่างน้อย 1 เส้น"));
       return;
     }
     const targetId = activeRoad.id;
@@ -845,7 +849,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
     const remaining = roads.filter((r) => r.id !== targetId);
     setSelectedRoadId(remaining[0]?.id || "");
     setHasChanges(true);
-    message.info("ลบถนนที่เลือกออกจากผังแล้ว");
+    message.info(t("ลบถนนที่เลือกออกจากผังแล้ว"));
   };
 
   // ---------------------------------------------------------
@@ -889,7 +893,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
     setRoads(DEFAULT_CAMPUS_ROADS);
     setSelectedRoadId("road-ns-main");
     setHasChanges(true);
-    message.info("รีเซ็ตพิกัดคลังและถนนเป็นค่าเริ่มต้นแล้ว — อย่าลืมกดบันทึก");
+    message.info(t("รีเซ็ตพิกัดคลังและถนนเป็นค่าเริ่มต้นแล้ว — อย่าลืมกดบันทึก"));
   };
 
   // Camera presets: Wide viewing angles with crisp visibility
@@ -915,22 +919,22 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
   const addRoadMenu: MenuProps["items"] = [
     {
       key: "ns",
-      label: "🛣️ ถนนสายเหนือ-ใต้ (กว้าง 12ม. ยาว 90ม.)",
+      label: t("🛣️ ถนนสายเหนือ-ใต้ (กว้าง 12ม. ยาว 90ม.)"),
       onClick: () => handleAddRoad("ns"),
     },
     {
       key: "ew",
-      label: "🛣️ ถนนสายขวางตะวันออก-ตก (กว้าง 12ม. ยาว 90ม.)",
+      label: t("🛣️ ถนนสายขวางตะวันออก-ตก (กว้าง 12ม. ยาว 90ม.)"),
       onClick: () => handleAddRoad("ew"),
     },
     {
       key: "lane",
-      label: "🚚 ทางเชื่อมเข้าคลัง/ซอย (กว้าง 8ม. ยาว 30ม.)",
+      label: t("🚚 ทางเชื่อมเข้าคลัง/ซอย (กว้าง 8ม. ยาว 30ม.)"),
       onClick: () => handleAddRoad("lane"),
     },
     {
       key: "apron",
-      label: "🅿️ ลานจอด/ลานกลับรถเทรลเลอร์ (25ม. x 25ม.)",
+      label: t("🅿️ ลานจอด/ลานกลับรถเทรลเลอร์ (25ม. x 25ม.)"),
       onClick: () => handleAddRoad("apron"),
     },
   ];
@@ -944,7 +948,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
             <div className="flex items-center gap-2">
               <EnvironmentOutlined className="text-orange-500 text-lg" />
               <span className="font-extrabold text-sm tracking-wide text-white">
-                ผังที่ตั้งโรงงาน 3D (Plant Campus Site Map)
+                {t("ผังที่ตั้งโรงงาน 3D (Plant Campus Site Map)")}
               </span>
             </div>
 
@@ -962,7 +966,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 }`}
               >
                 <EyeOutlined />
-                <span>โหมดสำรวจ</span>
+                <span>{t("โหมดสำรวจ")}</span>
               </button>
               <button
                 type="button"
@@ -974,7 +978,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 }`}
               >
                 <EditOutlined />
-                <span>โหมดปรับผัง (ย้าย/ปรับขนาด/หมุน)</span>
+                <span>{t("โหมดปรับผัง (ย้าย/ปรับขนาด/หมุน)")}</span>
               </button>
             </div>
 
@@ -991,7 +995,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                   }`}
                 >
                   <ApartmentOutlined />
-                  <span>🏢 คลังสินค้า</span>
+                  <span>{t("🏢 คลังสินค้า")}</span>
                 </button>
                 <button
                   type="button"
@@ -1003,7 +1007,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                   }`}
                 >
                   <ToolOutlined />
-                  <span>🛣️ ถนน ({roads.length})</span>
+                  <span>{t("🛣️ ถนน ({n})", { n: roads.length })}</span>
                 </button>
               </div>
             )}
@@ -1016,43 +1020,43 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 type="button"
                 onClick={() => setCameraPreset("overview")}
                 className="px-2.5 py-1 rounded-lg bg-orange-600/30 text-orange-300 hover:bg-orange-600 hover:text-white font-medium transition cursor-pointer flex items-center gap-1"
-                title="ซูมให้เห็นโรงงานทั้งหมดในมุมกว้าง"
+                title={t("ซูมให้เห็นโรงงานทั้งหมดในมุมกว้าง")}
               >
                 <AimOutlined />
-                <span>ภาพรวมทั้งหมด</span>
+                <span>{t("ภาพรวมทั้งหมด")}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCameraPreset("iso")}
                 className="px-2.5 py-1 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition cursor-pointer hidden md:inline-block"
               >
-                มุมเฉียง (3D)
+                {t("มุมเฉียง (3D)")}
               </button>
               <button
                 type="button"
                 onClick={() => setCameraPreset("top")}
                 className="px-2.5 py-1 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition cursor-pointer"
               >
-                มุมบน (2D)
+                {t("มุมบน (2D)")}
               </button>
               <button
                 type="button"
                 onClick={() => setCameraPreset("entrance")}
                 className="px-2.5 py-1 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition cursor-pointer hidden lg:inline-block"
               >
-                ป้อมทางเข้า
+                {t("ป้อมทางเข้า")}
               </button>
             </div>
 
             {/* Clean View Button (Hide panels for 100% full view) */}
-            <Tooltip title="ซ่อนกล่องควบคุมทั้งหมดเพื่อดูผังชัดๆ">
+            <Tooltip title={t("ซ่อนกล่องควบคุมทั้งหมดเพื่อดูผังชัดๆ")}>
               <Button
                 size="small"
                 icon={<EyeInvisibleOutlined />}
                 onClick={() => setIsCleanView(true)}
                 className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white text-xs h-7"
               >
-                ดูเต็มตา
+                {t("ดูเต็มตา")}
               </Button>
             </Tooltip>
 
@@ -1064,7 +1068,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                   onClick={handleReset}
                   className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white text-xs h-7"
                 >
-                  รีเซ็ต
+                  {t("รีเซ็ต")}
                 </Button>
                 <Button
                   type="primary"
@@ -1079,7 +1083,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                       : "bg-slate-800 text-slate-500 border-slate-700"
                   }`}
                 >
-                  บันทึกผังโรงงาน
+                  {t("บันทึกผังโรงงาน")}
                 </Button>
               </>
             )}
@@ -1095,7 +1099,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
           className="absolute top-4 right-6 z-30 px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-xl border border-slate-700 text-white text-xs font-semibold shadow-2xl flex items-center gap-2 transition cursor-pointer"
         >
           <EyeOutlined className="text-orange-400" />
-          <span>แสดงเครื่องมือและเมนู</span>
+          <span>{t("แสดงเครื่องมือและเมนู")}</span>
         </button>
       )}
 
@@ -1115,13 +1119,13 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
 
             <div className="flex items-center gap-1">
               <Tag color="orange" className="font-mono text-[10px] m-0">
-                {activeLayout.size[0]}×{activeLayout.size[2]}ม.
+                {activeLayout.size[0]}×{activeLayout.size[2]}{t("ม.")}
               </Tag>
               <button
                 type="button"
                 onClick={() => setIsEditorMinimized(!isEditorMinimized)}
                 className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs transition cursor-pointer"
-                title={isEditorMinimized ? "ขยายกล่องเครื่องมือ" : "ย่อกล่องเพื่อไม่ให้บังหน้าจอ"}
+                title={isEditorMinimized ? t("ขยายกล่องเครื่องมือ") : t("ย่อกล่องเพื่อไม่ให้บังหน้าจอ")}
               >
                 {isEditorMinimized ? <UpOutlined /> : <DownOutlined />}
               </button>
@@ -1132,13 +1136,13 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
           {isEditorMinimized ? (
             <div className="flex items-center gap-2 pt-1 text-xs">
               <span className="text-[11px] text-slate-400">
-                หมุน: <b className="text-amber-400">{activeLayout.rot}°</b>
+                {t("หมุน:")} <b className="text-amber-400">{activeLayout.rot}°</b>
               </span>
               <button
                 type="button"
                 onClick={() => handleRotateWarehouse(90)}
                 className="px-2 py-0.5 rounded bg-slate-800 hover:bg-amber-600 text-slate-200 hover:text-white text-[11px] transition cursor-pointer"
-                title="หมุน 90 องศา"
+                title={t("หมุน 90 องศา")}
               >
                 ⟳ 90°
               </button>
@@ -1147,7 +1151,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 onClick={() => setIsEditorMinimized(false)}
                 className="text-[11px] text-amber-400 underline cursor-pointer hover:text-amber-300 ml-1"
               >
-                ขยายเครื่องมือ
+                {t("ขยายเครื่องมือ")}
               </button>
             </div>
           ) : (
@@ -1162,7 +1166,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                   const s = siteLayouts[w.id]?.size || [30, 8, 38];
                   return {
                     value: w.id,
-                    label: `${w.warehouseCode} - ${w.warehouseName} (${s[0]}x${s[2]}ม.)`,
+                    label: `${w.warehouseCode} - ${w.warehouseName} (${s[0]}x${s[2]}${t("ม.")})`,
                   };
                 })}
               />
@@ -1170,13 +1174,13 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
               {/* D-Pad Positioning Controls */}
               <div className="flex flex-col items-center gap-1 py-1 bg-slate-950/60 rounded-xl border border-slate-800 p-2">
                 <div className="text-[10px] text-slate-400 mb-0.5">
-                  พิกัด: [{activeLayout.pos[0]}, {activeLayout.pos[1]}]
+                  {t("พิกัด:")} [{activeLayout.pos[0]}, {activeLayout.pos[1]}]
                 </div>
                 <button
                   type="button"
                   onClick={() => handleMoveWarehouse(0, -stepSize)}
                   className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-amber-600 text-slate-200 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-slate-700"
-                  title="เลื่อนขึ้นเหนือ (North)"
+                  title={t("เลื่อนขึ้นเหนือ (North)")}
                 >
                   <ArrowUpOutlined />
                 </button>
@@ -1185,7 +1189,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                     type="button"
                     onClick={() => handleMoveWarehouse(-stepSize, 0)}
                     className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-amber-600 text-slate-200 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-slate-700"
-                    title="เลื่อนซ้าย (West)"
+                    title={t("เลื่อนซ้าย (West)")}
                   >
                     <ArrowLeftOutlined />
                   </button>
@@ -1193,7 +1197,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                     type="button"
                     onClick={() => handleRotateWarehouse(90)}
                     className="w-11 h-7 rounded-lg bg-amber-600/30 hover:bg-amber-500 text-amber-300 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-amber-500/50"
-                    title="หมุน 90 องศา"
+                    title={t("หมุน 90 องศา")}
                   >
                     <RotateRightOutlined />
                   </button>
@@ -1201,7 +1205,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                     type="button"
                     onClick={() => handleMoveWarehouse(stepSize, 0)}
                     className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-amber-600 text-slate-200 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-slate-700"
-                    title="เลื่อนขวา (East)"
+                    title={t("เลื่อนขวา (East)")}
                   >
                     <ArrowRightOutlined />
                   </button>
@@ -1210,14 +1214,14 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                   type="button"
                   onClick={() => handleMoveWarehouse(0, stepSize)}
                   className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-amber-600 text-slate-200 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-slate-700"
-                  title="เลื่อนลงใต้ (South)"
+                  title={t("เลื่อนลงใต้ (South)")}
                 >
                   <ArrowDownOutlined />
                 </button>
 
                 {/* Step size selector */}
                 <div className="flex items-center justify-between w-full text-[10px] pt-1 mt-1 border-t border-slate-800/80">
-                  <span className="text-slate-400">ระยะก้าว:</span>
+                  <span className="text-slate-400">{t("ระยะก้าว:")}</span>
                   <div className="flex gap-1">
                     {[1, 5, 10].map((s) => (
                       <button
@@ -1230,7 +1234,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                             : "bg-slate-800 text-slate-400 hover:text-white"
                         }`}
                       >
-                        {s}ม.
+                        {s}{t("ม.")}
                       </button>
                     ))}
                   </div>
@@ -1242,7 +1246,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 <div className="flex justify-between items-center text-[11px]">
                   <span className="text-slate-400 flex items-center gap-1">
                     <RotateRightOutlined />
-                    <span>หมุนองศา</span>
+                    <span>{t("หมุนองศา")}</span>
                   </span>
                   <span className="font-mono text-amber-400 font-bold">{activeLayout.rot}°</span>
                 </div>
@@ -1286,12 +1290,12 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
               <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800 space-y-1.5">
                 <div className="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
                   <ColumnWidthOutlined />
-                  <span>ปรับขนาดอาคารคลัง</span>
+                  <span>{t("ปรับขนาดอาคารคลัง")}</span>
                 </div>
 
                 {/* Width (X) */}
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 text-[11px]">กว้าง (W):</span>
+                  <span className="text-slate-400 text-[11px]">{t("กว้าง (W):")}</span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -1301,7 +1305,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                       -2
                     </button>
                     <span className="font-mono text-amber-400 w-12 text-center font-bold text-xs">
-                      {activeLayout.size[0]} ม.
+                      {activeLayout.size[0]} {t("ม.")}
                     </span>
                     <button
                       type="button"
@@ -1315,7 +1319,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
 
                 {/* Length (Z) */}
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 text-[11px]">ยาว (L):</span>
+                  <span className="text-slate-400 text-[11px]">{t("ยาว (L):")}</span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -1325,7 +1329,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                       -5
                     </button>
                     <span className="font-mono text-amber-400 w-12 text-center font-bold text-xs">
-                      {activeLayout.size[2]} ม.
+                      {activeLayout.size[2]} {t("ม.")}
                     </span>
                     <button
                       type="button"
@@ -1339,7 +1343,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
 
                 {/* Height (Y) */}
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400 text-[11px]">สูง (H):</span>
+                  <span className="text-slate-400 text-[11px]">{t("สูง (H):")}</span>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
@@ -1349,7 +1353,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                       -1
                     </button>
                     <span className="font-mono text-amber-400 w-12 text-center font-bold text-xs">
-                      {activeLayout.size[1]} ม.
+                      {activeLayout.size[1]} {t("ม.")}
                     </span>
                     <button
                       type="button"
@@ -1363,28 +1367,28 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
 
                 {/* Quick Size Presets */}
                 <div className="pt-1 border-t border-slate-800/80">
-                  <div className="text-[10px] text-slate-400 mb-1">เทมเพลตด่วน:</div>
+                  <div className="text-[10px] text-slate-400 mb-1">{t("เทมเพลตด่วน:")}</div>
                   <div className="flex gap-1">
                     <button
                       type="button"
                       onClick={() => handleApplyWarehousePreset([22, 6.5, 26])}
                       className="flex-1 py-1 rounded bg-slate-800 hover:bg-amber-600 text-slate-300 hover:text-white text-[10px] cursor-pointer transition text-center"
                     >
-                      เล็ก (22x26)
+                      {t("เล็ก (22x26)")}
                     </button>
                     <button
                       type="button"
                       onClick={() => handleApplyWarehousePreset([30, 8, 40])}
                       className="flex-1 py-1 rounded bg-slate-800 hover:bg-amber-600 text-slate-300 hover:text-white text-[10px] cursor-pointer transition text-center"
                     >
-                      กลาง (30x40)
+                      {t("กลาง (30x40)")}
                     </button>
                     <button
                       type="button"
                       onClick={() => handleApplyWarehousePreset([45, 10, 60])}
                       className="flex-1 py-1 rounded bg-slate-800 hover:bg-amber-600 text-slate-300 hover:text-white text-[10px] cursor-pointer transition text-center"
                     >
-                      ใหญ่ (45x60)
+                      {t("ใหญ่ (45x60)")}
                     </button>
                   </div>
                 </div>
@@ -1416,14 +1420,14 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                   icon={<PlusOutlined />}
                   className="bg-sky-600 hover:bg-sky-500 text-[11px] h-6 px-2"
                 >
-                  เพิ่ม
+                  {t("เพิ่ม")}
                 </Button>
               </Dropdown>
               <button
                 type="button"
                 onClick={() => setIsEditorMinimized(!isEditorMinimized)}
                 className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs transition cursor-pointer"
-                title={isEditorMinimized ? "ขยายกล่องเครื่องมือ" : "ย่อกล่องเพื่อไม่ให้บังหน้าจอ"}
+                title={isEditorMinimized ? t("ขยายกล่องเครื่องมือ") : t("ย่อกล่องเพื่อไม่ให้บังหน้าจอ")}
               >
                 {isEditorMinimized ? <UpOutlined /> : <DownOutlined />}
               </button>
@@ -1433,13 +1437,13 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
           {isEditorMinimized ? (
             <div className="flex items-center gap-2 pt-1 text-xs">
               <span className="text-[11px] text-slate-400">
-                ขนาด: <b className="text-sky-400">{activeRoad.width}×{activeRoad.length}ม.</b>
+                {t("ขนาด:")} <b className="text-sky-400">{activeRoad.width}×{activeRoad.length}{t("ม.")}</b>
               </span>
               <button
                 type="button"
                 onClick={() => handleRotateRoad(90)}
                 className="px-2 py-0.5 rounded bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white text-[11px] transition cursor-pointer"
-                title="หมุน 90 องศา"
+                title={t("หมุน 90 องศา")}
               >
                 ⟳ 90°
               </button>
@@ -1448,7 +1452,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 onClick={() => setIsEditorMinimized(false)}
                 className="text-[11px] text-sky-400 underline cursor-pointer hover:text-sky-300 ml-1"
               >
-                ขยายเครื่องมือ
+                {t("ขยายเครื่องมือ")}
               </button>
             </div>
           ) : (
@@ -1461,13 +1465,13 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 className="w-full text-xs"
                 options={roads.map((r) => ({
                   value: r.id,
-                  label: `${r.name} (${r.width}ม. x ${r.length}ม.)`,
+                  label: `${r.name} (${r.width}${t("ม.")} x ${r.length}${t("ม.")})`,
                 }))}
               />
 
               {/* Road Name Field */}
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-slate-400 whitespace-nowrap">ชื่อ:</span>
+                <span className="text-[11px] text-slate-400 whitespace-nowrap">{t("ชื่อ:")}</span>
                 <Input
                   size="small"
                   value={activeRoad.name}
@@ -1479,13 +1483,13 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
               {/* D-Pad Positioning Controls */}
               <div className="flex flex-col items-center gap-1 py-1 bg-slate-950/60 rounded-xl border border-slate-800 p-2">
                 <div className="text-[10px] text-slate-400 mb-0.5">
-                  พิกัด: [{activeRoad.position?.[0] ?? 0}, {activeRoad.position?.[1] ?? 0}] • หมุน {activeRoad.rotation ?? 0}°
+                  {t("พิกัด:")} [{activeRoad.position?.[0] ?? 0}, {activeRoad.position?.[1] ?? 0}] • {t("หมุน")} {activeRoad.rotation ?? 0}°
                 </div>
                 <button
                   type="button"
                   onClick={() => handleMoveRoad(0, -stepSize)}
                   className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-slate-700"
-                  title="เลื่อนขึ้นเหนือ (North)"
+                  title={t("เลื่อนขึ้นเหนือ (North)")}
                 >
                   <ArrowUpOutlined />
                 </button>
@@ -1494,7 +1498,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                     type="button"
                     onClick={() => handleMoveRoad(-stepSize, 0)}
                     className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-slate-700"
-                    title="เลื่อนซ้าย (West)"
+                    title={t("เลื่อนซ้าย (West)")}
                   >
                     <ArrowLeftOutlined />
                   </button>
@@ -1502,7 +1506,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                     type="button"
                     onClick={() => handleRotateRoad(90)}
                     className="w-11 h-7 rounded-lg bg-sky-600/30 hover:bg-sky-500 text-sky-300 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-sky-500/50"
-                    title="หมุน 90 องศา"
+                    title={t("หมุน 90 องศา")}
                   >
                     <RotateRightOutlined />
                   </button>
@@ -1510,7 +1514,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                     type="button"
                     onClick={() => handleMoveRoad(stepSize, 0)}
                     className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-slate-700"
-                    title="เลื่อนขวา (East)"
+                    title={t("เลื่อนขวา (East)")}
                   >
                     <ArrowRightOutlined />
                   </button>
@@ -1519,7 +1523,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                   type="button"
                   onClick={() => handleMoveRoad(0, stepSize)}
                   className="w-11 h-7 rounded-lg bg-slate-800 hover:bg-sky-600 text-slate-200 hover:text-white transition flex items-center justify-center cursor-pointer shadow border border-slate-700"
-                  title="เลื่อนลงใต้ (South)"
+                  title={t("เลื่อนลงใต้ (South)")}
                 >
                   <ArrowDownOutlined />
                 </button>
@@ -1529,8 +1533,8 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800">
                   <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                    <span>ความกว้าง</span>
-                    <span className="font-mono text-sky-400 font-bold">{activeRoad.width}ม.</span>
+                    <span>{t("ความกว้าง")}</span>
+                    <span className="font-mono text-sky-400 font-bold">{activeRoad.width}{t("ม.")}</span>
                   </div>
                   <div className="flex gap-1">
                     <button
@@ -1552,8 +1556,8 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
 
                 <div className="bg-slate-950/60 p-2 rounded-xl border border-slate-800">
                   <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                    <span>ความยาว</span>
-                    <span className="font-mono text-sky-400 font-bold">{activeRoad.length}ม.</span>
+                    <span>{t("ความยาว")}</span>
+                    <span className="font-mono text-sky-400 font-bold">{activeRoad.length}{t("ม.")}</span>
                   </div>
                   <div className="flex gap-1">
                     <button
@@ -1585,7 +1589,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                       : "bg-slate-800 text-slate-400 border-slate-700"
                   }`}
                 >
-                  {activeRoad.hasMarkings !== false ? "✓ มีเส้น" : "ไม่มีเส้น"}
+                  {activeRoad.hasMarkings !== false ? t("✓ มีเส้น") : t("ไม่มีเส้น")}
                 </Button>
 
                 <div className="flex gap-1.5">
@@ -1594,7 +1598,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                     icon={<CopyOutlined />}
                     onClick={handleDuplicateRoad}
                     className="bg-slate-800 border-slate-700 text-slate-300 hover:text-white text-[11px] h-7"
-                    title="คัดลอกถนนเส้นนี้"
+                    title={t("คัดลอกถนนเส้นนี้")}
                   />
                   <Button
                     size="small"
@@ -1602,7 +1606,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                     icon={<DeleteOutlined />}
                     onClick={handleDeleteRoad}
                     className="text-[11px] h-7"
-                    title="ลบถนนเส้นนี้"
+                    title={t("ลบถนนเส้นนี้")}
                   />
                 </div>
               </div>
@@ -1630,7 +1634,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 type="button"
                 onClick={() => setIsCardMinimized(!isCardMinimized)}
                 className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-xs transition cursor-pointer"
-                title={isCardMinimized ? "ขยายการ์ด" : "ย่อการ์ด"}
+                title={isCardMinimized ? t("ขยายการ์ด") : t("ย่อการ์ด")}
               >
                 {isCardMinimized ? <UpOutlined /> : <DownOutlined />}
               </button>
@@ -1651,9 +1655,9 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
               </div>
 
               <div className="flex items-center justify-between text-xs bg-slate-950/60 p-2 rounded-xl border border-slate-800">
-                <span className="text-slate-400">ขนาดและพิกัด</span>
+                <span className="text-slate-400">{t("ขนาดและพิกัด")}</span>
                 <span className="font-mono text-orange-400">
-                  {activeLayout.size[0]}×{activeLayout.size[2]}ม. (สูง {activeLayout.size[1]}ม.) • {activeLayout.rot}°
+                  {t("{w}×{l}ม. (สูง {h}ม.) • {rot}°", { w: activeLayout.size[0], l: activeLayout.size[2], h: activeLayout.size[1], rot: activeLayout.rot })}
                 </span>
               </div>
 
@@ -1662,7 +1666,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 onClick={() => onSelectWarehouse(activeWarehouse.id)}
                 className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span>🚀 เข้าสู่พื้นที่คลัง 3D (Enter 3D Space)</span>
+                <span>{t("🚀 เข้าสู่พื้นที่คลัง 3D (Enter 3D Space)")}</span>
                 <ArrowRightOutlined />
               </button>
             </>
@@ -1675,7 +1679,7 @@ export const FactorySiteMap3D: React.FC<FactorySiteMap3DProps> = ({
                 onClick={() => onSelectWarehouse(activeWarehouse.id)}
                 className="w-full py-1.5 px-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>เข้าสู่คลัง 3D</span>
+                <span>{t("เข้าสู่คลัง 3D")}</span>
                 <ArrowRightOutlined />
               </button>
             </div>

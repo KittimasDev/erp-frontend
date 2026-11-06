@@ -1,5 +1,7 @@
 "use client";
 
+import { tStatus } from "@/types/purchase-orders";
+import { useT } from "@/lib/i18n/useT";
 import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -139,6 +141,7 @@ export default function GoodsReceiptCreateFromPoPage({
   pageTitle = "รับของจากใบสั่งซื้อ",
   initialScheduleId,
 }: Props) {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const [form] = Form.useForm<FormValues>();
@@ -439,7 +442,7 @@ export default function GoodsReceiptCreateFromPoPage({
   ) {
     return (
       <div className={styles.page}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -450,11 +453,11 @@ export default function GoodsReceiptCreateFromPoPage({
         <Alert
           type="error"
           showIcon
-          title="โหลดข้อมูลไม่สำเร็จ"
-          description="ไม่สามารถโหลดใบสั่งซื้อหรือประวัติการรับของได้ ลองรีเฟรชหน้าอีกครั้ง"
+          title={t("โหลดข้อมูลไม่สำเร็จ")}
+          description={t("ไม่สามารถโหลดใบสั่งซื้อหรือประวัติการรับของได้ ลองรีเฟรชหน้าอีกครั้ง")}
         />
         <div style={{ marginTop: 12 }}>
-          <Link href={resolvedBackHref}>กลับ</Link>
+          <Link href={resolvedBackHref}>{t("กลับ")}</Link>
         </div>
       </div>
     );
@@ -463,9 +466,9 @@ export default function GoodsReceiptCreateFromPoPage({
   if (!po) {
     return (
       <div className={styles.page}>
-        ไม่พบใบสั่งซื้อ
+        {t("ไม่พบใบสั่งซื้อ")}
         <div style={{ marginTop: 12 }}>
-          <Link href={resolvedBackHref}>กลับ</Link>
+          <Link href={resolvedBackHref}>{t("กลับ")}</Link>
         </div>
       </div>
     );
@@ -477,11 +480,14 @@ export default function GoodsReceiptCreateFromPoPage({
         <Alert
           type="warning"
           showIcon
-          title="ใบสั่งซื้อนี้ยังรับของไม่ได้"
-          description={`สถานะปัจจุบัน: ${PURCHASE_ORDER_STATUS_LABEL[po.status] ?? po.status} — รับของได้เมื่อสถานะเป็นอนุมัติแล้วหรือรับของบางส่วน และยังมีจำนวนคงเหลือ`}
+          title={t("ใบสั่งซื้อนี้ยังรับของไม่ได้")}
+          description={t(
+            "สถานะปัจจุบัน: {status} — รับของได้เมื่อสถานะเป็นอนุมัติแล้วหรือรับของบางส่วน และยังมีจำนวนคงเหลือ",
+            { status: tStatus(PURCHASE_ORDER_STATUS_LABEL[po.status] ?? po.status) },
+          )}
         />
         <div style={{ marginTop: 12 }}>
-          <Link href={`/purchase-orders/${po.id}`}>กลับไปใบสั่งซื้อ</Link>
+          <Link href={`/purchase-orders/${po.id}`}>{t("กลับไปใบสั่งซื้อ")}</Link>
         </div>
       </div>
     );
@@ -496,7 +502,11 @@ export default function GoodsReceiptCreateFromPoPage({
   /** Validation ของฟิลด์ที่ต้องกรอก (เช่น ไม่เลือกรอบส่งของ) ไม่ผ่าน → แจ้งสาเหตุ + เลื่อนไปช่องแรกที่ผิด */
   const onFinishFailed = (info: { errorFields: Array<{ errors: string[] }> }) => {
     const first = info.errorFields[0]?.errors[0];
-    message.error(first ? `บันทึกใบรับของไม่ได้: ${first}` : "บันทึกใบรับของไม่ได้: กรอกข้อมูลที่จำเป็นให้ครบ");
+    message.error(
+      first
+        ? t("บันทึกใบรับของไม่ได้: {reason}", { reason: first })
+        : t("บันทึกใบรับของไม่ได้: กรอกข้อมูลที่จำเป็นให้ครบ"),
+    );
   };
 
   const onFinish = async (values: FormValues) => {
@@ -515,26 +525,31 @@ export default function GoodsReceiptCreateFromPoPage({
       const meta = lineMetaByPoItemId.get(item.purchaseOrderItemId);
       const remainingBase = meta?.remainingBaseQty ?? 0;
       if (remainingBase <= 0) continue;
-      const label = meta?.itemLabel ?? "รายการ";
+      const label = meta?.itemLabel ?? t("รายการ");
       const baseUnitLabel = meta?.baseUnitLabel ?? "";
       const destinations = (item.destinations ?? []).filter(
         (d) => (d.qty?.quantity ?? 0) > 0,
       );
       if (!destinations.length) {
         // ติ๊กรับแล้วแต่ไม่ระบุจำนวน — เดิมถูกข้ามเงียบ ๆ ทำให้ดูเหมือนบันทึกไม่ทำงาน
-        failItems(`${label}: ติ๊กรับแล้วแต่ยังไม่ระบุจำนวนรับ (กรอกจำนวนมากกว่า 0 หรือเอาเครื่องหมายถูกออก)`);
+        failItems(
+          t(
+            "{label}: ติ๊กรับแล้วแต่ยังไม่ระบุจำนวนรับ (กรอกจำนวนมากกว่า 0 หรือเอาเครื่องหมายถูกออก)",
+            { label },
+          ),
+        );
         return;
       }
 
       let sumBase = 0;
       for (const dest of destinations) {
         if (!dest.warehouseId || !dest.locationId) {
-          failItems(`${label}: ระบุคลังและตำแหน่งให้ครบทุกปลายทาง`);
+          failItems(t("{label}: ระบุคลังและตำแหน่งให้ครบทุกปลายทาง", { label }));
           return;
         }
 
         if (meta?.requiresLotControl && !dest.lotNo?.trim()) {
-          failItems(`${label}: กรุณาระบุเลข Lot`);
+          failItems(t("{label}: กรุณาระบุเลข Lot", { label }));
           return;
         }
 
@@ -542,7 +557,10 @@ export default function GoodsReceiptCreateFromPoPage({
         const base = destBaseQty(conversionIndex, meta, dest);
         if (base === null) {
           failItems(
-            `${label}: หน่วยที่เลือกยังไม่มีกฎแปลงเป็น ${baseUnitLabel} กรุณาแก้หน่วยก่อนบันทึก`,
+            t(
+              "{label}: หน่วยที่เลือกยังไม่มีกฎแปลงเป็น {unit} กรุณาแก้หน่วยก่อนบันทึก",
+              { label, unit: baseUnitLabel },
+            ),
           );
           return;
         }
@@ -564,14 +582,21 @@ export default function GoodsReceiptCreateFromPoPage({
       sumBase = roundQty(sumBase);
       if (sumBase > remainingBase + 1e-9) {
         failItems(
-          `${label}: รวมจำนวนที่รับ (${formatQtyUnit(sumBase, baseUnitLabel)}) เกินยอดคงเหลือของ PO (${formatQtyUnit(remainingBase, baseUnitLabel)})`,
+          t(
+            "{label}: รวมจำนวนที่รับ ({received}) เกินยอดคงเหลือของ PO ({remaining})",
+            {
+              label,
+              received: formatQtyUnit(sumBase, baseUnitLabel),
+              remaining: formatQtyUnit(remainingBase, baseUnitLabel),
+            },
+          ),
         );
         return;
       }
     }
 
     if (!flat.length) {
-      failItems("เลือกอย่างน้อย 1 รายการและระบุจำนวนรับ");
+      failItems(t("เลือกอย่างน้อย 1 รายการและระบุจำนวนรับ"));
       return;
     }
 
@@ -588,7 +613,7 @@ export default function GoodsReceiptCreateFromPoPage({
       // ไม่ถือว่าสำเร็จถ้า API ไม่คืนเลขเอกสาร — อยู่หน้าเดิมให้แก้ต่อ
       const createdId = response?.data?.id;
       if (!createdId) {
-        message.error("บันทึกใบรับของไม่สำเร็จ: ระบบไม่คืนเลขเอกสาร กรุณาตรวจรายการแล้วลองใหม่");
+        message.error(t("บันทึกใบรับของไม่สำเร็จ: ระบบไม่คืนเลขเอกสาร กรุณาตรวจรายการแล้วลองใหม่"));
         return;
       }
       router.push(`/goods-receipts/${createdId}`);
@@ -632,13 +657,13 @@ export default function GoodsReceiptCreateFromPoPage({
       <PageHeader
         eyebrow="Goods Receipt"
         icon={<InboxOutlined />}
-        title={pageTitle}
+        title={t(pageTitle)}
         subtitle={<>{po.poNo} · {po.creditor?.nameTh ?? "—"}</>}
         actions={
           <>
 <div className={styles.backLink}>
           <Link href={resolvedBackHref}>
-            <Button icon={<ArrowLeftOutlined />}>กลับ</Button>
+            <Button icon={<ArrowLeftOutlined />}>{t("กลับ")}</Button>
           </Link>
         </div>
           </>
@@ -651,15 +676,15 @@ export default function GoodsReceiptCreateFromPoPage({
           showIcon
           title={
             existingGrs.some((gr) => gr.status === "DRAFT")
-              ? "มีใบรับของแบบร่างอยู่แล้ว"
-              : "รายการในใบสั่งซื้อนี้รับครบแล้ว"
+              ? t("มีใบรับของแบบร่างอยู่แล้ว")
+              : t("รายการในใบสั่งซื้อนี้รับครบแล้ว")
           }
           description={
             <div>
               <p style={{ margin: 0 }}>
                 {existingGrs.some((gr) => gr.status === "DRAFT")
-                  ? "ยอดในใบร่างถูกนับเป็นค้างรับแล้ว จึงสร้างใบใหม่ไม่ได้ — เปิดใบร่างเพื่อแก้ไขหรือยืนยันรับเข้าสต๊อก"
-                  : "ไม่มีจำนวนคงเหลือให้รับเพิ่ม"}
+                  ? t("ยอดในใบร่างถูกนับเป็นค้างรับแล้ว จึงสร้างใบใหม่ไม่ได้ — เปิดใบร่างเพื่อแก้ไขหรือยืนยันรับเข้าสต๊อก")
+                  : t("ไม่มีจำนวนคงเหลือให้รับเพิ่ม")}
               </p>
               {existingGrs.length > 0 ? (
                 <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
@@ -667,7 +692,7 @@ export default function GoodsReceiptCreateFromPoPage({
                     <li key={gr.id}>
                       <Link href={`/goods-receipts/${gr.id}`}>{gr.grNo}</Link>
                       {" · "}
-                      {GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status}
+                      {tStatus(GOODS_RECEIPT_STATUS_LABEL[gr.status] ?? gr.status)}
                     </li>
                   ))}
                 </ul>
@@ -697,29 +722,32 @@ export default function GoodsReceiptCreateFromPoPage({
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="รอบจัดส่ง"
+                    label={t("รอบจัดส่ง")}
                     name="purchaseOrderDeliveryScheduleId"
-                    rules={[{ required: true, message: "เลือกรอบที่ต้องการรับ" }]}
+                    rules={[{ required: true, message: t("เลือกรอบที่ต้องการรับ") }]}
                   >
                     <Select
-                      placeholder="เลือกรอบ"
+                      placeholder={t("เลือกรอบ")}
                       options={openSchedules.map((round) => ({
                         value: round.id,
-                        label: `รอบที่ ${round.roundNo} · กำหนดส่ง ${dayjs(round.effectiveDeliveryDate).format("DD/MM/YYYY")}`,
+                        label: t("รอบที่ {n} · กำหนดส่ง {date}", {
+                          n: round.roundNo,
+                          date: dayjs(round.effectiveDeliveryDate).format("DD/MM/YYYY"),
+                        }),
                       }))}
                     />
                   </Form.Item>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่รับ"
+                    label={t("วันที่รับ")}
                     name="grDate"
-                    rules={[{ required: true, message: "เลือกวันที่รับ" }]}
+                    rules={[{ required: true, message: t("เลือกวันที่รับ") }]}
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     name="remark"
                   >
                     <Input.TextArea rows={2} />
@@ -729,10 +757,11 @@ export default function GoodsReceiptCreateFromPoPage({
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>รายการรับเข้าคลัง</h2>
+                  <h2 className={styles.sectionTitle}>{t("รายการรับเข้าคลัง")}</h2>
                   <p className={styles.sectionHint}>
-                    แสดงเฉพาะรายการที่ยังรับไม่ครบ — ติ๊กเฉพาะบรรทัดที่จะรับรอบนี้
-                    รับไม่ครบได้ จะเปิดใบรับใหม่ภายหลัง
+                    {t(
+                      "แสดงเฉพาะรายการที่ยังรับไม่ครบ — ติ๊กเฉพาะบรรทัดที่จะรับรอบนี้ รับไม่ครบได้ จะเปิดใบรับใหม่ภายหลัง",
+                    )}
                   </p>
                 </div>
                 <Form.List name="items">
@@ -772,7 +801,7 @@ export default function GoodsReceiptCreateFromPoPage({
                               >
                                 <Checkbox disabled={disabled}>
                                   <strong>
-                                    {meta?.itemLabel || `รายการที่ ${index + 1}`}
+                                    {meta?.itemLabel || t("รายการที่ {n}", { n: index + 1 })}
                                   </strong>
                                 </Checkbox>
                               </Form.Item>
@@ -785,7 +814,7 @@ export default function GoodsReceiptCreateFromPoPage({
                             <div className={styles.lineStats}>
                               <span className={styles.lineStat}>
                                 <span className={styles.lineStatLabel}>
-                                  สั่ง
+                                  {t("สั่ง")}
                                 </span>
                                 <span className={styles.lineStatValue}>
                                   {formatQtyUnit(
@@ -796,7 +825,7 @@ export default function GoodsReceiptCreateFromPoPage({
                               </span>
                               <span className={styles.lineStat}>
                                 <span className={styles.lineStatLabel}>
-                                  รับแล้ว
+                                  {t("รับแล้ว")}
                                 </span>
                                 <span className={styles.lineStatValue}>
                                   {formatQtyUnit(
@@ -822,11 +851,11 @@ export default function GoodsReceiptCreateFromPoPage({
                                 }`}
                               >
                                 <span className={styles.lineStatLabel}>
-                                  คงเหลือ
+                                  {t("คงเหลือ")}
                                 </span>
                                 <span className={styles.lineStatValue}>
                                   {disabled
-                                    ? "รับครบแล้ว"
+                                    ? t("รับครบแล้ว")
                                     : formatQtyWithBase({
                                         qty: remaining,
                                         unitLabel: meta?.unitLabel ?? "",
@@ -883,7 +912,7 @@ export default function GoodsReceiptCreateFromPoPage({
                                         >
                                           <div className={styles.destCardHead}>
                                             <span>
-                                              ปลายทางที่ {destName + 1}
+                                              {t("ปลายทางที่ {n}", { n: destName + 1 })}
                                             </span>
                                             {destFields.length > 1 ? (
                                               <Button
@@ -895,7 +924,7 @@ export default function GoodsReceiptCreateFromPoPage({
                                                   remove(destName)
                                                 }
                                               >
-                                                ลบ
+                                                {t("ลบ")}
                                               </Button>
                                             ) : null}
                                           </div>
@@ -903,8 +932,16 @@ export default function GoodsReceiptCreateFromPoPage({
                                             <Form.Item
                                               {...destRest}
                                               className={styles.field}
-                                              label="จำนวนที่รับครั้งนี้"
-                                              extra={`คงเหลือ ${formatQtyUnit(remaining, meta?.unitLabel ?? "")} — รับไม่ครบได้ จะเปิดใบรับใหม่ภายหลัง`}
+                                              label={t("จำนวนที่รับครั้งนี้")}
+                                              extra={t(
+                                                "คงเหลือ {qty} — รับไม่ครบได้ จะเปิดใบรับใหม่ภายหลัง",
+                                                {
+                                                  qty: formatQtyUnit(
+                                                    remaining,
+                                                    meta?.unitLabel ?? "",
+                                                  ),
+                                                },
+                                              )}
                                               name={[destName, "qty"]}
                                               rules={[
                                                 {
@@ -938,12 +975,12 @@ export default function GoodsReceiptCreateFromPoPage({
                                             <Form.Item
                                               {...destRest}
                                               className={styles.field}
-                                              label="คลัง"
+                                              label={t("คลัง")}
                                               name={[destName, "warehouseId"]}
                                               rules={[
                                                 {
                                                   required: true,
-                                                  message: "เลือกคลัง",
+                                                  message: t("เลือกคลัง"),
                                                 },
                                               ]}
                                             >
@@ -973,12 +1010,12 @@ export default function GoodsReceiptCreateFromPoPage({
                                             <Form.Item
                                               {...destRest}
                                               className={styles.field}
-                                              label="ตำแหน่ง"
+                                              label={t("ตำแหน่ง")}
                                               name={[destName, "locationId"]}
                                               rules={[
                                                 {
                                                   required: true,
-                                                  message: "เลือกตำแหน่ง",
+                                                  message: t("เลือกตำแหน่ง"),
                                                 },
                                               ]}
                                             >
@@ -1000,11 +1037,11 @@ export default function GoodsReceiptCreateFromPoPage({
                                                 rules={[
                                                   {
                                                     required: true,
-                                                    message: "กรุณาระบุเลข Lot",
+                                                    message: t("กรุณาระบุเลข Lot"),
                                                   },
                                                 ]}
                                               >
-                                                <Input placeholder="กรอกเลข Lot" />
+                                                <Input placeholder={t("กรอกเลข Lot")} />
                                               </Form.Item>
                                             ) : null}
                                           </div>
@@ -1030,7 +1067,7 @@ export default function GoodsReceiptCreateFromPoPage({
                                           });
                                         }}
                                       >
-                                        เพิ่มปลายทางคลัง
+                                        {t("เพิ่มปลายทางคลัง")}
                                       </Button>
                                     </div>
 
@@ -1046,7 +1083,7 @@ export default function GoodsReceiptCreateFromPoPage({
                                       }`}
                                     >
                                       <span>
-                                        รวมที่กรอก{" "}
+                                        {t("รวมที่กรอก")}{" "}
                                         <span
                                           className={styles.destSummaryValue}
                                         >
@@ -1055,7 +1092,7 @@ export default function GoodsReceiptCreateFromPoPage({
                                             baseUnitLabel,
                                           )}
                                         </span>{" "}
-                                        จากคงเหลือ{" "}
+                                        {t("จากคงเหลือ")}{" "}
                                         <span
                                           className={styles.destSummaryValue}
                                         >
@@ -1067,16 +1104,18 @@ export default function GoodsReceiptCreateFromPoPage({
                                       </span>
                                       <span>
                                         {destSumBase >= remainingBase - 1e-9
-                                          ? "กรอกครบตามยอดคงเหลือแล้ว"
-                                          : `ยังกรอกได้อีก ${formatQtyUnit(
-                                              roundQty(
-                                                Math.max(
-                                                  0,
-                                                  remainingBase - destSumBase,
+                                          ? t("กรอกครบตามยอดคงเหลือแล้ว")
+                                          : t("ยังกรอกได้อีก {qty}", {
+                                              qty: formatQtyUnit(
+                                                roundQty(
+                                                  Math.max(
+                                                    0,
+                                                    remainingBase - destSumBase,
+                                                  ),
                                                 ),
+                                                baseUnitLabel,
                                               ),
-                                              baseUnitLabel,
-                                            )}`}
+                                            })}
                                       </span>
                                     </div>
                                   </div>
@@ -1095,14 +1134,14 @@ export default function GoodsReceiptCreateFromPoPage({
 
             <div className={styles.footerBar}>
               <p className={styles.footerHint}>
-                บันทึกเป็น DRAFT — Confirm ที่ใบรับของเพื่อเข้าสต๊อกตามคลังที่เลือก
+                {t("บันทึกเป็น DRAFT — Confirm ที่ใบรับของเพื่อเข้าสต๊อกตามคลังที่เลือก")}
               </p>
               <div className={styles.footerActions}>
                 <Button
                   className={styles.cancelBtn}
                   onClick={() => router.push(resolvedBackHref)}
                 >
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -1111,7 +1150,7 @@ export default function GoodsReceiptCreateFromPoPage({
                   loading={createMutation.isPending}
                   disabled={!hasReceivableLines || !canAdd}
                 >
-                  บันทึกใบรับของ
+                  {t("บันทึกใบรับของ")}
                 </Button>
               </div>
             </div>
@@ -1119,16 +1158,16 @@ export default function GoodsReceiptCreateFromPoPage({
 
           <aside className={styles.summaryCard}>
             <div>
-              <p className={styles.summaryEyebrow}>สรุปการรับ</p>
+              <p className={styles.summaryEyebrow}>{t("สรุปการรับ")}</p>
               <h2 className={styles.summaryTitle}>{po.poNo}</h2>
             </div>
             <div className={styles.summaryRows}>
               <div className={styles.summaryRow}>
-                <span>ผู้ขาย</span>
+                <span>{t("ผู้ขาย")}</span>
                 <strong>{po.creditor?.nameTh ?? "—"}</strong>
               </div>
               <div className={styles.summaryRow}>
-                <span>รายการที่รับ</span>
+                <span>{t("รายการที่รับ")}</span>
                 <strong>{selectedPreview.length}</strong>
               </div>
             </div>
@@ -1137,19 +1176,22 @@ export default function GoodsReceiptCreateFromPoPage({
                 {selectedPreview.map((row) => (
                   <li key={row.key}>
                     {row.label}: {formatQtyUnit(row.qty, row.unit)}
-                    {row.mixed ? " (หลายหน่วย)" : ""}
-                    {row.destCount > 1 ? ` (${row.destCount} คลัง)` : ""}
+                    {row.mixed ? ` ${t("(หลายหน่วย)")}` : ""}
+                    {row.destCount > 1
+                      ? ` ${t("({n} คลัง)", { n: row.destCount })}`
+                      : ""}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className={styles.sectionHint}>ยังไม่ได้เลือกจำนวนรับ</p>
+              <p className={styles.sectionHint}>{t("ยังไม่ได้เลือกจำนวนรับ")}</p>
             )}
             <div className={styles.flowNote}>
-              <strong>หมายเหตุ</strong>
+              <strong>{t("หมายเหตุ")}</strong>
               <p>
-                สามารถแยกจำนวนของสินค้าเดียวกันเข้าหลายคลังได้
-                รวมแล้วต้องไม่เกินจำนวนที่เหลือบน PO
+                {t(
+                  "สามารถแยกจำนวนของสินค้าเดียวกันเข้าหลายคลังได้ รวมแล้วต้องไม่เกินจำนวนที่เหลือบน PO",
+                )}
               </p>
             </div>
           </aside>

@@ -5,6 +5,7 @@ import { App, Button, Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { MoreOutlined } from "@ant-design/icons";
 
+import { useT } from "@/lib/i18n/useT";
 import styles from "./RowActionsMenu.module.css";
 
 export type RowAction = {
@@ -51,6 +52,7 @@ export default function RowActionsMenu({
   className,
 }: RowActionsMenuProps) {
   const { modal } = App.useApp();
+  const t = useT();
 
   const items: NonNullable<MenuProps["items"]> = [];
 
@@ -87,8 +89,8 @@ export default function RowActionsMenu({
         modal.confirm({
           title: entry.confirm.title,
           content: entry.confirm.content,
-          okText: entry.confirm.okText ?? "ยืนยัน",
-          cancelText: entry.confirm.cancelText ?? "ยกเลิก",
+          okText: entry.confirm.okText ?? t("ยืนยัน"),
+          cancelText: entry.confirm.cancelText ?? t("ยกเลิก"),
           okButtonProps: {
             danger: entry.confirm.dangerOk ?? entry.danger,
           },

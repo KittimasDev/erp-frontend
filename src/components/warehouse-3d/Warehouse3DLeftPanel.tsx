@@ -13,6 +13,8 @@ import {
   SlidersOutlined,
 } from "@ant-design/icons";
 import type { LightingPreset } from "@/types/warehouse-3d";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
 
 interface Warehouse3DLeftPanelProps {
   explodeFactor: number;
@@ -43,6 +45,8 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
   onToggleLayer,
   onCameraPreset,
 }) => {
+  const t = useT();
+  const lang = useLanguage();
   return (
     <aside
       aria-label="3D Controls Panel"
@@ -52,7 +56,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-400 mb-2">
           <CameraOutlined />
-          <span>มุมมองกล้อง (Camera Views)</span>
+          <span>{t("มุมมองกล้อง (Camera Views)")}</span>
         </div>
         <div className="grid grid-cols-2 gap-1.5 text-xs">
           <button
@@ -60,35 +64,35 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
             onClick={() => onCameraPreset("overview")}
             className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-orange-600/80 hover:text-white border border-slate-700/50 transition cursor-pointer"
           >
-            <span>🌐 3D ภาพรวม</span>
+            <span>{t("🌐 3D ภาพรวม")}</span>
           </button>
           <button
             type="button"
             onClick={() => onCameraPreset("top")}
             className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-orange-600/80 hover:text-white border border-slate-700/50 transition cursor-pointer"
           >
-            <span>📐 Top ผังบน</span>
+            <span>{t("📐 Top ผังบน")}</span>
           </button>
           <button
             type="button"
             onClick={() => onCameraPreset("dock")}
             className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-orange-600/80 hover:text-white border border-slate-700/50 transition cursor-pointer"
           >
-            <span>🚪 ท่ารับสินค้า</span>
+            <span>{t("🚪 ท่ารับสินค้า")}</span>
           </button>
           <button
             type="button"
             onClick={() => onCameraPreset("aisle")}
             className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-orange-600/80 hover:text-white border border-slate-700/50 transition cursor-pointer"
           >
-            <span>🚶 ทางเดิน Aisle</span>
+            <span>{t("🚶 ทางเดิน Aisle")}</span>
           </button>
           <button
             type="button"
             onClick={() => onCameraPreset("side")}
             className="col-span-2 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-orange-600/80 hover:text-white border border-slate-700/50 transition cursor-pointer"
           >
-            <span>✂️ ภาพตัดด้านข้าง (Cross Section)</span>
+            <span>{t("✂️ ภาพตัดด้านข้าง (Cross Section)")}</span>
           </button>
         </div>
       </div>
@@ -102,7 +106,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
         <div className="flex items-center justify-between text-xs font-semibold text-orange-400 mb-2">
           <div className="flex items-center gap-1.5 uppercase tracking-wider">
             <FireOutlined />
-            <span>แผนที่ความจุ (Heatmap)</span>
+            <span>{t("แผนที่ความจุ (Heatmap)")}</span>
           </div>
           <button
             type="button"
@@ -113,7 +117,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
                 : "bg-slate-800 text-slate-400 hover:text-white"
             }`}
           >
-            {heatmapMode ? "เปิดอยู่" : "ปิด"}
+            {heatmapMode ? t("เปิดอยู่") : lang === "en" ? "Off" : "ปิด"}
           </button>
         </div>
         {/* Heatmap Legend */}
@@ -121,28 +125,28 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
-              <span>ว่าง (Empty)</span>
+              <span>{t("ว่าง (Empty)")}</span>
             </span>
             <span className="text-slate-400">0%</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span>ปกติ (Normal)</span>
+              <span>{t("ปกติ (Normal)")}</span>
             </span>
             <span className="text-emerald-400">&lt; 50%</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              <span>หนาแน่น (Busy)</span>
+              <span>{t("หนาแน่น (Busy)")}</span>
             </span>
             <span className="text-amber-400">50 - 80%</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-              <span>เต็ม / วิกฤต (Full)</span>
+              <span>{t("เต็ม / วิกฤต (Full)")}</span>
             </span>
             <span className="text-rose-400">&gt; 80%</span>
           </div>
@@ -155,7 +159,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-400 mb-2">
           <SlidersOutlined />
-          <span>ชั้นข้อมูล (Layers)</span>
+          <span>{t("ชั้นข้อมูล (Layers)")}</span>
         </div>
         <div className="space-y-1.5 text-xs">
           <button
@@ -165,7 +169,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
           >
             <span className="flex items-center gap-2">
               <span className="text-emerald-400">🟩</span>
-              <span>พื้นที่จัดเก็บ Location (Zones)</span>
+              <span>{t("พื้นที่จัดเก็บ Location (Zones)")}</span>
             </span>
             {layers.zones ? (
               <CheckSquareOutlined className="text-emerald-400" />
@@ -180,7 +184,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
           >
             <span className="flex items-center gap-2">
               <span className="text-emerald-400">🚪</span>
-              <span>ประตูท่าเทียบ (Docks)</span>
+              <span>{t("ประตูท่าเทียบ (Docks)")}</span>
             </span>
             {layers.docks ? (
               <CheckSquareOutlined className="text-emerald-400" />
@@ -195,7 +199,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
           >
             <span className="flex items-center gap-2">
               <EyeOutlined className="text-indigo-400" />
-              <span>ป้ายกำกับลอย (3D Badges)</span>
+              <span>{t("ป้ายกำกับลอย (3D Badges)")}</span>
             </span>
             {layers.annotations ? (
               <CheckSquareOutlined className="text-indigo-400" />
@@ -211,7 +215,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
       {/* 5. Lighting / Atmosphere Toggle */}
       <div>
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-orange-400 mb-2">
-          <span>💡 บรรยากาศแสง (Lighting)</span>
+          <span>{t("💡 บรรยากาศแสง (Lighting)")}</span>
         </div>
         <div className="grid grid-cols-3 gap-1 text-xs">
           <button
@@ -224,7 +228,7 @@ export const Warehouse3DLeftPanel: React.FC<Warehouse3DLeftPanelProps> = ({
             }`}
           >
             <span>☀️</span>
-            <span className="text-[10px]">กลางวัน</span>
+            <span className="text-[10px]">{t("กลางวัน")}</span>
           </button>
           <button
             type="button"

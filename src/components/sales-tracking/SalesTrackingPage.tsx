@@ -76,6 +76,8 @@ import type {
 } from "@/types/sales-tracking";
 import styles from "./SalesTrackingPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { tNow, useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 const PAGE_SIZE = 20;
 const HEADER_TIMELINE_STEPS = new Set([
@@ -135,7 +137,7 @@ function toneIcon(tone: SalesTimelineStepTone) {
 }
 
 function statusLabel(status?: string) {
-  if (!status) return "รอเริ่ม";
+  if (!status) return tNow("รอเริ่ม");
   const map: Record<string, string> = {
     DONE: "เสร็จแล้ว",
     PENDING: "รอดำเนินการ",
@@ -153,7 +155,7 @@ function statusLabel(status?: string) {
     PARTIALLY_ISSUED: "จ่ายบางส่วน",
     AWAITING_CONFIRM: "รอยืนยัน",
   };
-  return map[status.toUpperCase()] ?? status;
+  return statusT(tNow, map[status.toUpperCase()] ?? status);
 }
 
 function toneTagColor(tone: SalesTimelineStepTone): string {
@@ -184,6 +186,7 @@ function TimelineStepCard({
   onOpenDeliveryPdf?: (deliveryOrderId: string) => void;
   pdfLoading?: boolean;
 }) {
+  const t = useT();
   const tone = resolveSalesTimelineStepTone(step);
   const canOpenPdf =
     step.step === "Delivery" &&
@@ -212,16 +215,16 @@ function TimelineStepCard({
         </div>
         <div className={styles.timelineDetails}>
           <div className={styles.timelineDetailRow}>
-            <span>เอกสาร</span>
+            <span>{t("เอกสาร")}</span>
             <strong>{step.documentNo ?? "—"}</strong>
           </div>
           <div className={styles.timelineDetailRow}>
-            <span>วันที่</span>
+            <span>{t("วันที่")}</span>
             <strong>{formatDate(step.date)}</strong>
           </div>
           {step.actorName ? (
             <div className={styles.timelineDetailRow}>
-              <span>โดย</span>
+              <span>{t("โดย")}</span>
               <strong>{step.actorName}</strong>
             </div>
           ) : null}
@@ -230,7 +233,7 @@ function TimelineStepCard({
           <div className={styles.timelineActions}>
             {canOpenDoc && step.href ? (
               <Link href={step.href} className={styles.timelineLink}>
-                เปิดเอกสาร
+                {t("เปิดเอกสาร")}
                 <ExportOutlined />
               </Link>
             ) : null}
@@ -243,12 +246,12 @@ function TimelineStepCard({
                 loading={pdfLoading}
                 onClick={() => onOpenDeliveryPdf?.(step.documentId as string)}
               >
-                เปิด PDF
+                {t("เปิด PDF")}
               </Button>
             ) : null}
           </div>
         ) : (
-          <span className={styles.timelineLinkDisabled}>ยังไม่มีเอกสาร</span>
+          <span className={styles.timelineLinkDisabled}>{t("ยังไม่มีเอกสาร")}</span>
         )}
       </div>
     </div>
@@ -280,19 +283,20 @@ function isReturnResult(result?: string): boolean {
 function redeliveryText(round: SalesTrackingRoundTimeline): string {
   if (round.redeliverRequired || round.redeliveryRoundNo) {
     const roundPart = round.redeliveryRoundNo
-      ? `ในรอบ ${round.redeliveryRoundNo}`
+      ? tNow("ในรอบ {redeliveryRoundNo}", { redeliveryRoundNo: round.redeliveryRoundNo })
       : "";
     const datePart = round.redeliverDate
-      ? ` วันที่ ${formatDate(round.redeliverDate)}`
+      ? tNow(" วันที่ {redeliverDate}", { redeliverDate: formatDate(round.redeliverDate) })
       : "";
-    return `ส่งใหม่${roundPart ? ` ${roundPart}` : ""}${datePart}`;
+    return `${tNow("ส่งใหม่")}${roundPart ? ` ${roundPart}` : ""}${datePart}`;
   }
   return round.returnToStock === false
-    ? "ไม่ส่งใหม่ (ปิดการส่ง)"
-    : "ไม่ส่งใหม่ (ลดจำนวนสั่ง)";
+    ? tNow("ไม่ส่งใหม่ (ปิดการส่ง)")
+    : tNow("ไม่ส่งใหม่ (ลดจำนวนสั่ง)");
 }
 
 function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
+  const t = useT();
   const items = round.items ?? [];
   const returned = isReturnResult(round.deliveryResult);
   const hasReturnedQty = items.some(
@@ -310,7 +314,7 @@ function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
 
   const columns: ColumnsType<SalesTrackingRoundItem> = [
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       render: (_v, line) => (
         <div>
@@ -320,7 +324,7 @@ function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
       ),
     },
     {
-      title: "สั่งในรอบ",
+      title: t("สั่งในรอบ"),
       dataIndex: "originalQuantity",
       align: "right",
       width: 84,
@@ -328,14 +332,14 @@ function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
         `${formatQty(v)}${line.unitCode ? ` ${line.unitCode}` : ""}`,
     },
     {
-      title: "ลูกค้ารับ",
+      title: t("ลูกค้ารับ"),
       dataIndex: "deliveredQuantity",
       align: "right",
       width: 76,
       render: (v: string) => formatQty(v),
     },
     {
-      title: "ตีกลับ",
+      title: t("ตีกลับ"),
       dataIndex: "returnedQuantity",
       align: "right",
       width: 64,
@@ -343,7 +347,7 @@ function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
       render: redQty,
     },
     {
-      title: "ปิดการส่ง",
+      title: t("ปิดการส่ง"),
       dataIndex: "closedQuantity",
       align: "right",
       width: 72,
@@ -351,7 +355,7 @@ function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
       render: redQty,
     },
     {
-      title: "คงเหลือ",
+      title: t("คงเหลือ"),
       dataIndex: "remainingQuantity",
       align: "right",
       width: 68,
@@ -366,30 +370,30 @@ function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
     >
       <div className={styles.roundFacts}>
         <div>
-          <span>ผลการส่ง</span>
+          <span>{t("ผลการส่ง")}</span>
           <strong>
             {!round.deliveryResult ? (
-              "ยังไม่ส่ง"
+              t("ยังไม่ส่ง")
             ) : returned ? (
               <Tag color="red" className={styles.timelineTag}>
-                {DELIVERY_SCHEDULE_RETURN_LABEL[
+                {t(DELIVERY_SCHEDULE_RETURN_LABEL[
                   round.deliveryResult as DeliveryScheduleReturnResult
-                ] ?? round.deliveryResult}
+                ] ?? round.deliveryResult)}
               </Tag>
             ) : (
               <Tag color="success" className={styles.timelineTag}>
-                ส่งสำเร็จ
+                {t("ส่งสำเร็จ")}
               </Tag>
             )}
           </strong>
         </div>
         <div>
-          <span>กำหนดส่ง</span>
+          <span>{t("กำหนดส่ง")}</span>
           <strong>{formatDate(round.deliveryDate)}</strong>
         </div>
         {round.deliveredAt ? (
           <div>
-            <span>ส่งจริง</span>
+            <span>{t("ส่งจริง")}</span>
             <strong>{formatErpDateTime(round.deliveredAt)}</strong>
           </div>
         ) : null}
@@ -397,20 +401,20 @@ function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
           <>
             {round.returnReason ? (
               <div>
-                <span>เหตุผลที่ตีกลับ</span>
+                <span>{t("เหตุผลที่ตีกลับ")}</span>
                 <strong className={styles.roundReturnNote}>
                   {round.returnReason}
                 </strong>
               </div>
             ) : null}
             <div>
-              <span>ของที่ตีกลับ</span>
+              <span>{t("ของที่ตีกลับ")}</span>
               <strong>
-                {round.returnToStock ? "คืนเข้าคลัง" : "ไม่คืนเข้าคลัง"}
+                {round.returnToStock ? t("คืนเข้าคลัง") : t("ไม่คืนเข้าคลัง")}
               </strong>
             </div>
             <div>
-              <span>ต่อจากนี้</span>
+              <span>{t("ต่อจากนี้")}</span>
               <strong className={styles.roundReturnNote}>
                 {redeliveryText(round)}
               </strong>
@@ -419,10 +423,10 @@ function RoundDetail({ round }: { round: SalesTrackingRoundTimeline }) {
         ) : null}
         {round.sourceDeliveryOrderNo ? (
           <div>
-            <span>ที่มา</span>
+            <span>{t("ที่มา")}</span>
             <strong>
-              ส่งใหม่แทนของที่ตีกลับจาก {round.sourceDeliveryOrderNo}
-              {round.sourceRoundNo ? ` (รอบ ${round.sourceRoundNo})` : ""}
+              {t("ส่งใหม่แทนของที่ตีกลับจาก")} {round.sourceDeliveryOrderNo}
+              {round.sourceRoundNo ? t(" (รอบ {sourceRoundNo})", { sourceRoundNo: round.sourceRoundNo }) : ""}
             </strong>
           </div>
         ) : null}
@@ -450,6 +454,7 @@ type SummaryCard = {
 };
 
 export default function SalesTrackingPage() {
+  const t = useT();
   const router = useRouter();
   const { message } = App.useApp();
   const trackingActions = useScreenActionPermissions("SALES_TRACKING");
@@ -525,43 +530,43 @@ export default function SalesTrackingPage() {
   const cards: SummaryCard[] = [
     {
       key: "all",
-      label: "ทั้งหมด",
+      label: t("ทั้งหมด"),
       value: allTotalQuery.data?.data.total,
       isAll: true,
     },
     {
       key: "stock",
-      label: "รอตรวจสต๊อก",
+      label: t("รอตรวจสต๊อก"),
       value: summary?.soAwaitingStockCheck,
       filterStatus: "CONFIRMED",
     },
     {
       key: "picking",
-      label: "รอจ่ายสินค้า",
+      label: t("รอจ่ายสินค้า"),
       value: summary?.soAwaitingPicking,
       filterStatus: "STOCK_CHECKED",
     },
     {
       key: "packing",
-      label: "รอบรรจุสินค้า",
+      label: t("รอบรรจุสินค้า"),
       value: summary?.awaitingPacking,
       filterStatus: "PICKING",
     },
     {
       key: "delivery",
-      label: "รอส่งสินค้า",
+      label: t("รอส่งสินค้า"),
       value: summary?.awaitingDelivery,
       filterStatus: "PACKED",
     },
     {
       key: "delivered",
-      label: "ส่งสินค้าแล้ว",
+      label: t("ส่งสินค้าแล้ว"),
       value: summary?.delivered,
       filterStatus: "DELIVERED",
     },
     {
       key: "cancelled",
-      label: "ยกเลิกใบสั่งขาย",
+      label: t("ยกเลิกใบสั่งขาย"),
       value: summary?.cancelled,
       filterStatus: "CANCELLED",
     },
@@ -570,7 +575,7 @@ export default function SalesTrackingPage() {
   const columns: ColumnsType<SalesTrackingRow> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         width: 56,
         align: "center",
         render: (_v, _r, index) => (page - 1) * PAGE_SIZE + index + 1,
@@ -598,7 +603,7 @@ export default function SalesTrackingPage() {
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         dataIndex: "customerName",
         width: 220,
         ellipsis: true,
@@ -612,7 +617,7 @@ export default function SalesTrackingPage() {
         },
       },
       {
-        title: "สินค้า",
+        title: t("สินค้า"),
         key: "items",
         width: 230,
         className: styles.itemColumn,
@@ -621,42 +626,42 @@ export default function SalesTrackingPage() {
         ),
       },
       {
-        title: "วันที่ SO",
+        title: t("วันที่ SO"),
         dataIndex: "orderDate",
         width: 110,
         render: formatDate,
       },
       {
-        title: "สถานะ SO",
+        title: t("สถานะ SO"),
         dataIndex: "salesOrderStatus",
         width: 140,
         render: (value: string) => (
           <Tag color={soStatusColor(value)}>
-            {SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value}
+            {statusT(t, SALES_ORDER_STATUS_LABEL[value as SalesOrderStatus] ?? value)}
           </Tag>
         ),
       },
       {
-        title: "รอบจัดส่ง",
+        title: t("รอบจัดส่ง"),
         key: "rounds",
         width: 110,
         align: "center",
         render: (_v, row) =>
           row.roundCount > 1 ? (
-            <Tag color="blue">{row.roundCount} รอบ</Tag>
+            <Tag color="blue">{row.roundCount} {t("รอบ")}</Tag>
           ) : (
-            <span>รอบเดียว</span>
+            <span>{t("รอบเดียว")}</span>
           ),
       },
       {
-        title: "เอกสารต่อเนื่อง",
+        title: t("เอกสารต่อเนื่อง"),
         key: "docs",
         width: 180,
         render: (_v, row) =>
           // ใบที่แบ่งหลายรอบ: backend ไม่ส่งคอลัมน์ระดับใบมาให้ (เจตนา)
           // เพราะเลขของรอบเดียวจะทำให้เข้าใจผิดว่าเป็นของทั้งใบ
           row.roundCount > 1 ? (
-            <span className={styles.docStack}>กางแถวเพื่อดูรายรอบ</span>
+            <span className={styles.docStack}>{t("กางแถวเพื่อดูรายรอบ")}</span>
           ) : (
             <div className={styles.docStack}>
               <span>PK {row.pickingNo ?? "—"}</span>
@@ -666,12 +671,12 @@ export default function SalesTrackingPage() {
           ),
       },
       {
-        title: "ขั้นตอน",
+        title: t("ขั้นตอน"),
         dataIndex: "currentStep",
         width: 150,
       },
       {
-        title: "ทำถัดไป",
+        title: t("ทำถัดไป"),
         dataIndex: "nextAction",
         width: 180,
         ellipsis: true,
@@ -693,7 +698,7 @@ export default function SalesTrackingPage() {
         ),
       },
     ],
-    [page],
+    [page, t],
   );
 
   if (!trackingActions.canView) {
@@ -747,7 +752,7 @@ export default function SalesTrackingPage() {
       });
     } catch (error) {
       message.error(
-        error instanceof ApiError ? error.message : "เปิด PDF ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เปิด PDF ไม่สำเร็จ"),
       );
     } finally {
       setPdfLoadingId(undefined);
@@ -759,11 +764,11 @@ export default function SalesTrackingPage() {
       <PageHeader
         eyebrow="Sales · Tracking"
         icon={<LineChartOutlined />}
-        title="ติดตามการขายและจัดส่ง"
-        subtitle={<>ภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery
+        title={t("ติดตามการขายและจัดส่ง")}
+        subtitle={<>{t("ภาพรวม Quotation → SO → Stock Check → Picking → Packing → Delivery")}
             {trackingActions.canViewAll
               ? null
-              : " · แสดงเฉพาะเอกสารที่คุณเป็นผู้สร้าง"}</>}
+              : t(" · แสดงเฉพาะเอกสารที่คุณเป็นผู้สร้าง")}</>}
       />
 
       <Row gutter={[12, 12]}>
@@ -803,25 +808,25 @@ export default function SalesTrackingPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
-              placeholder="เลข SO / QT / ลูกค้า"
+              placeholder={t("เลข SO / QT / ลูกค้า")}
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               onPressEnter={() => applyFilters({ page: 1 })}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สินค้า</label>
+            <label>{t("สินค้า")}</label>
             <Select
               allowClear
               showSearch
               mode="multiple"
               maxTagCount="responsive"
               optionFilterProp="label"
-              placeholder="เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก"
-              aria-label="สินค้าในใบสั่งขาย"
+              placeholder={t("เลือกสินค้า — ต้องมีครบทุกชิ้นที่เลือก")}
+              aria-label={t("สินค้าในใบสั่งขาย")}
               value={itemIds}
               onChange={(value) => setItemIds(value)}
               style={{ width: "100%" }}
@@ -830,7 +835,7 @@ export default function SalesTrackingPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ลูกค้า</label>
+            <label>{t("ลูกค้า")}</label>
             <Select
               allowClear
               showSearch
@@ -845,7 +850,7 @@ export default function SalesTrackingPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ SO</label>
+            <label>{t("สถานะ SO")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
@@ -854,13 +859,13 @@ export default function SalesTrackingPage() {
               options={Object.entries(SALES_ORDER_STATUS_LABEL).map(
                 ([value, label]) => ({
                   value,
-                  label,
+                  label: statusT(t, label),
                 }),
               )}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ช่วงวันที่ SO</label>
+            <label>{t("ช่วงวันที่ SO")}</label>
             <DatePicker.RangePicker
               value={dateRange}
               onChange={(value) => setDateRange(value)}
@@ -876,7 +881,7 @@ export default function SalesTrackingPage() {
             icon={<SearchOutlined />}
             onClick={() => applyFilters({ page: 1 })}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
           <Button
             onClick={() => {
@@ -889,7 +894,7 @@ export default function SalesTrackingPage() {
               setApplied({ page: 1, pageSize: PAGE_SIZE });
             }}
           >
-            ล้างตัวกรอง
+            {t("ล้างตัวกรอง")}
           </Button>
         </div>
       </section>
@@ -897,13 +902,13 @@ export default function SalesTrackingPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div>
-            <p className={styles.toolbarTitle}>รายการใบสั่งขาย</p>
+            <p className={styles.toolbarTitle}>{t("รายการใบสั่งขาย")}</p>
             <p className={styles.toolbarHint}>
-              กดแถวเพื่อดูไทม์ไลน์ · กดเลข SO เพื่อเปิดรายละเอียด
+              {t("กดแถวเพื่อดูไทม์ไลน์ · กดเลข SO เพื่อเปิดรายละเอียด")}
             </p>
           </div>
           <span className={styles.tableCount}>
-            {list?.total ?? 0} รายการ
+            {list?.total ?? 0} {t("รายการ")}
           </span>
         </div>
         <Table
@@ -923,47 +928,47 @@ export default function SalesTrackingPage() {
                 dataSource={row.rounds}
                 columns={[
                   {
-                    title: "รอบ",
+                    title: t("รอบ"),
                     dataIndex: "roundNo",
                     width: 70,
                     align: "center",
-                    render: (v: number) => <Tag>รอบ {v}</Tag>,
+                    render: (v: number) => <Tag>{t("รอบ")} {v}</Tag>,
                   },
                   {
-                    title: "วันที่ต้องส่ง",
+                    title: t("วันที่ต้องส่ง"),
                     dataIndex: "deliveryDate",
                     width: 120,
                     render: (v: string) => dayjs(v).format("DD/MM/YYYY"),
                   },
                   {
-                    title: "สถานะรอบ",
+                    title: t("สถานะรอบ"),
                     dataIndex: "roundStatus",
                     width: 120,
                     render: (v: string) => (
                       <Tag>
-                        {DELIVERY_SCHEDULE_STATUS_LABEL[
+                        {statusT(t, DELIVERY_SCHEDULE_STATUS_LABEL[
                           v as DeliveryScheduleStatus
-                        ] ?? v}
+                        ] ?? v)}
                       </Tag>
                     ),
                   },
                   {
-                    title: "ใบจ่าย",
+                    title: t("ใบจ่าย"),
                     dataIndex: "pickingNo",
                     render: (v?: string) => v ?? "—",
                   },
                   {
-                    title: "ใบบรรจุ",
+                    title: t("ใบบรรจุ"),
                     dataIndex: "packingNo",
                     render: (v?: string) => v ?? "—",
                   },
                   {
-                    title: "ใบส่งของ",
+                    title: t("ใบส่งของ"),
                     dataIndex: "deliveryOrderNo",
                     render: (v?: string) => v ?? "—",
                   },
-                  { title: "ขั้นตอน", dataIndex: "currentStep", width: 150 },
-                  { title: "ต้องทำต่อ", dataIndex: "nextAction", width: 200 },
+                  { title: t("ขั้นตอน"), dataIndex: "currentStep", width: 150 },
+                  { title: t("ต้องทำต่อ"), dataIndex: "nextAction", width: 200 },
                 ]}
               />
             ),
@@ -972,7 +977,7 @@ export default function SalesTrackingPage() {
             current: page,
             pageSize: PAGE_SIZE,
             total: list?.total ?? 0,
-            showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+            showTotal: (total) => t("ทั้งหมด {total} รายการ", { total }),
             onChange: (p) => {
               setPage(p);
               setApplied((prev) => ({ ...prev, page: p }));
@@ -1005,20 +1010,20 @@ export default function SalesTrackingPage() {
               <p className={styles.drawerEyebrow}>Order Timeline</p>
               <h2 className={styles.drawerTitle}>{detail.salesOrderNo}</h2>
               <p className={styles.drawerSubtitle}>
-                ติดตามเส้นทางจากใบเสนอราคาจนถึงส่งมอบ
+                {t("ติดตามเส้นทางจากใบเสนอราคาจนถึงส่งมอบ")}
               </p>
               <button
                 type="button"
                 className={styles.drawerClose}
                 onClick={() => setSelectedSoId(undefined)}
-                aria-label="ปิด"
+                aria-label={t("ปิด")}
               >
                 ×
               </button>
             </div>
 
             <div className={styles.nextCard}>
-              <div className={styles.nextLabel}>ขั้นตอนปัจจุบัน</div>
+              <div className={styles.nextLabel}>{t("ขั้นตอนปัจจุบัน")}</div>
               <div className={styles.nextCurrent}>{detail.currentStep}</div>
               <div className={styles.nextAction}>
                 <ArrowRightOutlined />
@@ -1032,7 +1037,7 @@ export default function SalesTrackingPage() {
                     router.push(`/sales-orders/${detail.salesOrderId}`)
                   }
                 >
-                  เปิดใบสั่งขาย
+                  {t("เปิดใบสั่งขาย")}
                 </Button>
               ) : null}
             </div>
@@ -1053,10 +1058,12 @@ export default function SalesTrackingPage() {
                 const roundSteps = round.timeline.filter(
                   (step) => step.step !== "Invoice",
                 );
-                const roundStatusLabel =
+                const roundStatusLabel = statusT(
+                  t,
                   DELIVERY_SCHEDULE_STATUS_LABEL[
                     round.roundStatus as DeliveryScheduleStatus
-                  ] ?? round.roundStatus;
+                  ] ?? round.roundStatus,
+                );
                 return (
                   <div
                     key={round.deliveryScheduleId}
@@ -1064,7 +1071,7 @@ export default function SalesTrackingPage() {
                   >
                     <div className={styles.roundHeading}>
                       <span>
-                        รอบที่ {round.roundNo} · ส่งวันที่{" "}
+                        {t("รอบที่")} {round.roundNo} {t("· ส่งวันที่")}{" "}
                         {formatDate(round.deliveryDate)}
                       </span>
                       <Tag

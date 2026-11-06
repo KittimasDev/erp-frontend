@@ -15,6 +15,7 @@ import { weighbridgeDashboardQueryKey } from "@/hooks/weighbridge-tickets/useWei
 import { weighbridgeTicketQueryKey } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { rawTirePurchaseReceiptQueryKey } from "@/hooks/raw-tire-purchase/useRawTirePurchaseReceiptQuery";
 import { rawTirePaymentQueryKey } from "./useRawTirePaymentQuery";
+import { useT } from "@/lib/i18n/useT";
 
 function invalidatePayment(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -40,6 +41,7 @@ function invalidatePayment(
 }
 
 export function usePayReceiptMutation(receiptId: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -51,18 +53,19 @@ export function usePayReceiptMutation(receiptId: string) {
       await invalidatePayment(queryClient, receiptId);
       message.success(
         response.message ||
-          "บันทึกจ่ายเงินสำเร็จแล้ว — แจ้งคลังให้เลือกคลังและอนุมัติ",
+          t("บันทึกจ่ายเงินสำเร็จแล้ว — แจ้งคลังให้เลือกคลังและอนุมัติ"),
       );
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "บันทึกจ่ายเงินไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("บันทึกจ่ายเงินไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useUploadPaymentSlipMutation(receiptId: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -86,17 +89,18 @@ export function useUploadPaymentSlipMutation(receiptId: string) {
       await queryClient.invalidateQueries({
         queryKey: [...rawTirePaymentQueryKey, receiptId],
       });
-      message.success(response.message || "อัปโหลดสลิปสำเร็จแล้ว");
+      message.success(response.message || t("อัปโหลดสลิปสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "อัปโหลดสลิปไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("อัปโหลดสลิปไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function usePaymentPrintPreviewMutation(receiptId: string) {
+  const t = useT();
   const { message } = App.useApp();
 
   return useMutation({
@@ -111,18 +115,18 @@ export function usePaymentPrintPreviewMutation(receiptId: string) {
     onSuccess: (response) => {
       const win = window.open("", "_blank", "noopener,noreferrer");
       if (!win) {
-        message.warning("ไม่สามารถเปิดหน้าต่างพิมพ์ได้ กรุณาอนุญาต popup");
+        message.warning(t("ไม่สามารถเปิดหน้าต่างพิมพ์ได้ กรุณาอนุญาต popup"));
         return;
       }
       win.document.write(response.data.previewHtml);
       win.document.close();
-      message.success(response.message || "เปิดตัวอย่างพิมพ์แล้ว");
+      message.success(response.message || t("เปิดตัวอย่างพิมพ์แล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "เปิดตัวอย่างพิมพ์ไม่สำเร็จ",
+          : t("เปิดตัวอย่างพิมพ์ไม่สำเร็จ"),
       );
     },
   });

@@ -22,6 +22,7 @@ import type { ColumnsType } from "antd/es/table";
 import dayjs, { type Dayjs } from "dayjs";
 
 import MasterPageGate from "@/components/common/MasterPageGate";
+import { tNow, useT } from "@/lib/i18n/useT";
 import LotQcModal from "./LotQcModal";
 import { useInventoryLotsQuery } from "@/hooks/inventory/useInventoryQueries";
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
@@ -93,14 +94,15 @@ function expiryRowClass(status?: string) {
 }
 
 function OtherUnitWarning({ row }: { row: InventoryLotBalanceRow }) {
+  const t = useT();
   if (!row.recordedInOtherUnit) {
     return null;
   }
   const recorded = `${formatQty(row.quantityOnHand)} ${row.unitCode ?? ""}`.trim();
   const title =
     row.baseUnitConvertible === false
-      ? `บันทึกเป็น ${row.unitCode ?? "หน่วยอื่น"} และยังไม่มีกฎแปลงเป็นหน่วยหลักของสินค้า — ตั้งกฎที่ ข้อมูลหลัก > กฎแปลงหน่วยนับ`
-      : `บันทึกในระบบเป็น ${recorded} — แสดงเป็นหน่วยหลัก ${row.baseUnitCode ?? ""}`;
+      ? t("บันทึกเป็น {unit} และยังไม่มีกฎแปลงเป็นหน่วยหลักของสินค้า — ตั้งกฎที่ ข้อมูลหลัก > กฎแปลงหน่วยนับ", { unit: row.unitCode ?? t("หน่วยอื่น") })
+      : t("บันทึกในระบบเป็น {recorded} — แสดงเป็นหน่วยหลัก {unit}", { recorded, unit: row.baseUnitCode ?? "" });
   return (
     <Tooltip title={title}>
       <WarningOutlined
@@ -116,12 +118,12 @@ function formatDaysUntilExpiry(days?: number) {
     return null;
   }
   if (days < 0) {
-    return `เลยมา ${Math.abs(days)} วัน`;
+    return tNow("เลยมา {n} วัน", { n: Math.abs(days) });
   }
   if (days === 0) {
-    return "หมดอายุวันนี้";
+    return tNow("หมดอายุวันนี้");
   }
-  return `เหลือ ${days} วัน`;
+  return tNow("เหลือ {n} วัน", { n: days });
 }
 
 function pageCopy(
@@ -133,20 +135,21 @@ function pageCopy(
     const isRm = scope.title === "คลังวัตถุดิบ";
     const isFg = scope.title === "คลังสินค้าสำเร็จรูป";
     return {
-      eyebrow: isRm ? "คลังวัตถุดิบ · RAW MATERIAL" : isFg ? "คลังสินค้าสำเร็จรูป · FINISHED GOODS" : scope.eyebrow,
-      title: isRm ? "ยอดคงเหลือและประวัติ Lot วัตถุดิบ" : isFg ? "ยอดคงเหลือและประวัติ Lot สินค้าสำเร็จรูป" : scope.title,
-      subtitle: "ตรวจสอบประวัติ Lot วัตถุดิบ ยอดคงเหลือ ตำแหน่งจัดเก็บ และวันหมดอายุ",
+      eyebrow: isRm ? tNow("คลังวัตถุดิบ · RAW MATERIAL") : isFg ? tNow("คลังสินค้าสำเร็จรูป · FINISHED GOODS") : tNow(scope.eyebrow),
+      title: isRm ? tNow("ยอดคงเหลือและประวัติ Lot วัตถุดิบ") : isFg ? tNow("ยอดคงเหลือและประวัติ Lot สินค้าสำเร็จรูป") : tNow(scope.title),
+      subtitle: tNow("ตรวจสอบประวัติ Lot วัตถุดิบ ยอดคงเหลือ ตำแหน่งจัดเก็บ และวันหมดอายุ"),
     };
   }
   return {
     eyebrow: "INVENTORY · LOTS",
-    title: "ยอดคงเหลือแยก Lot",
+    title: tNow("ยอดคงเหลือแยก Lot"),
     subtitle:
-      "ตรวจสอบ Lot จากใบรับซื้อยาง รับผลผลิต และเอกสารต้นทางอื่น — แถวสีเตือนเมื่อใกล้หมดอายุ",
+      tNow("ตรวจสอบ Lot จากใบรับซื้อยาง รับผลผลิต และเอกสารต้นทางอื่น — แถวสีเตือนเมื่อใกล้หมดอายุ"),
   };
 }
 
 export default function InventoryLotsPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const searchParams = useSearchParams();
   const scopeFilter = inventoryScopeApiFilter(searchParams);
@@ -264,14 +267,14 @@ export default function InventoryLotsPage() {
   const filterHint = [
     filters.warehouseId
       ? warehouseOptions.find((o) => o.value === filters.warehouseId)?.label
-      : "ทุกคลัง",
-    filters.status ? `สถานะ ${filters.status}` : null,
-    filters.hasStock === false ? "รวมยอดศูนย์" : "เฉพาะมียอด",
-    filters.nearExpiry ? "ใกล้หมดอายุ" : null,
+      : t("ทุกคลัง"),
+    filters.status ? t("สถานะ {status}", { status: filters.status }) : null,
+    filters.hasStock === false ? t("รวมยอดศูนย์") : t("เฉพาะมียอด"),
+    filters.nearExpiry ? t("ใกล้หมดอายุ") : null,
     filters.dateFrom || filters.dateTo
-      ? `รับเข้า ${filters.dateFrom ? formatDate(filters.dateFrom) : "…"} – ${filters.dateTo ? formatDate(filters.dateTo) : "…"}`
+      ? t("รับเข้า {from} – {to}", { from: filters.dateFrom ? formatDate(filters.dateFrom) : "…", to: filters.dateTo ? formatDate(filters.dateTo) : "…" })
       : null,
-    filters.q ? `ค้นหา “${filters.q}”` : null,
+    filters.q ? t("ค้นหา “{q}”", { q: filters.q }) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -280,7 +283,7 @@ export default function InventoryLotsPage() {
 
   const columns: ColumnsType<InventoryLotBalanceRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
@@ -297,7 +300,7 @@ export default function InventoryLotsPage() {
       ),
     },
     {
-      title: "วันที่รับเข้า",
+      title: t("วันที่รับเข้า"),
       dataIndex: "receivedDate",
       key: "receivedDate",
       width: 120,
@@ -308,7 +311,7 @@ export default function InventoryLotsPage() {
       ),
     },
     {
-      title: "สินค้า",
+      title: t("สินค้า"),
       key: "item",
       width: 220,
       render: (_, row) => (
@@ -319,7 +322,7 @@ export default function InventoryLotsPage() {
       ),
     },
     {
-      title: "คลัง / ตำแหน่ง",
+      title: t("คลัง / ตำแหน่ง"),
       key: "place",
       width: 240,
       render: (_, row) => (
@@ -333,7 +336,7 @@ export default function InventoryLotsPage() {
       ),
     },
     {
-      title: "คงเหลือ",
+      title: t("คงเหลือ"),
       dataIndex: "quantityOnHand",
       key: "quantityOnHand",
       align: "right",
@@ -349,7 +352,7 @@ export default function InventoryLotsPage() {
       ),
     },
     {
-      title: "พร้อมใช้",
+      title: t("พร้อมใช้"),
       dataIndex: "quantityAvailable",
       key: "quantityAvailable",
       align: "right",
@@ -361,7 +364,7 @@ export default function InventoryLotsPage() {
       ),
     },
     {
-      title: "หมดอายุ",
+      title: t("หมดอายุ"),
       key: "expiry",
       width: 170,
       render: (_, row) => {
@@ -380,18 +383,18 @@ export default function InventoryLotsPage() {
               </span>
             ) : (
               <span className={styles.metaMuted}>
-                {LOT_EXPIRY_STATUS_LABEL[status] ?? status}
+                {LOT_EXPIRY_STATUS_LABEL[status] ? t(LOT_EXPIRY_STATUS_LABEL[status]) : status}
               </span>
             )}
             {row.expirySource === "CALCULATED" ? (
-              <span className={styles.metaMuted}>คำนวณจากอายุเก็บ</span>
+              <span className={styles.metaMuted}>{t("คำนวณจากอายุเก็บ")}</span>
             ) : null}
           </div>
         );
       },
     },
     {
-      title: "สถานะ",
+      title: t("สถานะ"),
       key: "status",
       width: 150,
       render: (_, row) => {
@@ -411,7 +414,7 @@ export default function InventoryLotsPage() {
                 color: isPending ? "#d97706" : isApproved ? "#16a34a" : "#64748b",
               }}
             >
-              {isPending ? "⚠️ QC รอตรวจ" : isApproved ? "✓ QC ผ่าน" : `QC ${row.qcStatus || "-"}`}
+              {isPending ? t("⚠️ QC รอตรวจ") : isApproved ? t("✓ QC ผ่าน") : `QC ${row.qcStatus || "-"}`}
               {row.coaReference ? ` · COA ${row.coaReference}` : ""}
             </span>
           </div>
@@ -429,12 +432,12 @@ export default function InventoryLotsPage() {
           type={row.qcStatus === "PENDING" || row.qcStatus === "HOLD" ? "primary" : "default"}
           onClick={() => setQcLot(row)}
         >
-          {row.qcStatus === "PENDING" || row.qcStatus === "HOLD" ? "ตรวจ QC" : "QC / COA"}
+          {row.qcStatus === "PENDING" || row.qcStatus === "HOLD" ? t("ตรวจ QC") : "QC / COA"}
         </Button>
       ),
     },
     {
-      title: "เอกสารต้นทาง",
+      title: t("เอกสารต้นทาง"),
       key: "source",
       width: 200,
       render: (_, row) => (
@@ -481,16 +484,16 @@ export default function InventoryLotsPage() {
             title={
               pageError instanceof Error
                 ? pageError.message
-                : "โหลดข้อมูลไม่สำเร็จ"
+                : t("โหลดข้อมูลไม่สำเร็จ")
             }
-            description="ถ้าเพิ่งแก้ Permission Matrix ให้ตรวจที่ /users ว่าบัญชีนี้ผูก role ที่ติ๊กไว้ — เมนูจะรีเฟรชหลัง Save โดยไม่ต้อง logout"
+            description={t("ถ้าเพิ่งแก้ Permission Matrix ให้ตรวจที่ /users ว่าบัญชีนี้ผูก role ที่ติ๊กไว้ — เมนูจะรีเฟรชหลัง Save โดยไม่ต้อง logout")}
             style={{ marginBottom: 16 }}
           />
         ) : null}
 
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>รายการ Lot ทั้งหมด</span>
+            <span>{t("รายการ Lot ทั้งหมด")}</span>
             <strong>
               {stats.lots}{" "}
               <span style={{ fontSize: 13, fontWeight: 400, color: "#6f9720" }}>
@@ -498,17 +501,17 @@ export default function InventoryLotsPage() {
               </span>
             </strong>
             <span className={styles.summarySub}>
-              {stats.rows} ตำแหน่งจัดเก็บ · {stats.items} ชนิดสินค้า
+              {t("{rows} ตำแหน่งจัดเก็บ · {items} ชนิดสินค้า", { rows: stats.rows, items: stats.items })}
             </span>
           </div>
 
           <div className={styles.summaryCard}>
-            <span>คงเหลือรวมในคลัง</span>
+            <span>{t("คงเหลือรวมในคลัง")}</span>
             <strong className={styles.summaryCompact}>
               {formatQty(String(stats.totalOnHand))}
             </strong>
             <span className={styles.summarySub} style={{ color: "#739816" }}>
-              พร้อมใช้: <strong>{formatQty(String(stats.totalAvailable))}</strong>
+              {t("พร้อมใช้")}: <strong>{formatQty(String(stats.totalAvailable))}</strong>
             </span>
           </div>
 
@@ -521,15 +524,15 @@ export default function InventoryLotsPage() {
                   : "1px solid var(--erp-border, rgba(0, 0, 0, 0.06))",
             }}
           >
-            <span>การตรวจคุณภาพ (QC)</span>
+            <span>{t("การตรวจคุณภาพ (QC)")}</span>
             <strong style={{ color: stats.pendingQc > 0 ? "#d97706" : "#2f343a" }}>
               {stats.pendingQc}{" "}
-              <span style={{ fontSize: 13, fontWeight: 400 }}>รอตรวจ</span>
+              <span style={{ fontSize: 13, fontWeight: 400 }}>{t("รอตรวจ")}</span>
             </strong>
             <span className={styles.summarySub}>
               {stats.pendingQc > 0
-                ? "⚠️ มี Lot รออนุมัติผล QC / COA"
-                : "✅ ผ่านการตรวจ QC ครบถ้วน"}
+                ? t("⚠️ มี Lot รออนุมัติผล QC / COA")
+                : t("✅ ผ่านการตรวจ QC ครบถ้วน")}
             </span>
           </div>
 
@@ -544,7 +547,7 @@ export default function InventoryLotsPage() {
                   : "1px solid var(--erp-border, rgba(0, 0, 0, 0.06))",
             }}
           >
-            <span>การเฝ้าระวังวันหมดอายุ</span>
+            <span>{t("การเฝ้าระวังวันหมดอายุ")}</span>
             <strong
               style={{
                 color:
@@ -562,12 +565,12 @@ export default function InventoryLotsPage() {
             </strong>
             <span className={styles.summarySub}>
               {stats.expiredLots > 0
-                ? `❌ หมดอายุแล้ว ${stats.expiredLots} Lot`
+                ? t("❌ หมดอายุแล้ว {n} Lot", { n: stats.expiredLots })
                 : stats.criticalLots > 0
-                ? `⚠️ วิกฤต ≤7 วัน ${stats.criticalLots} Lot`
+                ? t("⚠️ วิกฤต ≤7 วัน {n} Lot", { n: stats.criticalLots })
                 : stats.warningLots > 0
-                ? `ใกล้หมดอายุ ≤30 วัน ${stats.warningLots} Lot`
-                : "✅ ทุก Lot วันที่ปกติ"}
+                ? t("ใกล้หมดอายุ ≤30 วัน {n} Lot", { n: stats.warningLots })
+                : t("✅ ทุก Lot วันที่ปกติ")}
             </span>
           </div>
         </div>
@@ -575,20 +578,20 @@ export default function InventoryLotsPage() {
         <div className={styles.card}>
           <div className={styles.listHeader}>
             <div>
-              <h3>รายการ Lot ในคลัง</h3>
+              <h3>{t("รายการ Lot ในคลัง")}</h3>
               <p>{filterHint}</p>
             </div>
           </div>
 
           <div className={styles.filterBar}>
             <div className={styles.filterField} style={{ minWidth: 170 }}>
-              <span className={styles.filterLabel}>คลัง</span>
+              <span className={styles.filterLabel}>{t("คลัง")}</span>
               <Select
                 allowClear
                 showSearch
                 className={styles.filterControl}
                 optionFilterProp="label"
-                placeholder="ทุกคลัง"
+                placeholder={t("ทุกคลัง")}
                 options={warehouseOptions}
                 value={draft.warehouseId}
                 onChange={(value) =>
@@ -601,14 +604,14 @@ export default function InventoryLotsPage() {
               />
             </div>
             <div className={styles.filterField} style={{ minWidth: 170 }}>
-              <span className={styles.filterLabel}>ตำแหน่ง</span>
+              <span className={styles.filterLabel}>{t("ตำแหน่ง")}</span>
               <Select
                 allowClear
                 showSearch
                 className={styles.filterControl}
                 optionFilterProp="label"
                 placeholder={
-                  draft.warehouseId ? "ทุกตำแหน่ง" : "เลือกคลังก่อน"
+                  draft.warehouseId ? t("ทุกตำแหน่ง") : t("เลือกคลังก่อน")
                 }
                 options={locationOptions}
                 disabled={!draft.warehouseId}
@@ -619,11 +622,11 @@ export default function InventoryLotsPage() {
               />
             </div>
             <div className={styles.filterField} style={{ width: 130 }}>
-              <span className={styles.filterLabel}>สถานะ Lot</span>
+              <span className={styles.filterLabel}>{t("สถานะ Lot")}</span>
               <Select
                 allowClear
                 className={styles.filterControl}
-                placeholder="ทุกสถานะ"
+                placeholder={t("ทุกสถานะ")}
                 options={statusOptions}
                 value={draft.status}
                 onChange={(value) =>
@@ -632,12 +635,12 @@ export default function InventoryLotsPage() {
               />
             </div>
             <div className={styles.filterField} style={{ width: 240 }}>
-              <span className={styles.filterLabel}>วันที่รับเข้า</span>
+              <span className={styles.filterLabel}>{t("วันที่รับเข้า")}</span>
               <DatePicker.RangePicker
                 allowEmpty={[true, true]}
                 className={styles.filterControl}
                 format="DD/MM/YYYY"
-                placeholder={["ตั้งแต่", "ถึง"]}
+                placeholder={[t("ตั้งแต่"), t("ถึง")]}
                 value={draft.receivedRange ?? null}
                 onChange={(range) =>
                   setDraft((prev) => ({ ...prev, receivedRange: range }))
@@ -645,12 +648,12 @@ export default function InventoryLotsPage() {
               />
             </div>
             <div className={styles.filterField} style={{ width: 230 }}>
-              <span className={styles.filterLabel}>ค้นหา</span>
+              <span className={styles.filterLabel}>{t("ค้นหา")}</span>
               <Input
                 allowClear
                 className={styles.filterControl}
                 prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
-                placeholder="Lot / สินค้า / เอกสาร..."
+                placeholder={t("Lot / สินค้า / เอกสาร...")}
                 value={draft.q}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, q: e.target.value }))
@@ -661,8 +664,8 @@ export default function InventoryLotsPage() {
             <div className={styles.stockToggle}>
               <Switch
                 checked={draft.nearExpiry}
-                checkedChildren="ใกล้หมดอายุ"
-                unCheckedChildren="ทั้งหมด"
+                checkedChildren={t("ใกล้หมดอายุ")}
+                unCheckedChildren={t("ทั้งหมด")}
                 onChange={(checked) =>
                   setDraft((prev) => ({ ...prev, nearExpiry: checked }))
                 }
@@ -671,8 +674,8 @@ export default function InventoryLotsPage() {
             <div className={styles.stockToggle}>
               <Switch
                 checked={draft.hasStock}
-                checkedChildren="มียอด"
-                unCheckedChildren="ทั้งหมด"
+                checkedChildren={t("มียอด")}
+                unCheckedChildren={t("ทั้งหมด")}
                 onChange={(checked) =>
                   setDraft((prev) => ({ ...prev, hasStock: checked }))
                 }
@@ -685,14 +688,14 @@ export default function InventoryLotsPage() {
                 className={styles.searchButton}
                 onClick={handleSearch}
               >
-                ค้นหา
+                {t("ค้นหา")}
               </Button>
               <Button
                 icon={<ClearOutlined />}
                 className={styles.clearButton}
                 onClick={handleClear}
               >
-                ล้าง
+                {t("ล้าง")}
               </Button>
             </div>
           </div>
@@ -707,16 +710,16 @@ export default function InventoryLotsPage() {
               rowClassName={(row) => expiryRowClass(row.expiryStatus)}
               pagination={{
                 pageSize: 15,
-                showTotal: (total) => `ทั้งหมด ${total} รายการ`,
+                showTotal: (total) => t("ทั้งหมด {n} รายการ", { n: total }),
                 hideOnSinglePage: true,
               }}
               scroll={{ x: 1600 }}
               locale={{
                 emptyText: (
                   <div className={styles.emptyState}>
-                    <strong>ยังไม่มี Lot ตามเงื่อนไข</strong>
+                    <strong>{t("ยังไม่มี Lot ตามเงื่อนไข")}</strong>
                     <span>
-                      ลองเปลี่ยนคลัง ตำแหน่ง หรือปิดตัวกรอง “เฉพาะมียอด”
+                      {t("ลองเปลี่ยนคลัง ตำแหน่ง หรือปิดตัวกรอง “เฉพาะมียอด”")}
                     </span>
                   </div>
                 ),

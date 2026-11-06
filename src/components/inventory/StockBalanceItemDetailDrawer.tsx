@@ -8,6 +8,7 @@ import {
   useStockBalanceReservationsQuery,
   useStockBalancesQuery,
 } from "@/hooks/inventory/useInventoryQueries";
+import { useT } from "@/lib/i18n/useT";
 import { formatErpDateTime } from "@/lib/datetime/erp-timezone";
 import type {
   StockBalanceByItemRow,
@@ -38,6 +39,7 @@ export default function StockBalanceItemDetailDrawer({
   filters,
   onClose,
 }: Props) {
+  const t = useT();
   const detailQuery = useStockBalancesQuery(
     item
       ? {
@@ -67,14 +69,14 @@ export default function StockBalanceItemDetailDrawer({
 
   const columns: ColumnsType<StockBalanceRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "คลัง / ตำแหน่ง",
+      title: t("คลัง / ตำแหน่ง"),
       key: "place",
       render: (_, row) => (
         <div className={styles.itemCell}>
@@ -87,7 +89,7 @@ export default function StockBalanceItemDetailDrawer({
       ),
     },
     {
-      title: "คงเหลือ",
+      title: t("คงเหลือ"),
       dataIndex: "quantityOnHand",
       key: "quantityOnHand",
       align: "right",
@@ -97,7 +99,7 @@ export default function StockBalanceItemDetailDrawer({
       ),
     },
     {
-      title: "พร้อมใช้",
+      title: t("พร้อมใช้"),
       dataIndex: "quantityAvailable",
       key: "quantityAvailable",
       align: "right",
@@ -109,7 +111,7 @@ export default function StockBalanceItemDetailDrawer({
       ),
     },
     {
-      title: "จอง",
+      title: t("จอง"),
       dataIndex: "quantityReserved",
       key: "quantityReserved",
       align: "right",
@@ -122,19 +124,19 @@ export default function StockBalanceItemDetailDrawer({
 
   const reservationColumns: ColumnsType<StockBalanceReservationRow> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
     {
-      title: "ลูกค้า",
+      title: t("ลูกค้า"),
       key: "customer",
       render: (_, row) => (
         <div className={styles.itemCell}>
           <span className={styles.itemName}>
-            {row.customerName || "ไม่ระบุลูกค้า"}
+            {row.customerName || t("ไม่ระบุลูกค้า")}
           </span>
           {row.customerCode ? (
             <span className={styles.metaMuted}>{row.customerCode}</span>
@@ -143,7 +145,7 @@ export default function StockBalanceItemDetailDrawer({
       ),
     },
     {
-      title: "ใบสั่งขาย",
+      title: t("ใบสั่งขาย"),
       key: "soNo",
       width: 140,
       render: (_, row) => (
@@ -153,7 +155,7 @@ export default function StockBalanceItemDetailDrawer({
       ),
     },
     {
-      title: "จำนวน",
+      title: t("จำนวน"),
       dataIndex: "quantity",
       key: "quantity",
       align: "right",
@@ -163,7 +165,7 @@ export default function StockBalanceItemDetailDrawer({
       ),
     },
     {
-      title: "คลัง / ตำแหน่ง",
+      title: t("คลัง / ตำแหน่ง"),
       key: "place",
       width: 140,
       render: (_, row) => (
@@ -177,7 +179,7 @@ export default function StockBalanceItemDetailDrawer({
       ),
     },
     {
-      title: "วันเวลาที่จอง",
+      title: t("วันเวลาที่จอง"),
       dataIndex: "reservedAt",
       key: "reservedAt",
       width: 150,
@@ -196,7 +198,7 @@ export default function StockBalanceItemDetailDrawer({
             <span className={styles.itemName}>{item.itemNameTh}</span>
           </div>
         ) : (
-          "รายละเอียดยอดคงเหลือ"
+          t("รายละเอียดยอดคงเหลือ")
         )
       }
       open={open}
@@ -209,24 +211,24 @@ export default function StockBalanceItemDetailDrawer({
         <>
           <div className={styles.drawerSummary}>
             <div>
-              <span>คงเหลือรวม</span>
+              <span>{t("คงเหลือรวม")}</span>
               <strong>
                 {formatQty(item.totalQuantityOnHand)}
                 {item.unitCode ? ` ${item.unitCode}` : ""}
               </strong>
             </div>
             <div>
-              <span>พร้อมใช้</span>
+              <span>{t("พร้อมใช้")}</span>
               <strong className={styles.qtyAvailable}>
                 {formatQty(item.totalQuantityAvailable)}
               </strong>
             </div>
             <div>
-              <span>จองรวม</span>
+              <span>{t("จองรวม")}</span>
               <strong>{formatQty(item.totalQuantityReserved)}</strong>
             </div>
             <div>
-              <span>คลัง / ตำแหน่ง</span>
+              <span>{t("คลัง / ตำแหน่ง")}</span>
               <strong>
                 {item.warehouseCount} / {item.locationCount}
               </strong>
@@ -242,16 +244,16 @@ export default function StockBalanceItemDetailDrawer({
             pagination={{
               pageSize: 10,
               hideOnSinglePage: true,
-              showTotal: (total) => `${total} รายการ`,
+              showTotal: (total) => t("{n} รายการ", { n: total }),
             }}
             locale={{
-              emptyText: "ไม่มียอดคงเหลือตามเงื่อนไข",
+              emptyText: t("ไม่มียอดคงเหลือตามเงื่อนไข"),
             }}
           />
 
           <div className={styles.reservationSection}>
-            <h4>รายการจอง</h4>
-            <p>แยกตามลูกค้าและใบสั่งขาย — ของยังอยู่ในคลัง แต่พร้อมใช้ลดแล้ว</p>
+            <h4>{t("รายการจอง")}</h4>
+            <p>{t("แยกตามลูกค้าและใบสั่งขาย — ของยังอยู่ในคลัง แต่พร้อมใช้ลดแล้ว")}</p>
             <Table
               rowKey="id"
               className={styles.dataTable}
@@ -262,10 +264,10 @@ export default function StockBalanceItemDetailDrawer({
               pagination={{
                 pageSize: 10,
                 hideOnSinglePage: true,
-                showTotal: (total) => `${total} รายการจอง`,
+                showTotal: (total) => t("{n} รายการจอง", { n: total }),
               }}
               locale={{
-                emptyText: "ยังไม่มีการจองสินค้านี้",
+                emptyText: t("ยังไม่มีการจองสินค้านี้"),
               }}
             />
           </div>
@@ -283,7 +285,7 @@ export default function StockBalanceItemDetailDrawer({
               }`}
               className={styles.drawerLink}
             >
-              ดูยอดแยก Lot →
+              {t("ดูยอดแยก Lot →")}
             </Link>
           </div>
         </>

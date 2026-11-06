@@ -15,6 +15,9 @@ import {
 } from "antd";
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 
+import { formatNumber } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import { useSellersQuery } from "@/hooks/sellers/useSellersQuery";
 import { useTireClassificationsQuery } from "@/hooks/tire-classifications/useTireClassificationsQuery";
 import { useTrucksQuery } from "@/hooks/trucks/useTrucksQuery";
@@ -92,6 +95,8 @@ export default function CreateTicketFromOcrModal({
   onClose,
   onCreated,
 }: Props) {
+  const t = useT();
+  const lang = useLanguage();
   const createMutation = useCreateTicketFromOcrMutation();
 
   const sellersQuery = useSellersQuery({ isActive: true });
@@ -248,29 +253,29 @@ export default function CreateTicketFromOcrModal({
     ...(truckMode === "CREATE"
       ? [
           plateDraft.trim()
-            ? `ไม่พบรถทะเบียน ${plateDraft} ในระบบ — กดยืนยันแล้วระบบจะสร้างรถและผู้ขายใหม่ให้ ตรวจทะเบียนให้ตรงกับใบก่อน`
-            : "ยังไม่รู้ทะเบียนรถ กรุณากรอกทะเบียนก่อนเปิดตั๋ว",
+            ? t("ไม่พบรถทะเบียน {plate} ในระบบ — กดยืนยันแล้วระบบจะสร้างรถและผู้ขายใหม่ให้ ตรวจทะเบียนให้ตรงกับใบก่อน", { plate: plateDraft })
+            : t("ยังไม่รู้ทะเบียนรถ กรุณากรอกทะเบียนก่อนเปิดตั๋ว"),
         ]
       : []),
     ...(blocking
       ? [
-          "มีรายการยางที่ยังไม่ได้เลือกประเภท — ต้องเลือกก่อน ไม่งั้นน้ำหนักที่กรอกไว้จะหาย",
+          t("มีรายการยางที่ยังไม่ได้เลือกประเภท — ต้องเลือกก่อน ไม่งั้นน้ำหนักที่กรอกไว้จะหาย"),
         ]
       : []),
   ];
 
   const previewRows = [
-    { label: "อ่านด้วย", value: engineLabel(result.engine) },
-    { label: "ความเชื่อมั่น", value: `${Math.round(result.meanConfidence)}%` },
+    { label: t("อ่านด้วย"), value: engineLabel(result.engine) },
+    { label: t("ความเชื่อมั่น"), value: `${Math.round(result.meanConfidence)}%` },
     {
-      label: "ใช้เวลาอ่าน",
-      value: `${(result.durationMs / 1000).toFixed(1)} วินาที`,
+      label: t("ใช้เวลาอ่าน"),
+      value: t("{n} วินาที", { n: (result.durationMs / 1000).toFixed(1) }),
     },
     ...(result.ticketNo.value
-      ? [{ label: "เลขที่บัตร", value: result.ticketNo.value }]
+      ? [{ label: t("เลขที่บัตร"), value: result.ticketNo.value }]
       : []),
     ...(result.totalAmount.value !== null
-      ? [{ label: "ยอดบนใบ", value: formatMoney(result.totalAmount.value) }]
+      ? [{ label: t("ยอดบนใบ"), value: formatMoney(result.totalAmount.value) }]
       : []),
   ];
 
@@ -332,8 +337,8 @@ export default function CreateTicketFromOcrModal({
       width={880}
       className={styles.ocrModal}
       title={null}
-      okText="สร้างตั๋วและไปคัดแยก"
-      cancelText="ยกเลิก"
+      okText={t("สร้างตั๋วและไปคัดแยก")}
+      cancelText={t("ยกเลิก")}
       mask={{ closable: !createMutation.isPending }}
       closable={!createMutation.isPending}
       okButtonProps={{
@@ -345,8 +350,8 @@ export default function CreateTicketFromOcrModal({
       onCancel={onClose}
     >
       <OcrModalHeader
-        title="เปิดตั๋วรับซื้อจากรูปใบชั่ง"
-        subtitle="ตรวจค่าที่อ่านมาให้ตรงกับใบจริง แล้วกดสร้างตั๋ว"
+        title={t("เปิดตั๋วรับซื้อจากรูปใบชั่ง")}
+        subtitle={t("ตรวจค่าที่อ่านมาให้ตรงกับใบจริง แล้วกดสร้างตั๋ว")}
       />
 
       <div className={styles.ocrLayout}>
@@ -356,12 +361,12 @@ export default function CreateTicketFromOcrModal({
           <OcrNotice messages={notices} type={blocking ? "error" : "warning"} />
 
           <OcrSection
-            title="รถและผู้ขาย"
+            title={t("รถและผู้ขาย")}
             extra={loading ? <Spin size="small" /> : null}
           >
             <div className={styles.ocrField}>
               <OcrField
-                label="ทะเบียนรถ"
+                label={t("ทะเบียนรถ")}
                 confidence={result.licensePlate.confidence}
               >
                 {truckMode === "EXISTING" ? (
@@ -371,7 +376,7 @@ export default function CreateTicketFromOcrModal({
                       allowClear
                       style={{ width: "100%" }}
                       optionFilterProp="label"
-                      placeholder="เลือกรถ"
+                      placeholder={t("เลือกรถ")}
                       value={truckId}
                       options={truckOptions}
                       onChange={(value: string | undefined) => {
@@ -385,14 +390,14 @@ export default function CreateTicketFromOcrModal({
                       }}
                     />
                     <Button onClick={() => setTruckMode("CREATE")}>
-                      สร้างใหม่
+                      {t("สร้างใหม่")}
                     </Button>
                   </Space.Compact>
                 ) : (
                   <Space.Compact style={{ width: "100%" }}>
                     <Input
                       value={plateDraft}
-                      placeholder="เช่น บต-5752"
+                      placeholder={t("เช่น บต-5752")}
                       onChange={(event) => setPlateDraft(event.target.value)}
                     />
                     {plateExactMatch ? (
@@ -404,11 +409,11 @@ export default function CreateTicketFromOcrModal({
                           setSellerId(plateExactMatch.sellerId);
                         }}
                       >
-                        ใช้รถที่มีอยู่
+                        {t("ใช้รถที่มีอยู่")}
                       </Button>
                     ) : (
                       <Button onClick={() => setTruckMode("EXISTING")}>
-                        เลือกรถที่มีอยู่
+                        {t("เลือกรถที่มีอยู่")}
                       </Button>
                     )}
                   </Space.Compact>
@@ -422,7 +427,7 @@ export default function CreateTicketFromOcrModal({
               {truckMode === "CREATE" && plateCandidates.length > 0 ? (
                 <div className={styles.ocrFieldNote}>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    หมายถึงคันนี้หรือเปล่า?
+                    {t("หมายถึงคันนี้หรือเปล่า?")}
                   </Typography.Text>
                   <Space wrap style={{ marginTop: 4 }}>
                     {plateCandidates.map((candidate) => (
@@ -445,14 +450,14 @@ export default function CreateTicketFromOcrModal({
                 </div>
               ) : null}
 
-              <OcrField label="ผู้ขาย">
+              <OcrField label={t("ผู้ขาย")}>
                 {truckMode === "EXISTING" ? (
                   <Select
                     showSearch
                     allowClear
                     style={{ width: "100%" }}
                     optionFilterProp="label"
-                    placeholder="เลือกผู้ขาย"
+                    placeholder={t("เลือกผู้ขาย")}
                     value={sellerId}
                     options={sellers.map((seller) => ({
                       value: seller.id,
@@ -466,24 +471,24 @@ export default function CreateTicketFromOcrModal({
                 ) : (
                   <Input
                     value={sellerNameDraft}
-                    placeholder="ชื่อผู้ขายที่จะสร้างใหม่ (เว้นว่างได้)"
+                    placeholder={t("ชื่อผู้ขายที่จะสร้างใหม่ (เว้นว่างได้)")}
                     onChange={(event) => setSellerNameDraft(event.target.value)}
                   />
                 )}
               </OcrField>
 
-              <OcrField label="คนขับ">
+              <OcrField label={t("คนขับ")}>
                 <Input
                   value={driverName}
-                  placeholder="ไม่ระบุก็ได้"
+                  placeholder={t("ไม่ระบุก็ได้")}
                   onChange={(event) => setDriverName(event.target.value)}
                 />
               </OcrField>
 
-              <OcrField label="เครื่องชั่ง">
+              <OcrField label={t("เครื่องชั่ง")}>
                 <Select
                   style={{ width: "100%" }}
-                  placeholder="เลือกเครื่องชั่ง"
+                  placeholder={t("เลือกเครื่องชั่ง")}
                   value={effectiveScaleId}
                   options={scales.map((scale) => ({
                     value: scale.id,
@@ -495,9 +500,9 @@ export default function CreateTicketFromOcrModal({
             </div>
           </OcrSection>
 
-          <OcrSection title="น้ำหนักและเวลา">
+          <OcrSection title={t("น้ำหนักและเวลา")}>
             <div className={styles.ocrField}>
-              <OcrField label="น้ำหนักเข้า" confidence={result.gross.confidence}>
+              <OcrField label={t("น้ำหนักเข้า")} confidence={result.gross.confidence}>
                 <InputNumber
                   style={{ width: "100%" }}
                   min={0}
@@ -509,7 +514,7 @@ export default function CreateTicketFromOcrModal({
                 />
               </OcrField>
 
-              <OcrField label="วันเวลาชั่งเข้า">
+              <OcrField label={t("วันเวลาชั่งเข้า")}>
                 <DatePicker
                   showTime
                   style={{ width: "100%" }}
@@ -519,7 +524,7 @@ export default function CreateTicketFromOcrModal({
                 />
               </OcrField>
 
-              <OcrField label="น้ำหนักออก" confidence={result.tare.confidence}>
+              <OcrField label={t("น้ำหนักออก")} confidence={result.tare.confidence}>
                 <InputNumber
                   style={{ width: "100%" }}
                   min={0}
@@ -531,7 +536,7 @@ export default function CreateTicketFromOcrModal({
                 />
               </OcrField>
 
-              <OcrField label="วันเวลาชั่งออก">
+              <OcrField label={t("วันเวลาชั่งออก")}>
                 <DatePicker
                   showTime
                   style={{ width: "100%" }}
@@ -543,40 +548,36 @@ export default function CreateTicketFromOcrModal({
 
               {/* ตัวเลขที่ทุกคนมองหาก่อนเพื่อน จึงให้เด่นกว่าช่องกรอก ไม่ใช่เป็นอีกแถวหนึ่งในตาราง */}
               <div className={styles.ocrNetCard}>
-                <span className={styles.ocrNetLabel}>น้ำหนักสุทธิ</span>
+                <span className={styles.ocrNetLabel}>{t("น้ำหนักสุทธิ")}</span>
                 <span className={styles.ocrNetValue}>
                   {netWeightKg != null
-                    ? netWeightKg.toLocaleString("th-TH", {
-                        maximumFractionDigits: 3,
-                      })
+                    ? formatNumber(netWeightKg, lang, 3)
                     : "—"}
                 </span>
-                <span className={styles.ocrNetUnit}>กก.</span>
+                <span className={styles.ocrNetUnit}>{t("กก.")}</span>
                 {computedNetKg != null &&
                 result.net.value !== null &&
                 Math.abs(result.net.value - computedNetKg) > 1 ? (
                   <Tag color="orange">
-                    บนใบระบุ{" "}
-                    {result.net.value.toLocaleString("th-TH", {
-                      maximumFractionDigits: 3,
-                    })}
+                    {t("บนใบระบุ")}{" "}
+                    {formatNumber(result.net.value, lang, 3)}
                   </Tag>
                 ) : null}
               </div>
             </div>
           </OcrSection>
 
-          <OcrSection title="รายการยาง">
+          <OcrSection title={t("รายการยาง")}>
             {items.length === 0 ? (
               <p className={styles.ocrEmpty}>
-                ยังไม่มีรายการ — กดเพิ่มรายการด้านล่างได้เลย
+                {t("ยังไม่มีรายการ — กดเพิ่มรายการด้านล่างได้เลย")}
               </p>
             ) : (
               <>
                 <div className={styles.ocrItemHead}>
-                  <span>ประเภทยาง</span>
-                  <span>น้ำหนัก (กก.)</span>
-                  <span className={styles.ocrItemHeadPrice}>ราคา/กก.</span>
+                  <span>{t("ประเภทยาง")}</span>
+                  <span>{t("น้ำหนัก (กก.)")}</span>
+                  <span className={styles.ocrItemHeadPrice}>{t("ราคา/กก.")}</span>
                   <span />
                 </div>
                 <div className={styles.ocrItemRows}>
@@ -588,8 +589,8 @@ export default function CreateTicketFromOcrModal({
                         optionFilterProp="label"
                         placeholder={
                           result.items[index]?.rawName
-                            ? `อ่านได้ว่า "${result.items[index].rawName}"`
-                            : "เลือกประเภทยาง"
+                            ? t("อ่านได้ว่า \"{name}\"", { name: result.items[index].rawName })
+                            : t("เลือกประเภทยาง")
                         }
                         value={row.tireClassificationId || undefined}
                         options={classifications.map((classification) => ({
@@ -609,8 +610,8 @@ export default function CreateTicketFromOcrModal({
                       <InputNumber
                         style={{ width: "100%" }}
                         min={0}
-                        placeholder="กก."
-                        aria-label={`น้ำหนักรายการยาง ${index + 1}`}
+                        placeholder={t("กก.")}
+                        aria-label={t("น้ำหนักรายการยาง {n}", { n: index + 1 })}
                         value={
                           row.weightKg ??
                           (items.length === 1 ? netWeightKg : null) ??
@@ -634,8 +635,8 @@ export default function CreateTicketFromOcrModal({
                         className={styles.ocrItemPrice}
                         style={{ width: "100%" }}
                         min={0}
-                        placeholder="ราคา/กก."
-                        aria-label={`ราคาต่อกิโลรายการยาง ${index + 1}`}
+                        placeholder={t("ราคา/กก.")}
+                        aria-label={t("ราคาต่อกิโลรายการยาง {n}", { n: index + 1 })}
                         value={row.pricePerKg ?? undefined}
                         onChange={(value) =>
                           setItems((rows) =>
@@ -654,7 +655,7 @@ export default function CreateTicketFromOcrModal({
                       <Button
                         type="text"
                         icon={<DeleteOutlined />}
-                        aria-label={`ลบรายการยาง ${index + 1}`}
+                        aria-label={t("ลบรายการยาง {n}", { n: index + 1 })}
                         onClick={() =>
                           setItems((rows) => rows.filter((_, i) => i !== index))
                         }
@@ -681,30 +682,32 @@ export default function CreateTicketFromOcrModal({
                   ])
                 }
               >
-                เพิ่มรายการ
+                {t("เพิ่มรายการ")}
               </Button>
             </div>
           </OcrSection>
 
           {deductions.length > 0 ? (
-            <OcrSection title="รายการหัก">
+            <OcrSection title={t("รายการหัก")}>
               <div className={styles.ocrDeductionHead}>
-                <span>ประเภท</span>
-                <span>น้ำหนัก (กก.)</span>
+                <span>{t("ประเภท")}</span>
+                <span>{t("น้ำหนัก (กก.)")}</span>
                 <span />
               </div>
               <div className={styles.ocrItemRows}>
                 {deductions.map((row, index) => (
                   <div key={row.key} className={styles.ocrDeductionRow}>
                     <span>
-                      {DEDUCTION_TYPE_LABELS[row.deductionType] ??
-                        row.deductionType}
+                      {t(
+                        DEDUCTION_TYPE_LABELS[row.deductionType] ??
+                          row.deductionType,
+                      )}
                       {row.description ? ` · ${row.description}` : ""}
                     </span>
                     <InputNumber
                       style={{ width: "100%" }}
                       min={0}
-                      aria-label={`น้ำหนักหัก ${index + 1}`}
+                      aria-label={t("น้ำหนักหัก {n}", { n: index + 1 })}
                       value={row.deductionWeightKg ?? undefined}
                       onChange={(value) =>
                         setDeductions((rows) =>
@@ -723,7 +726,7 @@ export default function CreateTicketFromOcrModal({
                     <Button
                       type="text"
                       icon={<DeleteOutlined />}
-                      aria-label={`ลบรายการหัก ${index + 1}`}
+                      aria-label={t("ลบรายการหัก {n}", { n: index + 1 })}
                       onClick={() =>
                         setDeductions((rows) =>
                           rows.filter((_, i) => i !== index),
@@ -736,12 +739,12 @@ export default function CreateTicketFromOcrModal({
             </OcrSection>
           ) : null}
 
-          <OcrSection title="หมายเหตุ">
+          <OcrSection title={t("หมายเหตุ")}>
             <Input.TextArea
               rows={2}
               maxLength={2000}
               value={remark}
-              placeholder="ไม่ระบุก็ได้"
+              placeholder={t("ไม่ระบุก็ได้")}
               onChange={(event) => setRemark(event.target.value)}
             />
           </OcrSection>

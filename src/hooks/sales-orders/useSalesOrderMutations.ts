@@ -20,6 +20,7 @@ import {
 } from "@/lib/api/document-attachments";
 import { isStaleDocumentConflict } from "@/lib/api/conflict";
 import { ApiError } from "@/lib/api/client";
+import { useT } from "@/lib/i18n/useT";
 import { getAccessToken } from "@/lib/auth/token";
 import {
   ATTACHMENT_GROUP_CUSTOMER_PO,
@@ -43,6 +44,7 @@ function useInvalidateSalesOrders() {
 
 export function useCreateSalesOrderFromQuotationMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
   const queryClient = useQueryClient();
 
@@ -58,11 +60,11 @@ export function useCreateSalesOrderFromQuotationMutation() {
     onSuccess: async (res) => {
       await invalidate();
       await queryClient.invalidateQueries({ queryKey: quotationsQueryKey });
-      message.success(res.message || "สร้างใบสั่งขายสำเร็จ");
+      message.success(res.message || t("สร้างใบสั่งขายสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "สร้างใบสั่งขายไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("สร้างใบสั่งขายไม่สำเร็จ"),
       );
     },
   });
@@ -70,6 +72,7 @@ export function useCreateSalesOrderFromQuotationMutation() {
 
 export function useConfirmSalesOrderMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
@@ -83,12 +86,12 @@ export function useConfirmSalesOrderMutation() {
     }) => confirmSalesOrder(getAccessToken(), id, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยืนยันใบสั่งขายสำเร็จ");
+      message.success(res.message || t("ยืนยันใบสั่งขายสำเร็จ"));
     },
     onError: (error: Error) => {
       if (isStaleDocumentConflict(error)) return;
       message.error(
-        error instanceof ApiError ? error.message : "ยืนยันใบสั่งขายไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยืนยันใบสั่งขายไม่สำเร็จ"),
       );
     },
   });
@@ -96,6 +99,7 @@ export function useConfirmSalesOrderMutation() {
 
 export function useCancelSalesOrderMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
@@ -109,12 +113,12 @@ export function useCancelSalesOrderMutation() {
     }) => cancelSalesOrder(getAccessToken(), id, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยกเลิกใบสั่งขายสำเร็จ");
+      message.success(res.message || t("ยกเลิกใบสั่งขายสำเร็จ"));
     },
     onError: (error: Error) => {
       if (isStaleDocumentConflict(error)) return;
       message.error(
-        error instanceof ApiError ? error.message : "ยกเลิกใบสั่งขายไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยกเลิกใบสั่งขายไม่สำเร็จ"),
       );
     },
   });
@@ -122,6 +126,7 @@ export function useCancelSalesOrderMutation() {
 
 export function useReleaseSalesOrderLineMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
@@ -130,13 +135,13 @@ export function useReleaseSalesOrderLineMutation() {
       releaseSalesOrderLineReservation(getAccessToken(), id, itemId),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยกเลิกการจองสต๊อกแล้ว");
+      message.success(res.message || t("ยกเลิกการจองสต๊อกแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "ยกเลิกการจองสต๊อกไม่สำเร็จ",
+          : t("ยกเลิกการจองสต๊อกไม่สำเร็จ"),
       );
     },
   });
@@ -144,6 +149,7 @@ export function useReleaseSalesOrderLineMutation() {
 
 export function useReserveSalesOrderLineMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
@@ -152,11 +158,11 @@ export function useReserveSalesOrderLineMutation() {
       reserveSalesOrderLine(getAccessToken(), id, itemId),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "จองสต๊อกแล้ว");
+      message.success(res.message || t("จองสต๊อกแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "จองสต๊อกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("จองสต๊อกไม่สำเร็จ"),
       );
     },
   });
@@ -164,6 +170,7 @@ export function useReserveSalesOrderLineMutation() {
 
 export function useReserveAllEligibleSalesOrderLinesMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
@@ -172,11 +179,11 @@ export function useReserveAllEligibleSalesOrderLinesMutation() {
       reserveAllEligibleSalesOrderLines(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "จองสต๊อกที่พร้อมใช้แล้ว");
+      message.success(res.message || t("จองสต๊อกที่พร้อมใช้แล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "จองสต๊อกไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("จองสต๊อกไม่สำเร็จ"),
       );
     },
   });
@@ -184,6 +191,7 @@ export function useReserveAllEligibleSalesOrderLinesMutation() {
 
 export function useUploadSalesOrderAttachmentMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -205,14 +213,14 @@ export function useUploadSalesOrderAttachmentMutation() {
         description,
       }),
     onSuccess: (res, vars) => {
-      message.success(res.message || "อัปโหลดไฟล์หลักฐานสำเร็จ");
+      message.success(res.message || t("อัปโหลดไฟล์หลักฐานสำเร็จ"));
       void queryClient.invalidateQueries({
         queryKey: [...salesOrdersQueryKey, "attachments", vars.documentId],
       });
     },
     onError: (err: Error) => {
       message.error(
-        err instanceof ApiError ? err.message : "อัปโหลดไฟล์ไม่สำเร็จ",
+        err instanceof ApiError ? err.message : t("อัปโหลดไฟล์ไม่สำเร็จ"),
       );
     },
   });
@@ -220,6 +228,7 @@ export function useUploadSalesOrderAttachmentMutation() {
 
 export function useDeleteSalesOrderAttachmentMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -232,14 +241,14 @@ export function useDeleteSalesOrderAttachmentMutation() {
       documentId: string;
     }) => deleteDocumentAttachment(getAccessToken(), attachmentId),
     onSuccess: (res, vars) => {
-      message.success(res.message || "ลบไฟล์แนบสำเร็จ");
+      message.success(res.message || t("ลบไฟล์แนบสำเร็จ"));
       void queryClient.invalidateQueries({
         queryKey: [...salesOrdersQueryKey, "attachments", vars.documentId],
       });
     },
     onError: (err: Error) => {
       message.error(
-        err instanceof ApiError ? err.message : "ลบไฟล์แนบไม่สำเร็จ",
+        err instanceof ApiError ? err.message : t("ลบไฟล์แนบไม่สำเร็จ"),
       );
     },
   });
@@ -248,6 +257,7 @@ export function useDeleteSalesOrderAttachmentMutation() {
 /** แก้รายการสินค้าได้เฉพาะตอนใบยังเป็นร่าง — ส่งชุดบรรทัดที่ต้องการทั้งหมด */
 export function useUpdateSalesOrderItemsMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
@@ -263,13 +273,13 @@ export function useUpdateSalesOrderItemsMutation() {
     }) => updateSalesOrderItems(getAccessToken(), id, body, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "บันทึกรายการสินค้าสำเร็จ");
+      message.success(res.message || t("บันทึกรายการสินค้าสำเร็จ"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "บันทึกรายการสินค้าไม่สำเร็จ",
+          : t("บันทึกรายการสินค้าไม่สำเร็จ"),
       );
     },
   });
@@ -277,6 +287,7 @@ export function useUpdateSalesOrderItemsMutation() {
 
 export function useUpdateSalesOrderCustomerPoMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
@@ -292,14 +303,14 @@ export function useUpdateSalesOrderCustomerPoMutation() {
     }) => updateSalesOrderCustomerPo(getAccessToken(), id, body, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "บันทึกเลข PO ลูกค้าสำเร็จ");
+      message.success(res.message || t("บันทึกเลข PO ลูกค้าสำเร็จ"));
     },
     onError: (error: Error) => {
       if (isStaleDocumentConflict(error)) return;
       message.error(
         error instanceof ApiError
           ? error.message
-          : "บันทึกเลข PO ลูกค้าไม่สำเร็จ",
+          : t("บันทึกเลข PO ลูกค้าไม่สำเร็จ"),
       );
     },
   });
@@ -307,6 +318,7 @@ export function useUpdateSalesOrderCustomerPoMutation() {
 
 export function useUpdateSalesOrderHeaderMutation() {
   const { message } = App.useApp();
+  const t = useT();
   const invalidate = useInvalidateSalesOrders();
 
   return useMutation({
@@ -322,7 +334,7 @@ export function useUpdateSalesOrderHeaderMutation() {
     }) => updateSalesOrderHeader(getAccessToken(), id, body, expectedVersion),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "บันทึกหัวเอกสารสำเร็จ");
+      message.success(res.message || t("บันทึกหัวเอกสารสำเร็จ"));
     },
     onError: (error: Error) => {
       // 409 มีกล่องยืนยันของตัวเองที่หน้าจอ — ไม่ต้องมี toast ซ้อน
@@ -330,7 +342,7 @@ export function useUpdateSalesOrderHeaderMutation() {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "บันทึกหัวเอกสารไม่สำเร็จ",
+          : t("บันทึกหัวเอกสารไม่สำเร็จ"),
       );
     },
   });

@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
 import {
   approveStockAdjustment,
   cancelStockAdjustment,
@@ -26,16 +27,17 @@ import {
 export function useCreateStockAdjustmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (body: CreateStockAdjustmentBody) =>
       createStockAdjustment(getAccessToken(), body),
     onSuccess: (res) => {
-      message.success(res.message || "สร้างใบปรับปรุงสต๊อกสำเร็จ");
+      message.success(res.message || t("สร้างใบปรับปรุงสต๊อกสำเร็จ"));
       void queryClient.invalidateQueries({ queryKey: stockAdjustmentsQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "สร้างใบปรับปรุงสต๊อกไม่สำเร็จ");
+      message.error(err.message || t("สร้างใบปรับปรุงสต๊อกไม่สำเร็จ"));
     },
   });
 }
@@ -43,16 +45,17 @@ export function useCreateStockAdjustmentMutation() {
 export function useUpdateStockAdjustmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: UpdateStockAdjustmentBody }) =>
       updateStockAdjustment(getAccessToken(), id, body),
     onSuccess: (res) => {
-      message.success(res.message || "บันทึกใบปรับปรุงสต๊อกสำเร็จ");
+      message.success(res.message || t("บันทึกใบปรับปรุงสต๊อกสำเร็จ"));
       void queryClient.invalidateQueries({ queryKey: stockAdjustmentsQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "บันทึกใบปรับปรุงสต๊อกไม่สำเร็จ");
+      message.error(err.message || t("บันทึกใบปรับปรุงสต๊อกไม่สำเร็จ"));
     },
   });
 }
@@ -60,15 +63,16 @@ export function useUpdateStockAdjustmentMutation() {
 export function useSubmitStockAdjustmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (id: string) => submitStockAdjustment(getAccessToken(), id),
     onSuccess: (res) => {
-      message.success(res.message || "ส่งอนุมัติแล้ว");
+      message.success(res.message || t("ส่งอนุมัติแล้ว"));
       void queryClient.invalidateQueries({ queryKey: stockAdjustmentsQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "ส่งอนุมัติไม่สำเร็จ");
+      message.error(err.message || t("ส่งอนุมัติไม่สำเร็จ"));
     },
   });
 }
@@ -76,15 +80,16 @@ export function useSubmitStockAdjustmentMutation() {
 export function useCancelStockAdjustmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (id: string) => cancelStockAdjustment(getAccessToken(), id),
     onSuccess: (res) => {
-      message.success(res.message || "ยกเลิกใบปรับปรุงสต๊อกแล้ว");
+      message.success(res.message || t("ยกเลิกใบปรับปรุงสต๊อกแล้ว"));
       void queryClient.invalidateQueries({ queryKey: stockAdjustmentsQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "ยกเลิกไม่สำเร็จ");
+      message.error(err.message || t("ยกเลิกไม่สำเร็จ"));
     },
   });
 }
@@ -92,15 +97,16 @@ export function useCancelStockAdjustmentMutation() {
 export function useApproveStockAdjustmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: (id: string) => approveStockAdjustment(getAccessToken(), id),
     onSuccess: (res) => {
-      message.success(res.message || "อนุมัติและปรับปรุงสต๊อกสำเร็จ");
+      message.success(res.message || t("อนุมัติและปรับปรุงสต๊อกสำเร็จ"));
       void queryClient.invalidateQueries({ queryKey: stockAdjustmentsQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "อนุมัติไม่สำเร็จ");
+      message.error(err.message || t("อนุมัติไม่สำเร็จ"));
     },
   });
 }
@@ -108,6 +114,7 @@ export function useApproveStockAdjustmentMutation() {
 export function useRejectStockAdjustmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({
@@ -118,11 +125,11 @@ export function useRejectStockAdjustmentMutation() {
       body?: RejectStockAdjustmentBody;
     }) => rejectStockAdjustment(getAccessToken(), id, body),
     onSuccess: (res) => {
-      message.success(res.message || "ไม่อนุมัติใบปรับปรุงสต๊อกแล้ว");
+      message.success(res.message || t("ไม่อนุมัติใบปรับปรุงสต๊อกแล้ว"));
       void queryClient.invalidateQueries({ queryKey: stockAdjustmentsQueryKey });
     },
     onError: (err: Error) => {
-      message.error(err.message || "ปฏิเสธไม่สำเร็จ");
+      message.error(err.message || t("ปฏิเสธไม่สำเร็จ"));
     },
   });
 }
@@ -130,6 +137,7 @@ export function useRejectStockAdjustmentMutation() {
 export function useUploadStockAdjustmentAttachmentMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationFn: ({
@@ -148,13 +156,13 @@ export function useUploadStockAdjustmentAttachmentMutation() {
         description,
       }),
     onSuccess: (res, vars) => {
-      message.success(res.message || "อัปโหลดไฟล์สำเร็จ");
+      message.success(res.message || t("อัปโหลดไฟล์สำเร็จ"));
       void queryClient.invalidateQueries({
         queryKey: [...stockAdjustmentsQueryKey, "attachments", vars.documentId],
       });
     },
     onError: (err: Error) => {
-      message.error(err.message || "อัปโหลดไฟล์ไม่สำเร็จ");
+      message.error(err.message || t("อัปโหลดไฟล์ไม่สำเร็จ"));
     },
   });
 }

@@ -15,6 +15,8 @@ import {
 } from "@/types/dispatch-orders";
 import styles from "./DispatchOrdersListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function statusColor(status: string) {
   switch (status) {
@@ -36,6 +38,7 @@ function formatDate(value?: string) {
 }
 
 export default function DispatchOrdersListPage() {
+  const t = useT();
   const router = useRouter();
   const [dispatchNo, setDispatchNo] = useState("");
   const [status, setStatus] = useState<string | undefined>();
@@ -63,39 +66,39 @@ export default function DispatchOrdersListPage() {
   const columns: ColumnsType<DispatchOrder> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         width: 56,
         align: "center",
         render: (_v, _r, index) => index + 1,
       },
       {
-        title: "เลขที่",
+        title: t("เลขที่"),
         dataIndex: "dispatchNo",
         render: (value: string) => <span className={styles.prNo}>{value}</span>,
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "dispatchDate",
         width: 110,
         render: (value: string) => formatDate(value),
       },
       {
-        title: "ใบสั่งขาย",
+        title: t("ใบสั่งขาย"),
         key: "salesOrder",
         render: (_v, row) => row.salesOrderNo ?? "—",
       },
       {
-        title: "คลัง",
+        title: t("คลัง"),
         key: "warehouse",
         render: (_v, row) => row.warehouseCode ?? "—",
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 150,
         render: (value: string) => (
           <Tag color={statusColor(value)}>
-            {DISPATCH_ORDER_STATUS_LABEL[value as DispatchOrderStatus] ?? value}
+            {statusT(t, DISPATCH_ORDER_STATUS_LABEL[value as DispatchOrderStatus] ?? value)}
           </Tag>
         ),
       },
@@ -114,7 +117,7 @@ export default function DispatchOrdersListPage() {
         ),
       },
     ],
-    [router],
+    [router, t],
   );
 
   return (
@@ -122,14 +125,14 @@ export default function DispatchOrdersListPage() {
       <PageHeader
         eyebrow="Sales · Dispatch Order"
         icon={<CarOutlined />}
-        title="ใบจ่ายสินค้า"
-        subtitle="ติดตามขั้นตอน Picking → Packing → Dispatch ของสินค้าสำเร็จรูป"
+        title={t("ใบจ่ายสินค้า")}
+        subtitle={t("ติดตามขั้นตอน Picking → Packing → Dispatch ของสินค้าสำเร็จรูป")}
       />
 
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>เลขที่</label>
+            <label>{t("เลขที่")}</label>
             <Input
               allowClear
               placeholder="DO-..."
@@ -139,28 +142,28 @@ export default function DispatchOrdersListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
-              placeholder="ทั้งหมด"
+              placeholder={t("ทั้งหมด")}
               value={status}
               onChange={setStatus}
               style={{ width: "100%" }}
               options={Object.entries(DISPATCH_ORDER_STATUS_LABEL).map(
-                ([value, label]) => ({ value, label }),
+                ([value, label]) => ({ value, label: statusT(t, label) }),
               )}
             />
           </div>
         </div>
         <div className={styles.filterActions}>
-          <Button onClick={clearFilters}>เคลียร์</Button>
+          <Button onClick={clearFilters}>{t("เคลียร์")}</Button>
           <Button
             type="primary"
             className={styles.primaryBtn}
             icon={<SearchOutlined />}
             onClick={applyFilters}
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -168,7 +171,7 @@ export default function DispatchOrdersListPage() {
       <section className={styles.tableCard}>
         <div className={styles.tableToolbar}>
           <div className={styles.toolbarLeft}>
-            พบทั้งหมด <strong>{rows.length}</strong> รายการ
+            {t("พบทั้งหมด")} <strong>{rows.length}</strong> {t("รายการ")}
           </div>
         </div>
         <Table
@@ -181,7 +184,7 @@ export default function DispatchOrdersListPage() {
           onRow={(row) => ({
             onClick: () => router.push(`/dispatch-orders/${row.id}`),
           })}
-          locale={{ emptyText: "ยังไม่มีใบจ่ายสินค้า" }}
+          locale={{ emptyText: t("ยังไม่มีใบจ่ายสินค้า") }}
         />
       </section>
     </div>

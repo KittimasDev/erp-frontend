@@ -37,6 +37,7 @@ import WarehouseHubPage from "@/components/warehouse/WarehouseHubPage";
 import type { WarehouseHubSection } from "@/components/warehouse/WarehouseHubPage";
 import { useWarehouseDashboardSummaryQuery } from "@/hooks/warehouse-dashboard/useWarehouseDashboardSummaryQuery";
 import { ApiError } from "@/lib/api/client";
+import { useT } from "@/lib/i18n/useT";
 import {
   canAccessScreen,
   isMatrixPermissionMode,
@@ -406,6 +407,7 @@ function sectionsForScope(
 }
 
 export default function WarehouseDashboardPage() {
+  const t = useT();
   const searchParams = useSearchParams();
   const scope = readDashboardScope(searchParams);
   const warehouseGroup =
@@ -470,7 +472,7 @@ export default function WarehouseDashboardPage() {
       <Alert
         type="info"
         showIcon
-        title="บัญชีของคุณไม่มีสิทธิ์ดูตัวเลขสรุปคลัง — เมนูด้านล่างยังใช้งานได้ตามปกติ"
+        title={t("บัญชีของคุณไม่มีสิทธิ์ดูตัวเลขสรุปคลัง — เมนูด้านล่างยังใช้งานได้ตามปกติ")}
       />
     );
   } else if (summaryQuery.isError) {
@@ -478,8 +480,8 @@ export default function WarehouseDashboardPage() {
       <Alert
         type="warning"
         showIcon
-        title="โหลดตัวเลขสรุปคลังไม่สำเร็จ"
-        description="ลองรีเฟรชหน้าอีกครั้ง — เมนูด้านล่างยังใช้งานได้ตามปกติ"
+        title={t("โหลดตัวเลขสรุปคลังไม่สำเร็จ")}
+        description={t("ลองรีเฟรชหน้าอีกครั้ง — เมนูด้านล่างยังใช้งานได้ตามปกติ")}
       />
     );
   } else if (summary) {
@@ -487,37 +489,37 @@ export default function WarehouseDashboardPage() {
       <div className={styles.overview}>
         <div className={styles.summaryGrid}>
           <div className={`${styles.summaryCard} ${styles.summaryCardAccent}`}>
-            <span>มูลค่าสต๊อกรวม</span>
+            <span>{t("มูลค่าสต๊อกรวม")}</span>
             <strong>{fmt(Number(summary.totalStockValue), 0)}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>สินค้าต่ำกว่าจุดสั่งซื้อ</span>
+            <span>{t("สินค้าต่ำกว่าจุดสั่งซื้อ")}</span>
             <strong className={summary.lowStockCount > 0 ? styles.warnValue : undefined}>
               {fmt(summary.lowStockCount)}
             </strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ใบปรับปรุงรออนุมัติ</span>
+            <span>{t("ใบปรับปรุงรออนุมัติ")}</span>
             <strong>{fmt(summary.pendingStockAdjustmentCount)}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ใบโอนย้ายรออนุมัติ</span>
+            <span>{t("ใบโอนย้ายรออนุมัติ")}</span>
             <strong>{fmt(summary.pendingStockTransferCount)}</strong>
           </div>
           <div className={styles.summaryCard}>
-            <span>ใบนับสต๊อกค้างอยู่</span>
+            <span>{t("ใบนับสต๊อกค้างอยู่")}</span>
             <strong>{fmt(summary.pendingStockCountCount)}</strong>
           </div>
         </div>
 
         <div className={styles.chartCard}>
           <div className={styles.chartHeader}>
-            <h3>ความเคลื่อนไหวสต๊อกรายเดือน</h3>
-            <p>ปริมาณรับเข้าเทียบกับเบิกออก ย้อนหลัง 6 เดือน</p>
+            <h3>{t("ความเคลื่อนไหวสต๊อกรายเดือน")}</h3>
+            <p>{t("ปริมาณรับเข้าเทียบกับเบิกออก ย้อนหลัง 6 เดือน")}</p>
           </div>
           <div className={styles.chartBody}>
             {trendData.length === 0 ? (
-              <div className={styles.emptyState}>ยังไม่มีข้อมูลในช่วงนี้</div>
+              <div className={styles.emptyState}>{t("ยังไม่มีข้อมูลในช่วงนี้")}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={trendData}>
@@ -528,20 +530,20 @@ export default function WarehouseDashboardPage() {
                   <Legend />
                   <Bar
                     dataKey="quantityIn"
-                    name="รับเข้า"
+                    name={t("รับเข้า")}
                     fill={GREEN}
                     radius={[4, 4, 0, 0]}
                   />
                   <Bar
                     dataKey="quantityOut"
-                    name="เบิกออก"
+                    name={t("เบิกออก")}
                     fill={AMBER}
                     radius={[4, 4, 0, 0]}
                   />
                   <Line
                     type="monotone"
                     dataKey="quantityIn"
-                    name="แนวโน้มรับเข้า"
+                    name={t("แนวโน้มรับเข้า")}
                     stroke={GREEN_DARK}
                     strokeWidth={2}
                     dot={false}

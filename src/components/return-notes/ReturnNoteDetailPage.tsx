@@ -23,6 +23,8 @@ import {
 } from "./ReturnNoteDecisionModals";
 import styles from "./ReturnNoteDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 type Props = { id: string };
 
@@ -42,6 +44,7 @@ function statusClass(status: string) {
 }
 
 export default function ReturnNoteDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const query = useReturnNoteQuery(id);
   const [approveOpen, setApproveOpen] = useState(false);
@@ -53,7 +56,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -61,9 +64,9 @@ export default function ReturnNoteDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบคืนสินค้า
+        {t("ไม่พบใบคืนสินค้า")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/return-notes">กลับรายการ</Link>
+          <Link href="/return-notes">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -77,7 +80,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
         eyebrow="Return Note"
         icon={<RollbackOutlined />}
         title={data.returnNoteNo}
-        subtitle={<>{formatDateTime(data.createdAt)} · {data.items.length} รายการ ·{" "}
+        subtitle={<>{formatDateTime(data.createdAt)} · {data.items.length} {t("รายการ")} ·{" "}
             {data.customerName ?? "—"}</>}
         actions={
           <>
@@ -85,7 +88,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/return-notes")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           <Button
             icon={<FilePdfOutlined />}
@@ -132,7 +135,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
               });
             }}
           >
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           </>
         }
@@ -142,20 +145,20 @@ export default function ReturnNoteDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>เอกสารอ้างอิง</h2>
+              <h2 className={styles.sectionTitle}>{t("เอกสารอ้างอิง")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ใบสั่งขาย</span>
+                <span className={styles.metaLabel}>{t("ใบสั่งขาย")}</span>
                 <div className={styles.metaValue}>
                   <Link href={`/sales-orders/${data.salesOrderId}`}>
                     {data.salesOrderNo ?? "—"}
                   </Link>
-                  {data.roundNo ? ` · รอบที่ ${data.roundNo}` : ""}
+                  {data.roundNo ? t(" · รอบที่ {roundNo}", { roundNo: data.roundNo }) : ""}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ใบจ่ายสินค้า</span>
+                <span className={styles.metaLabel}>{t("ใบจ่ายสินค้า")}</span>
                 <div className={styles.metaValue}>
                   <Link href={`/pickings/${data.pickingId}`}>
                     {data.pickingNo ?? "—"}
@@ -163,7 +166,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ใบส่งสินค้า</span>
+                <span className={styles.metaLabel}>{t("ใบส่งสินค้า")}</span>
                 <div className={styles.metaValue}>
                   {data.deliveryOrderId ? (
                     <Link href={`/delivery-orders/${data.deliveryOrderId}`}>
@@ -175,15 +178,15 @@ export default function ReturnNoteDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ลูกค้า</span>
+                <span className={styles.metaLabel}>{t("ลูกค้า")}</span>
                 <div className={styles.metaValue}>{data.customerName ?? "—"}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้สร้าง</span>
+                <span className={styles.metaLabel}>{t("ผู้สร้าง")}</span>
                 <div className={styles.metaValue}>{data.createdByName ?? "—"}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่สร้าง</span>
+                <span className={styles.metaLabel}>{t("วันที่สร้าง")}</span>
                 <div className={styles.metaValue}>
                   {formatDateTime(data.createdAt)}
                 </div>
@@ -193,7 +196,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการคืน</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการคืน")}</h2>
             </div>
             <div className={styles.itemList}>
               {data.items.map((item, index) => (
@@ -218,18 +221,18 @@ export default function ReturnNoteDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>เหตุผลการคืน</h2>
+              <h2 className={styles.sectionTitle}>{t("เหตุผลการคืน")}</h2>
             </div>
             <p className={styles.textBlock}>{data.reason}</p>
             {data.remark ? (
-              <p className={styles.textBlock}>หมายเหตุ: {data.remark}</p>
+              <p className={styles.textBlock}>{t("หมายเหตุ:")} {data.remark}</p>
             ) : null}
           </div>
 
           {data.status === "REJECTED" ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>เหตุผลที่ไม่อนุมัติ</h2>
+                <h2 className={styles.sectionTitle}>{t("เหตุผลที่ไม่อนุมัติ")}</h2>
               </div>
               <p className={styles.textBlock}>{data.rejectReason ?? "—"}</p>
             </div>
@@ -238,43 +241,43 @@ export default function ReturnNoteDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.returnNoteNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {RETURN_NOTE_STATUS_LABEL[data.status as ReturnNoteStatus] ??
-              data.status}
+            {statusT(t, RETURN_NOTE_STATUS_LABEL[data.status as ReturnNoteStatus] ??
+              data.status)}
           </div>
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>จำนวนคืนรวม</span>
+              <span>{t("จำนวนคืนรวม")}</span>
               <strong>{formatQty(data.totalReturnQty)}</strong>
             </div>
             {data.status === "APPROVED" ? (
               <>
                 <div className={styles.sideRow}>
-                  <span>รับเข้าคลัง</span>
+                  <span>{t("รับเข้าคลัง")}</span>
                   <strong>
                     {data.warehouseCode ?? "—"}
                     {data.locationCode ? ` / ${data.locationCode}` : ""}
                   </strong>
                 </div>
                 <div className={styles.sideRow}>
-                  <span>ผู้อนุมัติ</span>
+                  <span>{t("ผู้อนุมัติ")}</span>
                   <strong>{data.approvedByName ?? "—"}</strong>
                 </div>
                 <div className={styles.sideRow}>
-                  <span>อนุมัติเมื่อ</span>
+                  <span>{t("อนุมัติเมื่อ")}</span>
                   <strong>{formatDateTime(data.approvedAt)}</strong>
                 </div>
                 <div className={styles.sideRow}>
-                  <span>ผลการตรวจ</span>
+                  <span>{t("ผลการตรวจ")}</span>
                   <strong>
                     <Link href={`/return-notes/inspections/${data.id}`}>
                       {data.inspectionStatus === "CONFIRMED"
-                        ? "ตรวจสอบแล้ว"
-                        : "รอตรวจสอบ"}
+                        ? t("ตรวจสอบแล้ว")
+                        : t("รอตรวจสอบ")}
                     </Link>
                   </strong>
                 </div>
@@ -283,11 +286,11 @@ export default function ReturnNoteDetailPage({ id }: Props) {
             {data.status === "REJECTED" ? (
               <>
                 <div className={styles.sideRow}>
-                  <span>ผู้ไม่อนุมัติ</span>
+                  <span>{t("ผู้ไม่อนุมัติ")}</span>
                   <strong>{data.rejectedByName ?? "—"}</strong>
                 </div>
                 <div className={styles.sideRow}>
-                  <span>เมื่อ</span>
+                  <span>{t("เมื่อ")}</span>
                   <strong>{formatDateTime(data.rejectedAt)}</strong>
                 </div>
               </>
@@ -296,7 +299,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
 
           {pending ? (
             <p className={styles.sideNote}>
-              ยังไม่รับของเข้าสต๊อก — คลังอนุมัติแล้วระบบจึงรับเข้าคลังตรวจสอบพร้อมบันทึกการเคลื่อนไหว
+              {t("ยังไม่รับของเข้าสต๊อก — คลังอนุมัติแล้วระบบจึงรับเข้าคลังตรวจสอบพร้อมบันทึกการเคลื่อนไหว")}
             </p>
           ) : null}
 
@@ -308,7 +311,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
                 icon={<CheckOutlined />}
                 onClick={() => setApproveOpen(true)}
               >
-                อนุมัติ รับเข้าคลังตรวจสอบ
+                {t("อนุมัติ รับเข้าคลังตรวจสอบ")}
               </Button>
               <Button
                 className={styles.secondaryBtn}
@@ -316,7 +319,7 @@ export default function ReturnNoteDetailPage({ id }: Props) {
                 icon={<CloseOutlined />}
                 onClick={() => setRejectOpen(true)}
               >
-                ไม่อนุมัติ
+                {t("ไม่อนุมัติ")}
               </Button>
             </div>
           ) : null}

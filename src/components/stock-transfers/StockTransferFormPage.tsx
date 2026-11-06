@@ -33,6 +33,7 @@ import { useWarehouseTypesQuery } from "@/hooks/warehouse-types/useWarehouseType
 import { useWarehousesQuery } from "@/hooks/warehouses/useWarehousesQuery";
 import type { InventoryLotBalanceRow } from "@/types/inventory";
 import type { CreateStockTransferBody } from "@/types/stock-transfers";
+import { useT } from "@/lib/i18n/useT";
 import styles from "./StockTransferFormPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -60,6 +61,7 @@ type Props = {
 };
 
 export default function StockTransferFormPage({ mode, id }: Props) {
+  const t = useT();
   const router = useRouter();
   const warehouseGroup = readWarehouseGroup(useSearchParams());
   const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
@@ -126,10 +128,13 @@ export default function StockTransferFormPage({ mode, id }: Props) {
         : lot.quantityAvailable,
     ) || 0;
   const warehouseEmptyText = warehousesQuery.isError
-    ? "โหลดรายชื่อคลังไม่สำเร็จ"
+    ? t("โหลดรายชื่อคลังไม่สำเร็จ")
     : warehouseGroup
-      ? `ไม่มีคลังที่เปิดใช้งานในเมนู ${warehouseGroup} — ตั้ง "แสดงในเมนู" ที่ ข้อมูลหลัก > ประเภทคลัง`
-      : "ไม่มีคลังที่เปิดใช้งาน";
+      ? t(
+          "ไม่มีคลังที่เปิดใช้งานในเมนู {group} — ตั้ง \"แสดงในเมนู\" ที่ ข้อมูลหลัก > ประเภทคลัง",
+          { group: warehouseGroup },
+        )
+      : t("ไม่มีคลังที่เปิดใช้งาน");
 
   const watchedItems = Form.useWatch("items", form) ?? [];
 
@@ -176,11 +181,11 @@ export default function StockTransferFormPage({ mode, id }: Props) {
             key: index,
             text: item
               ? `${item.itemNameTh} ${line.quantity ?? "-"}`
-              : `รายการที่ ${index + 1} (รอเลือกสินค้า)`,
+              : t("รายการที่ {n} (รอเลือกสินค้า)", { n: index + 1 }),
           };
         })
         .filter(Boolean) as Array<{ key: number; text: string }>,
-    [watchedItems, items],
+    [watchedItems, items, t],
   );
 
   const onFinish = async (values: FormValues) => {
@@ -192,7 +197,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
         form.setFields([
           {
             name: ["items", index, "toLocationId"],
-            errors: ["ปลายทางต้องไม่ใช่ที่เดียวกับต้นทาง"],
+            errors: [t("ปลายทางต้องไม่ใช่ที่เดียวกับต้นทาง")],
           },
         ]);
         return;
@@ -233,13 +238,17 @@ export default function StockTransferFormPage({ mode, id }: Props) {
       <PageHeader
         eyebrow="Stock Transfer"
         icon={<SwapOutlined />}
-        title={mode === "create" ? "สร้างใบโอนย้ายสินค้า" : "แก้ไขใบโอนย้ายสินค้า"}
-        subtitle="เลือกสินค้า/Lot ต้นทางที่มีสต๊อกพอ และปลายทางที่ไม่ใช่ที่เดียวกับต้นทาง"
+        title={
+          mode === "create"
+            ? t("สร้างใบโอนย้ายสินค้า")
+            : t("แก้ไขใบโอนย้ายสินค้า")
+        }
+        subtitle={t("เลือกสินค้า/Lot ต้นทางที่มีสต๊อกพอ และปลายทางที่ไม่ใช่ที่เดียวกับต้นทาง")}
         actions={
           <>
 <div className={styles.backLink}>
           <Link href={scopePath("/inventory/stock-transfers")}>
-            <Button icon={<ArrowLeftOutlined />}>กลับรายการ</Button>
+            <Button icon={<ArrowLeftOutlined />}>{t("กลับรายการ")}</Button>
           </Link>
         </div>
           </>
@@ -258,37 +267,37 @@ export default function StockTransferFormPage({ mode, id }: Props) {
             <div className={styles.formBody}>
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+                  <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
                   <p className={styles.sectionHint}>
-                    เลขที่ใบโอนย้ายจะสร้างอัตโนมัติเมื่อบันทึก
+                    {t("เลขที่ใบโอนย้ายจะสร้างอัตโนมัติเมื่อบันทึก")}
                   </p>
                 </div>
 
                 <div className={styles.formGrid}>
                   <Form.Item
                     className={styles.field}
-                    label="วันที่โอนย้าย"
+                    label={t("วันที่โอนย้าย")}
                     name="transferDate"
-                    rules={[{ required: true, message: "กรุณาเลือกวันที่โอนย้าย" }]}
+                    rules={[{ required: true, message: t("กรุณาเลือกวันที่โอนย้าย") }]}
                   >
                     <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
                   </Form.Item>
 
                   <Form.Item
                     className={`${styles.field} ${styles.formGridFull}`}
-                    label="หมายเหตุ"
+                    label={t("หมายเหตุ")}
                     name="remark"
                   >
-                    <Input.TextArea rows={2} placeholder="หมายเหตุหัวเอกสาร (ถ้ามี)" />
+                    <Input.TextArea rows={2} placeholder={t("หมายเหตุหัวเอกสาร (ถ้ามี)")} />
                   </Form.Item>
                 </div>
               </div>
 
               <div className={styles.sectionBlock}>
                 <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>รายการโอนย้าย</h2>
+                  <h2 className={styles.sectionTitle}>{t("รายการโอนย้าย")}</h2>
                   <p className={styles.sectionHint}>
-                    ต้องเลือก Lot ต้นทางที่มีสต๊อกคงเหลือพอ และปลายทางต้องไม่ใช่ที่เดียวกับต้นทาง
+                    {t("ต้องเลือก Lot ต้นทางที่มีสต๊อกคงเหลือพอ และปลายทางต้องไม่ใช่ที่เดียวกับต้นทาง")}
                   </p>
                 </div>
 
@@ -299,7 +308,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                       validator: async (_, value) => {
                         if (!value || value.length < 1) {
                           return Promise.reject(
-                            new Error("ต้องมีรายการอย่างน้อย 1 รายการ"),
+                            new Error(t("ต้องมีรายการอย่างน้อย 1 รายการ")),
                           );
                         }
                       },
@@ -343,7 +352,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                           fromWarehouseStock.entries(),
                         ).map(([value, info]) => ({
                           value,
-                          label: `${info.code} — ${info.name} (คงเหลือ ${info.qty.toFixed(3)})`,
+                          label: `${info.code} — ${info.name} (${t("คงเหลือ")} ${info.qty.toFixed(3)})`,
                         }));
 
                         const fromLocationStock = new Map<
@@ -368,7 +377,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                           fromLocationStock.entries(),
                         ).map(([value, info]) => ({
                           value,
-                          label: `${info.code} — ${info.name} (คงเหลือ ${info.qty.toFixed(3)})`,
+                          label: `${info.code} — ${info.name} (${t("คงเหลือ")} ${info.qty.toFixed(3)})`,
                         }));
 
                         const selectedLot = availableLots.find(
@@ -396,7 +405,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                         return (
                           <div key={key} className={styles.lineCard}>
                             <div className={styles.lineCardHeader}>
-                              <strong>รายการที่ {index + 1}</strong>
+                              <strong>{t("รายการที่ {n}", { n: index + 1 })}</strong>
                               {fields.length > 1 ? (
                                 <Button
                                   type="text"
@@ -405,7 +414,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                   icon={<DeleteOutlined />}
                                   onClick={() => remove(name)}
                                 >
-                                  ลบ
+                                  {t("ลบ")}
                                 </Button>
                               ) : null}
                             </div>
@@ -414,12 +423,12 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="สินค้า"
+                                label={t("สินค้า")}
                                 name={[name, "itemId"]}
-                                rules={[{ required: true, message: "เลือกสินค้า" }]}
+                                rules={[{ required: true, message: t("เลือกสินค้า") }]}
                               >
                                 <Select
-                                  placeholder="ค้นหา/เลือกสินค้า"
+                                  placeholder={t("ค้นหา/เลือกสินค้า")}
                                   showSearch
                                   optionFilterProp="label"
                                   options={items.map((item) => ({
@@ -455,17 +464,19 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="จำนวนโอนย้าย"
+                                label={t("จำนวนโอนย้าย")}
                                 name={[name, "quantity"]}
                                 dependencies={[["items", name, "lotId"]]}
                                 rules={[
-                                  { required: true, message: "ระบุจำนวน" },
+                                  { required: true, message: t("ระบุจำนวน") },
                                   {
                                     validator: async (_, value) => {
                                       // แปลงเพดานไม่ได้ = ไม่มีกฎแปลงคู่นี้ กดบันทึกไปก็โดนปฏิเสธ
                                       if (ceiling.unconvertible) {
                                         throw new Error(
-                                          "ยังไม่มีกฎแปลงหน่วยคู่นี้ — เลือกหน่วยหลักของสินค้า หรือตั้งกฎที่ ข้อมูลหลัก > กฎแปลงหน่วยนับ",
+                                          t(
+                                            "ยังไม่มีกฎแปลงหน่วยคู่นี้ — เลือกหน่วยหลักของสินค้า หรือตั้งกฎที่ ข้อมูลหลัก > กฎแปลงหน่วยนับ",
+                                          ),
                                         );
                                       }
                                       if (
@@ -474,7 +485,9 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                         Number(value) > selectedLotQty
                                       ) {
                                         throw new Error(
-                                          `จำนวนต้องไม่เกินคงเหลือ (${selectedLotQty.toFixed(3)})`,
+                                          t("จำนวนต้องไม่เกินคงเหลือ ({qty})", {
+                                            qty: selectedLotQty.toFixed(3),
+                                          }),
                                         );
                                       }
                                     },
@@ -500,9 +513,9 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                               <Form.Item
                                 {...restField}
                                 className={styles.field}
-                                label="หน่วย"
+                                label={t("หน่วย")}
                                 name={[name, "unitId"]}
-                                rules={[{ required: true, message: "เลือกหน่วย" }]}
+                                rules={[{ required: true, message: t("เลือกหน่วย") }]}
                               >
                                 <Select
                                   showSearch
@@ -516,14 +529,14 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                             </div>
 
                             <div className={styles.routeBlock}>
-                              <div className={styles.routeLabel}>ต้นทาง</div>
+                              <div className={styles.routeLabel}>{t("ต้นทาง")}</div>
                               <div className={styles.lineGrid}>
                                 <Form.Item
                                   {...restField}
                                   className={styles.field}
-                                  label="คลังต้นทาง (มีสต๊อก)"
+                                  label={t("คลังต้นทาง (มีสต๊อก)")}
                                   name={[name, "fromWarehouseId"]}
-                                  rules={[{ required: true, message: "เลือกคลังต้นทาง" }]}
+                                  rules={[{ required: true, message: t("เลือกคลังต้นทาง") }]}
                                 >
                                   <Select
                                     showSearch
@@ -534,19 +547,19 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                     }
                                     placeholder={
                                       !line?.itemId
-                                        ? "เลือกสินค้าก่อน"
+                                        ? t("เลือกสินค้าก่อน")
                                         : scopedWarehouseIds &&
                                             scopedWarehouseIds.size === 0 &&
                                             !warehousesQuery.isLoading
                                           ? warehouseEmptyText
                                           : fromWarehouseOptions.length === 0
-                                            ? "ไม่มีสต๊อกคงเหลือสำหรับสินค้านี้"
-                                            : "เลือกคลังต้นทาง"
+                                            ? t("ไม่มีสต๊อกคงเหลือสำหรับสินค้านี้")
+                                            : t("เลือกคลังต้นทาง")
                                     }
                                     notFoundContent={
                                       scopedWarehouseIds && scopedWarehouseIds.size === 0
                                         ? warehouseEmptyText
-                                        : "ไม่มีสต๊อกคงเหลือสำหรับสินค้านี้"
+                                        : t("ไม่มีสต๊อกคงเหลือสำหรับสินค้านี้")
                                     }
                                     options={fromWarehouseOptions}
                                     onChange={() => {
@@ -565,9 +578,9 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                 <Form.Item
                                   {...restField}
                                   className={styles.field}
-                                  label="ตำแหน่งต้นทาง (มีสต๊อก)"
+                                  label={t("ตำแหน่งต้นทาง (มีสต๊อก)")}
                                   name={[name, "fromLocationId"]}
-                                  rules={[{ required: true, message: "เลือกตำแหน่งต้นทาง" }]}
+                                  rules={[{ required: true, message: t("เลือกตำแหน่งต้นทาง") }]}
                                 >
                                   <Select
                                     showSearch
@@ -586,9 +599,9 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                 <Form.Item
                                   {...restField}
                                   className={styles.field}
-                                  label="Lot ต้นทาง (คงเหลือ)"
+                                  label={t("Lot ต้นทาง (คงเหลือ)")}
                                   name={[name, "lotId"]}
-                                  rules={[{ required: true, message: "เลือก Lot ต้นทาง" }]}
+                                  rules={[{ required: true, message: t("เลือก Lot ต้นทาง") }]}
                                 >
                                   <Select
                                     showSearch
@@ -602,15 +615,15 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                       !line?.itemId ||
                                       !line?.fromWarehouseId ||
                                       !line?.fromLocationId
-                                        ? "เลือกสินค้า/คลัง/ตำแหน่งต้นทางก่อน"
-                                        : "เลือก Lot"
+                                        ? t("เลือกสินค้า/คลัง/ตำแหน่งต้นทางก่อน")
+                                        : t("เลือก Lot")
                                     }
                                     options={availableLots.map((lot) => ({
                                       value: lot.lotId,
                                       label: `${lot.lotNo} — ${
                                         holdWarehouseIds.has(lot.warehouseId)
-                                          ? "ยอดพัก"
-                                          : "คงเหลือ"
+                                          ? t("ยอดพัก")
+                                          : t("คงเหลือ")
                                       } ${lotFreeQty(lot).toFixed(3)}`,
                                     }))}
                                   />
@@ -619,14 +632,14 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                             </div>
 
                             <div className={styles.routeBlock}>
-                              <div className={styles.routeLabel}>ปลายทาง</div>
+                              <div className={styles.routeLabel}>{t("ปลายทาง")}</div>
                               <div className={styles.lineGridTwo}>
                                 <Form.Item
                                   {...restField}
                                   className={styles.field}
-                                  label="คลังปลายทาง"
+                                  label={t("คลังปลายทาง")}
                                   name={[name, "toWarehouseId"]}
-                                  rules={[{ required: true, message: "เลือกคลังปลายทาง" }]}
+                                  rules={[{ required: true, message: t("เลือกคลังปลายทาง") }]}
                                 >
                                   <Select
                                     showSearch
@@ -649,9 +662,9 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                                 <Form.Item
                                   {...restField}
                                   className={styles.field}
-                                  label="ตำแหน่งปลายทาง"
+                                  label={t("ตำแหน่งปลายทาง")}
                                   name={[name, "toLocationId"]}
-                                  rules={[{ required: true, message: "เลือกตำแหน่งปลายทาง" }]}
+                                  rules={[{ required: true, message: t("เลือกตำแหน่งปลายทาง") }]}
                                 >
                                   <Select
                                     showSearch
@@ -669,10 +682,10 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                             <Form.Item
                               {...restField}
                               className={styles.field}
-                              label="หมายเหตุรายการ"
+                              label={t("หมายเหตุรายการ")}
                               name={[name, "remark"]}
                             >
-                              <Input placeholder="หมายเหตุ (ถ้ามี)" />
+                              <Input placeholder={t("หมายเหตุ (ถ้ามี)")} />
                             </Form.Item>
                           </div>
                         );
@@ -684,7 +697,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                         icon={<PlusOutlined />}
                         onClick={() => add({})}
                       >
-                        เพิ่มรายการ
+                        {t("เพิ่มรายการ")}
                       </Button>
                       <Form.ErrorList errors={errors} />
                     </div>
@@ -695,14 +708,14 @@ export default function StockTransferFormPage({ mode, id }: Props) {
 
             <div className={styles.footerBar}>
               <p className={styles.footerHint}>
-                บันทึกแล้วสถานะจะเป็น DRAFT — หัวหน้าคลังต้องอนุมัติก่อนตัด+เพิ่มสต๊อกจริง
+                {t("บันทึกแล้วสถานะจะเป็น DRAFT — หัวหน้าคลังต้องอนุมัติก่อนตัด+เพิ่มสต๊อกจริง")}
               </p>
               <div className={styles.footerActions}>
                 <Button
                   className={styles.cancelBtn}
                   onClick={() => router.push(scopePath("/inventory/stock-transfers"))}
                 >
-                  ยกเลิก
+                  {t("ยกเลิก")}
                 </Button>
                 <Button
                   className={styles.saveBtn}
@@ -710,7 +723,7 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                   htmlType="submit"
                   loading={saving}
                 >
-                  {mode === "create" ? "บันทึกใบโอนย้าย" : "บันทึกการแก้ไข"}
+                  {mode === "create" ? t("บันทึกใบโอนย้าย") : t("บันทึกการแก้ไข")}
                 </Button>
               </div>
             </div>
@@ -718,18 +731,18 @@ export default function StockTransferFormPage({ mode, id }: Props) {
 
           <aside className={styles.summaryCard}>
             <div>
-              <p className={styles.summaryEyebrow}>สรุปแบบฟอร์ม</p>
+              <p className={styles.summaryEyebrow}>{t("สรุปแบบฟอร์ม")}</p>
               <h2 className={styles.summaryTitle}>
-                {mode === "create" ? "ใบโอนย้ายใหม่" : "แก้ไข DRAFT"}
+                {mode === "create" ? t("ใบโอนย้ายใหม่") : t("แก้ไข DRAFT")}
               </h2>
               <p className={styles.summaryLead}>
-                ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ
+                {t("ตรวจข้อมูลก่อนบันทึก ระบบจะสร้างเลขที่เอกสารให้อัตโนมัติ")}
               </p>
             </div>
 
             <div>
               <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                รายการโอนย้าย
+                {t("รายการโอนย้าย")}
               </Typography.Text>
               {previewLines.length > 0 ? (
                 <ul className={styles.previewList}>
@@ -738,15 +751,14 @@ export default function StockTransferFormPage({ mode, id }: Props) {
                   ))}
                 </ul>
               ) : (
-                <p className={styles.previewMeta}>ยังไม่มีรายการ</p>
+                <p className={styles.previewMeta}>{t("ยังไม่มีรายการ")}</p>
               )}
             </div>
 
             <div className={styles.flowNote}>
-              <strong>ขั้นตอนถัดไป</strong>
+              <strong>{t("ขั้นตอนถัดไป")}</strong>
               <p>
-                หลังบันทึก → เปิดหน้ารายละเอียด → กด “อนุมัติ” →
-                หัวหน้าคลังตัด+เพิ่มสต๊อกจริง
+                {t("หลังบันทึก → เปิดหน้ารายละเอียด → กด “อนุมัติ” → หัวหน้าคลังตัด+เพิ่มสต๊อกจริง")}
               </p>
             </div>
           </aside>

@@ -31,6 +31,8 @@ import {
   type PortalModuleDef,
   type PortalModuleTone,
 } from "./portal-modules";
+import { useLanguage, type Language } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import TodayWorkCarousel from "./TodayWorkCarousel";
 import styles from "./HomePortalPage.module.css";
 
@@ -46,8 +48,8 @@ const TONE_CLASS: Record<PortalModuleTone, string> = {
   stone: styles.toneStone,
 };
 
-function formatThaiDate(date: Date) {
-  return date.toLocaleDateString("th-TH", {
+function formatThaiDate(date: Date, lang: Language = "th") {
+  return date.toLocaleDateString(lang === "en" ? "en-GB" : "th-TH", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -57,9 +59,10 @@ function formatThaiDate(date: Date) {
 
 export default function HomePortalPage() {
   const router = useRouter();
+  const t = useT();
+  const language = useLanguage();
   const [user, setUser] = useState<StoredUser | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [todayLabel, setTodayLabel] = useState("");
   const [permsTick, setPermsTick] = useState(0);
   const [searchOpen, setSearchOpen] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -69,10 +72,15 @@ export default function HomePortalPage() {
   useEffect(() => {
     setUser(getStoredUser());
     setMounted(true);
-    setTodayLabel(formatThaiDate(new Date()));
     // หน้าแรก = ออกจากโหมดโมดูล เมนูด้านข้างจะว่างจนกดกล่องใหม่
     clearActivePortalModule();
   }, []);
+
+  // วันที่บนหน้าแรก — รอ mounted เพื่อไม่ให้เวลาฝั่งเซิร์ฟเวอร์/เบราว์เซอร์ไม่ตรงกันตอน hydrate
+  const todayLabel = useMemo(
+    () => (mounted ? formatThaiDate(new Date(), language) : ""),
+    [mounted, language],
+  );
 
   // ทางลัด: Ctrl/Cmd + K หรือ "/" (ตอนไม่ได้พิมพ์อยู่ในช่องอื่น) เปิดช่องค้นหาเมนู
   useEffect(() => {
@@ -131,7 +139,7 @@ export default function HomePortalPage() {
    */
   const badgeCounts = useMenuBadgeCounts({ enabled: mounted });
 
-  const displayName = user?.displayName || user?.username || "ผู้ใช้งาน";
+  const displayName = user?.displayName || user?.username || t("ผู้ใช้");
 
   const openModule = (mod: PortalModuleDef) => {
     setActivePortalModule(mod.key as PortalModuleKey);
@@ -144,22 +152,21 @@ export default function HomePortalPage() {
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>SMT ENERGY · PORTAL</p>
           <h1 className={styles.heroTitle}>
-            สวัสดี, <span className={styles.heroName}>{displayName}</span>
+            {t("สวัสดี,")} <span className={styles.heroName}>{displayName}</span>
           </h1>
           <p className={styles.heroLead}>
-            เลือกโมดูลเพื่อเริ่มงาน — แสดงเฉพาะระบบที่คุณมีสิทธิ์
-            แล้วเมนูด้านข้างจะเหลือเฉพาะโมดูลที่เลือก
+            {t("เลือกโมดูลเพื่อเริ่มงาน — แสดงเฉพาะระบบที่คุณมีสิทธิ์ แล้วเมนูด้านข้างจะเหลือเฉพาะโมดูลที่เลือก")}
           </p>
           <button
             type="button"
             className={styles.searchTrigger}
             onClick={() => setSearchOpen(true)}
-            aria-label="ค้นหาเมนู"
+            aria-label={t("ค้นหาเมนู")}
             aria-keyshortcuts="Control+K Meta+K /"
           >
             <SearchOutlined className={styles.searchIcon} />
             <span className={styles.searchPlaceholder}>
-              ค้นหาเมนู เช่น ตั๋วชั่ง · ใบสั่งผลิต · ยอดคงเหลือ
+              {t("ค้นหาเมนู เช่น ตั๋วชั่ง · ใบสั่งผลิต · ยอดคงเหลือ")}
             </span>
             <span className={styles.searchKeys} aria-hidden>
               <kbd>Ctrl</kbd>
@@ -181,7 +188,7 @@ export default function HomePortalPage() {
       </header>
 
       {!mounted ? (
-        <div className={styles.grid} aria-busy="true" aria-label="กำลังโหลดเมนู">
+        <div className={styles.grid} aria-busy="true" aria-label={t("กำลังโหลดเมนู")}>
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className={styles.tileSkeleton} />
           ))}
@@ -190,8 +197,8 @@ export default function HomePortalPage() {
         <div className={styles.empty}>
           {getStoredPermissions()?.mode === "matrix" &&
           (getStoredPermissions()?.screenCodes?.length ?? 0) === 0
-            ? "ยังไม่ได้ติ๊กสิทธิ์ใน Permission Matrix — ติดต่อผู้ดูแลระบบเพื่อกำหนดสิทธิ์หน้าจอ"
-            : "ยังไม่มีโมดูลตามสิทธิ์ของคุณ — ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์การใช้งาน"}
+            ? t("ยังไม่ได้ติ๊กสิทธิ์ใน Permission Matrix — ติดต่อผู้ดูแลระบบเพื่อกำหนดสิทธิ์หน้าจอ")
+            : t("ยังไม่มีโมดูลตามสิทธิ์ของคุณ — ติดต่อผู้ดูแลระบบเพื่อขอสิทธิ์การใช้งาน")}
         </div>
       ) : (
         <div className={styles.grid} ref={gridRef}>
@@ -205,9 +212,9 @@ export default function HomePortalPage() {
               0,
             );
             const showPendingBadge = pendingBadgeCount > 0;
-            const pendingBadgeLabel = badgeLabelForBreakdown(breakdown);
+            const pendingBadgeLabel = t(badgeLabelForBreakdown(breakdown));
             const breakdownText = breakdown
-              .map((item) => `${item.label} ${item.count}`)
+              .map((item) => `${t(item.label)} ${item.count}`)
               .join(" · ");
 
             const tile = (
@@ -224,16 +231,16 @@ export default function HomePortalPage() {
                   onClick={() => openModule(mod)}
                   aria-label={
                     showPendingBadge
-                      ? `${mod.label} — ${mod.description} — ${pendingBadgeLabel} ${pendingBadgeCount} รายการ: ${breakdownText}`
-                      : `${mod.label} — ${mod.description}`
+                      ? `${t(mod.label)} — ${t(mod.description)} — ${pendingBadgeLabel} ${t("{n} รายการ", { n: pendingBadgeCount })}: ${breakdownText}`
+                      : `${t(mod.label)} — ${t(mod.description)}`
                   }
                 >
                   <span className={styles.tileTop}>
                     <span className={styles.tileIcon}>{moduleIcon(mod.key)}</span>
                     <span className={styles.tileCode}>{mod.code}</span>
                   </span>
-                  <span className={styles.tileLabel}>{mod.label}</span>
-                  <span className={styles.tileDesc}>{mod.description}</span>
+                  <span className={styles.tileLabel}>{t(mod.label)}</span>
+                  <span className={styles.tileDesc}>{t(mod.description)}</span>
                   <span className={styles.tileGo} aria-hidden>
                     <ArrowRightOutlined />
                   </span>
@@ -248,11 +255,11 @@ export default function HomePortalPage() {
                 title={
                   <div>
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>
-                      {pendingBadgeLabel} {pendingBadgeCount} รายการ
+                      {pendingBadgeLabel} {t("{n} รายการ", { n: pendingBadgeCount })}
                     </div>
                     {breakdown.map((item) => (
                       <div key={item.menuKey}>
-                        {item.label} · {item.count}
+                        {t(item.label)} · {item.count}
                       </div>
                     ))}
                   </div>

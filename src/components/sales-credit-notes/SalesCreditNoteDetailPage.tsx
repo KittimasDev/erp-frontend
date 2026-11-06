@@ -33,16 +33,19 @@ import {
 import { hasPermission, isMatrixPermissionMode } from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
+import { formatMoney } from "@/lib/i18n/format";
+import { useLanguage } from "@/lib/i18n/language";
+import { useT } from "@/lib/i18n/useT";
 import {
-  SALES_CREDIT_NOTE_STATUS_LABEL,
+  salesCreditNoteStatusLabel,
   type SalesCreditNote,
 } from "@/types/sales-credit-notes";
 import PageHeader from "@/components/common/PageHeader";
 
-const money = new Intl.NumberFormat("th-TH", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+function useMoney() {
+  const lang = useLanguage();
+  return { format: (value: number) => formatMoney(value, lang) };
+}
 
 type DraftLine = {
   pendingId: string;
@@ -91,27 +94,28 @@ function lineAmount(line: DraftLine, vatMode: string, vatRate: number) {
 
 export default function SalesCreditNoteDetailPage({ id }: { id: string }) {
   const { message, modal } = App.useApp();
+  const t = useT();
   const router = useRouter();
   const query = useSalesCreditNoteQuery(id);
   const attachments = useSalesCreditNoteAttachmentsQuery(id);
   const note = query.data;
 
   if (query.isLoading) {
-    return <Typography.Text>กำลังโหลดใบลดหนี้</Typography.Text>;
+    return <Typography.Text>{t("กำลังโหลดใบลดหนี้")}</Typography.Text>;
   }
   if (!note) {
-    return <Typography.Text>ไม่พบใบลดหนี้</Typography.Text>;
+    return <Typography.Text>{t("ไม่พบใบลดหนี้")}</Typography.Text>;
   }
 
   return (
     <Space orientation="vertical" size={16} style={{ width: "100%" }}>
       <Space>
-        <Link href="/finance/receivables/credit-notes">กลับหน้ารายการ</Link>
+        <Link href="/finance/receivables/credit-notes">{t("กลับหน้ารายการ")}</Link>
       </Space>
       {note.status === "DRAFT" && canEdit() ? (
         <DraftEditor
           note={note}
-          onSaved={() => message.success("บันทึกใบลดหนี้แล้ว")}
+          onSaved={() => message.success(t("บันทึกใบลดหนี้แล้ว"))}
         />
       ) : (
         <ReadOnlyNote note={note} />
@@ -125,14 +129,14 @@ export default function SalesCreditNoteDetailPage({ id }: { id: string }) {
         note={note}
         onDone={(text) => {
           message.success(text);
-          if (text.startsWith("ยกเลิก"))
+          if (text === t("ยกเลิกใบลดหนี้แล้ว"))
             router.push("/finance/receivables/credit-notes");
         }}
         confirm={(title, onOk) =>
           modal.confirm({
             title,
-            okText: "ยืนยัน",
-            cancelText: "ปิด",
+            okText: t("ยืนยัน"),
+            cancelText: t("ปิด"),
             onOk,
           })
         }
@@ -149,6 +153,9 @@ function DraftEditor({
   onSaved: () => void;
 }) {
   const { message } = App.useApp();
+  const t = useT();
+  const lang = useLanguage();
+  const money = useMoney();
   const update = useUpdateSalesCreditNoteMutation(note.id);
   const [date, setDate] = useState<Dayjs>(dayjs(note.creditNoteDate));
   const [reason, setReason] = useState(note.reason ?? "");
@@ -175,17 +182,17 @@ function DraftEditor({
 
   const columns: ColumnsType<DraftLine> = [
     {
-      title: "ลำดับ",
+      title: t("ลำดับ"),
       key: "seq",
       width: 64,
       align: "center",
       render: (_: unknown, __: unknown, index: number) => index + 1,
     },
-    { title: "รหัส", dataIndex: "itemCode", width: 110 },
-    { title: "สินค้า", dataIndex: "itemName" },
-    { title: "หน่วย", dataIndex: "unitName", width: 80 },
+    { title: t("รหัส"), dataIndex: "itemCode", width: 110 },
+    { title: t("สินค้า"), dataIndex: "itemName" },
+    { title: t("หน่วย"), dataIndex: "unitName", width: 80 },
     {
-      title: "จำนวน",
+      title: t("จำนวน"),
       width: 140,
       render: (_, line, index) => (
         <InputNumber
@@ -204,7 +211,7 @@ function DraftEditor({
       ),
     },
     {
-      title: "ราคาต่อหน่วย",
+      title: t("ราคาต่อหน่วย"),
       width: 150,
       render: (_, line, index) => (
         <InputNumber
@@ -222,7 +229,7 @@ function DraftEditor({
       ),
     },
     {
-      title: "ส่วนลด",
+      title: t("ส่วนลด"),
       width: 140,
       render: (_, line, index) => (
         <InputNumber
@@ -242,7 +249,7 @@ function DraftEditor({
       ),
     },
     {
-      title: "มูลค่าก่อน VAT",
+      title: t("มูลค่าก่อน VAT"),
       width: 140,
       align: "right",
       render: (_, __, index) => money.format(preview[index]?.net ?? 0),
@@ -254,7 +261,7 @@ function DraftEditor({
       render: (_, __, index) => money.format(preview[index]?.vat ?? 0),
     },
     {
-      title: "ยอดรวม",
+      title: t("ยอดรวม"),
       width: 130,
       align: "right",
       render: (_, __, index) => money.format(preview[index]?.total ?? 0),
@@ -276,17 +283,17 @@ function DraftEditor({
       });
       onSaved();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("บันทึกไม่สำเร็จ"));
     }
   }
 
   return (
     <>
       <PageHeader
-        title={`${note.creditNoteNo} · ${SALES_CREDIT_NOTE_STATUS_LABEL.DRAFT}`}
+        title={`${note.creditNoteNo} · ${salesCreditNoteStatusLabel("DRAFT", lang)}`}
         actions={
           <Button type="primary" loading={update.isPending} onClick={save}>
-            บันทึก
+            {t("บันทึก")}
           </Button>
         }
       />
@@ -295,17 +302,17 @@ function DraftEditor({
       <Space orientation="vertical" size={12} style={{ width: "100%" }}>
         <Space wrap>
           <DatePicker value={date} format="DD/MM/YYYY" onChange={(value) => value && setDate(value)} />
-          <Typography.Text>ลูกค้า {note.customerName}</Typography.Text>
+          <Typography.Text>{t("ลูกค้า")} {note.customerName}</Typography.Text>
           <Typography.Text>SO {note.salesOrderNo}</Typography.Text>
-          <Typography.Text>ใบส่ง {note.deliveryOrderNo}</Typography.Text>
+          <Typography.Text>{t("ใบส่ง")} {note.deliveryOrderNo}</Typography.Text>
         </Space>
         <Input
-          placeholder="เหตุผล"
+          placeholder={t("เหตุผล")}
           value={reason}
           onChange={(event) => setReason(event.target.value)}
         />
         <Input.TextArea
-          placeholder="หมายเหตุ"
+          placeholder={t("หมายเหตุ")}
           value={remark}
           onChange={(event) => setRemark(event.target.value)}
           rows={2}
@@ -318,11 +325,11 @@ function DraftEditor({
           dataSource={lines}
         />
         <Descriptions column={1} size="small" style={{ maxWidth: 360, marginLeft: "auto" }}>
-          <Descriptions.Item label="ยอดก่อนลด">{money.format(gross)}</Descriptions.Item>
-          <Descriptions.Item label="ส่วนลด">{money.format(discount)}</Descriptions.Item>
-          <Descriptions.Item label="มูลค่าก่อน VAT">{money.format(subtotal)}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดก่อนลด")}>{money.format(gross)}</Descriptions.Item>
+          <Descriptions.Item label={t("ส่วนลด")}>{money.format(discount)}</Descriptions.Item>
+          <Descriptions.Item label={t("มูลค่าก่อน VAT")}>{money.format(subtotal)}</Descriptions.Item>
           <Descriptions.Item label="VAT">{money.format(vat)}</Descriptions.Item>
-          <Descriptions.Item label="ยอดรวมที่ลด">{money.format(total)}</Descriptions.Item>
+          <Descriptions.Item label={t("ยอดรวมที่ลด")}>{money.format(total)}</Descriptions.Item>
         </Descriptions>
       </Space>
           </Card>
@@ -331,20 +338,23 @@ function DraftEditor({
 }
 
 function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
+  const t = useT();
+  const lang = useLanguage();
+  const money = useMoney();
   return (
     <>
-      <PageHeader title={`${note.creditNoteNo} · ${SALES_CREDIT_NOTE_STATUS_LABEL[note.status] ?? note.status}`} />
+      <PageHeader title={`${note.creditNoteNo} · ${salesCreditNoteStatusLabel(note.status, lang)}`} />
 
       <Card>
       <Descriptions column={2} size="small" style={{ marginBottom: 16 }}>
-        <Descriptions.Item label="วันที่">{note.creditNoteDate}</Descriptions.Item>
-        <Descriptions.Item label="ลูกค้า">{note.customerName}</Descriptions.Item>
-        <Descriptions.Item label="ใบสั่งขาย">{note.salesOrderNo}</Descriptions.Item>
-        <Descriptions.Item label="ใบส่งสินค้า">{note.deliveryOrderNo}</Descriptions.Item>
-        <Descriptions.Item label="เหตุผล">{note.reason || "—"}</Descriptions.Item>
-        <Descriptions.Item label="หมายเหตุ">{note.remark || "—"}</Descriptions.Item>
-        <Descriptions.Item label="ผู้สร้าง">{note.createdByName || "—"}</Descriptions.Item>
-        <Descriptions.Item label="ผู้อนุมัติ">
+        <Descriptions.Item label={t("วันที่")}>{note.creditNoteDate}</Descriptions.Item>
+        <Descriptions.Item label={t("ลูกค้า")}>{note.customerName}</Descriptions.Item>
+        <Descriptions.Item label={t("ใบสั่งขาย")}>{note.salesOrderNo}</Descriptions.Item>
+        <Descriptions.Item label={t("ใบส่งสินค้า")}>{note.deliveryOrderNo}</Descriptions.Item>
+        <Descriptions.Item label={t("เหตุผล")}>{note.reason || "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("หมายเหตุ")}>{note.remark || "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("ผู้สร้าง")}>{note.createdByName || "—"}</Descriptions.Item>
+        <Descriptions.Item label={t("ผู้อนุมัติ")}>
           {note.approvedByName || "—"}
           {note.approvedAt
             ? ` · ${dayjs(note.approvedAt).format("DD/MM/YYYY HH:mm")}`
@@ -357,24 +367,24 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
         pagination={false}
         dataSource={note.items}
         columns={[
-          { title: "รหัส", dataIndex: "itemCode" },
-          { title: "สินค้า", dataIndex: "itemName" },
-          { title: "จำนวน", dataIndex: "quantity", align: "right" },
-          { title: "หน่วย", dataIndex: "unitName" },
+          { title: t("รหัส"), dataIndex: "itemCode" },
+          { title: t("สินค้า"), dataIndex: "itemName" },
+          { title: t("จำนวน"), dataIndex: "quantity", align: "right" },
+          { title: t("หน่วย"), dataIndex: "unitName" },
           {
-            title: "ราคาต่อหน่วย",
+            title: t("ราคาต่อหน่วย"),
             dataIndex: "unitPrice",
             align: "right",
             render: (value: number) => money.format(value),
           },
           {
-            title: "ส่วนลด",
+            title: t("ส่วนลด"),
             dataIndex: "discountAmount",
             align: "right",
             render: (value: number) => money.format(value),
           },
           {
-            title: "มูลค่าก่อน VAT",
+            title: t("มูลค่าก่อน VAT"),
             dataIndex: "amount",
             align: "right",
             render: (value: number) => money.format(value),
@@ -386,7 +396,7 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
             render: (value: number) => money.format(value),
           },
           {
-            title: "ยอดรวม",
+            title: t("ยอดรวม"),
             dataIndex: "lineTotal",
             align: "right",
             render: (value: number) => money.format(value),
@@ -394,11 +404,11 @@ function ReadOnlyNote({ note }: { note: SalesCreditNote }) {
         ]}
       />
       <Descriptions column={1} size="small" style={{ maxWidth: 360, marginLeft: "auto", marginTop: 12 }}>
-        <Descriptions.Item label="ยอดก่อนลด">{money.format(note.grossAmount)}</Descriptions.Item>
-        <Descriptions.Item label="ส่วนลด">{money.format(note.discountAmount)}</Descriptions.Item>
-        <Descriptions.Item label="มูลค่าก่อน VAT">{money.format(note.subtotalAmount)}</Descriptions.Item>
+        <Descriptions.Item label={t("ยอดก่อนลด")}>{money.format(note.grossAmount)}</Descriptions.Item>
+        <Descriptions.Item label={t("ส่วนลด")}>{money.format(note.discountAmount)}</Descriptions.Item>
+        <Descriptions.Item label={t("มูลค่าก่อน VAT")}>{money.format(note.subtotalAmount)}</Descriptions.Item>
         <Descriptions.Item label="VAT">{money.format(note.vatAmount)}</Descriptions.Item>
-        <Descriptions.Item label="ยอดรวมที่ลด">{money.format(note.totalAmount)}</Descriptions.Item>
+        <Descriptions.Item label={t("ยอดรวมที่ลด")}>{money.format(note.totalAmount)}</Descriptions.Item>
       </Descriptions>
           </Card>
     </>
@@ -415,9 +425,10 @@ function AttachmentCard({
   canUpload: boolean;
 }) {
   const { message } = App.useApp();
+  const t = useT();
   const upload = useUploadSalesCreditNoteAttachmentMutation(id);
   return (
-    <Card title="เอกสารแนบ">
+    <Card title={t("เอกสารแนบ")}>
       <Space orientation="vertical">
         {files.map((file) => (
           <Typography.Text key={file.id}>
@@ -425,23 +436,23 @@ function AttachmentCard({
           </Typography.Text>
         ))}
         {files.length === 0 ? (
-          <Typography.Text type="secondary">ยังไม่มีเอกสารแนบ</Typography.Text>
+          <Typography.Text type="secondary">{t("ยังไม่มีเอกสารแนบ")}</Typography.Text>
         ) : null}
         {canUpload ? (
           <Upload
             showUploadList={false}
             beforeUpload={(file) => {
               upload.mutate(file, {
-                onSuccess: () => message.success("แนบเอกสารแล้ว"),
+                onSuccess: () => message.success(t("แนบเอกสารแล้ว")),
                 onError: (error) =>
                   message.error(
-                    error instanceof Error ? error.message : "แนบเอกสารไม่สำเร็จ",
+                    error instanceof Error ? error.message : t("แนบเอกสารไม่สำเร็จ"),
                   ),
               });
               return false;
             }}
           >
-            <Button loading={upload.isPending}>แนบเอกสาร</Button>
+            <Button loading={upload.isPending}>{t("แนบเอกสาร")}</Button>
           </Upload>
         ) : null}
       </Space>
@@ -459,6 +470,7 @@ function ActionBar({
   confirm: (title: string, onOk: () => Promise<void>) => void;
 }) {
   const { message } = App.useApp();
+  const t = useT();
   const confirmNote = useConfirmSalesCreditNoteMutation(note.id);
   const approveNote = useApproveSalesCreditNoteMutation(note.id);
   const cancelNote = useCancelSalesCreditNoteMutation(note.id);
@@ -471,7 +483,7 @@ function ActionBar({
       await action();
       onDone(success);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "ทำรายการไม่สำเร็จ");
+      message.error(error instanceof Error ? error.message : t("ทำรายการไม่สำเร็จ"));
     }
   }
 
@@ -516,23 +528,23 @@ function ActionBar({
             type="primary"
             loading={confirmNote.isPending}
             onClick={() =>
-              confirm("ยืนยันใบลดหนี้และส่งรออนุมัติ", () =>
-                run(() => confirmNote.mutateAsync(), "ส่งรออนุมัติแล้ว"),
+              confirm(t("ยืนยันใบลดหนี้และส่งรออนุมัติ"), () =>
+                run(() => confirmNote.mutateAsync(), t("ส่งรออนุมัติแล้ว")),
               )
             }
           >
-            ยืนยัน
+            {t("ยืนยัน")}
           </Button>
           <Button
             danger
             loading={cancelNote.isPending}
             onClick={() =>
-              confirm("ยกเลิกใบลดหนี้ร่าง จำนวนจะกลับเข้าคิว", () =>
-                run(() => cancelNote.mutateAsync(), "ยกเลิกใบลดหนี้แล้ว"),
+              confirm(t("ยกเลิกใบลดหนี้ร่าง จำนวนจะกลับเข้าคิว"), () =>
+                run(() => cancelNote.mutateAsync(), t("ยกเลิกใบลดหนี้แล้ว")),
               )
             }
           >
-            ยกเลิก
+            {t("ยกเลิก")}
           </Button>
         </>
       ) : null}
@@ -541,19 +553,19 @@ function ActionBar({
           type="primary"
           loading={approveNote.isPending}
           onClick={() =>
-            confirm("อนุมัติใบลดหนี้เป็นฉบับเสร็จสิ้น", () =>
-              run(() => approveNote.mutateAsync(), "อนุมัติใบลดหนี้แล้ว"),
+            confirm(t("อนุมัติใบลดหนี้เป็นฉบับเสร็จสิ้น"), () =>
+              run(() => approveNote.mutateAsync(), t("อนุมัติใบลดหนี้แล้ว")),
             )
           }
         >
-          อนุมัติ
+          {t("อนุมัติ")}
         </Button>
       ) : null}
       {note.status === "COMPLETED" ? (
         <Button onClick={() => printPdf().catch((error: unknown) =>
-          message.error(error instanceof Error ? error.message : "พิมพ์ไม่สำเร็จ"),
+          message.error(error instanceof Error ? error.message : t("พิมพ์ไม่สำเร็จ")),
         )}>
-          พิมพ์ PDF
+          {t("พิมพ์ PDF")}
         </Button>
       ) : null}
     </Space>

@@ -21,6 +21,8 @@ import type { Packing } from "@/types/packings";
 import { PACKING_STATUS_LABEL, type PackingStatus } from "@/types/packings";
 import styles from "./PackingsListPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
+import { useT } from "@/lib/i18n/useT";
+import { statusT } from "@/lib/i18n/fulfillmentStatus";
 
 function formatDate(value?: string) {
   if (!value) return "—";
@@ -28,6 +30,7 @@ function formatDate(value?: string) {
 }
 
 export default function PackingsListPage() {
+  const t = useT();
   const [page, setPage] = useState(1);
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
@@ -56,40 +59,40 @@ export default function PackingsListPage() {
   const columns: ColumnsType<Packing> = useMemo(
     () => [
       {
-        title: "ลำดับ",
+        title: t("ลำดับ"),
         key: "seq",
         width: 64,
         align: "center",
         render: (_, __, index) => (page - 1) * 10 + index + 1,
       },
       {
-        title: "เลขที่",
+        title: t("เลขที่"),
         dataIndex: "packingNo",
         render: (v: string) => <span className={styles.prNo}>{v}</span>,
       },
       {
-        title: "ใบจ่ายสินค้า",
+        title: t("ใบจ่ายสินค้า"),
         dataIndex: "pickingNo",
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "ใบสั่งขาย",
+        title: t("ใบสั่งขาย"),
         dataIndex: "salesOrderNo",
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "ลูกค้า",
+        title: t("ลูกค้า"),
         dataIndex: "customerName",
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "วันที่",
+        title: t("วันที่"),
         dataIndex: "packingDate",
         width: 110,
         render: formatDate,
       },
       {
-        title: "สถานะ",
+        title: t("สถานะ"),
         dataIndex: "status",
         width: 120,
         render: (v: string) => (
@@ -98,17 +101,17 @@ export default function PackingsListPage() {
               v === "CONFIRMED" ? "success" : v === "CANCELLED" ? "default" : "processing"
             }
           >
-            {PACKING_STATUS_LABEL[v as PackingStatus] ?? v}
+            {statusT(t, PACKING_STATUS_LABEL[v as PackingStatus] ?? v)}
           </Tag>
         ),
       },
       {
-        title: "สร้างโดย",
+        title: t("สร้างโดย"),
         dataIndex: "createdByName",
         render: (v?: string) => v ?? "—",
       },
       {
-        title: "ยืนยันเมื่อ",
+        title: t("ยืนยันเมื่อ"),
         dataIndex: "confirmedAt",
         width: 140,
         render: (v?: string) =>
@@ -136,7 +139,7 @@ export default function PackingsListPage() {
         ),
       },
     ],
-    [canEdit, router],
+    [canEdit, router, t],
   );
 
   return (
@@ -144,8 +147,8 @@ export default function PackingsListPage() {
       <PageHeader
         eyebrow="Sales · Packing"
         icon={<InboxOutlined />}
-        title="ใบบรรจุสินค้า"
-        subtitle="บรรจุสินค้าจากใบจ่ายสินค้าที่ยืนยันแล้ว — ไม่กระทบสต๊อก"
+        title={t("ใบบรรจุสินค้า")}
+        subtitle={t("บรรจุสินค้าจากใบจ่ายสินค้าที่ยืนยันแล้ว — ไม่กระทบสต๊อก")}
         actions={
           <>
 {canAdd ? (
@@ -156,7 +159,7 @@ export default function PackingsListPage() {
                   type="primary"
                   icon={<PlusOutlined />}
                 >
-                  สร้างจากใบจ่ายสินค้า
+                  {t("สร้างจากใบจ่ายสินค้า")}
                 </Button>
               </Badge>
             </Link>
@@ -168,16 +171,16 @@ export default function PackingsListPage() {
       <section className={styles.filterCard}>
         <div className={styles.filterGrid}>
           <div className={styles.filterItem}>
-            <label>ค้นหา</label>
+            <label>{t("ค้นหา")}</label>
             <Input
               allowClear
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="เลขที่ / ลูกค้า"
+              placeholder={t("เลขที่ / ลูกค้า")}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>สถานะ</label>
+            <label>{t("สถานะ")}</label>
             <Select
               allowClear
               style={{ width: "100%" }}
@@ -185,12 +188,12 @@ export default function PackingsListPage() {
               onChange={setStatus}
               options={Object.entries(PACKING_STATUS_LABEL).map(([value, label]) => ({
                 value,
-                label,
+                label: statusT(t, label),
               }))}
             />
           </div>
           <div className={styles.filterItem}>
-            <label>ลูกค้า</label>
+            <label>{t("ลูกค้า")}</label>
             <Select
               allowClear
               showSearch
@@ -205,7 +208,7 @@ export default function PackingsListPage() {
             />
           </div>
           <div className={styles.filterItem}>
-            <label>วันที่</label>
+            <label>{t("วันที่")}</label>
             <DatePicker
               value={date}
               onChange={setDate}
@@ -224,7 +227,7 @@ export default function PackingsListPage() {
               setApplied({});
             }}
           >
-            เคลียร์
+            {t("เคลียร์")}
           </Button>
           <Button
             type="primary"
@@ -240,7 +243,7 @@ export default function PackingsListPage() {
               })
             }
           >
-            ค้นหา
+            {t("ค้นหา")}
           </Button>
         </div>
       </section>
@@ -255,7 +258,7 @@ export default function PackingsListPage() {
           onRow={(row) => ({
             onClick: () => router.push(`/packings/${row.id}`),
           })}
-          locale={{ emptyText: "ยังไม่มีใบบรรจุสินค้า" }}
+          locale={{ emptyText: t("ยังไม่มีใบบรรจุสินค้า") }}
         />
       </section>
     </div>

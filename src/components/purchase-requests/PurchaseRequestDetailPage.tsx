@@ -36,10 +36,10 @@ import {
 } from "@/lib/auth/permissions-access";
 import { RoleCode } from "@/lib/auth/role-codes";
 import { isAdministrator, userHasRole } from "@/lib/auth/session";
-import {
-  PURCHASE_REQUEST_STATUS_LABEL,
-  type PurchaseRequestStatus,
-} from "@/types/purchase-requests";
+import { purchaseRequestStatusLabel } from "@/types/purchase-requests";
+import { useT } from "@/lib/i18n/useT";
+import { useLanguage } from "@/lib/i18n/language";
+import { formatNumber } from "@/lib/i18n/format";
 import ProcurementFlowTimeline from "@/components/procurement/ProcurementFlowTimeline";
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import styles from "./PurchaseRequestDetailPage.module.css";
@@ -54,8 +54,8 @@ function formatDate(value?: string) {
   return dayjs(value).format("DD/MM/YYYY");
 }
 
-function formatQty(value: string) {
-  return Number(value).toLocaleString("th-TH", { maximumFractionDigits: 3 });
+function formatQty(value: string, lang: "th" | "en") {
+  return formatNumber(Number(value), lang, 3);
 }
 
 /** ร่าง กับ ที่ถูกส่งกลับแก้ไข ทำอย่างเดียวกันได้ — ตรงกับ guard ฝั่ง backend */
@@ -80,6 +80,8 @@ function statusClass(status: string) {
 
 export default function PurchaseRequestDetailPage({ id }: Props) {
   const router = useRouter();
+  const t = useT();
+  const lang = useLanguage();
   const { modal } = App.useApp();
   const query = usePurchaseRequestQuery(id);
   const submitMutation = useSubmitPurchaseRequestMutation();
@@ -131,7 +133,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลดรายละเอียดใบขอซื้อ...
+        <Spin /> {t("กำลังโหลดรายละเอียดใบขอซื้อ...")}
       </div>
     );
   }
@@ -139,9 +141,9 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบขอซื้อ
+        {t("ไม่พบใบขอซื้อ")}
         <div style={{ marginTop: 12 }}>
-          <Link href="/purchase-requests">กลับรายการ</Link>
+          <Link href="/purchase-requests">{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -153,9 +155,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
     rejectMutation.isPending ||
     cancelMutation.isPending;
 
-  const statusLabel =
-    PURCHASE_REQUEST_STATUS_LABEL[data.status as PurchaseRequestStatus] ??
-    data.status;
+  const statusLabel = purchaseRequestStatusLabel(data.status, lang);
 
   const printPdf = async () => {
     const { generatePurchaseRequestPdf } = await import(
@@ -184,18 +184,19 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
         eyebrow="Purchase Request"
         icon={<FileTextOutlined />}
         title={data.prNo}
-        subtitle={<>{data.purchaseRequestType?.nameTh ?? "ใบขอซื้อ"} ·{" "}
-            {formatDate(data.prDate)} · {data.items?.length ?? 0} รายการ</>}
+        subtitle={<>{data.purchaseRequestType?.nameTh ?? t("ใบขอซื้อ")} ·{" "}
+            {formatDate(data.prDate)} ·{" "}
+            {t("{n} รายการ", { n: data.items?.length ?? 0 })}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push("/purchase-requests")}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           <Button icon={<FilePdfOutlined />} onClick={printPdf}>
-            พิมพ์ PDF
+            {t("พิมพ์ PDF")}
           </Button>
           </>
         }
@@ -205,25 +206,25 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.prNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่ขอซื้อ</span>
+                <span className={styles.metaLabel}>{t("วันที่ขอซื้อ")}</span>
                 <div className={styles.metaValue}>{formatDate(data.prDate)}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้ขอซื้อ</span>
+                <span className={styles.metaLabel}>{t("ผู้ขอซื้อ")}</span>
                 <div className={styles.metaValue}>
                   {data.requestedBy?.displayName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ประเภท</span>
+                <span className={styles.metaLabel}>{t("ประเภท")}</span>
                 <div className={styles.metaValue}>
                   {data.purchaseRequestType
                     ? `${data.purchaseRequestType.code} — ${data.purchaseRequestType.nameTh}`
@@ -231,15 +232,15 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ส่วนงาน</span>
+                <span className={styles.metaLabel}>{t("ส่วนงาน")}</span>
                 <div className={styles.metaValue}>
                   {data.department
                     ? `${data.department.code} — ${data.department.nameTh}`
-                    : "ไม่ระบุ"}
+                    : t("ไม่ระบุ")}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>อัปเดตล่าสุด</span>
+                <span className={styles.metaLabel}>{t("อัปเดตล่าสุด")}</span>
                 <div className={styles.metaValue}>
                   {dayjs(data.updatedAt).format("DD/MM/YYYY HH:mm")}
                 </div>
@@ -249,18 +250,18 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>วัตถุประสงค์</h2>
+              <h2 className={styles.sectionTitle}>{t("วัตถุประสงค์")}</h2>
             </div>
             <p className={styles.textBlock}>
-              {data.objective?.trim() || "ไม่ระบุ"}
+              {data.objective?.trim() || t("ไม่ระบุ")}
             </p>
           </div>
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการสินค้า</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการสินค้า")}</h2>
               <p className={styles.sectionHint}>
-                {data.items?.length ?? 0} รายการ
+                {t("{n} รายการ", { n: data.items?.length ?? 0 })}
               </p>
             </div>
             <div className={styles.itemList}>
@@ -277,13 +278,17 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                     </p>
                     <div className={styles.itemMeta}>
                       <span>
-                        ต้องการภายใน {formatDate(item.requiredDate)}
+                        {t("ต้องการภายใน {date}", {
+                          date: formatDate(item.requiredDate),
+                        })}
                       </span>
-                      {item.remark ? <span>หมายเหตุ: {item.remark}</span> : null}
+                      {item.remark ? <span>
+                          {t("หมายเหตุ")}: {item.remark}
+                        </span> : null}
                       {/* ใบเดียวแตกเป็นหลายใบสั่งซื้อได้ จึงบอกเป็นรายบรรทัด */}
                       {item.orderedPurchaseOrder ? (
                         <span>
-                          สั่งซื้อแล้วใน{" "}
+                          {t("สั่งซื้อแล้วใน")}{" "}
                           <Link
                             href={`/purchase-orders/${item.orderedPurchaseOrder.id}`}
                           >
@@ -291,12 +296,12 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                           </Link>
                         </span>
                       ) : (
-                        <span>ยังไม่ได้สั่งซื้อ</span>
+                        <span>{t("ยังไม่ได้สั่งซื้อ")}</span>
                       )}
                     </div>
                   </div>
                   <div className={styles.itemQty}>
-                    <strong>{formatQty(item.quantity)}</strong>
+                    <strong>{formatQty(item.quantity, lang)}</strong>
                     <span>{item.unitNameTh ?? item.unitCode ?? "—"}</span>
                   </div>
                 </div>
@@ -307,7 +312,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
           {documentHtmlIsEmpty(data.remark) ? null : (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
               </div>
               <DocumentHtmlView html={data.remark} />
             </div>
@@ -316,7 +321,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.prNo}</h2>
           </div>
 
@@ -326,16 +331,16 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>ผู้ขอ</span>
+              <span>{t("ผู้ขอ")}</span>
               <strong>{data.requestedBy?.displayName ?? "—"}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>วันที่</span>
+              <span>{t("วันที่")}</span>
               <strong>{formatDate(data.prDate)}</strong>
             </div>
             <div className={styles.sideRow}>
-              <span>รายการ</span>
-              <strong>{data.items?.length ?? 0} รายการ</strong>
+              <span>{t("รายการ")}</span>
+              <strong>{t("{n} รายการ", { n: data.items?.length ?? 0 })}</strong>
             </div>
           </div>
 
@@ -343,7 +348,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
               (เหตุผลที่ปฏิเสธยังอยู่ในหมายเหตุเหมือนเดิม) */}
           {data.rejectedReason ? (
             <div className={styles.flowNote}>
-              <strong>ผู้อนุมัติส่งกลับให้แก้ไข</strong>
+              <strong>{t("ผู้อนุมัติส่งกลับให้แก้ไข")}</strong>
               <p style={{ margin: "6px 0 0" }}>{data.rejectedReason}</p>
             </div>
           ) : null}
@@ -358,7 +363,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() => submitMutation.mutate(data.id)}
                 >
-                  ส่งอนุมัติ
+                  {t("ส่งอนุมัติ")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -367,7 +372,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                     router.push(`/purchase-requests/${data.id}/edit`)
                   }
                 >
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -375,12 +380,12 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันยกเลิกใบขอซื้อ?",
+                      title: t("ยืนยันยกเลิกใบขอซื้อ?"),
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  ยกเลิกเอกสาร
+                  {t("ยกเลิกเอกสาร")}
                 </Button>
               </>
             ) : null}
@@ -396,7 +401,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                       loading={busy}
                       onClick={() => approveMutation.mutate(data.id)}
                     >
-                      อนุมัติ
+                      {t("อนุมัติ")}
                     </Button>
                     <Button
                       className={styles.secondaryBtn}
@@ -408,7 +413,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                         setRejectOpen(true);
                       }}
                     >
-                      ส่งกลับแก้ไข
+                      {t("ส่งกลับแก้ไข")}
                     </Button>
                     <Button
                       className={styles.secondaryBtn}
@@ -421,7 +426,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                         setRejectOpen(true);
                       }}
                     >
-                      ไม่อนุมัติ
+                      {t("ไม่อนุมัติ")}
                     </Button>
                   </>
                 ) : null}
@@ -431,12 +436,12 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันยกเลิกใบขอซื้อ?",
+                      title: t("ยืนยันยกเลิกใบขอซื้อ?"),
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  ยกเลิกเอกสาร
+                  {t("ยกเลิกเอกสาร")}
                 </Button>
               </>
             ) : null}
@@ -452,7 +457,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                       icon={<ShoppingCartOutlined />}
                       onClick={() => router.push(`/purchase-orders/${po.id}`)}
                     >
-                      ดูใบสั่งซื้อ ({po.poNo})
+                      {t("ดูใบสั่งซื้อ")} ({po.poNo})
                     </Button>
                   ))}
                   {hasUnorderedItems ? (
@@ -461,7 +466,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                       icon={<ShoppingCartOutlined />}
                       onClick={() => router.push("/purchase-orders")}
                     >
-                      สั่งซื้อรายการที่เหลือ
+                      {t("สั่งซื้อรายการที่เหลือ")}
                     </Button>
                   ) : null}
                 </>
@@ -471,7 +476,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
                   icon={<ShoppingCartOutlined />}
                   onClick={() => router.push("/purchase-orders")}
                 >
-                  ไปที่ใบสั่งซื้อ
+                  {t("ไปที่ใบสั่งซื้อ")}
                 </Button>
               ) : null
             ) : null}
@@ -481,7 +486,7 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
               icon={<FilePdfOutlined />}
               onClick={printPdf}
             >
-              พิมพ์ PDF
+              {t("พิมพ์ PDF")}
             </Button>
           </div>
 
@@ -520,8 +525,8 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
       <Modal
         title={
           reviewAction === "reject"
-            ? "ไม่อนุมัติใบขอซื้อ"
-            : "ส่งกลับให้ผู้ขอแก้ไข"
+            ? t("ไม่อนุมัติใบขอซื้อ")
+            : t("ส่งกลับให้ผู้ขอแก้ไข")
         }
         open={rejectOpen}
         onCancel={() => setRejectOpen(false)}
@@ -536,16 +541,18 @@ export default function PurchaseRequestDetailPage({ id }: Props) {
           setRejectReason("");
         }}
         confirmLoading={rejectMutation.isPending || returnMutation.isPending}
-        okText={reviewAction === "reject" ? "ไม่อนุมัติ" : "ส่งกลับแก้ไข"}
-        cancelText="ยกเลิก"
+        okText={
+          reviewAction === "reject" ? t("ไม่อนุมัติ") : t("ส่งกลับแก้ไข")
+        }
+        cancelText={t("ยกเลิก")}
         okButtonProps={{ danger: reviewAction === "reject" }}
       >
         <Input.TextArea
           rows={3}
           placeholder={
             reviewAction === "reject"
-              ? "เหตุผลที่ไม่อนุมัติ (ถ้ามี)"
-              : "สิ่งที่ต้องแก้ไข (ถ้ามี)"
+              ? t("เหตุผลที่ไม่อนุมัติ (ถ้ามี)")
+              : t("สิ่งที่ต้องแก้ไข (ถ้ามี)")
           }
           value={rejectReason}
           onChange={(e) => setRejectReason(e.target.value)}

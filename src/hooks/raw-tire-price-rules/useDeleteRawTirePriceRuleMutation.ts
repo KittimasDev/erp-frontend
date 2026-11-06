@@ -3,6 +3,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
+import { useT } from "@/lib/i18n/useT";
+
 import { deleteRawTirePriceRule } from "@/lib/api/raw-tire-price-rules";
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/token";
@@ -11,6 +13,7 @@ import { rawTirePriceRulesQueryKey } from "./useRawTirePriceRulesQuery";
 export function useDeleteRawTirePriceRuleMutation() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
+  const t = useT();
 
   return useMutation({
     mutationKey: ["master-data", "raw-tire-price-rules", "delete"],
@@ -19,13 +22,13 @@ export function useDeleteRawTirePriceRuleMutation() {
       await queryClient.invalidateQueries({
         queryKey: rawTirePriceRulesQueryKey,
       });
-      message.success(response.message || "ลบกฎราคาซื้อยางสำเร็จแล้ว");
+      message.success(response.message || t("ลบกฎราคาซื้อยางสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
         error instanceof ApiError
           ? error.message
-          : "ลบกฎราคาซื้อยางไม่สำเร็จ",
+          : t("ลบกฎราคาซื้อยางไม่สำเร็จ"),
       );
     },
   });

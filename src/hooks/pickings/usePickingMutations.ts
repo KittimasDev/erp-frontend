@@ -20,6 +20,7 @@ import { invalidateSalesOrderFlowQueries } from "@/hooks/sales-orders/invalidate
 import { notificationsQueryKey } from "@/hooks/notifications/useNotificationsQueries";
 
 import { pickingsQueryKey } from "./usePickingsQuery";
+import { useT } from "@/lib/i18n/useT";
 
 function useInvalidate() {
   const qc = useQueryClient();
@@ -31,6 +32,7 @@ function useInvalidate() {
 }
 
 export function useCreatePickingFromSalesOrderMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
@@ -44,10 +46,10 @@ export function useCreatePickingFromSalesOrderMutation() {
       createPickingFromSalesOrder(getAccessToken(), salesOrderId, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "เปิดใบจ่ายสินค้าแล้ว");
+      message.success(res.message || t("เปิดใบจ่ายสินค้าแล้ว"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("สร้างไม่สำเร็จ")),
   });
 }
 
@@ -58,6 +60,7 @@ export function useCreatePickingFromSalesOrderMutation() {
  * ตรง ๆ เพราะมันบอกจำนวนที่ยังขาดมาให้แล้ว คนจะเอาไปเปิดใบขอผลิตต่อได้
  */
 export function useCreatePickingFromScheduleMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
@@ -70,14 +73,15 @@ export function useCreatePickingFromScheduleMutation() {
     }) => createPickingFromDeliverySchedule(getAccessToken(), scheduleId, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "เปิดใบจ่ายสินค้าแล้ว");
+      message.success(res.message || t("เปิดใบจ่ายสินค้าแล้ว"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "สร้างไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("สร้างไม่สำเร็จ")),
   });
 }
 
 export function useUpdatePickingMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
@@ -85,37 +89,39 @@ export function useUpdatePickingMutation() {
       updatePicking(getAccessToken(), id, body),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "บันทึกสำเร็จ");
+      message.success(res.message || t("บันทึกสำเร็จ"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "บันทึกไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("บันทึกไม่สำเร็จ")),
   });
 }
 
 export function useConfirmPickingMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (id: string) => confirmPicking(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยืนยันและตัดสต๊อกสำเร็จ");
+      message.success(res.message || t("ยืนยันและตัดสต๊อกสำเร็จ"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "ยืนยันไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("ยืนยันไม่สำเร็จ")),
   });
 }
 
 export function useCancelPickingMutation() {
+  const t = useT();
   const { message } = App.useApp();
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: (id: string) => cancelPicking(getAccessToken(), id),
     onSuccess: async (res) => {
       await invalidate();
-      message.success(res.message || "ยกเลิกสำเร็จ");
+      message.success(res.message || t("ยกเลิกสำเร็จ"));
     },
     onError: (e: Error) =>
-      message.error(e instanceof ApiError ? e.message : "ยกเลิกไม่สำเร็จ"),
+      message.error(e instanceof ApiError ? e.message : t("ยกเลิกไม่สำเร็จ")),
   });
 }

@@ -19,6 +19,8 @@ import {
 
 import { sanitizeDocumentHtml } from "@/lib/html/sanitize-document-html";
 
+import { useT } from "@/lib/i18n/useT";
+
 import styles from "./DocumentHtmlEditor.module.css";
 
 type Props = {
@@ -71,6 +73,7 @@ export default function DocumentHtmlEditor({
   ariaLabel,
   placeholder,
 }: Props) {
+  const t = useT();
   const surfaceRef = useRef<HTMLDivElement>(null);
   const focusedRef = useRef(false);
 
@@ -152,13 +155,13 @@ export default function DocumentHtmlEditor({
   return (
     <div className={styles.wrap}>
       {disabled ? null : (
-        <div className={styles.toolbar} role="toolbar" aria-label="จัดรูปแบบข้อความ">
+        <div className={styles.toolbar} role="toolbar" aria-label={t("จัดรูปแบบข้อความ")}>
           <div className={styles.group}>
             <Button
               type="text"
               size="small"
               icon={<BoldOutlined />}
-              aria-label="ตัวหนา"
+              aria-label={t("ตัวหนา")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("bold");
@@ -168,7 +171,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<ItalicOutlined />}
-              aria-label="ตัวเอียง"
+              aria-label={t("ตัวเอียง")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("italic");
@@ -178,7 +181,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<UnderlineOutlined />}
-              aria-label="ขีดเส้นใต้"
+              aria-label={t("ขีดเส้นใต้")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("underline");
@@ -188,7 +191,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<StrikethroughOutlined />}
-              aria-label="ขีดฆ่า"
+              aria-label={t("ขีดฆ่า")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("strikeThrough");
@@ -201,7 +204,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               className={styles.headingBtn}
-              aria-label="หัวข้อใหญ่"
+              aria-label={t("หัวข้อใหญ่")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 applyBlock("h1");
@@ -213,7 +216,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               className={styles.headingBtn}
-              aria-label="หัวข้อรอง"
+              aria-label={t("หัวข้อรอง")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 applyBlock("h2");
@@ -228,7 +231,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<UnorderedListOutlined />}
-              aria-label="รายการหัวข้อ"
+              aria-label={t("รายการหัวข้อ")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("insertUnorderedList");
@@ -238,7 +241,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<OrderedListOutlined />}
-              aria-label="รายการลำดับ"
+              aria-label={t("รายการลำดับ")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("insertOrderedList");
@@ -248,7 +251,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<CheckSquareOutlined />}
-              aria-label="เช็กลิสต์"
+              aria-label={t("เช็กลิสต์")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 applyChecklist();
@@ -261,7 +264,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<AlignLeftOutlined />}
-              aria-label="จัดชิดซ้าย"
+              aria-label={t("จัดชิดซ้าย")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("justifyLeft");
@@ -271,7 +274,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<AlignCenterOutlined />}
-              aria-label="จัดกึ่งกลาง"
+              aria-label={t("จัดกึ่งกลาง")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("justifyCenter");
@@ -281,7 +284,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<AlignRightOutlined />}
-              aria-label="จัดชิดขวา"
+              aria-label={t("จัดชิดขวา")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("justifyRight");
@@ -291,7 +294,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<JustifyAlignIcon />}
-              aria-label="จัดชิดเสม่อ"
+              aria-label={t("จัดชิดเสม่อ")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 apply("justifyFull");
@@ -304,7 +307,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<CodeOutlined />}
-              aria-label="โค้ด"
+              aria-label={t("โค้ด")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 applyBlock("pre");
@@ -317,7 +320,7 @@ export default function DocumentHtmlEditor({
               type="text"
               size="small"
               icon={<ClearOutlined />}
-              aria-label="ล้างรูปแบบ"
+              aria-label={t("ล้างรูปแบบ")}
               onMouseDown={(event) => {
                 event.preventDefault();
                 clearFormatting();

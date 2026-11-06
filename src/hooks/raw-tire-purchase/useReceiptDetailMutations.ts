@@ -16,6 +16,7 @@ import { weighbridgeDashboardQueryKey } from "@/hooks/weighbridge-tickets/useWei
 import { weighbridgeTicketQueryKey } from "@/hooks/weighbridge-tickets/useWeighbridgeTicketQuery";
 import { ticketClassificationQueryKey } from "@/hooks/raw-tire-classification/useTicketClassificationQuery";
 import { rawTirePurchaseReceiptQueryKey } from "./useRawTirePurchaseReceiptQuery";
+import { useT } from "@/lib/i18n/useT";
 
 function invalidateReceipt(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -52,6 +53,7 @@ function invalidateReceipt(
 }
 
 export function useConfirmReceiptMutation(receiptId: string, ticketId?: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -65,11 +67,11 @@ export function useConfirmReceiptMutation(receiptId: string, ticketId?: string) 
         receiptId,
         ticketId ?? response.data.weighbridgeTicketId,
       );
-      message.success(response.message || "ยืนยันใบรับซื้อสำเร็จแล้ว");
+      message.success(response.message || t("ยืนยันใบรับซื้อสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยืนยันใบรับซื้อไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยืนยันใบรับซื้อไม่สำเร็จ"),
       );
     },
   });
@@ -79,6 +81,7 @@ export function useCancelReceiptDetailMutation(
   receiptId: string,
   ticketId?: string,
 ) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -92,17 +95,18 @@ export function useCancelReceiptDetailMutation(
         receiptId,
         ticketId ?? response.data.weighbridgeTicketId,
       );
-      message.success(response.message || "ยกเลิกใบรับซื้อสำเร็จแล้ว");
+      message.success(response.message || t("ยกเลิกใบรับซื้อสำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "ยกเลิกใบรับซื้อไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("ยกเลิกใบรับซื้อไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function useRecalculateReceiptTotalsMutation(receiptId: string) {
+  const t = useT();
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
@@ -112,17 +116,18 @@ export function useRecalculateReceiptTotalsMutation(receiptId: string) {
       recalculateRawTirePurchaseReceiptTotals(getAccessToken(), receiptId),
     onSuccess: async (response) => {
       await invalidateReceipt(queryClient, receiptId);
-      message.success(response.message || "คำนวณยอดรวมใหม่สำเร็จแล้ว");
+      message.success(response.message || t("คำนวณยอดรวมใหม่สำเร็จแล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "คำนวณยอดรวมใหม่ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("คำนวณยอดรวมใหม่ไม่สำเร็จ"),
       );
     },
   });
 }
 
 export function usePrintPreviewMutation(receiptId: string) {
+  const t = useT();
   const { message } = App.useApp();
 
   return useMutation({
@@ -132,16 +137,16 @@ export function usePrintPreviewMutation(receiptId: string) {
     onSuccess: (response) => {
       const win = window.open("", "_blank", "noopener,noreferrer");
       if (!win) {
-        message.warning("ไม่สามารถเปิดหน้าต่างพิมพ์ได้ กรุณาอนุญาต popup");
+        message.warning(t("ไม่สามารถเปิดหน้าต่างพิมพ์ได้ กรุณาอนุญาต popup"));
         return;
       }
       win.document.write(response.data.previewHtml);
       win.document.close();
-      message.success(response.message || "เปิดตัวอย่างพิมพ์แล้ว");
+      message.success(response.message || t("เปิดตัวอย่างพิมพ์แล้ว"));
     },
     onError: (error: Error) => {
       message.error(
-        error instanceof ApiError ? error.message : "เปิดตัวอย่างพิมพ์ไม่สำเร็จ",
+        error instanceof ApiError ? error.message : t("เปิดตัวอย่างพิมพ์ไม่สำเร็จ"),
       );
     },
   });

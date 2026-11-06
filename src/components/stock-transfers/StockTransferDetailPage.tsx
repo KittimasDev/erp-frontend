@@ -12,6 +12,8 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
+import { useT } from "@/lib/i18n/useT";
+
 import {
   readWarehouseGroup,
   withWarehouseGroup,
@@ -23,6 +25,7 @@ import {
 import { useScreenActionPermissions } from "@/hooks/auth/useScreenActionPermissions";
 import { useStockTransferQuery } from "@/hooks/stock-transfers/useStockTransfersQuery";
 import { STOCK_TRANSFER_STATUS_LABEL } from "@/types/stock-transfers";
+import { tStockLabel } from "@/types/stock-adjustments";
 import styles from "./StockTransferDetailPage.module.css";
 import PageHeader from "@/components/common/PageHeader";
 
@@ -45,6 +48,7 @@ function statusClass(status: string) {
 }
 
 export default function StockTransferDetailPage({ id }: Props) {
+  const t = useT();
   const router = useRouter();
   const warehouseGroup = readWarehouseGroup(useSearchParams());
   const scopePath = (path: string) => withWarehouseGroup(path, warehouseGroup);
@@ -63,7 +67,7 @@ export default function StockTransferDetailPage({ id }: Props) {
   if (query.isLoading) {
     return (
       <div className={styles.stateCard}>
-        <Spin /> กำลังโหลด...
+        <Spin /> {t("กำลังโหลด...")}
       </div>
     );
   }
@@ -71,9 +75,9 @@ export default function StockTransferDetailPage({ id }: Props) {
   if (!data) {
     return (
       <div className={styles.emptyCard}>
-        ไม่พบใบโอนย้ายสินค้า
+        {t("ไม่พบใบโอนย้ายสินค้า")}
         <div style={{ marginTop: 12 }}>
-          <Link href={scopePath("/inventory/stock-transfers")}>กลับรายการ</Link>
+          <Link href={scopePath("/inventory/stock-transfers")}>{t("กลับรายการ")}</Link>
         </div>
       </div>
     );
@@ -87,14 +91,14 @@ export default function StockTransferDetailPage({ id }: Props) {
         eyebrow="Stock Transfer"
         icon={<SwapOutlined />}
         title={data.transferNo}
-        subtitle={<>{formatDate(data.transferDate)} · {data.items?.length ?? 0} รายการ</>}
+        subtitle={<>{formatDate(data.transferDate)} · {data.items?.length ?? 0} {t("รายการ")}</>}
         actions={
           <>
 <Button
             icon={<ArrowLeftOutlined />}
             onClick={() => router.push(scopePath("/inventory/stock-transfers"))}
           >
-            กลับ
+            {t("กลับ")}
           </Button>
           </>
         }
@@ -104,37 +108,37 @@ export default function StockTransferDetailPage({ id }: Props) {
         <section className={styles.mainCard}>
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>ข้อมูลเอกสาร</h2>
+              <h2 className={styles.sectionTitle}>{t("ข้อมูลเอกสาร")}</h2>
             </div>
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>เลขที่</span>
+                <span className={styles.metaLabel}>{t("เลขที่")}</span>
                 <div className={styles.metaValue}>{data.transferNo}</div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>วันที่โอนย้าย</span>
+                <span className={styles.metaLabel}>{t("วันที่โอนย้าย")}</span>
                 <div className={styles.metaValue}>
                   {formatDate(data.transferDate)}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้ขอโอนย้าย</span>
+                <span className={styles.metaLabel}>{t("ผู้ขอโอนย้าย")}</span>
                 <div className={styles.metaValue}>
                   {data.requestedBy?.displayName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ผู้อนุมัติ</span>
+                <span className={styles.metaLabel}>{t("ผู้อนุมัติ")}</span>
                 <div className={styles.metaValue}>
                   {data.approvedBy?.displayName ?? "—"}
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>ตัด/เพิ่มสต๊อกเมื่อ</span>
+                <span className={styles.metaLabel}>{t("ตัด/เพิ่มสต๊อกเมื่อ")}</span>
                 <div className={styles.metaValue}>
                   {data.postedAt
                     ? dayjs(data.postedAt).format("DD/MM/YYYY HH:mm")
-                    : "ยังไม่โอนย้าย"}
+                    : t("ยังไม่โอนย้าย")}
                 </div>
               </div>
             </div>
@@ -142,7 +146,7 @@ export default function StockTransferDetailPage({ id }: Props) {
 
           <div className={styles.section}>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>รายการโอนย้าย</h2>
+              <h2 className={styles.sectionTitle}>{t("รายการโอนย้าย")}</h2>
             </div>
             <div className={styles.itemList}>
               {(data.items ?? []).map((item, index) => (
@@ -182,7 +186,7 @@ export default function StockTransferDetailPage({ id }: Props) {
           {data.remark ? (
             <div className={styles.section}>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>หมายเหตุ</h2>
+                <h2 className={styles.sectionTitle}>{t("หมายเหตุ")}</h2>
               </div>
               <p className={styles.textBlock}>{data.remark}</p>
             </div>
@@ -191,16 +195,18 @@ export default function StockTransferDetailPage({ id }: Props) {
 
         <aside className={styles.sideCard}>
           <div>
-            <p className={styles.sideEyebrow}>สถานะเอกสาร</p>
+            <p className={styles.sideEyebrow}>{t("สถานะเอกสาร")}</p>
             <h2 className={styles.sideTitle}>{data.transferNo}</h2>
           </div>
           <div className={`${styles.statusPill} ${statusClass(data.status)}`}>
-            {STOCK_TRANSFER_STATUS_LABEL[data.status] ?? data.status}
+            {STOCK_TRANSFER_STATUS_LABEL[data.status]
+              ? tStockLabel(STOCK_TRANSFER_STATUS_LABEL[data.status])
+              : data.status}
           </div>
 
           <div className={styles.sideRows}>
             <div className={styles.sideRow}>
-              <span>รายการ</span>
+              <span>{t("รายการ")}</span>
               <strong>{data.items?.length ?? 0}</strong>
             </div>
           </div>
@@ -214,14 +220,15 @@ export default function StockTransferDetailPage({ id }: Props) {
                 loading={busy}
                 onClick={() =>
                   modal.confirm({
-                    title: "อนุมัติใบโอนย้ายสินค้าและตัด+เพิ่มสต๊อก?",
-                    content:
+                    title: t("อนุมัติใบโอนย้ายสินค้าและตัด+เพิ่มสต๊อก?"),
+                    content: t(
                       "ยืนยันแล้วจะลดสต๊อกต้นทางและเพิ่มสต๊อกปลายทางตาม Lot ที่เลือก และแก้เอกสารไม่ได้",
+                    ),
                     onOk: () => approveMutation.mutateAsync(data.id),
                   })
                 }
               >
-                อนุมัติและโอนย้ายสต๊อก
+                {t("อนุมัติและโอนย้ายสต๊อก")}
               </Button>
             ) : null}
             {canRequest && data.status === "DRAFT" ? (
@@ -233,7 +240,7 @@ export default function StockTransferDetailPage({ id }: Props) {
                     router.push(scopePath(`/inventory/stock-transfers/${data.id}/edit`))
                   }
                 >
-                  แก้ไข
+                  {t("แก้ไข")}
                 </Button>
                 <Button
                   className={styles.secondaryBtn}
@@ -241,12 +248,12 @@ export default function StockTransferDetailPage({ id }: Props) {
                   loading={busy}
                   onClick={() =>
                     modal.confirm({
-                      title: "ยืนยันยกเลิกใบโอนย้ายสินค้า?",
+                      title: t("ยืนยันยกเลิกใบโอนย้ายสินค้า?"),
                       onOk: () => cancelMutation.mutateAsync(data.id),
                     })
                   }
                 >
-                  ยกเลิกเอกสาร
+                  {t("ยกเลิกเอกสาร")}
                 </Button>
               </>
             ) : null}
