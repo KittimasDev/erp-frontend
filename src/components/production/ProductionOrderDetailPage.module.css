@@ -161,6 +161,70 @@
   font-weight: 500;
 }
 
+.summaryCardHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.summaryIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #eef3df;
+  color: #739816;
+  font-size: 22px;
+}
+
+.summaryCardTitle {
+  color: var(--unit-gray-dark);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.summaryRows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summaryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f7f7f5;
+}
+
+.summaryRowName {
+  color: var(--unit-gray-dark);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.summaryRowMeta {
+  color: var(--unit-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.summaryRowValue {
+  color: #739816;
+  font-size: 20px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .workSubTabs {
   margin-top: 4px;
 }

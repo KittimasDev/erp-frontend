@@ -22,8 +22,11 @@ import {
   Typography,
 } from "antd";
 import {
+  AppstoreOutlined,
   ArrowLeftOutlined,
   CheckOutlined,
+  InboxOutlined,
+  SettingOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
 } from "@ant-design/icons";
@@ -836,6 +839,90 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
               <div className={styles.sectionHead}>
                 <h3>สรุปผลการผลิต</h3>
               </div>
+              {multiOutput ? (
+                <div className={styles.summaryGrid}>
+                  <div className={styles.summaryCard}>
+                    <div className={styles.summaryCardHead}>
+                      <span className={styles.summaryIcon}>
+                        <AppstoreOutlined />
+                      </span>
+                      <span className={styles.summaryCardTitle}>ผลผลิตแยกตามสินค้า</span>
+                    </div>
+                    <ul className={styles.summaryRows}>
+                      {outputTotals.map((line) => (
+                        <li
+                          key={`${line.itemId}-${line.unitCode ?? ""}`}
+                          className={styles.summaryRow}
+                        >
+                          <span className={styles.summaryRowName}>
+                            {line.itemNameTh || line.itemCode || line.itemId}
+                          </span>
+                          <span className={styles.summaryRowMeta}>
+                            แผน {fmt(line.plannedQty)} {line.unitCode ?? ""}
+                            {" · "}
+                            เข้าคลัง {fmt(line.actualQty)} {line.unitCode ?? ""}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className={styles.summaryCard}>
+                    <div className={styles.summaryCardHead}>
+                      <span className={styles.summaryIcon}>
+                        <SettingOutlined />
+                      </span>
+                      <span className={styles.summaryCardTitle}>ผลิตจากกะที่ยืนยันแล้ว</span>
+                    </div>
+                    <ul className={styles.summaryRows}>
+                      {reconcile.map((r) => (
+                        <li key={`${r.itemId}-${r.unitId}`} className={styles.summaryRow}>
+                          <span className={styles.summaryRowName}>
+                            {r.itemNameTh || r.itemCode || r.itemId}
+                          </span>
+                          <span className={styles.summaryRowValue}>
+                            {reconcileApplicable
+                              ? `${fmt(r.confirmedShiftQty)} ${r.unitCode ?? ""}`.trim()
+                              : "—"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className={styles.summaryCard}>
+                    <div className={styles.summaryCardHead}>
+                      <span className={styles.summaryIcon}>
+                        <InboxOutlined />
+                      </span>
+                      <span className={styles.summaryCardTitle}>รอรับเข้าคลัง</span>
+                    </div>
+                    <ul className={styles.summaryRows}>
+                      {reconcile.map((r) => (
+                        <li key={`${r.itemId}-${r.unitId}`} className={styles.summaryRow}>
+                          <span className={styles.summaryRowName}>
+                            {r.itemNameTh || r.itemCode || r.itemId}
+                          </span>
+                          <span className={styles.summaryRowValue}>
+                            {reconcileApplicable
+                              ? `${fmt(r.pendingQty)} ${r.unitCode ?? ""}`.trim()
+                              : "—"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {anomalyLines.length > 0 ? (
+                      <Typography.Text type="danger" style={{ fontSize: 12 }}>
+                        ผิดปกติ: รับเข้าคลังมากกว่ากะที่ยืนยัน{" "}
+                        {anomalyLines
+                          .map(
+                            (r) =>
+                              `${r.itemCode ?? r.itemId} +${fmt(r.excessQty)} ${r.unitCode ?? ""}`.trim(),
+                          )
+                          .join(", ")}
+                      </Typography.Text>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
               <div className={styles.summaryGrid}>
                 {multiOutput ? (
                   <div className={`${styles.summaryCard} ${styles.summaryCardWide}`}>
@@ -969,6 +1056,7 @@ export default function ProductionOrderDetailPage({ orderId }: Props) {
                 </>
                 )}
               </div>
+              )}
             </div>
 
             <div className={styles.section}>
